@@ -42,10 +42,17 @@ for await (const line of rl) {
   if (!header) {
     header = line.split('\t');
     idx = Object.fromEntries(header.map((name, index) => [name, index]));
-    for (const required of ['rank', 'form', 'normalized_form', 'usage_score']) {
+    for (const required of [
+      'rank',
+      'form',
+      'normalized_form',
+      'usage_score',
+      'combined_count',
+      'source_count',
+    ]) {
       if (!(required in idx)) throw new Error(`Usage ranking missing required column: ${required}`);
     }
-    await writeLine('rank\tform\tnormalized_form\tusage_score');
+    await writeLine('rank\tform\tnormalized_form\tusage_score\tcombined_count\tsource_count');
     continue;
   }
 
@@ -54,11 +61,13 @@ for await (const line of rl) {
   const form = columns[idx.form] || '';
   const normalized = columns[idx.normalized_form] || '';
   const score = columns[idx.usage_score] || '';
+  const combinedCount = columns[idx.combined_count] || '0';
+  const sourceCount = columns[idx.source_count] || '0';
   if (!Number.isInteger(rank) || rank < 1 || !form || !normalized) continue;
   if (rank !== expectedRank) {
     throw new Error(`Usage ranks must be contiguous while compacting: expected ${expectedRank}, got ${rank}`);
   }
-  await writeLine(`${rank}\t${form}\t${normalized}\t${score}`);
+  await writeLine(`${rank}\t${form}\t${normalized}\t${score}\t${combinedCount}\t${sourceCount}`);
   rows += 1;
   expectedRank += 1;
   if (rows % 250000 === 0) {
