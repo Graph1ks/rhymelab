@@ -70,7 +70,7 @@ Accepted v2/v4 outputs remain unchanged.
 
 ## Phase 8 — Writer Page Benchmark v2 — structural baseline passed / human reference pending
 
-Frozen owner-local baseline:
+Frozen owner-local validation baseline:
 
 ```text
 status                              structural_ok_reference_pending
@@ -89,7 +89,7 @@ preferred pronunciation rows        240 / 240
 legacy tier-0 retention             685 / 685
 ```
 
-Permanent regressions include `Arbeitsweise -> Hochzeitsreise` rank 120/perfect writer-anchor class, `right:reise` through `Weiterreise` rank 3, `Liebe -> Diebe` rank 1, `Leben -> neben` rank 2 and `Nacht -> macht` rank 1.
+`Arbeitsweise -> Hochzeitsreise` is a retrieval sentinel with `max_rank: 250`, not a Top-20 surfacing guard. `Arbeitsweise -> right:reise` is the Top-20 family surfacing gate. `Liebe -> Diebe`, `Leben -> neben` and `Nacht -> macht` remain protected.
 
 NDCG@10/20 remains `pending_reference` until complete independent human usefulness labels cover the relevant writer cutoffs.
 
@@ -97,60 +97,86 @@ NDCG@10/20 remains `pending_reference` until complete independent human usefulne
 
 ### 9A. Accepted legacy control-path invariance — complete
 
-Owner-local runtime gate passed 27/27 queries with no missing queries, runtime candidate mismatches, runtime-policy mismatches or protected-order mismatches. Newly surfaced candidates were safety-clean. Historical reference assets were unavailable, so reference metrics are intentionally absent.
+Owner-local runtime gate passed 27/27 queries with no missing queries, runtime candidate mismatches, runtime-policy mismatches or protected-order mismatches. Historical reference assets were unavailable, so reference metrics are intentionally absent.
 
-### 9B. Multi-analysis publish/storage — real-data build complete
+### 9B. Multi-analysis publish/storage — complete
 
 Publish-v3 / DB-v5 builder migration is complete and real-data counts are internally consistent. Accepted v2/v4 defaults remain unchanged.
 
-### 9C. Compact right-edge + morphology materialization — owner gate passed
+### 9C. Compact right-edge + morphology materialization — complete
 
-The first correct materialization was storage-rejected at 1,904.67 MiB. Compact storage keeps policy semantics unchanged while removing redundant per-row metadata, duplicate JSON and indexes.
-
-Owner compact result:
-
-```text
-DB-v5 before materialization       727.21 MiB
-final compact DB-v5                816.88 MiB
-compact writer delta                89.67 MiB
-writer_anchor                        57.54 MiB
-writer_morphology_evidence           32.13 MiB
-```
-
-The compact writer materialization is 92.38% smaller than the first materialization. Anchor/morphology counts remain unchanged, there are zero freelist pages, and the real lookup plan uses `PRIMARY KEY(anchor_key=?)`.
-
-Storage IDs remain:
+The first correct materialization was storage-rejected at 1,904.67 MiB. Compact storage now uses:
 
 ```text
 anchor storage      compact-primary-key-v2
+anchor candidate    legacy-vowel-key-string-suffix-v1
 anchor PK           (anchor_key, pronunciation_id) WITHOUT ROWID
 morphology storage  positive-evidence-compact-v2
 morphology PK       (form_id, analysis_key) WITHOUT ROWID
 ```
 
-### 9D. Real-data retrieval/morphology equivalence — next
-
-Before runtime rewiring, run the read-only owner gate:
+Final owner result after exact legacy string-suffix rematerialization:
 
 ```text
-npm run benchmark:writer-v5:equivalence
+DB-v5 final                         819.77 MiB
+writer_anchor                        60.43 MiB
+writer_morphology_evidence           32.13 MiB
+anchor pronunciations             904,836
+anchor rows                      3,153,639
+positive morphology rows          325,724
+freelist pages                           0
 ```
 
-Requirements:
+The real lookup plan uses `PRIMARY KEY(anchor_key=?)`.
 
-1. 12/12 frozen Writer Page v2 queries found;
-2. exact ordered candidate-ID equality between old suffix-LIKE and compact indexed lookup for every right-edge channel;
-3. identical union candidate membership;
-4. `Arbeitsweise -> Hochzeitsreise` retained;
-5. all 10 morphology regressions pass from compact multi-analysis evidence;
-6. compact PK query plan confirmed;
-7. retrieval timing recorded for old versus indexed path.
+### 9D. Real-data retrieval/morphology equivalence — complete / PASS
 
-If the report passes, rewire **only the experimental v5 writer runtime** to compact anchors/materialized morphology. Then rerun Writer Page Benchmark v2 and compare page metrics, protected regressions, result quality and latency against the frozen baseline.
+Owner gate result:
 
-Deterministic materialization repeatability must also be established before final promotion.
+```text
+status                              ok
+queries                             12 / 12
+retrieval mismatch queries          0
+morphology regressions              10 / 10 pass
+Hochzeitsreise retrieval sentinel   retained
+old LIKE retrieval total            843.016 ms
+indexed retrieval total              59.694 ms
+retrieval-only speedup                14.12x
+```
 
-Do not modify `findRhymes()` / accepted `ranking=legacy` as part of this phase.
+This proves exact ordered candidate equality for every frozen right-edge channel. The speedup is retrieval-only.
+
+### 9E. Materialized v5 writer runtime benchmark — current gate
+
+Opt-in experimental runtime:
+
+```text
+runtime id          materialized-writer-v5-v1
+anchor retrieval    writer_anchor
+morphology          form_analysis + writer_morphology_evidence
+```
+
+The default v4 writer path remains unchanged. The experimental v5 opener refuses incomplete storage contracts. Multi-analysis runtime reconstruction explicitly preserves converged, unresolved and ambiguous-conflict states.
+
+CI run #168 is green.
+
+Run:
+
+```text
+npm run benchmark:writer-page:v5
+```
+
+Required checks before promotion:
+
+1. all 12 queries actually report `materialized-writer-v5-v1`;
+2. structural gate passes;
+3. Top-10/20 duplicate/family/safety metrics do not regress beyond the frozen gates;
+4. all page and morphology regressions pass;
+5. legacy Tier-0 retention remains acceptable;
+6. full end-to-end mean Writer Page latency is compared with 1528.8 ms;
+7. NDCG remains pending unless complete independent human labels exist.
+
+Do not modify accepted `findRhymes()` / `ranking=legacy` during this phase.
 
 ## Phase 10 — Writer-search acceptance + German single-word stabilization
 
