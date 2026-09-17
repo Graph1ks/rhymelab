@@ -104,7 +104,7 @@ ranking=legacy -> findRhymes(...)
 writer default -> findWriterRhymes(...)
 ```
 
-`src/local-engine.mjs` is currently blob-identical between `main` and the feature branch (`22354f17a0cc36f005daf5b7a8c98bfb1f4bfa96`). That is strong source-level evidence that the accepted local-engine path was not changed by writer-search work.
+`src/local-engine.mjs` is currently blob-identical between `main` and the feature branch. That is strong source-level evidence that the accepted local-engine path was not changed by writer-search work.
 
 The owner-local runtime gate still needs to be rerun on the current DB:
 
