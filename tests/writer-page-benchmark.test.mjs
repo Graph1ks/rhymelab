@@ -67,12 +67,39 @@ test('page regression requires candidate rank, primary class and cheapness gates
     allowed_primary_types: ['perfect'], max_cheap_tier_penalty: 0,
   });
   assert.equal(passed.passed, true);
+  assert.equal(passed.observed.word, 'Diebe');
 
   const failed = evaluatePageRegression(writer, {
     id: 'missing', query: 'Liebe', candidate: 'Krise', max_rank: 5,
   });
   assert.equal(failed.passed, false);
   assert.ok(failed.failures.includes('candidate_missing'));
+});
+
+test('page regression can require a morphology family without overfitting one candidate', () => {
+  const writer = response('Arbeitsweise', [
+    row('Sonderpreise', { writerMorphology: { familyKey: 'right:preis' } }),
+    row('Pilgerreise', { primaryType: 'multisyllabic_perfect', writerMorphology: { familyKey: 'right:reise' } }),
+  ]);
+  const passed = evaluatePageRegression(writer, {
+    id: 'arbeitsweise-reise-family',
+    query: 'Arbeitsweise',
+    required_family: 'right:reise',
+    max_rank: 20,
+    allowed_primary_types: ['multisyllabic_perfect', 'perfect'],
+    max_cheap_tier_penalty: 0,
+  });
+  assert.equal(passed.passed, true);
+  assert.equal(passed.candidate, null);
+  assert.equal(passed.requiredFamily, 'right:reise');
+  assert.equal(passed.observed.word, 'Pilgerreise');
+  assert.equal(passed.observed.rank, 2);
+
+  const failed = evaluatePageRegression(writer, {
+    id: 'missing-family', query: 'Arbeitsweise', required_family: 'right:kreis', max_rank: 20,
+  });
+  assert.equal(failed.passed, false);
+  assert.ok(failed.failures.includes('family_missing'));
 });
 
 test('morphology regression compares family and explicit construction rule', () => {
