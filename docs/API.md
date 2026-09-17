@@ -193,3 +193,64 @@ Human Writer NDCG@10/20 remains `pending_reference` until the broader German Wri
 ## Runtime safety
 
 The server binds to `127.0.0.1` by default. There is no hosted/public API contract and no runtime network dependency in core search.
+
+## Phrase Explorer API — Phase 11B3
+
+The Phrase Explorer is a separate read-only surface over:
+
+```text
+data/local/rhymelab-phrases-v1.sqlite
+```
+
+Override with:
+
+```text
+RHYMELAB_PHRASE_DB
+```
+
+The phrase DB is optional. If it is missing, the promoted Writer runtime still starts normally; phrase endpoints return a clear unavailable status.
+
+### `GET /api/phrases/stats`
+
+Returns phrase-catalog counts plus available Leipzig/register/RUEG statistics and registered source records.
+
+### `GET /api/phrases/search`
+
+Parameters:
+
+- `q=<text>` — normalized substring lookup;
+- `type=all|phrase|idiom|proverb|figurative_expression|multiword_lexeme`;
+- `historical=all` — include historical-only rows;
+- `evidence=all|leipzig|register|rueg`;
+- `limit=<n>` — maximum 250.
+
+This is a data-browser ordering, not the future Phrase Writer ranking policy.
+
+### `GET /api/phrases/detail?id=<phrase-id-or-normalized-surface>`
+
+Returns phrase tokens, source attestations, Leipzig evidence, generic register evidence and up to 100 RUEG `dipl`/`norm` examples when available.
+
+### `GET /api/register/facets`
+
+Returns observed RUEG subcorpus/formality/mode/age-group values from imported metadata.
+
+### `GET /api/register/search`
+
+Parameters:
+
+- `q=<text>`;
+- `layer=both|dipl|norm`;
+- `subcorpus=<value>|all`;
+- `formality=<value>|all`;
+- `mode=<value>|all`;
+- `age=<value>|all`;
+- `limit=<n>`.
+
+The browser UI is served at:
+
+```text
+http://127.0.0.1:3030/phrases
+```
+
+These endpoints do not alter or participate in the frozen single-word Writer search path.
+
