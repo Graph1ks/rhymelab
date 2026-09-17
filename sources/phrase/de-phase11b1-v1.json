@@ -1,0 +1,45 @@
+{
+  "id": "de-phase11b1-v1",
+  "purpose": "Phase 11B1 provenance-bearing German phrase catalog source registry",
+  "sources": [
+    {
+      "source_id": "dewiktionary-kaikki-raw",
+      "name": "German Wiktionary via Kaikki/Wiktextract",
+      "role": "source_backed_phraseology",
+      "homepage_url": "https://kaikki.org/dewiktionary/rawdata.html",
+      "upstream_url": "https://kaikki.org/dewiktionary/raw-wiktextract-data.jsonl.gz",
+      "license_id": "Wiktionary-CC-BY-SA+GFDL",
+      "license_url": "https://de.wiktionary.org/wiki/Wiktionary:Lizenzbestimmungen",
+      "attribution": "German Wiktionary contributors; structured extraction via Kaikki/Wiktextract",
+      "redistribution_policy": "Preserve attribution and applicable CC BY-SA/GFDL boundaries; raw snapshot remains local."
+    },
+    {
+      "source_id": "leipzig-corpora",
+      "name": "Leipzig Corpora Collection downloadable German text corpora",
+      "role": "phrase_attestation_commonness",
+      "homepage_url": "https://wortschatz-leipzig.de/",
+      "license_id": "CC-BY",
+      "license_url": "https://wortschatz.uni-leipzig.de/en/usage",
+      "attribution": "Leipzig Corpora Collection / Deutscher Wortschatz, Leipzig University",
+      "redistribution_policy": "Only explicitly downloaded text-corpus packages covered by the recorded CC-BY terms are eligible."
+    }
+  ],
+  "wiktionary_policy": {
+    "language": "de",
+    "minimum_tokens": 2,
+    "maximum_tokens": 16,
+    "maximum_characters": 240,
+    "source_type_policy": "Preserve raw POS/tags/categories; normalized phrase types are derived only from explicit source markers.",
+    "historical_policy": "Historical-only only when entry-level evidence is historical or all available senses are historical; mixed evidence remains modern-eligible."
+  },
+  "leipzig_policy": {
+    "snapshot_manifest": "sources/leipzig/de10k-v1-frozen.json",
+    "matching": "exact normalized lexical-token sequence against source-backed phrase candidates",
+    "policy_id": "leipzig-exact-token-sequence-v1",
+    "commonness": "Store per-corpus occurrence/sentence counts and per-million rates separately; do not infer idiom/figurative type from frequency."
+  },
+  "notes": [
+    "Phase 11B1 intentionally does not perform phrase pronunciation, mosaic retrieval, writer ranking, API/UI surfacing, or runtime network access.",
+    "Additional future sources such as a licensed lyrics corpus must register as separate phrase_source/phrase_snapshot rows and never inherit Wiktionary or Leipzig provenance."
+  ]
+}
