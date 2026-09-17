@@ -1,0 +1,45 @@
+RhymeLab Public License
+
+Copyright © 2026 Graph1ks.
+
+This repository contains both material owned or licensable by Graph1ks ("Graph1ks Material") and third-party material. These public terms apply only to Graph1ks Material.
+
+## 1. Base public license
+
+Graph1ks Material is made available under the PolyForm Noncommercial License 1.0.0:
+https://polyformproject.org/licenses/noncommercial/1.0.0
+
+The canonical PolyForm terms at that URL apply, together with the additional monetization condition below.
+
+Required Notice: Copyright © 2026 Graph1ks.
+
+## 2. Additional monetization condition
+
+In addition to the PolyForm Noncommercial License 1.0.0, Graph1ks Material may not be used, distributed, hosted, modified, or incorporated into a derivative work in connection with monetized activity unless Graph1ks has granted a separate written commercial license.
+
+Monetized activity includes, without limitation, soliciting or receiving financial or in-kind consideration specifically in connection with RhymeLab, Graph1ks Material, or a derivative work, including:
+
+- sales, license fees, subscriptions, memberships, paid access, or paid downloads;
+- donations or tips connected to the software or derivative work, including Patreon, Ko-fi, Buy Me a Coffee, or similar mechanisms;
+- crowdfunding connected to the software or derivative work;
+- sponsorships, advertising revenue, affiliate revenue, or promotional consideration;
+- paid support, consulting, integration, hosting, SaaS, or managed services;
+- bundling with a paid product, service, course, package, membership, or commercial distribution.
+
+General funding of a person or organization that is unrelated to RhymeLab or a derivative work is not, by itself, monetized activity under this condition.
+
+If your intended use is commercial or monetized, see COMMERCIAL_LICENSE.md.
+
+## 3. Third-party material is excluded
+
+Third-party material is not relicensed by this file. It remains governed solely by its original license, attribution requirements, and other applicable terms.
+
+Third-party and derived-data boundaries are documented in THIRD_PARTY_NOTICES.md, DATA_SOURCES.md, directory-specific notices, and source manifests. A commercial license from Graph1ks does not override or sublicense third-party rights.
+
+## 4. No implied trademark or endorsement rights
+
+No trademark, branding, endorsement, affiliation, or other rights are granted by implication.
+
+## 5. License identity
+
+Because these public terms add a project-specific monetization condition to PolyForm Noncommercial 1.0.0 and preserve separate third-party licensing, this repository should be treated as source-available rather than OSI Open Source.

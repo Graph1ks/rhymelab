@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-09-14T20:44:35.869Z",
+  "limit": 10000,
+  "output": "data/generated/de-10000.tsv",
+  "inputFiles": [
+    {
+      "file": "deu_news_2024_1M_words.txt",
+      "parsed": 743572,
+      "accepted": 619717
+    },
+    {
+      "file": "deu_wikipedia_2021_1M_words.txt",
+      "parsed": 1050993,
+      "accepted": 862253
+    },
+    {
+      "file": "deu-de_web_2021_1M_words.txt",
+      "parsed": 694854,
+      "accepted": 584424
+    }
+  ],
+  "candidateForms": 1555213,
+  "emittedForms": 10000,
+  "filter": "Unicode letters with optional internal hyphen/apostrophe; max length 80",
+  "ranking": "descending summed raw frequency across supplied equal-priority corpora",
+  "aggregation": "duplicate surface-form rows are summed within each corpus; source_count is the number of distinct input corpora containing the form"
+}

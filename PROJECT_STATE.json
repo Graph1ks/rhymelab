@@ -1,0 +1,113 @@
+﻿{
+    "project":  "RhymeLab",
+    "updated":  "2026-09-17",
+    "phase":  "PUBLIC_REPOSITORY_LIVE",
+    "package_version":  "0.10.0",
+    "repository":  {
+                       "public_release_model":  "sanitized_parentless_public_root",
+                       "pre_public_history_public":  false,
+                       "pre_public_pull_requests_public":  false,
+                       "root_license":  "PolyForm Noncommercial 1.0.0 plus Graph1ks no-monetization condition",
+                       "commercial_license_required_for_monetized_use":  true,
+                       "third_party_licenses_preserved":  true,
+                       "public_readiness_audit":  "scripts/public-readiness-audit.mjs"
+                   },
+    "runtime":  {
+                    "mode":  "local_only",
+                    "server":  "Node.js",
+                    "bind_default":  "127.0.0.1:3030",
+                    "database":  "data/local/rhymelab.sqlite",
+                    "accepted_database_schema":  "rhymelab-local-db-v4",
+                    "generated_data_committed":  false,
+                    "reports_committed":  false,
+                    "remote_deployment_supported":  false,
+                    "default_ranking_source_changed":  true,
+                    "default_ranking_accepted":  false
+                },
+    "accepted_baseline":  {
+                              "package_version":  "0.10.0",
+                              "status":  "ok",
+                              "main_qa_gates":  {
+                                                    "passed":  5,
+                                                    "total":  5
+                                                },
+                              "tests":  {
+                                            "passed":  58,
+                                            "total":  58,
+                                            "files":  20
+                                        },
+                              "database_schema":  "rhymelab-local-db-v4",
+                              "forms":  838209,
+                              "pronunciations":  904836,
+                              "preferred_pronunciations":  838209,
+                              "alternate_pronunciations":  66627,
+                              "historical_forms":  1038,
+                              "usage_ranked_forms":  260450,
+                              "sqlite_mib":  457.68,
+                              "integrity_check":  "ok",
+                              "phonology":  {
+                                                "analyzer":  "de-ipa-v2",
+                                                "scorer":  "de-phon-v3",
+                                                "relation_policy":  "rhyme-relations-v2"
+                                            },
+                              "note":  "Pre-public private Git commit identifiers were intentionally removed from public project memory."
+                          },
+    "benchmark":  {
+                      "version":  "de-human-rhyme-v1",
+                      "label_source":  "external_model_reference",
+                      "human_expert_gold":  false,
+                      "evaluator":  "GPT-5.6 Sol",
+                      "task_count":  367,
+                      "reviewed":  367,
+                      "skipped":  0,
+                      "accepted_ranking":  {
+                                               "mean_ndcg":  0.9562,
+                                               "mean_pairwise_concordance":  0.835
+                                           },
+                      "runtime_candidate_validation":  {
+                                                           "pre_promotion_gate_passed":  true,
+                                                           "query_count":  27,
+                                                           "candidate_policy":  "modern_entity_relative_commonness_1decade_0_05",
+                                                           "candidate_mean_ndcg":  0.961,
+                                                           "candidate_mean_pairwise_concordance":  0.8366,
+                                                           "new_top20_candidates":  14,
+                                                           "new_top20_without_usage_rank":  0,
+                                                           "new_top20_explicit_rare":  0,
+                                                           "new_top20_usage_rank_worse_than_100000":  0,
+                                                           "new_top20_outside_query_relative_horizon":  0
+                                                       },
+                      "runtime_promotion":  {
+                                                "source_wired":  true,
+                                                "policy_module":  "src/runtime-ranking-policy.mjs",
+                                                "candidate_policy":  "modern_entity_relative_commonness_1decade_0_05",
+                                                "runtime_default_scope":  "findRhymes type=all ranked mode",
+                                                "balanced_coverage_changed":  false,
+                                                "type_specific_ordering_changed":  false,
+                                                "scorer_changed":  false,
+                                                "relation_policy_changed":  false,
+                                                "database_changed":  false,
+                                                "post_promotion_acceptance_complete":  false,
+                                                "acceptance_command":  "npm run benchmark:ranking:runtime-candidate",
+                                                "acceptance_report_schema":  "rhymelab-benchmark-ranking-runtime-candidate-v2"
+                                            }
+                  },
+    "validation_boundary":  {
+                                "v010_runtime_accepted":  true,
+                                "hybrid_v3_experiment_gate_passed":  true,
+                                "runtime_candidate_validation_passed":  true,
+                                "runtime_promotion_source_wired":  true,
+                                "post_promotion_acceptance_complete":  false
+                            },
+    "english":  {
+                    "implemented":  false,
+                    "architecture_prepared":  true,
+                    "requirement":  "own_sources_ipa_parser_inventory_similarity_thresholds_pronunciation_policy_and_language_specific_benchmark"
+                },
+    "next_actions":  [
+                         "run_public_ci_on_clean_root",
+                         "run_post_promotion_runtime_candidate_acceptance",
+                         "cluster_remaining_ipa_normalization_failures_after_ranking_isolation",
+                         "phrase_mosaic_after_single_word_quality",
+                         "implement_english_separately_after_german_stable"
+                     ]
+}

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RhymeLab Benchmark Review</title>
+  <link rel="stylesheet" href="/benchmark/assets/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="/" class="brand">RhymeLab <span>BENCHMARK</span></a>
+    <div class="top-actions">
+      <button id="langDe" type="button">DE</button><button id="langEn" type="button">EN</button>
+    </div>
+  </header>
+  <main class="shell">
+    <section class="summary-card">
+      <div><strong id="progress">–</strong><span data-i18n="progress">bearbeitet</span></div>
+      <div><strong id="pending">–</strong><span data-i18n="pending">offen</span></div>
+      <div><strong id="skipped">–</strong><span data-i18n="skipped">übersprungen</span></div>
+      <div><strong id="completion">–</strong><span data-i18n="completion">Fortschritt</span></div>
+    </section>
+
+    <section class="toolbar">
+      <label><span data-i18n="query">Query</span><select id="queryFilter"><option value="all">Alle</option></select></label>
+      <label class="hidden" aria-hidden="true"><span data-i18n="category">Sampling-Kategorie</span><select id="categoryFilter" tabindex="-1"><option value="all">Alle</option></select></label>
+      <label class="check"><input id="showReviewed" type="checkbox"><span data-i18n="showReviewed">Bereits bewertete anzeigen</span></label>
+      <button id="nextPending" type="button" data-i18n="nextPending">Nächste offene</button>
+    </section>
+
+    <details class="rubric-card">
+      <summary data-i18n="rubricTitle">Bewertungsrubrik</summary>
+      <div class="rubric-grid">
+        <div>
+          <strong data-i18n="rubricPrimaryTitle">Primärreim</strong>
+          <p data-i18n="rubricPrimary">Vollreim = exakter betonter Reimbereich; mehrsilbiger Vollreim = exakt über mindestens zwei Reimsilben; mehrsilbiger Slant = starker mehrsilbiger Näherungsreim; Reimfamilie = klar verwandt, aber lockerer; Slant = loser, noch vertretbarer Näherungsreim; Keiner = kein überzeugender Primärreim.</p>
+        </div>
+        <div>
+          <strong data-i18n="rubricRelationsTitle">Klangbeziehungen</strong>
+          <p data-i18n="rubricRelations">Assonanz bewertet Vokalübereinstimmung, Konsonanz das Konsonantengerüst bei sinnvoller Vokalabweichung. Stark = offensichtlich, Partiell = vorhanden aber unvollständig, Keiner = nur zufällige/zu schwache Überlappung. Bei exakten Vollreimen beide als Keiner markieren, damit Relationen Zusatzinformation messen.</p>
+        </div>
+        <div>
+          <strong data-i18n="rubricUsefulnessTitle">Songwriting-Nutzwert</strong>
+          <p data-i18n="rubricUsefulness">0 falsch/unbrauchbar · 1 sehr schwach · 2 brauchbar · 3 stark · 4 exzellent/offensichtlich. Klangklasse und praktische Nutzbarkeit bewusst getrennt bewerten.</p>
+        </div>
+      </div>
+      <p class="blind-note" data-i18n="blindReminder">Erst selbst urteilen. Die Engine-Prognose unten nur bei Bedarf nach der Bewertung aufklappen.</p>
+    </details>
+
+    <section id="empty" class="card hidden"></section>
+    <section id="reviewCard" class="review-card hidden">
+      <div class="pair">
+        <div class="word"><span data-i18n="queryWord">Suchwort</span><h1 id="queryWord"></h1><code id="queryIpa"></code></div>
+        <div class="arrow">↔</div>
+        <div class="word"><span data-i18n="candidate">Kandidat</span><h1 id="candidateWord"></h1><code id="candidateIpa"></code></div>
+      </div>
+      <div id="phenomena" class="chips hidden" aria-hidden="true"></div>
+
+      <form id="reviewForm">
+        <fieldset>
+          <legend data-i18n="goldPrimary">Welcher Primärreim ist es wirklich?</legend>
+          <div id="primaryChoices" class="choice-grid"></div>
+        </fieldset>
+        <fieldset>
+          <legend data-i18n="goldAssonance">Assonanz</legend>
+          <div id="assonanceChoices" class="choice-grid relation-grid"></div>
+        </fieldset>
+        <fieldset>
+          <legend data-i18n="goldConsonance">Konsonanz</legend>
+          <div id="consonanceChoices" class="choice-grid relation-grid"></div>
+        </fieldset>
+        <fieldset>
+          <legend data-i18n="usefulness">Songwriting-Nutzwert</legend>
+          <div id="usefulnessChoices" class="choice-grid usefulness-grid"></div>
+          <p class="hint" data-i18n="usefulnessHint">0 = unbrauchbar/falsch · 2 = brauchbar · 4 = sehr starker Treffer</p>
+        </fieldset>
+        <label class="note"><span data-i18n="note">Notiz (optional)</span><textarea id="note" maxlength="1000" rows="3"></textarea></label>
+        <div class="form-actions">
+          <button id="skip" type="button" class="secondary" data-i18n="skip">Überspringen</button>
+          <button id="save" type="submit" data-i18n="saveNext">Speichern & weiter</button>
+        </div>
+      </form>
+
+      <details class="engine-card" id="engineDetails">
+        <summary data-i18n="showEngine">Engine-Prognose anzeigen</summary>
+        <div class="engine-inner">
+          <h2 data-i18n="engine">Engine</h2>
+          <div id="enginePrimary"></div>
+          <div id="engineRelations"></div>
+          <div id="engineMeta" class="muted"></div>
+        </div>
+      </details>
+    </section>
+  </main>
+  <script type="module" src="/benchmark/assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+{
+  "id": "de10k-v1",
+  "purpose": "German frequency-priority seed for the first RhymeLab enrichment milestone",
+  "frozen_on": "2026-09-14",
+  "license": {
+    "name": "CC BY",
+    "terms_url": "https://wortschatz.uni-leipzig.de/en/usage",
+    "attribution": "Leipzig Corpora Collection / Deutscher Wortschatz, Leipzig University"
+  },
+  "format": {
+    "documentation": "https://wortschatz.uni-leipzig.de/documents/Format_Download_File-eng.pdf",
+    "word_file_pattern": "*_words.txt",
+    "word_columns": ["word_id", "word", "frequency"],
+    "encoding": "UTF-8",
+    "delimiter": "tab"
+  },
+  "ranking_policy": {
+    "corpora_are_equal_priority": true,
+    "method": "sum raw occurrence counts for each case-sensitive surface form across the three 1M-sentence corpora; rank descending; retain first 10,000 accepted forms",
+    "reason": "mix recent news, encyclopedic prose and German web text to reduce single-genre frequency bias"
+  },
+  "corpora": [
+    {
+      "code": "deu_news_2024_1M",
+      "language": "deu",
+      "genre": "news",
+      "year": 2024,
+      "country": null,
+      "sentences": 1000000,
+      "url": "https://downloads.wortschatz-leipzig.de/corpora/deu_news_2024_1M.tar.gz",
+      "sha256": null,
+      "sha256_status": "compute_on_bootstrap"
+    },
+    {
+      "code": "deu_wikipedia_2021_1M",
+      "language": "deu",
+      "genre": "wikipedia",
+      "year": 2021,
+      "country": null,
+      "sentences": 1000000,
+      "url": "https://downloads.wortschatz-leipzig.de/corpora/deu_wikipedia_2021_1M.tar.gz",
+      "sha256": null,
+      "sha256_status": "compute_on_bootstrap"
+    },
+    {
+      "code": "deu-de_web_2021_1M",
+      "language": "deu",
+      "genre": "web",
+      "year": 2021,
+      "country": "DE",
+      "sentences": 1000000,
+      "url": "https://downloads.wortschatz-leipzig.de/corpora/deu-de_web_2021_1M.tar.gz",
+      "sha256": null,
+      "sha256_status": "compute_on_bootstrap"
+    }
+  ],
+  "notes": [
+    "The Leipzig download page lists 1M German corpora for News 2024, Wikipedia 2021 and Germany Web 2021.",
+    "The raw archives are not committed to Git. The bootstrap workflow computes their SHA-256 hashes and retains only the derived seed/checksum metadata as an artifact.",
+    "Before the seed is declared canonical, copy the observed hashes back into a new immutable manifest revision rather than silently changing an already-used snapshot."
+  ]
+}

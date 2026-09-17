@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f2efe8">
+  <title>RhymeLab Local</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon_names=close,language,search,tune&display=block" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="/assets/mobile.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="RhymeLab home">
+        <span class="brand-mark">R</span>
+        <span>RhymeLab</span>
+        <small>LOCAL</small>
+      </a>
+      <form id="searchForm" class="search" role="search">
+        <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+        <input id="searchInput" type="search" autocomplete="off" spellcheck="false" placeholder="Search a word…" aria-label="Search a word">
+        <button class="search-button" type="submit" id="searchButton">Search</button>
+      </form>
+      <div class="language-switch" aria-label="Language">
+        <span class="material-symbols-outlined" aria-hidden="true">language</span>
+        <button type="button" data-lang="en" class="lang-option">EN</button>
+        <span>/</span>
+        <button type="button" data-lang="de" class="lang-option">DE</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero" id="emptyState">
+      <p class="eyebrow" data-i18n="eyebrow">GERMAN RHYME ENGINE</p>
+      <h1 data-i18n="headline">Find rhymes by sound, not spelling.</h1>
+      <p data-i18n="intro">Local phonetic search across German dictionary data, usage frequency and a curated modern vocabulary layer.</p>
+      <div class="hero-notes">
+        <span data-i18n="noteLocal">Runs locally</span>
+        <span data-i18n="notePhonetic">IPA-based</span>
+        <span data-i18n="noteUsage">Usage-ranked</span>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace hidden" aria-live="polite">
+      <div class="results-column">
+        <div class="toolbar-card">
+          <div class="toolbar-title">
+            <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+            <strong data-i18n="browse">Browse results</strong>
+            <span id="resultCount" class="result-count"></span>
+          </div>
+
+          <div class="controls-grid">
+            <label>
+              <span data-i18n="rhymeType">Rhyme type</span>
+              <select id="typeFilter">
+                <option value="all" data-i18n-option="all">All</option>
+                <option value="multisyllabic_perfect" data-i18n-option="type_multisyllabic_perfect">Multisyllabic perfect</option>
+                <option value="perfect" data-i18n-option="type_perfect">Perfect rhyme</option>
+                <option value="multisyllabic_slant" data-i18n-option="type_multisyllabic_slant">Multisyllabic slant</option>
+                <option value="family" data-i18n-option="type_family">Rhyme family</option>
+                <option value="slant" data-i18n-option="type_slant">Slant rhyme</option>
+                <option value="assonance" data-i18n-option="type_assonance">Assonance</option>
+                <option value="consonance" data-i18n-option="type_consonance">Consonance</option>
+              </select>
+            </label>
+
+            <label>
+              <span data-i18n="syllables">Syllables</span>
+              <select id="syllableFilter">
+                <option value="same" data-i18n-option="same">Same count</option>
+                <option value="near" data-i18n-option="plusMinus">±1 syllable</option>
+                <option value="all" data-i18n-option="all" selected>All</option>
+              </select>
+            </label>
+
+            <label>
+              <span data-i18n="sort">Sort</span>
+              <select id="sortMode">
+                <option value="recommended" data-i18n-option="recommended">Recommended</option>
+                <option value="common" data-i18n-option="mostCommon">Most common</option>
+                <option value="closest" data-i18n-option="closest">Closest rhyme</option>
+                <option value="alpha" data-i18n-option="alphabetical">A–Z</option>
+              </select>
+            </label>
+
+            <label>
+              <span data-i18n="pronunciation">Pronunciation</span>
+              <select id="variantMode">
+                <option value="preferred" data-i18n-option="standard">Standard</option>
+                <option value="all" data-i18n-option="allVariants">All variants</option>
+              </select>
+            </label>
+
+            <label class="check-filter">
+              <span data-i18n="vocabulary">Vocabulary</span>
+              <span class="checkbox-line">
+                <input id="historicalMode" type="checkbox">
+                <span data-i18n="includeHistorical">Include historical / obsolete</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div id="loading" class="status hidden" data-i18n="searching">Searching…</div>
+        <div id="error" class="status error hidden"></div>
+        <div id="results"></div>
+        <div id="scrollSentinel" class="scroll-sentinel hidden" aria-live="polite">
+          <span data-i18n="scrollMore">Scroll for more results…</span>
+        </div>
+      </div>
+
+      <aside class="word-panel" id="wordPanel"></aside>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/app.js"></script>
+</body>
+</html>

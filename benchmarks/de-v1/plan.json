@@ -1,0 +1,63 @@
+{
+  "schema": "rhymelab-de-benchmark-plan-v1",
+  "language": "de",
+  "version": "de-human-rhyme-v1",
+  "description": "Human review plan for German primary-rhyme quality and independent Assonance/Consonance relations.",
+  "sampling": {
+    "per_category": 3,
+    "top_overall": 5,
+    "max_tasks_per_query": 26,
+    "candidate_limit": 250,
+    "candidate_pool": 800,
+    "include_historical": false,
+    "include_variants": false
+  },
+  "primary_rhyme_classes": [
+    "multisyllabic_perfect",
+    "perfect",
+    "multisyllabic_slant",
+    "family",
+    "slant"
+  ],
+  "sound_relations": ["assonance", "consonance"],
+  "review_labels": {
+    "primary": ["none", "multisyllabic_perfect", "perfect", "multisyllabic_slant", "family", "slant"],
+    "relation_strength": ["none", "partial", "strong"],
+    "songwriting_usefulness": [0, 1, 2, 3, 4]
+  },
+  "anchor_pairs": [
+    {"query":"hitzefrei","candidate":"Inhaber","phenomena":["regression_anchor","relation_negative_boundary"]},
+    {"query":"Haus","candidate":"Baum","phenomena":["regression_anchor","assonance_boundary"]},
+    {"query":"Haus","candidate":"bis","phenomena":["regression_anchor","consonance_boundary"]},
+    {"query":"Haus","candidate":"Maus","phenomena":["regression_anchor","perfect_relation_dedup"]}
+  ],
+  "queries": [
+    {"word":"Liebe","phenomena":["multisyllabic","schwa","primary_rhyme","assonance","consonance"]},
+    {"word":"Leben","phenomena":["multisyllabic","syllabic_consonant","primary_rhyme","assonance"]},
+    {"word":"Wasser","phenomena":["multisyllabic","schwa","slant","assonance"]},
+    {"word":"Himmel","phenomena":["multisyllabic","syllabic_consonant","slant","consonance"]},
+    {"word":"Straße","phenomena":["multisyllabic","schwa","slant","assonance"]},
+    {"word":"Feuer","phenomena":["multisyllabic","diphthong","r_color_or_vocalization","assonance"]},
+    {"word":"Musik","phenomena":["stress","loanword","pronunciation_variants","perfect","slant"]},
+    {"word":"Haus","phenomena":["monosyllabic","diphthong","perfect","assonance","consonance"]},
+    {"word":"Nacht","phenomena":["monosyllabic","coda_cluster","perfect","family"]},
+    {"word":"Zeit","phenomena":["monosyllabic","diphthong","affricate","perfect","consonance"]},
+    {"word":"Herz","phenomena":["monosyllabic","coda_cluster","family","slant"]},
+    {"word":"Welt","phenomena":["monosyllabic","coda_cluster","family","consonance"]},
+    {"word":"Mann","phenomena":["monosyllabic","short_vowel","perfect","assonance"]},
+    {"word":"Frau","phenomena":["monosyllabic","diphthong","open_coda","assonance"]},
+    {"word":"Kind","phenomena":["monosyllabic","voicing_contrast","family","consonance"]},
+    {"word":"Traum","phenomena":["monosyllabic","diphthong","nasal_coda","assonance"]},
+    {"word":"Licht","phenomena":["monosyllabic","short_vowel","fricative_coda","family"]},
+    {"word":"Hand","phenomena":["monosyllabic","voicing_contrast","perfect","consonance"]},
+    {"word":"Wort","phenomena":["monosyllabic","r_color_or_vocalization","family","consonance"]},
+    {"word":"schön","phenomena":["monosyllabic","front_rounded_vowel","perfect","assonance"]},
+    {"word":"hitzefrei","phenomena":["multisyllabic","compound_like","relation_negative_boundary","assonance"]},
+    {"word":"Spotify","phenomena":["modern_entity","loanword","multisyllabic","pronunciation_provenance"]},
+    {"word":"Twitter","phenomena":["modern_entity","loanword","multisyllabic"]},
+    {"word":"YouTube","phenomena":["modern_entity","loanword","multisyllabic"]},
+    {"word":"TikTok","phenomena":["modern_entity","loanword","coda_cluster"]},
+    {"word":"Instagram","phenomena":["modern_entity","loanword","pronunciation_variants","multisyllabic"]},
+    {"word":"Netflix","phenomena":["modern_entity","loanword","coda_cluster"]}
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "de-rhyme-core-v1",
+  "purpose": "Full German RhymeLab core: usage-ranked corpus vocabulary followed by dictionary-only long tail",
+  "usage_manifest": "sources/leipzig/de10k-v1-frozen.json",
+  "dictionary": {
+    "code": "dewiktionary-kaikki-raw",
+    "name": "German Wiktionary via Kaikki/Wiktextract",
+    "url": "https://kaikki.org/dewiktionary/raw-wiktextract-data.jsonl.gz",
+    "landing_page": "https://kaikki.org/dewiktionary/rawdata.html",
+    "license": "Wiktionary source licenses (CC BY-SA + GFDL)",
+    "minimum_expected_bytes": 200000000,
+    "notes": [
+      "The raw URL is a moving current snapshot, not an immutable versioned URL.",
+      "The local bootstrap computes SHA-256 and records response metadata on first download.",
+      "Once downloaded, the local gzip is reused unless --refresh-kaikki is explicitly supplied.",
+      "Only compact normalized RhymeLab shards are intended for Git."
+    ]
+  },
+  "shard_size": 500,
+  "ordering": {
+    "first": "all Leipzig-observed surface forms ordered by equal-weight mean per-million usage across News/Wikipedia/Web",
+    "tail": "German Wiktionary surface forms not observed in the usage corpora, usage_rank = null, ordered alphabetically",
+    "processing_order": "contiguous across both sections"
+  }
+}

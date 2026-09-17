@@ -1,0 +1,5 @@
+@media(max-width:720px){
+  .topbar-inner{grid-template-columns:1fr auto!important;gap:8px 10px!important}
+  .search{grid-column:1/-1;grid-row:1}
+  .language-switch{grid-column:1/-1!important;grid-row:2;position:static!important;transform:none!important;margin:0!important;justify-content:flex-end!important;background:transparent!important;padding:0 2px!important}
+}
