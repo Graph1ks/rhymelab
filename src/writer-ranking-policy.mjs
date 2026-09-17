@@ -1,7 +1,8 @@
-export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v4';
+export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v5';
 
 const MAX_EDIT_LENGTH = 96;
 const DEFAULT_DIVERSITY_WEIGHT = 0.18;
+const VERY_LOW_USAGE_RANK = 250000;
 
 function clamp01(value) {
   return Math.max(0, Math.min(1, Number(value) || 0));
@@ -34,6 +35,38 @@ function commonSuffixLength(a, b) {
 function morphologyFamily(row) {
   const key = String(row?.writerMorphology?.familyKey || '').trim();
   return key || null;
+}
+
+function normalizedLexicalTags(row) {
+  return Array.isArray(row?.lexicalTags)
+    ? row.lexicalTags.map((value) => String(value).trim().toLocaleLowerCase('en-US')).filter(Boolean)
+    : [];
+}
+
+function lexicalSafetyEvidence(row) {
+  const tags = normalizedLexicalTags(row);
+  const explicitRareOrHistorical = tags.some((tag) => ['rare', 'archaic', 'obsolete', 'dated'].includes(tag));
+  const usageRank = Number(row?.usageRank);
+  const hasMeasuredUsage = Number.isFinite(usageRank) && usageRank > 0;
+  const unranked = !hasMeasuredUsage;
+  const veryLowMeasuredUsage = hasMeasuredUsage && usageRank > VERY_LOW_USAGE_RANK;
+  const tierPenalty = explicitRareOrHistorical ? 2 : (unranked || veryLowMeasuredUsage ? 1 : 0);
+  const state = explicitRareOrHistorical
+    ? 'explicit_rare_or_historical'
+    : unranked
+      ? 'unranked_unknown'
+      : veryLowMeasuredUsage
+        ? 'very_low_measured_usage'
+        : 'measured';
+
+  return {
+    state,
+    tierPenalty,
+    unranked,
+    veryLowMeasuredUsage,
+    explicitRareOrHistorical,
+    threshold: VERY_LOW_USAGE_RANK,
+  };
 }
 
 export function normalizedEditSimilarity(left, right, language = 'de') {
@@ -81,8 +114,6 @@ export function lexicalOverlapEvidence(query, candidate) {
     sameMorphologyFamily ? 0.92 : 0,
     surfaceSimilarity >= 0.72 ? surfaceSimilarity * 0.90 : surfaceSimilarity * 0.55,
     prefixLength >= 5 ? prefixOverlap * 0.96 : 0,
-    // Keep long suffix overlap only as weak query evidence. Real terminal lexical-family
-    // redundancy is represented explicitly by writerMorphology instead of spelling alone.
     suffixLength >= 7 ? suffixOverlap * 0.45 : 0,
   );
 
@@ -120,8 +151,6 @@ export function lexicalRedundancy(left, right) {
   const prefixLength = commonPrefixLength(a, b);
   const minLength = Math.max(1, Math.min(a.length, b.length));
 
-  // Shared rhyme spelling is not redundancy. Outside explicit morphology evidence, only
-  // a strong shared initial construction or a true near-duplicate is list redundancy.
   const initialConstruction = prefixLength >= 6 && prefixLength / minLength >= 0.45
     ? clamp01(0.50 + 0.45 * (prefixLength / minLength))
     : 0;
@@ -138,7 +167,7 @@ function syllableUtility(row) {
 function commonnessUtility(row, query) {
   const candidateRank = Number(row?.usageRank);
   const queryRank = Number(query?.usageRank);
-  if (!Number.isFinite(candidateRank) || candidateRank <= 0) return 0.35;
+  if (!Number.isFinite(candidateRank) || candidateRank <= 0) return 0.25;
   if (!Number.isFinite(queryRank) || queryRank <= 0) {
     return clamp01(1 - Math.log10(Math.max(1, candidateRank)) / 7);
   }
@@ -149,10 +178,7 @@ function commonnessUtility(row, query) {
 }
 
 function rarePenalty(row) {
-  const tags = Array.isArray(row?.lexicalTags)
-    ? row.lexicalTags.map((value) => String(value).trim().toLocaleLowerCase('en-US'))
-    : [];
-  return tags.some((tag) => ['rare', 'archaic', 'obsolete', 'dated'].includes(tag)) ? 0.08 : 0;
+  return lexicalSafetyEvidence(row).explicitRareOrHistorical ? 0.08 : 0;
 }
 
 function lexicalTierPenalty(lexical) {
@@ -171,12 +197,14 @@ function redundancyTierPenalty(maxRedundancy) {
 
 export function writerUtilityFeatures(row, query) {
   const lexical = lexicalOverlapEvidence(query, row);
+  const safety = lexicalSafetyEvidence(row);
   const phonetic = clamp01(row?.score);
   const syllable = syllableUtility(row);
   const commonness = commonnessUtility(row, query);
   const baseTier = Math.max(0, Number.isFinite(Number(row?.rhymeTier)) ? Number(row.rhymeTier) : 6);
   const cheapRhymeTierPenalty = lexicalTierPenalty(lexical);
-  const writerTier = baseTier + cheapRhymeTierPenalty;
+  const lexicalSafetyTierPenalty = safety.tierPenalty;
+  const writerTier = baseTier + cheapRhymeTierPenalty + lexicalSafetyTierPenalty;
 
   const soundUtility = 0.72 * phonetic + 0.16 * syllable + 0.12 * commonness;
   const lexicalPenalty = 0.16 * lexical.overlap;
@@ -192,6 +220,8 @@ export function writerUtilityFeatures(row, query) {
     commonness: Number(commonness.toFixed(4)),
     baseTier,
     cheapRhymeTierPenalty,
+    lexicalSafetyTierPenalty,
+    lexicalSafety: safety,
     writerTier,
     evidence: lexical,
   };
@@ -227,13 +257,16 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
       const incumbent = bestIndex >= 0 ? remaining[bestIndex] : null;
       const better = effectiveTier < bestEffectiveTier
         || (effectiveTier === bestEffectiveTier && (
-          diversifiedScore > bestScore + 1e-9
-          || (Math.abs(diversifiedScore - bestScore) <= 1e-9
-            && (candidate.writer.utility > (incumbent?.writer.utility ?? -1) + 1e-9
-              || (Math.abs(candidate.writer.utility - (incumbent?.writer.utility ?? -1)) <= 1e-9
-                && (candidate.baseIndex < (incumbent?.baseIndex ?? Number.MAX_SAFE_INTEGER)
-                  || (candidate.baseIndex === incumbent?.baseIndex
-                    && lexicalCompare(candidate.row, incumbent?.row) < 0)))))
+          candidate.writer.lexicalSafetyTierPenalty < (incumbent?.writer.lexicalSafetyTierPenalty ?? Number.POSITIVE_INFINITY)
+          || (candidate.writer.lexicalSafetyTierPenalty === (incumbent?.writer.lexicalSafetyTierPenalty ?? Number.POSITIVE_INFINITY) && (
+            diversifiedScore > bestScore + 1e-9
+            || (Math.abs(diversifiedScore - bestScore) <= 1e-9
+              && (candidate.writer.utility > (incumbent?.writer.utility ?? -1) + 1e-9
+                || (Math.abs(candidate.writer.utility - (incumbent?.writer.utility ?? -1)) <= 1e-9
+                  && (candidate.baseIndex < (incumbent?.baseIndex ?? Number.MAX_SAFE_INTEGER)
+                    || (candidate.baseIndex === incumbent?.baseIndex
+                      && lexicalCompare(candidate.row, incumbent?.row) < 0)))))
+          ))
         ));
       if (better) {
         bestIndex = index;
@@ -261,6 +294,7 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
   }
 
   const tail = remaining.sort((a, b) => a.writer.writerTier - b.writer.writerTier
+    || a.writer.lexicalSafetyTierPenalty - b.writer.lexicalSafetyTierPenalty
     || b.writer.utility - a.writer.utility
     || a.baseIndex - b.baseIndex
     || lexicalCompare(a.row, b.row));
