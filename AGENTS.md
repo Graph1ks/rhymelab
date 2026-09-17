@@ -11,10 +11,11 @@ Before changing the project in a fresh thread/session, read:
 3. `PROJECT_STATE.json`
 4. `ROADMAP.md`
 5. `DATA_SOURCES.md`
-6. `docs/REPOSITORY_GOVERNANCE.md`
-7. `docs/BENCHMARK.md` for rhyme-quality/ranking work
-8. `docs/API.md` for local API work
-9. `docs/WRITER_SEARCH_ACCEPTANCE.md` for the frozen German single-word writer baseline
+6. `docs/WRITER_SEARCH_ACCEPTANCE.md`
+7. `docs/PHRASE_MOSAIC_PLAN.md`
+8. `docs/REPOSITORY_GOVERNANCE.md`
+9. `docs/BENCHMARK.md` for rhyme-quality/ranking work
+10. `docs/API.md` for local API work
 
 ## Public-repository guardrails
 
@@ -46,7 +47,7 @@ RhymeLab core rhyme retrieval, scoring, writer ranking and result diversificatio
 
 ## Durable product decisions
 
-- German first; English only after German single-word quality is stable.
+- German first; English only after the German writer path, including phrase/mosaic work, is stable enough to freeze.
 - Rhyme quality is phonetic/relational, not spelling-based.
 - Writer usefulness is a separate deterministic ranking layer; lexical overlap must not corrupt phonetic rhyme truth.
 - Page/list diversity is a separate deterministic result-set concern; do not fake diversity by changing phonetic relation labels.
@@ -56,16 +57,17 @@ RhymeLab core rhyme retrieval, scoring, writer ranking and result diversificatio
 - Pronunciation variants are first-class and provenance-bearing.
 - Curated modern pronunciations may overlay dictionary forms while dictionary alternatives remain available.
 - Historical-only vocabulary is hidden by default and explicitly opt-in.
-- Do not invent lexical, pronunciation, source, license, or benchmark facts.
+- Do not invent lexical, pronunciation, phraseological, source, license, or benchmark facts.
+- Public web visibility alone does not make a source legally/reproducibly ingestible.
 - External-model reference labels are evidence, not human-expert gold.
 - Protect accepted exact-rhyme behavior unless strong evidence requires otherwise.
 - Ranking changes stay isolated from scorer/relation changes unless the task explicitly requires both.
-- Ranking evaluation must inspect live/retrieval-boundary lexical quality, not only reviewed metrics.
-- Do not optimize benchmark gains that require promoting words orders of magnitude rarer than the query when that conflicts with default product quality.
+- Do not optimize benchmark gains that conflict with default lexical/product quality.
+- Human Writer NDCG is deliberately deferred until the broader German writer surface is mature and independent human reviewers are available; the owner alone is not an independent gold source.
 
-## Formally accepted/default baseline
+## Formal control baseline
 
-The formally accepted/default German runtime remains RhymeLab `v0.10.0`:
+The formal German control baseline remains RhymeLab `v0.10.0`:
 
 - DB schema `rhymelab-local-db-v4`;
 - analyzer `de-ipa-v2`;
@@ -73,11 +75,9 @@ The formally accepted/default German runtime remains RhymeLab `v0.10.0`:
 - relation policy `rhyme-relations-v2`;
 - 838,209 forms / 904,836 pronunciations;
 - 838,209 preferred / 66,627 alternates;
-- accepted/base control remains `?ranking=legacy`.
+- protected control path `?ranking=legacy`.
 
-The German single-word writer engineering acceptance below does **not** silently replace this default runtime.
-
-## German single-word writer engineering baseline — accepted
+## German single-word writer engineering baseline — accepted / frozen
 
 Engineering acceptance is recorded in `docs/WRITER_SEARCH_ACCEPTANCE.md`.
 
@@ -106,17 +106,15 @@ Acceptance evidence includes:
 - runtime repeatability: three independent DB opens with identical per-query and suite semantic fingerprints;
 - suite fingerprint `c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab`.
 
-Writer Page human NDCG@10/20 remains `pending_reference`; do not invent or substitute a score.
-
-Writer v7 remains rejected/rolled back. Do not silently retune the frozen v6/v4 writer baseline; material changes require a new benchmarked candidate.
+`Arbeitsweise -> Hochzeitsreise` remains a retrieval sentinel only, not a Top-20 guard. Writer v7 remains rejected/rolled back. Do not silently retune the frozen v6/v4 writer baseline; material changes require a new benchmarked candidate.
 
 ## Benchmark truth
 
 Current general German benchmark: `de-human-rhyme-v1`.
 
-367/367 reviewed, 0 skipped. Accepted ranking baseline: NDCG 0.9562 / pairwise 0.8350.
+367/367 reviewed, 0 skipped. Accepted general ranking baseline: NDCG 0.9562 / pairwise 0.8350.
 
-This general relation/ranking benchmark is not a substitute for the still-pending Writer Page human usefulness labels.
+This general relation/ranking benchmark is not a substitute for Writer Page human usefulness labels.
 
 Accepted general ranking policy:
 
@@ -124,8 +122,14 @@ Accepted general ranking policy:
 modern_entity_relative_commonness_1decade_0_05
 ```
 
-## Current project direction
+## Current project direction — Phase 11
 
-PR #3 remains draft until owner review of `docs/WRITER_SEARCH_ACCEPTANCE.md`. Formal/default writer-runtime promotion is a separate explicit decision and has not happened automatically.
+Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md` before implementation.
 
-After owner acceptance review, German phrase/mosaic rhyme may begin as a separate deterministic architecture/benchmark phase while preserving the accepted single-word evidence. English remains later and requires its own language-specific sources, parsing/scoring, and benchmark.
+The first gate is **public-source discovery and licensing**, not runtime code. Research German sources for multi-word phrases/collocations, idioms/Redewendungen, formulaic expressions/proverbs, metaphorical/figurative expressions where structured public data exists, common sentence fragments, and deterministic semantic discovery support.
+
+For each candidate source, verify bulk/reproducible access, license/attribution, redistribution/commercial compatibility, snapshot/version, scale/raw format, provenance keys, and fully offline post-ingestion use. OpenThesaurus and OdeNet are possible semantic ingredients, not assumed complete phraseology sources.
+
+After source selection, design a separate provenance-bearing phrase data model, deterministic phrase pronunciation, indexed cross-word-boundary mosaic retrieval, a separate phrase-ranking policy, and a dedicated Phrase/Mosaic benchmark.
+
+Human Writer NDCG remains `pending_reference` throughout this phase until the German writer surface is mature enough and independent human reviewers exist.
