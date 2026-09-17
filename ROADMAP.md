@@ -28,7 +28,7 @@ ranking         modern_entity_relative_commonness_1decade_0_05
 
 ## Phase 2 — German blind relation/reference benchmark — complete
 
-`de-human-rhyme-v1`: 367/367 reviewed with accepted ranking NDCG 0.9562 / pairwise 0.8350. This remains the relation/scorer benchmark, not a substitute for Writer Page usefulness labels.
+`de-human-rhyme-v1`: 367/367 reviewed with accepted ranking NDCG 0.9562 / pairwise 0.8350. This remains the relation/scorer benchmark, not Writer Page human gold.
 
 ## Phase 3 — Benchmark-informed German refinement — accepted first pass
 
@@ -40,9 +40,9 @@ Accepted/base ranking is `modern_entity_relative_commonness_1decade_0_05`. `?ran
 
 ## Phase 5 — Pronunciation coverage + lexical quality — open background work
 
-Continue after writer acceptance as background diagnostics: cluster remaining IPA failures, prioritize common-word failures, investigate poor preferred defaults, expand reviewed modern vocabulary/provenance, and add fallback/G2P only if attested coverage proves insufficient.
+Continue as background diagnostics: cluster remaining IPA failures, prioritize common-word failures, investigate poor preferred defaults, expand reviewed modern vocabulary/provenance, and add fallback/G2P only if attested coverage proves insufficient.
 
-## Phase 6 — Deterministic writer-oriented search — engineering accepted
+## Phase 6 — Deterministic writer-oriented single-word search — engineering accepted
 
 Frozen policies:
 
@@ -51,27 +51,21 @@ writer ranking:       deterministic_writer_utility_v6
 right-edge anchor:    de-right-edge-anchors-v1
 morphology family:    de-attested-right-head-v4
 construction:         de-adverbial-weise-v2
+runtime:              materialized-writer-v5-v1
+DB schema:            rhymelab-local-db-v5
 ```
 
 No LLM/ML/neural inference, hosted ranking or runtime network dependency is allowed in core retrieval/ranking. Writer v7 remains rejected and rolled back.
 
 ## Phase 7 — Multi-analysis lexical/morphology model — complete
 
-Experimental migration:
+Publish-v3 / DB-v5 preserves source-supported lexical analyses in `form_analysis`. Real owner data contains 967,931 lexical-analysis rows across 838,209 forms / 904,836 pronunciations.
 
-```text
-publish  rhymelab-de-publish-v3
-DB       rhymelab-local-db-v5
-```
-
-Real owner DB contains 967,931 lexical-analysis rows across 838,209 forms / 904,836 pronunciations. Source-supported analyses are normalized in `form_analysis`.
-
-## Phase 8 — Writer Page Benchmark v2 — structural baseline complete / human reference pending
+## Phase 8 — Writer Page Benchmark v2 — structural baseline complete
 
 Frozen validation baseline:
 
 ```text
-status                              structural_ok_reference_pending
 queries                             12 / 12
 mean writer elapsed                 1528.8 ms
 Top-20 exact duplicates             0
@@ -88,7 +82,7 @@ legacy tier-0 retention             685 / 685
 
 `Arbeitsweise -> Hochzeitsreise` is a retrieval sentinel with `max_rank: 250`, not a Top-20 surfacing guard. `Arbeitsweise -> right:reise` is the family surfacing gate.
 
-Writer NDCG@10/20 remains `pending_reference` until complete independent usefulness labels exist.
+Writer NDCG@10/20 is deliberately deferred until the German writer system is feature-complete enough for coherent independent human evaluation. The project owner is not treated as an independent human-reference source.
 
 ## Phase 9 — Legacy invariance + materialized writer runtime — complete
 
@@ -102,8 +96,6 @@ Publish-v3 / DB-v5 builder migration and owner build complete.
 
 ### 9C. Compact right-edge + morphology materialization — PASS
 
-Final owner storage:
-
 ```text
 DB-v5 final                         819.77 MiB
 writer_anchor                        60.43 MiB
@@ -111,14 +103,6 @@ writer_morphology_evidence           32.13 MiB
 anchor rows                      3,153,639
 positive morphology rows          325,724
 freelist pages                           0
-```
-
-Storage contracts:
-
-```text
-anchor storage      compact-primary-key-v2
-candidate basis     legacy-vowel-key-string-suffix-v1
-morphology storage  positive-evidence-compact-v2
 ```
 
 ### 9D. Retrieval/morphology equivalence — PASS
@@ -138,8 +122,6 @@ Runtime `materialized-writer-v5-v1` uses compact indexed anchors and materialize
 
 ### 9F. Prefix-stable runtime performance gate — PASS
 
-Final full Writer Page result:
-
 ```text
 mean writer elapsed                 1103.9 ms
 frozen validation mean              1528.8 ms
@@ -153,48 +135,60 @@ No score, tier, ranking, morphology, or diversity policy changed. Prefix-stabili
 
 ### 9G. Deterministic runtime repeatability — PASS
 
-```text
-schema                              rhymelab-writer-v5-repeatability-v1
-status                              ok
-independent DB opens                     3
-queries per run                          12
-suite fingerprints equal              true
-mismatches                                0
-suite fingerprint
-c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab
-```
-
-Complete semantic `findWriterRhymes()` responses are reproducible across three independent database opens.
+Three independent DB opens produced identical complete semantic `findWriterRhymes()` per-query and suite fingerprints across all 12 frozen queries; mismatch count 0.
 
 ## Phase 10 — German single-word writer engineering acceptance — complete / PASS
 
-Acceptance report:
+Acceptance report: `docs/WRITER_SEARCH_ACCEPTANCE.md`.
 
-```text
-docs/WRITER_SEARCH_ACCEPTANCE.md
-```
-
-The deterministic German single-word writer architecture is accepted as the frozen experimental writer engineering baseline.
+The deterministic German single-word writer architecture is accepted as the frozen writer engineering baseline.
 
 Important distinction:
 
 - engineering acceptance: **PASS**;
-- formal/default v4 runtime replacement: **not performed**;
-- Writer Page human NDCG@10/20: **pending_reference**.
+- Writer Page human NDCG@10/20: **deferred / pending_reference** until the broader German writer surface is complete and independent human reviewers exist;
+- future writer changes must preserve or explicitly supersede the frozen single-word evidence.
 
-Default promotion remains a separate explicit product/runtime decision. The absence of complete human Writer Page labels must remain visible and must not be replaced with inferred scores.
+## Phase 11 — German phrase / mosaic / phraseology — current
 
-PR #3 stays draft until owner acceptance review.
+Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`.
 
-## Phase 11 — German phrase / mosaic rhyme — next after acceptance review
+### 11A. Public phraseology source survey — immediate next action
 
-Begin only as a separate architecture/benchmark phase after owner review of `docs/WRITER_SEARCH_ACCEPTANCE.md`.
+Before implementing a phrase database or runtime, research publicly obtainable German resources for:
 
-Phrase/mosaic work must preserve the accepted single-word evidence and remain deterministic/local-only. It needs explicit phrase candidate sources, segmentation/search design, scoring semantics, writer usefulness/diversity behavior, and its own benchmark rather than piggybacking silently on single-word metrics.
+- common multi-word phrases / n-grams / collocations;
+- idioms and Redewendungen;
+- proverbs / formulaic expressions where usable;
+- metaphorical / figurative expressions where structured public data exists;
+- common sentence fragments useful to lyricists;
+- semantic resources that can support deterministic discovery.
+
+For every candidate, document bulk access, license/redistribution/commercial compatibility, snapshot/version, scale, raw format, provenance, and offline ingestion viability. Public web visibility alone is insufficient.
+
+### 11B. Phrase data model
+
+Build a separate provenance-bearing phrase layer with token boundaries, phrase type, lexical/register evidence, commonness evidence where available, and phrase-level pronunciation derived from accepted local pronunciations.
+
+### 11C. Deterministic phrase pronunciation
+
+Construct phrase pronunciations from accepted token pronunciations; preserve provenance and explicitly handle unknown/ambiguous tokens.
+
+### 11D. Mosaic retrieval architecture
+
+Add deterministic indexed phrase-span retrieval capable of matching rhyme spans across one or more word boundaries without scanning the full phrase corpus at query time.
+
+### 11E. Phrase writer ranking
+
+Create a separate benchmarked phrase-ranking policy. Do not mutate the frozen single-word writer policy in place.
+
+### 11F. Phrase/mosaic benchmark
+
+Build dedicated structural, regression, lexical-safety, provenance, performance, and repeatability gates. Human usefulness NDCG comes only when the combined German writer system is mature and independent reviewers exist.
 
 ## Phase 12 — English profile + benchmark
 
-Separate language-specific sources, parser, scorer and benchmark required. English remains after the German path is stable.
+Only after the German writer path, including phrase/mosaic work, is stable enough to freeze.
 
 ## Phase 13 — Cross-language rhyme
 
