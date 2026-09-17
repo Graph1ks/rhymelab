@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { findRhymes, getStats, getWord, openRhymeDb, searchWords } from './local-engine.mjs';
 import { DEFAULT_WRITER_DB_PATH, openWriterDb } from './experimental-writer-db.mjs';
+import { WRITER_RUNTIME_ID, selectRhymeRuntimeDatabases } from './runtime-db-routing.mjs';
 import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
 
@@ -121,7 +122,7 @@ const server = createServer(async (req, res) => {
         mode: 'local',
         writer_database: writerDbPath,
         legacy_database: legacyDbPath,
-        writer_runtime: 'materialized-writer-v5-v1',
+        writer_runtime: WRITER_RUNTIME_ID,
       });
     }
     if (url.pathname === '/api/stats') return json(res, getStats(writerDb));
@@ -154,10 +155,10 @@ const server = createServer(async (req, res) => {
         ensureTypeCoverage: url.searchParams.get('coverage') === 'balanced',
         coverageFloor: url.searchParams.get('coverage_floor'),
       };
-      const useLegacyRanking = url.searchParams.get('ranking') === 'legacy';
-      const result = useLegacyRanking
-        ? findRhymes(legacyDb, word, options)
-        : findWriterRhymes(writerDb, word, options);
+      const runtime = selectRhymeRuntimeDatabases({ writerDb, legacyDb }, url.searchParams);
+      const result = runtime.mode === 'legacy'
+        ? findRhymes(runtime.database, word, options)
+        : findWriterRhymes(runtime.database, word, options);
       return result ? json(res, result) : json(res, { error: 'Word not found' }, 404);
     }
 
