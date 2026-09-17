@@ -6,6 +6,7 @@ import { rightHeadSplitCandidates } from '../src/writer-morphology.mjs';
 import { WRITER_LEXICAL_DB_SCHEMA } from './writer-lexical-storage-v5-core.mjs';
 import {
   WRITER_ANCHOR_POLICY,
+  WRITER_ANCHOR_STORAGE,
   createWriterAnchorStorage,
   insertWriterCandidateSuffixRows,
   prepareWriterAnchorInsert,
@@ -13,6 +14,7 @@ import {
 } from './writer-anchor-materialization-v5-core.mjs';
 import {
   WRITER_MORPHOLOGY_POLICY,
+  WRITER_MORPHOLOGY_STORAGE,
   createWriterMorphologyEvidenceStorage,
   deriveWriterMorphologyForForm,
   insertWriterMorphologyEvidence,
@@ -37,10 +39,17 @@ try {
   throw new Error(`Writer materialization database does not exist: ${dbPath}. Build the experimental v5 DB first with: node scripts/build-local-db.mjs --publish data/de/publish-v3`);
 }
 
-function logicalDbBytes(db) {
+function storageBytes(db) {
   const pageCount = Number(db.prepare('PRAGMA page_count').get()?.page_count || 0);
+  const freePages = Number(db.prepare('PRAGMA freelist_count').get()?.freelist_count || 0);
   const pageSize = Number(db.prepare('PRAGMA page_size').get()?.page_size || 0);
-  return pageCount * pageSize;
+  return {
+    logicalBytes: pageCount * pageSize,
+    liveLogicalBytes: Math.max(0, pageCount - freePages) * pageSize,
+    pageCount,
+    freePages,
+    pageSize,
+  };
 }
 
 function chunks(values, size = lookupBatchSize) {
@@ -130,8 +139,8 @@ function loadAttestedEvidence(db, normalizedForms) {
 }
 
 function materializeAnchors(db) {
+  db.exec('DROP TABLE IF EXISTS writer_anchor;');
   createWriterAnchorStorage(db);
-  db.prepare('DELETE FROM writer_anchor WHERE anchor_policy=?').run(WRITER_ANCHOR_POLICY);
   const insert = prepareWriterAnchorInsert(db);
   let afterId = 0;
   let pronunciations = 0;
@@ -168,14 +177,14 @@ function materializeAnchors(db) {
 }
 
 function materializeMorphology(db) {
+  db.exec('DROP TABLE IF EXISTS writer_morphology_evidence;');
   createWriterMorphologyEvidenceStorage(db);
-  db.prepare('DELETE FROM writer_morphology_evidence WHERE morphology_policy=?')
-    .run(WRITER_MORPHOLOGY_POLICY);
   const insert = prepareWriterMorphologyEvidenceInsert(db);
   let afterFormId = 0;
   let formsSeen = 0;
   let formsWithAnalyses = 0;
   let evidenceRows = 0;
+  let storedPositiveRows = 0;
   let batches = 0;
 
   while (true) {
@@ -210,7 +219,8 @@ function materializeMorphology(db) {
         if (!analyses.length) continue;
         formsWithAnalyses += 1;
         const derived = deriveWriterMorphologyForForm(form, analyses, attested);
-        evidenceRows += insertWriterMorphologyEvidence(db, formId, derived.evidence, insert);
+        evidenceRows += derived.evidence.length;
+        storedPositiveRows += insertWriterMorphologyEvidence(db, formId, derived.evidence, insert);
       }
       db.exec('COMMIT');
     } catch (error) {
@@ -219,31 +229,30 @@ function materializeMorphology(db) {
     }
     batches += 1;
     console.log(
-      `[writer-v5 morphology] batches=${batches} forms=${formsSeen.toLocaleString('de-DE')} formsWithAnalyses=${formsWithAnalyses.toLocaleString('de-DE')} evidenceRows=${evidenceRows.toLocaleString('de-DE')}`,
+      `[writer-v5 morphology] batches=${batches} forms=${formsSeen.toLocaleString('de-DE')} analyses=${evidenceRows.toLocaleString('de-DE')} storedPositive=${storedPositiveRows.toLocaleString('de-DE')}`,
     );
   }
 
   const resolvedRows = Number(db.prepare(`
     SELECT COUNT(*) AS c
     FROM writer_morphology_evidence
-    WHERE morphology_policy=? AND family_key IS NOT NULL
-  `).get(WRITER_MORPHOLOGY_POLICY)?.c || 0);
+  `).get()?.c || 0);
   const unresolvedRows = evidenceRows - resolvedRows;
   const ambiguousForms = Number(db.prepare(`
     SELECT COUNT(*) AS c FROM (
       SELECT form_id
       FROM writer_morphology_evidence
-      WHERE morphology_policy=? AND family_key IS NOT NULL
       GROUP BY form_id
       HAVING COUNT(DISTINCT family_key)>1
     )
-  `).get(WRITER_MORPHOLOGY_POLICY)?.c || 0);
+  `).get()?.c || 0);
 
   return {
     batches,
     formsSeen,
     formsWithAnalyses,
     evidenceRows,
+    storedPositiveRows,
     resolvedRows,
     unresolvedRows,
     ambiguousForms,
@@ -258,8 +267,8 @@ try {
   }
 
   db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;');
-  const logicalBytesBefore = logicalDbBytes(db);
-  console.log(`[writer-v5] starting materialization; logical SQLite size=${mib(logicalBytesBefore)} MiB`);
+  const storageBefore = storageBytes(db);
+  console.log(`[writer-v5] starting compact materialization; live SQLite size=${mib(storageBefore.liveLogicalBytes)} MiB`);
 
   const anchors = materializeAnchors(db);
   const morphology = materializeMorphology(db);
@@ -267,51 +276,66 @@ try {
   const sampleAnchor = db.prepare(`
     SELECT anchor_key
     FROM writer_anchor
-    WHERE anchor_policy=?
-    ORDER BY nuclei DESC, anchor_key
+    ORDER BY length(anchor_key) DESC, anchor_key
     LIMIT 1
-  `).get(WRITER_ANCHOR_POLICY)?.anchor_key || null;
+  `).get()?.anchor_key || null;
   const lookupPlan = sampleAnchor
     ? writerAnchorLookupPlan(db, sampleAnchor).map((row) => String(row.detail || ''))
     : [];
-  const usesAnchorIndex = lookupPlan.some((detail) => detail.includes('idx_writer_anchor_lookup'));
+  const usesAnchorIndex = lookupPlan.some(
+    (detail) => detail.includes('USING PRIMARY KEY') && detail.includes('anchor_key=?'),
+  );
 
   const meta = db.prepare('INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)');
   meta.run('writer_anchor_policy', WRITER_ANCHOR_POLICY);
+  meta.run('writer_anchor_storage', WRITER_ANCHOR_STORAGE);
   meta.run('writer_anchor_rows', String(anchors.anchorRows));
   meta.run('writer_morphology_policy', WRITER_MORPHOLOGY_POLICY);
-  meta.run('writer_morphology_evidence_rows', String(morphology.evidenceRows));
+  meta.run('writer_morphology_storage', WRITER_MORPHOLOGY_STORAGE);
+  meta.run('writer_morphology_analysis_rows', String(morphology.evidenceRows));
+  meta.run('writer_morphology_evidence_rows', String(morphology.storedPositiveRows));
 
+  db.exec('ANALYZE writer_anchor; ANALYZE writer_morphology_evidence;');
   db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
-  const logicalBytesAfter = logicalDbBytes(db);
-  const logicalBytesDelta = logicalBytesAfter - logicalBytesBefore;
+  const storageAfter = storageBytes(db);
+  const liveLogicalBytesDelta = storageAfter.liveLogicalBytes - storageBefore.liveLogicalBytes;
 
   const report = {
-    schema: 'rhymelab-writer-materialization-v5-report-v1',
+    schema: 'rhymelab-writer-materialization-v5-report-v2',
     generated_at: new Date().toISOString(),
     database_schema: schema,
     anchor_policy: WRITER_ANCHOR_POLICY,
+    anchor_storage: WRITER_ANCHOR_STORAGE,
     morphology_policy: WRITER_MORPHOLOGY_POLICY,
+    morphology_storage: WRITER_MORPHOLOGY_STORAGE,
     storage: {
-      logical_bytes_before: logicalBytesBefore,
-      logical_mib_before: mib(logicalBytesBefore),
-      logical_bytes_after: logicalBytesAfter,
-      logical_mib_after: mib(logicalBytesAfter),
-      logical_bytes_delta: logicalBytesDelta,
-      logical_mib_delta: mib(logicalBytesDelta),
+      logical_bytes_before: storageBefore.logicalBytes,
+      logical_mib_before: mib(storageBefore.logicalBytes),
+      live_logical_bytes_before: storageBefore.liveLogicalBytes,
+      live_logical_mib_before: mib(storageBefore.liveLogicalBytes),
+      logical_bytes_after: storageAfter.logicalBytes,
+      logical_mib_after: mib(storageAfter.logicalBytes),
+      live_logical_bytes_after: storageAfter.liveLogicalBytes,
+      live_logical_mib_after: mib(storageAfter.liveLogicalBytes),
+      live_logical_bytes_delta: liveLogicalBytesDelta,
+      live_logical_mib_delta: mib(liveLogicalBytesDelta),
+      freelist_pages_after: storageAfter.freePages,
+      note: storageAfter.freePages
+        ? 'Physical file may retain free pages after rematerializing an existing DB. Rebuilding DB-v5 from publish-v3 before materialization gives a clean physical-size measurement.'
+        : 'No free pages remain in the measured SQLite file.',
     },
     anchors: {
       pronunciations_processed: anchors.pronunciations,
       batches: anchors.batches,
       rows: anchors.anchorRows,
-      lookup_index: 'idx_writer_anchor_lookup',
+      lookup_index: 'PRIMARY KEY(anchor_key, pronunciation_id) WITHOUT ROWID',
       sample_query_plan: lookupPlan,
       sample_query_plan_uses_lookup_index: usesAnchorIndex,
     },
     morphology,
     accepted_runtime_rewired: false,
     writer_runtime_rewired: false,
-    note: 'Materialization only. Runtime switching requires separate candidate-equivalence and owner benchmark gates.',
+    note: 'Compact materialization only. Runtime switching still requires separate candidate-equivalence and owner benchmark gates.',
   };
   await mkdir(dirname(reportPath), { recursive: true });
   await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
