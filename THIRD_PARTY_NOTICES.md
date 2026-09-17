@@ -59,3 +59,12 @@ Downloaded raw corpora, raw Wiktionary/Kaikki snapshots, generated German bulk d
 ## Adding new third-party material
 
 Any future third-party code or data must have its source, license, attribution, version/snapshot, and redistribution boundary documented before it is committed. A commercial license from Graph1ks never overrides third-party terms.
+
+## RUEG German subcorpora via DAKODA
+
+RhymeLab may locally ingest the German RUEG subcorpora RUEG-Lx, RUEG-L1 and RUEG-HL as distributed through DAKODA.
+
+DAKODA source records mark these open data packages as Creative Commons CC0 1.0 Universal. RhymeLab's source manifest records the DAKODA repository pages and direct EXB/metadata package URLs. Downloaded archives and extracted corpus files remain local and gitignored.
+
+RhymeLab preserves source/subcorpus provenance and keeps the diplomatic (`dipl`) and normalized (`norm`) layers distinct. The project does not imply that DAKODA/RUEG endorses RhymeLab, and corpus-derived register observations are not presented as population-representative German frequency.
+
