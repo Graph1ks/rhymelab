@@ -2,129 +2,209 @@
 
 ## Purpose
 
-RhymeLab distinguishes three questions that must not be collapsed into one score:
+RhymeLab separates four questions that must not be collapsed into one score:
 
-1. Do two pronunciations rhyme, and how strongly?
-2. Is a candidate lexically useful rather than a trivial variant of the query?
-3. Does the returned page contain diverse writing options rather than many near-duplicates?
+1. Is a pronunciation pair a rhyme, and how strong is it?
+2. Did retrieval expose the useful candidate at all?
+3. Is the candidate lexically useful rather than a trivial continuation of the query?
+4. Does the returned page contain diverse writing options rather than many variants of the same lexical construction?
 
-The accepted phonetic scorer answers the first question. Writer ranking answers the second. Result-set diversification answers the third.
+The accepted legacy scorer/relation path remains independently reproducible. Writer search adds experimental deterministic retrieval, writer utility and page diversification without requiring network access, LLM inference or machine-learning model inference.
 
-The core implementation is deliberately deterministic. No LLM, machine-learning model, neural encoder, hosted ranking service, or network dependency is permitted in the core rhyme search path.
+The current feature work is **not** a formally accepted runtime baseline.
 
-## v1 implementation
+## Current feature architecture
 
-`src/writer-ranking-policy.mjs` adds an explainable writer-utility layer over existing rhyme results. It does **not** change:
-
-- IPA parsing;
-- phonetic component scores;
-- primary rhyme relation;
-- Assonance/Consonance relations;
-- pronunciation selection;
-- database contents.
-
-For every query/candidate pair it derives:
-
-- normalized edit similarity;
-- same-lemma evidence;
-- shared-prefix length and ratio;
-- shared-suffix length and ratio;
-- query lexical overlap;
-- lexical novelty;
-- query-relative commonness;
-- explicit rare/archaic/obsolete/dated penalty.
-
-The deterministic writer utility keeps phonetic evidence dominant while applying lexical-overlap penalties only to writer usefulness.
-
-Every writer-ranked result exposes an explanation object:
-
-```json
-{
-  "writerRank": 1,
-  "writer": {
-    "policy": "deterministic_writer_utility_v1",
-    "utility": 0.91,
-    "soundUtility": 0.95,
-    "lexicalPenalty": 0.04,
-    "lexicalNovelty": 0.87,
-    "queryOverlap": 0.13,
-    "commonness": 0.92,
-    "diversifiedScore": 0.91,
-    "redundancyPenalty": 0,
-    "maxRedundancy": 0,
-    "evidence": {
-      "sameLemma": false,
-      "surfaceSimilarity": 0.31,
-      "sharedPrefixLength": 0,
-      "sharedSuffixLength": 4,
-      "prefixOverlap": 0,
-      "suffixOverlap": 0.33,
-      "overlap": 0.13,
-      "novelty": 0.87
-    }
-  }
-}
-```
-
-The exact numbers above are illustrative; runtime values come from the deterministic formula.
-
-## List diversification
-
-After pairwise writer utility is calculated, RhymeLab applies greedy lexical diversification.
-
-Redundancy is based on lexical/surface evidence, never on rhyme similarity itself:
-
-- identical normalized form;
-- same lemma;
-- high normalized edit similarity;
-- long shared initial construction;
-- long shared terminal construction.
-
-A five-character shared terminal construction is considered evidence for productive lexical repetition such as `*-weise`. Four-character endings such as ordinary orthographic `-eise` rhyme material are intentionally not sufficient on their own.
-
-The reranker maintains each remaining candidate's maximum redundancy against the already selected set, so selection needs O(n²) candidate-pair checks rather than O(n³) rescoring. This is compatible with the local/mobile performance goal.
-
-## Arbeitsweise regression intent
-
-`Arbeitsweise` is the first explicit writer-ranking regression case.
-
-The v1 policy is expected to:
-
-- rank a lexically distinct high-quality candidate such as `Hochzeitsreise` above a high-overlap construction such as `Arbeitszweige` when phonetic evidence is comparable;
-- heavily demote same-lemma inflectional variants such as `Arbeitsweisen` in writer-oriented ordering without claiming that they rhyme less strongly;
-- keep creative weaker candidates available rather than allowing a single `*-weise` construction to consume the page;
-- diversify repeated productive terminal constructions.
-
-The synthetic tests in `tests/writer-ranking-policy.test.mjs` encode these invariants without pretending that one exact full ordering is linguistic truth.
-
-## Runtime integration
-
-`src/writer-search.mjs` wraps the accepted `findRhymes` pipeline:
+Current feature-branch pipeline:
 
 ```text
-existing candidate retrieval
-  -> existing phonetic scorer / relation policy
-  -> existing runtime candidate order
+legacy/base retrieval + de-phon-v3
+  + deterministic German right-edge retrieval
+  -> deterministic multi-anchor writer scoring
+  -> attested right-head lexical-family evidence
   -> deterministic writer utility
-  -> deterministic lexical diversification
-  -> writer-ranked page
+  -> deterministic family/list diversification
+  -> writer-oriented page
 ```
 
-The local API/UI use writer ranking on the feature branch. The historical accepted ranking remains available through:
+`?ranking=legacy` bypasses the feature path and retains the accepted/base behavior for comparison.
+
+## Right-edge / multi-anchor retrieval
+
+The live `Arbeitsweise` review demonstrated a retrieval-boundary failure in the legacy path.
+
+`Arbeitsweise`:
 
 ```text
-?ranking=legacy
+ˈaʁbaɪ̯t͡sˌvaɪ̯zə
+stress 2010
 ```
 
-This fallback is required while the writer policy is still being benchmarked.
+`Hochzeitsreise`:
 
-## What v1 deliberately does not claim
+```text
+ˈhɔxt͡saɪ̯t͡sˌʁaɪ̯zə
+stress 2010
+```
 
-The current writer policy is an interpretable baseline, not a final morphological model.
+The legacy indexed retrieval did not return `Hochzeitsreise` in the pool, even though direct `de-phon-v3` scoring produced a usable slant result. The writer path now derives deterministic right-edge vowel signatures from eligible secondary-stress anchors and can retrieve this pair through the suffix signatures corresponding to the final stressed domain.
 
-Surface prefix/suffix evidence is useful for obvious repetition but cannot reliably parse German compounds. The next data-model milestone should add explicit deterministic morphology/compound evidence rather than continually adding string heuristics.
+The experimental writer scorer may compare eligible primary/secondary right-edge anchors while preserving the accepted legacy endpoint unchanged. For the pair above, the secondary-stress domains beginning at syllable 3 match as a two-syllable perfect right-edge rhyme.
 
-Target data architecture:
+This is feature evidence, not yet a replacement for the accepted German phonology baseline. Formal promotion requires dedicated retrieval/scorer acceptance work.
+
+## Writer policy v4
+
+Current policy identifier:
+
+```text
+deterministic_writer_utility_v4
+```
+
+Pairwise writer evidence includes:
+
+- phonetic tier and score;
+- syllable distance;
+- query-relative commonness;
+- same lemma;
+- normalized edit similarity;
+- shared initial construction;
+- weak long-suffix overlap diagnostics;
+- attested right-head lexical-family match;
+- lexical status penalties from preserved source tags.
+
+Phonetic truth is not rewritten by lexical penalties. A candidate can remain `multisyllabic_perfect` with score `1` while receiving a lower writer rank because it repeats the query's lexical family.
+
+## Deterministic morphology-family baseline
+
+`src/writer-morphology.mjs` implements policy:
+
+```text
+de-attested-right-head-v1
+```
+
+This is deliberately narrower than a full morphological parser.
+
+For each German surface form, it considers possible right-edge splits and requires lexical evidence for **both** sides from the existing local `hot` lexicon. Common German linking-material transformations are tested deterministically on the left side (for example `s`, `n`, `en`, `es`, with conservative stem restoration). Among valid analyses it prefers the rightmost independently attested terminal lexeme.
+
+Examples of the intended writer-family evidence:
+
+```text
+Arbeits|weise       -> right:weise
+schätzungs|weise    -> right:weise
+stellen|weise       -> right:weise
+Pilger|reise        -> right:reise
+Sonder|preise       -> right:preise
+Kirchen|kreise      -> right:kreise
+Vor|speise          -> right:speise
+Strecken|gleise     -> right:gleise
+```
+
+A false inner substring such as:
+
+```text
+Sonderp|reise
+```
+
+is rejected because the left side lacks the required lexical evidence.
+
+Nested compounds are resolved toward the rightmost lexical head for writer-family purposes. For example, when both `Rohstoff` and `Stoffpreise` are attested, `Rohstoff|preise` is preferred over `Roh|stoffpreise` so the writer family remains `right:preise`.
+
+### Provenance boundary
+
+The returned evidence explicitly states that it is **inferred from local exact-surface lexical evidence**. It is not presented as a source-attested compound analysis.
+
+Current result/query payloads expose `writerMorphology` including:
+
+- policy;
+- resolution status;
+- family key;
+- split position;
+- raw left side;
+- selected left lexical evidence and linking transformation;
+- selected right-head lexical evidence;
+- local evidence source.
+
+Unresolved words stay unresolved; the engine does not invent a split.
+
+## Query cheapness vs page diversity
+
+Two separate effects use morphology families.
+
+### Query-family penalty
+
+If query and candidate resolve to the same right-head family, the candidate receives a writer-tier penalty. Example:
+
+```text
+Arbeitsweise -> right:weise
+stellenweise -> right:weise
+```
+
+The rhyme may still be phonetically perfect; it is merely considered a cheaper writing continuation.
+
+### Result-set family diversity
+
+After one member of a morphology family is selected, further members of that same family receive strong redundancy evidence. This encourages rotation among families such as:
+
+```text
+-reise
+-preise
+-kreise
+-speise
+-gleise
+-weise
+```
+
+rather than filling the top page with many compounds sharing one lexical head.
+
+Ordinary rhyme spelling by itself is **not** redundancy. `Hochzeitsreise`, `Sonderpreise` and `Vorspeise` must not be collapsed merely because their orthography shares the rhyme ending.
+
+The greedy reranker maintains each remaining candidate's maximum redundancy against the selected set, keeping the list-level stage deterministic and bounded.
+
+## Explanation fields
+
+Writer-ranked rows include:
+
+- `writerRank`;
+- `writer.policy`;
+- `writer.utility`;
+- `writer.soundUtility`;
+- `writer.lexicalPenalty`;
+- `writer.lexicalNovelty`;
+- `writer.queryOverlap`;
+- `writer.commonness`;
+- `writer.baseTier`;
+- `writer.cheapRhymeTierPenalty`;
+- `writer.writerTier`;
+- `writer.effectiveTier`;
+- `writer.diversityTierPenalty`;
+- `writer.diversifiedScore`;
+- `writer.redundancyPenalty`;
+- `writer.maxRedundancy`;
+- `writer.evidence`, including morphology-family comparison diagnostics;
+- `writerMorphology` for the candidate;
+- `writerAnchor` / `writerAnchorCandidates` when writer multi-anchor scoring is used.
+
+The response also exposes summary objects `writerRetrieval` and `writerMorphology`.
+
+## Arbeitsweise regression evidence
+
+Owner-local live testing established the following sequence:
+
+1. Legacy retrieval omitted `Hochzeitsreise` from the current pool.
+2. Direct legacy phonetic scoring of the known pair was `slant`, overall `0.7574`.
+3. Right-edge retrieval found `Hochzeitsreise` through both secondary-anchor-context and secondary-anchor suffix channels.
+4. Writer multi-anchor scoring found the secondary-stress domains at syllable 3 as `multisyllabic_perfect`, score `1`.
+5. Removing suffix-string redundancy exposed a page dominated by true perfect right-edge families such as `-weise`, `-reise`, `-preise`, `-kreise`, `-speise` and `-gleise`.
+6. That live result motivated the current explicit morphology-family layer rather than further spelling heuristics.
+
+`Notfallbleibe`, an earlier illustrative example, is not present in the current local lexicon. It therefore represents a lexical-coverage issue, not a ranking or retrieval regression in the present database.
+
+## What remains provisional
+
+The current morphology layer is an auditable writer-family baseline, not final German morphology.
+
+A future normalized build model should support ambiguous analyses and provenance explicitly:
 
 ```text
 lexeme
@@ -134,21 +214,23 @@ lexeme
 
 form
   -> lemma / inflection family
-  -> deterministic morphology analyses
+  -> morphology analyses
   -> compound constituents / head
-  -> usage / register / lexical status
+  -> lexical status / register / usage
 ```
 
-The runtime may still materialize a compact `hot` representation for speed. Normalized build data and runtime materialization do not need to be the same schema.
+Potential future source-supported morphology work may use additional licensed resources only after provenance/licensing review. Runtime performance should eventually use materialized/indexed fields rather than the current validation-time dynamic lexical lookup and right-edge `LIKE` retrieval.
 
-## Next acceptance work
+## Acceptance work before promotion
 
-Before writer ranking can replace the accepted runtime baseline on `main`:
+Before writer search can replace the accepted runtime baseline:
 
-1. run source/tests/public audit;
-2. run live local searches over difficult writer queries;
-3. add page-quality metrics, especially duplicate/repetition rates;
-4. verify exact-rhyme recall and relation labels are unchanged;
-5. inspect common-word and unranked-word behavior;
-6. add deterministic morphology evidence and compare it against the surface-only v1 baseline;
-7. promote only after the new ranking has an explicit acceptance report.
+1. run source checks, tests and public-readiness audit;
+2. review live German writer queries beyond `Arbeitsweise`;
+3. measure retrieval recall and page-quality metrics;
+4. verify protected exact-rhyme and relation behavior on the accepted path;
+5. benchmark query-family and repeated-family suppression;
+6. measure rare/unranked intrusion and common-word quality;
+7. materialize validated right-edge/morphology lookup evidence for local/mobile performance;
+8. produce an explicit writer-search acceptance report;
+9. promote only after owner acceptance.
