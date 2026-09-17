@@ -91,9 +91,9 @@ The active ranking policy is returned as `rankingPolicy`.
 Current policy identifiers:
 
 ```text
-rankingPolicy:               deterministic_writer_utility_v5
+rankingPolicy:               deterministic_writer_utility_v6
 phonology.writerAnchorPolicy de-right-edge-anchors-v1
-writerMorphology.policy      de-attested-right-head-v3
+writerMorphology.policy      de-attested-right-head-v4
 ```
 
 Pipeline:
@@ -105,6 +105,7 @@ accepted/base retrieval + accepted legacy scoring
   -> conservative right-head morphology-family evidence
   -> explicit documented German construction rules
   -> deterministic lexical-safety tier
+  -> deterministic structural lexical cheapness
   -> deterministic writer utility
   -> deterministic family/list diversity
 ```
@@ -135,18 +136,18 @@ The right-edge prototype currently uses validation-time suffix lookup against DB
 `writerMorphology` uses policy:
 
 ```text
-de-attested-right-head-v3
+de-attested-right-head-v4
 ```
 
 Ordinary inferred family evidence remains deliberately conservative: noun/adjective right-head analyses require compatible POS, whole-lemma suffix evidence, independently attested left/right evidence, and measured usage on the selected left side. Verbs and proper names remain unresolved until explicit deterministic rules exist.
 
-v3 additionally supports the narrow productive German construction:
+v4 additionally supports the narrow productive German construction:
 
 ```text
-de-adverbial-weise-v1
+de-adverbial-weise-v2
 ```
 
-An adverb whose whole lemma ends in `weise`, whose independently attested terminal lexeme is noun `Weise`, and whose left side has measured lexical evidence receives family `right:weise`. This is explicit construction evidence, not generic suffix-string matching.
+A form selected as `adv` or `adj` whose whole lemma ends in `weise`, whose independently attested terminal lexeme is noun `Weise`, and whose left side has measured lexical evidence receives family `right:weise`. The `adj`/`adv` allowance reflects source-attested lexical ambiguity and the current DB-v4 limitation that only one selected lexical analysis is stored per surface form. This is explicit construction evidence, not generic suffix-string matching.
 
 Query and candidate morphology payloads can include:
 
@@ -163,11 +164,25 @@ Query and candidate morphology payloads can include:
 - `rightHead`;
 - `checks`, including `explicitConstructionRule` when applicable.
 
-This is inferred writer-search evidence, not source-attested full morphology.
+This is inferred writer-search evidence, not source-attested full morphology. A future materialized writer lexical layer should preserve multiple lemma/POS analyses with provenance instead of forcing one analysis per surface form.
+
+### Writer structural cheapness fields
+
+Writer v6 distinguishes lexical cheapness from ordinary rhyme spelling. High edit similarity alone is not sufficient to demote short words such as `Liebe/Diebe`, `Leben/neben` or `Nacht/macht`.
+
+Cheapness evidence can instead come from:
+
+- same lemma;
+- same resolved morphology family;
+- a long shared initial construction;
+- a long very-high-similarity near duplicate;
+- a very long shared suffix as weaker evidence.
+
+`writer.evidence` therefore includes diagnostic fields such as `surfaceSimilarity`, `sharedPrefixLength`, `sharedSuffixLength`, `initialConstructionOverlap`, `longNearDuplicateOverlap`, `sameLemma` and `sameMorphologyFamily`. Phonetic rhyme spelling remains distinct from these lexical signals.
 
 ### Writer lexical-safety fields
 
-Writer v5 introduces a default-page safety tier while preserving the underlying phonetic class/score.
+Writer v5 introduced, and writer v6 retains, a default-page safety tier while preserving the underlying phonetic class/score.
 
 Current provisional policy:
 
