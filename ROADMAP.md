@@ -1,6 +1,6 @@
 # RhymeLab Roadmap
 
-Last updated: 2026-09-15
+Last updated: 2026-09-17
 
 ## Phase 0 — German phonology + source pipeline — complete
 
@@ -27,7 +27,7 @@ Refreshed `de-human-rhyme-v1` is complete: 367/367 reviewed with ranking NDCG 0.
 
 Accepted improvements include `de-ipa-v2`, `de-phon-v3`, `rhyme-relations-v2`, curated-modern pronunciation overlay and provenance-aware pronunciation integrity policy. Exact rhyme behavior remains a hard regression boundary.
 
-## Phase 4 — Targeted diagnostics + ranking isolation — current, final acceptance gate
+## Phase 4 — Targeted diagnostics + ranking isolation — final acceptance gate
 
 Broad scorer/relation retuning remains unjustified. Ranking changes stay isolated from phonology.
 
@@ -88,7 +88,7 @@ Decision: retrieval-aware pre-promotion gate passed.
 
 ### Runtime source promotion — wired, post-promotion acceptance pending
 
-Current main now contains the validated policy in `src/runtime-ranking-policy.mjs` and uses it in `src/local-engine.mjs` for normal `type=all`, non-balanced ranked mode.
+Current main contains the validated policy in `src/runtime-ranking-policy.mjs` and uses it in `src/local-engine.mjs` for normal `type=all`, non-balanced ranked mode.
 
 Still unchanged:
 
@@ -131,18 +131,107 @@ After ranking isolation:
 - expand reviewed modern vocabulary/provenance;
 - add fallback/G2P only if attested coverage proves insufficient.
 
-## Phase 6 — Phrase / mosaic rhyme
+This remains required, but writer-search architecture work may proceed independently where it does not alter pronunciation or relation truth.
 
-Only after German single-word primary rhyme, relations, pronunciation quality and ranking remain stable.
+## Phase 6 — Deterministic writer-oriented ranking — current feature milestone
 
-## Phase 7 — English profile + English benchmark
+Core rule: no LLM, machine-learning model, neural inference, hosted ranker, or network dependency in rhyme retrieval/ranking.
+
+Writer ranking is separate from phonetic truth:
+
+```text
+phonetic retrieval/scoring
+  -> deterministic lexical/writer utility
+  -> deterministic list diversification
+  -> writer-oriented results
+```
+
+Initial implementation:
+
+- `src/writer-ranking-policy.mjs`;
+- `src/writer-search.mjs`;
+- explicit `writer` explanation payload per result;
+- same-lemma suppression;
+- query lexical-overlap penalty;
+- repeated productive surface-construction diversification;
+- O(n²) greedy result diversification;
+- `Arbeitsweise` regression tests;
+- legacy ranking remains available during validation.
+
+See `docs/WRITER_RANKING.md`.
+
+This phase must be validated on live local data before it can replace the accepted ranking baseline.
+
+## Phase 7 — Deterministic lexical/morphology data model
+
+Move beyond surface-only heuristics by representing writer-relevant lexical structure explicitly during the local build.
+
+Target normalized build model:
+
+```text
+lexeme
+  -> form
+  -> pronunciation variants
+  -> eligible rhyme anchors / tails
+
+form
+  -> lemma / inflection family
+  -> morphology analyses
+  -> compound constituents / head
+  -> lexical status / register / usage
+```
+
+The runtime may continue to materialize a compact SQLite `hot` layer. Do not sacrifice mobile/local lookup speed for normalized build purity.
+
+Required German work:
+
+- deterministic inflection-family identification where source evidence supports it;
+- deterministic compound segmentation with confidence/provenance;
+- constituent/head fields for writer redundancy;
+- no invented morphology facts;
+- keep ambiguous analyses when necessary rather than forcing a false single split.
+
+## Phase 8 — Search-quality benchmark v2
+
+The existing rhyme-relation benchmark remains useful but is insufficient for page quality.
+
+Add query/list metrics and regression constraints including:
+
+- NDCG@10 / NDCG@20;
+- useful-result recall;
+- duplicate / near-duplicate rate;
+- same-lemma rate;
+- repeated-construction rate;
+- lexical/morphological diversity;
+- rare/unranked intrusion rate;
+- pronunciation-confidence quality;
+- exact-rhyme recall protection.
+
+`Arbeitsweise` becomes a permanent regression query. The benchmark should constrain bad result-page patterns rather than pretending one exact total ordering is linguistic truth.
+
+## Phase 9 — German multi-anchor phonology / retrieval refinement
+
+Only after writer-page problems are measured separately from relation correctness:
+
+- benchmark eligible right-edge rhyme anchors for German compounds/secondary stress;
+- add richer deterministic retrieval signatures where recall evidence justifies them;
+- keep candidate retrieval high-recall and ranking precision-oriented;
+- do not change `de-phon-v3` merely to solve lexical boredom.
+
+Any phonology revision requires a separate scorer/relation acceptance path.
+
+## Phase 10 — Phrase / mosaic rhyme
+
+Only after German single-word retrieval, pronunciation quality, deterministic writer ranking, lexical diversity and search-quality benchmark remain stable.
+
+## Phase 11 — English profile + English benchmark
 
 English remains separate and unimplemented. It requires its own lexical/pronunciation sources, IPA parser, phoneme similarities, thresholds, pronunciation policy and benchmark.
 
-## Phase 8 — Cross-language rhyme
+## Phase 12 — Cross-language rhyme
 
 Only after German and English are individually strong.
 
 ## Hosted runtime
 
-Not part of the current roadmap; any hosted deployment is a separate explicit architecture decision.
+Not part of the current roadmap. The core search path is designed to remain locally executable for desktop, web packaging and later mobile use. Any hosted deployment is a separate product decision and must not become a requirement for rhyme retrieval/ranking.
