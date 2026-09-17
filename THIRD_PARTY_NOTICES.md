@@ -36,6 +36,16 @@ https://kaikki.org/dewiktionary/rawdata.html
 
 The project records the underlying Wiktionary licensing as **CC BY-SA + GFDL**. Raw snapshots and generated bulk German data are intentionally not committed to this repository. If such material is redistributed separately, the applicable upstream attribution/share-alike/license requirements must be satisfied independently of RhymeLab's root license.
 
+## Cologne Corpus of Kiezdeutsch
+
+RhymeLab may locally ingest the transcription files from:
+
+Neubauer, Antonia Marie & Catasso, Nicholas (2025), *Kölner Korpus des Kiezdeutschen / Cologne Corpus of Kiezdeutsch*, Zenodo, DOI 10.5281/zenodo.15465769.
+
+License: Creative Commons Attribution 4.0 International (CC BY 4.0).
+
+The RhymeLab bootstrap downloads transcription PDFs only and does not bundle or commit the source transcripts or audio. Derived local register-attestation evidence retains source/snapshot/checksum provenance. Any redistribution of upstream material must preserve the required attribution and indicate transformations where applicable.
+
 ## Trademarks and named entities
 
 `data/supplemental/modern-entities.json` contains names of third-party brands, platforms, companies, products, and services for linguistic/pronunciation purposes. Their inclusion does not claim ownership of those names or marks and does not imply affiliation, sponsorship, or endorsement.
