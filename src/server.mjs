@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { findRhymes, getStats, getWord, openRhymeDb, searchWords } from './local-engine.mjs';
+import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
@@ -130,7 +131,7 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname.startsWith('/api/rhymes/')) {
       const word = decodeURIComponent(url.pathname.slice('/api/rhymes/'.length));
-      const result = findRhymes(db, word, {
+      const options = {
         limit: url.searchParams.get('limit'),
         poolLimit: url.searchParams.get('pool'),
         includeVariants: url.searchParams.get('variants') === 'all',
@@ -138,7 +139,11 @@ const server = createServer(async (req, res) => {
         type: url.searchParams.get('type') || 'all',
         ensureTypeCoverage: url.searchParams.get('coverage') === 'balanced',
         coverageFloor: url.searchParams.get('coverage_floor'),
-      });
+      };
+      const useLegacyRanking = url.searchParams.get('ranking') === 'legacy';
+      const result = useLegacyRanking
+        ? findRhymes(db, word, options)
+        : findWriterRhymes(db, word, options);
       return result ? json(res, result) : json(res, { error: 'Word not found' }, 404);
     }
 
