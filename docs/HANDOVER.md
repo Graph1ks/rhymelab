@@ -1,6 +1,6 @@
 # RhymeLab — Thread Handover
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 
 Repository state is authoritative. Do not reconstruct project state from prior chats.
 
@@ -139,30 +139,51 @@ During Phase 11 use structural, provenance, regression, lexical-safety, determin
 
 ## Current phase — Phase 11 German phrase / mosaic / phraseology
 
-Plan: `docs/PHRASE_MOSAIC_PLAN.md`.
+Plan: `docs/PHRASE_MOSAIC_PLAN.md`. Completed source survey: `docs/PHRASE_SOURCE_SURVEY.md`.
 
-### Immediate next action: Phase 11A source survey
+### Phase 11A source/licensing gate — COMPLETE
 
-Before phrase runtime implementation, research public German sources for:
+The production source decision is now explicit:
 
-- common multi-word phrases / n-grams / collocations;
-- idioms / Redewendungen;
-- proverbs / formulaic expressions;
-- metaphors / figurative expressions where structured public data exists;
-- common sentence fragments useful to lyricists;
-- semantic resources useful for deterministic phrase discovery.
+- **German Wiktionary via raw Kaikki/Wiktextract — USE WITH CONDITIONS** for source-backed phraseology;
+- **existing Leipzig News 2024 1M + Wikipedia 2021 1M + Web 2021 1M — USE** for deterministic n-gram/attestation/commonness evidence;
+- **Tatoeba — USE WITH CONDITIONS** only after contributor attribution is preserved end-to-end;
+- **Wikidata Lexemes — USE** as optional semantic/identity support;
+- **OpenThesaurus / OdeNet — USE WITH CONDITIONS** as optional semantic support, never as automatic phrase/commonness truth;
+- **ParlaMint-AT 4.1 — USE WITH CONDITIONS / LATER** for register/domain enrichment;
+- **COLF-VID, PARSEME, GermaNet, DeReKo/COSMAS, broad DWDS corpus use — RESEARCH ONLY** under the reasons in the survey.
 
-For each candidate source capture source/project name, official bulk/API location, license/attribution/share-alike, redistribution/commercial compatibility, snapshot/version, bulk access method, raw format/scale, actual phrase categories, stable provenance IDs, and offline-ingestion viability.
+Do not download giant new sources merely because they are listed. Do not treat public web phrase lists as ingestible without verified bulk rights.
 
-OpenThesaurus and OdeNet are candidate semantic ingredients only; do not assume they solve phraseology/idioms/metaphors by themselves.
+### Immediate next action — Phase 11B1
 
-### After source selection
+Milestone:
 
-1. design a separate provenance-bearing phrase data model;
-2. construct deterministic phrase pronunciations from accepted local token pronunciations;
-3. design indexed rhyme-span retrieval that crosses word boundaries without full-corpus scans;
-4. define a separate phrase/mosaic writer-ranking policy instead of changing single-word v6;
-5. build a dedicated German Phrase/Mosaic benchmark with structural, provenance, safety, performance, and repeatability gates;
-6. collect independent Human Writer NDCG only after the broader German Writer surface is mature enough.
+`PHASE_11B1_PROVENANCE_PHRASE_CATALOG`
+
+Implement the separate provenance-bearing phrase data model and deterministic fixture ingestion.
+
+Required first slice:
+
+1. `phrase_source` + `phrase_snapshot` license/snapshot/checksum registry;
+2. separate `phrase`, `phrase_attestation`, `phrase_token`, and `phrase_usage_evidence` storage;
+3. raw German Wiktextract phrase fixture importer preserving source tags/types without invention;
+4. deterministic token boundaries and explicit unresolved lexical-token state;
+5. Leipzig fixture-derived attestation/commonness kept separate from phraseological type;
+6. deterministic fingerprints, idempotency and provenance tests;
+7. Tatoeba schema fixture only until author attribution is proven.
+
+Do **not** yet implement:
+
+- phrase pronunciation or connected-speech rules;
+- mosaic retrieval/indexing;
+- phrase Writer ranking;
+- phrase API/UI surfacing;
+- Human Writer NDCG;
+- giant new corpus downloads.
+
+The accepted single-word Writer v5/v6 baseline stays frozen and must not be retuned for Phase 11.
+
+After 11B1 acceptance, proceed to deterministic phrase pronunciation (11C), then indexed cross-word mosaic retrieval (11D), then separate phrase ranking (11E), then the dedicated phrase/mosaic benchmark (11F).
 
 English remains after the German phrase/mosaic path is stable enough to freeze.

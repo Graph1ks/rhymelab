@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
-  "updated": "2026-09-17",
-  "phase": "GERMAN_PHASE_11_PHRASE_MOSAIC_SOURCE_SURVEY",
+  "updated": "2026-09-18",
+  "phase": "GERMAN_PHASE_11_PHRASE_MOSAIC_DATA_MODEL",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,9 +100,9 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "current_source_survey_required",
+    "status": "source_survey_complete_phase_11b1_next",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
-    "first_gate": "public_phraseology_source_survey_and_license_decision",
+    "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": false,
     "runtime_implementation_started": false,
     "required_source_categories": [
@@ -123,7 +123,48 @@
       "offline_ingestion_and_runtime"
     ],
     "human_ndcg_during_phase": "pending_reference",
-    "single_word_baseline_must_remain_frozen": true
+    "single_word_baseline_must_remain_frozen": true,
+    "source_survey_complete": true,
+    "source_survey_doc": "docs/PHRASE_SOURCE_SURVEY.md",
+    "phrase_source_stack_selected": true,
+    "selected_initial_sources": [
+      "german_wiktionary_via_raw_kaikki_wiktextract_USE_WITH_CONDITIONS",
+      "existing_leipzig_news_2024_1m_wikipedia_2021_1m_web_2021_1m_USE"
+    ],
+    "conditional_optional_sources": [
+      "tatoeba_german_text_USE_WITH_CONDITIONS_attribution_gate",
+      "wikidata_lexemes_USE_optional_semantic_identity",
+      "openthesaurus_USE_WITH_CONDITIONS_optional_semantic_support",
+      "odenet_USE_WITH_CONDITIONS_optional_semantic_graph",
+      "parlamint_at_4_1_USE_WITH_CONDITIONS_later_register_enrichment"
+    ],
+    "research_only_sources": [
+      "colf_vid_CC_BY_NC_SA",
+      "parseme_vmwe_until_exact_german_artifact_license_pinned",
+      "germanet_without_separate_commercial_redistribution_agreement",
+      "dereko_cosmas_noncommercial",
+      "dwds_corpus_families_unless_specific_compatible_license_is_audited",
+      "dwds_wordprofile_method_reference_only"
+    ],
+    "next_milestone": "PHASE_11B1_PROVENANCE_PHRASE_CATALOG",
+    "phase_11b1_scope": [
+      "separate_phrase_source_snapshot_catalog_schema",
+      "raw_wiktextract_phrase_fixture_importer",
+      "source_backed_phrase_type_and_tag_preservation",
+      "deterministic_token_boundaries_and_unresolved_token_state",
+      "leipzig_fixture_attestation_and_commonness_evidence",
+      "deterministic_build_fingerprints_and_idempotency",
+      "tatoeba_schema_fixture_only_until_attribution_is_resolved"
+    ],
+    "phase_11b1_excludes": [
+      "phrase_pronunciation",
+      "connected_speech",
+      "mosaic_runtime_retrieval",
+      "phrase_writer_ranking",
+      "api_ui_phrase_surfacing",
+      "giant_new_corpus_downloads",
+      "human_writer_ndcg"
+    ]
   },
   "owner_measurement_outputs": {
     "database_v5": "data/local/rhymelab-v5.sqlite",
@@ -133,10 +174,13 @@
     "repeatability_report_v5": "data/local/writer-v5-repeatability-report.json"
   },
   "next_actions": [
-    "phase_11a_research_public_german_phrase_phraseology_sources",
-    "record_license_bulk_access_scale_format_and_provenance_for_each_candidate",
-    "select_source_stack_before_phrase_database_implementation",
-    "design_phrase_data_model_after_source_decision",
+    "phase_11b1_design_and_implement_provenance_phrase_catalog_schema",
+    "add_raw_german_wiktextract_phrase_fixture_importer_with_source_provenance",
+    "add_leipzig_phrase_attestation_commonness_fixture_layer_separate_from_phrase_type",
+    "add_deterministic_phrase_catalog_fingerprint_idempotency_and_boundary_tests",
+    "keep_tatoeba_real_ingestion_gated_until_contributor_attribution_is_proven",
+    "do_not_start_phrase_pronunciation_or_mosaic_runtime_until_11b1_acceptance",
+    "keep_single_word_writer_frozen",
     "keep_human_writer_ndcg_pending_until_full_german_writer_surface_and_independent_reviewers",
     "english_after_german_phrase_mosaic_stable"
   ]

@@ -132,12 +132,16 @@ modern_entity_relative_commonness_1decade_0_05
 
 ## Current project direction — Phase 11
 
-Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md` before implementation.
+Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md` and `docs/PHRASE_SOURCE_SURVEY.md` before implementation.
 
-The first gate is **public-source discovery and licensing**, not runtime code. Research German sources for multi-word phrases/collocations, idioms/Redewendungen, formulaic expressions/proverbs, metaphorical/figurative expressions where structured public data exists, common sentence fragments, and deterministic semantic discovery support.
+The Phase 11A source/licensing gate is complete. The selected first production inputs are raw German Wiktionary via Kaikki/Wiktextract for source-backed phraseology and the already-used Leipzig News 2024 1M + Wikipedia 2021 1M + Web 2021 1M corpora for deterministic phrase attestation/commonness.
 
-For each candidate source, verify bulk/reproducible access, license/attribution, redistribution/commercial compatibility, snapshot/version, scale/raw format, provenance keys, and fully offline post-ingestion use. OpenThesaurus and OdeNet are possible semantic ingredients, not assumed complete phraseology sources.
+Conditional/optional layers remain separated: Tatoeba only after contributor attribution is proven; Wikidata/OpenThesaurus/OdeNet for semantic support; ParlaMint-AT for later register/domain enrichment. COLF-VID, PARSEME, GermaNet, DeReKo/COSMAS and broad DWDS corpus use are research-only under the documented conditions.
 
-After source selection, design a separate provenance-bearing phrase data model, deterministic phrase pronunciation, indexed cross-word-boundary mosaic retrieval, a separate phrase-ranking policy, and a dedicated Phrase/Mosaic benchmark.
+Immediate next milestone:
 
-Human Writer NDCG remains `pending_reference` throughout this phase until the German writer surface is mature enough and independent human reviewers exist.
+`PHASE_11B1_PROVENANCE_PHRASE_CATALOG`
+
+Build the separate provenance-bearing phrase source/snapshot/catalog schema and deterministic fixture ingestion. Keep source-backed phrase type separate from corpus commonness. Preserve token boundaries and explicit unresolved states. Add deterministic fingerprints/idempotency/provenance tests.
+
+Do not implement phrase pronunciation, mosaic runtime retrieval/indexing, phrase ranking, UI/API phrase surfacing, giant new downloads or Human Writer NDCG in 11B1. The accepted single-word Writer baseline remains frozen.
