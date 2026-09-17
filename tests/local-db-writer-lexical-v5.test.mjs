@@ -124,11 +124,9 @@ test('local DB builder stores publish-v3 lexical analyses in normalized v5 form_
         FROM hot
         WHERE publish_order=1 AND pronunciation_preferred=1
       `).get();
-      assert.deepEqual(hot, {
-        surface: 'stufenweise',
-        lemma: fixture.expected.compatibility_lemma,
-        pos: fixture.expected.compatibility_pos,
-      });
+      assert.equal(hot.surface, 'stufenweise');
+      assert.equal(hot.lemma, fixture.expected.compatibility_lemma);
+      assert.equal(hot.pos, fixture.expected.compatibility_pos);
 
       const analyses = db.prepare(`
         SELECT analysis_key,pos,source_record_keys
