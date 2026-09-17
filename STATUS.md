@@ -42,12 +42,34 @@ Lexical safety also improved slightly versus the preceding v5/v3 run: top-30 row
 
 Ad-hoc writer-ranking/morphology tuning is therefore frozen at v6/v4 pending formal page-quality evidence.
 
+## Writer v7 diversity experiment — rejected
+
+Benchmark v2 exposed an over-specific acceptance condition around `Arbeitsweise -> Hochzeitsreise`. The candidate is correctly retrieved and scored as `multisyllabic_perfect` / `1.0`, but v6 places the specific `right:reise` member outside the first page after another member of the same family has already been selected.
+
+An experimental v7 softened result-family diversity to try to force more members of the same non-query family upward. Owner-local benchmark evidence rejected that change:
+
+```text
+Hochzeitsreise rank                 120 -> 101 only
+Top-20 repeated family rows         0 -> 4 for Arbeitsweise
+aggregate Top-20 repeated families  4 (gate max 2)
+structural benchmark                failed
+```
+
+The experiment is rolled back. Active writer ranking is again `deterministic_writer_utility_v6`.
+
+The benchmark contract is now corrected to separate two requirements:
+
+1. `Hochzeitsreise` remains a permanent **retrieval/phonetic** regression and must remain inside the writer candidate universe with perfect right-edge classification and no cheap-rhyme penalty.
+2. Top-page writer usefulness is tested at the **family level**: at least one `right:reise` result must surface in the first 20 for `Arbeitsweise` while the global repeated-family gate remains enforced.
+
+This avoids tuning the entire ranking around one arbitrary member of an otherwise valid rhyme family.
+
 ## Search-quality benchmark v2 — infrastructure implemented
 
-Phase 8 infrastructure is now present:
+Phase 8 infrastructure is present:
 
 - `benchmarks/de-writer-v2/plan.json` — query battery, provisional structural gates and permanent regression anchors;
-- `scripts/writer-page-benchmark-core.mjs` — deterministic page metrics and NDCG helpers;
+- `scripts/writer-page-benchmark-core.mjs` — deterministic page metrics, candidate/family regression gates and NDCG helpers;
 - `scripts/benchmark-writer-page-v2.mjs` — owner-local structural benchmark runner;
 - `scripts/prepare-writer-page-benchmark-v2.mjs` — blind human usefulness-review queue;
 - `tests/writer-page-benchmark.test.mjs` — metric/regression coverage;
@@ -62,6 +84,6 @@ NDCG@10/20 is deliberately reported as `pending_reference` until the relevant wr
 
 The feature remains **draft / not accepted**. DB v4 still stores one selected lemma/POS analysis per surface form; final materialized writer evidence should preserve multiple source-supported analyses with provenance. Right-edge validation still uses broad suffix `LIKE` lookup and remains too slow for final local/mobile runtime.
 
-Next evidence step is the owner-local `npm run benchmark:writer-page:v2` report. After the structural benchmark is stable: verify legacy invariance, design the multi-analysis lexical layer, materialize/index validated writer-search evidence, and produce an explicit writer-search acceptance report.
+Next evidence step is to rerun owner-local `npm run benchmark:writer-page:v2` on the restored v6 policy and corrected family-level surfacing gate. After the structural benchmark is stable: verify legacy invariance, design the multi-analysis lexical layer, materialize/index validated writer-search evidence, and produce an explicit writer-search acceptance report.
 
 See `PROJECT_STATE.json`, `docs/HANDOVER.md`, `docs/WRITER_RANKING.md`, `docs/BENCHMARK.md`, and `ROADMAP.md` for the execution boundary.
