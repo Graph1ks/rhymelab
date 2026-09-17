@@ -41,10 +41,14 @@ RhymeLab is local-only. GitHub is source control/project memory, not runtime. Ru
 
 Do not introduce hosted/provider runtime, remote database bindings, telemetry, automatic uploads, advertising, or hidden network behavior without an explicit architecture decision.
 
+RhymeLab core rhyme retrieval, scoring, writer ranking and result diversification must remain deterministic and locally executable on ordinary consumer hardware. Do not introduce LLM inference, machine-learning model inference, neural ranking, hosted ranking/search services, or a network dependency into the core search path. External models may be used only as optional benchmark/reference evidence; they must never be required to build, run, reproduce, or explain core search results.
+
 ## Durable product decisions
 
 - German first; English only after German single-word quality is stable.
 - Rhyme quality is phonetic/relational, not spelling-based.
+- Writer usefulness is a separate deterministic ranking layer; lexical overlap must not corrupt phonetic rhyme truth.
+- Page/list diversity is a separate deterministic result-set concern; do not fake diversity by changing phonetic relation labels.
 - Primary rhyme classes are exclusive; Assonance/Consonance are independent overlapping relations.
 - Usage is an ordering/product signal, not linguistic truth.
 - Missing usage rank means unranked/unknown, not automatically rare or obsolete.
@@ -104,5 +108,7 @@ npm run benchmark:ranking:runtime-candidate
 ```
 
 Require schema `rhymelab-benchmark-ranking-runtime-candidate-v2`, `status=ok`, zero runtime-candidate mismatches, zero runtime-policy mismatches, zero protected-order mismatches, and reproduction of the validated retrieval-aware metrics/safety.
+
+The next ranking architecture is deterministic writer utility plus lexical diversity. It must remain independently explainable from phonetic scoring and must be benchmarked before replacing the accepted runtime policy.
 
 After ranking isolation, continue pronunciation/lexical-quality diagnostics, then phrase/mosaic rhyme. English remains separate.
