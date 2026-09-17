@@ -1,38 +1,67 @@
 # Public-facing status
 
-RhymeLab's clean public repository is live at `Graph1ks/rhymelab`. It was published on 2026-09-17 from a sanitized parentless root commit; pre-public development history, old branches, historical pull requests, and private commit metadata are intentionally not part of the public repository.
+RhymeLab's clean public repository is live at `Graph1ks/rhymelab`. The public workflow's required check is `validate`; `main` is protected and changes reach it through pull requests.
 
-The public workflow's required job/check name is `validate` and runs the source check, test suite, and public-readiness audit. `main` is protected by the active `main-protection` ruleset: changes require a pull request, `validate` must pass, the branch must be up to date before merge, force pushes/non-fast-forward updates and deletion are blocked, required approving reviews remain `0`, and there are no bypass actors.
+The formally accepted German runtime baseline remains v0.10.0 with DB schema `rhymelab-local-db-v4`, analyzer `de-ipa-v2`, scorer `de-phon-v3`, relation policy `rhyme-relations-v2`, and accepted ranking `modern_entity_relative_commonness_1decade_0_05`. The accepted/base path remains available through `?ranking=legacy`.
 
-The formally accepted German runtime baseline remains v0.10.0 with DB schema `rhymelab-local-db-v4`, analyzer `de-ipa-v2`, scorer `de-phon-v3`, relation policy `rhyme-relations-v2`, and accepted ranking `modern_entity_relative_commonness_1decade_0_05`. The accepted/base path remains available through `?ranking=legacy` on the current feature branch.
-
-Feature branch `feat/deterministic-writer-ranking-v1` / draft PR #3 contains the current experimental deterministic writer-search stack:
+Feature branch `feat/deterministic-writer-ranking-v1` / draft PR #3 contains the experimental deterministic writer-search stack:
 
 - writer policy `deterministic_writer_utility_v6`;
-- German right-edge/secondary-stress retrieval policy `de-right-edge-anchors-v1`;
-- experimental multi-anchor writer scoring while leaving the legacy scorer endpoint unchanged;
-- conservative inferred morphology-family policy `de-attested-right-head-v4`;
-- explicit productive German adverbial/adjectival `-weise` construction rule `de-adverbial-weise-v2`;
-- query-family suppression and result-set family diversification;
-- deterministic lexical-safety tiers for unranked/very-low-usage/source-marked rare or historical candidates;
-- explicit explanation/provenance payloads;
-- browser Recommended ordering that preserves all `deterministic_writer_utility_*` policies;
-- no LLM, ML, neural, hosted-ranking, telemetry, or runtime-network dependency.
+- German right-edge/secondary-stress retrieval `de-right-edge-anchors-v1`;
+- morphology-family policy `de-attested-right-head-v4`;
+- productive `-weise` construction rule `de-adverbial-weise-v2`;
+- deterministic lexical-safety tiers and family diversification;
+- no LLM, ML/neural ranking, hosted ranker, telemetry or runtime-network dependency.
 
-Owner-local `Arbeitsweise` diagnostics established that legacy retrieval omitted `Hochzeitsreise`, while right-edge retrieval found it through secondary-anchor suffix channels. Direct legacy pair scoring was a usable slant (`0.7574`); the experimental secondary-stress writer domain identifies the final two syllables as a multisyllabic perfect right-edge match.
+## Owner-local v6 / morphology-v4 validation — passed
 
-Writer v4 then solved repeated top-page lexical-head families, but a 12-query generalization audit exposed two broader defects: morphology v1 generated coincidental substring families (`Betriebe -> bet|riebe`, `Bestreben -> best|reben`, `Professoren -> profes|soren`, etc.), and the 360 audited top-page rows contained 69 unranked plus 60 usage-rank-over-100k results.
+The 12-query / 360-top-row diagnostic on the existing local DB reported:
 
-Writer v5 / morphology v2 sharply improved lexical safety: unranked top-30 rows fell from 69 to 2, explicit rare/historical rows from 2 to 0, and the earlier false splits disappeared. That safety layer remains in place.
+```text
+schema                              rhymelab-writer-page-diagnostic-v2
+queries found                       12 / 12
+mean elapsed                        1502.8 ms
+repeated family rows                0
+unranked top-30 rows                2
+usage rank > 100k rows              45
+usage rank > 250k rows              2
+explicit rare/historical rows       0
+writer-safety-tier penalized rows   4
+Arbeitsweise elapsed                7926.5 ms
+Arbeitsweise right-edge             1353
+Arbeitsweise merged                 1580
+```
 
-The subsequent owner-local writer-v5 / morphology-v3 audit kept those safety gains (`2` unranked, `50` over 100k, `2` over 250k, `0` explicit rare/historical, `4` safety-demoted rows across 360 top rows) but proved that the first explicit `-weise` rule did not fire on real DB rows. `Arbeitsweise` still returned unresolved `stufenweise`, `ausnahmsweise`, `abschnittsweise`, `auszugsweise`, etc. Morphology v3 therefore failed its intended runtime validation even though source tests were green.
+The three required gates passed:
 
-Root cause: the current publish/database model stores one selected lemma/POS analysis per surface form. Source entries such as `stufenweise` legitimately expose both adjective and adverb analyses, while equal-confidence analysis selection can retain either one. Morphology v4 therefore accepts the source-attested `adj`/`adv` ambiguity for the narrow `-weise` construction while preserving all existing false-split gates.
+1. `Arbeitsweise` no longer has productive `*-weise` flooding in the top 30; distinct perfect right-edge heads rotate upward (`Verweise`, `Eintrittspreise`, `Weiterreise`, `Kirchenkreise`, `Vorspeise`, `Abstellgleise`, `Impfnachweise`, `Nebengleise`, etc.).
+2. short normal perfect rhymes are no longer marked lexically cheap: `Liebe -> Diebe` is rank 1 with cheap penalty 0, `Leben -> neben` rank 2 with cheap penalty 0, and `Nacht -> macht` rank 1 with cheap penalty 0.
+3. known false morphology stays rejected: `Betriebe`, `Bestreben`, `Professoren` and `deutscher` remain `family=null` / `split=null`.
 
-The same v3 page audit exposed a separate writer-ranking defect: generic edit similarity treated short orthographic perfect rhymes as lexical clones. Examples included `Liebe -> Diebe`, `Leben -> neben` and `Nacht -> macht`, causing perfect rhymes to be demoted behind weaker classes. Writer v6 removes edit similarity as standalone cheapness evidence for short rhyme-shaped words. Cheapness now requires same lemma, same morphology family, a long shared initial construction, or a genuinely long near-duplicate form.
+Lexical safety also improved slightly versus the preceding v5/v3 run: top-30 rows over usage rank 100k fell from 50 to 45 while unranked, >250k and explicit rare/historical counts remained controlled.
 
-Verbs and proper names remain unresolved until explicit deterministic rules exist. Missing usage remains `unranked_unknown`, not linguistic rarity.
+Ad-hoc writer-ranking/morphology tuning is therefore frozen at v6/v4 pending formal page-quality evidence.
 
-The feature remains **draft / not accepted**. Public CI is green for writer v6 / morphology v4. Current validation priority is one owner-local rerun of `npm run diagnose:writer-pages`. If `-weise` family rotation works, the known false splits stay rejected, and short perfect rhymes remain above weaker rhyme classes, the next step is formal page-quality benchmark v2. Only after quality evidence stabilizes should validated right-edge/morphology fields be materialized/indexed for local/mobile performance.
+## Search-quality benchmark v2 — infrastructure implemented
 
-See `PROJECT_STATE.json`, `docs/HANDOVER.md`, `docs/WRITER_RANKING.md`, `docs/REPOSITORY_GOVERNANCE.md`, and `docs/BENCHMARK.md` for the execution boundary.
+Phase 8 infrastructure is now present:
+
+- `benchmarks/de-writer-v2/plan.json` — query battery, provisional structural gates and permanent regression anchors;
+- `scripts/writer-page-benchmark-core.mjs` — deterministic page metrics and NDCG helpers;
+- `scripts/benchmark-writer-page-v2.mjs` — owner-local structural benchmark runner;
+- `scripts/prepare-writer-page-benchmark-v2.mjs` — blind human usefulness-review queue;
+- `tests/writer-page-benchmark.test.mjs` — metric/regression coverage;
+- `npm run benchmark:writer-page:v2`;
+- `npm run benchmark:writer-page:prepare`.
+
+Benchmark v2 measures Top-10/20 duplicate/near-duplicate rate, same-lemma rate, repeated morphology-family rate, morphology diversity, unranked/very-low-use/rare intrusion, preferred-pronunciation rate, regression anchors and retention of legacy top-250 tier-0 rhyme candidates.
+
+NDCG@10/20 is deliberately reported as `pending_reference` until the relevant writer cutoff has complete **independent human** songwriting-usefulness labels. The benchmark does not require model-generated reference labels.
+
+## Remaining boundary
+
+The feature remains **draft / not accepted**. DB v4 still stores one selected lemma/POS analysis per surface form; final materialized writer evidence should preserve multiple source-supported analyses with provenance. Right-edge validation still uses broad suffix `LIKE` lookup and remains too slow for final local/mobile runtime.
+
+Next evidence step is the owner-local `npm run benchmark:writer-page:v2` report. After the structural benchmark is stable: verify legacy invariance, design the multi-analysis lexical layer, materialize/index validated writer-search evidence, and produce an explicit writer-search acceptance report.
+
+See `PROJECT_STATE.json`, `docs/HANDOVER.md`, `docs/WRITER_RANKING.md`, `docs/BENCHMARK.md`, and `ROADMAP.md` for the execution boundary.
