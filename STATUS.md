@@ -8,11 +8,11 @@ The formally accepted German runtime baseline remains v0.10.0 with DB schema `rh
 
 Feature branch `feat/deterministic-writer-ranking-v1` / draft PR #3 contains the current experimental deterministic writer-search stack:
 
-- writer policy `deterministic_writer_utility_v5`;
+- writer policy `deterministic_writer_utility_v6`;
 - German right-edge/secondary-stress retrieval policy `de-right-edge-anchors-v1`;
 - experimental multi-anchor writer scoring while leaving the legacy scorer endpoint unchanged;
-- conservative inferred morphology-family policy `de-attested-right-head-v3`;
-- explicit productive German adverbial `-weise` construction rule `de-adverbial-weise-v1`;
+- conservative inferred morphology-family policy `de-attested-right-head-v4`;
+- explicit productive German adverbial/adjectival `-weise` construction rule `de-adverbial-weise-v2`;
 - query-family suppression and result-set family diversification;
 - deterministic lexical-safety tiers for unranked/very-low-usage/source-marked rare or historical candidates;
 - explicit explanation/provenance payloads;
@@ -23,12 +23,16 @@ Owner-local `Arbeitsweise` diagnostics established that legacy retrieval omitted
 
 Writer v4 then solved repeated top-page lexical-head families, but a 12-query generalization audit exposed two broader defects: morphology v1 generated coincidental substring families (`Betriebe -> bet|riebe`, `Bestreben -> best|reben`, `Professoren -> profes|soren`, etc.), and the 360 audited top-page rows contained 69 unranked plus 60 usage-rank-over-100k results.
 
-The owner-local v5 / morphology-v2 rerun showed that lexical safety improved sharply: unranked top-30 rows fell from 69 to 2, usage-rank-over-100k rows from 60 to 51, explicit rare/historical rows from 2 to 0, and mean elapsed time from 1583.4 ms to 1428.3 ms. The earlier false splits such as `Betriebe -> bet|riebe` and `Bestreben -> best|reben` disappeared.
+Writer v5 / morphology v2 sharply improved lexical safety: unranked top-30 rows fell from 69 to 2, explicit rare/historical rows from 2 to 0, and the earlier false splits disappeared. That safety layer remains in place.
 
-That rerun also exposed a conservative-morphology blind spot: productive adverbial `-weise` forms such as `schätzungsweise`, `stellenweise`, `paarweise` and `beispielsweise` became unresolved, so `Arbeitsweise` was again dominated by same-construction rows while the formal repeated-family counter stayed at zero. Morphology v3 therefore adds one narrow deterministic construction rule: an adverb ending in independently attested noun `Weise`, with measured left-side lexical evidence, receives family `right:weise`. Generic suffix similarity is still not accepted as morphology.
+The subsequent owner-local writer-v5 / morphology-v3 audit kept those safety gains (`2` unranked, `50` over 100k, `2` over 250k, `0` explicit rare/historical, `4` safety-demoted rows across 360 top rows) but proved that the first explicit `-weise` rule did not fire on real DB rows. `Arbeitsweise` still returned unresolved `stufenweise`, `ausnahmsweise`, `abschnittsweise`, `auszugsweise`, etc. Morphology v3 therefore failed its intended runtime validation even though source tests were green.
+
+Root cause: the current publish/database model stores one selected lemma/POS analysis per surface form. Source entries such as `stufenweise` legitimately expose both adjective and adverb analyses, while equal-confidence analysis selection can retain either one. Morphology v4 therefore accepts the source-attested `adj`/`adv` ambiguity for the narrow `-weise` construction while preserving all existing false-split gates.
+
+The same v3 page audit exposed a separate writer-ranking defect: generic edit similarity treated short orthographic perfect rhymes as lexical clones. Examples included `Liebe -> Diebe`, `Leben -> neben` and `Nacht -> macht`, causing perfect rhymes to be demoted behind weaker classes. Writer v6 removes edit similarity as standalone cheapness evidence for short rhyme-shaped words. Cheapness now requires same lemma, same morphology family, a long shared initial construction, or a genuinely long near-duplicate form.
 
 Verbs and proper names remain unresolved until explicit deterministic rules exist. Missing usage remains `unranked_unknown`, not linguistic rarity.
 
-The feature remains **draft / not accepted**. Public CI is green for the v3 implementation. Current validation priority is one owner-local rerun of `npm run diagnose:writer-pages` on writer v5 / morphology v3. If the `-weise` family is restored without reintroducing false splits, the next step is formal page-quality benchmark v2. Only after quality evidence stabilizes should validated right-edge/morphology fields be materialized/indexed for local/mobile performance.
+The feature remains **draft / not accepted**. Public CI is green for writer v6 / morphology v4. Current validation priority is one owner-local rerun of `npm run diagnose:writer-pages`. If `-weise` family rotation works, the known false splits stay rejected, and short perfect rhymes remain above weaker rhyme classes, the next step is formal page-quality benchmark v2. Only after quality evidence stabilizes should validated right-edge/morphology fields be materialized/indexed for local/mobile performance.
 
 See `PROJECT_STATE.json`, `docs/HANDOVER.md`, `docs/WRITER_RANKING.md`, `docs/REPOSITORY_GOVERNANCE.md`, and `docs/BENCHMARK.md` for the execution boundary.
