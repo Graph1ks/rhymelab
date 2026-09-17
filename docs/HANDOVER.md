@@ -17,6 +17,7 @@ Read in order:
 7. `docs/BENCHMARK.md`
 8. `docs/API.md`
 9. `docs/WRITER_RANKING.md`
+10. `docs/EXTERNAL_COMPARISON_D_RHYME.md`
 
 ## Hard runtime boundary
 
@@ -167,6 +168,21 @@ Benchmark semantics are corrected instead of continuing to optimize one arbitrar
 - `Hochzeitsreise` remains a permanent retrieval/phonetic regression: it must stay inside the writer candidate universe, be perfect-class under the right-edge anchor and carry no cheap-rhyme penalty.
 - Top-page surfacing is now family-level: at least one `right:reise` result must appear in Top 20 for `Arbeitsweise`.
 - the global repeated-family structural gate remains active, so surfacing one family cannot be achieved by flooding the page with that family.
+
+## External comparison baseline — d-rhyme
+
+A manual 2026-09-17 comparison was made against the public d-rhyme `Arbeitsweise` result. See `docs/EXTERNAL_COMPARISON_D_RHYME.md` for the full record.
+
+Robust takeaways:
+
+- d-rhyme exposes a broad `Exakte Reime` grid, a smaller `Ähnliche Klangstruktur` section and a very large `Verwandte Reime und Wörter` expansion;
+- `Hochzeitsreise` is visibly present in d-rhyme's exact-rhyme grid;
+- both systems cover the important right-edge family space (`-weise`, `-reise`, `-preise`, `-kreise`, `-speise`, `-gleise`, etc.) after RhymeLab's right-edge fix;
+- d-rhyme is currently stronger at immediate browse breadth, mature latency and visible phrase/name support;
+- RhymeLab is stronger by design at deterministic explainability, explicit IPA/stress/anchor evidence, usage-aware lexical safety, provenance and local reproducibility;
+- the comparison is a product spot-check, not benchmark gold. Do not force one surface form upward solely because a competitor displays it prominently.
+
+The competitive lesson reinforces the corrected benchmark contract: preserve broad phonetic coverage and surface useful **families** early without turning the first page into repeated members of one family.
 
 ## Search-quality benchmark v2 — current milestone
 
