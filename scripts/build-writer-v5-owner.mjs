@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+import { access } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
+
+const args = process.argv.slice(2);
+const bootstrapMissing = args.includes('--bootstrap-missing');
+const root = process.cwd();
+
+function argValue(flag, fallback) {
+  const index = args.indexOf(flag);
+  return index >= 0 ? (args[index + 1] || fallback) : fallback;
+}
+
+const publishHeapMiB = Math.max(
+  4096,
+  Number.parseInt(argValue('--publish-heap-mib', '8192'), 10) || 8192,
+);
+const compactRankingPath = 'data/de/usage/de-usage-publish.tsv';
+
+const required = [
+  'data/de/usage/de-usage.tsv',
+  'data/work/de-rhyme-core-v1/downloads/dewiktionary-kaikki-raw.jsonl.gz',
+  'data/de/source-snapshot.json',
+];
+
+async function exists(path) {
+  try { await access(resolve(root, path)); return true; } catch { return false; }
+}
+
+function run(script, scriptArgs = [], nodeArgs = []) {
+  const renderedNodeArgs = nodeArgs.length ? `${nodeArgs.join(' ')} ` : '';
+  console.log(`\n> node ${renderedNodeArgs}${script} ${scriptArgs.join(' ')}`.trimEnd());
+  const result = spawnSync(process.execPath, [...nodeArgs, script, ...scriptArgs], {
+    cwd: root,
+    stdio: 'inherit',
+    windowsHide: true,
+  });
+  if (result.error || result.status !== 0) {
+    throw new Error(`${script} failed with exit ${result.status ?? 'spawn error'}`);
+  }
+}
+
+async function missingRequired() {
+  const rows = [];
+  for (const path of required) if (!await exists(path)) rows.push(path);
+  return rows;
+}
+
+let missing = await missingRequired();
+if (missing.length) {
+  console.log('Missing local publish prerequisites:');
+  for (const path of missing) console.log(`  - ${path}`);
+
+  if (!bootstrapMissing) {
+    console.log('\nThese files are generated/local-only and are intentionally not stored in Git.');
+    console.log('Run this command to prepare only the publish prerequisites, then rerun this script:');
+    console.log('  node scripts/bootstrap-de-rhyme-core-local.mjs --publish-prereqs-only');
+    console.log('\nOr rerun this pipeline with automatic prerequisite preparation:');
+    console.log('  node scripts/build-writer-v5-owner.mjs --bootstrap-missing');
+    process.exit(2);
+  }
+
+  run('scripts/bootstrap-de-rhyme-core-local.mjs', ['--publish-prereqs-only']);
+  missing = await missingRequired();
+  if (missing.length) {
+    throw new Error(`Publish prerequisite bootstrap completed but files are still missing: ${missing.join(', ')}`);
+  }
+}
+
+run('scripts/prepare-de-publish-ranking.mjs', [
+  '--input', 'data/de/usage/de-usage.tsv',
+  '--out', compactRankingPath,
+]);
+
+console.log(`\nWriter-v5 full-data publish heap ceiling: ${publishHeapMiB} MiB`);
+console.log('This affects the one-time experimental publish build only; it does not change runtime memory requirements.');
+console.log(`Publish ranking: ${compactRankingPath} (same ranks/scores, unused corpus JSON columns removed)`);
+run(
+  'scripts/build-de-rhyme-publish.mjs',
+  ['--ranking', compactRankingPath, '--writer-lexical-v3'],
+  [`--max-old-space-size=${publishHeapMiB}`],
+);
+run('scripts/build-local-db.mjs', [
+  '--publish', 'data/de/publish-v3',
+  '--ranking', compactRankingPath,
+]);
+run('scripts/materialize-writer-v5.mjs');
+
+console.log('\nWRITER V5 OWNER BUILD COMPLETE');
+console.log('Generated experimental outputs:');
+console.log('  data/de/publish-v3/manifest.json');
+console.log('  data/local/rhymelab-v5.sqlite');
+console.log('  data/local/build-report-v5.json');
+console.log('  data/local/writer-materialization-v5-report.json');
+console.log('\nAccepted v4 runtime/database paths were not selected by this pipeline.');

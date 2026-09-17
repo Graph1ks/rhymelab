@@ -1,5 +1,9 @@
 import { analyzeGermanIpa } from './german-ipa.mjs';
 import { scoreGermanRhymeAnalyses } from './german-rhyme-features.mjs';
+import {
+  germanRightEdgeVowelSuffixKeys,
+  scoreGermanRhymeAnalysesWithAnchors,
+} from './german-rhyme-anchors.mjs';
 
 const PROFILES = new Map([
   ['de', Object.freeze({
@@ -8,8 +12,11 @@ const PROFILES = new Map([
     analyzerVersion: 'de-ipa-v2',
     scorerVersion: 'de-phon-v3',
     relationPolicyVersion: 'rhyme-relations-v2',
+    writerAnchorPolicyVersion: 'de-right-edge-anchors-v1',
     analyzeIpa: analyzeGermanIpa,
     scoreAnalyses: scoreGermanRhymeAnalyses,
+    scoreWriterAnalyses: scoreGermanRhymeAnalysesWithAnchors,
+    writerRetrievalKeys: germanRightEdgeVowelSuffixKeys,
     normalizeSurface(value) {
       return String(value ?? '')
         .normalize('NFKC')

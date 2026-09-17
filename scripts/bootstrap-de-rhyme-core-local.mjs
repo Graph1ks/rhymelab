@@ -12,6 +12,7 @@ let workDir = 'data/work/de-rhyme-core-v1';
 let cleanSource = false;
 let refreshKaikki = false;
 let rankedOnly = false;
+let publishPrereqsOnly = false;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
@@ -19,6 +20,11 @@ for (let i = 0; i < args.length; i += 1) {
   else if (arg === '--clean-source') cleanSource = true;
   else if (arg === '--refresh-kaikki') refreshKaikki = true;
   else if (arg === '--ranked-only') rankedOnly = true;
+  else if (arg === '--publish-prereqs-only') publishPrereqsOnly = true;
+}
+
+if (publishPrereqsOnly && cleanSource) {
+  throw new Error('--clean-source cannot be combined with --publish-prereqs-only because publish still needs the local Kaikki source.');
 }
 
 const root = process.cwd();
@@ -204,6 +210,18 @@ await writeFile(snapshotOutput, JSON.stringify({
   snapshot_label: sourceSnapshot.kaikki.snapshot_label,
   sha256: sourceSnapshot.kaikki.sha256,
 }, null, 2) + '\n', 'utf8');
+
+if (publishPrereqsOnly) {
+  console.log('\nGERMAN PUBLISH PREREQUISITES READY');
+  console.log(JSON.stringify({
+    schema: 'rhymelab-de-publish-prereqs-v1',
+    usage_ranking: 'data/de/usage/de-usage.tsv',
+    dictionary_source: 'data/work/de-rhyme-core-v1/downloads/dewiktionary-kaikki-raw.jsonl.gz',
+    source_snapshot: 'data/de/source-snapshot.json',
+    core_rebuilt: false,
+  }, null, 2));
+  process.exit(0);
+}
 
 console.log('\nBuild German rhyme core shards…');
 const coreArgs = [

@@ -4,6 +4,13 @@ import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { analyzeGermanIpa } from './german-ipa.mjs';
 import { coarseCodaClass } from './german-rhyme-features.mjs';
+import { WRITER_LEXICAL_PUBLISH_SCHEMA } from './writer-lexical-publish-v3-core.mjs';
+import {
+  WRITER_LEXICAL_DB_SCHEMA,
+  createWriterLexicalStorage,
+  insertWriterLexicalAnalyses,
+  prepareWriterLexicalAnalysisInsert,
+} from './writer-lexical-storage-v5-core.mjs';
 
 const args = process.argv.slice(2);
 let publishDir = 'data/de/publish';
@@ -11,24 +18,41 @@ let dbPath = 'data/local/rhymelab.sqlite';
 let reportPath = 'data/local/build-report.json';
 let rankingPath = 'data/de/usage/de-usage.tsv';
 let supplementalPath = 'data/supplemental/modern-entities.json';
+let dbPathExplicit = false;
+let reportPathExplicit = false;
+
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
   if (arg === '--publish') publishDir = args[++i] || publishDir;
-  else if (arg === '--out') dbPath = args[++i] || dbPath;
-  else if (arg === '--report') reportPath = args[++i] || reportPath;
-  else if (arg === '--ranking') rankingPath = args[++i] || rankingPath;
+  else if (arg === '--out') {
+    dbPath = args[++i] || dbPath;
+    dbPathExplicit = true;
+  } else if (arg === '--report') {
+    reportPath = args[++i] || reportPath;
+    reportPathExplicit = true;
+  } else if (arg === '--ranking') rankingPath = args[++i] || rankingPath;
   else if (arg === '--supplemental') supplementalPath = args[++i] || supplementalPath;
 }
+
 publishDir = resolve(publishDir);
-dbPath = resolve(dbPath);
-reportPath = resolve(reportPath);
 rankingPath = resolve(rankingPath);
 supplementalPath = resolve(supplementalPath);
 
 const manifest = JSON.parse(await readFile(join(publishDir, 'manifest.json'), 'utf8'));
-if (manifest.schema !== 'rhymelab-de-publish-v2') throw new Error(`Unexpected publish schema: ${manifest.schema}`);
+const writerLexicalV5 = manifest.schema === WRITER_LEXICAL_PUBLISH_SCHEMA;
+if (manifest.schema !== 'rhymelab-de-publish-v2' && !writerLexicalV5) {
+  throw new Error(`Unexpected publish schema: ${manifest.schema}`);
+}
+if (writerLexicalV5 && !dbPathExplicit) dbPath = 'data/local/rhymelab-v5.sqlite';
+if (writerLexicalV5 && !reportPathExplicit) reportPath = 'data/local/build-report-v5.json';
+dbPath = resolve(dbPath);
+reportPath = resolve(reportPath);
 
-const normalizeWord = (value) => String(value ?? '').normalize('NFKC').trim().toLocaleLowerCase('de-DE');
+const normalizeWord = (value) => String(value ?? '')
+  .normalize('NFKC')
+  .trim()
+  .toLocaleLowerCase('de-DE');
+
 function readUsageRanking(text) {
   const lines = text.split(/\r?\n/).filter(Boolean);
   if (!lines.length) return { bySurface: new Map(), byNormalized: new Map() };
@@ -46,8 +70,12 @@ function readUsageRanking(text) {
       form,
       normalized: c[idx.normalized_form] || normalizeWord(form),
       score: idx.usage_score === undefined ? null : Number(c[idx.usage_score]),
-      count: idx.combined_count === undefined ? null : Number.parseInt(c[idx.combined_count] || '0', 10),
-      sourceCount: idx.source_count === undefined ? null : Number.parseInt(c[idx.source_count] || '0', 10),
+      count: idx.combined_count === undefined
+        ? null
+        : Number.parseInt(c[idx.combined_count] || '0', 10),
+      sourceCount: idx.source_count === undefined
+        ? null
+        : Number.parseInt(c[idx.source_count] || '0', 10),
     };
     bySurface.set(form, row);
     const current = byNormalized.get(row.normalized);
@@ -57,9 +85,13 @@ function readUsageRanking(text) {
 }
 
 let usageRanking = { bySurface: new Map(), byNormalized: new Map() };
-try { usageRanking = readUsageRanking(await readFile(rankingPath, 'utf8')); } catch {}
+try {
+  usageRanking = readUsageRanking(await readFile(rankingPath, 'utf8'));
+} catch {}
 let supplemental = { entries: [] };
-try { supplemental = JSON.parse(await readFile(supplementalPath, 'utf8')); } catch {}
+try {
+  supplemental = JSON.parse(await readFile(supplementalPath, 'utf8'));
+} catch {}
 
 await mkdir(dirname(dbPath), { recursive: true });
 await rm(dbPath, { force: true });
@@ -121,15 +153,20 @@ try {
       pronunciation_register TEXT
     );
   `);
+  if (writerLexicalV5) createWriterLexicalStorage(db);
 
   const columns = 'publish_order,surface,normalized,usage_rank,usage_score,usage_count,usage_source_count,lemma,pos,gender,lexicon_layer,entity_kind,historical,lexical_tags,ipa,phonemes,syllable_count,stress,primary_stress,rhyme_tail,final_tail,vowels,consonants,exact_key,multisyllable_key,vowel_key,vowel_family,coda_key,coda_class,rhyme_syllables,pronunciation_rank,pronunciation_preferred,pronunciation_eligible,pronunciation_evidence,pronunciation_source_order,pronunciation_source,pronunciation_tags,pronunciation_raw_tags,pronunciation_flags,locale,dialect,pronunciation_register';
   const insert = db.prepare(`INSERT INTO hot(${columns}) VALUES(${Array(42).fill('?').join(',')})`);
+  const analysisInsert = writerLexicalV5 ? prepareWriterLexicalAnalysisInsert(db) : null;
 
   let rows = 0;
   let forms = 0;
   let usageRankedForms = 0;
   let preferredRows = 0;
   let historicalForms = 0;
+  let lexicalAnalyses = 0;
+  let formsWithLexicalAnalyses = 0;
+  let formsWithMultipleLexicalAnalyses = 0;
 
   for (const [index, fileInfo] of manifest.files.entries()) {
     const text = await readFile(join(publishDir, fileInfo.file), 'utf8');
@@ -142,17 +179,64 @@ try {
         forms += 1;
         if (word.u !== undefined) usageRankedForms += 1;
         if (word.h === 1) historicalForms += 1;
+
+        if (writerLexicalV5) {
+          const compactAnalyses = Array.isArray(word.a) ? word.a : [];
+          const insertedAnalyses = insertWriterLexicalAnalyses(
+            db,
+            word.o,
+            compactAnalyses,
+            analysisInsert,
+          );
+          lexicalAnalyses += insertedAnalyses;
+          if (insertedAnalyses > 0) formsWithLexicalAnalyses += 1;
+          if (insertedAnalyses > 1) formsWithMultipleLexicalAnalyses += 1;
+        }
+
         for (const p of word.r || []) {
           insert.run(
-            word.o, word.w, word.n, word.u ?? null, word.s ?? null,
+            word.o,
+            word.w,
+            word.n,
+            word.u ?? null,
+            word.s ?? null,
             Number.isFinite(usage?.count) ? usage.count : null,
             Number.isFinite(usage?.sourceCount) ? usage.sourceCount : null,
-            word.l ?? null, word.p ?? null, word.g ?? null,
-            'dictionary', null, word.h === 1 ? 1 : 0, JSON.stringify(Array.isArray(word.lt) ? word.lt : []),
-            p.i, p.ph, p.sc, p.st, p.ps, p.rt, p.ft, p.v, p.c, p.e, p.m ?? null, p.vk, p.vf, p.ck ?? '', p.cc, p.rs,
-            p.pr, p.pf, p.el, p.ev, p.so,
+            word.l ?? null,
+            word.p ?? null,
+            word.g ?? null,
+            'dictionary',
+            null,
+            word.h === 1 ? 1 : 0,
+            JSON.stringify(Array.isArray(word.lt) ? word.lt : []),
+            p.i,
+            p.ph,
+            p.sc,
+            p.st,
+            p.ps,
+            p.rt,
+            p.ft,
+            p.v,
+            p.c,
+            p.e,
+            p.m ?? null,
+            p.vk,
+            p.vf,
+            p.ck ?? '',
+            p.cc,
+            p.rs,
+            p.pr,
+            p.pf,
+            p.el,
+            p.ev,
+            p.so,
             manifest.pronunciation_source || 'German Wiktionary via Kaikki/wiktextract',
-            JSON.stringify(p.tg || []), JSON.stringify(p.rg || []), JSON.stringify(p.fg || []), p.lo ?? null, p.di ?? null, p.re ?? null,
+            JSON.stringify(p.tg || []),
+            JSON.stringify(p.rg || []),
+            JSON.stringify(p.fg || []),
+            p.lo ?? null,
+            p.di ?? null,
+            p.re ?? null,
           );
           rows += 1;
           preferredRows += p.pf ? 1 : 0;
@@ -164,16 +248,39 @@ try {
       throw error;
     }
     if ((index + 1) % 100 === 0 || index + 1 === manifest.files.length) {
-      console.log(`Loaded ${forms.toLocaleString('de-DE')} forms / ${rows.toLocaleString('de-DE')} pronunciations (${index + 1}/${manifest.files.length} shards)`);
+      console.log(
+        `Loaded ${forms.toLocaleString('de-DE')} forms / ${rows.toLocaleString('de-DE')} pronunciations (${index + 1}/${manifest.files.length} shards)`,
+      );
     }
   }
 
   const baseForms = forms;
   const baseRows = rows;
-  if (baseForms !== manifest.rhyme_ready_forms) throw new Error(`Base form mismatch ${baseForms} != ${manifest.rhyme_ready_forms}`);
-  if (baseRows !== manifest.pronunciations) throw new Error(`Base pronunciation mismatch ${baseRows} != ${manifest.pronunciations}`);
-  if (preferredRows !== manifest.preferred_pronunciations) throw new Error(`Preferred pronunciation mismatch ${preferredRows} != ${manifest.preferred_pronunciations}`);
-  if (Number.isInteger(manifest.historical_forms) && historicalForms !== manifest.historical_forms) throw new Error(`Historical form mismatch ${historicalForms} != ${manifest.historical_forms}`);
+  if (baseForms !== manifest.rhyme_ready_forms) {
+    throw new Error(`Base form mismatch ${baseForms} != ${manifest.rhyme_ready_forms}`);
+  }
+  if (baseRows !== manifest.pronunciations) {
+    throw new Error(`Base pronunciation mismatch ${baseRows} != ${manifest.pronunciations}`);
+  }
+  if (preferredRows !== manifest.preferred_pronunciations) {
+    throw new Error(`Preferred pronunciation mismatch ${preferredRows} != ${manifest.preferred_pronunciations}`);
+  }
+  if (Number.isInteger(manifest.historical_forms) && historicalForms !== manifest.historical_forms) {
+    throw new Error(`Historical form mismatch ${historicalForms} != ${manifest.historical_forms}`);
+  }
+  if (writerLexicalV5) {
+    if (Number.isInteger(manifest.lexical_analyses) && lexicalAnalyses !== manifest.lexical_analyses) {
+      throw new Error(`Lexical analysis mismatch ${lexicalAnalyses} != ${manifest.lexical_analyses}`);
+    }
+    if (
+      Number.isInteger(manifest.forms_with_multiple_lexical_analyses)
+      && formsWithMultipleLexicalAnalyses !== manifest.forms_with_multiple_lexical_analyses
+    ) {
+      throw new Error(
+        `Multi-analysis form mismatch ${formsWithMultipleLexicalAnalyses} != ${manifest.forms_with_multiple_lexical_analyses}`,
+      );
+    }
+  }
 
   let supplementalInserted = 0;
   let supplementalOverlaidExisting = 0;
@@ -201,7 +308,12 @@ try {
     for (const entry of Array.isArray(supplemental.entries) ? supplemental.entries : []) {
       const requestedSurface = String(entry?.word || '').normalize('NFKC').trim();
       const normalized = normalizeWord(requestedSurface);
-      if (!requestedSurface || !normalized || !Array.isArray(entry.pronunciations) || !entry.pronunciations.length) {
+      if (
+        !requestedSurface
+        || !normalized
+        || !Array.isArray(entry.pronunciations)
+        || !entry.pronunciations.length
+      ) {
         supplementalRejected += 1;
         continue;
       }
@@ -210,7 +322,11 @@ try {
       for (let index = 0; index < entry.pronunciations.length; index += 1) {
         const sourcePronunciation = entry.pronunciations[index];
         try {
-          analyses.push({ sourcePronunciation, index, analysis: analyzeGermanIpa(sourcePronunciation.ipa) });
+          analyses.push({
+            sourcePronunciation,
+            index,
+            analysis: analyzeGermanIpa(sourcePronunciation.ipa),
+          });
         } catch {
           supplementalRejected += 1;
         }
@@ -218,7 +334,9 @@ try {
       if (!analyses.length) continue;
 
       const existing = existingForm.get(normalized) || null;
-      const explicitPreferred = analyses.findIndex((item) => item.sourcePronunciation.preferred === true);
+      const explicitPreferred = analyses.findIndex(
+        (item) => item.sourcePronunciation.preferred === true,
+      );
       const preferredIndex = explicitPreferred >= 0 ? explicitPreferred : 0;
       const usage = usageRanking.bySurface.get(requestedSurface)
         || usageRanking.byNormalized.get(normalized)
@@ -262,20 +380,48 @@ try {
         const final = analysis.syllables.at(-1);
         const preferred = i === preferredIndex ? 1 : 0;
         insert.run(
-          targetOrder, targetSurface, normalized,
+          targetOrder,
+          targetSurface,
+          normalized,
           usage?.rank ?? null,
           Number.isFinite(usage?.score) ? usage.score : null,
           Number.isFinite(usage?.count) ? usage.count : null,
           Number.isFinite(usage?.sourceCount) ? usage.sourceCount : null,
-          lemma, pos, gender,
-          'modern', entry.kind || 'entity', 0, lexicalTags,
-          analysis.ipa, analysis.canonicalPhonemes, analysis.syllableCount, analysis.stressPattern,
-          analysis.primaryStressSyllable, analysis.stressedTail, analysis.finalTail,
-          analysis.vowelSequence, analysis.consonantSequence, analysis.exactTailKey,
-          analysis.multisyllableKey, analysis.vowelKey, analysis.vowelFamilyKey,
-          analysis.codaKey || '', coarseCodaClass(final?.coda || []), analysis.stressedSyllableCount,
-          i + 1, preferred, 1, 1, index,
-          'RhymeLab curated modern lexicon', '[]', '[]', '["curated_modern"]', 'de-DE', null, null,
+          lemma,
+          pos,
+          gender,
+          'modern',
+          entry.kind || 'entity',
+          0,
+          lexicalTags,
+          analysis.ipa,
+          analysis.canonicalPhonemes,
+          analysis.syllableCount,
+          analysis.stressPattern,
+          analysis.primaryStressSyllable,
+          analysis.stressedTail,
+          analysis.finalTail,
+          analysis.vowelSequence,
+          analysis.consonantSequence,
+          analysis.exactTailKey,
+          analysis.multisyllableKey,
+          analysis.vowelKey,
+          analysis.vowelFamilyKey,
+          analysis.codaKey || '',
+          coarseCodaClass(final?.coda || []),
+          analysis.stressedSyllableCount,
+          i + 1,
+          preferred,
+          1,
+          1,
+          index,
+          'RhymeLab curated modern lexicon',
+          '[]',
+          '[]',
+          '["curated_modern"]',
+          'de-DE',
+          null,
+          null,
         );
         rows += 1;
         supplementalPronunciationsAdded += 1;
@@ -297,12 +443,20 @@ try {
     )
   `);
   if (formsWithoutExactlyOnePreferred !== 0) {
-    throw new Error(`Supplemental pronunciation overlay broke preferred-pronunciation invariant for ${formsWithoutExactlyOnePreferred} forms`);
+    throw new Error(
+      `Supplemental pronunciation overlay broke preferred-pronunciation invariant for ${formsWithoutExactlyOnePreferred} forms`,
+    );
   }
-  if (preferredRows !== forms) throw new Error(`Preferred/form mismatch after supplemental overlay: ${preferredRows} != ${forms}`);
+  if (preferredRows !== forms) {
+    throw new Error(`Preferred/form mismatch after supplemental overlay: ${preferredRows} != ${forms}`);
+  }
 
-  console.log(`Supplemental modern lexicon: ${supplementalInserted} new forms, ${supplementalOverlaidExisting} existing forms overlaid, ${supplementalPronunciationsAdded} curated pronunciations added, ${supplementalRejected} rejected.`);
-  console.log(`Historical/obsolete dictionary forms: ${historicalForms.toLocaleString('de-DE')} (hidden by default at query time).`);
+  console.log(
+    `Supplemental modern lexicon: ${supplementalInserted} new forms, ${supplementalOverlaidExisting} existing forms overlaid, ${supplementalPronunciationsAdded} curated pronunciations added, ${supplementalRejected} rejected.`,
+  );
+  console.log(
+    `Historical/obsolete dictionary forms: ${historicalForms.toLocaleString('de-DE')} (hidden by default at query time).`,
+  );
   console.log('Building local lookup/rhyme indexes…');
 
   db.exec(`
@@ -319,7 +473,7 @@ try {
   `);
 
   const metadata = {
-    schema: 'rhymelab-local-db-v4',
+    schema: writerLexicalV5 ? WRITER_LEXICAL_DB_SCHEMA : 'rhymelab-local-db-v4',
     language: 'de',
     built_at: new Date().toISOString(),
     publish_schema: manifest.schema,
@@ -336,6 +490,12 @@ try {
     pronunciations: rows,
     preferred_pronunciations: preferredRows,
   };
+  if (writerLexicalV5) {
+    metadata.writer_lexical_analysis_rows = lexicalAnalyses;
+    metadata.base_forms_with_lexical_analyses = formsWithLexicalAnalyses;
+    metadata.base_forms_with_multiple_lexical_analyses = formsWithMultipleLexicalAnalyses;
+    metadata.supplemental_new_forms_without_source_lexical_analysis = supplementalInserted;
+  }
   const metaInsert = db.prepare('INSERT INTO meta(key,value) VALUES(?,?)');
   for (const [key, value] of Object.entries(metadata)) metaInsert.run(key, String(value ?? ''));
 
@@ -343,7 +503,7 @@ try {
   db.exec('VACUUM;');
   const fileBytes = (await stat(dbPath)).size;
   const report = {
-    schema: 'rhymelab-local-db-build-v4',
+    schema: writerLexicalV5 ? 'rhymelab-local-db-build-v5' : 'rhymelab-local-db-build-v4',
     language: metadata.language,
     built_at: metadata.built_at,
     source_manifest: join(publishDir, 'manifest.json'),
@@ -364,8 +524,18 @@ try {
     pre_vacuum_bytes: databaseBytes,
     bytes_per_pronunciation: Number((fileBytes / Math.max(rows, 1)).toFixed(2)),
   };
+  if (writerLexicalV5) {
+    report.writer_lexical_model = {
+      schema: WRITER_LEXICAL_DB_SCHEMA,
+      analysis_rows: lexicalAnalyses,
+      base_forms_with_analyses: formsWithLexicalAnalyses,
+      base_forms_with_multiple_analyses: formsWithMultipleLexicalAnalyses,
+      base_forms_without_analyses: baseForms - formsWithLexicalAnalyses,
+      supplemental_new_forms_without_source_lexical_analysis: supplementalInserted,
+    };
+  }
   await mkdir(dirname(reportPath), { recursive: true });
-  await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n', 'utf8');
+  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
   console.log(JSON.stringify(report, null, 2));
 } finally {
   db.close();

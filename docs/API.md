@@ -14,7 +14,9 @@ The last formally accepted full-data/runtime baseline is RhymeLab `v0.10.0` with
 - sound-relation policy: `rhyme-relations-v2`;
 - DB schema: `rhymelab-local-db-v4`.
 
-The current main branch additionally contains the validated v3 ranking source promotion for normal all-result ranked requests. Formal baseline/version advancement remains pending the owner-local post-promotion acceptance report. Scorer, relation policy, retrieval strategy and DB schema were not changed by this ranking promotion.
+The accepted/base ranking remains `modern_entity_relative_commonness_1decade_0_05` and is available through `?ranking=legacy` on the current writer-search feature branch.
+
+Feature branch `feat/deterministic-writer-ranking-v1` adds a separate experimental deterministic writer-search path. It may add right-edge retrieval candidates and experimental writer-anchor scoring, but it does not rewrite the accepted legacy endpoint/scorer/relation path. See `docs/WRITER_RANKING.md`.
 
 The runtime resolves phonology through a language profile. The current profile registry contains German only. English parsing/scoring/data are not implemented and must use a separate language profile rather than German constants.
 
@@ -39,12 +41,15 @@ Returns the normalized word entry plus all stored pronunciation variants. Direct
 Supported query parameters:
 
 - `limit=<n>` — result limit, maximum 250;
-- `pool=<n>` — bounded candidate limit per indexed retrieval bucket, maximum 800;
+- `pool=<n>` — bounded candidate limit per retrieval channel, maximum 800;
 - `variants=all` — allow stored alternate pronunciation variants;
 - `historical=all` — include historical-only candidate forms;
 - `type=<category>` — one primary rhyme or sound relation, or `all`;
-- `coverage=balanced` — when `type=all`, reserve representation for every available category before filling the remaining budget;
-- `coverage_floor=<n>` — requested per-category floor for balanced mode, bounded by result limit and implementation maximum.
+- `coverage=balanced` — legacy/base selection option when `type=all`;
+- `coverage_floor=<n>` — requested per-category floor for balanced mode, bounded by result limit and implementation maximum;
+- `ranking=legacy` — bypass the feature writer path and return the accepted/base ranking path.
+
+On the writer-search feature branch, omitting `ranking=legacy` uses deterministic writer search. The local browser explicitly requests writer ranking.
 
 ### Primary rhyme vs. sound relation
 
@@ -58,104 +63,244 @@ Primary rhyme is exclusive. A result has at most one of these five `primaryType`
 
 `weak` is an internal scorer outcome meaning there is no primary rhyme strong enough to expose as a primary class.
 
-Assonance and consonance are **independent sound relations**, not fallback rhyme classes:
+Assonance and consonance are independent sound relations:
 
 - `assonance`
 - `consonance`
 
-A word can therefore be `slant` and `assonance` at the same time. A word can also have no primary rhyme (`type=weak`, `primaryType=null`) but still qualify as an assonance or consonance relation.
+A word can therefore be `slant` and `assonance` at the same time. It can also have no primary rhyme while still qualifying for an independent sound relation.
 
-Exact/perfect rhymes do not receive duplicate assonance/consonance labels merely because their complete rhyme tails match.
+### Accepted v0.10 phonology semantics
 
-### v0.10 phonology semantics
+`de-phon-v3` keeps exact perfect-rhyme detection stable. Near classes use structural gates in addition to weighted phonetic score. `rhyme-relations-v2` keeps Assonance/Consonance independent of the primary rhyme class.
 
-`de-phon-v3` keeps exact perfect-rhyme detection stable. Near classes use structural gates in addition to the weighted phonetic score:
-
-- multisyllabic slant/family require multisyllabic rhyme domains;
-- Family outside that explicit multisyllabic path requires sufficient vowel similarity and an exact consonantal coda anchor;
-- Slant requires a minimum vowel relationship so consonant similarity alone cannot create a primary rhyme;
-- aligned post-stress German reduced nuclei receive conservative equivalence handling.
-
-`rhyme-relations-v2` works inside the stressed rhyme domain and keeps Assonance/Consonance independent of primary rhyme classification.
-
-Each matched relation is returned in `relations` with `type`, `strength` (`strong` or `partial`), relation-specific `score`, and components. `relationTypes` is the compact list of matched relation names.
+The accepted/base endpoint behavior is preserved under `ranking=legacy`.
 
 ## Result-selection behavior
 
-`type=<single primary class>` dedicates the full result budget to that primary class.
+The base/legacy engine retains existing type-specific and balanced-coverage behavior.
 
-`type=assonance` or `type=consonance` dedicates the full result budget to that relation membership. Relation results rank by relation strength/score before deterministic tie-break inputs.
-
-`type=all&coverage=balanced` reserves a deterministic floor from every category available in the scored candidate set, then fills the remaining result budget. One result can satisfy more than one category.
+Writer search requests a full base page before applying writer-specific retrieval, scoring, safety and diversification. Pre-interleaving categories would otherwise distort the writer page before list-level decisions are made.
 
 ## Ranking contract
 
-The active ranking policy depends on result-selection mode and is returned as `rankingPolicy`.
+The active ranking policy is returned as `rankingPolicy`.
 
-### Normal all-result ranked mode
+### Deterministic writer search — feature branch default
 
-For `type=all` without `coverage=balanced`, current main uses:
+Current policy identifiers:
+
+```text
+rankingPolicy:               deterministic_writer_utility_v6
+phonology.writerAnchorPolicy de-right-edge-anchors-v1
+writerMorphology.policy      de-attested-right-head-v4
+```
+
+Pipeline:
+
+```text
+accepted/base retrieval + accepted legacy scoring
+  + deterministic right-edge retrieval
+  -> deterministic multi-anchor writer scoring
+  -> conservative right-head morphology-family evidence
+  -> explicit documented German construction rules
+  -> deterministic lexical-safety tier
+  -> deterministic structural lexical cheapness
+  -> deterministic writer utility
+  -> deterministic family/list diversity
+```
+
+The feature path does not mutate accepted legacy results in place. `ranking=legacy` remains the control path.
+
+### Writer right-edge fields
+
+Writer responses expose:
+
+- `phonology.writerAnchorPolicy`;
+- `writerRetrieval.policy`;
+- `writerRetrieval.rightEdgeKeys`;
+- `writerRetrieval.baseCandidates`;
+- `writerRetrieval.rightEdgeCandidates`;
+- `writerRetrieval.mergedCandidates`.
+
+Candidate rows may expose:
+
+- `writerAnchor`;
+- `writerAnchorCandidates`;
+- `legacyScore` / `legacyPrimaryType` / `legacyRhymeTier` when the candidate was rescored for the writer path.
+
+The right-edge prototype currently uses validation-time suffix lookup against DB v4. It is not the final mobile/local performance design.
+
+### Writer morphology fields
+
+`writerMorphology` uses policy:
+
+```text
+de-attested-right-head-v4
+```
+
+Ordinary inferred family evidence remains deliberately conservative: noun/adjective right-head analyses require compatible POS, whole-lemma suffix evidence, independently attested left/right evidence, and measured usage on the selected left side. Verbs and proper names remain unresolved until explicit deterministic rules exist.
+
+v4 additionally supports the narrow productive German construction:
+
+```text
+de-adverbial-weise-v2
+```
+
+A form selected as `adv` or `adj` whose whole lemma ends in `weise`, whose independently attested terminal lexeme is noun `Weise`, and whose left side has measured lexical evidence receives family `right:weise`. The `adj`/`adv` allowance reflects source-attested lexical ambiguity and the current DB-v4 limitation that only one selected lexical analysis is stored per surface form. This is explicit construction evidence, not generic suffix-string matching.
+
+Query and candidate morphology payloads can include:
+
+- `policy`;
+- `status` (`attested_right_head_candidate` or `unresolved`);
+- `inferred`;
+- `familyKey` based on right-head lemma;
+- `source`;
+- `wholeLemma`;
+- `wholePartOfSpeech`;
+- `constructionRule` when an explicit construction rule is used;
+- `split`;
+- `leftEvidence`;
+- `rightHead`;
+- `checks`, including `explicitConstructionRule` when applicable.
+
+This is inferred writer-search evidence, not source-attested full morphology. A future materialized writer lexical layer should preserve multiple lemma/POS analyses with provenance instead of forcing one analysis per surface form.
+
+### Writer structural cheapness fields
+
+Writer v6 distinguishes lexical cheapness from ordinary rhyme spelling. High edit similarity alone is not sufficient to demote short words such as `Liebe/Diebe`, `Leben/neben` or `Nacht/macht`.
+
+Cheapness evidence can instead come from:
+
+- same lemma;
+- same resolved morphology family;
+- a long shared initial construction;
+- a long very-high-similarity near duplicate;
+- a very long shared suffix as weaker evidence.
+
+`writer.evidence` therefore includes diagnostic fields such as `surfaceSimilarity`, `sharedPrefixLength`, `sharedSuffixLength`, `initialConstructionOverlap`, `longNearDuplicateOverlap`, `sameLemma` and `sameMorphologyFamily`. Phonetic rhyme spelling remains distinct from these lexical signals.
+
+### Writer lexical-safety fields
+
+Writer v5 introduced, and writer v6 retains, a default-page safety tier while preserving the underlying phonetic class/score.
+
+Current provisional policy:
+
+```text
+measured usage <= 250000                     -> tier penalty 0
+unranked / unknown usage                     -> tier penalty 1
+measured usage > 250000                      -> tier penalty 1
+explicit rare/archaic/obsolete/dated tag     -> tier penalty 2
+```
+
+Missing usage remains unknown/unranked; it is not classified as rare.
+
+Each row exposes:
+
+- `writer.lexicalSafetyTierPenalty`;
+- `writer.lexicalSafety.state`;
+- `writer.lexicalSafety.unranked`;
+- `writer.lexicalSafety.veryLowMeasuredUsage`;
+- `writer.lexicalSafety.explicitRareOrHistorical`;
+- `writer.lexicalSafety.threshold`.
+
+The threshold is provisional and requires page-quality acceptance evidence before promotion.
+
+### Other writer explanation fields
+
+Each writer-ranked row also exposes:
+
+- `writerRank`;
+- `writer.policy`;
+- `writer.utility`;
+- `writer.soundUtility`;
+- `writer.lexicalPenalty`;
+- `writer.lexicalNovelty`;
+- `writer.queryOverlap`;
+- `writer.commonness`;
+- `writer.baseTier`;
+- `writer.cheapRhymeTierPenalty`;
+- `writer.writerTier`;
+- `writer.effectiveTier`;
+- `writer.diversityTierPenalty`;
+- `writer.diversifiedScore`;
+- `writer.redundancyPenalty`;
+- `writer.maxRedundancy`;
+- `writer.evidence`.
+
+Phonetic `score`, `primaryType` and accepted relation semantics remain distinct from these writer fields.
+
+### Legacy/base normal all-result ranked mode
+
+Request:
+
+```text
+?ranking=legacy
+```
+
+For normal accepted/base `type=all` ranking, the policy remains:
 
 ```text
 modern_entity_relative_commonness_1decade_0_05
 ```
 
-Policy behavior:
+The existing query-relative commonness horizon, protected exact/relation behavior and conservative missing-usage handling remain as documented by the accepted runtime-ranking work and benchmark reports.
 
-- rhyme tier remains the first ordering boundary;
-- syllable distance remains second;
-- only queries from the curated modern layer with a measured query usage rank activate the experimental/promoted commonness policy;
-- exact tier-0 rows and relation-only rows retain usage-first ordering;
-- dictionary queries and missing-query-usage cases retain usage-first ordering;
-- candidate comparisons involving missing usage retain usage-first ordering;
-- a ranked candidate is inside the reorderable horizon only when:
+### Legacy balanced coverage and type-specific modes
 
-```text
-candidate_usage_rank <= query_usage_rank * 10
-```
-
-- candidates outside that one-decade query-relative horizon remain usage-first and cannot leapfrog an in-horizon candidate on phonetic score alone;
-- within the horizon, explicit lexical tag `rare` is a negative signal, followed by the 0.05 phonetic score band, then measured usage rank, raw phonetic score and deterministic lexical tie-break.
-
-This source promotion passed isolated and retrieval-aware pre-promotion validation. Formal runtime baseline acceptance still requires the post-promotion owner-local report to pass.
-
-### Balanced coverage mode
-
-`type=all&coverage=balanced` intentionally retains the previous coverage/usage-first selection behavior. It was **not** folded into the v3 promotion gate.
-
-### Type-specific modes
-
-Primary type filters retain their prior type-specific usage-first recommendation order. Assonance/consonance filters retain independent relation ordering:
-
-```text
-relation strength -> relation score -> syllable distance -> usage -> primary score/tie-break
-```
-
-These modes were not changed by the v3 runtime-source promotion.
+The base engine's `type=all&coverage=balanced` and type-specific ordering retain their pre-existing accepted/base behavior. Writer-specific behavior is bypassed with `ranking=legacy`.
 
 ## Response fields
 
-Rhyme responses include:
+Base rhyme responses include:
 
 - `language`;
-- `phonology` (`analyzer`, `scorer`, `relationPolicy`);
+- `phonology`;
 - `query`;
 - `variantMode`;
 - `historicalMode`;
 - `requestedType`;
-- `selection` metadata;
-- `rankingPolicy` — canonical identifier for the active selection/ranking mode;
-- `ranking` — human-readable ranking description;
+- `selection`;
+- `rankingPolicy`;
+- `ranking`;
 - flat `results`;
-- overlapping `groups` for all five primary rhyme classes plus both sound relations.
+- overlapping `groups`.
+
+Writer responses additionally expose the writer retrieval, morphology, safety and explanation fields described above.
 
 ## Browser behavior
 
-The browser currently requests `type=all&coverage=balanced` for its all-results view and then presents results by category. Therefore the browser's default balanced view is intentionally **not yet evidence that the v3 normal-ranked order is visible unchanged in the UI**.
+On the feature branch, the browser explicitly requests `ranking=writer` and respects `writerRank` for Recommended sort. It skips legacy all-type interleaving for any `deterministic_writer_utility_*` response so client rendering does not undo server-side writer ordering.
 
-Hover/focus detail shows primary rhyme and sound relations separately. Continuous rendering, historical vocabulary filtering, pronunciation modes and bilingual visible metadata remain unchanged.
+Other sort choices (`Most common`, `Closest rhyme`, `A–Z`) remain explicit user overrides.
 
-Visible localization is presentation-only. Canonical lexical tags/source strings stay unchanged in storage/API data and are mapped to English/German labels in the browser.
+Hover/focus detail still shows primary rhyme and sound relations separately. Continuous rendering, historical vocabulary filtering, pronunciation modes and bilingual visible metadata remain unchanged.
+
+Visible localization is presentation-only. Canonical lexical tags/source strings remain unchanged in storage/API data.
+
+## Writer page diagnostic
+
+Local command:
+
+```powershell
+npm run diagnose:writer-pages
+```
+
+Current report schema:
+
+```text
+rhymelab-writer-page-diagnostic-v2
+```
+
+Default report path:
+
+```text
+reports/writer-page-diagnostic.json
+```
+
+It records per-query runtime, retrieval size, morphology resolution/family repetition, unranked rows, usage-rank thresholds, explicit rare/historical rows, writer safety-tier counts, compact result rows and split-review evidence.
+
+This is an engineering diagnostic, not a formal benchmark.
 
 ## Benchmark review API
 
@@ -175,29 +320,15 @@ Returns the local benchmark queue, existing reviews, non-evaluative progress sum
 
 Stores or replaces one local manual review. Browser-origin writes are accepted only from loopback localhost on the active RhymeLab port.
 
-The project owner is not expected to annotate the full benchmark; the preferred workflow is blind external reference handoff/import as documented in `docs/BENCHMARK.md`.
+## Accepted-ranking acceptance report
 
-## Ranking acceptance report
-
-Current owner-local command:
+Current accepted-policy owner-local command:
 
 ```powershell
 npm run benchmark:ranking:runtime-candidate
 ```
 
-After the source promotion, this generates post-promotion schema:
-
-```text
-rhymelab-benchmark-ranking-runtime-candidate-v2
-```
-
-at:
-
-```text
-reports/de-rhyme-benchmark-ranking-runtime-candidate.json
-```
-
-The report requires live `findRhymes` ranked/all results to match the validated v3 order derived independently from the full retrieved candidate set, requires `rankingPolicy` to report the expected policy, and rechecks protected-order integrity and safety.
+That report validates the accepted/base `findRhymes` path, not the experimental writer path. Writer search requires a separate page-quality acceptance path before promotion.
 
 ## Report/audit
 

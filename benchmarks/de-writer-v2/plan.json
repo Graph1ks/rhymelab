@@ -1,0 +1,143 @@
+{
+  "schema": "rhymelab-de-writer-page-plan-v2",
+  "language": "de",
+  "version": "de-writer-page-v2",
+  "description": "Deterministic German writer-page quality benchmark. Structural gates are source/runtime-derived; NDCG@10/20 is enabled only when independent human usefulness labels are supplied.",
+  "sampling": {
+    "writer_limit": 250,
+    "legacy_limit": 250,
+    "candidate_pool": 800,
+    "page_cutoffs": [10, 20],
+    "review_candidate_depth": 40,
+    "include_historical": false,
+    "include_variants": false
+  },
+  "provisional_gates": {
+    "top20_aggregate_unranked_rows_max": 2,
+    "top20_aggregate_usage_rank_over_250k_rows_max": 2,
+    "top20_aggregate_explicit_rare_or_historical_rows_max": 0,
+    "top20_aggregate_repeated_family_rows_max": 2,
+    "required_regressions_must_pass": true
+  },
+  "reference_review": {
+    "source": "independent_human_review",
+    "label": "songwriting_usefulness",
+    "values": [0, 1, 2, 3, 4],
+    "ndcg_cutoffs": [10, 20],
+    "require_complete_writer_cutoff_for_ndcg": true,
+    "note": "No LLM/ML reference labels are required. Structural benchmark output is valid without reviews; NDCG remains pending until human labels cover the relevant writer cutoff."
+  },
+  "page_regressions": [
+    {
+      "id": "arbeitsweise-hochzeitsreise-retrieval",
+      "query": "Arbeitsweise",
+      "candidate": "Hochzeitsreise",
+      "max_rank": 250,
+      "allowed_primary_types": ["multisyllabic_perfect", "perfect"],
+      "max_cheap_tier_penalty": 0
+    },
+    {
+      "id": "arbeitsweise-reise-family-surfacing",
+      "query": "Arbeitsweise",
+      "required_family": "right:reise",
+      "max_rank": 20,
+      "allowed_primary_types": ["multisyllabic_perfect", "perfect"],
+      "max_cheap_tier_penalty": 0
+    },
+    {
+      "id": "liebe-diebe-perfect",
+      "query": "Liebe",
+      "candidate": "Diebe",
+      "max_rank": 5,
+      "allowed_primary_types": ["multisyllabic_perfect", "perfect"],
+      "max_cheap_tier_penalty": 0
+    },
+    {
+      "id": "leben-neben-perfect",
+      "query": "Leben",
+      "candidate": "neben",
+      "max_rank": 5,
+      "allowed_primary_types": ["multisyllabic_perfect", "perfect"],
+      "max_cheap_tier_penalty": 0
+    },
+    {
+      "id": "nacht-macht-perfect",
+      "query": "Nacht",
+      "candidate": "macht",
+      "max_rank": 5,
+      "allowed_primary_types": ["perfect", "multisyllabic_perfect"],
+      "max_cheap_tier_penalty": 0
+    }
+  ],
+  "morphology_regressions": [
+    {
+      "id": "arbeitsweise-family",
+      "word": "Arbeitsweise",
+      "expected_family": "right:weise",
+      "expected_construction_rule": null
+    },
+    {
+      "id": "stufenweise-productive-weise",
+      "word": "stufenweise",
+      "expected_family": "right:weise",
+      "expected_construction_rule": "de-adverbial-weise-v2"
+    },
+    {
+      "id": "ausnahmsweise-productive-weise",
+      "word": "ausnahmsweise",
+      "expected_family": "right:weise",
+      "expected_construction_rule": "de-adverbial-weise-v2"
+    },
+    {
+      "id": "abschnittsweise-productive-weise",
+      "word": "abschnittsweise",
+      "expected_family": "right:weise",
+      "expected_construction_rule": "de-adverbial-weise-v2"
+    },
+    {
+      "id": "auszugsweise-productive-weise",
+      "word": "auszugsweise",
+      "expected_family": "right:weise",
+      "expected_construction_rule": "de-adverbial-weise-v2"
+    },
+    {
+      "id": "verweise-no-false-weise-family",
+      "word": "Verweise",
+      "expected_family": null
+    },
+    {
+      "id": "betriebe-no-false-split",
+      "word": "Betriebe",
+      "expected_family": null
+    },
+    {
+      "id": "bestreben-no-false-split",
+      "word": "Bestreben",
+      "expected_family": null
+    },
+    {
+      "id": "professoren-no-false-split",
+      "word": "Professoren",
+      "expected_family": null
+    },
+    {
+      "id": "deutscher-no-false-split",
+      "word": "deutscher",
+      "expected_family": null
+    }
+  ],
+  "queries": [
+    {"word": "Arbeitsweise", "phenomena": ["permanent_regression", "secondary_stress", "right_edge_retrieval", "productive_weise", "family_diversity"]},
+    {"word": "Liebe", "phenomena": ["short_normal_perfect", "multisyllabic", "cheapness_false_positive_guard"]},
+    {"word": "Leben", "phenomena": ["short_normal_perfect", "multisyllabic", "verb_prefix_variety", "cheapness_false_positive_guard"]},
+    {"word": "Zeit", "phenomena": ["monosyllabic", "perfect", "loanword_intrusion"]},
+    {"word": "Nacht", "phenomena": ["monosyllabic", "perfect", "lexical_safety", "cheapness_false_positive_guard"]},
+    {"word": "Feuer", "phenomena": ["multisyllabic", "diphthong", "r_color_or_vocalization"]},
+    {"word": "verloren", "phenomena": ["multisyllabic", "perfect", "false_morphology_guard"]},
+    {"word": "Gedanken", "phenomena": ["multisyllabic", "perfect", "lexical_variety"]},
+    {"word": "Freiheit", "phenomena": ["multisyllabic", "family", "semantic_variety"]},
+    {"word": "Musik", "phenomena": ["stress", "loanword", "perfect", "pronunciation_quality"]},
+    {"word": "Spotify", "phenomena": ["modern_entity", "loanword", "pronunciation_provenance", "lexical_safety"]},
+    {"word": "hitzefrei", "phenomena": ["compound_like", "legacy_regression", "lexical_safety", "family"]}
+  ]
+}
