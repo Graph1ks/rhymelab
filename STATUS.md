@@ -4,7 +4,7 @@ RhymeLab's clean public repository is live at `Graph1ks/rhymelab`. It was publis
 
 The first public `RhymeLab CI` run completed successfully on the clean root. The public workflow's required job/check name is `validate` and runs the source check, test suite, and public-readiness audit.
 
-Repository governance is documented in `docs/REPOSITORY_GOVERNANCE.md`. Project policy requires pull-request-based changes to `main`, successful `validate` CI, and protection against force pushes and deletion. GitHub-side activation of the `main` ruleset requires repository-admin settings and is tracked in issue #1; until that issue is closed, the policy is documented but not fully enforced by GitHub branch protection.
+Repository governance is documented in `docs/REPOSITORY_GOVERNANCE.md`. GitHub now actively enforces the `main-protection` ruleset on the default branch: changes to `main` require a pull request, `validate` must pass, the branch must be up to date before merge, force pushes/non-fast-forward updates are blocked, and deletion is blocked. Required approving reviews remain `0` for solo-maintainer operation, and the ruleset has no bypass actors.
 
 The current formally accepted German runtime baseline remains v0.10.0. Runtime source contains the validated hybrid-v3 ranking promotion for normal `type=all` ranked mode; final owner-local post-promotion acceptance remains pending.
 

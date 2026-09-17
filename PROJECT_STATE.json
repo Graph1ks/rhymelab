@@ -22,15 +22,21 @@
     },
     "branch_protection_policy": {
       "document": "docs/REPOSITORY_GOVERNANCE.md",
+      "ruleset_name": "main-protection",
+      "ruleset_id": 23610669,
       "target_branch": "main",
+      "target_selector": "~DEFAULT_BRANCH",
       "require_pull_request": true,
       "required_approving_reviews": 0,
       "required_status_check": "validate",
       "require_up_to_date_branch": true,
       "block_force_pushes": true,
       "block_branch_deletion": true,
-      "github_enforcement": "pending_admin_activation",
-      "tracking_issue": 1
+      "bypass_actors": 0,
+      "github_enforcement": "active_verified",
+      "verified_on": "2026-09-17",
+      "tracking_issue": 1,
+      "tracking_issue_status": "completed"
     }
   },
   "runtime": {
@@ -115,6 +121,7 @@
   "validation_boundary": {
     "public_release_complete": true,
     "public_ci_clean_root_passed": true,
+    "main_branch_ruleset_enforced": true,
     "v010_runtime_accepted": true,
     "hybrid_v3_experiment_gate_passed": true,
     "runtime_candidate_validation_passed": true,
@@ -127,7 +134,6 @@
     "requirement": "own_sources_ipa_parser_inventory_similarity_thresholds_pronunciation_policy_and_language_specific_benchmark"
   },
   "next_actions": [
-    "enable_main_branch_ruleset_issue_1",
     "run_post_promotion_runtime_candidate_acceptance",
     "cluster_remaining_ipa_normalization_failures_after_ranking_isolation",
     "phrase_mosaic_after_single_word_quality",
