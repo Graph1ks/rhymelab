@@ -162,13 +162,7 @@ ranking=legacy -> findRhymes(...)
 writer default -> findWriterRhymes(...)
 ```
 
-`src/local-engine.mjs` is currently blob-identical on `main` and `feat/deterministic-writer-ranking-v1`:
-
-```text
-22354f17a0cc36f005daf5b7a8c98bfb1f4bfa96
-```
-
-That establishes source-level invariance for the accepted local engine.
+`src/local-engine.mjs` is currently blob-identical on `main` and `feat/deterministic-writer-ranking-v1`. That establishes source-level invariance for the accepted local engine without recording private/pre-public commit identifiers in project memory.
 
 The owner-local runtime gate still must be rerun on the current DB:
 
@@ -227,10 +221,9 @@ The target is to materialize/index validated right-edge anchors and morphology e
 
 ## Immediate next work
 
-1. Owner runs the current legacy invariance gate:
+1. Owner updates the local checkout and runs the current legacy invariance gate:
 
 ```powershell
-cd C:\Users\svend\rhymelab-public-new
 git pull --ff-only
 npm run benchmark:ranking:runtime-candidate
 ```
