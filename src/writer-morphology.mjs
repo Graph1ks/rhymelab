@@ -1,8 +1,9 @@
-export const WRITER_MORPHOLOGY_POLICY = 'de-attested-right-head-v3';
+export const WRITER_MORPHOLOGY_POLICY = 'de-attested-right-head-v4';
 
 const MIN_LEFT_LENGTH = 3;
 const MIN_RIGHT_LENGTH = 5;
 const LOOKUP_BATCH_SIZE = 350;
+const ADVERBIAL_WEISE_POS = new Set(['adv', 'adj']);
 
 function normalizeSurface(value) {
   return String(value ?? '')
@@ -15,6 +16,7 @@ function normalizeSurface(value) {
 function normalizePos(value) {
   const pos = normalizeSurface(value);
   if (pos === 'adjective') return 'adj';
+  if (pos === 'adverb') return 'adv';
   if (pos === 'proper_noun') return 'name';
   return pos || null;
 }
@@ -36,7 +38,7 @@ function wholeMetadata(value, evidence = null) {
 }
 
 function headPosCompatible(wholePos, rightPos) {
-  // v3 keeps the conservative noun/adjective compound gate from v2. Verb-prefix
+  // v4 keeps the conservative noun/adjective compound gate from v2. Verb-prefix
   // morphology and proper-name segmentation still require their own explicit rules.
   if (wholePos === 'noun') return rightPos === 'noun';
   if (wholePos === 'adj') return rightPos === 'adj';
@@ -47,14 +49,13 @@ function explicitConstructionRule(whole, rightEvidence) {
   const rightLemma = normalizeSurface(rightEvidence?.lemma || rightEvidence?.normalized);
   const rightPos = normalizePos(rightEvidence?.pos);
 
-  // German adverbial -weise is a productive lexical construction rather than an
-  // ordinary noun-headed compound. Treating it as unresolved caused pages such as
-  // Arbeitsweise to be flooded again by schätzungsweise/stellenweise/paarweise while
-  // still reporting zero repeated families. This rule is intentionally narrow: the
-  // complete form must be tagged as an adverb, the independently attested terminal
-  // lexeme must be Weise, and normal left-side lexical evidence is still required.
-  if (whole.partOfSpeech === 'adv' && rightPos === 'noun' && rightLemma === 'weise') {
-    return 'de-adverbial-weise-v1';
+  // German adverbial -weise is productive and source entries can legitimately expose
+  // both adverb and attributive-adjective analyses. The current v4 SQLite stores one
+  // selected lexical analysis, so accepting only `adv` makes the rule dependent on an
+  // arbitrary analysis tie-break. Keep the rule narrow by allowing only the attested
+  // adv/adj ambiguity, requiring terminal noun Weise plus normal left lexical evidence.
+  if (ADVERBIAL_WEISE_POS.has(whole.partOfSpeech) && rightPos === 'noun' && rightLemma === 'weise') {
+    return 'de-adverbial-weise-v2';
   }
   return null;
 }
