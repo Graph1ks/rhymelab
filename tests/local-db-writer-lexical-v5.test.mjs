@@ -48,7 +48,7 @@ function compactPronunciation(ipa) {
   return row;
 }
 
-test('publish-v3 builds DB-v5 and materializes indexed writer evidence without rewiring runtime', async () => {
+test('publish-v3 builds DB-v5 and compactly materializes indexed writer evidence without rewiring runtime', async () => {
   const temp = await mkdtemp(join(tmpdir(), 'rhymelab-writer-v5-'));
   const publishDir = join(temp, 'publish-v3');
   const dbPath = join(temp, 'rhymelab-v5.sqlite');
@@ -159,13 +159,17 @@ test('publish-v3 builds DB-v5 and materializes indexed writer evidence without r
     assert.equal(materialize.status, 0, materialize.stderr || materialize.stdout);
 
     const materializationReport = JSON.parse(await readFile(materializationReportPath, 'utf8'));
-    assert.equal(materializationReport.schema, 'rhymelab-writer-materialization-v5-report-v1');
+    assert.equal(materializationReport.schema, 'rhymelab-writer-materialization-v5-report-v2');
     assert.equal(materializationReport.database_schema, 'rhymelab-local-db-v5');
     assert.equal(materializationReport.anchor_policy, 'de-right-edge-anchors-v1');
+    assert.equal(materializationReport.anchor_storage, 'compact-primary-key-v2');
     assert.equal(materializationReport.morphology_policy, 'de-attested-right-head-v4');
+    assert.equal(materializationReport.morphology_storage, 'positive-evidence-compact-v2');
     assert.ok(materializationReport.anchors.rows > 0);
     assert.equal(materializationReport.anchors.sample_query_plan_uses_lookup_index, true);
     assert.equal(materializationReport.morphology.evidenceRows, 2);
+    assert.equal(materializationReport.morphology.storedPositiveRows, 2);
+    assert.equal(materializationReport.morphology.unresolvedRows, 0);
     assert.equal(materializationReport.accepted_runtime_rewired, false);
     assert.equal(materializationReport.writer_runtime_rewired, false);
 
@@ -177,12 +181,27 @@ test('publish-v3 builds DB-v5 and materializes indexed writer evidence without r
       );
       assert.equal(anchorRows, materializationReport.anchors.rows);
       assert.equal(morphologyRows, 2);
-      const policies = Object.fromEntries(dbAfter.prepare(`
+      const anchorColumns = dbAfter.prepare('PRAGMA table_info(writer_anchor)').all().map((entry) => entry.name);
+      assert.deepEqual(anchorColumns, ['anchor_key', 'pronunciation_id']);
+      const morphologyColumns = dbAfter.prepare('PRAGMA table_info(writer_morphology_evidence)').all().map((entry) => entry.name);
+      assert.ok(!morphologyColumns.includes('evidence_json'));
+      assert.ok(!morphologyColumns.includes('morphology_policy'));
+      assert.ok(!morphologyColumns.includes('status'));
+
+      const metadata = Object.fromEntries(dbAfter.prepare(`
         SELECT key,value FROM meta
-        WHERE key IN ('writer_anchor_policy','writer_morphology_policy')
+        WHERE key IN (
+          'writer_anchor_policy','writer_anchor_storage',
+          'writer_morphology_policy','writer_morphology_storage',
+          'writer_morphology_analysis_rows','writer_morphology_evidence_rows'
+        )
       `).all().map((entry) => [entry.key, entry.value]));
-      assert.equal(policies.writer_anchor_policy, 'de-right-edge-anchors-v1');
-      assert.equal(policies.writer_morphology_policy, 'de-attested-right-head-v4');
+      assert.equal(metadata.writer_anchor_policy, 'de-right-edge-anchors-v1');
+      assert.equal(metadata.writer_anchor_storage, 'compact-primary-key-v2');
+      assert.equal(metadata.writer_morphology_policy, 'de-attested-right-head-v4');
+      assert.equal(metadata.writer_morphology_storage, 'positive-evidence-compact-v2');
+      assert.equal(Number(metadata.writer_morphology_analysis_rows), 2);
+      assert.equal(Number(metadata.writer_morphology_evidence_rows), 2);
     } finally {
       dbAfter.close();
     }
