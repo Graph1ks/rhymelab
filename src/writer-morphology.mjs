@@ -1,4 +1,4 @@
-export const WRITER_MORPHOLOGY_POLICY = 'de-attested-right-head-v1';
+export const WRITER_MORPHOLOGY_POLICY = 'de-attested-right-head-v2';
 
 const MIN_LEFT_LENGTH = 3;
 const MIN_RIGHT_LENGTH = 5;
@@ -12,8 +12,46 @@ function normalizeSurface(value) {
     .toLocaleLowerCase('de-DE');
 }
 
+function normalizePos(value) {
+  const pos = normalizeSurface(value);
+  if (pos === 'adjective') return 'adj';
+  if (pos === 'proper_noun') return 'name';
+  return pos || null;
+}
+
 function lexicalShape(value) {
   return /^[\p{L}ßäöü]+$/u.test(value);
+}
+
+function wholeMetadata(value, evidence = null) {
+  const row = value && typeof value === 'object' ? value : (evidence || {});
+  const normalized = normalizeSurface(
+    row?.normalized || row?.surface || row?.word || (typeof value === 'string' ? value : ''),
+  );
+  return {
+    normalized,
+    lemma: normalizeSurface(row?.lemma),
+    partOfSpeech: normalizePos(row?.partOfSpeech || row?.pos),
+  };
+}
+
+function headPosCompatible(wholePos, rightPos) {
+  // v2 deliberately covers only conservative compound/suffixoid-like noun/adjective
+  // evidence. Verb-prefix morphology and proper-name segmentation require their own
+  // explicit deterministic rules; unresolved is safer than a false writer family.
+  if (wholePos === 'noun') return rightPos === 'noun';
+  if (wholePos === 'adj') return rightPos === 'adj';
+  return false;
+}
+
+function rightLemmaMatchesWholeLemma(wholeLemma, rightEvidence) {
+  const rightLemma = normalizeSurface(rightEvidence?.lemma || rightEvidence?.normalized);
+  return Boolean(wholeLemma && rightLemma && wholeLemma.endsWith(rightLemma));
+}
+
+function hasMeasuredLeftEvidence(leftEvidence) {
+  const rank = Number(leftEvidence?.row?.usage_rank);
+  return Number.isFinite(rank) && rank > 0;
 }
 
 export function leftLexemeVariants(leftRaw) {
@@ -71,31 +109,39 @@ function attestedRow(attested, normalized) {
   return attested instanceof Map ? attested.get(normalized) || null : null;
 }
 
-export function chooseAttestedRightHead(value, attested) {
-  const normalized = normalizeSurface(value);
-  const candidates = rightHeadSplitCandidates(normalized);
+export function chooseAttestedRightHead(value, attested, wholeEvidence = null) {
+  const whole = wholeMetadata(value, wholeEvidence);
+  const candidates = rightHeadSplitCandidates(whole.normalized);
   const valid = [];
 
   for (const candidate of candidates) {
     const rightEvidence = attestedRow(attested, candidate.right);
     if (!rightEvidence) continue;
+    const rightPos = normalizePos(rightEvidence.pos);
+    if (!headPosCompatible(whole.partOfSpeech, rightPos)) continue;
+    if (!rightLemmaMatchesWholeLemma(whole.lemma, rightEvidence)) continue;
+
     const leftEvidence = candidate.leftVariants
       .map((variant) => ({ variant, row: attestedRow(attested, variant.normalized) }))
-      .filter((entry) => entry.row)
+      .filter((entry) => entry.row && hasMeasuredLeftEvidence(entry))
       .sort((a, b) => a.variant.cost - b.variant.cost
         || Number(a.row?.usage_rank ?? Number.MAX_SAFE_INTEGER) - Number(b.row?.usage_rank ?? Number.MAX_SAFE_INTEGER))[0];
     if (!leftEvidence) continue;
+
     valid.push({ candidate, rightEvidence, leftEvidence });
   }
 
-  // The writer family wants the rightmost lexical head, not the longest nested compound.
-  // Prefer the shortest independently attested terminal lexeme once both sides of the split
-  // have lexical evidence. This makes Rohstoff|preise win over Roh|stoffpreise while
-  // rejecting false inner substrings such as Sonderp|reise.
-  valid.sort((a, b) => a.candidate.right.length - b.candidate.right.length
-    || a.leftEvidence.variant.cost - b.leftEvidence.variant.cost
-    || b.candidate.splitIndex - a.candidate.splitIndex
-    || Number(a.rightEvidence?.usage_rank ?? Number.MAX_SAFE_INTEGER) - Number(b.rightEvidence?.usage_rank ?? Number.MAX_SAFE_INTEGER));
+  // Prefer the shortest independently attested terminal lexeme after the conservative
+  // lemma/POS gates. This still finds Preise/Reise/Weise/Gleise while preventing arbitrary
+  // substring coincidences such as Betriebe -> bet|riebe or Professoren -> profes|soren.
+  valid.sort((a, b) => {
+    const lemmaA = normalizeSurface(a.rightEvidence?.lemma || a.candidate.right);
+    const lemmaB = normalizeSurface(b.rightEvidence?.lemma || b.candidate.right);
+    return lemmaA.length - lemmaB.length
+      || a.leftEvidence.variant.cost - b.leftEvidence.variant.cost
+      || b.candidate.splitIndex - a.candidate.splitIndex
+      || Number(a.rightEvidence?.usage_rank ?? Number.MAX_SAFE_INTEGER) - Number(b.rightEvidence?.usage_rank ?? Number.MAX_SAFE_INTEGER);
+  });
 
   const best = valid[0];
   if (!best) {
@@ -104,17 +150,22 @@ export function chooseAttestedRightHead(value, attested) {
       status: 'unresolved',
       inferred: true,
       familyKey: null,
-      source: 'local_hot_exact_surface_evidence',
+      source: 'local_hot_lemma_pos_suffix_evidence',
+      wholeLemma: whole.lemma || null,
+      wholePartOfSpeech: whole.partOfSpeech,
     };
   }
 
   const { candidate, rightEvidence, leftEvidence } = best;
+  const familyLemma = normalizeSurface(rightEvidence.lemma || candidate.right);
   return {
     policy: WRITER_MORPHOLOGY_POLICY,
     status: 'attested_right_head_candidate',
     inferred: true,
-    familyKey: `right:${candidate.right}`,
-    source: 'local_hot_exact_surface_evidence',
+    familyKey: `right:${familyLemma}`,
+    source: 'local_hot_lemma_pos_suffix_evidence',
+    wholeLemma: whole.lemma || null,
+    wholePartOfSpeech: whole.partOfSpeech,
     split: {
       index: candidate.splitIndex,
       leftRaw: candidate.leftRaw,
@@ -135,6 +186,12 @@ export function chooseAttestedRightHead(value, attested) {
       lemma: rightEvidence.lemma || null,
       partOfSpeech: rightEvidence.pos || null,
       usageRank: rightEvidence.usage_rank ?? null,
+      familyLemma,
+    },
+    checks: {
+      wholeLemmaEndsWithRightLemma: true,
+      headPartOfSpeechCompatible: true,
+      leftHasMeasuredUsageEvidence: true,
     },
   };
 }
@@ -191,7 +248,7 @@ export function resolveWriterMorphologyBatch(db, rows, language = 'de') {
   const { forms } = collectLookupForms(uniqueRows);
   const attested = lookupAttestedForms(db, forms);
   for (const row of uniqueRows) {
-    result.set(row.normalized, chooseAttestedRightHead(row.normalized, attested));
+    result.set(row.normalized, chooseAttestedRightHead(row, attested));
   }
   return result;
 }
