@@ -14,6 +14,7 @@ Before changing the project in a fresh thread/session, read:
 6. `docs/REPOSITORY_GOVERNANCE.md`
 7. `docs/BENCHMARK.md` for rhyme-quality/ranking work
 8. `docs/API.md` for local API work
+9. `docs/WRITER_SEARCH_ACCEPTANCE.md` for the frozen German single-word writer baseline
 
 ## Public-repository guardrails
 
@@ -62,9 +63,9 @@ RhymeLab core rhyme retrieval, scoring, writer ranking and result diversificatio
 - Ranking evaluation must inspect live/retrieval-boundary lexical quality, not only reviewed metrics.
 - Do not optimize benchmark gains that require promoting words orders of magnitude rarer than the query when that conflicts with default product quality.
 
-## Formally accepted baseline
+## Formally accepted/default baseline
 
-The last formally accepted German baseline is RhymeLab `v0.10.0`:
+The formally accepted/default German runtime remains RhymeLab `v0.10.0`:
 
 - DB schema `rhymelab-local-db-v4`;
 - analyzer `de-ipa-v2`;
@@ -72,43 +73,59 @@ The last formally accepted German baseline is RhymeLab `v0.10.0`:
 - relation policy `rhyme-relations-v2`;
 - 838,209 forms / 904,836 pronunciations;
 - 838,209 preferred / 66,627 alternates;
-- accepted report `ok`, 5/5 QA gates;
-- accepted tests 58/58 across 20 files.
+- accepted/base control remains `?ranking=legacy`.
 
-Pre-public private commit IDs are intentionally not part of public project memory.
+The German single-word writer engineering acceptance below does **not** silently replace this default runtime.
+
+## German single-word writer engineering baseline — accepted
+
+Engineering acceptance is recorded in `docs/WRITER_SEARCH_ACCEPTANCE.md`.
+
+Frozen stack:
+
+```text
+writer ranking       deterministic_writer_utility_v6
+right-edge anchor    de-right-edge-anchors-v1
+anchor storage       compact-primary-key-v2
+candidate basis      legacy-vowel-key-string-suffix-v1
+morphology family    de-attested-right-head-v4
+construction         de-adverbial-weise-v2
+morphology storage   positive-evidence-compact-v2
+runtime              materialized-writer-v5-v1
+DB schema            rhymelab-local-db-v5
+```
+
+Acceptance evidence includes:
+
+- legacy/control-path invariance: 27/27, zero runtime/policy/protected-order mismatches;
+- exact indexed-vs-LIKE right-edge retrieval equivalence: 12/12, zero mismatches;
+- compact morphology regressions: 10/10 pass;
+- final Writer Page structural gate: pass;
+- legacy Tier-0 retention: 685/685;
+- final full Writer Page mean: 1103.9 ms vs 1528.8 ms frozen validation mean;
+- runtime repeatability: three independent DB opens with identical per-query and suite semantic fingerprints;
+- suite fingerprint `c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab`.
+
+Writer Page human NDCG@10/20 remains `pending_reference`; do not invent or substitute a score.
+
+Writer v7 remains rejected/rolled back. Do not silently retune the frozen v6/v4 writer baseline; material changes require a new benchmarked candidate.
 
 ## Benchmark truth
 
-Current German benchmark: `de-human-rhyme-v1`.
+Current general German benchmark: `de-human-rhyme-v1`.
 
 367/367 reviewed, 0 skipped. Accepted ranking baseline: NDCG 0.9562 / pairwise 0.8350.
 
-Pure `score_band_0_05`, hybrid v1, and hybrid v2 were rejected. Hybrid v3 policy:
+This general relation/ranking benchmark is not a substitute for the still-pending Writer Page human usefulness labels.
+
+Accepted general ranking policy:
 
 ```text
 modern_entity_relative_commonness_1decade_0_05
 ```
 
-passed the isolated experiment and retrieval-aware pre-promotion gate.
+## Current project direction
 
-## Current runtime-promotion state
+PR #3 remains draft until owner review of `docs/WRITER_SEARCH_ACCEPTANCE.md`. Formal/default writer-runtime promotion is a separate explicit decision and has not happened automatically.
 
-Source promotion is wired:
-
-- `src/runtime-ranking-policy.mjs` contains the production v3 comparator;
-- `src/local-engine.mjs` uses it for normal `type=all`, non-balanced ranked results;
-- dictionary queries, missing-usage cases, exact tier-0 rows, and relation-only rows retain conservative fallback behavior;
-- type-specific and `coverage=balanced` modes retain their separate pre-existing ordering;
-- scorer, relation policy, retrieval keys, pool limits, and DB schema are unchanged.
-
-The final owner-local gate is:
-
-```bash
-npm run benchmark:ranking:runtime-candidate
-```
-
-Require schema `rhymelab-benchmark-ranking-runtime-candidate-v2`, `status=ok`, zero runtime-candidate mismatches, zero runtime-policy mismatches, zero protected-order mismatches, and reproduction of the validated retrieval-aware metrics/safety.
-
-The next ranking architecture is deterministic writer utility plus lexical diversity. It must remain independently explainable from phonetic scoring and must be benchmarked before replacing the accepted runtime policy.
-
-After ranking isolation, continue pronunciation/lexical-quality diagnostics, then phrase/mosaic rhyme. English remains separate.
+After owner acceptance review, German phrase/mosaic rhyme may begin as a separate deterministic architecture/benchmark phase while preserving the accepted single-word evidence. English remains later and requires its own language-specific sources, parsing/scoring, and benchmark.
