@@ -20,6 +20,13 @@ test('normal rhyme requests use the promoted materialized writer v5 runtime', ()
   assert.equal(selected.runtimeId, 'materialized-writer-v5-v1');
 });
 
+test('normal writer runtime does not require the legacy control database', () => {
+  const writerDb = { id: 'writer-v5' };
+  const selected = selectRhymeRuntimeDatabases({ writerDb, legacyDb: null }, params());
+  assert.equal(selected.mode, 'writer');
+  assert.equal(selected.database, writerDb);
+});
+
 test('ranking=legacy remains pinned to the v4 control database', () => {
   const writerDb = { id: 'writer-v5' };
   const legacyDb = { id: 'legacy-v4' };
@@ -29,6 +36,16 @@ test('ranking=legacy remains pinned to the v4 control database', () => {
   assert.equal(selected.mode, 'legacy');
   assert.equal(selected.database, legacyDb);
   assert.equal(selected.runtimeId, 'legacy-v4-control');
+});
+
+test('ranking=legacy fails explicitly when the v4 control database is unavailable', () => {
+  assert.throws(
+    () => selectRhymeRuntimeDatabases(
+      { writerDb: { id: 'writer-v5' }, legacyDb: null },
+      params('ranking=legacy'),
+    ),
+    /Legacy v4 control database is unavailable/,
+  );
 });
 
 test('non-legacy ranking values cannot silently select the control database', () => {
