@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-17",
-  "phase": "DETERMINISTIC_WRITER_SEARCH_V5_MORPHOLOGY_V3_VALIDATION",
+  "phase": "DETERMINISTIC_WRITER_SEARCH_V6_MORPHOLOGY_V4_VALIDATION",
   "package_version": "0.10.0",
   "repository": {
     "public_release_model": "sanitized_parentless_public_root",
@@ -73,17 +73,17 @@
   "writer_search_feature": {
     "branch": "feat/deterministic-writer-ranking-v1",
     "pull_request": 3,
-    "status": "draft_morphology_v3_validation",
+    "status": "draft_v6_morphology_v4_validation",
     "accepted_runtime_baseline": false,
     "legacy_comparison_parameter": "ranking=legacy",
-    "writer_ranking_policy": "deterministic_writer_utility_v5",
+    "writer_ranking_policy": "deterministic_writer_utility_v6",
     "writer_ranking_module": "src/writer-ranking-policy.mjs",
     "search_wrapper": "src/writer-search.mjs",
     "writer_anchor_policy": "de-right-edge-anchors-v1",
-    "writer_morphology_policy": "de-attested-right-head-v3",
+    "writer_morphology_policy": "de-attested-right-head-v4",
     "writer_morphology_module": "src/writer-morphology.mjs",
     "explicit_morphology_constructions": [
-      "de-adverbial-weise-v1"
+      "de-adverbial-weise-v2"
     ],
     "page_diagnostic": "scripts/diagnose-writer-pages.mjs",
     "page_diagnostic_schema": "rhymelab-writer-page-diagnostic-v2",
@@ -96,8 +96,10 @@
       "multi_anchor_writer_scoring",
       "same_lemma_suppression",
       "shared_initial_construction_suppression",
+      "short_rhyme_spelling_not_cheapness",
       "conservative_lemma_pos_right_head_family_evidence",
       "explicit_productive_adverbial_weise_construction",
+      "dual_pos_weise_source_tolerance",
       "query_morphology_family_penalty",
       "morphology_family_result_diversity",
       "query_relative_commonness",
@@ -155,8 +157,41 @@
         "arbeitsweise_right_edge_candidates": 1353,
         "arbeitsweise_merged_candidates": 1580
       },
-      "v5_morphology_v2_safety_result": "strong improvement: unranked top-page intrusion fell from 69 to 2 and the known false split examples disappeared",
-      "v5_morphology_v2_blind_spot": "productive adverbial -weise forms became unresolved, so Arbeitsweise again surfaced many same-construction -weise rows while repeated_family_rows remained formally zero"
+      "v5_morphology_v3_generalization_report": {
+        "schema": "rhymelab-writer-page-diagnostic-v2",
+        "query_count": 12,
+        "ok_queries": 12,
+        "top_limit": 30,
+        "mean_elapsed_ms": 1681.5,
+        "repeated_family_rows": 0,
+        "unranked_rows": 2,
+        "usage_rank_over_100k_rows": 50,
+        "usage_rank_over_250k_rows": 2,
+        "explicit_rare_or_historical_rows": 0,
+        "writer_safety_tier_penalized_rows": 4,
+        "arbeitsweise_elapsed_ms": 8416.4,
+        "arbeitsweise_right_edge_candidates": 1353,
+        "arbeitsweise_merged_candidates": 1580
+      },
+      "v5_morphology_v2_safety_result": "strong improvement retained through v3: unranked top-page intrusion stays at 2 and explicit rare/historical stays at 0",
+      "v5_morphology_v3_failed_goal": "productive -weise rows such as stufenweise, ausnahmsweise, abschnittsweise and auszugsweise remained unresolved on the real DB",
+      "v3_root_cause": "local DB stores one selected lexical lemma/POS analysis per form; dual adjective/adverb source entries can retain adj, so an adv-only construction gate is not stable",
+      "v5_short_rhyme_cheapness_false_positive_examples": [
+        "Liebe -> Diebe",
+        "Leben -> neben",
+        "Nacht -> macht"
+      ],
+      "v6_response": "edit similarity alone no longer creates lexical cheapness for short rhyme-shaped words; same lemma/family, long shared initial construction or long near-duplicate evidence is required"
+    },
+    "lexical_analysis_data_model_issue": {
+      "current_state": "single selected lemma/POS analysis stored per surface form",
+      "selection_tie_risk": "equal-confidence homograph analyses can be selected by deterministic but semantically arbitrary resolution-key ordering",
+      "examples_in_audit": [
+        "Liebe stored as name in query metadata",
+        "Zeit stored as name in query metadata",
+        "stufenweise source supports adjective and adverb analyses"
+      ],
+      "future_requirement": "materialized lexical layer should preserve multiple lemma/POS analyses with provenance instead of forcing one semantic analysis"
     },
     "morphology_provenance_boundary": "writer family is inferred from local lemma/POS/surface/usage evidence plus explicitly documented deterministic German construction rules; it is not claimed as source-attested full morphology; unresolved is preferred over speculative analysis",
     "lexical_safety_policy": {
@@ -174,14 +209,16 @@
       "materialization_after_quality_validation": true
     },
     "validation_requirements": [
-      "owner_local_v5_morphology_v3_page_diagnostic_rerun",
+      "owner_local_v6_morphology_v4_page_diagnostic_rerun",
       "verify_adverbial_weise_family_rotation",
+      "verify_short_perfect_rhymes_not_cheap_demoted",
       "verify_false_splits_remain_rejected",
       "lexical_safety_gate_review",
       "runtime_latency_review",
       "page_quality_benchmark_v2",
       "rare_unranked_intrusion_metrics",
       "exact_rhyme_and_relation_legacy_invariance",
+      "multi_analysis_lexical_schema_design_before_final_materialization",
       "materialized_index_design_for_validated_right_edge_and_morphology_evidence",
       "writer_search_acceptance_report"
     ]
@@ -198,12 +235,14 @@
     "requirement": "own_sources_ipa_parser_inventory_similarity_thresholds_pronunciation_policy_and_language_specific_benchmark"
   },
   "next_actions": [
-    "owner_pull_writer_v5_morphology_v3_branch",
+    "owner_pull_writer_v6_morphology_v4_branch",
     "run_owner_local_check_and_tests",
     "run_writer_page_diagnostic_v2",
     "confirm_weise_construction_family_rotation_without_false_split_regression",
+    "confirm_short_perfect_rhymes_remain_above_weaker_classes",
     "add_page_quality_benchmark_v2",
     "verify_legacy_exact_rhyme_and_relation_invariance",
+    "design_multi_analysis_lexical_storage_for_materialized_writer_evidence",
     "materialize_validated_right_edge_and_morphology_evidence_for_local_mobile_runtime",
     "promote_only_after_explicit_writer_search_acceptance",
     "phrase_mosaic_after_single_word_writer_quality",
