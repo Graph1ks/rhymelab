@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-17",
-  "phase": "GERMAN_WRITER_LEGACY_INVARIANCE_AND_LEXICAL_MODEL_DESIGN",
+  "phase": "GERMAN_WRITER_MULTI_ANALYSIS_STORAGE_AND_MATERIALIZATION",
   "package_version": "0.10.0",
   "repository": {
     "public_release_live": true,
@@ -21,6 +21,7 @@
     "bind_default": "127.0.0.1:3030",
     "database": "data/local/rhymelab.sqlite",
     "accepted_database_schema": "rhymelab-local-db-v4",
+    "experimental_writer_database_schema": "rhymelab-local-db-v5",
     "core_search_requires_network": false,
     "core_search_allows_llm_inference": false,
     "core_search_allows_ml_model_inference": false,
@@ -51,14 +52,16 @@
     }
   },
   "writer_search_feature": {
-    "status": "draft_structural_baseline_passed",
+    "status": "draft_structural_baseline_passed_legacy_invariance_passed_materialization_next",
     "accepted_runtime_baseline": false,
     "legacy_comparison_parameter": "ranking=legacy",
     "writer_ranking_policy": "deterministic_writer_utility_v6",
     "writer_anchor_policy": "de-right-edge-anchors-v1",
     "writer_morphology_policy": "de-attested-right-head-v4",
-    "explicit_morphology_constructions": ["de-adverbial-weise-v2"],
-    "database_schema_changed": false,
+    "explicit_morphology_constructions": [
+      "de-adverbial-weise-v2"
+    ],
+    "accepted_database_schema_changed": false,
     "legacy_scorer_changed": false,
     "legacy_relation_policy_changed": false,
     "ui_enabled": true,
@@ -105,16 +108,12 @@
       "word": "Notfallbleibe",
       "in_current_lexicon": false
     },
-    "lexical_analysis_data_model_issue": {
-      "current_state": "single selected lemma/POS analysis stored per surface form",
-      "risk": "equal-confidence source analyses can collapse to a semantically incidental selected analysis",
-      "future_requirement": "preserve multiple source-supported lemma/POS analyses with provenance in the materialized writer lexical layer",
-      "design_document": "docs/WRITER_LEXICAL_MODEL.md"
-    },
     "performance_boundary": {
       "current_right_edge_runtime_method": "validation_time_suffix_like_scan",
       "acceptable_final_mobile_runtime": false,
-      "materialization_after_benchmark_validation": true
+      "next_runtime_method": "materialized_indexed_writer_anchor_lookup",
+      "owner_rebuild_required_for_final_measurement": true,
+      "owner_rebuild_authorized_now": false
     }
   },
   "writer_page_benchmark_v2": {
@@ -148,29 +147,13 @@
       "right_reise_top20_word": "Weiterreise",
       "right_reise_top20_rank": 3,
       "ndcg_status": "pending_reference",
-      "decision": "freeze_v6_v4_structural_baseline_and_advance_to_legacy_invariance"
+      "decision": "freeze_v6_v4_structural_baseline_and_advance_to_materialized_runtime"
     },
     "regression_contract": {
       "hochzeitsreise": "candidate-universe retrieval/phonetic regression, max rank 250",
       "arbeitsweise_reise_family": "at least one right:reise candidate in top 20",
       "family_flooding": "aggregate top-20 repeated-family gate remains enforced"
     },
-    "metrics": [
-      "ndcg_at_10_when_fully_human_reviewed",
-      "ndcg_at_20_when_fully_human_reviewed",
-      "exact_duplicate_rate",
-      "near_duplicate_rate",
-      "same_lemma_rate",
-      "repeated_morphology_family_rate",
-      "morphology_diversity",
-      "unranked_intrusion",
-      "usage_rank_over_100k_intrusion",
-      "usage_rank_over_250k_intrusion",
-      "explicit_rare_historical_intrusion",
-      "preferred_pronunciation_rate",
-      "legacy_top250_tier0_retention",
-      "permanent_regression_anchors"
-    ],
     "reference_policy": {
       "source": "independent_human_review",
       "llm_required": false,
@@ -180,16 +163,69 @@
     }
   },
   "legacy_invariance": {
-    "source_path_status": "feature_branch_local_engine_blob_matches_main",
+    "source_path_status": "accepted_findRhymes_path_isolated_from_writer_path",
     "owner_runtime_gate": "npm run benchmark:ranking:runtime-candidate",
-    "owner_runtime_status": "pending_current_writer_milestone_rerun",
-    "required_report_schema": "rhymelab-benchmark-ranking-runtime-candidate-v2",
-    "required_status": "ok"
+    "owner_runtime_status": "passed_invariance_only",
+    "report_schema": "rhymelab-benchmark-ranking-runtime-candidate-v2",
+    "status": "ok",
+    "reference_evidence": "unavailable_invariance_only",
+    "reference_metrics_available": false,
+    "query_count": 27,
+    "missing_queries": [],
+    "runtime_candidate_mismatch_queries": [],
+    "runtime_policy_mismatch_queries": [],
+    "protected_order_mismatch_queries": [],
+    "new_top20_safety": {
+      "candidates": 14,
+      "without_usage_rank": 0,
+      "explicit_rare": 0,
+      "usage_rank_worse_than_100000": 0,
+      "usage_rank_worse_than_500000": 0,
+      "outside_query_relative_1decade_horizon": 0,
+      "query_relative_horizon_unknown": 0
+    },
+    "new_top250_safety": {
+      "candidates": 141,
+      "without_usage_rank": 0,
+      "explicit_rare": 0,
+      "usage_rank_worse_than_100000": 0,
+      "usage_rank_worse_than_500000": 0,
+      "outside_query_relative_1decade_horizon": 0,
+      "query_relative_horizon_unknown": 0
+    },
+    "queries_with_top20_change": [
+      "Spotify"
+    ],
+    "queries_with_top250_membership_change": [
+      "Spotify",
+      "Twitter",
+      "TikTok",
+      "Instagram"
+    ],
+    "decision": "phase_9a_complete"
   },
   "writer_lexical_model": {
-    "status": "design_documented_implementation_pending",
+    "status": "v3_v5_fixture_and_builder_migration_path_implemented_no_owner_rebuild",
     "document": "docs/WRITER_LEXICAL_MODEL.md",
+    "publish_schema": "rhymelab-de-publish-v3",
+    "database_schema": "rhymelab-local-db-v5",
+    "accepted_publish_default_unchanged": true,
+    "accepted_database_default_unchanged": true,
     "owner_db_rebuild_authorized": false,
+    "implementation": {
+      "model_core": "scripts/writer-lexical-model-core.mjs",
+      "publish_core": "scripts/writer-lexical-publish-v3-core.mjs",
+      "storage_core": "scripts/writer-lexical-storage-v5-core.mjs",
+      "publish_builder_flag": "--writer-lexical-v3",
+      "normalized_analysis_table": "form_analysis",
+      "analysis_identity": "form_id_plus_analysis_key",
+      "legacy_compatibility_projection": "l_p_g_highest_confidence_then_analysis_key"
+    },
+    "tests": [
+      "tests/writer-lexical-model.test.mjs",
+      "tests/writer-lexical-publish-storage.test.mjs",
+      "tests/local-db-writer-lexical-v5.test.mjs"
+    ],
     "core_requirements": [
       "preserve_multiple_source_supported_lexical_analyses_with_provenance",
       "derive_morphology_per_analysis_and_resolve_only_on_family_convergence",
@@ -217,18 +253,21 @@
     "v010_runtime_accepted": true,
     "writer_search_feature_not_accepted": true,
     "legacy_endpoint_preserved": true,
-    "package_version_unchanged": true
+    "package_version_unchanged": true,
+    "experimental_v3_v5_not_promoted": true
   },
   "english": {
     "implemented": false,
     "architecture_prepared": true
   },
   "next_actions": [
-    "run_owner_local_legacy_invariance_gate_with_benchmark_ranking_runtime_candidate",
-    "confirm_runtime_candidate_policy_and_protected_order_mismatches_are_zero",
-    "optionally_prepare_independent_human_usefulness_queue_for_ndcg10_ndcg20",
-    "implement_multi_analysis_publish_storage_on_fixtures_without_owner_db_rebuild",
-    "materialize_and_index_validated_writer_search_evidence_for_local_mobile_runtime",
+    "materialize_de_right_edge_anchors_v1_per_pronunciation_in_experimental_v5_path",
+    "add_indexed_anchor_policy_anchor_key_lookup_and_query_plan_tests",
+    "materialize_de_attested_right_head_v4_evidence_per_source_supported_analysis",
+    "preserve_multi_analysis_family_consensus_and_ambiguity_rules",
+    "prove_fixture_candidate_equivalence_before_owner_db_rebuild",
+    "remove_suffix_like_from_final_writer_runtime_after_equivalence",
+    "measure_materialized_db_size_query_plans_and_runtime_on_owner_db_when_migration_gate_is_reached",
     "rerun_writer_page_v2_against_materialized_runtime",
     "produce_writer_search_acceptance_report",
     "phrase_mosaic_after_single_word_writer_quality",
