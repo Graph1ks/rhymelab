@@ -48,11 +48,12 @@ function compactPronunciation(ipa) {
   return row;
 }
 
-test('local DB builder stores publish-v3 lexical analyses in normalized v5 form_analysis rows', async () => {
+test('publish-v3 builds DB-v5 and materializes indexed writer evidence without rewiring runtime', async () => {
   const temp = await mkdtemp(join(tmpdir(), 'rhymelab-writer-v5-'));
   const publishDir = join(temp, 'publish-v3');
   const dbPath = join(temp, 'rhymelab-v5.sqlite');
   const reportPath = join(temp, 'build-report-v5.json');
+  const materializationReportPath = join(temp, 'writer-materialization-v5-report.json');
   const rankingPath = join(temp, 'usage.tsv');
   const supplementalPath = join(temp, 'supplemental.json');
 
@@ -88,7 +89,7 @@ test('local DB builder stores publish-v3 lexical analyses in normalized v5 form_
     );
     await writeFile(supplementalPath, '{"entries":[]}\n', 'utf8');
 
-    const run = spawnSync(process.execPath, [
+    const build = spawnSync(process.execPath, [
       '--no-warnings',
       'scripts/build-local-db.mjs',
       '--publish', publishDir,
@@ -103,23 +104,23 @@ test('local DB builder stores publish-v3 lexical analyses in normalized v5 form_
       maxBuffer: 8 * 1024 * 1024,
     });
 
-    assert.equal(run.status, 0, run.stderr || run.stdout);
+    assert.equal(build.status, 0, build.stderr || build.stdout);
     const report = JSON.parse(await readFile(reportPath, 'utf8'));
     assert.equal(report.schema, 'rhymelab-local-db-build-v5');
     assert.equal(report.writer_lexical_model.schema, 'rhymelab-local-db-v5');
     assert.equal(report.writer_lexical_model.analysis_rows, 2);
     assert.equal(report.writer_lexical_model.base_forms_with_multiple_analyses, 1);
 
-    const db = new DatabaseSync(dbPath, { readOnly: true });
+    const dbBefore = new DatabaseSync(dbPath, { readOnly: true });
     try {
       const meta = Object.fromEntries(
-        db.prepare('SELECT key,value FROM meta').all().map((entry) => [entry.key, entry.value]),
+        dbBefore.prepare('SELECT key,value FROM meta').all().map((entry) => [entry.key, entry.value]),
       );
       assert.equal(meta.schema, 'rhymelab-local-db-v5');
       assert.equal(meta.publish_schema, 'rhymelab-de-publish-v3');
       assert.equal(Number(meta.writer_lexical_analysis_rows), 2);
 
-      const hot = db.prepare(`
+      const hot = dbBefore.prepare(`
         SELECT surface,lemma,pos
         FROM hot
         WHERE publish_order=1 AND pronunciation_preferred=1
@@ -128,7 +129,7 @@ test('local DB builder stores publish-v3 lexical analyses in normalized v5 form_
       assert.equal(hot.lemma, fixture.expected.compatibility_lemma);
       assert.equal(hot.pos, fixture.expected.compatibility_pos);
 
-      const analyses = db.prepare(`
+      const analyses = dbBefore.prepare(`
         SELECT analysis_key,pos,source_record_keys
         FROM form_analysis
         WHERE form_id=1
@@ -140,7 +141,50 @@ test('local DB builder stores publish-v3 lexical analyses in normalized v5 form_
         fixture.expected.adj_source_record_keys,
       );
     } finally {
-      db.close();
+      dbBefore.close();
+    }
+
+    const materialize = spawnSync(process.execPath, [
+      '--no-warnings',
+      'scripts/materialize-writer-v5.mjs',
+      '--db', dbPath,
+      '--report', materializationReportPath,
+      '--batch-size', '100',
+    ], {
+      cwd: root,
+      encoding: 'utf8',
+      windowsHide: true,
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    assert.equal(materialize.status, 0, materialize.stderr || materialize.stdout);
+
+    const materializationReport = JSON.parse(await readFile(materializationReportPath, 'utf8'));
+    assert.equal(materializationReport.schema, 'rhymelab-writer-materialization-v5-report-v1');
+    assert.equal(materializationReport.database_schema, 'rhymelab-local-db-v5');
+    assert.equal(materializationReport.anchor_policy, 'de-right-edge-anchors-v1');
+    assert.equal(materializationReport.morphology_policy, 'de-attested-right-head-v4');
+    assert.ok(materializationReport.anchors.rows > 0);
+    assert.equal(materializationReport.anchors.sample_query_plan_uses_lookup_index, true);
+    assert.equal(materializationReport.morphology.evidenceRows, 2);
+    assert.equal(materializationReport.accepted_runtime_rewired, false);
+    assert.equal(materializationReport.writer_runtime_rewired, false);
+
+    const dbAfter = new DatabaseSync(dbPath, { readOnly: true });
+    try {
+      const anchorRows = Number(dbAfter.prepare('SELECT COUNT(*) AS c FROM writer_anchor').get().c);
+      const morphologyRows = Number(
+        dbAfter.prepare('SELECT COUNT(*) AS c FROM writer_morphology_evidence').get().c,
+      );
+      assert.equal(anchorRows, materializationReport.anchors.rows);
+      assert.equal(morphologyRows, 2);
+      const policies = Object.fromEntries(dbAfter.prepare(`
+        SELECT key,value FROM meta
+        WHERE key IN ('writer_anchor_policy','writer_morphology_policy')
+      `).all().map((entry) => [entry.key, entry.value]));
+      assert.equal(policies.writer_anchor_policy, 'de-right-edge-anchors-v1');
+      assert.equal(policies.writer_morphology_policy, 'de-attested-right-head-v4');
+    } finally {
+      dbAfter.close();
     }
   } finally {
     await rm(temp, { recursive: true, force: true });
