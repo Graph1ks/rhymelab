@@ -29,6 +29,13 @@ const dbPath = resolve(argValue('--db', 'data/local/rhymelab-v5.sqlite'));
 const reportPath = resolve(argValue('--report', 'data/local/writer-materialization-v5-report.json'));
 const batchSize = Math.max(50, Math.min(5000, Number.parseInt(argValue('--batch-size', '1000'), 10) || 1000));
 const lookupBatchSize = 300;
+const mib = (bytes) => Number((Number(bytes || 0) / 1024 / 1024).toFixed(2));
+
+function logicalDbBytes(db) {
+  const pageCount = Number(db.prepare('PRAGMA page_count').get()?.page_count || 0);
+  const pageSize = Number(db.prepare('PRAGMA page_size').get()?.page_size || 0);
+  return pageCount * pageSize;
+}
 
 function chunks(values, size = lookupBatchSize) {
   const out = [];
@@ -123,6 +130,7 @@ function materializeAnchors(db) {
   let afterId = 0;
   let pronunciations = 0;
   let anchorRows = 0;
+  let batches = 0;
 
   while (true) {
     const rows = db.prepare(`
@@ -145,8 +153,12 @@ function materializeAnchors(db) {
       db.exec('ROLLBACK');
       throw error;
     }
+    batches += 1;
+    console.log(
+      `[writer-v5 anchors] batches=${batches} pronunciations=${pronunciations.toLocaleString('de-DE')} rows=${anchorRows.toLocaleString('de-DE')}`,
+    );
   }
-  return { pronunciations, anchorRows };
+  return { pronunciations, anchorRows, batches };
 }
 
 function materializeMorphology(db) {
@@ -158,6 +170,7 @@ function materializeMorphology(db) {
   let formsSeen = 0;
   let formsWithAnalyses = 0;
   let evidenceRows = 0;
+  let batches = 0;
 
   while (true) {
     const forms = db.prepare(`
@@ -198,6 +211,10 @@ function materializeMorphology(db) {
       db.exec('ROLLBACK');
       throw error;
     }
+    batches += 1;
+    console.log(
+      `[writer-v5 morphology] batches=${batches} forms=${formsSeen.toLocaleString('de-DE')} formsWithAnalyses=${formsWithAnalyses.toLocaleString('de-DE')} evidenceRows=${evidenceRows.toLocaleString('de-DE')}`,
+    );
   }
 
   const resolvedRows = Number(db.prepare(`
@@ -217,6 +234,7 @@ function materializeMorphology(db) {
   `).get(WRITER_MORPHOLOGY_POLICY)?.c || 0);
 
   return {
+    batches,
     formsSeen,
     formsWithAnalyses,
     evidenceRows,
@@ -234,6 +252,9 @@ try {
   }
 
   db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;');
+  const logicalBytesBefore = logicalDbBytes(db);
+  console.log(`[writer-v5] starting materialization; logical SQLite size=${mib(logicalBytesBefore)} MiB`);
+
   const anchors = materializeAnchors(db);
   const morphology = materializeMorphology(db);
 
@@ -255,14 +276,27 @@ try {
   meta.run('writer_morphology_policy', WRITER_MORPHOLOGY_POLICY);
   meta.run('writer_morphology_evidence_rows', String(morphology.evidenceRows));
 
+  db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+  const logicalBytesAfter = logicalDbBytes(db);
+  const logicalBytesDelta = logicalBytesAfter - logicalBytesBefore;
+
   const report = {
     schema: 'rhymelab-writer-materialization-v5-report-v1',
     generated_at: new Date().toISOString(),
     database_schema: schema,
     anchor_policy: WRITER_ANCHOR_POLICY,
     morphology_policy: WRITER_MORPHOLOGY_POLICY,
+    storage: {
+      logical_bytes_before: logicalBytesBefore,
+      logical_mib_before: mib(logicalBytesBefore),
+      logical_bytes_after: logicalBytesAfter,
+      logical_mib_after: mib(logicalBytesAfter),
+      logical_bytes_delta: logicalBytesDelta,
+      logical_mib_delta: mib(logicalBytesDelta),
+    },
     anchors: {
       pronunciations_processed: anchors.pronunciations,
+      batches: anchors.batches,
       rows: anchors.anchorRows,
       lookup_index: 'idx_writer_anchor_lookup',
       sample_query_plan: lookupPlan,
