@@ -178,26 +178,24 @@ function lexicalCompare(a, b) {
 }
 
 export function rankWriterRecommendedResults(rows, query, options = {}) {
-  const limit = Math.max(1, Number.parseInt(String(options.limit ?? rows?.length ?? 1), 10) || 1);
+  const requestedLimit = Number.parseInt(String(options.limit ?? rows?.length ?? 1), 10);
+  const limit = Math.min(rows?.length ?? 0, Math.max(1, Number.isFinite(requestedLimit) ? requestedLimit : 1));
   const diversityWeight = clamp01(options.diversityWeight ?? DEFAULT_DIVERSITY_WEIGHT);
-  const remaining = (rows || []).map((row, baseIndex) => {
-    const writer = writerUtilityFeatures(row, query);
-    return { row, baseIndex, writer };
-  });
+  const remaining = (rows || []).map((row, baseIndex) => ({
+    row,
+    baseIndex,
+    writer: writerUtilityFeatures(row, query),
+    maxRedundancy: 0,
+  }));
   const selected = [];
 
   while (remaining.length && selected.length < limit) {
     let bestIndex = -1;
     let bestScore = Number.NEGATIVE_INFINITY;
-    let bestRedundancy = 0;
 
     for (let index = 0; index < remaining.length; index += 1) {
       const candidate = remaining[index];
-      let redundancy = 0;
-      for (const previous of selected) {
-        redundancy = Math.max(redundancy, lexicalRedundancy(candidate.row, previous.row));
-      }
-      const diversifiedScore = candidate.writer.utility - diversityWeight * redundancy;
+      const diversifiedScore = candidate.writer.utility - diversityWeight * candidate.maxRedundancy;
       const incumbent = bestIndex >= 0 ? remaining[bestIndex] : null;
       const better = diversifiedScore > bestScore + 1e-9
         || (Math.abs(diversifiedScore - bestScore) <= 1e-9
@@ -209,7 +207,6 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
       if (better) {
         bestIndex = index;
         bestScore = diversifiedScore;
-        bestRedundancy = redundancy;
       }
     }
 
@@ -217,13 +214,18 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
     selected.push({
       ...winner,
       diversifiedScore: Number(bestScore.toFixed(4)),
-      redundancyPenalty: Number((diversityWeight * bestRedundancy).toFixed(4)),
-      maxRedundancy: Number(bestRedundancy.toFixed(4)),
+      redundancyPenalty: Number((diversityWeight * winner.maxRedundancy).toFixed(4)),
     });
+
+    // Incremental max-redundancy update keeps greedy diversity at O(n²) pair checks.
+    for (const candidate of remaining) {
+      candidate.maxRedundancy = Math.max(
+        candidate.maxRedundancy,
+        lexicalRedundancy(candidate.row, winner.row),
+      );
+    }
   }
 
-  // Keep remaining rows deterministic so callers may request a larger page without
-  // changing the relative order of already selected rows.
   const tail = remaining.sort((a, b) => b.writer.utility - a.writer.utility
     || a.baseIndex - b.baseIndex
     || lexicalCompare(a.row, b.row));
@@ -235,7 +237,7 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
       ...item.writer,
       diversifiedScore: item.diversifiedScore ?? item.writer.utility,
       redundancyPenalty: item.redundancyPenalty ?? 0,
-      maxRedundancy: item.maxRedundancy ?? 0,
+      maxRedundancy: Number((item.maxRedundancy ?? 0).toFixed(4)),
     },
   }));
 }
