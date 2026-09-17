@@ -28,6 +28,12 @@ RhymeLab core search stays deterministic and local-only. Do not add LLM inferenc
 
 Do not invent source, license, phraseology, pronunciation, or benchmark facts. A publicly readable website is not automatically an ingestible/redistributable data source.
 
+## Repository state
+
+PR #3 (`feat/deterministic-writer-ranking-v1`) was owner-reviewed and merged to `main` on 2026-09-17.
+
+Continue from `main`. Do not reconstruct the old feature branch as project memory.
+
 ## German single-word writer engineering baseline — PASS / FROZEN
 
 Acceptance report: `docs/WRITER_SEARCH_ACCEPTANCE.md`.
@@ -144,9 +150,5 @@ OpenThesaurus and OdeNet are candidate semantic ingredients only; do not assume 
 4. define a separate phrase/mosaic writer-ranking policy instead of changing single-word v6;
 5. build a dedicated German Phrase/Mosaic benchmark with structural, provenance, safety, performance, and repeatability gates;
 6. collect independent Human Writer NDCG only after the broader German writer surface is mature enough.
-
-## Repository transition
-
-Owner acceptance review of the single-word writer baseline is complete. PR #3 is authorized to merge after the final `validate` check is green. After merge, continue Phase 11 from `main`; do not reconstruct the old feature branch as project memory.
 
 English remains after the German phrase/mosaic path is stable enough to freeze.

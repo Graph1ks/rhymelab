@@ -6,9 +6,10 @@
   "repository": {
     "public_release_live": true,
     "protected_main": true,
+    "current_branch": "main",
     "writer_pull_request": 3,
+    "writer_pull_request_status": "merged",
     "writer_owner_acceptance_review": "complete",
-    "writer_merge_authorized": true,
     "required_check": "validate"
   },
   "runtime": {
@@ -127,7 +128,6 @@
     "repeatability_report_v5": "data/local/writer-v5-repeatability-report.json"
   },
   "next_actions": [
-    "merge_writer_pr_3_after_final_green_validate_check",
     "phase_11a_research_public_german_phrase_phraseology_sources",
     "record_license_bulk_access_scale_format_and_provenance_for_each_candidate",
     "select_source_stack_before_phrase_database_implementation",
