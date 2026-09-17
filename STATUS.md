@@ -34,7 +34,7 @@ construction:      de-adverbial-weise-v2
 
 Writer v7 remains rejected and rolled back. Ad-hoc ranking/morphology tuning is frozen at v6/v4. Core search remains deterministic, local-only, and free of LLM/ML inference, hosted ranking, telemetry and runtime network dependencies.
 
-## Writer Page Benchmark v2 — structural baseline frozen
+## Writer Page Benchmark v2 — frozen validation baseline
 
 ```text
 status                              structural_ok_reference_pending
@@ -53,7 +53,7 @@ preferred pronunciation rows        240 / 240
 legacy tier-0 retention             685 / 685
 ```
 
-Permanent regressions include `Arbeitsweise -> Hochzeitsreise` rank 120 / `multisyllabic_perfect` / score 1 / cheap penalty 0, `Arbeitsweise -> right:reise` through `Weiterreise` rank 3, `Liebe -> Diebe` rank 1, `Leben -> neben` rank 2 and `Nacht -> macht` rank 1.
+`Arbeitsweise -> Hochzeitsreise` is a retrieval sentinel only (`max_rank: 250`), not a Top-20 surfacing requirement. Top-20 surfacing is family-based through `right:reise`. Other protected regressions include `Liebe -> Diebe`, `Leben -> neben`, and `Nacht -> macht`.
 
 NDCG@10/20 remains `pending_reference` until complete independent human usefulness labels cover the current writer cutoff.
 
@@ -63,7 +63,7 @@ The owner-local gate passed 27/27 queries with no missing queries, runtime candi
 
 ## Phase 9B — multi-analysis publish/storage real-data build complete
 
-Experimental migration schemas remain:
+Experimental migration schemas:
 
 ```text
 publish: rhymelab-de-publish-v3
@@ -81,65 +81,72 @@ multi-analysis forms              101,315
 DB-v5 before writer materialize   727.21 MiB
 ```
 
-The 10-form / 28-pronunciation difference between publish and DB is exactly the existing supplemental overlay. Accepted v2/v4 defaults remain untouched.
+Accepted v2/v4 defaults remain untouched.
 
 ## Phase 9C — compact materialization owner gate passed
 
-The first materialization was correct but storage-rejected at 1,904.67 MiB final / +1,177.46 MiB writer delta. The compact layout keeps semantics unchanged while removing repeated metadata, redundant indexes, duplicated JSON and unresolved morphology rows.
+The first materialization was correct but storage-rejected at 1,904.67 MiB. The compact layout stores only the runtime evidence required by the active policies.
 
-Compact storage:
-
-```text
-anchor storage      compact-primary-key-v2
-anchor PK           (anchor_key, pronunciation_id) WITHOUT ROWID
-morphology storage  positive-evidence-compact-v2
-morphology PK       (form_id, analysis_key) WITHOUT ROWID
-```
-
-Clean owner remeasurement:
+Final exact-suffix owner storage after correcting candidate materialization to match legacy `vowel_key LIKE '%key'` string-suffix semantics:
 
 ```text
 DB-v5 pre-materialization          727.21 MiB
-final compact DB-v5                816.88 MiB
-compact writer delta                89.67 MiB
-writer_anchor                        57.54 MiB
+final experimental DB-v5           819.77 MiB
+writer_anchor                        60.43 MiB
 writer_morphology_evidence           32.13 MiB
 form_analysis                       269.48 MiB
 hot                                 457.72 MiB
 freelist pages                           0
-```
-
-That removes 1,087.79 MiB versus the first final v5 build and cuts writer-materialization storage by 92.38%.
-
-Real-data counts remain exactly stable:
-
-```text
 anchor pronunciations             904,836
-anchor rows                      2,854,155
-morphology analyses               967,931
+anchor rows                      3,153,639
 positive morphology rows          325,724
-unresolved morphology rows        642,207
-ambiguous forms                     29,199
 ```
 
-The real query plan uses `PRIMARY KEY(anchor_key=?)`. Compact storage therefore passes size/count/query-plan validation. Runtime rewiring is still false.
+The anchor-only correction left morphology untouched and the real query plan uses `PRIMARY KEY(anchor_key=?)`.
 
-## Phase 9D — real-data equivalence next
+## Phase 9D — real-data equivalence complete
 
-A read-only owner gate now exists:
+`npm run benchmark:writer-v5:equivalence` now passes on owner data:
 
 ```text
-npm run benchmark:writer-v5:equivalence
+status                              ok
+queries                             12 / 12
+missing queries                     0
+retrieval mismatch queries          0
+morphology regressions              10 / 10 pass
+Hochzeitsreise retrieval sentinel   retained
+sample anchor plan                  PRIMARY KEY(anchor_key=?)
+old LIKE retrieval total            843.016 ms
+indexed retrieval total              59.694 ms
+retrieval-only speedup                14.12x
 ```
 
-It compares old suffix-`LIKE` retrieval with compact indexed retrieval over every right-edge channel for all 12 frozen Writer Page v2 queries, requiring exact ordered candidate-ID equality and preserving `Arbeitsweise -> Hochzeitsreise`. It also evaluates all 10 morphology regressions from compact multi-analysis evidence and records retrieval timing.
+This gate proves exact ordered candidate equivalence for every frozen right-edge channel. The 14.12x number is retrieval-only and is not yet the full Writer Page runtime result.
+
+## Phase 9E — materialized v5 runtime benchmark ready
+
+An opt-in experimental runtime now exists as `materialized-writer-v5-v1`:
+
+- v4/default writer behavior remains the existing validation `LIKE + dynamic morphology` path;
+- a fully validated v5 database uses `writer_anchor` for right-edge retrieval;
+- v5 morphology is reconstructed from `form_analysis + writer_morphology_evidence`, preserving converged/unresolved/ambiguous multi-analysis semantics;
+- the v5 opener refuses incomplete storage contracts;
+- the owner benchmark fails if any of the 12 queries does not actually use `materialized-writer-v5-v1`.
+
+CI run #168 passes tests and public-readiness checks.
+
+Next owner gate:
+
+```text
+npm run benchmark:writer-page:v5
+```
 
 Output:
 
 ```text
-data/local/writer-v5-equivalence-report.json
+reports/de-writer-page-benchmark-v5-materialized.json
 ```
 
-Only if that report is `status: ok` may the experimental v5 writer runtime be switched to compact anchors/materialized morphology. The complete Writer Page Benchmark v2 must then be rerun before any promotion decision.
+That report must be compared against the frozen Writer Page v2 baseline for structural quality, protected regressions, legacy Tier-0 retention, multi-analysis morphology behavior and full end-to-end latency before any promotion decision.
 
 `findRhymes()` / `ranking=legacy` remains untouched. Phrase/mosaic rhyme and English remain after German single-word writer-search acceptance.
