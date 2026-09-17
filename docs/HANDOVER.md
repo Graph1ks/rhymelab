@@ -50,6 +50,7 @@ The last formally accepted German baseline remains RhymeLab `v0.10.0`:
 - analyzer `de-ipa-v2`;
 - scorer `de-phon-v3`;
 - relation policy `rhyme-relations-v2`;
+- accepted ranking `modern_entity_relative_commonness_1decade_0_05`;
 - accepted report `ok`, 5/5 QA gates.
 
 The accepted/base path is preserved through `?ranking=legacy` on the feature branch.
@@ -68,65 +69,48 @@ Draft PR:
 #3
 ```
 
-The branch began as a writer-reranking prototype but live owner-local testing exposed a retrieval-boundary problem. It now contains an experimental deterministic writer-search stack while the accepted/base endpoint remains unchanged.
-
-### Current policies
+Current experimental policies:
 
 ```text
-writer ranking:    deterministic_writer_utility_v4
+writer ranking:    deterministic_writer_utility_v5
 right-edge anchor: de-right-edge-anchors-v1
-morphology family: de-attested-right-head-v1
+morphology family: de-attested-right-head-v2
 ```
 
-### Current implementation
+Current implementation:
 
-- `src/writer-ranking-policy.mjs` — deterministic writer tiers/utility/family diversity;
-- `src/writer-search.mjs` — merges accepted/base results with writer right-edge retrieval, rescoring and morphology evidence;
-- `src/writer-morphology.mjs` — deterministic attested right-head lexical-family evidence;
-- writer explanation payload per result;
-- same-lemma / shared-query-stem suppression without changing phonetic truth;
-- right-edge/secondary-stress retrieval and writer scoring;
-- result-set diversification by explicit lexical family rather than rhyme suffix spelling;
-- browser Recommended mode respects all `deterministic_writer_utility_*` policy versions;
+- `src/writer-ranking-policy.mjs` — deterministic phonetic tier, lexical cheapness, lexical safety and family diversity;
+- `src/writer-search.mjs` — merges accepted/base results with right-edge retrieval, multi-anchor writer scoring and morphology evidence;
+- `src/writer-morphology.mjs` — conservative inferred noun/adjective right-head family evidence;
+- `scripts/diagnose-rhyme-pair.mjs` — known-pair retrieval/scoring diagnosis;
+- `scripts/diagnose-writer-pages.mjs` — multi-query writer-page generalization audit;
+- browser Recommended mode respects all `deterministic_writer_utility_*` versions;
 - `?ranking=legacy` remains the comparison/control path.
 
-## Owner-local live findings
+The package version and accepted baseline are intentionally unchanged.
 
-### Database verified
+## Live finding 1 — retrieval boundary
 
-Owner-local DB is the accepted v4 data build:
-
-- 838,209 forms;
-- 904,836 pronunciations;
-- built 2026-09-15;
-- `Arbeitsweise` present with IPA `ˈaʁbaɪ̯t͡sˌvaɪ̯zə`, stress `2010`.
-
-### Writer v1/v2 finding
-
-Early lexical novelty reranking removed obvious `Arbeits-*` repetition but overpromoted weak slants. Writer v2 introduced a phonetic tier gate so commonness/novelty could not rescue a worse rhyme tier.
-
-### Retrieval finding
-
-Pair diagnostic for:
+Owner-local pair diagnosis for:
 
 ```text
 Arbeitsweise ↔ Hochzeitsreise
 ```
 
-showed:
+established:
 
 - legacy retrieval: **not retrieved**;
 - direct legacy pair score: `slant`, overall `0.7574`;
-- writer right-edge retrieval: retrieved through both secondary-anchor-context and secondary-anchor channels;
-- writer multi-anchor best match: secondary anchor syllable 3 ↔ 3, two-syllable tail, `multisyllabic_perfect`, score `1`.
+- writer right-edge retrieval: found through secondary-anchor-context and secondary-anchor channels;
+- best writer anchor: secondary syllable 3 ↔ 3, two-syllable tail, `multisyllabic_perfect`, score `1`.
 
-This established that the earlier missing creative result was primarily a retrieval/anchor-boundary issue, not only ranking.
+This proved that the missing creative result was primarily a retrieval/anchor-boundary issue rather than only a ranking problem.
 
-`Notfallbleibe` is absent from the current lexicon and is therefore a lexical-coverage case.
+`Notfallbleibe` is absent from the current lexicon and is a lexical-coverage case.
 
-### Writer v3 page finding
+## Live finding 2 — lexical-family page repetition
 
-After suffix-string redundancy was removed, `Arbeitsweise` returned many genuine perfect right-edge rhymes, but the page was dominated by morphological families:
+After suffix-string redundancy was removed, `Arbeitsweise` produced many genuine right-edge perfect rhymes but repeated lexical heads such as:
 
 ```text
 -weise
@@ -137,50 +121,146 @@ After suffix-string redundancy was removed, `Arbeitsweise` returned many genuine
 -gleise
 ```
 
-Examples included `schätzungsweise`, `stellenweise`, `paarweise`, `Sonderpreise`, `Pilgerreise`, `Kirchenkreise`, `Vorspeise`, etc.
+Writer v4 introduced right-head family evidence and successfully rotated the top page across families. The owner-local v4 `Arbeitsweise` top included `Sonderpreise`, `Pilgerreise`, `Kirchenkreise`, `Vorspeise`, `Streckengleise`, etc. instead of being consumed by `*-weise` rows.
 
-This proved that spelling-based diversity should stop and explicit lexical-family evidence was required.
+This solved the original page-repetition problem but exposed that the first morphology rule was too permissive beyond this query.
 
-## Writer v4 morphology-family baseline
+## Live finding 3 — 12-query generalization audit
 
-`src/writer-morphology.mjs` infers a writer-family only when both sides of a possible split have exact lexical evidence in the local `hot` lexicon. It supports conservative German linking-material transformations on the left side. It prefers the rightmost independently attested terminal lexeme for writer-family purposes.
+Command:
 
-Intended examples:
-
-```text
-Arbeits|weise       -> right:weise
-schätzungs|weise    -> right:weise
-Pilger|reise        -> right:reise
-Sonder|preise       -> right:preise
-Kirchen|kreise      -> right:kreise
-Vor|speise          -> right:speise
-Strecken|gleise     -> right:gleise
+```powershell
+npm run diagnose:writer-pages
 ```
 
-False substring splits such as `Sonderp|reise` are rejected because the left side lacks lexical evidence. Unresolved forms remain explicitly unresolved.
+Default battery:
 
-This evidence is **inferred**, not claimed as source-attested morphology. The API exposes provenance and the selected split/evidence.
+```text
+Arbeitsweise
+Liebe
+Leben
+Zeit
+Nacht
+Feuer
+verloren
+Gedanken
+Freiheit
+Musik
+Spotify
+hitzefrei
+```
 
-Writer v4 uses this in two separate ways:
+Owner-local v1 diagnostic:
 
-1. Same query family receives a cheap-rhyme writer-tier penalty. `Arbeitsweise` vs `stellenweise` can remain a phonetic perfect rhyme while ranking lower as a writing option.
-2. After one result family is selected, more members of the same family receive strong result-set redundancy, rotating other families into the page.
+```text
+schema                         rhymelab-writer-page-diagnostic-v1
+queries found                  12 / 12
+mean elapsed                   1583.4 ms
+repeated family rows           0
+unranked top-30 rows           69
+usage rank > 100k rows         60
+explicit rare/historical rows  2
+Arbeitsweise elapsed           8342.6 ms
+Arbeitsweise merged candidates 1580
+```
 
-Ordinary rhyme suffix spelling is not itself redundancy.
+The report established two system-level defects.
+
+### Morphology v1 false positives
+
+Requiring only that both substring pieces existed in the lexicon allowed accidental analyses such as:
+
+```text
+Betriebe     -> bet|riebe
+Bestreben    -> best|reben
+Professoren  -> profes|soren
+deutscher    -> deut|scher
+```
+
+Other verb-prefix and proper-name cases were also unreliable. These are writer-ranking hazards because a false family actively changes list order.
+
+### Lexical-safety intrusion
+
+Across 360 audited top-page rows, 69 had no usage rank and 60 had usage rank >100k. `Liebe` alone had 14 unranked rows in its top 30.
+
+Missing usage is still **unknown/unranked, not rare**. However, the default writer page needs a conservative product signal so unknown or extremely low-measured-use forms do not consume the top exact-rhyme region solely because their sound match is perfect.
+
+## Current v5 / morphology v2 response
+
+### `de-attested-right-head-v2`
+
+Morphology is now deliberately more conservative.
+
+A writer family is accepted only when:
+
+- complete-word lemma/POS evidence exists;
+- right side is independently attested;
+- noun→noun or adjective→adjective head POS agrees;
+- complete lemma ends in the right-head lemma;
+- left side or a conservative linking-material variant is independently attested;
+- selected left evidence has measured usage.
+
+Family keys use the right-head lemma (`right:preis`, `right:kreis`, `right:gleis`, etc.).
+
+Verbs and proper names remain unresolved until explicit deterministic rules are implemented. This is intentional: unresolved is safer than a false family.
+
+Regression tests now cover `Betriebe`, `Bestreben`, verb prefixes and proper names as unresolved cases while preserving intended examples such as `Arbeitsweise`, `Sonderpreise` and `deutschlandweite`.
+
+### `deterministic_writer_utility_v5`
+
+Writer v5 adds a separate lexical-safety tier without altering phonetic truth:
+
+```text
+measured usage <= 250000                     -> +0
+unranked / unknown usage                     -> +1
+measured usage > 250000                      -> +1
+explicit rare/archaic/obsolete/dated tag     -> +2
+```
+
+The state for missing usage is explicitly `unranked_unknown`; do not describe it as linguistic rarity.
+
+The threshold is provisional product-ranking policy and must be checked in the next owner-local page audit and the later page-quality benchmark.
+
+## Performance state
+
+The writer right-edge prototype still uses suffix `LIKE` retrieval against DB v4. This is validation-time code, not the intended final mobile/local implementation.
+
+`Arbeitsweise` took ~8.3 seconds in the v1 diagnostic because two broad right-edge channels returned 1,353 unique right-edge candidates and 1,580 merged candidates.
+
+Do **not** optimize the DB schema before the next v5/v2 quality rerun. Once the validated key set is stable, materialize/index it during the local build and remove broad runtime suffix scans/dynamic morphology probing.
 
 ## Current validation state
 
-Public CI passed after the core v4 morphology/ranking tests were added. The feature remains **draft and not accepted**. Do not advance package/runtime baseline yet.
+The v5/v2 source tests are green in public CI. PR #3 remains draft and the writer feature remains **not accepted**.
+
+The diagnostic script now writes schema:
+
+```text
+rhymelab-writer-page-diagnostic-v2
+```
+
+and records:
+
+- existing family/latency/unranked/>100k metrics;
+- usage rank >250k;
+- per-row lexical-safety state;
+- per-row lexical-safety tier penalty;
+- aggregate count of safety-tier-demoted rows.
 
 ## Immediate next work
 
-1. Owner pulls current feature branch; do **not** rebuild the local DB.
+1. Owner pulls current feature branch; **do not rebuild the DB**.
 2. Run `npm run check` and `npm test`.
-3. Restart `npm run dev`.
-4. Re-run `Arbeitsweise` top-30 with morphology family columns and inspect the actual family rotation.
-5. Test several unrelated common queries to detect false morphology splits and runtime latency regressions.
-6. Add page-quality metrics: repeated-family rate, same-query-family rate, useful-result recall, rare/unranked intrusion, NDCG@10/20.
-7. If v4 behavior is sound, materialize/index validated right-edge and morphology evidence instead of keeping dynamic `LIKE`/lexicon probing in the final mobile/local path.
-8. Promote only through a dedicated writer-search acceptance report.
+3. Run `npm run diagnose:writer-pages`.
+4. Compare v2 diagnostic against the v1 evidence above:
+   - morphology false splits should collapse substantially;
+   - repeated family rows should remain controlled;
+   - unranked/very-low-use top-page intrusion should drop;
+   - useful common exact rhymes must not be unnecessarily displaced;
+   - runtime latency is measured but not yet optimized.
+5. Inspect remaining false splits and safety-gate mistakes from the v2 JSON.
+6. Build formal page-quality benchmark v2 only after this deterministic generalization pass is credible.
+7. Then materialize/index validated right-edge and morphology evidence for local/mobile performance.
+8. Promote only through an explicit writer-search acceptance report.
 
-Do not move to phrase/mosaic rhyme or English until German single-word writer-search quality and its lexical data model are stable.
+Do not return to query-specific `Arbeitsweise` weight tweaking unless a regression is demonstrated. Do not move to phrase/mosaic rhyme or English until German single-word writer-search quality and its lexical data model are stable.
