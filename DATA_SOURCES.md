@@ -64,9 +64,28 @@ Lexical historical/current state is derived only from preserved lexical source q
 
 The relation layer is language-neutral at the interface level, but its input similarities remain language-specific. German currently supplies the only registered phonology profile.
 
+## Phase 11 source gap — phrase / mosaic / phraseology
+
+The accepted German single-word writer baseline does **not** yet have a source-backed phrase database. Phase 11 therefore begins with a public-source and licensing survey before phrase runtime work.
+
+Required source categories include:
+
+- multi-word phrases and common n-grams / collocations;
+- idioms and fixed expressions / Redewendungen;
+- proverbs or formulaic expressions where licensing permits;
+- metaphorical / figurative expressions where a public structured source exists;
+- common sentence fragments useful for lyric continuation;
+- lexical-semantic resources that can support deterministic phrase discovery without becoming a runtime ML dependency.
+
+Every candidate source must be evaluated for bulk/reproducible access, license, redistribution/commercial compatibility, language/snapshot/version, raw format, scale, phrase type coverage, provenance identifiers, and offline usability after ingestion. A website being publicly readable is not sufficient.
+
+OpenThesaurus and OdeNet remain candidate semantic resources, but they are **not** assumed to provide the complete phrase/idiom/metaphor layer. Phase 11 must research additional public German phraseological/corpus resources before choosing an implementation dataset.
+
+The detailed execution plan is `docs/PHRASE_MOSAIC_PLAN.md`.
+
 ## Deferred sources
 
-Possible later additions include UniMorph German, explicitly labeled pronunciation fallback resources, OpenThesaurus, OdeNet and Wikidata Lexemes. Definitions/full senses/semantic graphs/etymology/translations/embeddings remain outside the rhyme hot path until the core engine is strong.
+Possible later additions include UniMorph German, explicitly labeled pronunciation fallback resources, OpenThesaurus, OdeNet and Wikidata Lexemes. Definitions/full senses/semantic graphs/etymology/translations/embeddings remain outside the single-word rhyme hot path unless a later writer phase explicitly validates their use.
 
 ## Future English sources
 
