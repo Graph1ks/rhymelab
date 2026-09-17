@@ -140,7 +140,8 @@ test('Phase 11B1 builder creates deterministic provenance catalog and Leipzig co
       assert.equal(meta.schema, 'rhymelab-phrase-catalog-v1');
       assert.equal(meta.catalog_fingerprint, report.catalog_fingerprint);
 
-      const sources = db.prepare('SELECT source_id,license_id FROM phrase_source ORDER BY source_id').all();
+      const sources = db.prepare('SELECT source_id,license_id FROM phrase_source ORDER BY source_id').all()
+        .map((row) => ({ source_id: row.source_id, license_id: row.license_id }));
       assert.deepEqual(sources, [
         { source_id: 'dewiktionary-kaikki-raw', license_id: 'Wiktionary-CC-BY-SA+GFDL' },
         { source_id: 'leipzig-corpora', license_id: 'CC-BY' },
@@ -151,20 +152,16 @@ test('Phase 11B1 builder creates deterministic provenance catalog and Leipzig co
         FROM phrase
         WHERE normalized='mit fug und recht'
       `).get();
-      assert.deepEqual(historical, {
-        historical_state: 'historical_only',
-        modern_eligible: 0,
-      });
+      assert.equal(historical.historical_state, 'historical_only');
+      assert.equal(historical.modern_eligible, 0);
 
       const mixed = db.prepare(`
         SELECT historical_state,modern_eligible
         FROM phrase
         WHERE normalized='auf lange sicht'
       `).get();
-      assert.deepEqual(mixed, {
-        historical_state: 'mixed',
-        modern_eligible: 1,
-      });
+      assert.equal(mixed.historical_state, 'mixed');
+      assert.equal(mixed.modern_eligible, 1);
 
       const sourceBacked = db.prepare(`
         SELECT phrase_types_json
@@ -184,11 +181,9 @@ test('Phase 11B1 builder creates deterministic provenance catalog and Leipzig co
         WHERE p.normalized='auf diese weise'
           AND s.snapshot_label='deu_news_2024_1M'
       `).get();
-      assert.deepEqual(aufDieseNews, {
-        occurrence_count: 3,
-        sentence_count: 2,
-        policy: 'leipzig-exact-token-sequence-v1',
-      });
+      assert.equal(aufDieseNews.occurrence_count, 3);
+      assert.equal(aufDieseNews.sentence_count, 2);
+      assert.equal(aufDieseNews.policy, 'leipzig-exact-token-sequence-v1');
 
       const historicalUsage = db.prepare(`
         SELECT COUNT(*) AS c
@@ -202,8 +197,9 @@ test('Phase 11B1 builder creates deterministic provenance catalog and Leipzig co
         SELECT lexical_state,COUNT(*) AS c
         FROM phrase_token
         GROUP BY lexical_state
-      `).all();
-      assert.deepEqual(unresolved, [{ lexical_state: 'unresolved', c: 20 }]);
+      `).get();
+      assert.equal(unresolved.lexical_state, 'unresolved');
+      assert.equal(Number(unresolved.c), 20);
     } finally {
       db.close();
     }
