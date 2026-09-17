@@ -66,64 +66,54 @@ accepted/base retrieval + deterministic right-edge retrieval
   -> writer-oriented page
 ```
 
-Owner-local 12-query v6/v4 validation passed on 2026-09-17:
+The owner-local 12-query v6/v4 diagnostic passed. Ad-hoc writer-ranking and morphology tuning is frozen at v6/v4.
 
-```text
-queries found                       12 / 12
-mean elapsed                        1502.8 ms
-repeated family rows                0
-unranked top-30 rows                2
-usage rank > 100k rows              45
-usage rank > 250k rows              2
-explicit rare/historical rows       0
-writer-safety-tier penalized rows   4
-Arbeitsweise elapsed                7926.5 ms
-Arbeitsweise right-edge             1353
-Arbeitsweise merged                 1580
-```
+Writer v7 remains rejected because it improved one specific `Hochzeitsreise` rank only slightly while introducing repeated-family flooding and failing the structural benchmark.
 
-Validation gates passed:
-
-- productive `*-weise` top-page flooding removed;
-- `Liebe -> Diebe`, `Leben -> neben`, `Nacht -> macht` remain perfect-class results with cheap penalty 0;
-- known false morphology (`Betriebe`, `Bestreben`, `Professoren`, `deutscher`) remains rejected;
-- lexical-safety gains remain intact.
-
-Decision: **freeze ad-hoc writer-ranking and morphology tuning at v6/v4** until page-quality benchmark evidence identifies a concrete failure.
-
-The feature remains draft and is not the accepted runtime baseline.
-
-## Phase 7 — Deterministic lexical/morphology data model — design required before materialization
+## Phase 7 — Deterministic multi-analysis lexical/morphology data model — design active
 
 Current DB v4 stores one selected lemma/POS analysis per surface form. Live validation proved that this is not sufficient as a final writer-morphology substrate because source entries can legitimately expose multiple analyses.
 
-Target normalized build model:
+Design contract:
 
 ```text
-lexeme
-  -> form
-  -> pronunciation variants
-  -> eligible rhyme anchors / tails
-
-form
-  -> multiple source-supported lemma/POS analyses + provenance
-  -> inflection family
-  -> morphology / compound constituents / head
-  -> lexical status / register / usage
+docs/WRITER_LEXICAL_MODEL.md
 ```
 
-Required German work:
+Target normalized model:
 
-- preserve ambiguous lexical analyses rather than forcing a false single semantic analysis;
-- deterministic inflection-family identification where source evidence supports it;
-- deterministic compound segmentation with confidence/provenance;
-- constituent/head fields for writer redundancy;
-- no invented morphology facts;
-- materialize a compact SQLite hot layer suitable for ordinary PCs and later mobile runtime.
+```text
+form
+  -> pronunciation variants
+  -> multiple source-supported lemma/POS analyses + provenance
+  -> derived/versioned writer morphology evidence
+  -> materialized/versioned writer right-edge anchors
+```
 
-## Phase 8 — Search-quality benchmark v2 — current milestone
+Required behavior:
 
-Infrastructure is implemented on the writer-search feature branch:
+- preserve ambiguous lexical analyses rather than forcing false single semantic truth;
+- derive morphology independently per source-supported analysis;
+- resolve a hard family only when supported analysis evidence converges on one family;
+- keep conflicting families explicitly ambiguous/unresolved for hard writer penalties;
+- preserve source record keys, match kinds, lexical/form tags and resolver identity;
+- materialize a compact SQLite hot layer suitable for ordinary PCs and later mobile runtime;
+- do not invent morphology facts.
+
+First DB-free implementation step is complete:
+
+```text
+scripts/writer-lexical-model-core.mjs
+tests/writer-lexical-model.test.mjs
+```
+
+It preserves multi-analysis ambiguity/provenance deterministically and defines conservative family consensus. The isolated test set passes 7/7. It is not wired into DB v4/runtime yet.
+
+No owner DB rebuild is authorized at this stage.
+
+## Phase 8 — Search-quality benchmark v2 — structural baseline passed / human reference pending
+
+Infrastructure:
 
 ```text
 benchmarks/de-writer-v2/plan.json
@@ -140,31 +130,82 @@ npm run benchmark:writer-page:v2
 npm run benchmark:writer-page:prepare
 ```
 
-The structural benchmark measures:
+The corrected v6/v4 owner-local structural run passed:
 
-- Top-10 / Top-20 exact duplicate and near-duplicate rate;
-- same-lemma rate;
-- repeated morphology-family rate;
-- morphology-family diversity;
-- rare/unranked/very-low-use intrusion;
-- preferred-pronunciation rate;
-- retention of accepted/legacy top-250 tier-0 rhyme candidates;
-- permanent page regressions including `Arbeitsweise/Hochzeitsreise`, `Liebe/Diebe`, `Leben/neben`, `Nacht/macht`;
-- direct productive-`-weise` and false-split morphology regressions.
+```text
+status                              structural_ok_reference_pending
+queries                             12 / 12
+mean writer elapsed                 1528.8 ms
+Top-10 repeated family rows         0
+Top-20 repeated family rows         0
+Top-20 exact duplicates             0
+Top-20 near duplicates              0
+Top-20 same-lemma rows              0
+Top-20 unranked rows                1
+Top-20 usage rank >100k rows        25
+Top-20 usage rank >250k rows        1
+Top-20 explicit rare/historical     0
+preferred pronunciation rows        240 / 240
+legacy top-250 tier-0 retention     685 / 685
+```
 
-NDCG@10 / NDCG@20 is supported only when the relevant current writer cutoff has complete independent **human** songwriting-usefulness labels. Missing labels produce `pending_reference`; sparse labels must not be treated as a valid NDCG benchmark. No LLM/ML reference evaluation is required.
+Permanent regressions passed:
 
-Immediate goal: run the structural benchmark on the owner DB, freeze the first measured page-quality baseline, then decide whether additional human NDCG review is needed before acceptance.
+```text
+Arbeitsweise -> Hochzeitsreise   rank 120, multisyllabic_perfect, score 1, cheap penalty 0
+Arbeitsweise -> right:reise      Weiterreise rank 3
+Liebe -> Diebe                   rank 1
+Leben -> neben                   rank 2
+Nacht -> macht                   rank 1
+```
 
-## Phase 9 — German multi-anchor retrieval/materialization refinement
+All productive-`-weise` and previous false-split morphology regressions passed.
 
-Only after benchmark evidence is stable:
+NDCG@10 / NDCG@20 is supported only when the relevant current writer cutoff has complete independent human songwriting-usefulness labels. Missing labels correctly produce `pending_reference`; sparse labels must not be treated as valid NDCG.
 
-- verify accepted `ranking=legacy` exact-rhyme/relation invariance;
-- benchmark eligible right-edge rhyme anchors for compounds/secondary stress;
-- materialize/index validated right-edge signatures and morphology evidence;
-- remove broad suffix `LIKE` probing from final runtime;
-- meet local/mobile latency targets without changing phonetic truth.
+Decision: freeze this structural baseline. Human usefulness review remains available but is not required before beginning the storage/materialization work.
+
+## Phase 9 — Legacy invariance + multi-anchor materialization — current execution phase
+
+### 9A. Accepted legacy control-path invariance
+
+`ranking=legacy` still routes to the accepted `findRhymes()` path, while writer search uses `findWriterRhymes()`.
+
+`src/local-engine.mjs` is currently blob-identical on `main` and the writer feature branch. The owner-local runtime gate must still be rerun:
+
+```powershell
+npm run benchmark:ranking:runtime-candidate
+```
+
+Require:
+
+```text
+schema = rhymelab-benchmark-ranking-runtime-candidate-v2
+status = ok
+runtime_candidate_mismatch_queries = []
+runtime_policy_mismatch_queries = []
+protected_order_mismatch_queries = []
+```
+
+### 9B. Multi-analysis publish/storage implementation
+
+After/alongside the owner-local control gate:
+
+- preserve all merged source-supported lexical analyses in the publish/storage model;
+- keep a deterministic compatibility projection only for old consumers during migration;
+- add fixture/publish/storage tests before rebuilding local data;
+- preserve provenance and deterministic fingerprints.
+
+### 9C. Right-edge + morphology materialization
+
+Only after the multi-analysis lexical layer is correct:
+
+- materialize/index validated `de-right-edge-anchors-v1` signatures per pronunciation;
+- materialize/version `de-attested-right-head-v4` evidence per source-supported analysis;
+- merge indexed writer retrieval with accepted/base retrieval;
+- remove broad suffix `LIKE` probing from final writer runtime;
+- inspect SQLite query plans and record DB-size/runtime impact;
+- require candidate/regression equivalence with the frozen Writer Page Benchmark v2 structural baseline.
 
 Any change to `de-phon-v3` or `rhyme-relations-v2` requires its own scorer/relation acceptance path.
 
@@ -172,7 +213,8 @@ Any change to `de-phon-v3` or `rhyme-relations-v2` requires its own scorer/relat
 
 Produce an explicit acceptance report combining:
 
-- writer page benchmark v2;
+- Writer Page Benchmark v2 structural evidence;
+- independent human NDCG@10/20 if/when complete labels are collected;
 - legacy invariance;
 - lexical/morphology provenance integrity;
 - materialized runtime performance;
