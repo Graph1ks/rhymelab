@@ -30,11 +30,7 @@ Do not invent source, license, phraseology, pronunciation, or benchmark facts. A
 
 ## Repository state
 
-PR #3 (`feat/deterministic-writer-ranking-v1`) was owner-reviewed and merged to `main` on 2026-09-17 as squash commit:
-
-```text
-87586ddd424ee17c75dc4ac9fe6ac4ffcba72c31
-```
+PR #3 (`feat/deterministic-writer-ranking-v1`) was owner-reviewed and merged to `main` on 2026-09-17.
 
 Continue from `main`. Do not reconstruct the old feature branch as project memory.
 
