@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-17",
-  "phase": "GERMAN_WRITER_V5_REAL_DATA_EQUIVALENCE",
+  "phase": "GERMAN_WRITER_V5_MATERIALIZED_RUNTIME_BENCHMARK",
   "package_version": "0.10.0",
   "repository": {
     "public_release_live": true,
@@ -16,6 +16,7 @@
     "accepted_database_schema": "rhymelab-local-db-v4",
     "experimental_writer_database": "data/local/rhymelab-v5.sqlite",
     "experimental_writer_database_schema": "rhymelab-local-db-v5",
+    "experimental_writer_runtime_id": "materialized-writer-v5-v1",
     "core_search_requires_network": false,
     "core_search_allows_llm_inference": false,
     "core_search_allows_ml_model_inference": false
@@ -45,8 +46,10 @@
     "explicit_construction_policy": "de-adverbial-weise-v2",
     "ad_hoc_tuning_frozen": true,
     "writer_v7": "rejected_rolled_back",
-    "current_validation_runtime_right_edge_method": "suffix_like_scan",
-    "target_runtime_right_edge_method": "materialized_indexed_anchor_lookup"
+    "accepted_v4_right_edge_method": "suffix_like_scan",
+    "experimental_v5_right_edge_method": "materialized_indexed_anchor_lookup",
+    "experimental_v5_morphology_method": "materialized_multi_analysis_consensus",
+    "experimental_runtime_activation": "explicit_v5_storage_contract_only"
   },
   "writer_page_benchmark_v2": {
     "status": "structural_ok_reference_pending",
@@ -69,6 +72,7 @@
     "hochzeitsreise_primary_type": "multisyllabic_perfect",
     "hochzeitsreise_score": 1,
     "hochzeitsreise_cheap_penalty": 0,
+    "hochzeitsreise_role": "retrieval_sentinel_max_rank_250_not_top20_surfacing_guard",
     "right_reise_top20_word": "Weiterreise",
     "right_reise_top20_rank": 3,
     "ndcg_status": "pending_reference"
@@ -109,33 +113,25 @@
     "owner_first_materialization_storage_efficiency": "fail",
     "owner_first_materialization_mib": 1904.67,
     "owner_first_materialization_delta_mib": 1177.46,
-    "storage_audit": {
-      "status": "complete",
-      "writer_morphology_evidence_mib_first": 626.13,
-      "writer_anchor_mib_first": 551.32,
-      "hot_mib": 457.72,
-      "form_analysis_mib": 269.48
-    },
     "compact_anchor_storage": "compact-primary-key-v2",
+    "compact_anchor_candidate_basis": "legacy-vowel-key-string-suffix-v1",
     "compact_anchor_table": "writer_anchor",
     "compact_anchor_primary_key": "anchor_key_plus_pronunciation_id_without_rowid",
-    "compact_anchor_candidate_equivalence_fixture_passed": true,
     "compact_morphology_storage": "positive-evidence-compact-v2",
     "compact_morphology_table": "writer_morphology_evidence",
     "compact_morphology_unresolved_representation": "absence_of_row",
     "compact_morphology_consensus_semantics_preserved": true,
-    "compact_owner_remeasurement": {
+    "final_owner_remeasurement": {
       "status": "pass",
       "database_mib_before_materialization": 727.21,
-      "database_mib_after_materialization": 816.88,
-      "materialization_delta_mib": 89.67,
-      "reduction_vs_first_final_mib": 1087.79,
-      "materialization_reduction_pct": 92.38,
-      "writer_anchor_mib": 57.54,
+      "database_mib_after_exact_suffix_rematerialization": 819.77,
+      "writer_anchor_mib": 60.43,
       "writer_morphology_evidence_mib": 32.13,
+      "form_analysis_mib": 269.48,
+      "hot_mib": 457.72,
       "freelist_pages": 0,
       "pronunciations_processed": 904836,
-      "anchor_rows": 2854155,
+      "anchor_rows": 3153639,
       "morphology_analysis_rows": 967931,
       "morphology_positive_rows": 325724,
       "morphology_unresolved_rows": 642207,
@@ -143,39 +139,57 @@
       "query_plan_uses_primary_key": true
     },
     "accepted_runtime_rewired": false,
-    "writer_runtime_rewired": false,
     "accepted_database_overwrite_allowed": false
   },
   "phase_9d_real_data_equivalence": {
-    "status": "runner_implemented_owner_report_required",
+    "status": "complete_pass",
+    "report_schema": "rhymelab-writer-v5-equivalence-v1",
+    "report_status": "ok",
     "runner": "scripts/benchmark-writer-v5-equivalence.mjs",
     "npm_script": "benchmark:writer-v5:equivalence",
-    "report": "data/local/writer-v5-equivalence-report.json",
     "frozen_query_count": 12,
+    "missing_queries": [],
+    "retrieval_mismatch_queries": [],
     "morphology_regression_count": 10,
-    "requires_exact_ordered_candidate_id_equality": true,
-    "requires_hochzeitsreise_guard": true,
-    "requires_compact_morphology_regressions": true,
-    "runtime_switch_allowed_before_pass": false
+    "morphology_failure_ids": [],
+    "hochzeitsreise_retrieval_sentinel_retained": true,
+    "requires_hochzeitsreise_top20": false,
+    "sample_query_plan_uses_primary_key": true,
+    "old_like_total_ms": 843.016,
+    "indexed_total_ms": 59.694,
+    "retrieval_speedup_x": 14.12
+  },
+  "phase_9e_materialized_runtime_benchmark": {
+    "status": "implementation_ci_green_owner_run_required",
+    "runtime_id": "materialized-writer-v5-v1",
+    "runtime_module": "src/writer-materialized-runtime.mjs",
+    "experimental_database_opener": "src/experimental-writer-db.mjs",
+    "runner": "scripts/benchmark-writer-page-v5-materialized.mjs",
+    "npm_script": "benchmark:writer-page:v5",
+    "report": "reports/de-writer-page-benchmark-v5-materialized.json",
+    "runtime_contract_required_on_all_queries": true,
+    "accepted_v4_default_unchanged": true,
+    "ci_run": 168,
+    "ci_status": "success"
   },
   "owner_measurement_outputs": {
     "publish_v3": "data/de/publish-v3",
     "database_v5": "data/local/rhymelab-v5.sqlite",
     "build_report_v5": "data/local/build-report-v5.json",
     "materialization_report_v5": "data/local/writer-materialization-v5-report.json",
+    "anchor_rematerialization_report_v5": "data/local/writer-anchor-rematerialization-v5-report.json",
     "storage_report_v5": "data/local/writer-v5-storage-report.json",
-    "equivalence_report_v5": "data/local/writer-v5-equivalence-report.json"
+    "equivalence_report_v5": "data/local/writer-v5-equivalence-report.json",
+    "materialized_writer_page_report_v5": "reports/de-writer-page-benchmark-v5-materialized.json"
   },
   "next_actions": [
-    "run_owner_writer_v5_real_data_equivalence",
-    "inspect_exact_per_channel_candidate_order_and_membership",
-    "inspect_compact_multi_analysis_morphology_regressions",
-    "inspect_old_like_vs_indexed_retrieval_timing",
-    "verify_materialization_repeatability",
-    "rewire_experimental_writer_runtime_only_after_real_data_equivalence_passes",
-    "rerun_writer_page_v2_after_materialized_runtime_switch",
-    "compare_writer_page_quality_and_latency_to_frozen_baseline",
-    "produce_writer_search_acceptance_report",
+    "run_owner_materialized_writer_page_v5_benchmark",
+    "verify_all_12_queries_use_materialized_writer_v5_v1",
+    "compare_writer_page_quality_metrics_to_frozen_v2_baseline",
+    "compare_end_to_end_writer_latency_to_1528_8ms_baseline",
+    "verify_page_and_morphology_regressions",
+    "verify_legacy_tier0_retention",
+    "produce_writer_search_acceptance_report_if_runtime_gate_passes",
     "phrase_mosaic_after_german_single_word_acceptance",
     "english_after_german_stable"
   ]
