@@ -37,24 +37,42 @@ try {
   `).all(candidateNormalized);
 
   if (!queryRows.length) throw new Error(`Query not found: ${queryWord}`);
-  if (!candidateRows.length) throw new Error(`Candidate not found: ${candidateWord}`);
+
+  if (!candidateRows.length) {
+    console.log(JSON.stringify({
+      schema: 'rhymelab-rhyme-pair-diagnostic-v2',
+      database: dbPath,
+      poolLimit,
+      query: queryWord,
+      candidate: candidateWord,
+      candidateFound: false,
+      diagnosis: 'candidate_missing_from_lexicon',
+    }, null, 2));
+    process.exit(0);
+  }
 
   const candidateIds = new Set(candidateRows.map((row) => row.id));
   const channels = [];
   const order = ' ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank LIMIT ?';
 
-  function checkChannel(name, sql, params) {
+  function checkChannel(name, sql, params, metadata = {}) {
     const rows = db.prepare(sql).all(...params);
     const matched = rows.filter((row) => candidateIds.has(row.id));
     channels.push({
       name,
+      ...metadata,
       returned: rows.length,
       matched: matched.length > 0,
       matchedIds: matched.map((row) => row.id),
     });
   }
 
+  const queryAnalyses = [];
   for (const queryRow of queryRows) {
+    let queryAnalysis = null;
+    try { queryAnalysis = profile.analyzeIpa(queryRow.ipa); } catch {}
+    if (queryAnalysis) queryAnalyses.push({ row: queryRow, analysis: queryAnalysis });
+
     const suffix = ' AND pronunciation_preferred=1 AND historical=0';
     checkChannel('exact_key', `SELECT id FROM hot WHERE exact_key=?${suffix}${order}`,
       [queryRow.exact_key, queryRow.syllable_count, poolLimit]);
@@ -84,12 +102,26 @@ try {
       checkChannel('coda_key', `SELECT id FROM hot WHERE coda_key=?${suffix}${order}`,
         [queryRow.coda_key, queryRow.syllable_count, poolLimit]);
     }
+
+    if (queryAnalysis && typeof profile.writerRetrievalKeys === 'function') {
+      for (const entry of profile.writerRetrievalKeys(queryAnalysis)) {
+        checkChannel(
+          `right_edge:${entry.kind}`,
+          `SELECT id FROM hot
+           WHERE vowel_key LIKE ?${suffix}
+             AND ABS(syllable_count-?) <= 1
+           ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank, id
+           LIMIT ?`,
+          [`%${entry.key}`, queryRow.syllable_count, queryRow.syllable_count, poolLimit],
+          { key: entry.key, anchorPosition: entry.anchorPosition, nuclei: entry.nuclei },
+        );
+      }
+    }
   }
 
   const directScores = [];
-  for (const queryRow of queryRows) {
-    let queryAnalysis;
-    try { queryAnalysis = profile.analyzeIpa(queryRow.ipa); } catch { continue; }
+  const anchoredScores = [];
+  for (const { row: queryRow, analysis: queryAnalysis } of queryAnalyses) {
     for (const candidateRow of candidateRows) {
       let candidateAnalysis;
       try { candidateAnalysis = profile.analyzeIpa(candidateRow.ipa); } catch { continue; }
@@ -105,18 +137,38 @@ try {
         syllable: Number(score.syllable.toFixed(4)),
         relationTypes: score.relationTypes || [],
       });
+
+      if (typeof profile.scoreWriterAnalyses === 'function') {
+        const anchored = profile.scoreWriterAnalyses(queryAnalysis, candidateAnalysis);
+        anchoredScores.push({
+          queryIpa: queryRow.ipa,
+          candidateIpa: candidateRow.ipa,
+          type: anchored.type,
+          overall: Number(anchored.overall.toFixed(4)),
+          vowel: Number(anchored.vowel.toFixed(4)),
+          coda: Number(anchored.coda.toFixed(4)),
+          stress: Number(anchored.stress.toFixed(4)),
+          syllable: Number(anchored.syllable.toFixed(4)),
+          anchor: anchored.anchor || null,
+          anchorCandidates: anchored.anchorCandidates || [],
+          relationTypes: anchored.relationTypes || [],
+        });
+      }
     }
   }
   directScores.sort((a, b) => b.overall - a.overall);
+  anchoredScores.sort((a, b) => b.overall - a.overall);
 
   const query = queryRows[0];
   const candidate = candidateRows[0];
-  const matchedChannels = channels.filter((entry) => entry.matched).map((entry) => entry.name);
+  const legacyChannels = channels.filter((entry) => entry.matched && !entry.name.startsWith('right_edge:'));
+  const rightEdgeChannels = channels.filter((entry) => entry.matched && entry.name.startsWith('right_edge:'));
 
   console.log(JSON.stringify({
-    schema: 'rhymelab-rhyme-pair-diagnostic-v1',
+    schema: 'rhymelab-rhyme-pair-diagnostic-v2',
     database: dbPath,
     poolLimit,
+    candidateFound: true,
     query: {
       surface: query.surface,
       normalized: query.normalized,
@@ -153,12 +205,16 @@ try {
       codaClass: candidate.coda_class,
     },
     retrieval: {
-      retrievedByCurrentPool: matchedChannels.length > 0,
-      matchedChannels,
+      retrievedByLegacyPool: legacyChannels.length > 0,
+      retrievedByRightEdgePool: rightEdgeChannels.length > 0,
+      matchedLegacyChannels: legacyChannels.map((entry) => entry.name),
+      matchedRightEdgeChannels: rightEdgeChannels.map((entry) => ({ name: entry.name, key: entry.key })),
       channels,
     },
-    bestDirectPhoneticScore: directScores[0] || null,
+    bestLegacyPhoneticScore: directScores[0] || null,
+    bestAnchoredPhoneticScore: anchoredScores[0] || null,
     directScores,
+    anchoredScores,
   }, null, 2));
 } finally {
   db.close();
