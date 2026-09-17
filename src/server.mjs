@@ -14,20 +14,24 @@ const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB
 const uiDir = resolve('src/ui');
 const benchmarkUiDir = resolve('src/benchmark-ui');
 
-let legacyDb;
 let writerDb;
 try {
-  legacyDb = openRhymeDb(legacyDbPath);
   writerDb = openWriterDb(writerDbPath);
 } catch (error) {
-  try { legacyDb?.close(); } catch {}
-  try { writerDb?.close(); } catch {}
-  console.error('Cannot open local RhymeLab runtime databases.');
-  console.error(`Legacy/control DB: ${legacyDbPath}`);
-  console.error(`Writer DB: ${writerDbPath}`);
-  console.error('The normal Writer UI requires the accepted materialized v5 database.');
+  console.error(`Cannot open promoted Writer v5 database at ${writerDbPath}`);
+  console.error('Build it with: npm run writer:v5:rebuild');
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
+}
+
+let legacyDb = null;
+let legacyDbError = null;
+try {
+  legacyDb = openRhymeDb(legacyDbPath);
+} catch (error) {
+  legacyDbError = error instanceof Error ? error.message : String(error);
+  console.warn(`Legacy/control DB unavailable at ${legacyDbPath}`);
+  console.warn('Normal Writer v5 runtime remains available; only ?ranking=legacy is disabled.');
 }
 
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
@@ -120,9 +124,12 @@ const server = createServer(async (req, res) => {
       return json(res, {
         status: 'ok',
         mode: 'local',
+        package_runtime: 'writer-v5-default',
         writer_database: writerDbPath,
-        legacy_database: legacyDbPath,
         writer_runtime: WRITER_RUNTIME_ID,
+        legacy_database: legacyDb ? legacyDbPath : null,
+        legacy_available: Boolean(legacyDb),
+        legacy_error: legacyDb ? null : legacyDbError,
       });
     }
     if (url.pathname === '/api/stats') return json(res, getStats(writerDb));
@@ -171,14 +178,15 @@ const server = createServer(async (req, res) => {
 server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
-  console.log(`Writer SQLite: ${writerDbPath}`);
-  console.log(`Legacy/control SQLite: ${legacyDbPath}`);
+  console.log(`Writer v5 SQLite: ${writerDbPath}`);
+  console.log(`Writer runtime: ${WRITER_RUNTIME_ID}`);
+  console.log(`Legacy/control SQLite: ${legacyDb ? legacyDbPath : 'unavailable'}`);
 });
 
 function shutdown() {
   server.close(() => {
     try { writerDb.close(); } catch {}
-    try { legacyDb.close(); } catch {}
+    try { legacyDb?.close(); } catch {}
     process.exit(0);
   });
 }
