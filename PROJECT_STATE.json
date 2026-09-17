@@ -181,7 +181,6 @@
   },
   "legacy_invariance": {
     "source_path_status": "feature_branch_local_engine_blob_matches_main",
-    "local_engine_blob_sha": "22354f17a0cc36f005daf5b7a8c98bfb1f4bfa96",
     "owner_runtime_gate": "npm run benchmark:ranking:runtime-candidate",
     "owner_runtime_status": "pending_current_writer_milestone_rerun",
     "required_report_schema": "rhymelab-benchmark-ranking-runtime-candidate-v2",
