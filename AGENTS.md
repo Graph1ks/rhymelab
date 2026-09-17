@@ -21,7 +21,7 @@ Before changing the project in a fresh thread/session, read:
 
 The public repository starts from a sanitized root commit. Do not add references that expose the pre-public private Git history, branches, pull requests, personal email addresses, local user/profile paths, credentials, private URLs, or internal-only artifacts.
 
-Public `main` is governed by `docs/REPOSITORY_GOVERNANCE.md`: changes target pull requests, the required CI job/check is `validate`, and the intended GitHub ruleset blocks force pushes and branch deletion. GitHub-side ruleset activation is tracked in issue #1 until repository-admin enforcement is confirmed.
+Public `main` is governed by `docs/REPOSITORY_GOVERNANCE.md`: changes target pull requests, the required CI job/check is `validate`, and the intended GitHub ruleset blocks force pushes and branch deletion.
 
 Run before public-facing changes:
 
@@ -65,9 +65,29 @@ RhymeLab core rhyme retrieval, scoring, writer ranking and result diversificatio
 - Do not optimize benchmark gains that conflict with default lexical/product quality.
 - Human Writer NDCG is deliberately deferred until the broader German writer surface is mature and independent human reviewers are available; the owner alone is not an independent gold source.
 
-## Formal control baseline
+## Current default runtime — v0.11.0
 
-The formal German control baseline remains RhymeLab `v0.10.0`:
+The accepted German single-word Writer runtime is now the normal `npm run dev` / UI / API path:
+
+```text
+package               v0.11.0
+default DB            data/local/rhymelab-v5.sqlite
+default DB schema     rhymelab-local-db-v5
+writer runtime        materialized-writer-v5-v1
+writer ranking        deterministic_writer_utility_v6
+right-edge anchor     de-right-edge-anchors-v1
+anchor storage        compact-primary-key-v2
+candidate basis       legacy-vowel-key-string-suffix-v1
+morphology            de-attested-right-head-v4
+construction          de-adverbial-weise-v2
+morphology storage    positive-evidence-compact-v2
+```
+
+Normal startup requires the v5 Writer DB. The v4 DB is optional and must not be treated as the product default again without an explicit rollback decision.
+
+## Legacy/control baseline — preserved
+
+The previous RhymeLab `v0.10.0` / DB-v4 runtime remains the protected regression/control path:
 
 - DB schema `rhymelab-local-db-v4`;
 - analyzer `de-ipa-v2`;
@@ -75,25 +95,13 @@ The formal German control baseline remains RhymeLab `v0.10.0`:
 - relation policy `rhyme-relations-v2`;
 - 838,209 forms / 904,836 pronunciations;
 - 838,209 preferred / 66,627 alternates;
-- protected control path `?ranking=legacy`.
+- explicit request `?ranking=legacy`.
 
-## German single-word writer engineering baseline — accepted / frozen
+The control DB defaults to `data/local/rhymelab.sqlite`. If it is absent, the promoted Writer runtime still starts; only explicit legacy requests are unavailable.
+
+## German single-word Writer baseline — accepted / promoted / frozen
 
 Engineering acceptance is recorded in `docs/WRITER_SEARCH_ACCEPTANCE.md`.
-
-Frozen stack:
-
-```text
-writer ranking       deterministic_writer_utility_v6
-right-edge anchor    de-right-edge-anchors-v1
-anchor storage       compact-primary-key-v2
-candidate basis      legacy-vowel-key-string-suffix-v1
-morphology family    de-attested-right-head-v4
-construction         de-adverbial-weise-v2
-morphology storage   positive-evidence-compact-v2
-runtime              materialized-writer-v5-v1
-DB schema            rhymelab-local-db-v5
-```
 
 Acceptance evidence includes:
 
@@ -116,7 +124,7 @@ Current general German benchmark: `de-human-rhyme-v1`.
 
 This general relation/ranking benchmark is not a substitute for Writer Page human usefulness labels.
 
-Accepted general ranking policy:
+Accepted general ranking policy for the legacy/control engine:
 
 ```text
 modern_entity_relative_commonness_1decade_0_05
