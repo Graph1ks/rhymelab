@@ -35,6 +35,13 @@ test('absence of compact morphology evidence reconstructs unresolved analyses', 
   assert.equal(evaluation.pass, true);
 });
 
+test('missing lexical analyses cannot vacuously pass a negative morphology regression', () => {
+  const summary = materializedMorphologySummary([], []);
+  const evaluation = evaluateMorphologyRegression({ expected_family: null }, summary);
+  assert.equal(evaluation.analysisPresent, false);
+  assert.equal(evaluation.pass, false);
+});
+
 test('converged compact positive evidence preserves family and construction semantics', () => {
   const summary = materializedMorphologySummary(
     ['adj-key', 'adv-key'],
