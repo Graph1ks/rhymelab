@@ -2,7 +2,7 @@
   "project": "RhymeLab",
   "updated": "2026-09-17",
   "phase": "GERMAN_PHASE_11_PHRASE_MOSAIC_SOURCE_SURVEY",
-  "package_version": "0.10.0",
+  "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
     "protected_main": true,
@@ -14,17 +14,20 @@
   },
   "runtime": {
     "mode": "local_only",
-    "control_database": "data/local/rhymelab.sqlite",
-    "control_database_schema": "rhymelab-local-db-v4",
-    "writer_database": "data/local/rhymelab-v5.sqlite",
-    "writer_database_schema": "rhymelab-local-db-v5",
-    "writer_runtime_id": "materialized-writer-v5-v1",
+    "default_database": "data/local/rhymelab-v5.sqlite",
+    "default_database_schema": "rhymelab-local-db-v5",
+    "default_runtime_id": "materialized-writer-v5-v1",
+    "default_writer_promoted": true,
+    "legacy_control_database": "data/local/rhymelab.sqlite",
+    "legacy_control_database_schema": "rhymelab-local-db-v4",
+    "legacy_control_optional_for_normal_startup": true,
+    "legacy_parameter": "ranking=legacy",
     "core_search_requires_network": false,
     "core_search_allows_llm_inference": false,
     "core_search_allows_ml_model_inference": false
   },
-  "control_baseline": {
-    "status": "ok",
+  "legacy_control_baseline": {
+    "status": "preserved",
     "package_version": "0.10.0",
     "database_schema": "rhymelab-local-db-v4",
     "forms": 838209,
@@ -42,6 +45,8 @@
   },
   "single_word_writer": {
     "engineering_accepted": true,
+    "default_runtime_promoted": true,
+    "promotion_version": "0.11.0",
     "acceptance_report": "docs/WRITER_SEARCH_ACCEPTANCE.md",
     "ranking_policy": "deterministic_writer_utility_v6",
     "anchor_policy": "de-right-edge-anchors-v1",
