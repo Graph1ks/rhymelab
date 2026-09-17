@@ -2,25 +2,19 @@ import { analyzeGermanIpa } from './german-ipa.mjs';
 import { germanRightEdgeVowelSuffixKeys } from './german-rhyme-anchors.mjs';
 
 export const WRITER_ANCHOR_POLICY = 'de-right-edge-anchors-v1';
+export const WRITER_ANCHOR_STORAGE = 'compact-primary-key-v2';
 
 export const CREATE_WRITER_ANCHOR_SQL = `
 CREATE TABLE IF NOT EXISTS writer_anchor(
-  pronunciation_id INTEGER NOT NULL,
-  anchor_policy TEXT NOT NULL,
-  anchor_kind TEXT NOT NULL,
-  anchor_position INTEGER NOT NULL,
-  nuclei INTEGER NOT NULL,
   anchor_key TEXT NOT NULL,
-  PRIMARY KEY(pronunciation_id, anchor_policy, anchor_kind, anchor_key)
-);
-CREATE INDEX IF NOT EXISTS idx_writer_anchor_lookup
-  ON writer_anchor(anchor_policy, anchor_key, pronunciation_id);
+  pronunciation_id INTEGER NOT NULL,
+  PRIMARY KEY(anchor_key, pronunciation_id)
+) WITHOUT ROWID;
 `;
 
 const INSERT_WRITER_ANCHOR_SQL = `
-  INSERT OR IGNORE INTO writer_anchor(
-    pronunciation_id,anchor_policy,anchor_kind,anchor_position,nuclei,anchor_key
-  ) VALUES(?,?,?,?,?,?)
+  INSERT OR IGNORE INTO writer_anchor(anchor_key,pronunciation_id)
+  VALUES(?,?)
 `;
 
 function analysisFor(value) {
@@ -49,6 +43,9 @@ export function writerCandidateSuffixRows(pronunciationId, value) {
   // previously used `vowel_key LIKE '%<query-key>'`. Materializing every complete
   // right-edge nucleus suffix is the boundary-aware indexed equivalent of that
   // candidate-side suffix scan and therefore preserves the validated candidate universe.
+  //
+  // Candidate-side policy/kind/position metadata is intentionally not stored in SQLite:
+  // it is constant for this materialization contract and is already versioned in meta.
   for (let start = 0; start <= nuclei.length - 2; start += 1) {
     const suffix = nuclei.slice(start);
     rows.push({
@@ -74,16 +71,7 @@ export function prepareWriterAnchorInsert(db) {
 export function insertWriterCandidateSuffixRows(db, pronunciationId, value, preparedInsert = null) {
   const insert = preparedInsert || prepareWriterAnchorInsert(db);
   const rows = writerCandidateSuffixRows(pronunciationId, value);
-  for (const row of rows) {
-    insert.run(
-      row.pronunciationId,
-      row.policy,
-      row.kind,
-      row.anchorPosition,
-      row.nuclei,
-      row.key,
-    );
-  }
+  for (const row of rows) insert.run(row.key, row.pronunciationId);
   return rows.length;
 }
 
@@ -100,15 +88,13 @@ export function lookupWriterAnchorRows(db, anchorKey, options = {}) {
     SELECT h.*
     FROM writer_anchor a
     JOIN hot h ON h.id=a.pronunciation_id
-    WHERE a.anchor_policy=?
-      AND a.anchor_key=?
+    WHERE a.anchor_key=?
       AND h.normalized != ?
       AND ABS(h.syllable_count-?) <= 1
       ${preferred}${historical}
     ORDER BY ABS(h.syllable_count-?), h.usage_rank IS NULL, h.usage_rank, h.id
     LIMIT ?
   `).all(
-    WRITER_ANCHOR_POLICY,
     String(anchorKey),
     queryNormalized,
     querySyllables,
@@ -123,6 +109,6 @@ export function writerAnchorLookupPlan(db, anchorKey) {
     SELECT h.id
     FROM writer_anchor a
     JOIN hot h ON h.id=a.pronunciation_id
-    WHERE a.anchor_policy=? AND a.anchor_key=?
-  `).all(WRITER_ANCHOR_POLICY, String(anchorKey));
+    WHERE a.anchor_key=?
+  `).all(String(anchorKey));
 }
