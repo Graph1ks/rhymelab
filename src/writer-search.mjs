@@ -260,9 +260,10 @@ export function findWriterRhymes(db, word, options = {}) {
     ...row,
     writerMorphology: morphology.get(row.normalized) || null,
   }));
-  const ranked = rankWriterRecommendedResults(morphologyRows, query, {
-    limit: morphologyRows.length,
-  });
+  // Greedy diversity is prefix-stable: later selection rounds cannot change the
+  // already-selected prefix. Rank only the rows the API can return instead of
+  // completing O(n^2) greedy selection for candidates beyond the requested page.
+  const ranked = rankWriterRecommendedResults(morphologyRows, query, { limit });
   const results = ranked.slice(0, limit);
   const resolvedMorphology = morphologyRows.filter(
     (row) => row.writerMorphology?.status === 'attested_right_head_candidate',
