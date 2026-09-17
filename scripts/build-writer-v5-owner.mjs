@@ -7,6 +7,16 @@ const args = process.argv.slice(2);
 const bootstrapMissing = args.includes('--bootstrap-missing');
 const root = process.cwd();
 
+function argValue(flag, fallback) {
+  const index = args.indexOf(flag);
+  return index >= 0 ? (args[index + 1] || fallback) : fallback;
+}
+
+const publishHeapMiB = Math.max(
+  4096,
+  Number.parseInt(argValue('--publish-heap-mib', '8192'), 10) || 8192,
+);
+
 const required = [
   'data/de/usage/de-usage.tsv',
   'data/work/de-rhyme-core-v1/downloads/dewiktionary-kaikki-raw.jsonl.gz',
@@ -17,9 +27,10 @@ async function exists(path) {
   try { await access(resolve(root, path)); return true; } catch { return false; }
 }
 
-function run(script, scriptArgs = []) {
-  console.log(`\n> node ${script} ${scriptArgs.join(' ')}`.trimEnd());
-  const result = spawnSync(process.execPath, [script, ...scriptArgs], {
+function run(script, scriptArgs = [], nodeArgs = []) {
+  const renderedNodeArgs = nodeArgs.length ? `${nodeArgs.join(' ')} ` : '';
+  console.log(`\n> node ${renderedNodeArgs}${script} ${scriptArgs.join(' ')}`.trimEnd());
+  const result = spawnSync(process.execPath, [...nodeArgs, script, ...scriptArgs], {
     cwd: root,
     stdio: 'inherit',
     windowsHide: true,
@@ -56,7 +67,13 @@ if (missing.length) {
   }
 }
 
-run('scripts/build-de-rhyme-publish.mjs', ['--writer-lexical-v3']);
+console.log(`\nWriter-v5 full-data publish heap ceiling: ${publishHeapMiB} MiB`);
+console.log('This affects the one-time experimental publish build only; it does not change runtime memory requirements.');
+run(
+  'scripts/build-de-rhyme-publish.mjs',
+  ['--writer-lexical-v3'],
+  [`--max-old-space-size=${publishHeapMiB}`],
+);
 run('scripts/build-local-db.mjs', ['--publish', 'data/de/publish-v3']);
 run('scripts/materialize-writer-v5.mjs');
 
