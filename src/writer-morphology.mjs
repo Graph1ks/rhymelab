@@ -1,4 +1,4 @@
-export const WRITER_MORPHOLOGY_POLICY = 'de-attested-right-head-v2';
+export const WRITER_MORPHOLOGY_POLICY = 'de-attested-right-head-v3';
 
 const MIN_LEFT_LENGTH = 3;
 const MIN_RIGHT_LENGTH = 5;
@@ -36,12 +36,27 @@ function wholeMetadata(value, evidence = null) {
 }
 
 function headPosCompatible(wholePos, rightPos) {
-  // v2 deliberately covers only conservative compound/suffixoid-like noun/adjective
-  // evidence. Verb-prefix morphology and proper-name segmentation require their own
-  // explicit deterministic rules; unresolved is safer than a false writer family.
+  // v3 keeps the conservative noun/adjective compound gate from v2. Verb-prefix
+  // morphology and proper-name segmentation still require their own explicit rules.
   if (wholePos === 'noun') return rightPos === 'noun';
   if (wholePos === 'adj') return rightPos === 'adj';
   return false;
+}
+
+function explicitConstructionRule(whole, rightEvidence) {
+  const rightLemma = normalizeSurface(rightEvidence?.lemma || rightEvidence?.normalized);
+  const rightPos = normalizePos(rightEvidence?.pos);
+
+  // German adverbial -weise is a productive lexical construction rather than an
+  // ordinary noun-headed compound. Treating it as unresolved caused pages such as
+  // Arbeitsweise to be flooded again by schätzungsweise/stellenweise/paarweise while
+  // still reporting zero repeated families. This rule is intentionally narrow: the
+  // complete form must be tagged as an adverb, the independently attested terminal
+  // lexeme must be Weise, and normal left-side lexical evidence is still required.
+  if (whole.partOfSpeech === 'adv' && rightPos === 'noun' && rightLemma === 'weise') {
+    return 'de-adverbial-weise-v1';
+  }
+  return null;
 }
 
 function rightLemmaMatchesWholeLemma(wholeLemma, rightEvidence) {
@@ -118,7 +133,9 @@ export function chooseAttestedRightHead(value, attested, wholeEvidence = null) {
     const rightEvidence = attestedRow(attested, candidate.right);
     if (!rightEvidence) continue;
     const rightPos = normalizePos(rightEvidence.pos);
-    if (!headPosCompatible(whole.partOfSpeech, rightPos)) continue;
+    const constructionRule = explicitConstructionRule(whole, rightEvidence);
+    const ordinaryHeadCompatible = headPosCompatible(whole.partOfSpeech, rightPos);
+    if (!ordinaryHeadCompatible && !constructionRule) continue;
     if (!rightLemmaMatchesWholeLemma(whole.lemma, rightEvidence)) continue;
 
     const leftEvidence = candidate.leftVariants
@@ -128,12 +145,13 @@ export function chooseAttestedRightHead(value, attested, wholeEvidence = null) {
         || Number(a.row?.usage_rank ?? Number.MAX_SAFE_INTEGER) - Number(b.row?.usage_rank ?? Number.MAX_SAFE_INTEGER))[0];
     if (!leftEvidence) continue;
 
-    valid.push({ candidate, rightEvidence, leftEvidence });
+    valid.push({ candidate, rightEvidence, leftEvidence, constructionRule, ordinaryHeadCompatible });
   }
 
   // Prefer the shortest independently attested terminal lexeme after the conservative
-  // lemma/POS gates. This still finds Preise/Reise/Weise/Gleise while preventing arbitrary
-  // substring coincidences such as Betriebe -> bet|riebe or Professoren -> profes|soren.
+  // lemma/POS or explicit-construction gates. This finds Preise/Reise/Weise/Gleise while
+  // preventing arbitrary substring coincidences such as Betriebe -> bet|riebe or
+  // Professoren -> profes|soren.
   valid.sort((a, b) => {
     const lemmaA = normalizeSurface(a.rightEvidence?.lemma || a.candidate.right);
     const lemmaB = normalizeSurface(b.rightEvidence?.lemma || b.candidate.right);
@@ -156,16 +174,25 @@ export function chooseAttestedRightHead(value, attested, wholeEvidence = null) {
     };
   }
 
-  const { candidate, rightEvidence, leftEvidence } = best;
+  const {
+    candidate,
+    rightEvidence,
+    leftEvidence,
+    constructionRule,
+    ordinaryHeadCompatible,
+  } = best;
   const familyLemma = normalizeSurface(rightEvidence.lemma || candidate.right);
   return {
     policy: WRITER_MORPHOLOGY_POLICY,
     status: 'attested_right_head_candidate',
     inferred: true,
     familyKey: `right:${familyLemma}`,
-    source: 'local_hot_lemma_pos_suffix_evidence',
+    source: constructionRule
+      ? 'local_hot_explicit_construction_evidence'
+      : 'local_hot_lemma_pos_suffix_evidence',
     wholeLemma: whole.lemma || null,
     wholePartOfSpeech: whole.partOfSpeech,
+    constructionRule,
     split: {
       index: candidate.splitIndex,
       leftRaw: candidate.leftRaw,
@@ -190,7 +217,8 @@ export function chooseAttestedRightHead(value, attested, wholeEvidence = null) {
     },
     checks: {
       wholeLemmaEndsWithRightLemma: true,
-      headPartOfSpeechCompatible: true,
+      headPartOfSpeechCompatible: ordinaryHeadCompatible,
+      explicitConstructionRule: constructionRule,
       leftHasMeasuredUsageEvidence: true,
     },
   };
