@@ -1,4 +1,4 @@
-export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v5';
+export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v6';
 
 const MAX_EDIT_LENGTH = 96;
 const DEFAULT_DIVERSITY_WEIGHT = 0.18;
@@ -109,12 +109,24 @@ export function lexicalOverlapEvidence(query, candidate) {
   const prefixOverlap = prefixLength / minLength;
   const suffixOverlap = suffixLength / minLength;
 
+  // Orthographic rhyme similarity is not lexical cheapness. Short perfect rhymes such as
+  // Liebe/Diebe, Leben/neben or Nacht/macht naturally have high edit similarity because
+  // most letters belong to the rhyme tail. v6 therefore requires independent structural
+  // evidence before edit distance may affect the writer tier.
+  const initialConstructionOverlap = prefixLength >= 6 && prefixOverlap >= 0.45
+    ? clamp01(0.50 + 0.45 * prefixOverlap)
+    : 0;
+  const longNearDuplicateOverlap = minLength >= 8 && surfaceSimilarity >= 0.88
+    ? surfaceSimilarity * 0.90
+    : 0;
+  const longSuffixOverlap = suffixLength >= 7 ? suffixOverlap * 0.45 : 0;
+
   const overlap = Math.max(
     sameLemma ? 1 : 0,
     sameMorphologyFamily ? 0.92 : 0,
-    surfaceSimilarity >= 0.72 ? surfaceSimilarity * 0.90 : surfaceSimilarity * 0.55,
-    prefixLength >= 5 ? prefixOverlap * 0.96 : 0,
-    suffixLength >= 7 ? suffixOverlap * 0.45 : 0,
+    initialConstructionOverlap,
+    longNearDuplicateOverlap,
+    longSuffixOverlap,
   );
 
   return {
@@ -127,6 +139,8 @@ export function lexicalOverlapEvidence(query, candidate) {
     sharedSuffixLength: suffixLength,
     prefixOverlap: Number(prefixOverlap.toFixed(4)),
     suffixOverlap: Number(suffixOverlap.toFixed(4)),
+    initialConstructionOverlap: Number(initialConstructionOverlap.toFixed(4)),
+    longNearDuplicateOverlap: Number(longNearDuplicateOverlap.toFixed(4)),
     overlap: Number(clamp01(overlap).toFixed(4)),
     novelty: Number((1 - clamp01(overlap)).toFixed(4)),
   };
