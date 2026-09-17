@@ -60,14 +60,15 @@ The accepted/base path remains available through `?ranking=legacy`.
 ```text
 branch:            feat/deterministic-writer-ranking-v1
 draft PR:          #3
-writer ranking:    deterministic_writer_utility_v5
+writer ranking:    deterministic_writer_utility_v6
 right-edge anchor: de-right-edge-anchors-v1
-morphology family: de-attested-right-head-v3
+morphology family: de-attested-right-head-v4
+construction:      de-adverbial-weise-v2
 ```
 
 Current implementation:
 
-- `src/writer-ranking-policy.mjs` — deterministic writer tiers, lexical safety and list diversity;
+- `src/writer-ranking-policy.mjs` — deterministic writer tiers, lexical safety, structural cheapness and list diversity;
 - `src/writer-search.mjs` — accepted/base retrieval plus deterministic right-edge retrieval and multi-anchor writer scoring;
 - `src/writer-morphology.mjs` — conservative inferred right-head families plus explicit documented German construction rules;
 - `scripts/diagnose-rhyme-pair.mjs` — pair retrieval/scoring diagnosis;
@@ -168,13 +169,9 @@ Missing usage remains `unranked_unknown`, not linguistic rarity.
 
 Morphology v2 accepted only conservative noun/adjective right-head analyses where whole lemma/POS, independently attested right side, measured left evidence and lemma suffix evidence agreed. Verbs and proper names stayed unresolved.
 
-## Live finding 4 — v5 / morphology-v2 audit
-
-Owner-local diagnostic v2:
+Owner-local v5/v2 evidence:
 
 ```text
-schema                              rhymelab-writer-page-diagnostic-v2
-queries found                       12 / 12
 mean elapsed                        1428.3 ms
 repeated family rows                0
 unranked top-30 rows                2
@@ -183,61 +180,138 @@ usage rank > 250k rows              2
 explicit rare/historical rows       0
 writer-safety-tier penalized rows   4
 Arbeitsweise elapsed                7241.1 ms
+```
+
+The safety change was a strong improvement and remains part of the feature.
+
+## Live finding 4 — morphology v3 failed on real lexical ambiguity
+
+Morphology v3 added `de-adverbial-weise-v1`, initially requiring whole POS `adv`.
+
+The owner-local v3 rerun produced:
+
+```text
+schema                              rhymelab-writer-page-diagnostic-v2
+queries found                       12 / 12
+mean elapsed                        1681.5 ms
+repeated family rows                0
+unranked top-30 rows                2
+usage rank > 100k rows              50
+usage rank > 250k rows              2
+explicit rare/historical rows       0
+writer-safety-tier penalized rows   4
+Arbeitsweise elapsed                8416.4 ms
 Arbeitsweise right-edge             1353
 Arbeitsweise merged                 1580
 ```
 
-Compared with v4, unranked top-page intrusion fell from 69 to 2 and the known false splits disappeared. The lexical-safety change therefore remains.
+Safety remained good, but the intended `-weise` fix did **not** work on the real DB. `Arbeitsweise` still surfaced unresolved rows including:
 
-However, morphology v2 became too conservative for a real German productive construction. `Arbeitsweise` again returned many top `*-weise` rows such as `schätzungsweise`, `stellenweise`, `paarweise`, `beispielsweise`, `stufenweise`, etc., but those rows were unresolved. Therefore `repeatedFamilyRows=0` was formally true while the page was semantically repetitive.
+```text
+stufenweise
+ausnahmsweise
+abschnittsweise
+auszugsweise
+```
 
-## Morphology v3
+The cause is a data-model limitation, not an orthographic exception. Current publish data store only one selected lemma/POS analysis per surface form. Source entries can legitimately contain multiple analyses; `stufenweise`, for example, has both adjective and adverb analyses. Equal-confidence analysis selection can therefore retain `adj` even though the adverb analysis also exists. An `adv`-only construction gate was unstable.
+
+The same audit exposes this broader lexical-analysis limitation elsewhere: query metadata can retain a semantically incidental homograph analysis (`Liebe` and `Zeit` appear as `name` in the current DB). Do not treat the single stored POS as exhaustive lexical truth.
+
+## Live finding 5 — short perfect rhymes were falsely marked cheap
+
+Writer v5 used normalized edit similarity as direct lexical-overlap evidence. That is unsafe for short rhyming words because most of their spelling naturally belongs to the rhyme tail.
+
+Observed page failures included:
+
+```text
+Liebe -> Diebe   exact/multisyllabic perfect but cheap-tier demoted behind slants
+Leben -> neben   perfect but cheap-tier demoted
+Nacht -> macht   perfect but cheap-tier demoted
+Feuer -> neuer   same pattern
+```
+
+This is not useful writer diversity. Those are lexically independent rhyme words, not query variants.
+
+## Current response — writer v6 / morphology v4
+
+### Morphology v4
 
 Current policy:
 
 ```text
-de-attested-right-head-v3
+de-attested-right-head-v4
 ```
 
-v3 retains all v2 false-split protections and adds one narrow explicit construction rule:
+Explicit construction:
 
 ```text
-de-adverbial-weise-v1
+de-adverbial-weise-v2
 ```
 
-Rule boundary:
+The `-weise` rule now accepts the source-attested `adv`/`adj` ambiguity while remaining narrow:
 
-- whole form must be tagged `adv`;
+- whole selected POS must be `adv` or `adj`;
 - independently attested terminal lexeme must have lemma `Weise` and POS `noun`;
 - whole lemma must end in `weise`;
 - left side or conservative linking-material variant must be independently attested with measured usage;
-- family remains `right:weise` so noun compound `Arbeitsweise` and productive adverbial `schätzungsweise` are writer-family equivalents;
-- this is an explicit German construction rule, not generic suffix-string similarity.
+- family remains `right:weise`;
+- noun `Verweise` is still outside the rule;
+- v2 false-split protections remain in force.
 
-Regression tests cover the positive `schätzungsweise` case and preserve `Verweise`, `Betriebe`, `Bestreben`, verbs and proper names as unresolved where appropriate.
+A regression test now models `stufenweise` with selected POS `adj`, matching the real source ambiguity.
 
-Public CI is green for the v3 implementation.
+### Writer v6
+
+Current policy:
+
+```text
+deterministic_writer_utility_v6
+```
+
+Generic edit similarity no longer creates cheapness by itself for short rhyme-shaped words. Query cheapness now relies on independent lexical structure:
+
+- same lemma;
+- same morphology family;
+- long shared initial construction;
+- genuinely long high-similarity near-duplicate form;
+- very long shared suffix only as weak evidence.
+
+Regression tests protect `Liebe/Diebe`, `Leben/neben` and `Nacht/macht` from cheap-tier demotion while preserving `Arbeitsweise/Arbeitszweige`, same-lemma and same-family suppression.
+
+Public CI is green for writer v6 / morphology v4.
+
+## Lexical data model requirement before final materialization
+
+Current DB v4 stores one selected lemma/POS analysis per surface form. That is sufficient for the accepted legacy runtime but is not an adequate final morphology substrate for advanced writer ranking.
+
+When writer evidence is materialized, preserve multiple lexical analyses with provenance rather than forcing one semantic POS/lemma. The target remains deterministic and local; this is a schema/data-model change, not ML.
+
+Do not rebuild DB v4 only to patch the current validation run. Validate v6/v4 first against the existing owner-local SQLite, then design the multi-analysis materialized layer once the ranking behavior is stable.
 
 ## Performance state
 
 Right-edge validation still uses suffix `LIKE` retrieval against DB v4. `Arbeitsweise` remains several seconds because two broad right-edge channels produce 1,353 right-edge candidates and 1,580 merged candidates.
 
-Do not redesign/materialize the DB until the v3 quality rerun confirms the final key/family behavior. After that, validated right-edge/morphology keys should be materialized/indexed during the local build so runtime no longer performs broad suffix scans/dynamic morphology probing.
+Do not optimize this validation-time lookup before quality stabilizes. Final local/mobile runtime must materialize/index validated right-edge and morphology evidence.
 
 ## Immediate next work
 
 1. Owner pulls current feature branch; do **not** rebuild the DB.
 2. Run `npm run check` and `npm test`.
 3. Run `npm run diagnose:writer-pages`.
-4. Inspect `Arbeitsweise` specifically:
-   - productive adverbial `*-weise` rows should resolve to `right:weise`;
-   - they should receive same-query-family/list-diversity penalties;
-   - `Sonderpreise`, `Pilgerreise`, `Kirchenkreise`, `Vorspeise`, `Streckengleise`, etc. should rotate back upward;
+4. Inspect `Arbeitsweise`:
+   - `stufenweise`, `ausnahmsweise`, `abschnittsweise`, `auszugsweise` and comparable productive forms should resolve to `right:weise`;
+   - same-query-family/list-diversity penalties should rotate distinct lexical heads upward;
    - `Betriebe`, `Bestreben`, `Professoren`, `deutscher` must not regain false families.
-5. Confirm lexical-safety gains remain near the v5/v2 audit.
-6. If v3 passes, stop morphology tuning and build formal page-quality benchmark v2.
-7. Verify accepted `ranking=legacy` exact-rhyme/relation invariance.
-8. Materialize/index validated writer-search keys for local/mobile performance.
-9. Promote only through an explicit writer-search acceptance report.
+5. Inspect short-word regressions:
+   - `Liebe -> Diebe` should no longer receive a cheap-tier penalty and should stay above weaker slants;
+   - `Leben -> neben/heben/kleben` should remain normal perfect rhymes;
+   - `Nacht -> macht/lacht/Pacht/Yacht` should remain normal perfect rhymes.
+6. Confirm lexical-safety figures remain near the v5/v2-v3 level.
+7. If v6/v4 passes, stop ad-hoc ranking tuning and build formal page-quality benchmark v2.
+8. Verify accepted `ranking=legacy` exact-rhyme/relation invariance.
+9. Design multi-analysis lexical storage and materialize/index validated writer-search evidence for local/mobile performance.
+10. Promote only through an explicit writer-search acceptance report.
 
 Do not move to phrase/mosaic rhyme or English until German single-word writer-search quality and its lexical data model are stable.
