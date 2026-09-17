@@ -6,6 +6,7 @@ import { DEFAULT_WRITER_DB_PATH, openWriterDb } from './experimental-writer-db.m
 import { WRITER_RUNTIME_ID, selectRhymeRuntimeDatabases } from './runtime-db-routing.mjs';
 import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
+import { DEFAULT_PHRASE_DB_PATH, openPhraseBrowser } from './phrase-browser.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
@@ -13,6 +14,7 @@ const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYME
 const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
 const uiDir = resolve('src/ui');
 const benchmarkUiDir = resolve('src/benchmark-ui');
+const phraseDbPath = resolve(process.env.RHYMELAB_PHRASE_DB || DEFAULT_PHRASE_DB_PATH);
 
 let writerDb;
 try {
@@ -34,6 +36,16 @@ try {
   console.warn('Normal Writer v5 runtime remains available; only ?ranking=legacy is disabled.');
 }
 
+let phraseBrowser = null;
+let phraseDbError = null;
+try {
+  phraseBrowser = openPhraseBrowser(phraseDbPath);
+} catch (error) {
+  phraseDbError = error instanceof Error ? error.message : String(error);
+  console.warn(`Phrase catalog unavailable at ${phraseDbPath}`);
+  console.warn('Phrase browser remains disabled; build it with: npm run phrase:catalog:bootstrap');
+}
+
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const assets = {
   '/': { type: 'text/html; charset=utf-8', body: readFileSync(resolve(uiDir, 'index.html')) },
@@ -44,6 +56,10 @@ const assets = {
   '/benchmark/': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
   '/benchmark/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'styles.css')) },
   '/benchmark/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'app.js')) },
+  '/phrases': { type: 'text/html; charset=utf-8', body: readFileSync(resolve(uiDir, 'phrases.html')) },
+  '/phrases/': { type: 'text/html; charset=utf-8', body: readFileSync(resolve(uiDir, 'phrases.html')) },
+  '/assets/phrase-styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'phrase-styles.css')) },
+  '/assets/phrase-app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'phrase-app.js')) },
 };
 
 function json(res, data, status = 200, allowCors = true) {
@@ -130,9 +146,37 @@ const server = createServer(async (req, res) => {
         legacy_database: legacyDb ? legacyDbPath : null,
         legacy_available: Boolean(legacyDb),
         legacy_error: legacyDb ? null : legacyDbError,
+        phrase_database: phraseBrowser ? phraseDbPath : null,
+        phrase_database_available: Boolean(phraseBrowser),
+        phrase_database_error: phraseBrowser ? null : phraseDbError,
       });
     }
     if (url.pathname === '/api/stats') return json(res, getStats(writerDb));
+
+    if (url.pathname === '/api/phrases/stats') {
+      return phraseBrowser
+        ? json(res, phraseBrowser.stats())
+        : json(res, { error: 'Phrase catalog unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+    }
+
+    if (url.pathname === '/api/phrases/search') {
+      return phraseBrowser
+        ? json(res, phraseBrowser.searchPhrases(Object.fromEntries(url.searchParams)))
+        : json(res, { error: 'Phrase catalog unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+    }
+
+    if (url.pathname.startsWith('/api/phrase/')) {
+      if (!phraseBrowser) return json(res, { error: 'Phrase catalog unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+      const phraseId = decodeURIComponent(url.pathname.slice('/api/phrase/'.length));
+      const result = phraseBrowser.getPhrase(phraseId);
+      return result ? json(res, result) : json(res, { error: 'Phrase not found' }, 404);
+    }
+
+    if (url.pathname === '/api/register/search') {
+      return phraseBrowser
+        ? json(res, phraseBrowser.searchRegisterUnits(Object.fromEntries(url.searchParams)))
+        : json(res, { error: 'Phrase catalog unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+    }
 
     if (url.pathname === '/api/search') {
       return json(res, {
@@ -181,12 +225,15 @@ server.listen(port, host, () => {
   console.log(`Writer v5 SQLite: ${writerDbPath}`);
   console.log(`Writer runtime: ${WRITER_RUNTIME_ID}`);
   console.log(`Legacy/control SQLite: ${legacyDb ? legacyDbPath : 'unavailable'}`);
+  console.log(`Phrase catalog SQLite: ${phraseBrowser ? phraseDbPath : 'unavailable'}`);
+  console.log(`Phrase browser: http://${host}:${port}/phrases`);
 });
 
 function shutdown() {
   server.close(() => {
     try { writerDb.close(); } catch {}
     try { legacyDb?.close(); } catch {}
+    try { phraseBrowser?.close(); } catch {}
     process.exit(0);
   });
 }
