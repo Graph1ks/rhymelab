@@ -147,13 +147,16 @@ single-word rewired    no
 
 Current work is Phase 11B2 data-quality diagnostics plus small modern-register evidence. Cologne Kiezdeutsch is allowed as an additive CC BY 4.0 youth/urban/spoken signal; it must not be treated as representative German commonness or as automatic phrase/candidate generation. The bootstrap downloads transcript PDFs only, not audio.
 
-RUEG is deferred despite strong linguistic fit because the current official corpus archive is 4.4 GB; do not introduce it unless a slim reproducible German-only route is documented.
+RUEG is selected via DAKODA's slim open German subcorpora (RUEG-Lx/L1/HL), not the 4.4 GB upstream bundle. Ingest EXB + metadata only, preserve both `dipl` and `norm`, keep code-switching evidence, and treat RUEG as register/context evidence rather than general German frequency.
 
-Immediate owner gate after merge:
+Phase 11B2 diagnostics are complete: 15,449 modern-eligible phrases have Leipzig evidence (15.86%); the raw 98,504-row catalog is intentionally dominated by two-token multiword lexemes and contains abbreviation/surface-alias noise. Do not equate all catalog rows with songwriting phrases.
+
+Current Phase 11B3 owner gate after merge:
 
 ```powershell
-npm run phrase:register:cologne:bootstrap
+npm run phrase:register:rueg:bootstrap
 npm run phrase:catalog:diagnose
+npm run dev
 ```
 
-Do not start Phase 11C pronunciation/mosaic work until the diagnostics are reviewed and a repeat full build reproduces the Phase 11B1 catalog fingerprint. The accepted single-word Writer baseline remains frozen.
+Browse `http://127.0.0.1:3030/phrases`. The Phrase Explorer is read-only and the phrase DB is optional for normal Writer startup. Do not start Phase 11C until the real RUEG build is inspected and a repeat base-catalog build reproduces the Phase 11B1 semantic fingerprint. The accepted single-word Writer baseline remains frozen.

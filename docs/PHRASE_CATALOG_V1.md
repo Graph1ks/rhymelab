@@ -293,3 +293,26 @@ npm run phrase:register:cologne:bootstrap
 ```
 
 RUEG is deferred until a practical slim German-only distribution is available; the current official corpus archive is too large for this milestone.
+
+## Phase 11B3 register detail layer
+
+RUEG uses a richer register-detail schema in addition to aggregate `phrase_register_evidence`:
+
+```text
+register_document
+register_unit
+phrase_register_occurrence
+```
+
+`register_document` retains source/subcorpus and available document metadata. `register_unit` stores both `dipl_text` and `norm_text`; they are not aliases and one must never overwrite the other. `phrase_register_occurrence` records exact existing-catalog phrase matches per unit and layer.
+
+Policy:
+
+```text
+rueg-dakoda-dual-layer-register-v1
+```
+
+This detail layer is intentionally outside the base `catalog_fingerprint`: RUEG is additive register evidence. The base Wiktionary + Leipzig fingerprint remains the acceptance reference for independent repeat-build verification.
+
+The local `/phrases` explorer is read-only and may expose this evidence for inspection. It is not a phrase ranking implementation.
+

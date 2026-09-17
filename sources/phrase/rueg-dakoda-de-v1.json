@@ -1,0 +1,86 @@
+{
+  "id": "rueg-dakoda-de-v1",
+  "source_id": "rueg-dakoda",
+  "name": "RUEG German subcorpora via DAKODA",
+  "role": "modern_informal_spoken_written_register_evidence",
+  "homepage_url": "https://dakoda.org/repository.en.html",
+  "documentation_url": "https://korpling.german.hu-berlin.de/rueg-docs/v0.4/",
+  "license_id": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "RUEG / Research Unit Emerging Grammars in Language-Contact Situations; DAKODA reprocessed version",
+  "redistribution_policy": "DAKODA marks the selected RUEG German subcorpora as open under CC0 1.0. RhymeLab stores source provenance and keeps downloaded archives local/gitignored.",
+  "corpus_version": "DAKODA version handed over by Martin Klotz on 2023-02-08",
+  "collection_period": "2018-2023",
+  "language": "deu",
+  "ingestion_policy": {
+    "policy_id": "rueg-dakoda-dual-layer-register-v1",
+    "primary_layers": [
+      "dipl",
+      "norm"
+    ],
+    "purpose": "Detailed local register evidence and browseable diplomatic/normalized utterance pairs.",
+    "candidate_generation": false,
+    "general_commonness": false,
+    "preserve_code_switching": true,
+    "matching": "Exact normalized lexical-token sequence against existing modern-eligible RhymeLab phrases, independently on dipl and norm layers.",
+    "unit_preference": [
+      "cu",
+      "message",
+      "line",
+      "document_fallback"
+    ],
+    "notes": [
+      "dipl preserves participant/transcriber-near surface forms and is required for colloquial/reduction evidence.",
+      "norm is retained in parallel as the standard-form/search bridge; it must not overwrite dipl.",
+      "Per-document metadata such as formality, mode and speaker-age-group are preserved when available.",
+      "RUEG is a register sensor, not a population-representative German frequency corpus."
+    ]
+  },
+  "subcorpora": [
+    {
+      "id": "RUEG-Lx",
+      "repository_url": "https://dakoda.org/repository/rueg-lx/index.en.html",
+      "l1_profile": "multi",
+      "speakers": 165,
+      "texts": 659,
+      "reported_tokens": 103779,
+      "modalities": [
+        "spoken",
+        "written"
+      ],
+      "access": "open",
+      "exb_url": "https://dakoda.org/data/repo/open/RUEG-Lx/RUEG-Lx_exb.zip",
+      "meta_url": "https://dakoda.org/data/repo/open/RUEG-Lx/RUEG-Lx_meta.zip"
+    },
+    {
+      "id": "RUEG-L1",
+      "repository_url": "https://dakoda.org/repository/rueg-l1/index.en.html",
+      "l1_profile": "mono",
+      "speakers": 64,
+      "texts": 256,
+      "reported_tokens": 41953,
+      "modalities": [
+        "spoken",
+        "written"
+      ],
+      "access": "open",
+      "exb_url": "https://dakoda.org/data/repo/open/RUEG-L1/RUEG-L1_exb.zip",
+      "meta_url": "https://dakoda.org/data/repo/open/RUEG-L1/RUEG-L1_meta.zip"
+    },
+    {
+      "id": "RUEG-HL",
+      "repository_url": "https://dakoda.org/repository/rueg-hl/index.en.html",
+      "l1_profile": "multi_heritage",
+      "speakers": 30,
+      "texts": 120,
+      "reported_tokens": 13413,
+      "modalities": [
+        "spoken",
+        "written"
+      ],
+      "access": "open",
+      "exb_url": "https://dakoda.org/data/repo/open/RUEG-HL/RUEG-HL_exb.zip",
+      "meta_url": "https://dakoda.org/data/repo/open/RUEG-HL/RUEG-HL_meta.zip"
+    }
+  ]
+}

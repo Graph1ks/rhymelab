@@ -164,21 +164,16 @@ All three frozen Leipzig corpora completed with 1,000,000 sentences and zero mal
 
 Cologne Kiezdeutsch 2025 v2 is selected as a lightweight CC BY 4.0 youth/urban/spoken register sensor. Only the three transcription PDFs are downloaded (~970 KiB total); audio is deliberately excluded. Register evidence is additive and cannot create phrase types, candidates, or general commonness claims.
 
-RUEG remains high-quality but deferred because the current official corpora archive is 4.4 GB before audio. Do not add it unless a slim reproducible German-only distribution becomes available.
+RUEG is now selected through DAKODA's slim German subcorpora: RUEG-Lx (103,779 tokens), RUEG-L1 (41,953) and RUEG-HL (13,413), reported total 159,145. Use EXB + metadata only. Preserve `dipl` and `norm` in parallel; do not collapse the diplomatic surface into normalized text.
 
-Immediate owner commands after merge:
+Phase 11B2 diagnostics completed successfully. Key result: 15,449 modern-eligible phrases have Leipzig evidence (15.86%); 4,683 occur in all three frozen Leipzig corpora. The raw catalog is lexeme-heavy (92,967 `multiword_lexeme`; 93,863 two-token rows), so abbreviation aliases and generic lexical combinations must remain visible as lower-quality/noise classes rather than being mistaken for phraseology.
+
+Current Phase 11B3 owner commands after merge:
 
 ```powershell
-npm run phrase:register:cologne:bootstrap
+npm run phrase:register:rueg:bootstrap
 npm run phrase:catalog:diagnose
+npm run dev
 ```
 
-Review:
-
-- transcript extraction/cleaning token ratio;
-- Cologne phrase matches and obvious false matches;
-- Leipzig 1/2/3-corpus coverage;
-- phrase type/style/token/history distributions;
-- commonness top lists and anomaly samples.
-
-Only after that quality gate and repeat fingerprint confirmation should Phase 11C deterministic phrase pronunciation begin. Single-word Writer remains frozen; Human Writer NDCG remains pending.
+Then open `http://127.0.0.1:3030/phrases`. Inspect RUEG metadata matching, `dipl` vs `norm` differences, token totals, exact phrase matches and context search. Cologne is optional/nonblocking if Zenodo automation returns 403; its PDFs may be supplied locally. Only after the real RUEG gate and repeat base fingerprint confirmation should Phase 11C begin. Single-word Writer remains frozen; Human Writer NDCG remains pending.

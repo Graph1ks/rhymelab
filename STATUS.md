@@ -159,3 +159,32 @@ data/local/phrase-catalog-v1-diagnostics.json
 Review transcript-cleaning coverage, Cologne matched phrases, Leipzig 1/2/3-corpus coverage, phrase-type/token/history distributions and anomaly samples. Then repeat the full phrase build once to require the same catalog fingerprint before Phase 11C phrase pronunciation begins.
 
 The accepted German single-word Writer remains frozen and unchanged. Human Writer NDCG remains pending.
+
+## Phase 11B3 — RUEG dual-layer register + local Phrase Explorer
+
+Phase 11B2 catalog diagnostics are complete. The full catalog remains at 98,504 rows / 97,400 modern-eligible rows. 15,449 phrases have Leipzig evidence (15.86% of modern-eligible); 6,782 appear in one Leipzig corpus, 3,984 in two and 4,683 in all three. The raw source catalog is intentionally broad: 92,967 rows are `multiword_lexeme` and 93,863 rows contain exactly two lexical tokens. Abbreviation/surface aliases are therefore a known diagnostic/noise class, not a reason to discard the source catalog.
+
+RUEG is now selected through DAKODA's small open German subcorpora rather than the multi-gigabyte upstream release:
+
+```text
+RUEG-Lx   103,779 reported tokens
+RUEG-L1    41,953 reported tokens
+RUEG-HL    13,413 reported tokens
+total     159,145 reported tokens
+license   CC0 1.0 (DAKODA source records)
+```
+
+RhymeLab ingests EXB + metadata only and stores both `dipl` and `norm` per register unit. `dipl` is the colloquial/original-surface evidence; `norm` is the standard-form/search bridge. Neither is allowed to overwrite the other. RUEG remains register/context evidence, not representative general-German commonness, and does not generate new phrase candidates in 11B3.
+
+A read-only Phrase Explorer is available at `/phrases`. The phrase DB is optional for normal Writer startup and does not rewire the frozen single-word Writer.
+
+Owner gate after merge:
+
+```powershell
+npm run phrase:register:rueg:bootstrap
+npm run phrase:catalog:diagnose
+npm run dev
+```
+
+Open `http://127.0.0.1:3030/phrases` and inspect the real RUEG report/context surface before Phase 11C.
+

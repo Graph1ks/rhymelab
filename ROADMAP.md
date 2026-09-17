@@ -229,3 +229,25 @@ Only after German and English are individually strong.
 ## Hosted runtime
 
 Not part of the current roadmap. Core search remains locally executable for desktop, web packaging and later mobile use.
+
+### 11B3. RUEG dual-layer register evidence + local Phrase Explorer — current
+
+- replace the previously deferred 4.4 GB RUEG route with DAKODA's slim German RUEG-Lx/L1/HL EXB + metadata packages;
+- preserve `dipl` and `norm` in parallel;
+- preserve document register metadata and token-language evidence;
+- exact-match existing modern-eligible catalog phrases independently on both layers;
+- do not use RUEG as representative German commonness;
+- do not generate new phrase candidates from RUEG yet;
+- expose phrase/source/Leipzig/register/RUEG evidence through a local read-only `/phrases` explorer;
+- keep the phrase DB optional for Writer startup and keep Writer v6/v5 frozen.
+
+Owner gate:
+
+```powershell
+npm run phrase:register:rueg:bootstrap
+npm run phrase:catalog:diagnose
+npm run dev
+```
+
+Inspect real metadata pairing, `dipl`/`norm` token totals and context quality before moving to 11C.
+

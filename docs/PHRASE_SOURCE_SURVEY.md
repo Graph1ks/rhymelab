@@ -450,10 +450,10 @@ Decision: ingest transcript PDFs only. Treat matches as register evidence, never
 
 Manifest: `sources/phrase/cologne-kiezdeutsch-2025-v2.json`.
 
-### RUEG 1.0 — VERY GOOD LINGUISTIC FIT / DEFERRED FOR SIZE
+### RUEG German via DAKODA — SELECTED / USE
 
-RUEG remains attractive because it contrasts registers, modalities, age groups and mono-/multilingual speakers. However, the current official `RUEG-1.0_corpora.zip` alone is 4.4 GB; separate audio archives increase the release to 23.9 GB.
+The earlier size deferral is superseded by DAKODA's slim open German RUEG subcorpora. RUEG-Lx, RUEG-L1 and RUEG-HL can be obtained separately as EXB + metadata packages, avoiding the 4.4 GB all-corpus archive and all audio.
 
-Decision: do not add RUEG to the normal RhymeLab source bootstrap at present. Re-evaluate only if a stable German-only text subset/export can be obtained reproducibly without multi-gigabyte download overhead and with a pinned license/provenance chain.
+Decision: ingest the three German DAKODA subcorpora as CC0 register/context evidence. Preserve both `dipl` and `norm`, plus document metadata and token-language evidence when available. `dipl` is the primary surface-form evidence for colloquial reductions; `norm` is retained independently as the normalized search/alias bridge.
 
-This is a technical/product-cost deferral, not a judgment that the linguistic resource is low quality.
+RUEG is not treated as representative general-German frequency and does not create new phrase candidates in Phase 11B3. Source manifest: `sources/phrase/rueg-dakoda-de-v1.json`.
