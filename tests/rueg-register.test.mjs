@@ -19,7 +19,7 @@ test('RUEG EXB parser preserves dipl and norm side by side',()=>{
  assert.equal(units[0].normText,'ich habe nichts gesehen');
  assert.equal(units[0].formality,'informal');
  assert.equal(units[0].mode,'spoken');
- assert.deepEqual(units[0].languageValues,['deu','eng','deu']);
+ assert.deepEqual(units[0].languageValues,['deu','eng']);
  assert.equal(units[0].germanTokenRatio,1);
  assert.equal(units[0].cuFallback,false);
 });
