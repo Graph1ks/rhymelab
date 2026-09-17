@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-17",
-  "phase": "GERMAN_WRITER_PAGE_BENCHMARK_V2",
+  "phase": "GERMAN_WRITER_LEGACY_INVARIANCE_AND_LEXICAL_MODEL_DESIGN",
   "package_version": "0.10.0",
   "repository": {
     "public_release_live": true,
@@ -51,7 +51,7 @@
     }
   },
   "writer_search_feature": {
-    "status": "draft_page_benchmark_v2",
+    "status": "draft_structural_baseline_passed",
     "accepted_runtime_baseline": false,
     "legacy_comparison_parameter": "ranking=legacy",
     "writer_ranking_policy": "deterministic_writer_utility_v6",
@@ -108,7 +108,8 @@
     "lexical_analysis_data_model_issue": {
       "current_state": "single selected lemma/POS analysis stored per surface form",
       "risk": "equal-confidence source analyses can collapse to a semantically incidental selected analysis",
-      "future_requirement": "preserve multiple source-supported lemma/POS analyses with provenance in the materialized writer lexical layer"
+      "future_requirement": "preserve multiple source-supported lemma/POS analyses with provenance in the materialized writer lexical layer",
+      "design_document": "docs/WRITER_LEXICAL_MODEL.md"
     },
     "performance_boundary": {
       "current_right_edge_runtime_method": "validation_time_suffix_like_scan",
@@ -117,7 +118,7 @@
     }
   },
   "writer_page_benchmark_v2": {
-    "status": "corrected_contract_owner_rerun_pending",
+    "status": "structural_ok_reference_pending",
     "plan": "benchmarks/de-writer-v2/plan.json",
     "runner": "scripts/benchmark-writer-page-v2.mjs",
     "core": "scripts/writer-page-benchmark-core.mjs",
@@ -128,12 +129,26 @@
       "prepare_human_review": "npm run benchmark:writer-page:prepare"
     },
     "last_owner_run": {
-      "ranking_policy": "deterministic_writer_utility_v7",
-      "status": "failed_structural",
-      "aggregate_top20_repeated_family_rows": 4,
-      "hochzeitsreise_rank": 101,
+      "ranking_policy": "deterministic_writer_utility_v6",
+      "writer_anchor_policy": "de-right-edge-anchors-v1",
+      "morphology_policy": "de-attested-right-head-v4",
+      "status": "structural_ok_reference_pending",
+      "query_count": 12,
+      "ok_queries": 12,
+      "mean_elapsed_ms": 1528.8,
+      "aggregate_top10_repeated_family_rows": 0,
+      "aggregate_top20_repeated_family_rows": 0,
+      "legacy_top250_tier0_rows": 685,
+      "legacy_top250_tier0_retained": 685,
       "legacy_top250_tier0_retention": 1,
-      "decision": "reject_v7_and_restore_v6"
+      "hochzeitsreise_rank": 120,
+      "hochzeitsreise_primary_type": "multisyllabic_perfect",
+      "hochzeitsreise_score": 1,
+      "hochzeitsreise_cheap_penalty": 0,
+      "right_reise_top20_word": "Weiterreise",
+      "right_reise_top20_rank": 3,
+      "ndcg_status": "pending_reference",
+      "decision": "freeze_v6_v4_structural_baseline_and_advance_to_legacy_invariance"
     },
     "regression_contract": {
       "hochzeitsreise": "candidate-universe retrieval/phonetic regression, max rank 250",
@@ -164,6 +179,26 @@
       "missing_reference_state": "pending_reference"
     }
   },
+  "legacy_invariance": {
+    "source_path_status": "feature_branch_local_engine_blob_matches_main",
+    "local_engine_blob_sha": "22354f17a0cc36f005daf5b7a8c98bfb1f4bfa96",
+    "owner_runtime_gate": "npm run benchmark:ranking:runtime-candidate",
+    "owner_runtime_status": "pending_current_writer_milestone_rerun",
+    "required_report_schema": "rhymelab-benchmark-ranking-runtime-candidate-v2",
+    "required_status": "ok"
+  },
+  "writer_lexical_model": {
+    "status": "design_documented_implementation_pending",
+    "document": "docs/WRITER_LEXICAL_MODEL.md",
+    "owner_db_rebuild_authorized": false,
+    "core_requirements": [
+      "preserve_multiple_source_supported_lexical_analyses_with_provenance",
+      "derive_morphology_per_analysis_and_resolve_only_on_family_convergence",
+      "materialize_versioned_writer_morphology_evidence",
+      "materialize_and_index_validated_right_edge_anchors",
+      "preserve_accepted_legacy_path_during_migration"
+    ]
+  },
   "external_comparisons": {
     "d_rhyme_arbeitsweise_2026_09_17": {
       "document": "docs/EXTERNAL_COMPARISON_D_RHYME.md",
@@ -190,14 +225,12 @@
     "architecture_prepared": true
   },
   "next_actions": [
-    "owner_pull_restored_v6_feature_branch",
-    "rerun_npm_benchmark_writer_page_v2",
-    "confirm_right_reise_family_top20_and_structural_family_gate",
-    "review_structural_gate_and_legacy_tier0_retention",
+    "run_owner_local_legacy_invariance_gate_with_benchmark_ranking_runtime_candidate",
+    "confirm_runtime_candidate_policy_and_protected_order_mismatches_are_zero",
     "optionally_prepare_independent_human_usefulness_queue_for_ndcg10_ndcg20",
-    "verify_legacy_exact_rhyme_and_relation_invariance",
-    "design_multi_analysis_lexical_storage",
+    "implement_multi_analysis_publish_storage_on_fixtures_without_owner_db_rebuild",
     "materialize_and_index_validated_writer_search_evidence_for_local_mobile_runtime",
+    "rerun_writer_page_v2_against_materialized_runtime",
     "produce_writer_search_acceptance_report",
     "phrase_mosaic_after_single_word_writer_quality",
     "english_after_german_stable"
