@@ -1,0 +1,71 @@
+{
+  "surface": "stufenweise",
+  "base_row": {
+    "o": 1,
+    "w": "stufenweise",
+    "n": "stufenweise",
+    "r": []
+  },
+  "options": [
+    {
+      "resolutionKey": "adj-key",
+      "lemma": "stufenweise",
+      "normalizedLemma": "stufenweise",
+      "pos": "adj",
+      "homographNo": 1,
+      "confidence": 0.98,
+      "sourceRecordKey": "source:b",
+      "matchKind": "headword",
+      "gender": null,
+      "isProper": false,
+      "isObsolete": false,
+      "historicalOnly": false,
+      "styleTags": ["regional"],
+      "formFeatures": ["adverbial"],
+      "candidateIpas": ["ˈʃtuːfn̩ˌvaɪ̯zə"]
+    },
+    {
+      "resolutionKey": "adv-key",
+      "lemma": "stufenweise",
+      "normalizedLemma": "stufenweise",
+      "pos": "adv",
+      "homographNo": 1,
+      "confidence": 0.98,
+      "sourceRecordKey": "source:adv",
+      "matchKind": "headword",
+      "gender": null,
+      "isProper": false,
+      "isObsolete": false,
+      "historicalOnly": false,
+      "styleTags": [],
+      "formFeatures": ["adverbial"],
+      "candidateIpas": ["ˈʃtuːfn̩ˌvaɪ̯zə"]
+    },
+    {
+      "resolutionKey": "adj-key",
+      "lemma": "stufenweise",
+      "normalizedLemma": "stufenweise",
+      "pos": "adj",
+      "homographNo": 1,
+      "confidence": 0.96,
+      "sourceRecordKey": "source:a",
+      "matchKind": "form_of",
+      "gender": null,
+      "isProper": false,
+      "isObsolete": false,
+      "historicalOnly": false,
+      "styleTags": [],
+      "formFeatures": ["positive"],
+      "candidateIpas": []
+    }
+  ],
+  "expected": {
+    "analysis_count": 2,
+    "analysis_keys": ["adj-key", "adv-key"],
+    "compatibility_lemma": "stufenweise",
+    "compatibility_pos": "adj",
+    "adj_source_record_keys": ["source:a", "source:b"],
+    "adj_match_kinds": ["form_of", "headword"],
+    "adj_form_features": ["adverbial", "positive"]
+  }
+}
