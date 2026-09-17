@@ -161,7 +161,7 @@ The source/licensing gate is complete. The selected architecture is layered:
 
 No universal phrase database was selected, and no giant new source download is required for the first implementation milestone.
 
-### 11B1. Provenance-bearing phrase catalog — immediate next action
+### 11B1. Provenance-bearing phrase catalog — fixture implementation complete
 
 Milestone ID:
 
@@ -180,6 +180,16 @@ Build a separate phrase source/snapshot/catalog layer with:
 First ingestion work is fixture-scale raw German Wiktextract phrase records plus Leipzig phrase/commonness evidence over existing source fixtures.
 
 11B1 explicitly excludes phrase pronunciation, connected-speech rules, mosaic runtime/indexing, phrase ranking, UI/API surfacing, large new downloads and Human Writer NDCG.
+
+Phase 11B1 now implements `rhymelab-phrase-catalog-v1`, source/snapshot/license provenance, raw Wiktextract phrase ingestion, deterministic token boundaries, historical/current eligibility, Leipzig exact-token commonness evidence and deterministic fingerprints. The repository fixture gate passes.
+
+The remaining 11B1 acceptance step is the owner-local full source build via:
+
+```powershell
+npm run phrase:catalog:bootstrap
+```
+
+Review full-data distributions/noise/coverage/size and repeat fingerprint equality before 11C.
 
 ### 11C. Deterministic phrase pronunciation
 
