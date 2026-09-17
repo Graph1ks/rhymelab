@@ -3,7 +3,9 @@
   "version": "0.11.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.5.0" },
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "scripts": {
     "dev": "node src/server.mjs",
     "start": "node src/server.mjs",
@@ -52,6 +54,7 @@
     "writer:v5:rebuild": "npm run de:publish:v3 && npm run local:db:v5 && npm run writer:v5:materialize",
     "local:rebuild": "npm run de:publish:rebuild && npm run local:db",
     "local:refresh": "npm run de:publish:rebuild && npm run local:db && npm run report --silent",
-    "local:run": "npm run dev"
+    "local:run": "npm run dev",
+    "phrase:catalog": "node scripts/build-de-phrase-catalog.mjs"
   }
 }
