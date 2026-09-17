@@ -8,6 +8,10 @@ import {
   writerUtilityFeatures,
 } from '../src/writer-ranking-policy.mjs';
 
+function morphology(familyKey) {
+  return familyKey ? { familyKey, status: 'attested_right_head_candidate' } : null;
+}
+
 function row(word, score, extras = {}) {
   return {
     language: 'de',
@@ -30,13 +34,14 @@ const query = {
   normalized: 'arbeitsweise',
   lemma: 'Arbeitsweise',
   usageRank: 15000,
+  writerMorphology: morphology('right:weise'),
 };
 
 test('writer ranking policy is explicit and deterministic', () => {
-  assert.equal(WRITER_RANKING_POLICY, 'deterministic_writer_utility_v3');
+  assert.equal(WRITER_RANKING_POLICY, 'deterministic_writer_utility_v4');
   const rows = [
-    row('Hochzeitsreise', 0.96, { usageRank: 12000 }),
-    row('Arbeitszweige', 0.93, { usageRank: 10000 }),
+    row('Hochzeitsreise', 0.96, { usageRank: 12000, writerMorphology: morphology('right:reise') }),
+    row('Arbeitszweige', 0.93, { usageRank: 10000, writerMorphology: morphology('right:zweige') }),
     row('Arbeitsweisen', 0.98, { lemma: 'Arbeitsweise', rhymeTier: 0, primaryType: 'perfect', usageRank: 7000 }),
     row('Notfallbleibe', 0.84, { rhymeTier: 3, primaryType: 'slant', syllableDistance: 1, usageRank: 25000 }),
   ];
@@ -69,13 +74,42 @@ test('same lemma and long shared compound prefix are writer penalties, not phone
   assert.equal(writer.cheapRhymeTierPenalty, 3);
 });
 
-test('rhyme suffix spelling is not treated as result redundancy', () => {
-  const hochzeitsreise = row('Hochzeitsreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect' });
-  const sonderpreise = row('Sonderpreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect' });
-  const vorspeise = row('Vorspeise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect' });
+test('same attested right-head family is a writer penalty without changing phonetic truth', () => {
+  const sameFamily = row('stellenweise', 1, {
+    rhymeTier: 0,
+    primaryType: 'multisyllabic_perfect',
+    writerMorphology: morphology('right:weise'),
+  });
+  const differentFamily = row('Hochzeitsreise', 1, {
+    rhymeTier: 0,
+    primaryType: 'multisyllabic_perfect',
+    writerMorphology: morphology('right:reise'),
+  });
+
+  const evidence = lexicalOverlapEvidence(query, sameFamily);
+  assert.equal(evidence.sameMorphologyFamily, true);
+  assert.equal(writerUtilityFeatures(sameFamily, query).cheapRhymeTierPenalty, 2);
+  assert.equal(writerUtilityFeatures(differentFamily, query).cheapRhymeTierPenalty, 0);
+  assert.equal(sameFamily.score, 1);
+  assert.equal(sameFamily.primaryType, 'multisyllabic_perfect');
+});
+
+test('rhyme suffix spelling alone is not result redundancy', () => {
+  const hochzeitsreise = row('Hochzeitsreise', 1, { writerMorphology: morphology('right:reise') });
+  const sonderpreise = row('Sonderpreise', 1, { writerMorphology: morphology('right:preise') });
+  const vorspeise = row('Vorspeise', 1, { writerMorphology: morphology('right:speise') });
 
   assert.equal(lexicalRedundancy(hochzeitsreise, sonderpreise), 0);
   assert.equal(lexicalRedundancy(hochzeitsreise, vorspeise), 0);
+});
+
+test('same morphology family is strong result-set redundancy', () => {
+  const pilgerreise = row('Pilgerreise', 1, { writerMorphology: morphology('right:reise') });
+  const pauschalreise = row('Pauschalreise', 1, { writerMorphology: morphology('right:reise') });
+  const sonderpreise = row('Sonderpreise', 1, { writerMorphology: morphology('right:preise') });
+
+  assert.equal(lexicalRedundancy(pilgerreise, pauschalreise), 0.92);
+  assert.equal(lexicalRedundancy(pilgerreise, sonderpreise), 0);
 });
 
 test('shared lexical stems remain valid redundancy evidence', () => {
@@ -100,18 +134,17 @@ test('phonetic tier gate stops unrelated slants from beating available family rh
   assert.ok(ranked.slice(1).every((item) => item.writer.effectiveTier >= 3));
 });
 
-test('diversity suppresses repeated shared stems without suppressing rhyme endings', () => {
+test('family diversity rotates exact rhyme heads before repeating one family', () => {
   const rows = [
-    row('Arbeitsreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 9000 }),
-    row('Arbeitskreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 10000 }),
-    row('Hochzeitsreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 12000 }),
-    row('Sonderpreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 13000 }),
+    row('Pilgerreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 9000, writerMorphology: morphology('right:reise') }),
+    row('Pauschalreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 10000, writerMorphology: morphology('right:reise') }),
+    row('Sonderpreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 12000, writerMorphology: morphology('right:preise') }),
+    row('Kirchenkreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 13000, writerMorphology: morphology('right:kreise') }),
   ];
 
   const ranked = rankWriterRecommendedResults(rows, query, { limit: 4 });
-  const topThree = ranked.slice(0, 3).map((item) => item.word.toLocaleLowerCase('de-DE'));
-  assert.ok(topThree.includes('hochzeitsreise'));
-  assert.ok(topThree.includes('sonderpreise'));
+  const topThreeFamilies = ranked.slice(0, 3).map((item) => item.writerMorphology.familyKey);
+  assert.equal(new Set(topThreeFamilies).size, 3);
   assert.ok(ranked.every((item, index) => item.writerRank === index + 1));
   assert.ok(ranked.every((item) => item.writer?.policy === WRITER_RANKING_POLICY));
 });
