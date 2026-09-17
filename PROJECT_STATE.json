@@ -164,6 +164,21 @@
       "missing_reference_state": "pending_reference"
     }
   },
+  "external_comparisons": {
+    "d_rhyme_arbeitsweise_2026_09_17": {
+      "document": "docs/EXTERNAL_COMPARISON_D_RHYME.md",
+      "status": "manual_product_spot_check",
+      "benchmark_gold": false,
+      "observations": [
+        "d-rhyme exposes broad exact, similar-sound, and related-word sections",
+        "Hochzeitsreise is visibly present in the exact-rhyme grid",
+        "RhymeLab right-edge family coverage is broadly competitive after multi-anchor retrieval",
+        "d-rhyme is currently stronger at raw browse breadth, mature latency, and phrase/name support",
+        "RhymeLab is stronger by design at explainability, lexical safety, provenance, and deterministic local reproducibility"
+      ],
+      "decision": "use as external product evidence only; do not treat competitor labels or one candidate rank as phonological gold"
+    }
+  },
   "validation_boundary": {
     "v010_runtime_accepted": true,
     "writer_search_feature_not_accepted": true,
