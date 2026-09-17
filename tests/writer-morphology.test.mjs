@@ -46,6 +46,41 @@ test('Arbeitsweise resolves to conservative right-head lemma family weise', () =
   assert.equal(evidence.leftEvidence.linker, 's');
   assert.equal(evidence.rightHead.normalized, 'weise');
   assert.equal(evidence.rightHead.familyLemma, 'weise');
+  assert.equal(evidence.constructionRule, null);
+});
+
+test('productive German adverbial -weise uses explicit construction evidence', () => {
+  const lexicon = attested(
+    ['schätzung', 'Schätzung', 'noun', 9000],
+    ['weise', 'Weise', 'noun', 691],
+  );
+  const evidence = chooseAttestedRightHead(
+    whole('schätzungsweise', 'schätzungsweise', 'adv'),
+    lexicon,
+  );
+
+  assert.equal(evidence.status, 'attested_right_head_candidate');
+  assert.equal(evidence.familyKey, 'right:weise');
+  assert.equal(evidence.constructionRule, 'de-adverbial-weise-v1');
+  assert.equal(evidence.source, 'local_hot_explicit_construction_evidence');
+  assert.equal(evidence.split.leftRaw, 'schätzungs');
+  assert.equal(evidence.leftEvidence.normalized, 'schätzung');
+  assert.equal(evidence.checks.headPartOfSpeechCompatible, false);
+  assert.equal(evidence.checks.explicitConstructionRule, 'de-adverbial-weise-v1');
+});
+
+test('ordinary non-adverb forms ending near -weise do not receive the adverbial construction rule', () => {
+  const lexicon = attested(
+    ['ver', 'ver', 'name', 1000],
+    ['weise', 'Weise', 'noun', 691],
+  );
+  const evidence = chooseAttestedRightHead(
+    whole('Verweise', 'Verweis', 'noun'),
+    lexicon,
+  );
+
+  assert.equal(evidence.status, 'unresolved');
+  assert.equal(evidence.familyKey, null);
 });
 
 test('Sonderpreise keeps Preise as the right head and never invents Sonderp + Reise', () => {
