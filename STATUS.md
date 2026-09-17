@@ -103,14 +103,24 @@ This proves exact ordered candidate equivalence for every frozen right-edge chan
 
 ## Phase 9E — materialized v5 runtime structural gate passed
 
-The first full owner run of `materialized-writer-v5-v1` passes its runtime contract and Writer Page structural gate:
+The full `materialized-writer-v5-v1` runtime passes its runtime contract and Writer Page structural gate. All page regressions and all 10 morphology regressions pass; legacy Tier-0 retention remains 685/685.
+
+## Phase 9F — prefix-stable runtime performance gate passed
+
+The Writer runtime now stops greedy diversity selection at the requested page prefix instead of greedily ranking unused tail candidates. The optimization changes no score, tier, morphology rule, diversity rule or ranking policy. A dedicated prefix-stability test requires the selected prefix to be byte-for-byte identical to the corresponding prefix from a complete ranking.
+
+Owner rerun after the optimization:
 
 ```text
 status                              structural_ok_reference_pending
 runtime contract                    12 / 12
 queries                             12 / 12
-mean writer elapsed                 1401.9 ms
-median writer elapsed                862.45 ms
+mean writer elapsed                 1103.9 ms
+baseline mean elapsed               1528.8 ms
+mean improvement                     27.8%
+Arbeitsweise elapsed                3021.8 ms
+previous Arbeitsweise elapsed       7105.7 ms
+Arbeitsweise improvement              57.5%
 Top-20 exact duplicates             0
 Top-20 near duplicates              0
 Top-20 same-lemma rows              0
@@ -123,22 +133,24 @@ preferred pronunciation rows        240 / 240
 legacy tier-0 retention             685 / 685
 ```
 
-Protected regressions all pass. `Hochzeitsreise` is rank 116 as the retrieval sentinel; `right:reise` still surfaces through `Weiterreise` at rank 3. `Diebe` remains rank 1, `neben` rank 2 and `macht` rank 1. All 10 morphology regressions pass.
+Protected ranks remain unchanged: `Hochzeitsreise` rank 116 as retrieval sentinel, `right:reise` through `Weiterreise` rank 3, `Diebe` rank 1, `neben` rank 2, and `macht` rank 1. CI run #181 is green after adding the repeatability gate.
 
-The materialized runtime is about 8.3% faster on the 12-query mean than the frozen 1528.8 ms baseline, but `Arbeitsweise` is still a 7105.7 ms outlier because its 1,580 merged candidates were being greedily diversity-ranked all the way to the tail even though at most 250 rows can be returned.
+## Phase 9G — deterministic runtime repeatability next
 
-## Phase 9F — prefix-stable runtime performance refinement
-
-The writer runtime now stops greedy diversity selection at the requested page size. This changes no score, tier, ranking policy, morphology policy or diversity rule: greedy selection is prefix-stable, so later selection rounds cannot change an already-selected top-K prefix.
-
-A dedicated test compares a complete ranking with an early-stopped ranking and requires the selected prefix to be byte-for-byte identical. CI run #174 passes.
-
-Next owner gate:
+A strict owner repeatability gate now exists:
 
 ```text
-npm run benchmark:writer-page:v5
+npm run benchmark:writer-v5:repeatability
 ```
 
-The rerun must keep the Phase 9E structural metrics/regressions and 685/685 Tier-0 retention while measuring the new full end-to-end latency, especially `Arbeitsweise`.
+It opens the experimental v5 DB independently for three runs and fingerprints the complete `findWriterRhymes()` response for all 12 frozen queries. The fingerprint includes result order, scores, writer ranks/features, morphology, retrieval metadata and runtime identity. Report timestamps and measured elapsed times are excluded from the semantic fingerprint.
+
+Output:
+
+```text
+data/local/writer-v5-repeatability-report.json
+```
+
+All per-query fingerprints and the aggregate suite fingerprint must match across every run. Only after this passes should the German single-word writer-search acceptance report be produced. Human NDCG remains explicitly pending rather than being fabricated or substituted.
 
 `findRhymes()` / `ranking=legacy` remains untouched. Phrase/mosaic rhyme and English remain after German single-word writer-search acceptance.
