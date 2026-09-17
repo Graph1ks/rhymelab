@@ -1,31 +1,24 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-17",
-  "phase": "DETERMINISTIC_WRITER_RANKING_V1",
+  "phase": "DETERMINISTIC_WRITER_SEARCH_V4_LIVE_VALIDATION",
   "package_version": "0.10.0",
   "repository": {
     "public_release_model": "sanitized_parentless_public_root",
     "public_release_live": true,
-    "public_root_parentless": true,
     "pre_public_history_public": false,
-    "pre_public_pull_requests_public": false,
     "root_license": "PolyForm Noncommercial 1.0.0 plus Graph1ks no-monetization condition",
-    "commercial_license_required_for_monetized_use": true,
     "third_party_licenses_preserved": true,
     "public_readiness_audit": "scripts/public-readiness-audit.mjs",
     "public_ci": {
       "workflow": ".github/workflows/ci.yml",
       "workflow_name": "RhymeLab CI",
-      "required_check": "validate",
-      "clean_root_run_verified": true,
-      "clean_root_run_conclusion": "success"
+      "required_check": "validate"
     },
     "branch_protection_policy": {
       "document": "docs/REPOSITORY_GOVERNANCE.md",
       "ruleset_name": "main-protection",
-      "ruleset_id": 23610669,
       "target_branch": "main",
-      "target_selector": "~DEFAULT_BRANCH",
       "require_pull_request": true,
       "required_approving_reviews": 0,
       "required_status_check": "validate",
@@ -33,10 +26,7 @@
       "block_force_pushes": true,
       "block_branch_deletion": true,
       "bypass_actors": 0,
-      "github_enforcement": "active_verified",
-      "verified_on": "2026-09-17",
-      "tracking_issue": 1,
-      "tracking_issue_status": "completed"
+      "github_enforcement": "active_verified"
     }
   },
   "runtime": {
@@ -50,22 +40,13 @@
     "remote_deployment_supported": false,
     "core_search_requires_network": false,
     "core_search_allows_llm_inference": false,
-    "core_search_allows_ml_model_inference": false,
-    "accepted_default_ranking_source_changed": true,
-    "accepted_default_ranking": false
+    "core_search_allows_ml_model_inference": false
   },
   "accepted_baseline": {
     "package_version": "0.10.0",
     "status": "ok",
-    "main_qa_gates": {
-      "passed": 5,
-      "total": 5
-    },
-    "tests": {
-      "passed": 58,
-      "total": 58,
-      "files": 20
-    },
+    "main_qa_gates": { "passed": 5, "total": 5 },
+    "tests": { "passed": 58, "total": 58, "files": 20 },
     "database_schema": "rhymelab-local-db-v4",
     "forms": 838209,
     "pronunciations": 904836,
@@ -79,94 +60,75 @@
       "analyzer": "de-ipa-v2",
       "scorer": "de-phon-v3",
       "relation_policy": "rhyme-relations-v2"
-    },
-    "note": "Pre-public private Git commit identifiers were intentionally removed from public project memory."
-  },
-  "benchmark": {
-    "version": "de-human-rhyme-v1",
-    "label_source": "external_model_reference",
-    "human_expert_gold": false,
-    "evaluator": "GPT-5.6 Sol",
-    "task_count": 367,
-    "reviewed": 367,
-    "skipped": 0,
-    "accepted_ranking": {
-      "mean_ndcg": 0.9562,
-      "mean_pairwise_concordance": 0.835
-    },
-    "runtime_candidate_validation": {
-      "pre_promotion_gate_passed": true,
-      "query_count": 27,
-      "candidate_policy": "modern_entity_relative_commonness_1decade_0_05",
-      "candidate_mean_ndcg": 0.961,
-      "candidate_mean_pairwise_concordance": 0.8366,
-      "new_top20_candidates": 14,
-      "new_top20_without_usage_rank": 0,
-      "new_top20_explicit_rare": 0,
-      "new_top20_usage_rank_worse_than_100000": 0,
-      "new_top20_outside_query_relative_horizon": 0
-    },
-    "runtime_promotion": {
-      "source_wired": true,
-      "policy_module": "src/runtime-ranking-policy.mjs",
-      "candidate_policy": "modern_entity_relative_commonness_1decade_0_05",
-      "runtime_default_scope": "findRhymes type=all ranked mode",
-      "balanced_coverage_changed": false,
-      "type_specific_ordering_changed": false,
-      "scorer_changed": false,
-      "relation_policy_changed": false,
-      "database_changed": false,
-      "post_promotion_acceptance_complete": false,
-      "acceptance_command": "npm run benchmark:ranking:runtime-candidate",
-      "acceptance_report_schema": "rhymelab-benchmark-ranking-runtime-candidate-v2"
     }
   },
-  "writer_ranking_feature": {
+  "accepted_ranking": {
+    "policy": "modern_entity_relative_commonness_1decade_0_05",
+    "benchmark": "de-human-rhyme-v1",
+    "mean_ndcg": 0.9562,
+    "mean_pairwise_concordance": 0.835,
+    "runtime_candidate_validation_passed": true,
+    "post_promotion_acceptance_complete": false
+  },
+  "writer_search_feature": {
     "branch": "feat/deterministic-writer-ranking-v1",
     "pull_request": 3,
-    "status": "draft_validation",
-    "policy": "deterministic_writer_utility_v1",
-    "policy_module": "src/writer-ranking-policy.mjs",
-    "search_wrapper": "src/writer-search.mjs",
-    "documentation": "docs/WRITER_RANKING.md",
-    "database_schema_changed": false,
-    "phonetic_scorer_changed": false,
-    "relation_policy_changed": false,
-    "ui_enabled": true,
+    "status": "draft_live_validation",
+    "accepted_runtime_baseline": false,
     "legacy_comparison_parameter": "ranking=legacy",
-    "public_ci_initial_implementation": "success",
-    "synthetic_regression_query": "Arbeitsweise",
+    "writer_ranking_policy": "deterministic_writer_utility_v4",
+    "writer_ranking_module": "src/writer-ranking-policy.mjs",
+    "search_wrapper": "src/writer-search.mjs",
+    "writer_anchor_policy": "de-right-edge-anchors-v1",
+    "writer_morphology_policy": "de-attested-right-head-v1",
+    "writer_morphology_module": "src/writer-morphology.mjs",
+    "database_schema_changed": false,
+    "legacy_scorer_changed": false,
+    "legacy_relation_policy_changed": false,
+    "ui_enabled": true,
     "features": [
-      "same_lemma_overlap",
-      "normalized_edit_similarity",
-      "shared_prefix_overlap",
-      "shared_suffix_overlap",
+      "secondary_stress_right_edge_retrieval",
+      "multi_anchor_writer_scoring",
+      "same_lemma_suppression",
+      "shared_initial_construction_suppression",
+      "attested_right_head_family_evidence",
+      "query_morphology_family_penalty",
+      "morphology_family_result_diversity",
       "query_relative_commonness",
       "lexical_status_penalty",
-      "greedy_lexical_diversity"
+      "explainable_writer_payload"
     ],
-    "complexity": "O(n^2) candidate-pair redundancy checks",
-    "accepted_runtime_baseline": false,
-    "next_acceptance_requirements": [
-      "owner_local_live_search_review",
-      "legacy_vs_writer_comparison",
+    "live_regression_query": "Arbeitsweise",
+    "live_findings": {
+      "query_ipa": "ˈaʁbaɪ̯t͡sˌvaɪ̯zə",
+      "query_stress": "2010",
+      "hochzeitsreise_legacy_retrieved": false,
+      "hochzeitsreise_right_edge_retrieved": true,
+      "hochzeitsreise_legacy_direct_type": "slant",
+      "hochzeitsreise_legacy_direct_score": 0.7574,
+      "hochzeitsreise_writer_best_type": "multisyllabic_perfect",
+      "hochzeitsreise_writer_best_score": 1,
+      "hochzeitsreise_writer_anchor": "secondary syllable 3 to secondary syllable 3",
+      "notfallbleibe_in_current_lexicon": false,
+      "v3_page_problem": "true perfect right-edge results were dominated by repeated lexical head families such as -weise, -reise, -preise, -kreise, -speise and -gleise"
+    },
+    "morphology_provenance_boundary": "writer family is inferred only when both sides of a split have exact local hot-lexicon evidence; it is not claimed as source-attested full morphology",
+    "validation_requirements": [
+      "owner_local_v4_top_page_review",
+      "multi_query_false_split_review",
+      "runtime_latency_review",
       "page_quality_metrics",
-      "exact_rhyme_and_relation_invariance",
-      "deterministic_morphology_data_model",
-      "writer_ranking_acceptance_report"
+      "rare_unranked_intrusion_metrics",
+      "exact_rhyme_and_relation_legacy_invariance",
+      "materialized_index_design_for_validated_right_edge_and_morphology_evidence",
+      "writer_search_acceptance_report"
     ]
   },
   "validation_boundary": {
-    "public_release_complete": true,
-    "public_ci_clean_root_passed": true,
-    "main_branch_ruleset_enforced": true,
     "v010_runtime_accepted": true,
-    "hybrid_v3_experiment_gate_passed": true,
-    "runtime_candidate_validation_passed": true,
-    "runtime_promotion_source_wired": true,
-    "post_promotion_acceptance_complete": false,
-    "writer_ranking_feature_ci_passed": true,
-    "writer_ranking_live_data_accepted": false
+    "writer_search_feature_not_accepted": true,
+    "legacy_endpoint_preserved": true,
+    "package_version_unchanged": true
   },
   "english": {
     "implemented": false,
@@ -174,14 +136,15 @@
     "requirement": "own_sources_ipa_parser_inventory_similarity_thresholds_pronunciation_policy_and_language_specific_benchmark"
   },
   "next_actions": [
-    "switch_owner_local_checkout_to_public_writer_feature_branch",
-    "run_owner_local_check_and_tests",
-    "inspect_Arbeitsweise_and_other_writer_queries_live",
-    "compare_writer_vs_legacy_ranking",
-    "design_deterministic_german_morphology_data_model",
-    "add_page_quality_benchmark_metrics",
-    "promote_writer_ranking_only_after_explicit_acceptance",
+    "owner_pull_writer_v4_branch",
+    "run_owner_local_check_tests_and_dev",
+    "inspect_Arbeitsweise_family_rotation",
+    "inspect_multiple_unrelated_german_queries",
+    "measure_writer_search_latency",
+    "add_page_quality_benchmark_v2",
+    "materialize_validated_right_edge_and_morphology_evidence_for_local_mobile_runtime",
+    "promote_only_after_explicit_writer_search_acceptance",
     "phrase_mosaic_after_single_word_writer_quality",
-    "implement_english_separately_after_german_stable"
+    "english_after_german_stable"
   ]
 }
