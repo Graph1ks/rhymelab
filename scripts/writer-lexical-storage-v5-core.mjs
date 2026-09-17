@@ -24,6 +24,14 @@ CREATE INDEX idx_form_analysis_lemma_pos
   ON form_analysis(normalized_lemma, pos, form_id);
 `;
 
+const INSERT_FORM_ANALYSIS_SQL = `
+  INSERT INTO form_analysis(
+    form_id,analysis_key,lemma,normalized_lemma,pos,homograph_no,confidence,gender,
+    is_proper,is_obsolete,historical_only,style_tags,form_features,match_kinds,
+    source_record_keys,candidate_ipas
+  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+`;
+
 const sortedUnique = (values) => [...new Set((values || [])
   .map((value) => String(value))
   .filter(Boolean))]
@@ -65,15 +73,12 @@ export function createWriterLexicalStorage(db) {
   db.exec(CREATE_FORM_ANALYSIS_SQL);
 }
 
-export function insertWriterLexicalAnalyses(db, formId, compactAnalyses = []) {
-  const insert = db.prepare(`
-    INSERT INTO form_analysis(
-      form_id,analysis_key,lemma,normalized_lemma,pos,homograph_no,confidence,gender,
-      is_proper,is_obsolete,historical_only,style_tags,form_features,match_kinds,
-      source_record_keys,candidate_ipas
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-  `);
+export function prepareWriterLexicalAnalysisInsert(db) {
+  return db.prepare(INSERT_FORM_ANALYSIS_SQL);
+}
 
+export function insertWriterLexicalAnalyses(db, formId, compactAnalyses = [], preparedInsert = null) {
+  const insert = preparedInsert || prepareWriterLexicalAnalysisInsert(db);
   let inserted = 0;
   for (const compact of compactAnalyses) {
     const row = compactAnalysisToStorageRow(formId, compact);
