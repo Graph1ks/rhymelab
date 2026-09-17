@@ -6,12 +6,16 @@ export function useLegacyRanking(searchParams) {
 
 export function selectRhymeRuntimeDatabases({ writerDb, legacyDb }, searchParams) {
   if (useLegacyRanking(searchParams)) {
+    if (!legacyDb) {
+      throw new Error('Legacy v4 control database is unavailable. Build data/local/rhymelab.sqlite or set RHYMELAB_LEGACY_DB.');
+    }
     return {
       mode: 'legacy',
       database: legacyDb,
       runtimeId: 'legacy-v4-control',
     };
   }
+  if (!writerDb) throw new Error('Writer v5 database is unavailable.');
   return {
     mode: 'writer',
     database: writerDb,
