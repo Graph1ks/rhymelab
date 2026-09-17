@@ -67,15 +67,17 @@ export function evaluateMorphologyRegression(regression, summary) {
   const expectedConstructionRule = regression?.expected_construction_rule ?? null;
   const actualFamily = summary?.consensus?.familyKey ?? null;
   const supportedFamilies = summary?.consensus?.supportedFamilies || [];
+  const analysisPresent = Number(summary?.analysisCount || 0) > 0;
 
   // Negative regressions are intentionally stricter than just `familyKey === null`:
   // conflicting positive false splits must not pass merely because consensus refuses to guess.
-  const familyPass = expectedFamily == null
+  // A regression with no lexical analyses must also fail instead of passing vacuously.
+  const familyPass = analysisPresent && (expectedFamily == null
     ? supportedFamilies.length === 0
-    : actualFamily === expectedFamily;
+    : actualFamily === expectedFamily);
 
-  let constructionPass = true;
-  if (expectedFamily != null) {
+  let constructionPass = analysisPresent;
+  if (analysisPresent && expectedFamily != null) {
     const rules = summary?.supportConstructionRules || [];
     if (expectedConstructionRule == null) constructionPass = rules.length === 1 && rules[0] == null;
     else constructionPass = rules.length === 1 && rules[0] === expectedConstructionRule;
@@ -83,6 +85,7 @@ export function evaluateMorphologyRegression(regression, summary) {
 
   return {
     pass: familyPass && constructionPass,
+    analysisPresent,
     familyPass,
     constructionPass,
     expectedFamily,
