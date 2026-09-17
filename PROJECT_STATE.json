@@ -9,7 +9,6 @@
     "current_branch": "main",
     "writer_pull_request": 3,
     "writer_pull_request_status": "merged",
-    "writer_merge_commit": "87586ddd424ee17c75dc4ac9fe6ac4ffcba72c31",
     "writer_owner_acceptance_review": "complete",
     "required_check": "validate"
   },
