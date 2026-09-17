@@ -1,36 +1,28 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-17",
-  "phase": "GERMAN_WRITER_MULTI_ANALYSIS_STORAGE_AND_MATERIALIZATION",
+  "phase": "GERMAN_WRITER_MATERIALIZED_V5_OWNER_MEASUREMENT",
   "package_version": "0.10.0",
   "repository": {
     "public_release_live": true,
-    "public_release_model": "sanitized_parentless_public_root",
-    "public_ci": {
-      "workflow": ".github/workflows/ci.yml",
-      "workflow_name": "RhymeLab CI",
-      "required_check": "validate"
-    },
     "protected_main": true,
     "feature_branch": "feat/deterministic-writer-ranking-v1",
-    "draft_pull_request": 3
+    "draft_pull_request": 3,
+    "required_check": "validate"
   },
   "runtime": {
     "mode": "local_only",
-    "server": "Node.js",
-    "bind_default": "127.0.0.1:3030",
-    "database": "data/local/rhymelab.sqlite",
+    "accepted_database": "data/local/rhymelab.sqlite",
     "accepted_database_schema": "rhymelab-local-db-v4",
+    "experimental_writer_database": "data/local/rhymelab-v5.sqlite",
     "experimental_writer_database_schema": "rhymelab-local-db-v5",
     "core_search_requires_network": false,
     "core_search_allows_llm_inference": false,
-    "core_search_allows_ml_model_inference": false,
-    "generated_data_committed": false,
-    "reports_committed": false
+    "core_search_allows_ml_model_inference": false
   },
   "accepted_baseline": {
-    "package_version": "0.10.0",
     "status": "ok",
+    "package_version": "0.10.0",
     "database_schema": "rhymelab-local-db-v4",
     "forms": 838209,
     "pronunciations": 904836,
@@ -39,135 +31,52 @@
     "historical_forms": 1038,
     "usage_ranked_forms": 260450,
     "sqlite_mib": 457.68,
-    "phonology": {
-      "analyzer": "de-ipa-v2",
-      "scorer": "de-phon-v3",
-      "relation_policy": "rhyme-relations-v2"
-    },
-    "ranking": {
-      "policy": "modern_entity_relative_commonness_1decade_0_05",
-      "benchmark": "de-human-rhyme-v1",
-      "mean_ndcg": 0.9562,
-      "mean_pairwise_concordance": 0.835
-    }
+    "analyzer": "de-ipa-v2",
+    "scorer": "de-phon-v3",
+    "relation_policy": "rhyme-relations-v2",
+    "ranking_policy": "modern_entity_relative_commonness_1decade_0_05",
+    "legacy_parameter": "ranking=legacy"
   },
-  "writer_search_feature": {
-    "status": "draft_structural_baseline_passed_legacy_invariance_passed_materialization_next",
+  "writer_search": {
     "accepted_runtime_baseline": false,
-    "legacy_comparison_parameter": "ranking=legacy",
-    "writer_ranking_policy": "deterministic_writer_utility_v6",
-    "writer_anchor_policy": "de-right-edge-anchors-v1",
-    "writer_morphology_policy": "de-attested-right-head-v4",
-    "explicit_morphology_constructions": [
-      "de-adverbial-weise-v2"
-    ],
-    "accepted_database_schema_changed": false,
-    "legacy_scorer_changed": false,
-    "legacy_relation_policy_changed": false,
-    "ui_enabled": true,
+    "ranking_policy": "deterministic_writer_utility_v6",
+    "anchor_policy": "de-right-edge-anchors-v1",
+    "morphology_policy": "de-attested-right-head-v4",
+    "explicit_construction_policy": "de-adverbial-weise-v2",
     "ad_hoc_tuning_frozen": true,
-    "live_regression_query": "Arbeitsweise",
-    "owner_local_v6_morphology_v4_report": {
-      "schema": "rhymelab-writer-page-diagnostic-v2",
-      "query_count": 12,
-      "ok_queries": 12,
-      "top_limit": 30,
-      "mean_elapsed_ms": 1502.8,
-      "repeated_family_rows": 0,
-      "unranked_rows": 2,
-      "usage_rank_over_100k_rows": 45,
-      "usage_rank_over_250k_rows": 2,
-      "explicit_rare_or_historical_rows": 0,
-      "writer_safety_tier_penalized_rows": 4,
-      "arbeitsweise_elapsed_ms": 7926.5,
-      "arbeitsweise_right_edge_candidates": 1353,
-      "arbeitsweise_merged_candidates": 1580,
-      "validation_passed": true
-    },
-    "validated_regressions": {
-      "productive_weise_top_page_flooding_removed": true,
-      "liebe_diebe_rank": 1,
-      "liebe_diebe_cheap_penalty": 0,
-      "leben_neben_rank": 2,
-      "leben_neben_cheap_penalty": 0,
-      "nacht_macht_rank": 1,
-      "nacht_macht_cheap_penalty": 0,
-      "betriebe_false_family_rejected": true,
-      "bestreben_false_family_rejected": true,
-      "professoren_false_family_rejected": true,
-      "deutscher_false_family_rejected": true
-    },
-    "rejected_experiments": [
-      {
-        "policy": "deterministic_writer_utility_v7",
-        "reason": "softening result-family diversity moved Hochzeitsreise only from rank 120 to 101 while increasing Arbeitsweise Top-20 repeated-family rows to 4 and failing the structural benchmark",
-        "decision": "rolled_back_to_v6"
-      }
-    ],
-    "known_coverage_case": {
-      "word": "Notfallbleibe",
-      "in_current_lexicon": false
-    },
-    "performance_boundary": {
-      "current_right_edge_runtime_method": "validation_time_suffix_like_scan",
-      "acceptable_final_mobile_runtime": false,
-      "next_runtime_method": "materialized_indexed_writer_anchor_lookup",
-      "owner_rebuild_required_for_final_measurement": true,
-      "owner_rebuild_authorized_now": false
-    }
+    "writer_v7": "rejected_rolled_back",
+    "current_validation_runtime_right_edge_method": "suffix_like_scan",
+    "target_runtime_right_edge_method": "materialized_indexed_anchor_lookup"
   },
   "writer_page_benchmark_v2": {
     "status": "structural_ok_reference_pending",
-    "plan": "benchmarks/de-writer-v2/plan.json",
-    "runner": "scripts/benchmark-writer-page-v2.mjs",
-    "core": "scripts/writer-page-benchmark-core.mjs",
-    "review_queue_builder": "scripts/prepare-writer-page-benchmark-v2.mjs",
-    "test": "tests/writer-page-benchmark.test.mjs",
-    "commands": {
-      "structural": "npm run benchmark:writer-page:v2",
-      "prepare_human_review": "npm run benchmark:writer-page:prepare"
-    },
-    "last_owner_run": {
-      "ranking_policy": "deterministic_writer_utility_v6",
-      "writer_anchor_policy": "de-right-edge-anchors-v1",
-      "morphology_policy": "de-attested-right-head-v4",
-      "status": "structural_ok_reference_pending",
-      "query_count": 12,
-      "ok_queries": 12,
-      "mean_elapsed_ms": 1528.8,
-      "aggregate_top10_repeated_family_rows": 0,
-      "aggregate_top20_repeated_family_rows": 0,
-      "legacy_top250_tier0_rows": 685,
-      "legacy_top250_tier0_retained": 685,
-      "legacy_top250_tier0_retention": 1,
-      "hochzeitsreise_rank": 120,
-      "hochzeitsreise_primary_type": "multisyllabic_perfect",
-      "hochzeitsreise_score": 1,
-      "hochzeitsreise_cheap_penalty": 0,
-      "right_reise_top20_word": "Weiterreise",
-      "right_reise_top20_rank": 3,
-      "ndcg_status": "pending_reference",
-      "decision": "freeze_v6_v4_structural_baseline_and_advance_to_materialized_runtime"
-    },
-    "regression_contract": {
-      "hochzeitsreise": "candidate-universe retrieval/phonetic regression, max rank 250",
-      "arbeitsweise_reise_family": "at least one right:reise candidate in top 20",
-      "family_flooding": "aggregate top-20 repeated-family gate remains enforced"
-    },
-    "reference_policy": {
-      "source": "independent_human_review",
-      "llm_required": false,
-      "ml_required": false,
-      "sparse_labels_allowed_for_ndcg": false,
-      "missing_reference_state": "pending_reference"
-    }
+    "query_count": 12,
+    "ok_queries": 12,
+    "mean_elapsed_ms": 1528.8,
+    "top10_repeated_family_rows": 0,
+    "top20_repeated_family_rows": 0,
+    "top20_exact_duplicates": 0,
+    "top20_near_duplicates": 0,
+    "top20_same_lemma_rows": 0,
+    "top20_unranked_rows": 1,
+    "top20_usage_rank_over_100k_rows": 25,
+    "top20_usage_rank_over_250k_rows": 1,
+    "top20_explicit_rare_historical_rows": 0,
+    "preferred_pronunciation_rows": 240,
+    "legacy_top250_tier0_retained": 685,
+    "legacy_top250_tier0_total": 685,
+    "hochzeitsreise_rank": 120,
+    "hochzeitsreise_primary_type": "multisyllabic_perfect",
+    "hochzeitsreise_score": 1,
+    "hochzeitsreise_cheap_penalty": 0,
+    "right_reise_top20_word": "Weiterreise",
+    "right_reise_top20_rank": 3,
+    "ndcg_status": "pending_reference"
   },
-  "legacy_invariance": {
-    "source_path_status": "accepted_findRhymes_path_isolated_from_writer_path",
-    "owner_runtime_gate": "npm run benchmark:ranking:runtime-candidate",
-    "owner_runtime_status": "passed_invariance_only",
+  "phase_9a_legacy_invariance": {
+    "status": "complete",
     "report_schema": "rhymelab-benchmark-ranking-runtime-candidate-v2",
-    "status": "ok",
+    "report_status": "ok",
     "reference_evidence": "unavailable_invariance_only",
     "reference_metrics_available": false,
     "query_count": 27,
@@ -193,84 +102,58 @@
       "outside_query_relative_1decade_horizon": 0,
       "query_relative_horizon_unknown": 0
     },
-    "queries_with_top20_change": [
-      "Spotify"
-    ],
-    "queries_with_top250_membership_change": [
-      "Spotify",
-      "Twitter",
-      "TikTok",
-      "Instagram"
-    ],
-    "decision": "phase_9a_complete"
+    "queries_with_top20_change": ["Spotify"],
+    "queries_with_top250_membership_change": ["Spotify", "Twitter", "TikTok", "Instagram"]
   },
-  "writer_lexical_model": {
-    "status": "v3_v5_fixture_and_builder_migration_path_implemented_no_owner_rebuild",
-    "document": "docs/WRITER_LEXICAL_MODEL.md",
+  "phase_9b_multi_analysis": {
+    "status": "fixture_builder_gate_complete",
     "publish_schema": "rhymelab-de-publish-v3",
     "database_schema": "rhymelab-local-db-v5",
-    "accepted_publish_default_unchanged": true,
-    "accepted_database_default_unchanged": true,
-    "owner_db_rebuild_authorized": false,
-    "implementation": {
-      "model_core": "scripts/writer-lexical-model-core.mjs",
-      "publish_core": "scripts/writer-lexical-publish-v3-core.mjs",
-      "storage_core": "scripts/writer-lexical-storage-v5-core.mjs",
-      "publish_builder_flag": "--writer-lexical-v3",
-      "normalized_analysis_table": "form_analysis",
-      "analysis_identity": "form_id_plus_analysis_key",
-      "legacy_compatibility_projection": "l_p_g_highest_confidence_then_analysis_key"
-    },
-    "tests": [
-      "tests/writer-lexical-model.test.mjs",
-      "tests/writer-lexical-publish-storage.test.mjs",
-      "tests/local-db-writer-lexical-v5.test.mjs"
-    ],
-    "core_requirements": [
-      "preserve_multiple_source_supported_lexical_analyses_with_provenance",
-      "derive_morphology_per_analysis_and_resolve_only_on_family_convergence",
-      "materialize_versioned_writer_morphology_evidence",
-      "materialize_and_index_validated_right_edge_anchors",
-      "preserve_accepted_legacy_path_during_migration"
-    ]
+    "publish_builder_flag": "--writer-lexical-v3",
+    "analysis_table": "form_analysis",
+    "analysis_identity": "form_id_plus_analysis_key",
+    "accepted_v2_v4_defaults_unchanged": true,
+    "owner_experimental_build_completed": false
   },
-  "external_comparisons": {
-    "d_rhyme_arbeitsweise_2026_09_17": {
-      "document": "docs/EXTERNAL_COMPARISON_D_RHYME.md",
-      "status": "manual_product_spot_check",
-      "benchmark_gold": false,
-      "observations": [
-        "d-rhyme exposes broad exact, similar-sound, and related-word sections",
-        "Hochzeitsreise is visibly present in the exact-rhyme grid",
-        "RhymeLab right-edge family coverage is broadly competitive after multi-anchor retrieval",
-        "d-rhyme is currently stronger at raw browse breadth, mature latency, and phrase/name support",
-        "RhymeLab is stronger by design at explainability, lexical safety, provenance, and deterministic local reproducibility"
-      ],
-      "decision": "use as external product evidence only; do not treat competitor labels or one candidate rank as phonological gold"
-    }
+  "phase_9c_materialization": {
+    "status": "fixture_gate_complete_owner_measurement_authorized",
+    "anchor_table": "writer_anchor",
+    "anchor_lookup_index": "idx_writer_anchor_lookup",
+    "anchor_candidate_equivalence_fixture_passed": true,
+    "hochzeitsreise_retained_by_indexed_fixture": true,
+    "anchor_query_plan_index_fixture_passed": true,
+    "morphology_table": "writer_morphology_evidence",
+    "morphology_per_analysis_materialization_passed": true,
+    "stufenweise_multi_analysis_convergence_passed": true,
+    "verweise_unresolved_passed": true,
+    "conflicting_analysis_ambiguity_passed": true,
+    "end_to_end_v3_v5_materializer_fixture_passed": true,
+    "public_ci_green": true,
+    "accepted_runtime_rewired": false,
+    "writer_runtime_rewired": false,
+    "owner_experimental_build_authorized": true,
+    "owner_experimental_build_completed": false,
+    "accepted_database_overwrite_allowed": false
   },
-  "validation_boundary": {
-    "v010_runtime_accepted": true,
-    "writer_search_feature_not_accepted": true,
-    "legacy_endpoint_preserved": true,
-    "package_version_unchanged": true,
-    "experimental_v3_v5_not_promoted": true
-  },
-  "english": {
-    "implemented": false,
-    "architecture_prepared": true
+  "owner_measurement_outputs": {
+    "publish_v3": "data/de/publish-v3",
+    "database_v5": "data/local/rhymelab-v5.sqlite",
+    "build_report_v5": "data/local/build-report-v5.json",
+    "materialization_report_v5": "data/local/writer-materialization-v5-report.json"
   },
   "next_actions": [
-    "materialize_de_right_edge_anchors_v1_per_pronunciation_in_experimental_v5_path",
-    "add_indexed_anchor_policy_anchor_key_lookup_and_query_plan_tests",
-    "materialize_de_attested_right_head_v4_evidence_per_source_supported_analysis",
-    "preserve_multi_analysis_family_consensus_and_ambiguity_rules",
-    "prove_fixture_candidate_equivalence_before_owner_db_rebuild",
-    "remove_suffix_like_from_final_writer_runtime_after_equivalence",
-    "measure_materialized_db_size_query_plans_and_runtime_on_owner_db_when_migration_gate_is_reached",
-    "rerun_writer_page_v2_against_materialized_runtime",
+    "build_separate_owner_publish_v3",
+    "build_separate_owner_db_v5",
+    "materialize_owner_writer_v5",
+    "inspect_publish_db_materialization_counts",
+    "measure_sqlite_size_delta_vs_v4",
+    "verify_real_anchor_query_plan_index_usage",
+    "verify_materialization_repeatability",
+    "compare_materialized_candidate_universe_and_runtime_against_frozen_writer_v2_baseline",
+    "rewire_experimental_writer_runtime_only_after_real_data_equivalence",
+    "rerun_writer_page_v2_after_materialized_runtime_switch",
     "produce_writer_search_acceptance_report",
-    "phrase_mosaic_after_single_word_writer_quality",
+    "phrase_mosaic_after_german_single_word_acceptance",
     "english_after_german_stable"
   ]
 }
