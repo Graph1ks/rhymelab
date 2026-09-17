@@ -81,7 +81,14 @@ async function download(url, target, {
   }
 
   console.log('Download ' + url);
-  const response = await fetch(url, { redirect: 'follow' });
+  const response = await fetch(url, {
+    redirect: 'follow',
+    headers: {
+      'User-Agent': 'RhymeLab/0.11 (+https://github.com/Graph1ks/rhymelab)',
+      'Accept': 'application/pdf,application/octet-stream,*/*',
+      'Referer': 'https://zenodo.org/',
+    },
+  });
   if (!response.ok || !response.body) {
     throw new Error('Download failed ' + response.status + ': ' + url);
   }
@@ -170,11 +177,38 @@ if (!await exists(dbPath)) {
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 const transcriptInputs = [];
 let totalDownloadBytes = 0;
+const zenodoFileUrls = new Map();
+if (manifest.zenodo_record_id) {
+  try {
+    const recordResponse = await fetch(
+      'https://zenodo.org/api/records/' + encodeURIComponent(manifest.zenodo_record_id),
+      {
+        headers: {
+          'User-Agent': 'RhymeLab/0.11 (+https://github.com/Graph1ks/rhymelab)',
+          'Accept': 'application/json',
+        },
+      },
+    );
+    if (recordResponse.ok) {
+      const record = await recordResponse.json();
+      for (const item of record.files || []) {
+        const key = String(item.key || '');
+        const contentUrl = item.links?.content || item.links?.self;
+        if (key && contentUrl) zenodoFileUrls.set(key, contentUrl);
+      }
+    } else {
+      console.warn('Zenodo record API returned ' + recordResponse.status + '; use manifest URLs.');
+    }
+  } catch (error) {
+    console.warn('Zenodo record API lookup failed; use manifest URLs: ' + (error?.message || error));
+  }
+}
 
 for (const file of manifest.files || []) {
   const safeName = file.group + '-transcription.pdf';
   const target = join(downloads, safeName);
-  const downloaded = await download(file.url, target, {
+  const sourceUrl = zenodoFileUrls.get(file.name) || file.url;
+  const downloaded = await download(sourceUrl, target, {
     expectedMd5: file.md5,
     minimumBytes: 100_000,
     force: refresh,
