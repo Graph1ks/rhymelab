@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createReadStream, createWriteStream } from 'node:fs';
 import { access, mkdir } from 'node:fs/promises';
+import { once } from 'node:events';
 import { dirname, resolve } from 'node:path';
 import readline from 'node:readline';
 
@@ -29,12 +30,8 @@ let idx = null;
 let rows = 0;
 let expectedRank = 1;
 
-function writeLine(line) {
-  if (output.write(`${line}\n`)) return Promise.resolve();
-  return new Promise((resolvePromise, reject) => {
-    output.once('drain', resolvePromise);
-    output.once('error', reject);
-  });
+async function writeLine(line) {
+  if (!output.write(`${line}\n`)) await once(output, 'drain');
 }
 
 for await (const line of rl) {
@@ -75,10 +72,8 @@ for await (const line of rl) {
   }
 }
 
-await new Promise((resolvePromise, reject) => {
-  output.end(resolvePromise);
-  output.once('error', reject);
-});
+output.end();
+await once(output, 'finish');
 
 if (!header || rows === 0) throw new Error(`Usage ranking is empty: ${inputPath}`);
 console.log(`Wrote ${rows.toLocaleString('de-DE')} compact publish-ranking rows to ${outputPath}`);
