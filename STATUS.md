@@ -4,9 +4,9 @@ Last updated: 2026-09-17
 
 RhymeLab's public repository is `Graph1ks/rhymelab`. `main` is protected and the required public CI check is `validate`.
 
-## Formally accepted runtime baseline
+## Formal control baseline
 
-The formally accepted/default German runtime remains RhymeLab `v0.10.0`:
+The formally accepted control baseline remains RhymeLab `v0.10.0`:
 
 - DB schema `rhymelab-local-db-v4`;
 - 838,209 forms / 904,836 pronunciations;
@@ -19,13 +19,13 @@ The formally accepted/default German runtime remains RhymeLab `v0.10.0`:
 - relation policy `rhyme-relations-v2`;
 - ranking `modern_entity_relative_commonness_1decade_0_05`.
 
-The accepted/base path remains `?ranking=legacy`. The writer branch has not replaced this default runtime.
+`?ranking=legacy` remains the protected control path for regression evidence.
 
-## German single-word writer engineering baseline — accepted
+## German single-word writer engineering baseline — ACCEPTED
 
-Feature branch `feat/deterministic-writer-ranking-v1` / draft PR #3 has now passed the engineering acceptance gate documented in `docs/WRITER_SEARCH_ACCEPTANCE.md`.
+Acceptance document: `docs/WRITER_SEARCH_ACCEPTANCE.md`.
 
-Accepted writer stack:
+Frozen stack:
 
 ```text
 writer ranking       deterministic_writer_utility_v6
@@ -39,102 +39,84 @@ runtime              materialized-writer-v5-v1
 DB schema            rhymelab-local-db-v5
 ```
 
-Writer v7 remains rejected/rolled back. Core search remains deterministic, local-only, and free of LLM/ML inference, hosted ranking, telemetry and runtime network dependencies.
+Writer v7 remains rejected and rolled back. Core search remains deterministic, local-only, and free of LLM/ML/neural runtime inference, hosted ranking, telemetry, hidden uploads, or runtime network dependencies.
 
-Engineering acceptance does **not** mean default promotion. The formal v4 baseline above remains unchanged until an explicit separate promotion decision.
-
-## Acceptance evidence
-
-Legacy/control-path invariance:
+## Final single-word engineering evidence
 
 ```text
-queries                             27 / 27
-runtime candidate mismatches        0
-runtime policy mismatches           0
-protected-order mismatches          0
-```
+legacy invariance queries             27 / 27
+runtime candidate mismatches               0
+runtime policy mismatches                  0
+protected-order mismatches                 0
 
-Final compact v5 storage:
-
-```text
 DB-v5 final                         819.77 MiB
 writer_anchor                        60.43 MiB
 writer_morphology_evidence           32.13 MiB
-form_analysis                       269.48 MiB
-hot                                 457.72 MiB
-freelist pages                           0
 anchor rows                      3,153,639
 positive morphology rows          325,724
-```
+freelist pages                           0
 
-Right-edge equivalence:
+retrieval equivalence queries         12 / 12
+retrieval mismatch queries                 0
+morphology regressions                10 / 10
+retrieval-only speedup                  14.12x
 
-```text
-queries                             12 / 12
-retrieval mismatch queries          0
-morphology regressions              10 / 10 pass
-old LIKE retrieval total            843.016 ms
-indexed retrieval total              59.694 ms
-retrieval-only speedup                14.12x
-```
+Writer Page runtime contract          12 / 12
+Writer Page structural gate              PASS
+mean writer elapsed                  1103.9 ms
+frozen validation mean               1528.8 ms
+mean improvement                       27.8%
+legacy Tier-0 retention              685 / 685
+Top-20 exact duplicates                    0
+Top-20 near duplicates                     0
+Top-20 same-lemma rows                     0
+Top-20 repeated family rows                0
+preferred pronunciation rows          240 / 240
 
-Final full Writer Page owner run:
-
-```text
-status                              structural_ok_reference_pending
-runtime contract                    12 / 12
-queries                             12 / 12
-mean writer elapsed                 1103.9 ms
-frozen validation mean              1528.8 ms
-mean improvement                     27.8%
-Top-20 exact duplicates                  0
-Top-20 near duplicates                   0
-Top-20 same-lemma rows                   0
-Top-20 repeated family rows              0
-Top-20 unranked rows                     1
-Top-20 usage rank >100k rows            25
-Top-20 usage rank >250k rows              1
-Top-20 explicit rare/historical           0
-preferred pronunciation rows        240 / 240
-legacy Tier-0 retention             685 / 685
-```
-
-Protected result behavior remains stable:
-
-```text
-Arbeitsweise -> Hochzeitsreise      rank 116, retrieval sentinel only
-Arbeitsweise -> right:reise         Weiterreise rank 3
-Liebe -> Diebe                      rank 1
-Leben -> neben                      rank 2
-Nacht -> macht                      rank 1
-```
-
-All 10 morphology regressions pass, including productive `-weise` and the false-split guards for `Verweise`, `Betriebe`, `Bestreben`, `Professoren`, and `deutscher`.
-
-## Runtime repeatability — PASS
-
-Owner report `rhymelab-writer-v5-repeatability-v1`:
-
-```text
-status                              ok
-independent DB opens                     3
-queries per run                          12
-suite fingerprints equal              true
-mismatches                                0
+repeatability independent DB opens          3
+repeatability suite fingerprints equal   true
+repeatability mismatches                    0
 suite fingerprint
 c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab
 ```
 
-The fingerprint covers the complete semantic `findWriterRhymes()` response; timing and report timestamps are excluded. All per-query and suite fingerprints match across all three runs.
+Protected behavior remains:
 
-## Human-reference status
+- `Arbeitsweise -> Hochzeitsreise`: retrieval sentinel only, rank 116;
+- `Arbeitsweise -> right:reise`: `Weiterreise` rank 3;
+- `Liebe -> Diebe`: rank 1;
+- `Leben -> neben`: rank 2;
+- `Nacht -> macht`: rank 1;
+- all 10 productive-`-weise` / false-split morphology regressions pass.
 
-Writer Page NDCG@10/20 remains `pending_reference`. Complete independent Writer Page usefulness labels do not yet exist, so no NDCG value is claimed or substituted.
+## Human Writer NDCG policy
 
-This does not invalidate the engineering acceptance evidence above, but the missing human-reference layer remains an explicit open evidence item.
+Writer Page NDCG@10/20 remains `pending_reference` **by explicit project decision**.
 
-## Next phase
+It will not be collected from the project owner alone. Independent human usefulness evaluation is deferred until the broader German writer system — including Phase 11 phrase/mosaic/phraseology — is mature enough to evaluate coherently and independent reviewers are available.
 
-The German single-word writer engineering baseline is now frozen and accepted. The next separate phase may begin work on German phrase/mosaic rhyme after owner review of the acceptance report.
+The existing `de-human-rhyme-v1` benchmark remains separate evidence for general rhyme relation/ranking quality and is not substituted for Writer Page human gold.
 
-PR #3 remains draft until that review. Default runtime promotion remains a separate explicit decision. English remains after the German path is stable.
+## Current phase — Phase 11 German phrase / mosaic / phraseology
+
+Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`.
+
+Immediate next gate is **11A public-source survey**. RhymeLab does not yet have a complete source-backed public phrase database for multi-word rhymes, idioms, Redewendungen, metaphors/figurative expressions, collocations, and useful sentence fragments.
+
+Before implementing the phrase database/runtime, research candidate sources and record:
+
+- bulk/reproducible access;
+- license and redistribution/commercial compatibility;
+- snapshot/version;
+- scale and raw format;
+- phrase/idiom/metaphor coverage;
+- provenance identifiers;
+- ability to ingest once and run fully offline.
+
+OpenThesaurus/OdeNet are possible semantic ingredients, not assumed complete phraseology sources.
+
+After source selection: define the phrase data model, deterministic phrase pronunciation, indexed cross-word-boundary mosaic retrieval, a separate phrase writer-ranking policy, and a dedicated Phrase/Mosaic benchmark.
+
+## Language ordering
+
+German phrase/mosaic work comes next. English remains deferred until the German writer path is stable enough to freeze. Cross-language rhyme remains after both language profiles are independently strong.
