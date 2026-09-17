@@ -104,11 +104,26 @@ Corpus evidence may supply counts/commonness/association evidence. It must not m
 - **DWDS Wortprofil code — RESEARCH ONLY method reference:** GPL-3.0 collocation/MWE extraction implementation; useful algorithmic reference, not copied into RhymeLab by accident.
 - **Unlicensed public phrase websites — REJECT:** public readability without reproducible bulk access and explicit ingestion/redistribution rights is insufficient.
 
-### Phase 11B1 source boundary
+### Phase 11B1 implementation boundary
 
-The next milestone is `PHASE_11B1_PROVENANCE_PHRASE_CATALOG`.
+The fixture-validated implementation is now:
 
-It will build a separate provenance-bearing phrase catalog and fixture ingestion around the selected raw Wiktextract + existing Leipzig inputs. Tatoeba/semantic/domain layers remain schema-ready but optional. No phrase pronunciation, mosaic runtime retrieval, phrase ranking, API/UI surfacing or giant new downloads belong in 11B1.
+```text
+schema                 rhymelab-phrase-catalog-v1
+catalog policy         de-phrase-catalog-v1
+Leipzig match policy   leipzig-exact-token-sequence-v1
+contract               docs/PHRASE_CATALOG_V1.md
+```
+
+It preserves source/snapshot/license provenance, source-backed phrase types/tags, deterministic token boundaries, historical/current state, and per-corpus Leipzig occurrence/commonness evidence.
+
+The next gate is an owner-local full source build:
+
+```powershell
+npm run phrase:catalog:bootstrap
+```
+
+No phrase pronunciation, mosaic index, phrase ranking or runtime/API integration is part of 11B1. Generated DB/report/raw data remain local and gitignored.
 
 ## Deferred sources
 
