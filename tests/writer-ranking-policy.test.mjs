@@ -33,7 +33,7 @@ const query = {
 };
 
 test('writer ranking policy is explicit and deterministic', () => {
-  assert.equal(WRITER_RANKING_POLICY, 'deterministic_writer_utility_v2');
+  assert.equal(WRITER_RANKING_POLICY, 'deterministic_writer_utility_v3');
   const rows = [
     row('Hochzeitsreise', 0.96, { usageRank: 12000 }),
     row('Arbeitszweige', 0.93, { usageRank: 10000 }),
@@ -69,13 +69,22 @@ test('same lemma and long shared compound prefix are writer penalties, not phone
   assert.equal(writer.cheapRhymeTierPenalty, 3);
 });
 
-test('surface redundancy catches repeated productive endings without collapsing ordinary -eise rhyme spelling', () => {
-  const denkweise = row('Denkweise', 0.91);
-  const vorgehensweise = row('Vorgehensweise', 0.91);
-  const hochzeitsreise = row('Hochzeitsreise', 0.91);
+test('rhyme suffix spelling is not treated as result redundancy', () => {
+  const hochzeitsreise = row('Hochzeitsreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect' });
+  const sonderpreise = row('Sonderpreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect' });
+  const vorspeise = row('Vorspeise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect' });
 
-  assert.ok(lexicalRedundancy(denkweise, vorgehensweise) >= 0.58);
-  assert.ok(lexicalRedundancy(denkweise, hochzeitsreise) < lexicalRedundancy(denkweise, vorgehensweise));
+  assert.equal(lexicalRedundancy(hochzeitsreise, sonderpreise), 0);
+  assert.equal(lexicalRedundancy(hochzeitsreise, vorspeise), 0);
+});
+
+test('shared lexical stems remain valid redundancy evidence', () => {
+  const arbeitsreise = row('Arbeitsreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect' });
+  const arbeitskreise = row('Arbeitskreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect' });
+  const hochzeitsreise = row('Hochzeitsreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect' });
+
+  assert.ok(lexicalRedundancy(arbeitsreise, arbeitskreise) >= 0.58);
+  assert.equal(lexicalRedundancy(arbeitsreise, hochzeitsreise), 0);
 });
 
 test('phonetic tier gate stops unrelated slants from beating available family rhymes on commonness alone', () => {
@@ -91,18 +100,18 @@ test('phonetic tier gate stops unrelated slants from beating available family rh
   assert.ok(ranked.slice(1).every((item) => item.writer.effectiveTier >= 3));
 });
 
-test('diversity may promote the next phonetic tier when the current tier repeats one lexical construction', () => {
+test('diversity suppresses repeated shared stems without suppressing rhyme endings', () => {
   const rows = [
-    row('Denkweise', 0.94, { rhymeTier: 2, primaryType: 'family', usageRank: 9000 }),
-    row('Vorgehensweise', 0.945, { rhymeTier: 2, primaryType: 'family', usageRank: 8000 }),
-    row('Lebensweise', 0.94, { rhymeTier: 2, primaryType: 'family', usageRank: 7000 }),
-    row('Hochzeitsreise', 0.93, { rhymeTier: 3, primaryType: 'slant', usageRank: 12000 }),
+    row('Arbeitsreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 9000 }),
+    row('Arbeitskreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 10000 }),
+    row('Hochzeitsreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 12000 }),
+    row('Sonderpreise', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', usageRank: 13000 }),
   ];
 
   const ranked = rankWriterRecommendedResults(rows, query, { limit: 4 });
   const topThree = ranked.slice(0, 3).map((item) => item.word.toLocaleLowerCase('de-DE'));
   assert.ok(topThree.includes('hochzeitsreise'));
-  assert.ok(topThree.filter((word) => word.endsWith('weise')).length <= 2);
+  assert.ok(topThree.includes('sonderpreise'));
   assert.ok(ranked.every((item, index) => item.writerRank === index + 1));
   assert.ok(ranked.every((item) => item.writer?.policy === WRITER_RANKING_POLICY));
 });
