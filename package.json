@@ -15,6 +15,7 @@
     "rhyme:types:audit": "node --no-warnings scripts/rhyme-type-audit.mjs",
     "diagnose:rhyme-pair": "node --no-warnings scripts/diagnose-rhyme-pair.mjs",
     "diagnose:writer-pages": "node --no-warnings scripts/diagnose-writer-pages.mjs",
+    "diagnose:writer-candidate": "node --no-warnings scripts/diagnose-writer-ranking-candidate.mjs",
     "benchmark:prepare": "node --no-warnings scripts/benchmark-prepare.mjs",
     "benchmark:export": "node --no-warnings scripts/benchmark-export.mjs",
     "benchmark:import": "node --no-warnings scripts/benchmark-import.mjs",
