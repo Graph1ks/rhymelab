@@ -33,6 +33,7 @@
     "benchmark:writer-page:prepare": "npm run check && npm test && node --no-warnings scripts/prepare-writer-page-benchmark-v2.mjs",
     "benchmark:writer-page:v2": "npm run check && npm test && node --no-warnings scripts/benchmark-writer-page-v2.mjs",
     "benchmark:writer-v5:equivalence": "npm run check && npm test && node --no-warnings scripts/benchmark-writer-v5-equivalence.mjs",
+    "benchmark:writer-page:v5": "npm run check && npm test && node --no-warnings scripts/benchmark-writer-page-v5-materialized.mjs",
     "benchmark:handoff": "npm run check && npm test && npm run benchmark:prepare && npm run benchmark:export",
     "benchmark:ingest": "npm run benchmark:import && npm run benchmark:report",
     "benchmark:run": "npm run check && npm test && npm run benchmark:prepare && npm run dev",
