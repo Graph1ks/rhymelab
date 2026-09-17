@@ -29,9 +29,17 @@
   },
   "page_regressions": [
     {
-      "id": "arbeitsweise-hochzeitsreise-surfacing",
+      "id": "arbeitsweise-hochzeitsreise-retrieval",
       "query": "Arbeitsweise",
       "candidate": "Hochzeitsreise",
+      "max_rank": 250,
+      "allowed_primary_types": ["multisyllabic_perfect", "perfect"],
+      "max_cheap_tier_penalty": 0
+    },
+    {
+      "id": "arbeitsweise-reise-family-surfacing",
+      "query": "Arbeitsweise",
+      "required_family": "right:reise",
       "max_rank": 20,
       "allowed_primary_types": ["multisyllabic_perfect", "perfect"],
       "max_cheap_tier_penalty": 0
