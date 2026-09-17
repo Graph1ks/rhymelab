@@ -1,4 +1,4 @@
-export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v1';
+export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v2';
 
 const MAX_EDIT_LENGTH = 96;
 const DEFAULT_DIVERSITY_WEIGHT = 0.18;
@@ -64,8 +64,6 @@ export function lexicalOverlapEvidence(query, candidate) {
   const prefixOverlap = prefixLength / minLength;
   const suffixOverlap = suffixLength / minLength;
 
-  // Query overlap measures lexical cheapness, not rhyme quality. Long shared prefixes are
-  // particularly important for German compounds (Arbeitsweise -> Arbeitszweige).
   const overlap = Math.max(
     sameLemma ? 1 : 0,
     surfaceSimilarity >= 0.72 ? surfaceSimilarity * 0.90 : surfaceSimilarity * 0.55,
@@ -101,10 +99,6 @@ export function lexicalRedundancy(left, right) {
   const suffixLength = commonSuffixLength(a, b);
   const minLength = Math.max(1, Math.min(a.length, b.length));
 
-  // Five shared final characters are enough to catch productive lexical constructions
-  // such as *-weise without treating the ordinary four-letter rhyme ending -eise as
-  // duplicate lexical material. This is deliberately a surface baseline until explicit
-  // morphology is stored in the database.
   const terminalConstruction = suffixLength >= 5
     ? clamp01(0.58 + 0.07 * (suffixLength - 5))
     : 0;
@@ -114,12 +108,6 @@ export function lexicalRedundancy(left, right) {
   const nearDuplicate = surfaceSimilarity >= 0.78 ? surfaceSimilarity : 0;
 
   return Number(Math.max(terminalConstruction, initialConstruction, nearDuplicate).toFixed(4));
-}
-
-function tierUtility(row) {
-  const tier = Number(row?.rhymeTier);
-  if (!Number.isFinite(tier)) return 0;
-  return clamp01(1 - Math.max(0, tier) * 0.12);
 }
 
 function syllableUtility(row) {
@@ -147,17 +135,32 @@ function rarePenalty(row) {
   return tags.some((tag) => ['rare', 'archaic', 'obsolete', 'dated'].includes(tag)) ? 0.08 : 0;
 }
 
+function lexicalTierPenalty(lexical) {
+  if (lexical.sameLemma) return 3;
+  if (lexical.overlap >= 0.85) return 2;
+  if (lexical.overlap >= 0.65) return 1;
+  return 0;
+}
+
+function redundancyTierPenalty(maxRedundancy) {
+  if (maxRedundancy >= 0.88) return 2;
+  if (maxRedundancy >= 0.58) return 1;
+  return 0;
+}
+
 export function writerUtilityFeatures(row, query) {
   const lexical = lexicalOverlapEvidence(query, row);
   const phonetic = clamp01(row?.score);
-  const tier = tierUtility(row);
   const syllable = syllableUtility(row);
   const commonness = commonnessUtility(row, query);
+  const baseTier = Math.max(0, Number.isFinite(Number(row?.rhymeTier)) ? Number(row.rhymeTier) : 6);
+  const cheapRhymeTierPenalty = lexicalTierPenalty(lexical);
+  const writerTier = baseTier + cheapRhymeTierPenalty;
 
-  // Intentionally explicit and deterministic. Phonetic evidence remains the dominant
-  // signal; lexical overlap only changes writer usefulness, never the rhyme relation.
-  const soundUtility = 0.58 * phonetic + 0.24 * tier + 0.10 * syllable + 0.08 * commonness;
-  const lexicalPenalty = 0.30 * lexical.overlap;
+  // Tier is enforced separately during selection. Within an admissible tier, actual
+  // phonetic score remains dominant and commonness cannot rescue a poor sound match.
+  const soundUtility = 0.72 * phonetic + 0.16 * syllable + 0.12 * commonness;
+  const lexicalPenalty = 0.16 * lexical.overlap;
   const utility = clamp01(soundUtility - lexicalPenalty - rarePenalty(row));
 
   return {
@@ -168,6 +171,9 @@ export function writerUtilityFeatures(row, query) {
     lexicalNovelty: lexical.novelty,
     queryOverlap: lexical.overlap,
     commonness: Number(commonness.toFixed(4)),
+    baseTier,
+    cheapRhymeTierPenalty,
+    writerTier,
     evidence: lexical,
   };
 }
@@ -192,32 +198,41 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
   while (remaining.length && selected.length < limit) {
     let bestIndex = -1;
     let bestScore = Number.NEGATIVE_INFINITY;
+    let bestEffectiveTier = Number.POSITIVE_INFINITY;
 
     for (let index = 0; index < remaining.length; index += 1) {
       const candidate = remaining[index];
+      const diversityTierPenalty = redundancyTierPenalty(candidate.maxRedundancy);
+      const effectiveTier = candidate.writer.writerTier + diversityTierPenalty;
       const diversifiedScore = candidate.writer.utility - diversityWeight * candidate.maxRedundancy;
       const incumbent = bestIndex >= 0 ? remaining[bestIndex] : null;
-      const better = diversifiedScore > bestScore + 1e-9
-        || (Math.abs(diversifiedScore - bestScore) <= 1e-9
-          && (candidate.writer.utility > (incumbent?.writer.utility ?? -1) + 1e-9
-            || (Math.abs(candidate.writer.utility - (incumbent?.writer.utility ?? -1)) <= 1e-9
-              && (candidate.baseIndex < (incumbent?.baseIndex ?? Number.MAX_SAFE_INTEGER)
-                || (candidate.baseIndex === incumbent?.baseIndex
-                  && lexicalCompare(candidate.row, incumbent?.row) < 0)))));
+      const better = effectiveTier < bestEffectiveTier
+        || (effectiveTier === bestEffectiveTier && (
+          diversifiedScore > bestScore + 1e-9
+          || (Math.abs(diversifiedScore - bestScore) <= 1e-9
+            && (candidate.writer.utility > (incumbent?.writer.utility ?? -1) + 1e-9
+              || (Math.abs(candidate.writer.utility - (incumbent?.writer.utility ?? -1)) <= 1e-9
+                && (candidate.baseIndex < (incumbent?.baseIndex ?? Number.MAX_SAFE_INTEGER)
+                  || (candidate.baseIndex === incumbent?.baseIndex
+                    && lexicalCompare(candidate.row, incumbent?.row) < 0)))))
+        ));
       if (better) {
         bestIndex = index;
         bestScore = diversifiedScore;
+        bestEffectiveTier = effectiveTier;
       }
     }
 
     const [winner] = remaining.splice(bestIndex, 1);
+    const diversityTierPenalty = redundancyTierPenalty(winner.maxRedundancy);
     selected.push({
       ...winner,
+      effectiveTier: winner.writer.writerTier + diversityTierPenalty,
+      diversityTierPenalty,
       diversifiedScore: Number(bestScore.toFixed(4)),
       redundancyPenalty: Number((diversityWeight * winner.maxRedundancy).toFixed(4)),
     });
 
-    // Incremental max-redundancy update keeps greedy diversity at O(n²) pair checks.
     for (const candidate of remaining) {
       candidate.maxRedundancy = Math.max(
         candidate.maxRedundancy,
@@ -226,7 +241,8 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
     }
   }
 
-  const tail = remaining.sort((a, b) => b.writer.utility - a.writer.utility
+  const tail = remaining.sort((a, b) => a.writer.writerTier - b.writer.writerTier
+    || b.writer.utility - a.writer.utility
     || a.baseIndex - b.baseIndex
     || lexicalCompare(a.row, b.row));
 
@@ -235,6 +251,8 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
     writerRank: index + 1,
     writer: {
       ...item.writer,
+      effectiveTier: item.effectiveTier ?? item.writer.writerTier,
+      diversityTierPenalty: item.diversityTierPenalty ?? 0,
       diversifiedScore: item.diversifiedScore ?? item.writer.utility,
       redundancyPenalty: item.redundancyPenalty ?? 0,
       maxRedundancy: Number((item.maxRedundancy ?? 0).toFixed(4)),
