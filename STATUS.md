@@ -59,35 +59,15 @@ NDCG@10/20 remains `pending_reference` until complete independent human usefulne
 
 ## Phase 9A — legacy/runtime invariance complete
 
-The owner-local gate passed 27/27 queries with no missing queries, runtime candidate mismatches, runtime-policy mismatches or protected-order mismatches. Historical review assets were absent, so NDCG/pairwise remain deliberately unavailable for this invariance-only gate.
+The owner-local gate passed 27/27 queries with no missing queries, runtime candidate mismatches, runtime-policy mismatches or protected-order mismatches.
 
 ## Phase 9B — multi-analysis publish/storage real-data build complete
 
-Experimental migration schemas:
-
-```text
-publish: rhymelab-de-publish-v3
-DB:      rhymelab-local-db-v5
-```
-
-Owner real-data counts:
-
-```text
-publish forms                     838,199
-DB forms                          838,209
-DB pronunciations                 904,836
-lexical analyses                  967,931
-multi-analysis forms              101,315
-DB-v5 before writer materialize   727.21 MiB
-```
-
-Accepted v2/v4 defaults remain untouched.
+Experimental migration schemas remain `rhymelab-de-publish-v3` / `rhymelab-local-db-v5`. The real owner DB has 967,931 lexical-analysis rows across 838,209 forms / 904,836 pronunciations. Accepted v2/v4 defaults remain untouched.
 
 ## Phase 9C — compact materialization owner gate passed
 
-The first materialization was correct but storage-rejected at 1,904.67 MiB. The compact layout stores only the runtime evidence required by the active policies.
-
-Final exact-suffix owner storage after correcting candidate materialization to match legacy `vowel_key LIKE '%key'` string-suffix semantics:
+Final exact-suffix owner storage:
 
 ```text
 DB-v5 pre-materialization          727.21 MiB
@@ -102,38 +82,56 @@ anchor rows                      3,153,639
 positive morphology rows          325,724
 ```
 
-The anchor-only correction left morphology untouched and the real query plan uses `PRIMARY KEY(anchor_key=?)`.
+The real anchor plan uses `PRIMARY KEY(anchor_key=?)`.
 
 ## Phase 9D — real-data equivalence complete
 
-`npm run benchmark:writer-v5:equivalence` now passes on owner data:
+Owner equivalence passes:
 
 ```text
 status                              ok
 queries                             12 / 12
-missing queries                     0
 retrieval mismatch queries          0
 morphology regressions              10 / 10 pass
 Hochzeitsreise retrieval sentinel   retained
-sample anchor plan                  PRIMARY KEY(anchor_key=?)
 old LIKE retrieval total            843.016 ms
 indexed retrieval total              59.694 ms
 retrieval-only speedup                14.12x
 ```
 
-This gate proves exact ordered candidate equivalence for every frozen right-edge channel. The 14.12x number is retrieval-only and is not yet the full Writer Page runtime result.
+This proves exact ordered candidate equivalence for every frozen right-edge channel.
 
-## Phase 9E — materialized v5 runtime benchmark ready
+## Phase 9E — materialized v5 runtime structural gate passed
 
-An opt-in experimental runtime now exists as `materialized-writer-v5-v1`:
+The first full owner run of `materialized-writer-v5-v1` passes its runtime contract and Writer Page structural gate:
 
-- v4/default writer behavior remains the existing validation `LIKE + dynamic morphology` path;
-- a fully validated v5 database uses `writer_anchor` for right-edge retrieval;
-- v5 morphology is reconstructed from `form_analysis + writer_morphology_evidence`, preserving converged/unresolved/ambiguous multi-analysis semantics;
-- the v5 opener refuses incomplete storage contracts;
-- the owner benchmark fails if any of the 12 queries does not actually use `materialized-writer-v5-v1`.
+```text
+status                              structural_ok_reference_pending
+runtime contract                    12 / 12
+queries                             12 / 12
+mean writer elapsed                 1401.9 ms
+median writer elapsed                862.45 ms
+Top-20 exact duplicates             0
+Top-20 near duplicates              0
+Top-20 same-lemma rows              0
+Top-20 repeated family rows         0
+Top-20 unranked rows                1
+Top-20 usage rank >100k rows        25
+Top-20 usage rank >250k rows        1
+Top-20 explicit rare/historical     0
+preferred pronunciation rows        240 / 240
+legacy tier-0 retention             685 / 685
+```
 
-CI run #168 passes tests and public-readiness checks.
+Protected regressions all pass. `Hochzeitsreise` is rank 116 as the retrieval sentinel; `right:reise` still surfaces through `Weiterreise` at rank 3. `Diebe` remains rank 1, `neben` rank 2 and `macht` rank 1. All 10 morphology regressions pass.
+
+The materialized runtime is about 8.3% faster on the 12-query mean than the frozen 1528.8 ms baseline, but `Arbeitsweise` is still a 7105.7 ms outlier because its 1,580 merged candidates were being greedily diversity-ranked all the way to the tail even though at most 250 rows can be returned.
+
+## Phase 9F — prefix-stable runtime performance refinement
+
+The writer runtime now stops greedy diversity selection at the requested page size. This changes no score, tier, ranking policy, morphology policy or diversity rule: greedy selection is prefix-stable, so later selection rounds cannot change an already-selected top-K prefix.
+
+A dedicated test compares a complete ranking with an early-stopped ranking and requires the selected prefix to be byte-for-byte identical. CI run #174 passes.
 
 Next owner gate:
 
@@ -141,12 +139,6 @@ Next owner gate:
 npm run benchmark:writer-page:v5
 ```
 
-Output:
-
-```text
-reports/de-writer-page-benchmark-v5-materialized.json
-```
-
-That report must be compared against the frozen Writer Page v2 baseline for structural quality, protected regressions, legacy Tier-0 retention, multi-analysis morphology behavior and full end-to-end latency before any promotion decision.
+The rerun must keep the Phase 9E structural metrics/regressions and 685/685 Tier-0 retention while measuring the new full end-to-end latency, especially `Arbeitsweise`.
 
 `findRhymes()` / `ranking=legacy` remains untouched. Phrase/mosaic rhyme and English remain after German single-word writer-search acceptance.
