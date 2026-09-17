@@ -66,13 +66,11 @@ accepted/base retrieval + deterministic right-edge retrieval
   -> writer-oriented page
 ```
 
-The owner-local 12-query v6/v4 diagnostic passed. Ad-hoc writer-ranking and morphology tuning is frozen at v6/v4.
+The owner-local 12-query v6/v4 diagnostic passed. Ad-hoc writer-ranking and morphology tuning is frozen at v6/v4. Writer v7 remains rejected because it improved one specific `Hochzeitsreise` rank only slightly while introducing repeated-family flooding and failing the structural benchmark.
 
-Writer v7 remains rejected because it improved one specific `Hochzeitsreise` rank only slightly while introducing repeated-family flooding and failing the structural benchmark.
+## Phase 7 — Deterministic multi-analysis lexical/morphology data model — migration path implemented
 
-## Phase 7 — Deterministic multi-analysis lexical/morphology data model — design active
-
-Current DB v4 stores one selected lemma/POS analysis per surface form. Live validation proved that this is not sufficient as a final writer-morphology substrate because source entries can legitimately expose multiple analyses.
+DB v4 stores one selected lemma/POS analysis per surface form. Live validation proved that this is not sufficient as a final writer-morphology substrate because source entries can legitimately expose multiple analyses.
 
 Design contract:
 
@@ -90,7 +88,7 @@ form
   -> materialized/versioned writer right-edge anchors
 ```
 
-Required behavior:
+Required behavior remains:
 
 - preserve ambiguous lexical analyses rather than forcing false single semantic truth;
 - derive morphology independently per source-supported analysis;
@@ -100,16 +98,25 @@ Required behavior:
 - materialize a compact SQLite hot layer suitable for ordinary PCs and later mobile runtime;
 - do not invent morphology facts.
 
-First DB-free implementation step is complete:
+The first implementation layers now exist:
 
 ```text
 scripts/writer-lexical-model-core.mjs
+scripts/writer-lexical-publish-v3-core.mjs
+scripts/writer-lexical-storage-v5-core.mjs
 tests/writer-lexical-model.test.mjs
+tests/writer-lexical-publish-storage.test.mjs
+tests/local-db-writer-lexical-v5.test.mjs
 ```
 
-It preserves multi-analysis ambiguity/provenance deterministically and defines conservative family consensus. The isolated test set passes 7/7. It is not wired into DB v4/runtime yet.
+Experimental schemas:
 
-No owner DB rebuild is authorized at this stage.
+```text
+publish: rhymelab-de-publish-v3
+DB:      rhymelab-local-db-v5
+```
+
+The accepted v2/v4 paths remain defaults. v3 is opt-in through `--writer-lexical-v3`; v5 uses separate default local outputs for v3 input. No owner DB rebuild is authorized yet.
 
 ## Phase 8 — Search-quality benchmark v2 — structural baseline passed / human reference pending
 
@@ -121,13 +128,6 @@ scripts/writer-page-benchmark-core.mjs
 scripts/benchmark-writer-page-v2.mjs
 scripts/prepare-writer-page-benchmark-v2.mjs
 tests/writer-page-benchmark.test.mjs
-```
-
-Commands:
-
-```powershell
-npm run benchmark:writer-page:v2
-npm run benchmark:writer-page:prepare
 ```
 
 The corrected v6/v4 owner-local structural run passed:
@@ -159,53 +159,60 @@ Leben -> neben                   rank 2
 Nacht -> macht                   rank 1
 ```
 
-All productive-`-weise` and previous false-split morphology regressions passed.
-
 NDCG@10 / NDCG@20 is supported only when the relevant current writer cutoff has complete independent human songwriting-usefulness labels. Missing labels correctly produce `pending_reference`; sparse labels must not be treated as valid NDCG.
 
-Decision: freeze this structural baseline. Human usefulness review remains available but is not required before beginning the storage/materialization work.
+Decision: freeze this structural baseline. Human usefulness review remains available but is not required before storage/materialization engineering.
 
-## Phase 9 — Legacy invariance + multi-anchor materialization — current execution phase
+## Phase 9 — Legacy invariance + materialized writer runtime — current execution phase
 
-### 9A. Accepted legacy control-path invariance
+### 9A. Accepted legacy control-path invariance — complete
 
-`ranking=legacy` still routes to the accepted `findRhymes()` path, while writer search uses `findWriterRhymes()`.
+`ranking=legacy` routes to the accepted `findRhymes()` path, while writer search uses `findWriterRhymes()`.
 
-`src/local-engine.mjs` is currently blob-identical on `main` and the writer feature branch. The owner-local runtime gate must still be rerun:
-
-```powershell
-npm run benchmark:ranking:runtime-candidate
-```
-
-Require:
+The owner-local retrieval-aware runtime gate passed on the current accepted DB:
 
 ```text
-schema = rhymelab-benchmark-ranking-runtime-candidate-v2
-status = ok
-runtime_candidate_mismatch_queries = []
-runtime_policy_mismatch_queries = []
-protected_order_mismatch_queries = []
+schema                              rhymelab-benchmark-ranking-runtime-candidate-v2
+status                              ok
+queries                             27 / 27
+missing_queries                     []
+runtime_candidate_mismatch_queries []
+runtime_policy_mismatch_queries    []
+protected_order_mismatch_queries   []
+reference evidence                 unavailable_invariance_only
 ```
 
-### 9B. Multi-analysis publish/storage implementation
+Historical local human-review assets were absent, therefore NDCG/pairwise were correctly not recomputed. Runtime order, policy identity, protected ordering and safety were verified.
 
-After/alongside the owner-local control gate:
+The newly surfaced candidate safety aggregate contained 14 Top-20 and 141 Top-250 candidates with zero missing usage rank, zero explicit rare flags, zero >100k usage ranks and zero query-relative horizon violations.
 
-- preserve all merged source-supported lexical analyses in the publish/storage model;
-- keep a deterministic compatibility projection only for old consumers during migration;
-- add fixture/publish/storage tests before rebuilding local data;
-- preserve provenance and deterministic fingerprints.
+### 9B. Multi-analysis publish/storage implementation — fixture/builder contract complete, owner rebuild pending later gate
 
-### 9C. Right-edge + morphology materialization
+Implemented:
 
-Only after the multi-analysis lexical layer is correct:
+- publish-v3 compact `a[]` preserves all merged source-supported lexical analyses;
+- old `l/p/g` remain deterministic compatibility projection only;
+- DB-v5 `form_analysis` stores one row per `(form_id, analysis_key)`;
+- provenance arrays are sorted and deterministic;
+- v3/v5 fixture tests cover equal-confidence ambiguity, repeated provenance merging, input-order independence and normalized SQLite storage;
+- the real local DB builder is exercised end-to-end by a tiny publish-v3 fixture;
+- accepted v2/v4 defaults and output locations remain untouched.
+
+No owner DB rebuild has been performed or authorized yet.
+
+### 9C. Right-edge + morphology materialization — next
+
+Only now that the multi-analysis lexical substrate is explicit:
 
 - materialize/index validated `de-right-edge-anchors-v1` signatures per pronunciation;
 - materialize/version `de-attested-right-head-v4` evidence per source-supported analysis;
+- store policy/version/provenance on all derived evidence;
+- use indexed `(anchor_policy, anchor_key)` lookups;
 - merge indexed writer retrieval with accepted/base retrieval;
-- remove broad suffix `LIKE` probing from final writer runtime;
+- remove broad suffix `LIKE` probing from final writer runtime only after fixture equivalence is demonstrated;
 - inspect SQLite query plans and record DB-size/runtime impact;
-- require candidate/regression equivalence with the frozen Writer Page Benchmark v2 structural baseline.
+- require candidate/regression equivalence with the frozen Writer Page Benchmark v2 structural baseline;
+- preserve accepted/base behavior under `ranking=legacy`.
 
 Any change to `de-phon-v3` or `rhyme-relations-v2` requires its own scorer/relation acceptance path.
 
