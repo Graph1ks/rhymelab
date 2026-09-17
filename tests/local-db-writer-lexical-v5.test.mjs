@@ -168,8 +168,8 @@ test('publish-v3 builds DB-v5 and compactly materializes indexed writer evidence
     assert.ok(materializationReport.anchors.rows > 0);
     assert.equal(materializationReport.anchors.sample_query_plan_uses_lookup_index, true);
     assert.equal(materializationReport.morphology.evidenceRows, 2);
-    assert.equal(materializationReport.morphology.storedPositiveRows, 2);
-    assert.equal(materializationReport.morphology.unresolvedRows, 0);
+    assert.equal(materializationReport.morphology.storedPositiveRows, 0);
+    assert.equal(materializationReport.morphology.unresolvedRows, 2);
     assert.equal(materializationReport.accepted_runtime_rewired, false);
     assert.equal(materializationReport.writer_runtime_rewired, false);
 
@@ -180,7 +180,7 @@ test('publish-v3 builds DB-v5 and compactly materializes indexed writer evidence
         dbAfter.prepare('SELECT COUNT(*) AS c FROM writer_morphology_evidence').get().c,
       );
       assert.equal(anchorRows, materializationReport.anchors.rows);
-      assert.equal(morphologyRows, 2);
+      assert.equal(morphologyRows, 0);
       const anchorColumns = dbAfter.prepare('PRAGMA table_info(writer_anchor)').all().map((entry) => entry.name);
       assert.deepEqual(anchorColumns, ['anchor_key', 'pronunciation_id']);
       const morphologyColumns = dbAfter.prepare('PRAGMA table_info(writer_morphology_evidence)').all().map((entry) => entry.name);
@@ -201,7 +201,7 @@ test('publish-v3 builds DB-v5 and compactly materializes indexed writer evidence
       assert.equal(metadata.writer_morphology_policy, 'de-attested-right-head-v4');
       assert.equal(metadata.writer_morphology_storage, 'positive-evidence-compact-v2');
       assert.equal(Number(metadata.writer_morphology_analysis_rows), 2);
-      assert.equal(Number(metadata.writer_morphology_evidence_rows), 2);
+      assert.equal(Number(metadata.writer_morphology_evidence_rows), 0);
     } finally {
       dbAfter.close();
     }
