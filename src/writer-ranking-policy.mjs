@@ -1,4 +1,4 @@
-export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v3';
+export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v4';
 
 const MAX_EDIT_LENGTH = 96;
 const DEFAULT_DIVERSITY_WEIGHT = 0.18;
@@ -31,6 +31,11 @@ function commonSuffixLength(a, b) {
   return count;
 }
 
+function morphologyFamily(row) {
+  const key = String(row?.writerMorphology?.familyKey || '').trim();
+  return key || null;
+}
+
 export function normalizedEditSimilarity(left, right, language = 'de') {
   const a = normalizeSurface(left, language);
   const b = normalizeSurface(right, language);
@@ -60,22 +65,32 @@ export function lexicalOverlapEvidence(query, candidate) {
   const queryLemma = normalizeSurface(query?.lemma, language);
   const candidateLemma = normalizeSurface(candidate?.lemma, language);
   const sameLemma = Boolean(queryLemma && candidateLemma && queryLemma === candidateLemma);
+  const queryMorphologyFamily = morphologyFamily(query);
+  const candidateMorphologyFamily = morphologyFamily(candidate);
+  const sameMorphologyFamily = Boolean(
+    queryMorphologyFamily
+    && candidateMorphologyFamily
+    && queryMorphologyFamily === candidateMorphologyFamily
+  );
   const surfaceSimilarity = normalizedEditSimilarity(querySurface, candidateSurface, language);
   const prefixOverlap = prefixLength / minLength;
   const suffixOverlap = suffixLength / minLength;
 
   const overlap = Math.max(
     sameLemma ? 1 : 0,
+    sameMorphologyFamily ? 0.92 : 0,
     surfaceSimilarity >= 0.72 ? surfaceSimilarity * 0.90 : surfaceSimilarity * 0.55,
     prefixLength >= 5 ? prefixOverlap * 0.96 : 0,
-    // Query-vs-candidate suffix overlap is retained only as weak evidence at a long
-    // threshold. It can help catch trivial inflectional continuations, but must not
-    // dominate ordinary rhyme material such as -reise/-preise/-weise.
+    // Keep long suffix overlap only as weak query evidence. Real terminal lexical-family
+    // redundancy is represented explicitly by writerMorphology instead of spelling alone.
     suffixLength >= 7 ? suffixOverlap * 0.45 : 0,
   );
 
   return {
     sameLemma,
+    sameMorphologyFamily,
+    queryMorphologyFamily,
+    candidateMorphologyFamily,
     surfaceSimilarity: Number(surfaceSimilarity.toFixed(4)),
     sharedPrefixLength: prefixLength,
     sharedSuffixLength: suffixLength,
@@ -97,14 +112,16 @@ export function lexicalRedundancy(left, right) {
   const lemmaB = normalizeSurface(right?.lemma, language);
   if (lemmaA && lemmaB && lemmaA === lemmaB) return 1;
 
+  const familyA = morphologyFamily(left);
+  const familyB = morphologyFamily(right);
+  if (familyA && familyB && familyA === familyB) return 0.92;
+
   const surfaceSimilarity = normalizedEditSimilarity(a, b, language);
   const prefixLength = commonPrefixLength(a, b);
   const minLength = Math.max(1, Math.min(a.length, b.length));
 
-  // Redundancy must not be inferred from a shared word ending. The right edge is exactly
-  // where rhyme evidence lives, so suffix similarity such as -reise/-preise/-weise is
-  // expected and must not demote a candidate. Until explicit morphology is stored, v3
-  // only treats strong shared stems/prefixes, same lemmas and near-duplicates as redundant.
+  // Shared rhyme spelling is not redundancy. Outside explicit morphology evidence, only
+  // a strong shared initial construction or a true near-duplicate is list redundancy.
   const initialConstruction = prefixLength >= 6 && prefixLength / minLength >= 0.45
     ? clamp01(0.50 + 0.45 * (prefixLength / minLength))
     : 0;
@@ -140,6 +157,7 @@ function rarePenalty(row) {
 
 function lexicalTierPenalty(lexical) {
   if (lexical.sameLemma) return 3;
+  if (lexical.sameMorphologyFamily) return 2;
   if (lexical.overlap >= 0.85) return 2;
   if (lexical.overlap >= 0.65) return 1;
   return 0;
@@ -160,8 +178,6 @@ export function writerUtilityFeatures(row, query) {
   const cheapRhymeTierPenalty = lexicalTierPenalty(lexical);
   const writerTier = baseTier + cheapRhymeTierPenalty;
 
-  // Tier is enforced separately during selection. Within an admissible tier, actual
-  // phonetic score remains dominant and commonness cannot rescue a poor sound match.
   const soundUtility = 0.72 * phonetic + 0.16 * syllable + 0.12 * commonness;
   const lexicalPenalty = 0.16 * lexical.overlap;
   const utility = clamp01(soundUtility - lexicalPenalty - rarePenalty(row));
