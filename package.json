@@ -1,6 +1,6 @@
 {
   "name": "@graph1ks/rhymelab",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22.5.0" },
@@ -43,11 +43,15 @@
     "de:core:verify": "node scripts/verify-de-rhyme-core.mjs data/de/core",
     "de:core:bootstrap": "node scripts/bootstrap-de-rhyme-core-local.mjs",
     "de:publish": "node scripts/build-de-rhyme-publish.mjs",
+    "de:publish:v3": "node scripts/build-de-rhyme-publish.mjs --writer-lexical-v3",
     "de:publish:verify": "node scripts/verify-de-rhyme-publish.mjs data/de/publish",
     "de:publish:rebuild": "node scripts/build-de-rhyme-publish.mjs && node scripts/verify-de-rhyme-publish.mjs data/de/publish",
     "local:db": "node scripts/build-local-db.mjs",
+    "local:db:v5": "node scripts/build-local-db.mjs --publish data/de/publish-v3",
+    "writer:v5:materialize": "node scripts/materialize-writer-v5.mjs",
+    "writer:v5:rebuild": "npm run de:publish:v3 && npm run local:db:v5 && npm run writer:v5:materialize",
     "local:rebuild": "npm run de:publish:rebuild && npm run local:db",
     "local:refresh": "npm run de:publish:rebuild && npm run local:db && npm run report --silent",
-    "local:run": "npm run local:refresh && npm run dev"
+    "local:run": "npm run dev"
   }
 }

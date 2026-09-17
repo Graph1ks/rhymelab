@@ -2,23 +2,36 @@ import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { findRhymes, getStats, getWord, openRhymeDb, searchWords } from './local-engine.mjs';
+import { DEFAULT_WRITER_DB_PATH, openWriterDb } from './experimental-writer-db.mjs';
+import { WRITER_RUNTIME_ID, selectRhymeRuntimeDatabases } from './runtime-db-routing.mjs';
 import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
-const dbPath = resolve(process.env.RHYMELAB_DB || 'data/local/rhymelab.sqlite');
+const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYMELAB_DB || 'data/local/rhymelab.sqlite');
+const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
 const uiDir = resolve('src/ui');
 const benchmarkUiDir = resolve('src/benchmark-ui');
 
-let db;
+let writerDb;
 try {
-  db = openRhymeDb(dbPath);
+  writerDb = openWriterDb(writerDbPath);
 } catch (error) {
-  console.error(`Cannot open local RhymeLab database at ${dbPath}`);
-  console.error('Run: npm run local:refresh');
+  console.error(`Cannot open promoted Writer v5 database at ${writerDbPath}`);
+  console.error('Build it with: npm run writer:v5:rebuild');
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
+}
+
+let legacyDb = null;
+let legacyDbError = null;
+try {
+  legacyDb = openRhymeDb(legacyDbPath);
+} catch (error) {
+  legacyDbError = error instanceof Error ? error.message : String(error);
+  console.warn(`Legacy/control DB unavailable at ${legacyDbPath}`);
+  console.warn('Normal Writer v5 runtime remains available; only ?ranking=legacy is disabled.');
 }
 
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
@@ -108,14 +121,23 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/health') {
-      return json(res, { status: 'ok', mode: 'local', database: dbPath });
+      return json(res, {
+        status: 'ok',
+        mode: 'local',
+        package_runtime: 'writer-v5-default',
+        writer_database: writerDbPath,
+        writer_runtime: WRITER_RUNTIME_ID,
+        legacy_database: legacyDb ? legacyDbPath : null,
+        legacy_available: Boolean(legacyDb),
+        legacy_error: legacyDb ? null : legacyDbError,
+      });
     }
-    if (url.pathname === '/api/stats') return json(res, getStats(db));
+    if (url.pathname === '/api/stats') return json(res, getStats(writerDb));
 
     if (url.pathname === '/api/search') {
       return json(res, {
         results: searchWords(
-          db,
+          writerDb,
           url.searchParams.get('q') || '',
           url.searchParams.get('limit'),
           { includeHistorical: url.searchParams.get('historical') === 'all' },
@@ -125,7 +147,7 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname.startsWith('/api/word/')) {
       const word = decodeURIComponent(url.pathname.slice('/api/word/'.length));
-      const result = getWord(db, word);
+      const result = getWord(writerDb, word);
       return result ? json(res, result) : json(res, { error: 'Word not found' }, 404);
     }
 
@@ -140,10 +162,10 @@ const server = createServer(async (req, res) => {
         ensureTypeCoverage: url.searchParams.get('coverage') === 'balanced',
         coverageFloor: url.searchParams.get('coverage_floor'),
       };
-      const useLegacyRanking = url.searchParams.get('ranking') === 'legacy';
-      const result = useLegacyRanking
-        ? findRhymes(db, word, options)
-        : findWriterRhymes(db, word, options);
+      const runtime = selectRhymeRuntimeDatabases({ writerDb, legacyDb }, url.searchParams);
+      const result = runtime.mode === 'legacy'
+        ? findRhymes(runtime.database, word, options)
+        : findWriterRhymes(runtime.database, word, options);
       return result ? json(res, result) : json(res, { error: 'Word not found' }, 404);
     }
 
@@ -156,12 +178,15 @@ const server = createServer(async (req, res) => {
 server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
-  console.log(`SQLite: ${dbPath}`);
+  console.log(`Writer v5 SQLite: ${writerDbPath}`);
+  console.log(`Writer runtime: ${WRITER_RUNTIME_ID}`);
+  console.log(`Legacy/control SQLite: ${legacyDb ? legacyDbPath : 'unavailable'}`);
 });
 
 function shutdown() {
   server.close(() => {
-    try { db.close(); } catch {}
+    try { writerDb.close(); } catch {}
+    try { legacyDb?.close(); } catch {}
     process.exit(0);
   });
 }
