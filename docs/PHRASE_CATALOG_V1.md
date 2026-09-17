@@ -236,3 +236,60 @@ Before Phase 11C phrase pronunciation begins, run the owner-local full source bu
 - repeat build fingerprint equality.
 
 No human NDCG is required at this stage.
+
+## Full owner-local build evidence — 2026-09-18
+
+The first full owner-local build completed successfully over the pinned Kaikki snapshot plus all three frozen Leipzig 1M-sentence corpora.
+
+```text
+catalog fingerprint       f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d
+database bytes             161,210,368
+database MiB               153.74
+phrases                     98,504
+modern eligible             97,400
+historical only              1,104
+mixed historical               148
+attestations                99,357
+phrase tokens              205,957
+Leipzig evidence rows       28,799
+unresolved lexical tokens  205,957
+```
+
+The unresolved-token count is expected in 11B1: lexical token linkage is intentionally deferred rather than guessed.
+
+Each Leipzig corpus processed exactly 1,000,000 sentences with zero malformed sentence rows. The next acceptance work is distribution/noise diagnostics plus one independent repeat full build requiring the same semantic catalog fingerprint.
+
+### Diagnostics
+
+Run:
+
+```powershell
+npm run phrase:catalog:diagnose
+```
+
+The report includes phrase-type/style/POS distributions, token/history distributions, distinct Leipzig phrase coverage, 1/2/3-corpus coverage, equal-weight and per-corpus commonness samples, optional register evidence, and anomaly samples.
+
+## Optional modern register evidence
+
+Small specialist corpora are stored as **additive register evidence**, not merged into Leipzig general commonness.
+
+Current register schema:
+
+`rhymelab-phrase-register-evidence-v1`
+
+Current selected source:
+
+- Cologne Corpus of Kiezdeutsch 2025 v2;
+- policy `cologne-kiezdeutsch-register-exact-token-sequence-v1`;
+- exact matching against already-known modern-eligible phrases;
+- no candidate generation;
+- no general-population frequency claim;
+- transcription PDFs only; no audio.
+
+Bootstrap:
+
+```powershell
+npm run phrase:register:cologne:bootstrap
+```
+
+RUEG is deferred until a practical slim German-only distribution is available; the current official corpus archive is too large for this milestone.

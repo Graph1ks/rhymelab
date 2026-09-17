@@ -1,0 +1,67 @@
+{
+  "id": "cologne-kiezdeutsch-2025-v2",
+  "source_id": "cologne-kiezdeutsch-2025-v2",
+  "name": "Kölner Korpus des Kiezdeutschen / Cologne Corpus of Kiezdeutsch",
+  "role": "modern_youth_urban_spoken_register_evidence",
+  "recording_year": 2023,
+  "publication_year": 2025,
+  "version": "v2",
+  "doi": "10.5281/zenodo.15465769",
+  "homepage_url": "https://zenodo.org/records/15465769",
+  "license_id": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "Neubauer, Antonia Marie & Catasso, Nicholas (2025), Kölner Korpus des Kiezdeutschen / Cologne Corpus of Kiezdeutsch, Zenodo, DOI 10.5281/zenodo.15465769",
+  "redistribution_policy": "CC BY 4.0; attribution required and transformations must be indicated. RhymeLab downloads only the transcription PDFs and stores derived register-attestation statistics locally.",
+  "language": "de",
+  "location": "Cologne, North Rhine-Westphalia, Germany",
+  "speaker_age": "17-20",
+  "speaker_population": "13 male vocational-school students; monolingual, multilingual and mixed peer groups",
+  "register": [
+    "informal",
+    "spoken",
+    "youth",
+    "urban",
+    "kiezdeutsch"
+  ],
+  "reported_tokens": 33019,
+  "reported_turn_takes": 3721,
+  "reported_audio_minutes": 180,
+  "ingestion_policy": {
+    "policy_id": "cologne-kiezdeutsch-register-exact-token-sequence-v1",
+    "purpose": "Register evidence for phrases already present in the RhymeLab phrase catalog; not general German commonness.",
+    "candidate_generation": false,
+    "historical_phrases": false,
+    "unit": "conservative PDF transcript line after deterministic GAT2/header cleanup",
+    "notes": [
+      "No audio is downloaded.",
+      "No phrase type is inferred from occurrence in this corpus.",
+      "Counts are treated as youth/urban/spoken register evidence, not population-representative frequency."
+    ]
+  },
+  "files": [
+    {
+      "group": "G1",
+      "speaker_group": "multilingual",
+      "name": "02_G1 - Multilingual speakers (transcription).pdf",
+      "url": "https://zenodo.org/records/15465769/files/02_G1%20-%20Multilingual%20speakers%20%28transcription%29.pdf?download=1",
+      "size_bytes": 314266,
+      "md5": "2e4b39c559152502ba380950ac478569"
+    },
+    {
+      "group": "G2",
+      "speaker_group": "monolingual",
+      "name": "04_G2 - Monolingual speakers (transcription).pdf",
+      "url": "https://zenodo.org/records/15465769/files/04_G2%20-%20Monolingual%20speakers%20%28transcription%29.pdf?download=1",
+      "size_bytes": 306176,
+      "md5": "b85a1f7148f02d6457e170760321f2cf"
+    },
+    {
+      "group": "G3",
+      "speaker_group": "mixed_multilingual_monolingual",
+      "name": "06_G3 - Multilingual & monolingual speakers (transcription).pdf",
+      "url": "https://zenodo.org/records/15465769/files/06_G3%20-%20Multilingual%20%26%20monolingual%20speakers%20%28transcription%29.pdf?download=1",
+      "size_bytes": 372122,
+      "md5": "af6b659230cf08b65220c389a3f2a8b4"
+    }
+  ]
+}

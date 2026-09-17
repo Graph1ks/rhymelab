@@ -104,57 +104,58 @@ It will not be collected from the project owner alone. Independent human usefuln
 
 Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`. Source decision: `docs/PHRASE_SOURCE_SURVEY.md`. Phrase catalog contract: `docs/PHRASE_CATALOG_V1.md`.
 
-### Phase 11A source/licensing gate — COMPLETE
+### Phase 11B1 provenance phrase catalog — FULL OWNER BUILD COMPLETE
 
-Selected initial stack remains:
-
-- raw German Wiktionary via Kaikki/Wiktextract — source-backed phraseology;
-- frozen Leipzig News 2024 1M + Wikipedia 2021 1M + Web 2021 1M — phrase attestation/commonness;
-- optional/conditional sources remain separated as documented in the source survey.
-
-### Phase 11B1 provenance phrase catalog — IMPLEMENTED / FIXTURE VALIDATED
-
-Implemented schema/policy:
+The fixture-validated `rhymelab-phrase-catalog-v1` implementation has now been built successfully over the owner-local full source snapshots.
 
 ```text
-phrase DB schema       rhymelab-phrase-catalog-v1
-phrase policy          de-phrase-catalog-v1
-Leipzig match policy   leipzig-exact-token-sequence-v1
-runtime rewired        false
+catalog fingerprint       f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d
+SQLite size               161,210,368 bytes / 153.74 MiB
+phrases                    98,504
+modern eligible            97,400
+historical only             1,104
+mixed historical              148
+attestations               99,357
+phrase tokens             205,957
+Leipzig evidence rows      28,799
+Wiktionary malformed rows       4
+runtime rewired             false
 ```
 
-The implementation includes:
+The three frozen Leipzig inputs each completed at exactly 1,000,000 sentences with zero malformed sentence rows. This establishes the first real-data phrase-catalog build; data-quality diagnostics and an independent repeat full-build fingerprint remain required before Phase 11C.
 
-- separate source/snapshot/license provenance;
-- deterministic phrase/snapshot/attestation identities;
-- streamed German Wiktextract multi-word ingestion;
-- source-backed phrase types/tags without invented classifications;
-- `historical_only`, `mixed`, and current/unmarked state;
-- deterministic token boundaries with explicit unresolved lexical state;
-- Leipzig exact-token-sequence occurrence/sentence commonness evidence;
-- deterministic catalog fingerprinting;
-- fixture tests covering all three frozen Leipzig corpus roles and repeat-build fingerprint equality;
-- local bootstrap command `npm run phrase:catalog:bootstrap`.
+### Phase 11B2 — lightweight modern register evidence
 
-The repository CI fixture gate passes without changing the accepted single-word Writer runtime.
+**Cologne Corpus of Kiezdeutsch 2025 v2 — selected.** It is a small CC BY 4.0 corpus of 2023 informal Cologne youth speech. RhymeLab downloads only the three transcription PDFs (~970 KiB total), never the ~158 MiB audio bundle. Cologne evidence is stored separately as youth/urban/spoken/register evidence and is not treated as representative general-German frequency.
 
-### Immediate next gate — owner-local full phrase catalog build
+```text
+register schema        rhymelab-phrase-register-evidence-v1
+Cologne policy         cologne-kiezdeutsch-register-exact-token-sequence-v1
+candidate generation   false
+general commonness     false
+audio download         false
+```
 
-Run:
+**RUEG 1.0 — very useful but deferred.** The official current corpora ZIP is 4.4 GB before audio. Do not add it to the normal bootstrap unless a reproducible slim German-only distribution/export becomes available.
+
+### Immediate owner gate
+
+After this branch is merged:
 
 ```powershell
-npm run phrase:catalog:bootstrap
+git switch main
+git pull --ff-only
+npm run phrase:register:cologne:bootstrap
+npm run phrase:catalog:diagnose
 ```
 
-This should reuse the existing Kaikki cache when available, verify/download the frozen Leipzig archives, extract their sentence files, and create:
+Expected generated reports:
 
 ```text
-data/local/rhymelab-phrases-v1.sqlite
-data/local/phrase-catalog-v1-report.json
+data/local/cologne-kiezdeutsch-register-report.json
+data/local/phrase-catalog-v1-diagnostics.json
 ```
 
-Review real-data phrase/type/history/commonness distributions, SQLite size/build time, and repeat fingerprint equality before Phase 11C begins.
+Review transcript-cleaning coverage, Cologne matched phrases, Leipzig 1/2/3-corpus coverage, phrase-type/token/history distributions and anomaly samples. Then repeat the full phrase build once to require the same catalog fingerprint before Phase 11C phrase pronunciation begins.
 
-Do **not** yet implement phrase pronunciation, connected speech, mosaic retrieval/indexing, phrase Writer ranking, API/UI phrase surfacing or Human Writer NDCG.
-
-The accepted German single-word Writer remains frozen and unchanged. English remains deferred until the German phrase/mosaic path is stable enough to freeze.
+The accepted German single-word Writer remains frozen and unchanged. Human Writer NDCG remains pending.

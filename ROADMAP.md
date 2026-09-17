@@ -183,13 +183,24 @@ First ingestion work is fixture-scale raw German Wiktextract phrase records plus
 
 Phase 11B1 now implements `rhymelab-phrase-catalog-v1`, source/snapshot/license provenance, raw Wiktextract phrase ingestion, deterministic token boundaries, historical/current eligibility, Leipzig exact-token commonness evidence and deterministic fingerprints. The repository fixture gate passes.
 
-The remaining 11B1 acceptance step is the owner-local full source build via:
+The owner-local full source build is now complete: 98,504 phrases / 97,400 modern-eligible phrases in a 153.74 MiB SQLite catalog, fingerprint `f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d`.
+
+### 11B2. Modern register evidence + full-catalog diagnostics — current
+
+Add small, legally clear register sensors without turning them into general-frequency truth.
+
+- Cologne Kiezdeutsch 2025 v2: selected, CC BY 4.0, transcript-only bootstrap (~970 KiB; audio excluded), youth/urban/spoken register evidence only.
+- RUEG 1.0: linguistically valuable but deferred because the current official corpora archive is 4.4 GB. Revisit only if a slim reproducible German-only distribution/export is available.
+- add full phrase diagnostics for type/token/history/Leipzig 1/2/3-corpus coverage, top commonness and anomaly samples;
+- require review of Cologne extraction/matches;
+- require one independent repeat full build with equal semantic fingerprint.
+
+Owner gate:
 
 ```powershell
-npm run phrase:catalog:bootstrap
+npm run phrase:register:cologne:bootstrap
+npm run phrase:catalog:diagnose
 ```
-
-Review full-data distributions/noise/coverage/size and repeat fingerprint equality before 11C.
 
 ### 11C. Deterministic phrase pronunciation
 

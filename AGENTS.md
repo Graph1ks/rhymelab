@@ -132,23 +132,28 @@ modern_entity_relative_commonness_1decade_0_05
 
 ## Current project direction — Phase 11
 
-Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_SOURCE_SURVEY.md`, and `docs/PHRASE_CATALOG_V1.md` before implementation.
+Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_SOURCE_SURVEY.md`, and `docs/PHRASE_CATALOG_V1.md`.
 
-Phase 11A is complete. Phase 11B1 now has a fixture-validated separate phrase catalog implementation:
+The owner-local Phase 11B1 full build is complete:
 
 ```text
 schema                 rhymelab-phrase-catalog-v1
-catalog policy         de-phrase-catalog-v1
-Leipzig matching       leipzig-exact-token-sequence-v1
+catalog fingerprint    f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d
+phrases                98,504
+modern eligible        97,400
+SQLite                 153.74 MiB
 single-word rewired    no
 ```
 
-It preserves source/snapshot/license provenance, source-backed phrase types/tags, deterministic token boundaries, explicit unresolved lexical tokens, historical/current state and per-corpus Leipzig usage evidence.
+Current work is Phase 11B2 data-quality diagnostics plus small modern-register evidence. Cologne Kiezdeutsch is allowed as an additive CC BY 4.0 youth/urban/spoken signal; it must not be treated as representative German commonness or as automatic phrase/candidate generation. The bootstrap downloads transcript PDFs only, not audio.
 
-Immediate next gate is the owner-local full-data build:
+RUEG is deferred despite strong linguistic fit because the current official corpus archive is 4.4 GB; do not introduce it unless a slim reproducible German-only route is documented.
+
+Immediate owner gate after merge:
 
 ```powershell
-npm run phrase:catalog:bootstrap
+npm run phrase:register:cologne:bootstrap
+npm run phrase:catalog:diagnose
 ```
 
-Do not start Phase 11C phrase pronunciation or any mosaic retrieval/ranking/UI work until the full-data report and repeat fingerprint have been reviewed. The accepted single-word Writer baseline remains frozen.
+Do not start Phase 11C pronunciation/mosaic work until the diagnostics are reviewed and a repeat full build reproduces the Phase 11B1 catalog fingerprint. The accepted single-word Writer baseline remains frozen.

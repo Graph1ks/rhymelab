@@ -125,6 +125,26 @@ npm run phrase:catalog:bootstrap
 
 No phrase pronunciation, mosaic index, phrase ranking or runtime/API integration is part of 11B1. Generated DB/report/raw data remain local and gitignored.
 
+## Modern informal/register evidence
+
+### Cologne Corpus of Kiezdeutsch 2025 v2 — USE
+
+Purpose: a **small high-quality youth/urban/spoken register sensor**, not representative general German frequency.
+
+Source record: `sources/phrase/cologne-kiezdeutsch-2025-v2.json`.
+
+The 2023 Cologne recordings contain informal in-group conversations among 17–20-year-old male vocational-school students in monolingual, multilingual and mixed groups. The corpus reports 33,019 tokens / 3,721 turn-takes and is published under CC BY 4.0.
+
+RhymeLab deliberately downloads only the three transcription PDFs (about 970 KiB combined). Audio is not downloaded. Derived evidence is stored separately under `rhymelab-phrase-register-evidence-v1` and may only support source-backed register signals such as youth / urban / spoken / Kiezdeutsch. It does not create a phrase type, candidate, or general commonness claim.
+
+Policy: `cologne-kiezdeutsch-register-exact-token-sequence-v1`.
+
+### RUEG 1.0 — VERY GOOD FIT / DEFERRED FOR SIZE
+
+RUEG remains highly relevant for informal/formal × written/spoken × age/register evidence, but the current official `RUEG-1.0_corpora.zip` is 4.4 GB before separate audio archives. That size is disproportionate for the current RhymeLab milestone.
+
+Do not add it to the normal bootstrap. Revisit only if the upstream project exposes a reproducible slim German-only text distribution/export with a pinned license/provenance chain.
+
 ## Deferred sources
 
 Possible later additions include UniMorph German, explicitly labeled pronunciation fallback resources, OpenThesaurus, OdeNet and Wikidata Lexemes. Definitions/full senses/semantic graphs/etymology/translations/embeddings remain outside the single-word rhyme hot path unless a later writer phase explicitly validates their use.
