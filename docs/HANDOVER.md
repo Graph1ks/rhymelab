@@ -16,19 +16,15 @@ Read in order:
 6. `DATA_SOURCES.md`
 7. `docs/BENCHMARK.md`
 8. `docs/API.md`
-9. `docs/WRITER_RANKING.md` for the current writer-search architecture work
+9. `docs/WRITER_RANKING.md`
 
 ## Public-repository boundary
 
-The public RhymeLab repository is intentionally published from a sanitized root commit. Pre-public private commit identifiers, branches, and pull requests are not part of the public project history.
+The public RhymeLab repository was published from a sanitized parentless root commit. Pre-public private commit identifiers, branches, pull requests, personal commit metadata, private paths/URLs and private-development history must remain outside the public repository.
 
-The private pre-public repository must remain private or be deleted; it must not simply be switched to public because historical PR pages and commit metadata would expose the old development history.
+Generated linguistic data, SQLite, benchmark queues/reviews/reference labels, reports and downloaded raw sources remain local/gitignored.
 
-Graph1ks Material uses the public terms in `LICENSE`; third-party material keeps its original license. See `THIRD_PARTY_NOTICES.md` and `DATA_SOURCES.md`.
-
-Never add credentials, personal email addresses, local user/profile paths, private URLs, raw corpora, local databases, benchmark review/reference-label files, or generated reports to Git.
-
-Before public-facing changes, run:
+Before public-facing changes run:
 
 ```powershell
 npm run check
@@ -36,54 +32,29 @@ npm test
 node scripts/public-readiness-audit.mjs
 ```
 
+`main` is protected; changes reach it through pull requests and required check `validate` must pass.
+
 ## Hard runtime boundary
 
-RhymeLab is local-only. Runtime is Node.js + SQLite on `127.0.0.1:3030`. Generated linguistic data, SQLite, benchmark queues/reviews/reference labels, reports, and downloaded raw sources remain local/gitignored.
+RhymeLab is local-only. Core retrieval, scoring, writer ranking and diversification must remain deterministic and locally executable. Do not add LLM inference, ML/neural ranking, hosted search/ranking, telemetry, hidden uploads or runtime network dependencies.
 
-Core rhyme retrieval, scoring, writer ranking and diversification must be deterministic and locally executable. Do not add LLM inference, machine-learning/neural ranking, hosted ranking/search services, or a network dependency to the core search path.
+## Formally accepted baseline
 
-## Formally accepted German baseline
+The last formally accepted German baseline remains RhymeLab `v0.10.0`:
 
-RhymeLab `v0.10.0` remains the last formally accepted runtime/data baseline:
-
-- status `ok`, 5/5 QA gates;
-- accepted tests 58/58 across 20 files;
 - DB schema `rhymelab-local-db-v4`;
 - 838,209 forms / 904,836 pronunciations;
-- 838,209 preferred / 66,627 alternates;
+- 838,209 preferred / 66,627 alternate pronunciations;
+- 1,038 historical-only forms;
+- 260,450 usage-ranked forms;
 - analyzer `de-ipa-v2`;
 - scorer `de-phon-v3`;
-- relation policy `rhyme-relations-v2`.
+- relation policy `rhyme-relations-v2`;
+- accepted report `ok`, 5/5 QA gates.
 
-Pre-public private commit IDs were deliberately removed from the public handover. The factual baseline values above remain the durable acceptance record.
+The accepted/base path is preserved through `?ranking=legacy` on the feature branch.
 
-## Accepted ranking state on main
-
-Pure score-band, hybrid v1, and hybrid v2 were rejected. Hybrid v3 passed the isolated experiment and retrieval-aware pre-promotion gate.
-
-Current accepted-source policy:
-
-```text
-modern_entity_relative_commonness_1decade_0_05
-```
-
-Current main contains:
-
-- `src/runtime-ranking-policy.mjs` — production v3 comparator;
-- `src/local-engine.mjs` — normal `type=all`, non-balanced ranked mode uses v3;
-- `tests/runtime-ranking-policy.test.mjs` — production-vs-experiment equivalence checks.
-
-Scorer, relation policy, retrieval keys/pool mechanics, and DB schema were not changed by the ranking promotion. `coverage=balanced` and type-specific result modes retain their separate existing ordering.
-
-The old owner-local post-promotion acceptance command remains:
-
-```powershell
-npm run benchmark:ranking:runtime-candidate
-```
-
-That validates the accepted/base path only.
-
-## Current feature branch — deterministic writer ranking v1
+## Current feature branch
 
 Branch:
 
@@ -94,32 +65,122 @@ feat/deterministic-writer-ranking-v1
 Draft PR:
 
 ```text
-#3 — feat: deterministic writer-oriented rhyme ranking v1
+#3
 ```
 
-Implemented:
+The branch began as a writer-reranking prototype but live owner-local testing exposed a retrieval-boundary problem. It now contains an experimental deterministic writer-search stack while the accepted/base endpoint remains unchanged.
 
-- `src/writer-ranking-policy.mjs` — deterministic lexical novelty / writer utility / diversity;
-- `src/writer-search.mjs` — writer-oriented wrapper over accepted retrieval + phonetic scoring;
+### Current policies
+
+```text
+writer ranking:    deterministic_writer_utility_v4
+right-edge anchor: de-right-edge-anchors-v1
+morphology family: de-attested-right-head-v1
+```
+
+### Current implementation
+
+- `src/writer-ranking-policy.mjs` — deterministic writer tiers/utility/family diversity;
+- `src/writer-search.mjs` — merges accepted/base results with writer right-edge retrieval, rescoring and morphology evidence;
+- `src/writer-morphology.mjs` — deterministic attested right-head lexical-family evidence;
 - writer explanation payload per result;
-- same-lemma and high query-overlap penalties that do not change phonetic truth;
-- greedy O(n²) lexical diversification;
-- repeated productive surface-construction suppression baseline;
-- `Arbeitsweise` synthetic regression tests;
-- local API/UI use writer ranking on this branch;
-- `?ranking=legacy` retains the accepted/base result path for direct comparison;
-- `docs/WRITER_RANKING.md` documents design and limits.
+- same-lemma / shared-query-stem suppression without changing phonetic truth;
+- right-edge/secondary-stress retrieval and writer scoring;
+- result-set diversification by explicit lexical family rather than rhyme suffix spelling;
+- browser Recommended mode respects all `deterministic_writer_utility_*` policy versions;
+- `?ranking=legacy` remains the comparison/control path.
 
-Public CI passed on the initial implementation. This writer policy is **not yet an accepted runtime baseline** and must not be described as such.
+## Owner-local live findings
 
-## Immediate next work on this feature branch
+### Database verified
 
-1. Owner switches local VS Code checkout to the public repository/feature branch.
-2. Run `npm install` if needed, then `npm run check` and `npm test`.
-3. Start the existing local DB/server and inspect real searches, especially `Arbeitsweise`.
-4. Compare writer ranking against `?ranking=legacy` on the same queries.
-5. Capture bad page-level patterns that remain.
-6. Build deterministic lexical/morphology evidence into the data pipeline rather than indefinitely adding surface string heuristics.
-7. Add search/page-quality benchmark metrics and only then decide whether to promote writer ranking.
+Owner-local DB is the accepted v4 data build:
 
-Do not move to phrase/mosaic rhyme or English until German single-word writer-search quality and the supporting lexical data model are stable.
+- 838,209 forms;
+- 904,836 pronunciations;
+- built 2026-09-15;
+- `Arbeitsweise` present with IPA `ˈaʁbaɪ̯t͡sˌvaɪ̯zə`, stress `2010`.
+
+### Writer v1/v2 finding
+
+Early lexical novelty reranking removed obvious `Arbeits-*` repetition but overpromoted weak slants. Writer v2 introduced a phonetic tier gate so commonness/novelty could not rescue a worse rhyme tier.
+
+### Retrieval finding
+
+Pair diagnostic for:
+
+```text
+Arbeitsweise ↔ Hochzeitsreise
+```
+
+showed:
+
+- legacy retrieval: **not retrieved**;
+- direct legacy pair score: `slant`, overall `0.7574`;
+- writer right-edge retrieval: retrieved through both secondary-anchor-context and secondary-anchor channels;
+- writer multi-anchor best match: secondary anchor syllable 3 ↔ 3, two-syllable tail, `multisyllabic_perfect`, score `1`.
+
+This established that the earlier missing creative result was primarily a retrieval/anchor-boundary issue, not only ranking.
+
+`Notfallbleibe` is absent from the current lexicon and is therefore a lexical-coverage case.
+
+### Writer v3 page finding
+
+After suffix-string redundancy was removed, `Arbeitsweise` returned many genuine perfect right-edge rhymes, but the page was dominated by morphological families:
+
+```text
+-weise
+-reise
+-preise
+-kreise
+-speise
+-gleise
+```
+
+Examples included `schätzungsweise`, `stellenweise`, `paarweise`, `Sonderpreise`, `Pilgerreise`, `Kirchenkreise`, `Vorspeise`, etc.
+
+This proved that spelling-based diversity should stop and explicit lexical-family evidence was required.
+
+## Writer v4 morphology-family baseline
+
+`src/writer-morphology.mjs` infers a writer-family only when both sides of a possible split have exact lexical evidence in the local `hot` lexicon. It supports conservative German linking-material transformations on the left side. It prefers the rightmost independently attested terminal lexeme for writer-family purposes.
+
+Intended examples:
+
+```text
+Arbeits|weise       -> right:weise
+schätzungs|weise    -> right:weise
+Pilger|reise        -> right:reise
+Sonder|preise       -> right:preise
+Kirchen|kreise      -> right:kreise
+Vor|speise          -> right:speise
+Strecken|gleise     -> right:gleise
+```
+
+False substring splits such as `Sonderp|reise` are rejected because the left side lacks lexical evidence. Unresolved forms remain explicitly unresolved.
+
+This evidence is **inferred**, not claimed as source-attested morphology. The API exposes provenance and the selected split/evidence.
+
+Writer v4 uses this in two separate ways:
+
+1. Same query family receives a cheap-rhyme writer-tier penalty. `Arbeitsweise` vs `stellenweise` can remain a phonetic perfect rhyme while ranking lower as a writing option.
+2. After one result family is selected, more members of the same family receive strong result-set redundancy, rotating other families into the page.
+
+Ordinary rhyme suffix spelling is not itself redundancy.
+
+## Current validation state
+
+Public CI passed after the core v4 morphology/ranking tests were added. The feature remains **draft and not accepted**. Do not advance package/runtime baseline yet.
+
+## Immediate next work
+
+1. Owner pulls current feature branch; do **not** rebuild the local DB.
+2. Run `npm run check` and `npm test`.
+3. Restart `npm run dev`.
+4. Re-run `Arbeitsweise` top-30 with morphology family columns and inspect the actual family rotation.
+5. Test several unrelated common queries to detect false morphology splits and runtime latency regressions.
+6. Add page-quality metrics: repeated-family rate, same-query-family rate, useful-result recall, rare/unranked intrusion, NDCG@10/20.
+7. If v4 behavior is sound, materialize/index validated right-edge and morphology evidence instead of keeping dynamic `LIKE`/lexicon probing in the final mobile/local path.
+8. Promote only through a dedicated writer-search acceptance report.
+
+Do not move to phrase/mosaic rhyme or English until German single-word writer-search quality and its lexical data model are stable.
