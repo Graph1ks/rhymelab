@@ -14,6 +14,10 @@ function attested(...entries) {
   ]));
 }
 
+function whole(surface, lemma, partOfSpeech) {
+  return { surface, normalized: surface.toLocaleLowerCase('de-DE'), lemma, partOfSpeech };
+}
+
 test('left-side variants expose common German linking-material analyses deterministically', () => {
   const arbeits = leftLexemeVariants('arbeits').map((entry) => entry.normalized);
   const kirchen = leftLexemeVariants('kirchen').map((entry) => entry.normalized);
@@ -24,12 +28,15 @@ test('left-side variants expose common German linking-material analyses determin
   assert.ok(ausnahms.includes('ausnahme'));
 });
 
-test('Arbeitsweise resolves to the attested right-head family weise', () => {
+test('Arbeitsweise resolves to conservative right-head lemma family weise', () => {
   const lexicon = attested(
-    ['arbeit', 'Arbeit'],
-    ['weise', 'Weise'],
+    ['arbeit', 'Arbeit', 'noun', 200],
+    ['weise', 'Weise', 'noun', 691],
   );
-  const evidence = chooseAttestedRightHead('Arbeitsweise', lexicon);
+  const evidence = chooseAttestedRightHead(
+    whole('Arbeitsweise', 'Arbeitsweise', 'noun'),
+    lexicon,
+  );
 
   assert.equal(evidence.policy, WRITER_MORPHOLOGY_POLICY);
   assert.equal(evidence.status, 'attested_right_head_candidate');
@@ -38,37 +45,118 @@ test('Arbeitsweise resolves to the attested right-head family weise', () => {
   assert.equal(evidence.leftEvidence.normalized, 'arbeit');
   assert.equal(evidence.leftEvidence.linker, 's');
   assert.equal(evidence.rightHead.normalized, 'weise');
+  assert.equal(evidence.rightHead.familyLemma, 'weise');
 });
 
-test('Sonderpreise does not split into false Sonderp + reise when Preise is attested', () => {
+test('Sonderpreise keeps Preise as the right head and never invents Sonderp + Reise', () => {
   const lexicon = attested(
-    ['sonder', 'sonder', 'adj'],
-    ['preise', 'Preis'],
-    ['reise', 'Reise'],
+    ['sonder', 'sonder', 'adj', 10000],
+    ['preise', 'Preis', 'noun', 1447],
+    ['reise', 'Reise', 'noun', 1387],
   );
-  const evidence = chooseAttestedRightHead('Sonderpreise', lexicon);
+  const evidence = chooseAttestedRightHead(
+    whole('Sonderpreise', 'Sonderpreis', 'noun'),
+    lexicon,
+  );
 
-  assert.equal(evidence.familyKey, 'right:preise');
+  assert.equal(evidence.familyKey, 'right:preis');
   assert.equal(evidence.split.leftRaw, 'sonder');
   assert.equal(evidence.rightHead.normalized, 'preise');
 });
 
 test('rightmost lexical head wins over a longer nested attested compound', () => {
   const lexicon = attested(
-    ['roh', 'roh', 'adj'],
-    ['rohstoff', 'Rohstoff'],
-    ['stoffpreise', 'Stoffpreis'],
-    ['preise', 'Preis'],
+    ['roh', 'roh', 'adj', 1000],
+    ['rohstoff', 'Rohstoff', 'noun', 2000],
+    ['stoffpreise', 'Stoffpreis', 'noun', 3000],
+    ['preise', 'Preis', 'noun', 1447],
   );
-  const evidence = chooseAttestedRightHead('Rohstoffpreise', lexicon);
+  const evidence = chooseAttestedRightHead(
+    whole('Rohstoffpreise', 'Rohstoffpreis', 'noun'),
+    lexicon,
+  );
 
-  assert.equal(evidence.familyKey, 'right:preise');
+  assert.equal(evidence.familyKey, 'right:preis');
   assert.equal(evidence.split.leftRaw, 'rohstoff');
 });
 
+test('Betriebe false substring split is rejected by head POS and lemma evidence', () => {
+  const lexicon = attested(
+    ['bet', 'beten', 'verb', 317659],
+    ['riebe', 'reiben', 'verb', 500000],
+  );
+  const evidence = chooseAttestedRightHead(
+    whole('Betriebe', 'Betrieb', 'noun'),
+    lexicon,
+  );
+
+  assert.equal(evidence.status, 'unresolved');
+  assert.equal(evidence.familyKey, null);
+});
+
+test('Bestreben false Best + Reben split is rejected by whole-lemma suffix evidence', () => {
+  const lexicon = attested(
+    ['best', 'Best', 'name', 7006],
+    ['reben', 'Rebe', 'noun', 38974],
+  );
+  const evidence = chooseAttestedRightHead(
+    whole('Bestreben', 'Bestreben', 'noun'),
+    lexicon,
+  );
+
+  assert.equal(evidence.status, 'unresolved');
+  assert.equal(evidence.familyKey, null);
+});
+
+test('adjective compounds can use the right-head lemma when POS and lemma boundary agree', () => {
+  const lexicon = attested(
+    ['deutschland', 'Deutschland', 'name', 123],
+    ['weite', 'weit', 'adj', 5125],
+  );
+  const evidence = chooseAttestedRightHead(
+    whole('deutschlandweite', 'deutschlandweit', 'adj'),
+    lexicon,
+  );
+
+  assert.equal(evidence.status, 'attested_right_head_candidate');
+  assert.equal(evidence.familyKey, 'right:weit');
+  assert.equal(evidence.split.leftRaw, 'deutschland');
+});
+
+test('verbs stay unresolved until explicit deterministic prefix/form-of morphology exists', () => {
+  const lexicon = attested(
+    ['durch', 'durch', 'prep', 53],
+    ['leben', 'leben', 'verb', 206],
+  );
+  const evidence = chooseAttestedRightHead(
+    whole('durchleben', 'durchleben', 'verb'),
+    lexicon,
+  );
+
+  assert.equal(evidence.status, 'unresolved');
+  assert.equal(evidence.familyKey, null);
+});
+
+test('proper names stay unresolved rather than being split on coincidental lexemes', () => {
+  const lexicon = attested(
+    ['roch', 'Roch', 'name', 90000],
+    ['ester', 'Ester', 'name', 50000],
+  );
+  const evidence = chooseAttestedRightHead(
+    whole('Rochester', 'Rochester', 'name'),
+    lexicon,
+  );
+
+  assert.equal(evidence.status, 'unresolved');
+  assert.equal(evidence.familyKey, null);
+});
+
 test('unresolved words stay explicitly unresolved instead of inventing morphology', () => {
-  const lexicon = attested(['reise', 'Reise']);
-  const evidence = chooseAttestedRightHead('Sonderpreise', lexicon);
+  const lexicon = attested(['reise', 'Reise', 'noun', 1387]);
+  const evidence = chooseAttestedRightHead(
+    whole('Sonderpreise', 'Sonderpreis', 'noun'),
+    lexicon,
+  );
 
   assert.equal(evidence.status, 'unresolved');
   assert.equal(evidence.familyKey, null);
