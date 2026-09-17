@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { analyzeGermanIpa } from '../scripts/german-ipa.mjs';
 import {
+  WRITER_ANCHOR_CANDIDATE_BASIS,
   WRITER_ANCHOR_POLICY,
   WRITER_ANCHOR_STORAGE,
   createWriterAnchorStorage,
@@ -43,12 +44,28 @@ function fixtureDb() {
   return db;
 }
 
-test('candidate suffix rows materialize complete right-edge nucleus suffixes', () => {
+test('candidate suffix rows preserve legacy vowel-key string-suffix semantics', () => {
   const rows = writerCandidateSuffixRows(7, 'ˈhɔxt͡saɪ̯t͡sˌʁaɪ̯zə');
   assert.ok(rows.some((entry) => entry.key === 'aɪ-aɪ-ə'));
   assert.ok(rows.some((entry) => entry.key === 'aɪ-ə'));
   assert.ok(rows.every((entry) => entry.policy === WRITER_ANCHOR_POLICY));
-  assert.ok(rows.every((entry) => entry.kind === 'vowel_suffix_lookup'));
+  assert.ok(rows.every((entry) => entry.kind === 'legacy_vowel_key_string_suffix_lookup'));
+  assert.equal(WRITER_ANCHOR_CANDIDATE_BASIS, 'legacy-vowel-key-string-suffix-v1');
+});
+
+test('pre-primary nuclei do not leak into candidate suffix keys', () => {
+  const beiseite = writerCandidateSuffixRows(8, 'ˌbaɪ̯ˈzaɪ̯tə').map((entry) => entry.key);
+  const beileibe = writerCandidateSuffixRows(9, 'baɪ̯ˈlaɪ̯bə').map((entry) => entry.key);
+  assert.ok(beiseite.includes('aɪ-ə'));
+  assert.ok(beileibe.includes('aɪ-ə'));
+  assert.ok(!beiseite.includes('aɪ-aɪ-ə'));
+  assert.ok(!beileibe.includes('aɪ-aɪ-ə'));
+});
+
+test('candidate materialization preserves LIKE matches that begin inside a canonical nucleus string', () => {
+  const rows = writerCandidateSuffixRows(10, 'ˈbaɪ̯tə').map((entry) => entry.key);
+  assert.ok(rows.includes('aɪ-ə'));
+  assert.ok(rows.includes('ɪ-ə'));
 });
 
 test('compact anchor storage keeps only lookup key and pronunciation identity', () => {
@@ -82,6 +99,8 @@ test('indexed writer-anchor lookup is candidate-equivalent to the validation-tim
       row(2, 'hochzeitsreise', 'ˈhɔxt͡saɪ̯t͡sˌʁaɪ̯zə', 2000),
       row(3, 'weiterreise', 'ˈvaɪ̯tɐˌʁaɪ̯zə', 3000),
       row(4, 'arbeitsphase', 'ˈaʁbaɪ̯t͡sˌfaːzə', 4000),
+      row(5, 'beiseite', 'ˌbaɪ̯ˈzaɪ̯tə', 1500),
+      row(6, 'beileibe', 'baɪ̯ˈlaɪ̯bə', 1600),
     ];
     const insertHot = db.prepare(`
       INSERT INTO hot(
@@ -100,16 +119,13 @@ test('indexed writer-anchor lookup is candidate-equivalent to the validation-tim
       insertWriterCandidateSuffixRows(db, entry.id, entry.ipa);
     }
 
-    const newIds = new Set();
-    const oldIds = new Set();
     for (const key of writerQueryAnchorKeys(query.ipa)) {
-      for (const hit of lookupWriterAnchorRows(db, key.key, {
+      const newIds = lookupWriterAnchorRows(db, key.key, {
         queryNormalized: query.normalized,
         querySyllables: query.syllables,
         limit: 800,
-      })) newIds.add(Number(hit.id));
-
-      for (const hit of db.prepare(`
+      }).map((hit) => Number(hit.id));
+      const oldIds = db.prepare(`
         SELECT id FROM hot
         WHERE vowel_key LIKE ?
           AND normalized != ?
@@ -118,13 +134,25 @@ test('indexed writer-anchor lookup is candidate-equivalent to the validation-tim
           AND historical=0
         ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank, id
         LIMIT 800
-      `).all(`%${key.key}`, query.normalized, query.syllables, query.syllables)) {
-        oldIds.add(Number(hit.id));
+      `).all(`%${key.key}`, query.normalized, query.syllables, query.syllables)
+        .map((hit) => Number(hit.id));
+      assert.deepEqual(newIds, oldIds, `channel mismatch for ${key.kind}:${key.key}`);
+      if (key.key === 'aɪ-aɪ-ə') {
+        assert.ok(!newIds.includes(5), 'beiseite must not leak into secondary-anchor context');
+        assert.ok(!newIds.includes(6), 'beileibe must not leak into secondary-anchor context');
+      }
+      if (key.key === 'aɪ-ə') {
+        assert.ok(newIds.includes(5), 'beiseite remains a legacy suffix match for the short channel');
+        assert.ok(newIds.includes(6), 'beileibe remains a legacy suffix match for the short channel');
       }
     }
 
-    assert.deepEqual([...newIds].sort((a, b) => a - b), [...oldIds].sort((a, b) => a - b));
-    assert.ok(newIds.has(2), 'Hochzeitsreise must remain in the right-edge candidate universe');
+    const protectedIds = lookupWriterAnchorRows(db, 'aɪ-aɪ-ə', {
+      queryNormalized: query.normalized,
+      querySyllables: query.syllables,
+      limit: 800,
+    }).map((hit) => Number(hit.id));
+    assert.ok(protectedIds.includes(2), 'Hochzeitsreise must remain in the right-edge candidate universe');
   } finally {
     db.close();
   }
