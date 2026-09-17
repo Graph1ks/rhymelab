@@ -12,7 +12,7 @@ function sortedUnique(values) {
     .sort((a, b) => a.localeCompare(b, 'de'));
 }
 
-export const CREATE_PHRASE_REGISTER_EVIDENCE_SQL = \`
+export const CREATE_PHRASE_REGISTER_EVIDENCE_SQL = `
 CREATE TABLE IF NOT EXISTS phrase_register_evidence(
   phrase_id TEXT NOT NULL REFERENCES phrase(phrase_id),
   snapshot_id TEXT NOT NULL REFERENCES phrase_snapshot(snapshot_id),
@@ -31,38 +31,38 @@ CREATE INDEX IF NOT EXISTS idx_phrase_register_phrase
   ON phrase_register_evidence(phrase_id, policy);
 CREATE INDEX IF NOT EXISTS idx_phrase_register_snapshot
   ON phrase_register_evidence(snapshot_id, policy);
-\`;
+`;
 
 export function ensurePhraseRegisterEvidenceStorage(db) {
   db.exec(CREATE_PHRASE_REGISTER_EVIDENCE_SQL);
 }
 
 export function cleanConversationTranscriptLine(value) {
-  let line = String(value ?? '').normalize('NFKC').replace(/\\u00ad/gu, '').trim();
+  let line = String(value ?? '').normalize('NFKC').replace(/­/gu, '').trim();
   if (!line) return '';
 
   line = line
-    .replace(/^\\s*\\d{1,5}\\s+/u, '')
-    .replace(/^\\s*(?:ME|MO)\\s*\\d+[A-Z]?\\s*[:\\-–—]?\\s*/iu, '')
-    .replace(/^\\s*[A-ZÄÖÜ]{1,5}\\d{0,3}\\s*[:\\-–—]\\s*/u, '')
+    .replace(/^\s*\d{1,5}\s+/u, '')
+    .replace(/^\s*(?:ME|MO)\s*\d+[A-Z]?\s*[:\-–—]?\s*/iu, '')
+    .replace(/^\s*[A-ZÄÖÜ]{1,5}\d{0,3}\s*[:\-–—]\s*/u, '')
     .replace(/<[^>]{1,100}>/gu, ' ')
-    .replace(/\\{[^}]{1,100}\\}/gu, ' ')
-    .replace(/\\[(?:[^\\]]{0,100})\\]/gu, ' ')
-    .replace(/\\((?:laughs?|laughter|pause|coughs?|breathes?|unintelligible|unclear|overlap|smiles?|sniffs?|sighs?)[^)]*\\)/giu, ' ')
-    .replace(/\\(\\s*\\.{1,3}\\s*\\)/gu, ' ')
-    .replace(/\\b\\d{1,2}:\\d{2}(?::\\d{2})?\\b/gu, ' ')
-    .replace(/\\s+/gu, ' ')
+    .replace(/\{[^}]{1,100}\}/gu, ' ')
+    .replace(/\[(?:[^\]]{0,100})\]/gu, ' ')
+    .replace(/\((?:laughs?|laughter|pause|coughs?|breathes?|unintelligible|unclear|overlap|smiles?|sniffs?|sighs?)[^)]*\)/giu, ' ')
+    .replace(/\(\s*\.{1,3}\s*\)/gu, ' ')
+    .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/gu, ' ')
+    .replace(/\s+/gu, ' ')
     .trim();
 
   const lower = line.toLocaleLowerCase('de-DE');
   if (
     !line
-    || /^\\d+$/u.test(line)
+    || /^\d+$/u.test(line)
     || lower.includes('kölner korpus des kiezdeutschen')
     || lower.includes('cologne corpus of kiezdeutsch')
-    || /^transcript(?:ion)?\\b/u.test(lower)
-    || /^seite\\s+\\d+/u.test(lower)
-    || /^page\\s+\\d+/u.test(lower)
+    || /^transcript(?:ion)?\b/u.test(lower)
+    || /^seite\s+\d+/u.test(lower)
+    || /^page\s+\d+/u.test(lower)
   ) {
     return '';
   }
@@ -80,7 +80,7 @@ export function writeRegisterEvidence(db, {
   corpusUnitCount,
   evidence = {},
 }) {
-  const insert = db.prepare(\`
+  const insert = db.prepare(`
     INSERT INTO phrase_register_evidence(
       phrase_id,snapshot_id,policy,register_tags_json,occurrence_count,unit_count,
       corpus_token_count,corpus_unit_count,per_million_tokens,per_million_units,evidence_json
@@ -94,7 +94,7 @@ export function writeRegisterEvidence(db, {
       per_million_tokens=excluded.per_million_tokens,
       per_million_units=excluded.per_million_units,
       evidence_json=excluded.evidence_json
-  \`);
+  `);
 
   let rows = 0;
   const tags = JSON.stringify(sortedUnique(registerTags));
@@ -122,23 +122,44 @@ export function writeRegisterEvidence(db, {
 }
 
 function tableExists(db, table) {
-  return Boolean(db.prepare(\`
+  return Boolean(db.prepare(`
     SELECT 1
     FROM sqlite_master
     WHERE type='table' AND name=?
-  \`).get(table));
+  `).get(table));
 }
 
 export function computeRegisterEvidenceFingerprint(db) {
   if (!tableExists(db, 'phrase_register_evidence')) return null;
-  const rows = db.prepare(\`
+  const evidenceRows = db.prepare(`
     SELECT
       phrase_id,snapshot_id,policy,register_tags_json,occurrence_count,unit_count,
       corpus_token_count,corpus_unit_count,per_million_tokens,per_million_units,evidence_json
     FROM phrase_register_evidence
     ORDER BY phrase_id,snapshot_id,policy
-  \`).all();
-  return sha256(JSON.stringify(rows));
+  `).all();
+  const snapshotRows = db.prepare(`
+    SELECT DISTINCT
+      s.snapshot_id,s.source_id,s.snapshot_label,s.artifact_sha256,s.upstream_url,
+      s.evidence_year,s.genre,s.country,s.metadata_json
+    FROM phrase_snapshot s
+    JOIN phrase_register_evidence r ON r.snapshot_id=s.snapshot_id
+    ORDER BY s.snapshot_id
+  `).all();
+  const sourceRows = db.prepare(`
+    SELECT DISTINCT
+      src.source_id,src.name,src.role,src.homepage_url,src.license_id,src.license_url,
+      src.attribution,src.redistribution_policy
+    FROM phrase_source src
+    JOIN phrase_snapshot s ON s.source_id=src.source_id
+    JOIN phrase_register_evidence r ON r.snapshot_id=s.snapshot_id
+    ORDER BY src.source_id
+  `).all();
+  return sha256(JSON.stringify({
+    sources: sourceRows,
+    snapshots: snapshotRows,
+    evidence: evidenceRows,
+  }));
 }
 
 export function registerEvidenceStats(db) {
@@ -150,14 +171,14 @@ export function registerEvidenceStats(db) {
       occurrences: 0,
     };
   }
-  const row = db.prepare(\`
+  const row = db.prepare(`
     SELECT
       COUNT(*) AS rows,
       COUNT(DISTINCT phrase_id) AS matched_phrases,
       COUNT(DISTINCT snapshot_id) AS snapshots,
       COALESCE(SUM(occurrence_count),0) AS occurrences
     FROM phrase_register_evidence
-  \`).get();
+  `).get();
   return {
     rows: Number(row.rows),
     matchedPhrases: Number(row.matched_phrases),
