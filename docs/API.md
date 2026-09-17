@@ -14,7 +14,9 @@ The last formally accepted full-data/runtime baseline is RhymeLab `v0.10.0` with
 - sound-relation policy: `rhyme-relations-v2`;
 - DB schema: `rhymelab-local-db-v4`.
 
-The current main branch additionally contains the validated v3 ranking source promotion for normal all-result ranked requests. Formal baseline/version advancement remains pending the owner-local post-promotion acceptance report. Scorer, relation policy, retrieval strategy and DB schema were not changed by this ranking promotion.
+The current main branch contains the validated v3 ranking source promotion for normal all-result ranked requests. Formal baseline/version advancement remains pending the owner-local post-promotion acceptance report. Scorer, relation policy, retrieval strategy and DB schema were not changed by this ranking promotion.
+
+The `feat/deterministic-writer-ranking-v1` feature branch adds a separate deterministic writer-oriented ranking layer. It does not alter phonetic scores or relation labels. See `docs/WRITER_RANKING.md`.
 
 The runtime resolves phonology through a language profile. The current profile registry contains German only. English parsing/scoring/data are not implemented and must use a separate language profile rather than German constants.
 
@@ -43,8 +45,11 @@ Supported query parameters:
 - `variants=all` — allow stored alternate pronunciation variants;
 - `historical=all` — include historical-only candidate forms;
 - `type=<category>` — one primary rhyme or sound relation, or `all`;
-- `coverage=balanced` — when `type=all`, reserve representation for every available category before filling the remaining budget;
-- `coverage_floor=<n>` — requested per-category floor for balanced mode, bounded by result limit and implementation maximum.
+- `coverage=balanced` — legacy/base selection option when `type=all`;
+- `coverage_floor=<n>` — requested per-category floor for balanced mode, bounded by result limit and implementation maximum;
+- `ranking=legacy` — bypass feature-branch writer ranking and return the accepted/base ranking path.
+
+On the writer-ranking feature branch, omitting `ranking=legacy` uses deterministic writer ranking. The local browser explicitly requests writer ranking.
 
 ### Primary rhyme vs. sound relation
 
@@ -82,19 +87,64 @@ Each matched relation is returned in `relations` with `type`, `strength` (`stron
 
 ## Result-selection behavior
 
-`type=<single primary class>` dedicates the full result budget to that primary class.
+The base/legacy engine retains the existing selection modes.
 
-`type=assonance` or `type=consonance` dedicates the full result budget to that relation membership. Relation results rank by relation strength/score before deterministic tie-break inputs.
+`type=<single primary class>` dedicates the base result budget to that primary class.
 
-`type=all&coverage=balanced` reserves a deterministic floor from every category available in the scored candidate set, then fills the remaining result budget. One result can satisfy more than one category.
+`type=assonance` or `type=consonance` dedicates the base result budget to that relation membership. Relation results rank by relation strength/score before deterministic tie-break inputs.
+
+`type=all&coverage=balanced` is a base-engine coverage policy. Writer search deliberately requests a full base ranked candidate page before applying list-level writer utility/diversification, because pre-interleaving categories would distort the page before diversity can act.
 
 ## Ranking contract
 
-The active ranking policy depends on result-selection mode and is returned as `rankingPolicy`.
+The active ranking policy is returned as `rankingPolicy`.
 
-### Normal all-result ranked mode
+### Deterministic writer ranking — feature branch default
 
-For `type=all` without `coverage=balanced`, current main uses:
+Policy identifier:
+
+```text
+deterministic_writer_utility_v1
+```
+
+Pipeline:
+
+```text
+accepted retrieval / phonetic scoring / relation policy
+  -> deterministic writer utility
+  -> deterministic lexical diversity reranking
+```
+
+Writer utility derives explicit lexical/query evidence, commonness and lexical-status penalties while keeping phonetic evidence dominant. It does not modify `score`, `primaryType`, `relations`, or phonology metadata.
+
+Each writer-ranked row adds:
+
+- `writerRank`;
+- `writer.policy`;
+- `writer.utility`;
+- `writer.soundUtility`;
+- `writer.lexicalPenalty`;
+- `writer.lexicalNovelty`;
+- `writer.queryOverlap`;
+- `writer.commonness`;
+- `writer.diversifiedScore`;
+- `writer.redundancyPenalty`;
+- `writer.maxRedundancy`;
+- `writer.evidence` with same-lemma/string/prefix/suffix diagnostics.
+
+The diversity stage is greedy and deterministic. It tracks maximum lexical redundancy against selected results and therefore requires O(n²) candidate-pair checks for a result page.
+
+See `docs/WRITER_RANKING.md` for the exact v1 semantics and limitations.
+
+### Legacy/base normal all-result ranked mode
+
+Request:
+
+```text
+?ranking=legacy
+```
+
+For `type=all` without `coverage=balanced`, the accepted/base source policy is:
 
 ```text
 modern_entity_relative_commonness_1decade_0_05
@@ -104,7 +154,7 @@ Policy behavior:
 
 - rhyme tier remains the first ordering boundary;
 - syllable distance remains second;
-- only queries from the curated modern layer with a measured query usage rank activate the experimental/promoted commonness policy;
+- only queries from the curated modern layer with a measured query usage rank activate the promoted commonness policy;
 - exact tier-0 rows and relation-only rows retain usage-first ordering;
 - dictionary queries and missing-query-usage cases retain usage-first ordering;
 - candidate comparisons involving missing usage retain usage-first ordering;
@@ -119,19 +169,13 @@ candidate_usage_rank <= query_usage_rank * 10
 
 This source promotion passed isolated and retrieval-aware pre-promotion validation. Formal runtime baseline acceptance still requires the post-promotion owner-local report to pass.
 
-### Balanced coverage mode
+### Legacy balanced coverage mode
 
-`type=all&coverage=balanced` intentionally retains the previous coverage/usage-first selection behavior. It was **not** folded into the v3 promotion gate.
+The base engine's `type=all&coverage=balanced` retains the previous coverage/usage-first selection behavior. Writer ranking does not use this interleaving before writer reranking.
 
 ### Type-specific modes
 
-Primary type filters retain their prior type-specific usage-first recommendation order. Assonance/consonance filters retain independent relation ordering:
-
-```text
-relation strength -> relation score -> syllable distance -> usage -> primary score/tie-break
-```
-
-These modes were not changed by the v3 runtime-source promotion.
+The base engine retains its type-specific ordering. On the writer feature branch, returned base candidates may then receive writer utility/diversity unless `ranking=legacy` is requested.
 
 ## Response fields
 
@@ -149,11 +193,15 @@ Rhyme responses include:
 - flat `results`;
 - overlapping `groups` for all five primary rhyme classes plus both sound relations.
 
+Writer-ranked responses additionally expose the `writerRank`/`writer` fields documented above.
+
 ## Browser behavior
 
-The browser currently requests `type=all&coverage=balanced` for its all-results view and then presents results by category. Therefore the browser's default balanced view is intentionally **not yet evidence that the v3 normal-ranked order is visible unchanged in the UI**.
+On the writer-ranking feature branch, the browser explicitly requests `ranking=writer` and respects `writerRank` for the Recommended sort. It also skips the previous all-type interleaving when the response reports `deterministic_writer_utility_v1`, so the list-level diversification is not undone client-side.
 
-Hover/focus detail shows primary rhyme and sound relations separately. Continuous rendering, historical vocabulary filtering, pronunciation modes and bilingual visible metadata remain unchanged.
+Other sort choices (`Most common`, `Closest rhyme`, `A–Z`) remain explicit user overrides.
+
+Hover/focus detail still shows primary rhyme and sound relations separately. Continuous rendering, historical vocabulary filtering, pronunciation modes and bilingual visible metadata remain unchanged.
 
 Visible localization is presentation-only. Canonical lexical tags/source strings stay unchanged in storage/API data and are mapped to English/German labels in the browser.
 
@@ -179,13 +227,13 @@ The project owner is not expected to annotate the full benchmark; the preferred 
 
 ## Ranking acceptance report
 
-Current owner-local command:
+Current accepted-policy owner-local command:
 
 ```powershell
 npm run benchmark:ranking:runtime-candidate
 ```
 
-After the source promotion, this generates post-promotion schema:
+After the v3 source promotion, this generates post-promotion schema:
 
 ```text
 rhymelab-benchmark-ranking-runtime-candidate-v2
@@ -197,7 +245,7 @@ at:
 reports/de-rhyme-benchmark-ranking-runtime-candidate.json
 ```
 
-The report requires live `findRhymes` ranked/all results to match the validated v3 order derived independently from the full retrieved candidate set, requires `rankingPolicy` to report the expected policy, and rechecks protected-order integrity and safety.
+That report validates the accepted/base `findRhymes` order, not the new writer layer. Writer ranking requires a separate page-quality acceptance path before promotion.
 
 ## Report/audit
 
