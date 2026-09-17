@@ -103,21 +103,23 @@ Owner-local runtime gate passed 27/27 queries with no missing queries, runtime c
 
 Publish-v3 / DB-v5 builder migration is complete and real-data counts are internally consistent. Accepted v2/v4 defaults remain unchanged.
 
-### 9C. Right-edge + morphology materialization — correctness passed; compact storage remeasurement next
+### 9C. Compact right-edge + morphology materialization — owner gate passed
 
-The first full owner materialization proved correctness and indexed lookup, but its initial schema was storage-inefficient:
+The first correct materialization was storage-rejected at 1,904.67 MiB. Compact storage keeps policy semantics unchanged while removing redundant per-row metadata, duplicate JSON and indexes.
+
+Owner compact result:
 
 ```text
-DB-v5 before writer materialization     727.21 MiB
-first materialized DB-v5              1904.67 MiB
-writer materialization delta          1177.46 MiB
-writer_anchor                          551.32 MiB
-writer_morphology_evidence             626.13 MiB
+DB-v5 before materialization       727.21 MiB
+final compact DB-v5                816.88 MiB
+compact writer delta                89.67 MiB
+writer_anchor                        57.54 MiB
+writer_morphology_evidence           32.13 MiB
 ```
 
-This first layout is rejected for storage efficiency, not linguistic correctness.
+The compact writer materialization is 92.38% smaller than the first materialization. Anchor/morphology counts remain unchanged, there are zero freelist pages, and the real lookup plan uses `PRIMARY KEY(anchor_key=?)`.
 
-Compact storage is now implemented and CI-covered:
+Storage IDs remain:
 
 ```text
 anchor storage      compact-primary-key-v2
@@ -126,23 +128,27 @@ morphology storage  positive-evidence-compact-v2
 morphology PK       (form_id, analysis_key) WITHOUT ROWID
 ```
 
-Anchor semantics are unchanged: every complete right-edge nucleus suffix is still materialized, preserving old suffix-LIKE candidate equivalence. Per-row constant policy/kind/position metadata and the second lookup index were removed.
+### 9D. Real-data retrieval/morphology equivalence — next
 
-Morphology derivation semantics are unchanged. Only positive family evidence is physically stored; unresolved evidence is represented by absence of a row because null-family rows never contributed family support. Duplicated JSON, repeated policy/status strings and a redundant family index were removed. Conflicting positive families remain detectable.
+Before runtime rewiring, run the read-only owner gate:
 
-CI run #145 passes all 157 tests for the compact layout. Runtime rewiring remains false.
+```text
+npm run benchmark:writer-v5:equivalence
+```
 
-Next owner measurement sequence uses the already-generated `data/de/publish-v3` and must not rebuild/download sources:
+Requirements:
 
-1. rebuild only separate DB-v5 from existing publish-v3;
-2. compact-materialize writer anchors/morphology;
-3. run `measure-writer-v5-storage.mjs`;
-4. verify real anchor/pronunciation counts and compact primary-key plan;
-5. verify morphology analysis/positive/unresolved/ambiguous counts;
-6. verify deterministic materialization repeatability;
-7. compare compact indexed retrieval candidate universe/runtime against frozen Writer Page Benchmark v2;
-8. only then switch the experimental writer runtime away from suffix `LIKE`;
-9. rerun Writer Page Benchmark v2 against the materialized runtime.
+1. 12/12 frozen Writer Page v2 queries found;
+2. exact ordered candidate-ID equality between old suffix-LIKE and compact indexed lookup for every right-edge channel;
+3. identical union candidate membership;
+4. `Arbeitsweise -> Hochzeitsreise` retained;
+5. all 10 morphology regressions pass from compact multi-analysis evidence;
+6. compact PK query plan confirmed;
+7. retrieval timing recorded for old versus indexed path.
+
+If the report passes, rewire **only the experimental v5 writer runtime** to compact anchors/materialized morphology. Then rerun Writer Page Benchmark v2 and compare page metrics, protected regressions, result quality and latency against the frozen baseline.
+
+Deterministic materialization repeatability must also be established before final promotion.
 
 Do not modify `findRhymes()` / accepted `ranking=legacy` as part of this phase.
 
