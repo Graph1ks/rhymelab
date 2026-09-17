@@ -94,6 +94,13 @@
       "professoren_false_family_rejected": true,
       "deutscher_false_family_rejected": true
     },
+    "rejected_experiments": [
+      {
+        "policy": "deterministic_writer_utility_v7",
+        "reason": "softening result-family diversity moved Hochzeitsreise only from rank 120 to 101 while increasing Arbeitsweise Top-20 repeated-family rows to 4 and failing the structural benchmark",
+        "decision": "rolled_back_to_v6"
+      }
+    ],
     "known_coverage_case": {
       "word": "Notfallbleibe",
       "in_current_lexicon": false
@@ -110,7 +117,7 @@
     }
   },
   "writer_page_benchmark_v2": {
-    "status": "infrastructure_implemented_owner_run_pending",
+    "status": "corrected_contract_owner_rerun_pending",
     "plan": "benchmarks/de-writer-v2/plan.json",
     "runner": "scripts/benchmark-writer-page-v2.mjs",
     "core": "scripts/writer-page-benchmark-core.mjs",
@@ -119,6 +126,19 @@
     "commands": {
       "structural": "npm run benchmark:writer-page:v2",
       "prepare_human_review": "npm run benchmark:writer-page:prepare"
+    },
+    "last_owner_run": {
+      "ranking_policy": "deterministic_writer_utility_v7",
+      "status": "failed_structural",
+      "aggregate_top20_repeated_family_rows": 4,
+      "hochzeitsreise_rank": 101,
+      "legacy_top250_tier0_retention": 1,
+      "decision": "reject_v7_and_restore_v6"
+    },
+    "regression_contract": {
+      "hochzeitsreise": "candidate-universe retrieval/phonetic regression, max rank 250",
+      "arbeitsweise_reise_family": "at least one right:reise candidate in top 20",
+      "family_flooding": "aggregate top-20 repeated-family gate remains enforced"
     },
     "metrics": [
       "ndcg_at_10_when_fully_human_reviewed",
@@ -155,8 +175,9 @@
     "architecture_prepared": true
   },
   "next_actions": [
-    "owner_pull_current_feature_branch",
-    "run_npm_benchmark_writer_page_v2",
+    "owner_pull_restored_v6_feature_branch",
+    "rerun_npm_benchmark_writer_page_v2",
+    "confirm_right_reise_family_top20_and_structural_family_gate",
     "review_structural_gate_and_legacy_tier0_retention",
     "optionally_prepare_independent_human_usefulness_queue_for_ndcg10_ndcg20",
     "verify_legacy_exact_rhyme_and_relation_invariance",
