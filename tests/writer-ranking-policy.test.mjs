@@ -38,7 +38,7 @@ const query = {
 };
 
 test('writer ranking policy is explicit and deterministic', () => {
-  assert.equal(WRITER_RANKING_POLICY, 'deterministic_writer_utility_v5');
+  assert.equal(WRITER_RANKING_POLICY, 'deterministic_writer_utility_v6');
   const rows = [
     row('Hochzeitsreise', 0.96, { usageRank: 12000, writerMorphology: morphology('right:reise') }),
     row('Arbeitszweige', 0.93, { usageRank: 10000, writerMorphology: morphology('right:zweige') }),
@@ -65,6 +65,7 @@ test('same lemma and long shared compound prefix are writer penalties, not phone
   assert.equal(inflectionEvidence.sameLemma, true);
   assert.equal(inflectionEvidence.overlap, 1);
   assert.ok(cloneEvidence.sharedPrefixLength >= 7);
+  assert.ok(cloneEvidence.initialConstructionOverlap >= 0.65);
   assert.ok(cloneEvidence.overlap > distinctEvidence.overlap);
 
   const before = { score: inflection.score, type: inflection.primaryType };
@@ -72,6 +73,43 @@ test('same lemma and long shared compound prefix are writer penalties, not phone
   assert.deepEqual({ score: inflection.score, type: inflection.primaryType }, before);
   assert.ok(writer.lexicalPenalty > 0);
   assert.equal(writer.cheapRhymeTierPenalty, 3);
+  assert.ok(writerUtilityFeatures(compoundClone, query).cheapRhymeTierPenalty >= 1);
+});
+
+test('short orthographic perfect rhymes are not mistaken for cheap lexical variants', () => {
+  const cases = [
+    [
+      { language: 'de', surface: 'Liebe', normalized: 'liebe', lemma: 'Liebe', usageRank: 1000 },
+      row('Diebe', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', lemma: 'Dieb', usageRank: 14139 }),
+    ],
+    [
+      { language: 'de', surface: 'Leben', normalized: 'leben', lemma: 'Leben', usageRank: 1000 },
+      row('neben', 1, { rhymeTier: 0, primaryType: 'multisyllabic_perfect', lemma: 'neben', usageRank: 329 }),
+    ],
+    [
+      { language: 'de', surface: 'Nacht', normalized: 'nacht', lemma: 'Nacht', usageRank: 1000 },
+      row('macht', 1, { rhymeTier: 0, primaryType: 'perfect', lemma: 'machen', usageRank: 300 }),
+    ],
+  ];
+
+  for (const [localQuery, candidate] of cases) {
+    const evidence = lexicalOverlapEvidence(localQuery, candidate);
+    const features = writerUtilityFeatures(candidate, localQuery);
+    assert.ok(evidence.surfaceSimilarity >= 0.8);
+    assert.equal(evidence.overlap, 0);
+    assert.equal(features.cheapRhymeTierPenalty, 0);
+  }
+
+  const liebeQuery = cases[0][0];
+  const diebe = cases[0][1];
+  const krise = row('Krise', 0.8645, {
+    rhymeTier: 1,
+    primaryType: 'multisyllabic_slant',
+    lemma: 'Krise',
+    usageRank: 2140,
+  });
+  const ranked = rankWriterRecommendedResults([krise, diebe], liebeQuery, { limit: 2 });
+  assert.equal(ranked[0].word, 'Diebe');
 });
 
 test('same attested right-head family is a writer penalty without changing phonetic truth', () => {
