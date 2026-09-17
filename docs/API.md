@@ -93,7 +93,7 @@ Current policy identifiers:
 ```text
 rankingPolicy:               deterministic_writer_utility_v5
 phonology.writerAnchorPolicy de-right-edge-anchors-v1
-writerMorphology.policy      de-attested-right-head-v2
+writerMorphology.policy      de-attested-right-head-v3
 ```
 
 Pipeline:
@@ -103,6 +103,7 @@ accepted/base retrieval + accepted legacy scoring
   + deterministic right-edge retrieval
   -> deterministic multi-anchor writer scoring
   -> conservative right-head morphology-family evidence
+  -> explicit documented German construction rules
   -> deterministic lexical-safety tier
   -> deterministic writer utility
   -> deterministic family/list diversity
@@ -134,10 +135,18 @@ The right-edge prototype currently uses validation-time suffix lookup against DB
 `writerMorphology` uses policy:
 
 ```text
-de-attested-right-head-v2
+de-attested-right-head-v3
 ```
 
-The policy is deliberately conservative. Current accepted writer-family inference covers noun/adjective right heads only and requires compatible POS, whole-lemma suffix evidence, independently attested left/right evidence, and measured usage on the selected left side. Verbs and proper names remain unresolved until explicit deterministic rules exist.
+Ordinary inferred family evidence remains deliberately conservative: noun/adjective right-head analyses require compatible POS, whole-lemma suffix evidence, independently attested left/right evidence, and measured usage on the selected left side. Verbs and proper names remain unresolved until explicit deterministic rules exist.
+
+v3 additionally supports the narrow productive German construction:
+
+```text
+de-adverbial-weise-v1
+```
+
+An adverb whose whole lemma ends in `weise`, whose independently attested terminal lexeme is noun `Weise`, and whose left side has measured lexical evidence receives family `right:weise`. This is explicit construction evidence, not generic suffix-string matching.
 
 Query and candidate morphology payloads can include:
 
@@ -148,10 +157,11 @@ Query and candidate morphology payloads can include:
 - `source`;
 - `wholeLemma`;
 - `wholePartOfSpeech`;
+- `constructionRule` when an explicit construction rule is used;
 - `split`;
 - `leftEvidence`;
 - `rightHead`;
-- `checks`.
+- `checks`, including `explicitConstructionRule` when applicable.
 
 This is inferred writer-search evidence, not source-attested full morphology.
 
