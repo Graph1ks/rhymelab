@@ -1,4 +1,4 @@
-export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v6';
+export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v7';
 
 const MAX_EDIT_LENGTH = 96;
 const DEFAULT_DIVERSITY_WEIGHT = 0.18;
@@ -111,7 +111,7 @@ export function lexicalOverlapEvidence(query, candidate) {
 
   // Orthographic rhyme similarity is not lexical cheapness. Short perfect rhymes such as
   // Liebe/Diebe, Leben/neben or Nacht/macht naturally have high edit similarity because
-  // most letters belong to the rhyme tail. v6 therefore requires independent structural
+  // most letters belong to the rhyme tail. v6+ therefore requires independent structural
   // evidence before edit distance may affect the writer tier.
   const initialConstructionOverlap = prefixLength >= 6 && prefixOverlap >= 0.45
     ? clamp01(0.50 + 0.45 * prefixOverlap)
@@ -146,7 +146,7 @@ export function lexicalOverlapEvidence(query, candidate) {
   };
 }
 
-export function lexicalRedundancy(left, right) {
+function structuralRedundancy(left, right) {
   const language = left?.language || right?.language || 'de';
   const a = normalizeSurface(left?.normalized || left?.surface || left?.word, language);
   const b = normalizeSurface(right?.normalized || right?.surface || right?.word, language);
@@ -156,10 +156,6 @@ export function lexicalRedundancy(left, right) {
   const lemmaA = normalizeSurface(left?.lemma, language);
   const lemmaB = normalizeSurface(right?.lemma, language);
   if (lemmaA && lemmaB && lemmaA === lemmaB) return 1;
-
-  const familyA = morphologyFamily(left);
-  const familyB = morphologyFamily(right);
-  if (familyA && familyB && familyA === familyB) return 0.92;
 
   const surfaceSimilarity = normalizedEditSimilarity(a, b, language);
   const prefixLength = commonPrefixLength(a, b);
@@ -171,6 +167,14 @@ export function lexicalRedundancy(left, right) {
   const nearDuplicate = surfaceSimilarity >= 0.84 ? surfaceSimilarity : 0;
 
   return Number(Math.max(initialConstruction, nearDuplicate).toFixed(4));
+}
+
+export function lexicalRedundancy(left, right) {
+  const structural = structuralRedundancy(left, right);
+  const familyA = morphologyFamily(left);
+  const familyB = morphologyFamily(right);
+  const sameFamily = Boolean(familyA && familyB && familyA === familyB);
+  return Number(Math.max(structural, sameFamily ? 0.92 : 0).toFixed(4));
 }
 
 function syllableUtility(row) {
@@ -203,9 +207,15 @@ function lexicalTierPenalty(lexical) {
   return 0;
 }
 
-function redundancyTierPenalty(maxRedundancy) {
-  if (maxRedundancy >= 0.88) return 2;
-  if (maxRedundancy >= 0.58) return 1;
+function structuralRedundancyTierPenalty(maxStructuralRedundancy) {
+  if (maxStructuralRedundancy >= 0.88) return 2;
+  if (maxStructuralRedundancy >= 0.58) return 1;
+  return 0;
+}
+
+function familyDiversityTierPenalty(familyRepeatCount) {
+  if (familyRepeatCount >= 2) return 2;
+  if (familyRepeatCount >= 1) return 1;
   return 0;
 }
 
@@ -255,8 +265,10 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
     baseIndex,
     writer: writerUtilityFeatures(row, query),
     maxRedundancy: 0,
+    maxStructuralRedundancy: 0,
   }));
   const selected = [];
+  const selectedFamilyCounts = new Map();
 
   while (remaining.length && selected.length < limit) {
     let bestIndex = -1;
@@ -265,9 +277,13 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
 
     for (let index = 0; index < remaining.length; index += 1) {
       const candidate = remaining[index];
-      const diversityTierPenalty = redundancyTierPenalty(candidate.maxRedundancy);
+      const family = morphologyFamily(candidate.row);
+      const familyRepeatCount = family ? (selectedFamilyCounts.get(family) || 0) : 0;
+      const familyTierPenalty = familyDiversityTierPenalty(familyRepeatCount);
+      const structuralTierPenalty = structuralRedundancyTierPenalty(candidate.maxStructuralRedundancy);
+      const diversityTierPenalty = familyTierPenalty + structuralTierPenalty;
       const effectiveTier = candidate.writer.writerTier + diversityTierPenalty;
-      const diversifiedScore = candidate.writer.utility - diversityWeight * candidate.maxRedundancy;
+      const diversifiedScore = candidate.writer.utility - diversityWeight * candidate.maxStructuralRedundancy;
       const incumbent = bestIndex >= 0 ? remaining[bestIndex] : null;
       const better = effectiveTier < bestEffectiveTier
         || (effectiveTier === bestEffectiveTier && (
@@ -290,19 +306,31 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
     }
 
     const [winner] = remaining.splice(bestIndex, 1);
-    const diversityTierPenalty = redundancyTierPenalty(winner.maxRedundancy);
+    const winnerFamily = morphologyFamily(winner.row);
+    const familyRepeatCount = winnerFamily ? (selectedFamilyCounts.get(winnerFamily) || 0) : 0;
+    const familyTierPenalty = familyDiversityTierPenalty(familyRepeatCount);
+    const structuralTierPenalty = structuralRedundancyTierPenalty(winner.maxStructuralRedundancy);
+    const diversityTierPenalty = familyTierPenalty + structuralTierPenalty;
     selected.push({
       ...winner,
       effectiveTier: winner.writer.writerTier + diversityTierPenalty,
       diversityTierPenalty,
+      familyRepeatCount,
+      familyDiversityTierPenalty: familyTierPenalty,
+      structuralDiversityTierPenalty: structuralTierPenalty,
       diversifiedScore: Number(bestScore.toFixed(4)),
-      redundancyPenalty: Number((diversityWeight * winner.maxRedundancy).toFixed(4)),
+      redundancyPenalty: Number((diversityWeight * winner.maxStructuralRedundancy).toFixed(4)),
     });
+    if (winnerFamily) selectedFamilyCounts.set(winnerFamily, familyRepeatCount + 1);
 
     for (const candidate of remaining) {
       candidate.maxRedundancy = Math.max(
         candidate.maxRedundancy,
         lexicalRedundancy(candidate.row, winner.row),
+      );
+      candidate.maxStructuralRedundancy = Math.max(
+        candidate.maxStructuralRedundancy,
+        structuralRedundancy(candidate.row, winner.row),
       );
     }
   }
@@ -320,9 +348,13 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
       ...item.writer,
       effectiveTier: item.effectiveTier ?? item.writer.writerTier,
       diversityTierPenalty: item.diversityTierPenalty ?? 0,
+      familyRepeatCount: item.familyRepeatCount ?? 0,
+      familyDiversityTierPenalty: item.familyDiversityTierPenalty ?? 0,
+      structuralDiversityTierPenalty: item.structuralDiversityTierPenalty ?? 0,
       diversifiedScore: item.diversifiedScore ?? item.writer.utility,
       redundancyPenalty: item.redundancyPenalty ?? 0,
       maxRedundancy: Number((item.maxRedundancy ?? 0).toFixed(4)),
+      maxStructuralRedundancy: Number((item.maxStructuralRedundancy ?? 0).toFixed(4)),
     },
   }));
 }
