@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11B1_FULL_DATA_BUILD_PENDING",
+  "phase": "GERMAN_PHASE_11B2_MODERN_REGISTER_EVIDENCE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11b1_fixture_validated_full_data_build_pending",
+    "status": "phase_11b1_full_data_built_phase_11b2_register_diagnostics_next",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11B1_OWNER_FULL_DATA_GATE",
+    "next_milestone": "PHASE_11B2_COLOGNE_REGISTER_AND_FULL_CATALOG_DIAGNOSTICS",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -171,12 +171,31 @@
     "phrase_runtime_implementation_started": false,
     "phase_11b1_implementation_started": true,
     "phase_11b1_fixture_gate_passed": true,
-    "phase_11b1_full_data_build_completed": false,
+    "phase_11b1_full_data_build_completed": true,
     "phase_11b1_contract": "docs/PHRASE_CATALOG_V1.md",
     "phase_11b1_builder": "scripts/build-de-phrase-catalog.mjs",
     "phase_11b1_bootstrap": "scripts/bootstrap-de-phrase-catalog-local.mjs",
     "phase_11b1_default_database": "data/local/rhymelab-phrases-v1.sqlite",
-    "phase_11b1_default_report": "data/local/phrase-catalog-v1-report.json"
+    "phase_11b1_default_report": "data/local/phrase-catalog-v1-report.json",
+    "phase_11b1_full_data_report": {
+      "database_bytes": 161210368,
+      "database_mib": 153.74,
+      "catalog_fingerprint": "f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d",
+      "phrases": 98504,
+      "modern_eligible_phrases": 97400,
+      "historical_only_phrases": 1104,
+      "mixed_historical_phrases": 148,
+      "attestations": 99357,
+      "phrase_tokens": 205957,
+      "leipzig_usage_evidence_rows": 28799,
+      "wiktionary_malformed_lines": 4
+    },
+    "modern_register_sources": {
+      "cologne_kiezdeutsch_2025_v2": "selected_USE_CC_BY_4_0_lightweight_transcripts_only",
+      "rueg_1_0": "VERY_GOOD_DEFERRED_UNTIL_SLIM_DISTRIBUTION_official_corpora_zip_4_4GB"
+    },
+    "register_evidence_schema": "rhymelab-phrase-register-evidence-v1",
+    "cologne_register_policy": "cologne-kiezdeutsch-register-exact-token-sequence-v1"
   },
   "owner_measurement_outputs": {
     "database_v5": "data/local/rhymelab-v5.sqlite",
@@ -185,17 +204,19 @@
     "materialized_writer_page_report_v5": "reports/de-writer-page-benchmark-v5-materialized.json",
     "repeatability_report_v5": "data/local/writer-v5-repeatability-report.json",
     "phrase_catalog_v1": "data/local/rhymelab-phrases-v1.sqlite",
-    "phrase_catalog_report_v1": "data/local/phrase-catalog-v1-report.json"
+    "phrase_catalog_report_v1": "data/local/phrase-catalog-v1-report.json",
+    "cologne_register_report": "data/local/cologne-kiezdeutsch-register-report.json",
+    "phrase_catalog_diagnostics": "data/local/phrase-catalog-v1-diagnostics.json"
   },
   "next_actions": [
-    "run_npm_phrase_catalog_bootstrap_on_owner_local_sources",
-    "inspect_full_phrase_type_history_token_and_leipzig_coverage_distributions",
-    "inspect_common_phrase_noise_and_source_backed_phraseology_quality",
-    "rerun_full_phrase_catalog_build_and_require_equal_semantic_fingerprint",
-    "only_after_full_data_gate_begin_phase_11c_phrase_pronunciation",
-    "keep_tatoeba_real_ingestion_gated_until_contributor_attribution_is_proven",
+    "run_npm_phrase_register_cologne_bootstrap",
+    "run_npm_phrase_catalog_diagnose",
+    "inspect_cologne_transcript_cleaning_coverage_and_matched_phrases",
+    "inspect_full_phrase_type_token_history_leipzig_coverage_and_noise_diagnostics",
+    "repeat_full_phrase_catalog_build_before_11c_and_require_equal_semantic_fingerprint",
+    "defer_rueg_until_a_slim_german_only_distribution_is_available",
+    "only_after_data_quality_gate_begin_phase_11c_phrase_pronunciation",
     "keep_single_word_writer_frozen",
-    "keep_human_writer_ndcg_pending_until_full_german_writer_surface_and_independent_reviewers",
-    "english_after_german_phrase_mosaic_stable"
+    "keep_human_writer_ndcg_pending_until_full_german_writer_surface_and_independent_reviewers"
   ]
 }
