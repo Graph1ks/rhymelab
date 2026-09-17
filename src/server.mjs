@@ -6,13 +6,16 @@ import { DEFAULT_WRITER_DB_PATH, openWriterDb } from './experimental-writer-db.m
 import { WRITER_RUNTIME_ID, selectRhymeRuntimeDatabases } from './runtime-db-routing.mjs';
 import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
+import { getPhraseBrowserStats, getPhraseDetail, getRegisterFacets, openPhraseBrowserDb, searchPhrases, searchRegisterUnits } from './phrase-browser-store.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
 const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYMELAB_DB || 'data/local/rhymelab.sqlite');
 const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
+const phraseDbPath = resolve(process.env.RHYMELAB_PHRASE_DB || 'data/local/rhymelab-phrases-v1.sqlite');
 const uiDir = resolve('src/ui');
 const benchmarkUiDir = resolve('src/benchmark-ui');
+const phraseUiDir = resolve('src/phrase-ui');
 
 let writerDb;
 try {
@@ -34,6 +37,16 @@ try {
   console.warn('Normal Writer v5 runtime remains available; only ?ranking=legacy is disabled.');
 }
 
+let phraseDb = null;
+let phraseDbError = null;
+try {
+  phraseDb = openPhraseBrowserDb(phraseDbPath);
+} catch (error) {
+  phraseDbError = error instanceof Error ? error.message : String(error);
+  console.warn(`Phrase browser DB unavailable at ${phraseDbPath}`);
+  console.warn('Normal Writer runtime remains available; /phrases will show the missing local phrase DB state.');
+}
+
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const assets = {
   '/': { type: 'text/html; charset=utf-8', body: readFileSync(resolve(uiDir, 'index.html')) },
@@ -44,6 +57,10 @@ const assets = {
   '/benchmark/': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
   '/benchmark/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'styles.css')) },
   '/benchmark/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'app.js')) },
+  '/phrases': { type: 'text/html; charset=utf-8', body: readFileSync(resolve(phraseUiDir, 'index.html')) },
+  '/phrases/': { type: 'text/html; charset=utf-8', body: readFileSync(resolve(phraseUiDir, 'index.html')) },
+  '/phrases/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(phraseUiDir, 'styles.css')) },
+  '/phrases/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(phraseUiDir, 'app.js')) },
 };
 
 function json(res, data, status = 200, allowCors = true) {
@@ -130,6 +147,53 @@ const server = createServer(async (req, res) => {
         legacy_database: legacyDb ? legacyDbPath : null,
         legacy_available: Boolean(legacyDb),
         legacy_error: legacyDb ? null : legacyDbError,
+        phrase_database: phraseDb ? phraseDbPath : null,
+        phrase_available: Boolean(phraseDb),
+        phrase_error: phraseDb ? null : phraseDbError,
+      });
+    }
+
+    if (url.pathname === '/api/phrases/stats') {
+      if (!phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+      return json(res, getPhraseBrowserStats(phraseDb));
+    }
+
+    if (url.pathname === '/api/phrases/search') {
+      if (!phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+      return json(res, {
+        results: searchPhrases(phraseDb, {
+          q: url.searchParams.get('q') || '',
+          type: url.searchParams.get('type') || 'all',
+          historical: url.searchParams.get('historical') === 'all',
+          evidence: url.searchParams.get('evidence') || 'all',
+          limit: url.searchParams.get('limit'),
+        }),
+      });
+    }
+
+    if (url.pathname === '/api/phrases/detail') {
+      if (!phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+      const result = getPhraseDetail(phraseDb, url.searchParams.get('id') || '');
+      return result ? json(res, result) : json(res, { error: 'Phrase not found' }, 404);
+    }
+
+    if (url.pathname === '/api/register/facets') {
+      if (!phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+      return json(res, getRegisterFacets(phraseDb));
+    }
+
+    if (url.pathname === '/api/register/search') {
+      if (!phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+      return json(res, {
+        results: searchRegisterUnits(phraseDb, {
+          q: url.searchParams.get('q') || '',
+          layer: url.searchParams.get('layer') || 'both',
+          subcorpus: url.searchParams.get('subcorpus') || 'all',
+          formality: url.searchParams.get('formality') || 'all',
+          mode: url.searchParams.get('mode') || 'all',
+          age: url.searchParams.get('age') || 'all',
+          limit: url.searchParams.get('limit'),
+        }),
       });
     }
     if (url.pathname === '/api/stats') return json(res, getStats(writerDb));
@@ -181,12 +245,15 @@ server.listen(port, host, () => {
   console.log(`Writer v5 SQLite: ${writerDbPath}`);
   console.log(`Writer runtime: ${WRITER_RUNTIME_ID}`);
   console.log(`Legacy/control SQLite: ${legacyDb ? legacyDbPath : 'unavailable'}`);
+  console.log(`Phrase explorer: http://${host}:${port}/phrases`);
+  console.log(`Phrase SQLite: ${phraseDb ? phraseDbPath : 'unavailable'}`);
 });
 
 function shutdown() {
   server.close(() => {
     try { writerDb.close(); } catch {}
     try { legacyDb?.close(); } catch {}
+    try { phraseDb?.close(); } catch {}
     process.exit(0);
   });
 }
