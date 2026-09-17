@@ -425,3 +425,35 @@ The following are intentionally **not** selected yet:
 - human Writer NDCG.
 
 Those require measured data from 11B/11C and dedicated benchmarks rather than guesses.
+
+## Post-survey modern-register addendum — 2026-09-18
+
+Two modern informal German resources were re-evaluated after the initial source decision because the owner prioritized current songwriting/youth-language fit and low local storage cost.
+
+### Cologne Corpus of Kiezdeutsch 2025 v2 — SELECTED / USE
+
+Product role: **high-precision modern youth/urban/spoken register evidence**.
+
+Relevant properties:
+
+- recorded in Cologne in 2023;
+- informal peer-group conversations;
+- speakers aged 17–20;
+- monolingual, multilingual and mixed groups;
+- 33,019 reported tokens / 3,721 turn-takes;
+- GAT2 transcription;
+- CC BY 4.0;
+- three transcript PDFs total about 970 KiB;
+- audio is unnecessary for the current phrase-attestation role.
+
+Decision: ingest transcript PDFs only. Treat matches as register evidence, never as representative German frequency and never as automatic phraseological type.
+
+Manifest: `sources/phrase/cologne-kiezdeutsch-2025-v2.json`.
+
+### RUEG 1.0 — VERY GOOD LINGUISTIC FIT / DEFERRED FOR SIZE
+
+RUEG remains attractive because it contrasts registers, modalities, age groups and mono-/multilingual speakers. However, the current official `RUEG-1.0_corpora.zip` alone is 4.4 GB; separate audio archives increase the release to 23.9 GB.
+
+Decision: do not add RUEG to the normal RhymeLab source bootstrap at present. Re-evaluate only if a stable German-only text subset/export can be obtained reproducibly without multi-gigabyte download overhead and with a pinned license/provenance chain.
+
+This is a technical/product-cost deferral, not a judgment that the linguistic resource is low quality.
