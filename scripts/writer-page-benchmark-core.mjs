@@ -138,11 +138,21 @@ function rowByCandidate(response, candidate) {
   return (response?.results || []).find((row) => normalizeLabelKey(row?.word) === wanted) || null;
 }
 
+function rowByFamily(response, family) {
+  const wanted = String(family || '').trim();
+  if (!wanted) return null;
+  return (response?.results || []).find((row) => String(row?.writerMorphology?.familyKey || '').trim() === wanted) || null;
+}
+
 export function evaluatePageRegression(response, rule) {
-  const row = rowByCandidate(response, rule?.candidate);
+  const candidate = String(rule?.candidate || '').trim();
+  const requiredFamily = String(rule?.required_family || '').trim();
+  const row = candidate
+    ? rowByCandidate(response, candidate)
+    : rowByFamily(response, requiredFamily);
   const failures = [];
   if (!row) {
-    failures.push('candidate_missing');
+    failures.push(candidate ? 'candidate_missing' : 'family_missing');
   } else {
     if (Number.isInteger(rule?.max_rank) && Number(row.writerRank) > rule.max_rank) failures.push('rank_too_low');
     if (Array.isArray(rule?.allowed_primary_types) && !rule.allowed_primary_types.includes(row.primaryType)) {
@@ -156,10 +166,12 @@ export function evaluatePageRegression(response, rule) {
   return {
     id: rule?.id || null,
     query: rule?.query || null,
-    candidate: rule?.candidate || null,
+    candidate: candidate || null,
+    requiredFamily: requiredFamily || null,
     passed: failures.length === 0,
     failures,
     observed: row ? {
+      word: row.word,
       rank: row.writerRank,
       primaryType: row.primaryType,
       score: row.score,
