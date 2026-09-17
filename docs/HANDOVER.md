@@ -22,9 +22,7 @@ Read in order:
 
 ## Hard boundary
 
-RhymeLab core search stays deterministic and local-only. Do not add LLM inference, ML/neural ranking, hosted search/ranking, telemetry, hidden uploads or runtime network dependencies.
-
-Generated linguistic data, SQLite, benchmark queues/reviews/reference labels, reports and downloaded raw sources remain local/gitignored. `main` is protected; required public check is `validate`.
+RhymeLab core search stays deterministic and local-only. Do not add LLM inference, ML/neural ranking, hosted search/ranking, telemetry, hidden uploads or runtime network dependencies. Generated linguistic data, SQLite, benchmark queues/reviews/reference labels, reports and downloaded raw sources remain local/gitignored.
 
 ## Accepted baseline
 
@@ -66,11 +64,10 @@ Writer v7 remains rejected and rolled back. Ad-hoc writer ranking/morphology tun
 status                              structural_ok_reference_pending
 queries                             12 / 12
 mean writer elapsed                 1528.8 ms
-Top-10 repeated family rows         0
-Top-20 repeated family rows         0
 Top-20 exact duplicates             0
 Top-20 near duplicates              0
 Top-20 same-lemma rows              0
+Top-20 repeated family rows         0
 Top-20 unranked rows                1
 Top-20 usage rank >100k rows        25
 Top-20 usage rank >250k rows        1
@@ -82,52 +79,22 @@ legacy tier-0 retention             685 / 685
 Important regression semantics:
 
 - `Arbeitsweise -> Hochzeitsreise` is only a retrieval sentinel (`max_rank: 250`), not a Top-20 requirement.
-- Top-20 surfacing is family-based: `Arbeitsweise -> right:reise`.
+- Top-20 surfacing is family-based through `Arbeitsweise -> right:reise`.
 - `Liebe -> Diebe`, `Leben -> neben`, and `Nacht -> macht` remain protected.
-- Productive `-weise` plus false-split guards (`Verweise`, `Betriebe`, `Bestreben`, `Professoren`, `deutscher`) remain protected.
-- NDCG@10/20 stays `pending_reference` until independent human usefulness labels cover the relevant cutoff.
+- productive `-weise` plus false-split guards (`Verweise`, `Betriebe`, `Bestreben`, `Professoren`, `deutscher`) remain protected.
+- NDCG@10/20 remains `pending_reference` until independent human usefulness labels cover the relevant cutoff.
 
 ## Phase 9A — accepted legacy invariance complete
 
-Owner-local control-path invariance passed 27/27 queries with no missing queries, runtime candidate mismatches, runtime-policy mismatches or protected-order mismatches. Do not invent a competing legacy gate.
+Owner-local control-path invariance passed 27/27 queries with no missing queries, runtime candidate mismatches, runtime-policy mismatches or protected-order mismatches.
 
 ## Phase 9B — multi-analysis owner build complete
 
-Experimental schemas:
-
-```text
-publish  rhymelab-de-publish-v3
-DB       rhymelab-local-db-v5
-```
-
-Real owner data:
-
-```text
-publish forms                     838,199
-DB forms                          838,209
-DB pronunciations                 904,836
-lexical analyses                  967,931
-multi-analysis forms              101,315
-DB-v5 pre-materialization         727.21 MiB
-```
-
-Publish-v3 preserves all source-supported lexical analyses; DB-v5 stores them in `form_analysis`. Local publish-v3 already exists on the owner machine; do not redownload/rebuild it unless explicitly necessary.
+Experimental schemas are `rhymelab-de-publish-v3` and `rhymelab-local-db-v5`. Real owner data has 838,209 forms / 904,836 pronunciations and 967,931 lexical-analysis rows. Publish-v3 already exists locally; do not redownload/rebuild it unless explicitly necessary.
 
 ## Phase 9C — compact materialization complete
 
-The first correct layout was storage-rejected at 1,904.67 MiB. Compact storage is now:
-
-```text
-writer_anchor       PRIMARY KEY(anchor_key, pronunciation_id) WITHOUT ROWID
-anchor storage      compact-primary-key-v2
-candidate basis     legacy-vowel-key-string-suffix-v1
-
-writer_morphology_evidence
-                    PRIMARY KEY(form_id, analysis_key) WITHOUT ROWID
-morphology storage  positive-evidence-compact-v2
-```
-
-After correcting candidate materialization to exactly reproduce legacy `vowel_key LIKE '%key'` string-suffix semantics, the final owner DB is:
+Final exact legacy-suffix-equivalent owner DB:
 
 ```text
 DB-v5 final                         819.77 MiB
@@ -141,17 +108,22 @@ anchor rows                      3,153,639
 positive morphology rows          325,724
 ```
 
-The anchor-only correction left morphology unchanged and the query plan uses `PRIMARY KEY(anchor_key=?)`.
+Storage contracts:
+
+```text
+anchor storage      compact-primary-key-v2
+candidate basis     legacy-vowel-key-string-suffix-v1
+morphology storage  positive-evidence-compact-v2
+```
+
+The real anchor query plan uses `PRIMARY KEY(anchor_key=?)`.
 
 ## Phase 9D — real-data equivalence complete / PASS
 
-Owner report `data/local/writer-v5-equivalence-report.json` passed:
+Owner report passed:
 
 ```text
-schema                              rhymelab-writer-v5-equivalence-v1
-status                              ok
 queries                             12 / 12
-missing queries                     0
 retrieval mismatch queries          0
 morphology regressions              10 / 10 pass
 Hochzeitsreise retrieval sentinel   retained
@@ -160,35 +132,57 @@ indexed retrieval total              59.694 ms
 retrieval-only speedup                14.12x
 ```
 
-This proves exact ordered candidate equality for every frozen right-edge channel. The speedup is retrieval-only, not full Writer Page latency.
+This proves exact ordered candidate equivalence for every frozen right-edge channel.
 
-## Phase 9E — materialized v5 runtime benchmark is the current gate
+## Phase 9E — materialized runtime structural gate complete / PASS
 
-Experimental runtime ID:
+Experimental runtime ID is `materialized-writer-v5-v1`. It activates only for a complete validated v5 storage contract; default v4 behavior remains unchanged.
 
-```text
-materialized-writer-v5-v1
-```
-
-Implemented:
+First full owner Writer Page run:
 
 ```text
-src/writer-materialized-runtime.mjs
-src/experimental-writer-db.mjs
-scripts/benchmark-writer-page-v5-materialized.mjs
-tests/writer-materialized-runtime.test.mjs
+status                              structural_ok_reference_pending
+runtime contract                    12 / 12
+queries                             12 / 12
+mean writer elapsed                 1401.9 ms
+median writer elapsed                862.45 ms
+Top-20 exact duplicates             0
+Top-20 near duplicates              0
+Top-20 same-lemma rows              0
+Top-20 repeated family rows         0
+Top-20 unranked rows                1
+Top-20 usage rank >100k rows        25
+Top-20 usage rank >250k rows        1
+Top-20 explicit rare/historical     0
+preferred pronunciation            240 / 240
+legacy tier-0 retention             685 / 685
 ```
 
-Behavior:
+All page regressions and all 10 morphology regressions pass. `Hochzeitsreise` is rank 116 as retrieval sentinel; `right:reise` surfaces via `Weiterreise` rank 3. The mean is ~8.3% faster than the 1528.8 ms validation baseline.
 
-- default v4 writer path stays unchanged (`LIKE + dynamic morphology`);
-- only a complete v5 storage contract activates materialized retrieval/morphology;
-- v5 right-edge retrieval uses `writer_anchor`;
-- v5 morphology reconstructs multi-analysis consensus from `form_analysis + writer_morphology_evidence`;
-- converged, unresolved and ambiguous-conflict states are preserved;
-- the benchmark fails if any frozen query does not actually report runtime ID `materialized-writer-v5-v1`.
+Performance is not yet accepted because `Arbeitsweise` is still 7105.7 ms with 1,580 merged candidates. The other 11 queries average about 883.38 ms.
 
-CI run #168 is green.
+## Phase 9F — current gate: prefix-stable runtime performance refinement
+
+Root cause in the Writer runtime: `findWriterRhymes()` greedily diversity-ranked every merged candidate to the tail even though the API can return at most 250 rows. For `Arbeitsweise`, that meant completing all 1,580 greedy selection rounds.
+
+Implemented performance-only change:
+
+```text
+src/writer-search.mjs
+  rankWriterRecommendedResults(..., { limit })
+  instead of ranking all morphologyRows to completion
+```
+
+Why quality is unchanged: greedy selection is prefix-stable. Later selection rounds cannot change an already-selected prefix. No score, tier, morphology rule, diversity rule or ranking policy changed.
+
+Protection:
+
+```text
+tests/writer-ranking-prefix-stability.test.mjs
+```
+
+The test compares a full ranking with early-stopped selection and requires the selected prefix to be byte-for-byte identical. CI run #174 is green.
 
 ### Immediate owner action
 
@@ -198,22 +192,20 @@ Run from repository root:
 npm run benchmark:writer-page:v5
 ```
 
-Expected output report:
+Upload only:
 
 ```text
 reports/de-writer-page-benchmark-v5-materialized.json
 ```
 
-Upload that report. Then compare against the frozen Writer Page v2 baseline for:
+The rerun must retain:
 
-1. all 12 queries using `materialized-writer-v5-v1`;
-2. structural gate status;
-3. Top-10/Top-20 duplicate/family/safety metrics;
-4. page regressions and the 10 morphology regressions;
-5. legacy Tier-0 retention;
-6. end-to-end mean writer latency versus 1528.8 ms;
-7. NDCG remains pending unless independent complete human labels exist.
+1. runtime contract 12/12;
+2. structural gate pass;
+3. the same Top-10/Top-20 safety/diversity counts;
+4. all page + 10 morphology regressions;
+5. 685/685 legacy Tier-0 retention;
+6. `Hochzeitsreise` only as retrieval sentinel, not Top-20 guard;
+7. materially lower `Arbeitsweise` and overall latency.
 
-Only if this gate passes should an acceptance report be considered. Do not promote or mark PR #3 ready yet.
-
-Phrase/mosaic rhyme and English remain after German single-word writer-search acceptance.
+After that, establish materialization/runtime repeatability and only then consider a Writer Search acceptance report. Do not promote or mark PR #3 ready yet. Phrase/mosaic rhyme and English remain after German single-word writer-search acceptance.
