@@ -150,32 +150,55 @@ Selected initial production stack:
 - ParlaMint-AT as later register/domain enrichment;
 - COLF-VID, PARSEME, GermaNet, DeReKo/DWDS remain research-only under the documented conditions.
 
-## Immediate next action — Phase 11B1
+## Phase 11B1 implementation status — FIXTURE GATE PASS
 
 Milestone:
 
 `PHASE_11B1_PROVENANCE_PHRASE_CATALOG`
 
-Build the separate phrase source/snapshot/catalog schema and deterministic fixture ingestion only.
+Implementation contract: `docs/PHRASE_CATALOG_V1.md`.
 
-Required first implementation slice:
+Implemented:
 
-1. source + snapshot/license/provenance registry;
-2. separate phrase / attestation / token / usage-evidence storage, not the single-word `hot` table;
-3. raw German Wiktextract phrase fixture importer preserving source types/tags without invention;
-4. deterministic token-boundary storage and explicit unresolved lexical-token state;
-5. Leipzig fixture-derived attestation/commonness evidence kept separate from phraseological type;
-6. deterministic fingerprints, idempotency and provenance tests;
-7. Tatoeba schema fixture only until contributor attribution is resolved end-to-end.
+1. `rhymelab-phrase-catalog-v1` separate SQLite schema;
+2. source + snapshot/license/provenance registry;
+3. raw German Wiktextract streamed multi-word ingestion;
+4. source-backed phrase types/tags without invented classifications;
+5. deterministic token boundaries and explicit unresolved lexical-token state;
+6. `historical_only` / `mixed` / current eligibility handling;
+7. Leipzig News/Web/Wikipedia exact-token-sequence occurrence/commonness evidence;
+8. deterministic semantic catalog fingerprint;
+9. duplicate/idempotency and repeat-build fixture tests;
+10. local full-data bootstrap.
 
-Explicitly out of scope for 11B1:
+No accepted single-word runtime code is rewired.
+
+### Immediate next action — owner-local full-data gate
+
+Run:
+
+```powershell
+npm run phrase:catalog:bootstrap
+```
+
+Expected generated outputs:
+
+```text
+data/local/rhymelab-phrases-v1.sqlite
+data/local/phrase-catalog-v1-report.json
+```
+
+Review the full source build before Phase 11C. Required diagnostics include phrase/type/history/token distributions, Leipzig 1/2/3-corpus coverage, top/common phrase noise, build size/time, and deterministic repeat fingerprint equality.
+
+Phase 11C remains blocked until this full-data gate is reviewed.
+
+Still explicitly out of scope:
 
 - phrase pronunciation generation;
 - connected-speech rules;
 - mosaic retrieval/indexing;
 - phrase Writer ranking;
 - API/UI phrase surfacing;
-- Human Writer NDCG;
-- giant new corpus downloads.
+- Human Writer NDCG.
 
 The frozen single-word Writer remains untouched.

@@ -139,51 +139,50 @@ During Phase 11 use structural, provenance, regression, lexical-safety, determin
 
 ## Current phase — Phase 11 German phrase / mosaic / phraseology
 
-Plan: `docs/PHRASE_MOSAIC_PLAN.md`. Completed source survey: `docs/PHRASE_SOURCE_SURVEY.md`.
+Plan: `docs/PHRASE_MOSAIC_PLAN.md`. Source survey: `docs/PHRASE_SOURCE_SURVEY.md`. Phrase catalog contract: `docs/PHRASE_CATALOG_V1.md`.
 
-### Phase 11A source/licensing gate — COMPLETE
+### Phase 11A — COMPLETE
 
-The production source decision is now explicit:
+The source/licensing decision remains unchanged: raw German Wiktionary/Kaikki for source-backed phraseology plus the frozen Leipzig News 2024 / Wikipedia 2021 / Web 2021 corpora for deterministic attestation/commonness.
 
-- **German Wiktionary via raw Kaikki/Wiktextract — USE WITH CONDITIONS** for source-backed phraseology;
-- **existing Leipzig News 2024 1M + Wikipedia 2021 1M + Web 2021 1M — USE** for deterministic n-gram/attestation/commonness evidence;
-- **Tatoeba — USE WITH CONDITIONS** only after contributor attribution is preserved end-to-end;
-- **Wikidata Lexemes — USE** as optional semantic/identity support;
-- **OpenThesaurus / OdeNet — USE WITH CONDITIONS** as optional semantic support, never as automatic phrase/commonness truth;
-- **ParlaMint-AT 4.1 — USE WITH CONDITIONS / LATER** for register/domain enrichment;
-- **COLF-VID, PARSEME, GermaNet, DeReKo/COSMAS, broad DWDS corpus use — RESEARCH ONLY** under the reasons in the survey.
+### Phase 11B1 — IMPLEMENTED / FIXTURE VALIDATED
 
-Do not download giant new sources merely because they are listed. Do not treat public web phrase lists as ingestible without verified bulk rights.
+Implemented identifiers:
 
-### Immediate next action — Phase 11B1
+```text
+phrase DB schema       rhymelab-phrase-catalog-v1
+phrase policy          de-phrase-catalog-v1
+Leipzig match policy   leipzig-exact-token-sequence-v1
+runtime rewired        false
+```
 
-Milestone:
+Implemented files include:
 
-`PHASE_11B1_PROVENANCE_PHRASE_CATALOG`
+- `scripts/phrase-catalog-core.mjs`;
+- `scripts/build-de-phrase-catalog.mjs`;
+- `scripts/bootstrap-de-phrase-catalog-local.mjs`;
+- `sources/phrase/de-phase11b1-v1.json`;
+- `tests/phrase-catalog.test.mjs`.
 
-Implement the separate provenance-bearing phrase data model and deterministic fixture ingestion.
+The fixture gate verifies source provenance, source-backed type mapping, duplicate/idempotent ingest, token boundaries, historical-only suppression from modern commonness matching, mixed historical/current handling, Leipzig per-corpus evidence and deterministic repeat-build fingerprint equality.
 
-Required first slice:
+### Immediate next owner action
 
-1. `phrase_source` + `phrase_snapshot` license/snapshot/checksum registry;
-2. separate `phrase`, `phrase_attestation`, `phrase_token`, and `phrase_usage_evidence` storage;
-3. raw German Wiktextract phrase fixture importer preserving source tags/types without invention;
-4. deterministic token boundaries and explicit unresolved lexical-token state;
-5. Leipzig fixture-derived attestation/commonness kept separate from phraseological type;
-6. deterministic fingerprints, idempotency and provenance tests;
-7. Tatoeba schema fixture only until author attribution is proven.
+Run:
 
-Do **not** yet implement:
+```powershell
+npm run phrase:catalog:bootstrap
+```
 
-- phrase pronunciation or connected-speech rules;
-- mosaic retrieval/indexing;
-- phrase Writer ranking;
-- phrase API/UI surfacing;
-- Human Writer NDCG;
-- giant new corpus downloads.
+The bootstrap reuses the existing Kaikki cache when available, verifies/downloads the three frozen Leipzig archives, extracts their sentence files, and builds:
 
-The accepted single-word Writer v5/v6 baseline stays frozen and must not be retuned for Phase 11.
+```text
+data/local/rhymelab-phrases-v1.sqlite
+data/local/phrase-catalog-v1-report.json
+```
 
-After 11B1 acceptance, proceed to deterministic phrase pronunciation (11C), then indexed cross-word mosaic retrieval (11D), then separate phrase ranking (11E), then the dedicated phrase/mosaic benchmark (11F).
+Then review real-data phrase/type/history/token distributions, Leipzig coverage/commonness, obvious noise, DB size/build time, and a second-build fingerprint.
 
-English remains after the German phrase/mosaic path is stable enough to freeze.
+Do **not** start Phase 11C phrase pronunciation until that full-data gate is reviewed. Do not add mosaic indexing, phrase ranking or UI/API phrase surfacing yet.
+
+The accepted single-word Writer remains frozen. Human Writer NDCG remains pending. English remains deferred.

@@ -121,9 +121,19 @@ Human Writer NDCG@10/20 remains `pending_reference` by explicit project decision
 
 ## Current roadmap
 
-Phase 11 is German phrase / mosaic / phraseology. The immediate gate is public-data/source and licensing research before any phrase database or runtime implementation.
+Phase 11 is German phrase / mosaic / phraseology.
 
-See `docs/PHRASE_MOSAIC_PLAN.md`.
+Phase 11A source/licensing research is complete. Phase 11B1 now has a fixture-validated separate provenance-bearing phrase catalog implementation (`rhymelab-phrase-catalog-v1`) for German Wiktionary/Kaikki phrase attestations plus Leipzig sentence-level commonness evidence.
+
+The next owner-local gate is:
+
+```powershell
+npm run phrase:catalog:bootstrap
+```
+
+This builds the gitignored local phrase database/report from the real source snapshots. Phrase pronunciation, mosaic indexing, phrase ranking and UI/API surfacing remain deferred until that full-data build is reviewed.
+
+See `docs/PHRASE_MOSAIC_PLAN.md` and `docs/PHRASE_CATALOG_V1.md`.
 
 English remains deferred until the German path is stable enough to freeze.
 

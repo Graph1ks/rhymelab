@@ -28,6 +28,37 @@ Derived locally from attested IPA:
 4. phonological similarity features
 5. exact/slant/multisyllabic/assonance/consonance scoring
 
+## German phrase catalog
+
+Phase 11B1 uses a separate source registry:
+
+```text
+sources/phrase/de-phase11b1-v1.json
+```
+
+Source roles are deliberately separate:
+
+- German Wiktionary via raw Kaikki/Wiktextract supplies source-backed multi-word phraseology/lexical attestations;
+- the frozen Leipzig News 2024 1M, Wikipedia 2021 1M and Germany Web 2021 1M corpora supply sentence-level attestation/commonness evidence only.
+
+The phrase catalog does not infer idiom/metaphor/proverb status from corpus frequency.
+
+Preferred local bootstrap:
+
+```bash
+npm run phrase:catalog:bootstrap
+```
+
+Generated outputs remain gitignored:
+
+```text
+data/local/rhymelab-phrases-v1.sqlite
+data/local/phrase-catalog-v1-report.json
+data/work/de-phrase-catalog-v1/
+```
+
+The bootstrap reuses the existing Kaikki source cache when available and verifies the frozen Leipzig archive SHA-256 values before extracting sentence files.
+
 ## Local build
 
 The standard local source bootstrap is:
