@@ -138,14 +138,24 @@ This proves exact ordered candidate equivalence for every frozen right-edge chan
 
 Experimental runtime ID is `materialized-writer-v5-v1`. It activates only for a complete validated v5 storage contract; default v4 behavior remains unchanged.
 
-First full owner Writer Page run:
+The full Writer Page runtime keeps the frozen structural quality: 12/12 runtime contract, all page regressions, all 10 morphology regressions, and 685/685 Tier-0 retention.
+
+## Phase 9F — prefix-stable runtime performance gate complete / PASS
+
+The runtime no longer greedily ranks unused tail candidates after the requested page prefix has been selected. This is a performance-only optimization: no score, tier, morphology rule, diversity rule or ranking policy changed. `tests/writer-ranking-prefix-stability.test.mjs` proves the selected prefix is byte-for-byte identical to a full ranking prefix.
+
+Owner rerun after the optimization:
 
 ```text
 status                              structural_ok_reference_pending
 runtime contract                    12 / 12
 queries                             12 / 12
-mean writer elapsed                 1401.9 ms
-median writer elapsed                862.45 ms
+mean writer elapsed                 1103.9 ms
+baseline mean elapsed               1528.8 ms
+mean improvement                     27.8%
+Arbeitsweise elapsed                3021.8 ms
+previous Arbeitsweise elapsed       7105.7 ms
+Arbeitsweise improvement              57.5%
 Top-20 exact duplicates             0
 Top-20 near duplicates              0
 Top-20 same-lemma rows              0
@@ -158,54 +168,44 @@ preferred pronunciation            240 / 240
 legacy tier-0 retention             685 / 685
 ```
 
-All page regressions and all 10 morphology regressions pass. `Hochzeitsreise` is rank 116 as retrieval sentinel; `right:reise` surfaces via `Weiterreise` rank 3. The mean is ~8.3% faster than the 1528.8 ms validation baseline.
+Protected result behavior is unchanged: `Hochzeitsreise` rank 116 as retrieval sentinel, `right:reise` via `Weiterreise` rank 3, `Diebe` rank 1, `neben` rank 2 and `macht` rank 1.
 
-Performance is not yet accepted because `Arbeitsweise` is still 7105.7 ms with 1,580 merged candidates. The other 11 queries average about 883.38 ms.
+## Phase 9G — current gate: deterministic runtime repeatability
 
-## Phase 9F — current gate: prefix-stable runtime performance refinement
-
-Root cause in the Writer runtime: `findWriterRhymes()` greedily diversity-ranked every merged candidate to the tail even though the API can return at most 250 rows. For `Arbeitsweise`, that meant completing all 1,580 greedy selection rounds.
-
-Implemented performance-only change:
+Implemented:
 
 ```text
-src/writer-search.mjs
-  rankWriterRecommendedResults(..., { limit })
-  instead of ranking all morphologyRows to completion
+scripts/writer-v5-repeatability-core.mjs
+scripts/benchmark-writer-v5-repeatability.mjs
+tests/writer-v5-repeatability.test.mjs
+npm run benchmark:writer-v5:repeatability
 ```
 
-Why quality is unchanged: greedy selection is prefix-stable. Later selection rounds cannot change an already-selected prefix. No score, tier, morphology rule, diversity rule or ranking policy changed.
+The owner gate performs three independent opens of the experimental v5 DB. For each of the 12 frozen queries it hashes the complete `findWriterRhymes()` response with canonical object-key ordering. Result order, writer ranks/features, scores, morphology, retrieval metadata and runtime identity are inside the semantic fingerprint; elapsed time and report timestamps are outside it.
 
-Protection:
-
-```text
-tests/writer-ranking-prefix-stability.test.mjs
-```
-
-The test compares a full ranking with early-stopped selection and requires the selected prefix to be byte-for-byte identical. CI run #174 is green.
+CI run #181 is green.
 
 ### Immediate owner action
 
 Run from repository root:
 
 ```powershell
-npm run benchmark:writer-page:v5
+npm run benchmark:writer-v5:repeatability
 ```
 
 Upload only:
 
 ```text
-reports/de-writer-page-benchmark-v5-materialized.json
+data/local/writer-v5-repeatability-report.json
 ```
 
-The rerun must retain:
+Acceptance criterion:
 
-1. runtime contract 12/12;
-2. structural gate pass;
-3. the same Top-10/Top-20 safety/diversity counts;
-4. all page + 10 morphology regressions;
-5. 685/685 legacy Tier-0 retention;
-6. `Hochzeitsreise` only as retrieval sentinel, not Top-20 guard;
-7. materially lower `Arbeitsweise` and overall latency.
+1. `status: ok`;
+2. three runs completed;
+3. all 12 per-query fingerprints identical across all runs;
+4. aggregate suite fingerprint identical across all runs;
+5. zero mismatches;
+6. runtime contract remains `materialized-writer-v5-v1`.
 
-After that, establish materialization/runtime repeatability and only then consider a Writer Search acceptance report. Do not promote or mark PR #3 ready yet. Phrase/mosaic rhyme and English remain after German single-word writer-search acceptance.
+If this passes, produce the German single-word writer-search acceptance report. Keep human NDCG explicitly `pending_reference`; do not replace it with model/sparse judgments. Do not promote or mark PR #3 ready until the acceptance report is reviewed. Phrase/mosaic rhyme and English remain after German single-word writer-search acceptance.
