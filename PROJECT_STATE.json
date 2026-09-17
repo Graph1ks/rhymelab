@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11B2_MODERN_REGISTER_EVIDENCE",
+  "phase": "GERMAN_PHASE_11B3_RUEG_PHRASE_EXPLORER",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11b1_full_data_built_phase_11b2_register_diagnostics_next",
+    "status": "phase_11b2_diagnostics_complete_phase_11b3_rueg_owner_build_pending",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11B2_COLOGNE_REGISTER_AND_FULL_CATALOG_DIAGNOSTICS",
+    "next_milestone": "PHASE_11B3_OWNER_RUEG_BUILD_AND_EXPLORER_GATE",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -192,10 +192,60 @@
     },
     "modern_register_sources": {
       "cologne_kiezdeutsch_2025_v2": "selected_USE_CC_BY_4_0_lightweight_transcripts_only",
-      "rueg_1_0": "VERY_GOOD_DEFERRED_UNTIL_SLIM_DISTRIBUTION_official_corpora_zip_4_4GB"
+      "rueg_1_0": "SELECTED_USE_VIA_DAKODA_SLIM_GERMAN_SUBCORPORA_CC0_EXB_PLUS_META"
     },
     "register_evidence_schema": "rhymelab-phrase-register-evidence-v1",
-    "cologne_register_policy": "cologne-kiezdeutsch-register-exact-token-sequence-v1"
+    "cologne_register_policy": "cologne-kiezdeutsch-register-exact-token-sequence-v1",
+    "phase_11b2_diagnostics": {
+      "completed": true,
+      "phrases": 98504,
+      "modern_eligible": 97400,
+      "two_token_phrases": 93863,
+      "multiword_lexemes": 92967,
+      "explicit_phrases": 5549,
+      "idioms": 2729,
+      "proverbs": 193,
+      "figurative_expressions": 78,
+      "leipzig_matched_phrases": 15449,
+      "leipzig_modern_coverage_pct": 15.86,
+      "leipzig_one_corpus": 6782,
+      "leipzig_two_corpora": 3984,
+      "leipzig_three_corpora": 4683,
+      "diagnostic_observation": "raw_catalog_is_intentionally_lexeme_heavy_and_contains_abbreviation_surface_alias_noise;do_not_treat_all_rows_as_songwriting_phrases"
+    },
+    "rueg": {
+      "manifest": "sources/phrase/rueg-dakoda-de-v1.json",
+      "source_id": "rueg-dakoda",
+      "license": "CC0-1.0",
+      "subcorpora": [
+        "RUEG-Lx",
+        "RUEG-L1",
+        "RUEG-HL"
+      ],
+      "reported_tokens_total": 159145,
+      "layers": [
+        "dipl",
+        "norm"
+      ],
+      "policy": "rueg-dakoda-dual-layer-register-v1",
+      "detail_schema": "rhymelab-rueg-register-v1",
+      "candidate_generation": false,
+      "population_commonness": false,
+      "owner_full_build_completed": false
+    },
+    "phrase_explorer": {
+      "route": "/phrases",
+      "database": "data/local/rhymelab-phrases-v1.sqlite",
+      "optional_for_writer_startup": true,
+      "read_only": true,
+      "runtime_writer_rewired": false,
+      "surfaces": [
+        "phrase_catalog",
+        "leipzig_evidence",
+        "register_evidence",
+        "rueg_dipl_norm_contexts"
+      ]
+    }
   },
   "owner_measurement_outputs": {
     "database_v5": "data/local/rhymelab-v5.sqlite",
@@ -206,17 +256,17 @@
     "phrase_catalog_v1": "data/local/rhymelab-phrases-v1.sqlite",
     "phrase_catalog_report_v1": "data/local/phrase-catalog-v1-report.json",
     "cologne_register_report": "data/local/cologne-kiezdeutsch-register-report.json",
-    "phrase_catalog_diagnostics": "data/local/phrase-catalog-v1-diagnostics.json"
+    "phrase_catalog_diagnostics": "data/local/phrase-catalog-v1-diagnostics.json",
+    "rueg_register_report": "data/local/rueg-register-report.json"
   },
   "next_actions": [
-    "run_npm_phrase_register_cologne_bootstrap",
-    "run_npm_phrase_catalog_diagnose",
-    "inspect_cologne_transcript_cleaning_coverage_and_matched_phrases",
-    "inspect_full_phrase_type_token_history_leipzig_coverage_and_noise_diagnostics",
-    "repeat_full_phrase_catalog_build_before_11c_and_require_equal_semantic_fingerprint",
-    "defer_rueg_until_a_slim_german_only_distribution_is_available",
-    "only_after_data_quality_gate_begin_phase_11c_phrase_pronunciation",
-    "keep_single_word_writer_frozen",
-    "keep_human_writer_ndcg_pending_until_full_german_writer_surface_and_independent_reviewers"
+    "run_npm_phrase_register_rueg_bootstrap",
+    "inspect_rueg_metadata_pairing_dipl_norm_token_counts_and_register_matches",
+    "run_npm_phrase_catalog_diagnose_after_rueg_import",
+    "browse_local_phrase_explorer_at_http_127_0_0_1_3030_phrases",
+    "keep_cologne_optional_and_nonblocking_if_zenodo_automation_is_blocked",
+    "repeat_full_phrase_catalog_build_before_11c_and_require_equal_base_catalog_fingerprint",
+    "only_after_rueg_real_data_gate_begin_phase_11c_phrase_pronunciation",
+    "keep_single_word_writer_frozen"
   ]
 }
