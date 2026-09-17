@@ -8,4 +8,6 @@ Repository governance is documented in `docs/REPOSITORY_GOVERNANCE.md`. GitHub n
 
 The current formally accepted German runtime baseline remains v0.10.0. Runtime source contains the validated hybrid-v3 ranking promotion for normal `type=all` ranked mode; final owner-local post-promotion acceptance remains pending.
 
-See `PROJECT_STATE.json`, `docs/HANDOVER.md`, `docs/REPOSITORY_GOVERNANCE.md`, and `docs/BENCHMARK.md` for the current execution boundary.
+Feature branch `feat/deterministic-writer-ranking-v1` / draft PR #3 adds a deterministic writer-oriented utility/diversity layer without changing `de-ipa-v2`, `de-phon-v3`, `rhyme-relations-v2`, or DB schema v4. The branch makes writer ranking visible in the local UI, retains `?ranking=legacy` for comparison, adds `Arbeitsweise` regressions, and records the hard no-LLM/no-ML core-search constraint. Public CI is green on the initial implementation. This feature is not yet an accepted runtime baseline.
+
+See `PROJECT_STATE.json`, `docs/HANDOVER.md`, `docs/WRITER_RANKING.md`, `docs/REPOSITORY_GOVERNANCE.md`, and `docs/BENCHMARK.md` for the current execution boundary.
