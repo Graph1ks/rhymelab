@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { benchmarkQueueFingerprint } from './benchmark-handoff-core.mjs';
 import {
   MODERN_ENTITY_RELATIVE_COMMONNESS_POLICY,
   preservesAcceptedOrderingForPolicy,
@@ -23,6 +22,7 @@ import {
   safetyForRows,
   sumSafety,
 } from './runtime-ranking-report-core.mjs';
+import { loadRuntimeCandidateReferenceAssets } from './runtime-candidate-reference-assets.mjs';
 import { findRhymes, openRhymeDb } from '../src/local-engine.mjs';
 
 const args = process.argv.slice(2);
@@ -43,29 +43,14 @@ const candidatePolicy = MODERN_ENTITY_RELATIVE_COMMONNESS_POLICY;
 const FOCUS_QUERIES = new Set(['Spotify', 'YouTube', 'Netflix', 'TikTok', 'hitzefrei']);
 
 const plan = JSON.parse(await readFile(planPath, 'utf8'));
-const queue = JSON.parse(await readFile(queuePath, 'utf8'));
-const reviews = JSON.parse(await readFile(reviewsPath, 'utf8'));
-
 if (plan.schema !== 'rhymelab-de-benchmark-plan-v1') {
   throw new Error(`Unexpected benchmark plan schema: ${plan.schema}`);
 }
-if (queue.schema !== 'rhymelab-de-human-benchmark-queue-v1') {
-  throw new Error(`Unexpected queue schema: ${queue.schema}`);
-}
-if (reviews.schema !== 'rhymelab-de-human-benchmark-reviews-v1') {
-  throw new Error(`Unexpected review schema: ${reviews.schema}`);
-}
 
-const queueFingerprint = benchmarkQueueFingerprint(queue);
-if (reviews.queue_fingerprint && reviews.queue_fingerprint !== queueFingerprint) {
-  throw new Error('Review file queue fingerprint does not match refreshed queue');
-}
-
-const reviewByTaskId = new Map(
-  (reviews.reviews || [])
-    .filter((row) => !row.skip)
-    .map((row) => [String(row.task_id), row]),
-);
+const referenceAssets = await loadRuntimeCandidateReferenceAssets(queuePath, reviewsPath);
+const queue = referenceAssets.queue;
+const reviews = referenceAssets.reviews;
+const reviewByTaskId = referenceAssets.reviewByTaskId;
 
 const queryReports = [];
 const missingQueries = [];
@@ -257,20 +242,33 @@ const focusQueries = queryReports
     candidate_runtime: row.candidate_runtime,
   }));
 
+const referenceEvidence = {
+  status: referenceAssets.status,
+  queue_path: queue ? queuePath : null,
+  reviews_path: reviews ? reviewsPath : null,
+  metrics_available: referenceAssets.status === 'available',
+};
+
 const report = {
   schema: 'rhymelab-benchmark-ranking-runtime-candidate-v2',
-  benchmark_version: reviews.benchmark_version || plan.version || null,
-  language: plan.language || queue.language || 'de',
+  benchmark_version: reviews?.benchmark_version || plan.version || null,
+  language: plan.language || queue?.language || 'de',
   generated_at: new Date().toISOString(),
-  queue_fingerprint: queueFingerprint,
+  queue_fingerprint: referenceAssets.queueFingerprint,
+  reference_evidence: referenceEvidence,
   candidate_policy: candidatePolicy,
-  status: aggregate.runtime_candidate_mismatch_queries.length
+  status: aggregate.missing_queries.length
+    || aggregate.runtime_candidate_mismatch_queries.length
     || aggregate.runtime_policy_mismatch_queries.length
     || aggregate.protected_order_mismatch_queries.length
     ? 'validation_error'
     : 'ok',
-  scope: 'post-promotion retrieval-aware runtime acceptance: reconstruct the accepted usage-first candidate set, derive the validated v3 order before top-250 truncation, and require live findRhymes to match it exactly',
-  limitation: 'uses the accepted runtime retrieval keys and pool limit 800; validates ranking before result truncation but does not broaden retrieval beyond the current local-engine candidatePool strategy; balanced coverage and type-specific UI modes retain their separate usage-first ordering',
+  scope: referenceAssets.status === 'available'
+    ? 'post-promotion retrieval-aware runtime acceptance: reconstruct the accepted usage-first candidate set, derive the validated v3 order before top-250 truncation, require live findRhymes to match it exactly, and report reviewed reference metrics'
+    : 'retrieval-aware legacy/runtime invariance: reconstruct the accepted usage-first candidate set, derive the validated v3 order before top-250 truncation, and require live findRhymes to match it exactly; historical review metrics are unavailable locally',
+  limitation: referenceAssets.status === 'available'
+    ? 'uses the accepted runtime retrieval keys and pool limit 800; validates ranking before result truncation but does not broaden retrieval beyond the current local-engine candidatePool strategy; balanced coverage and type-specific UI modes retain their separate usage-first ordering'
+    : 'local refresh queue/reviews are absent, so NDCG/pairwise reference metrics are null; this run is valid for runtime-order, ranking-policy, protected-order and safety invariance only, not for re-establishing historical reviewed metrics',
   runtime_default_changed: true,
   scorer_changed: false,
   relation_policy_changed: false,
@@ -285,6 +283,7 @@ await writeFile(outPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 console.log(JSON.stringify({
   schema: report.schema,
   status: report.status,
+  reference_evidence: report.reference_evidence,
   candidate_policy: report.candidate_policy,
   aggregate: report.aggregate,
   focus_queries: report.focus_queries.map((row) => ({
