@@ -217,10 +217,10 @@ try {
   const fingerprint = computeRegisterEvidenceFingerprint(db);
   const stats = registerEvidenceStats(db);
   const updatedAt = new Date().toISOString();
-  const upsertMeta = db.prepare(\`
+  const upsertMeta = db.prepare(`
     INSERT INTO meta(key,value) VALUES(?,?)
     ON CONFLICT(key) DO UPDATE SET value=excluded.value
-  \`);
+  `);
   for (const [key, value] of Object.entries({
     phrase_register_schema: PHRASE_REGISTER_EVIDENCE_SCHEMA,
     phrase_register_policy: COLOGNE_KIEZDEUTSCH_MATCH_POLICY,
@@ -259,7 +259,7 @@ try {
     runtime_rewired: false,
   };
 
-  await writeFile(reportPath, JSON.stringify(report, null, 2) + '\\n', 'utf8');
+  await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n', 'utf8');
   console.log(JSON.stringify(report, null, 2));
 } finally {
   db.close();
