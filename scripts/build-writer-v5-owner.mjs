@@ -16,6 +16,7 @@ const publishHeapMiB = Math.max(
   4096,
   Number.parseInt(argValue('--publish-heap-mib', '8192'), 10) || 8192,
 );
+const compactRankingPath = 'data/de/usage/de-usage-publish.tsv';
 
 const required = [
   'data/de/usage/de-usage.tsv',
@@ -67,14 +68,23 @@ if (missing.length) {
   }
 }
 
+run('scripts/prepare-de-publish-ranking.mjs', [
+  '--input', 'data/de/usage/de-usage.tsv',
+  '--out', compactRankingPath,
+]);
+
 console.log(`\nWriter-v5 full-data publish heap ceiling: ${publishHeapMiB} MiB`);
 console.log('This affects the one-time experimental publish build only; it does not change runtime memory requirements.');
+console.log(`Publish ranking: ${compactRankingPath} (same ranks/scores, unused corpus JSON columns removed)`);
 run(
   'scripts/build-de-rhyme-publish.mjs',
-  ['--writer-lexical-v3'],
+  ['--ranking', compactRankingPath, '--writer-lexical-v3'],
   [`--max-old-space-size=${publishHeapMiB}`],
 );
-run('scripts/build-local-db.mjs', ['--publish', 'data/de/publish-v3']);
+run('scripts/build-local-db.mjs', [
+  '--publish', 'data/de/publish-v3',
+  '--ranking', compactRankingPath,
+]);
 run('scripts/materialize-writer-v5.mjs');
 
 console.log('\nWRITER V5 OWNER BUILD COMPLETE');
