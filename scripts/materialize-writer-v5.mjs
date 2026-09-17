@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { DatabaseSync } from 'node:sqlite';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { rightHeadSplitCandidates } from '../src/writer-morphology.mjs';
 import { WRITER_LEXICAL_DB_SCHEMA } from './writer-lexical-storage-v5-core.mjs';
@@ -30,6 +30,12 @@ const reportPath = resolve(argValue('--report', 'data/local/writer-materializati
 const batchSize = Math.max(50, Math.min(5000, Number.parseInt(argValue('--batch-size', '1000'), 10) || 1000));
 const lookupBatchSize = 300;
 const mib = (bytes) => Number((Number(bytes || 0) / 1024 / 1024).toFixed(2));
+
+try {
+  await access(dbPath);
+} catch {
+  throw new Error(`Writer materialization database does not exist: ${dbPath}. Build the experimental v5 DB first with: node scripts/build-local-db.mjs --publish data/de/publish-v3`);
+}
 
 function logicalDbBytes(db) {
   const pageCount = Number(db.prepare('PRAGMA page_count').get()?.page_count || 0);
