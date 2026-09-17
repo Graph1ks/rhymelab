@@ -29,6 +29,8 @@
     "benchmark:ranking:hybrid:v2": "npm run check && npm test && node --no-warnings scripts/benchmark-ranking-contextual-hybrid.mjs",
     "benchmark:ranking:hybrid": "npm run check && npm test && node --no-warnings scripts/benchmark-ranking-relative-commonness.mjs",
     "benchmark:ranking:runtime-candidate": "npm run check && npm test && node --no-warnings scripts/benchmark-ranking-runtime-candidate.mjs",
+    "benchmark:writer-page:prepare": "npm run check && npm test && node --no-warnings scripts/prepare-writer-page-benchmark-v2.mjs",
+    "benchmark:writer-page:v2": "npm run check && npm test && node --no-warnings scripts/benchmark-writer-page-v2.mjs",
     "benchmark:handoff": "npm run check && npm test && npm run benchmark:prepare && npm run benchmark:export",
     "benchmark:ingest": "npm run benchmark:import && npm run benchmark:report",
     "benchmark:run": "npm run check && npm test && npm run benchmark:prepare && npm run dev",
