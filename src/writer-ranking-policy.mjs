@@ -1,4 +1,4 @@
-export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v2';
+export const WRITER_RANKING_POLICY = 'deterministic_writer_utility_v3';
 
 const MAX_EDIT_LENGTH = 96;
 const DEFAULT_DIVERSITY_WEIGHT = 0.18;
@@ -68,7 +68,10 @@ export function lexicalOverlapEvidence(query, candidate) {
     sameLemma ? 1 : 0,
     surfaceSimilarity >= 0.72 ? surfaceSimilarity * 0.90 : surfaceSimilarity * 0.55,
     prefixLength >= 5 ? prefixOverlap * 0.96 : 0,
-    suffixLength >= 6 ? suffixOverlap * 0.72 : 0,
+    // Query-vs-candidate suffix overlap is retained only as weak evidence at a long
+    // threshold. It can help catch trivial inflectional continuations, but must not
+    // dominate ordinary rhyme material such as -reise/-preise/-weise.
+    suffixLength >= 7 ? suffixOverlap * 0.45 : 0,
   );
 
   return {
@@ -96,18 +99,18 @@ export function lexicalRedundancy(left, right) {
 
   const surfaceSimilarity = normalizedEditSimilarity(a, b, language);
   const prefixLength = commonPrefixLength(a, b);
-  const suffixLength = commonSuffixLength(a, b);
   const minLength = Math.max(1, Math.min(a.length, b.length));
 
-  const terminalConstruction = suffixLength >= 5
-    ? clamp01(0.58 + 0.07 * (suffixLength - 5))
-    : 0;
+  // Redundancy must not be inferred from a shared word ending. The right edge is exactly
+  // where rhyme evidence lives, so suffix similarity such as -reise/-preise/-weise is
+  // expected and must not demote a candidate. Until explicit morphology is stored, v3
+  // only treats strong shared stems/prefixes, same lemmas and near-duplicates as redundant.
   const initialConstruction = prefixLength >= 6 && prefixLength / minLength >= 0.45
     ? clamp01(0.50 + 0.45 * (prefixLength / minLength))
     : 0;
-  const nearDuplicate = surfaceSimilarity >= 0.78 ? surfaceSimilarity : 0;
+  const nearDuplicate = surfaceSimilarity >= 0.84 ? surfaceSimilarity : 0;
 
-  return Number(Math.max(terminalConstruction, initialConstruction, nearDuplicate).toFixed(4));
+  return Number(Math.max(initialConstruction, nearDuplicate).toFixed(4));
 }
 
 function syllableUtility(row) {
