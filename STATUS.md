@@ -32,7 +32,7 @@ morphology family: de-attested-right-head-v4
 construction:      de-adverbial-weise-v2
 ```
 
-Writer v7 remains rejected and rolled back. Ad-hoc ranking/morphology tuning is frozen at v6/v4. The core remains deterministic, local-only, and free of LLM/ML inference, hosted ranking, telemetry and runtime network dependencies.
+Writer v7 remains rejected and rolled back. Ad-hoc ranking/morphology tuning is frozen at v6/v4. Core search remains deterministic, local-only, and free of LLM/ML inference, hosted ranking, telemetry and runtime network dependencies.
 
 ## Writer Page Benchmark v2 — structural baseline frozen
 
@@ -70,7 +70,7 @@ publish: rhymelab-de-publish-v3
 DB:      rhymelab-local-db-v5
 ```
 
-The first full owner build completed successfully:
+Owner real-data counts:
 
 ```text
 publish forms                     838,199
@@ -83,70 +83,63 @@ DB-v5 before writer materialize   727.21 MiB
 
 The 10-form / 28-pronunciation difference between publish and DB is exactly the existing supplemental overlay. Accepted v2/v4 defaults remain untouched.
 
-## Phase 9C — materialization correctness passed; first storage layout rejected
+## Phase 9C — compact materialization owner gate passed
 
-The first full owner materialization was internally consistent:
+The first materialization was correct but storage-rejected at 1,904.67 MiB final / +1,177.46 MiB writer delta. The compact layout keeps semantics unchanged while removing repeated metadata, redundant indexes, duplicated JSON and unresolved morphology rows.
 
-```text
-anchor pronunciations processed   904,836
-anchor rows                        2,854,155
-morphology analysis rows           967,931
-positive morphology rows           325,724
-unresolved morphology rows         642,207
-ambiguous forms                    29,199
-anchor query plan indexed          yes
-```
-
-However, the first storage layout grew the experimental DB from 727.21 MiB to 1,904.67 MiB (+1,177.46 MiB), so storage efficiency failed the promotion gate.
-
-A SQLite dbstat audit located the bloat:
+Compact storage:
 
 ```text
-writer_morphology_evidence         626.13 MiB
-writer_anchor                      551.32 MiB
-hot                                457.72 MiB
-form_analysis                      269.48 MiB
+anchor storage      compact-primary-key-v2
+anchor PK           (anchor_key, pronunciation_id) WITHOUT ROWID
+morphology storage  positive-evidence-compact-v2
+morphology PK       (form_id, analysis_key) WITHOUT ROWID
 ```
 
-The original writer tables duplicated constant policy metadata, morphology JSON payloads and multiple indexes. This was a schema/storage problem, not a source-population or linguistic-correctness problem.
-
-## Compact materialization — fixture gate complete
-
-The experimental materializer now uses compact storage while keeping policy semantics unchanged:
-
-### Anchors
+Clean owner remeasurement:
 
 ```text
-storage: compact-primary-key-v2
-writer_anchor(anchor_key, pronunciation_id)
-PRIMARY KEY(anchor_key, pronunciation_id) WITHOUT ROWID
+DB-v5 pre-materialization          727.21 MiB
+final compact DB-v5                816.88 MiB
+compact writer delta                89.67 MiB
+writer_anchor                        57.54 MiB
+writer_morphology_evidence           32.13 MiB
+form_analysis                       269.48 MiB
+hot                                 457.72 MiB
+freelist pages                           0
 ```
 
-Every complete right-edge nucleus suffix is still materialized, so the candidate universe is unchanged. Fixture tests still prove equality with the old `vowel_key LIKE '%key'` retrieval and retain `Arbeitsweise -> Hochzeitsreise`. Constant policy/kind/position metadata is no longer duplicated per row; policy identity remains in DB metadata.
+That removes 1,087.79 MiB versus the first final v5 build and cuts writer-materialization storage by 92.38%.
 
-### Morphology
+Real-data counts remain exactly stable:
 
 ```text
-storage: positive-evidence-compact-v2
-PRIMARY KEY(form_id, analysis_key) WITHOUT ROWID
+anchor pronunciations             904,836
+anchor rows                      2,854,155
+morphology analyses               967,931
+positive morphology rows          325,724
+unresolved morphology rows        642,207
+ambiguous forms                     29,199
 ```
 
-Only positive family evidence is stored. An unresolved analysis is represented by absence of a row; this preserves family-consensus semantics because unresolved/null-family rows never contributed a supported family. Duplicated `evidence_json`, per-row policy/status strings and the redundant family index were removed. Supporting right-head analysis identity and the compact evidence fields remain stored.
+The real query plan uses `PRIMARY KEY(anchor_key=?)`. Compact storage therefore passes size/count/query-plan validation. Runtime rewiring is still false.
 
-CI run #145 passes all 157 tests for the compact layout. Both `accepted_runtime_rewired` and `writer_runtime_rewired` remain false.
+## Phase 9D — real-data equivalence next
 
-## Immediate next gate
+A read-only owner gate now exists:
 
-Rebuild only the separate experimental DB-v5 from the already-generated local publish-v3, run compact materialization, and remeasure storage. There is no need to redownload sources or rebuild publish-v3.
+```text
+npm run benchmark:writer-v5:equivalence
+```
 
-Required evidence after compact rematerialization:
+It compares old suffix-`LIKE` retrieval with compact indexed retrieval over every right-edge channel for all 12 frozen Writer Page v2 queries, requiring exact ordered candidate-ID equality and preserving `Arbeitsweise -> Hochzeitsreise`. It also evaluates all 10 morphology regressions from compact multi-analysis evidence and records retrieval timing.
 
-1. final physical/live SQLite size;
-2. compact anchor and morphology table sizes;
-3. unchanged real-data anchor row count and indexed plan;
-4. unchanged morphology analysis / positive / unresolved / ambiguous counts;
-5. deterministic repeatability;
-6. candidate-universe/runtime comparison against frozen Writer Page Benchmark v2;
-7. only then may the experimental writer runtime replace suffix `LIKE`.
+Output:
+
+```text
+data/local/writer-v5-equivalence-report.json
+```
+
+Only if that report is `status: ok` may the experimental v5 writer runtime be switched to compact anchors/materialized morphology. The complete Writer Page Benchmark v2 must then be rerun before any promotion decision.
 
 `findRhymes()` / `ranking=legacy` remains untouched. Phrase/mosaic rhyme and English remain after German single-word writer-search acceptance.
