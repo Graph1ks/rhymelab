@@ -3,6 +3,7 @@ import { germanRightEdgeVowelSuffixKeys } from './german-rhyme-anchors.mjs';
 
 export const WRITER_ANCHOR_POLICY = 'de-right-edge-anchors-v1';
 export const WRITER_ANCHOR_STORAGE = 'compact-primary-key-v2';
+export const WRITER_ANCHOR_CANDIDATE_BASIS = 'legacy-vowel-key-string-suffix-v1';
 
 export const CREATE_WRITER_ANCHOR_SQL = `
 CREATE TABLE IF NOT EXISTS writer_anchor(
@@ -33,31 +34,36 @@ export function writerQueryAnchorKeys(value) {
   }));
 }
 
+function legacyVowelKeyStringSuffixes(vowelKey) {
+  const chars = Array.from(String(vowelKey || ''));
+  const suffixes = [];
+  const seen = new Set();
+
+  // The validation runtime used SQLite `vowel_key LIKE '%<query-key>'`.
+  // Query keys always contain at least two nuclei and therefore at least one '-'.
+  // Materializing every non-hyphen-leading string suffix that still contains '-'
+  // exactly preserves that string-suffix behavior, including cases where LIKE can
+  // begin inside a multi-code-point canonical nucleus such as aɪ.
+  for (let start = 0; start < chars.length; start += 1) {
+    const suffix = chars.slice(start).join('');
+    if (!suffix.includes('-') || suffix.startsWith('-') || seen.has(suffix)) continue;
+    seen.add(suffix);
+    suffixes.push(suffix);
+  }
+  return suffixes;
+}
+
 export function writerCandidateSuffixRows(pronunciationId, value) {
   const analysis = analysisFor(value);
-  const syllables = Array.isArray(analysis.syllables) ? analysis.syllables : [];
-  const nuclei = syllables.map((syllable) => syllable.nucleus).filter(Boolean);
-  const rows = [];
-
-  // Query keys are validated secondary-stress anchors. Candidate lookup, however,
-  // previously used `vowel_key LIKE '%<query-key>'`. Materializing every complete
-  // right-edge nucleus suffix is the boundary-aware indexed equivalent of that
-  // candidate-side suffix scan and therefore preserves the validated candidate universe.
-  //
-  // Candidate-side policy/kind/position metadata is intentionally not stored in SQLite:
-  // it is constant for this materialization contract and is already versioned in meta.
-  for (let start = 0; start <= nuclei.length - 2; start += 1) {
-    const suffix = nuclei.slice(start);
-    rows.push({
-      pronunciationId: Number(pronunciationId),
-      policy: WRITER_ANCHOR_POLICY,
-      kind: 'vowel_suffix_lookup',
-      anchorPosition: start + 1,
-      nuclei: suffix.length,
-      key: suffix.join('-'),
-    });
-  }
-  return rows;
+  const vowelKey = String(analysis.vowelKey || '');
+  return legacyVowelKeyStringSuffixes(vowelKey).map((key, index) => ({
+    pronunciationId: Number(pronunciationId),
+    policy: WRITER_ANCHOR_POLICY,
+    kind: 'legacy_vowel_key_string_suffix_lookup',
+    anchorPosition: index + 1,
+    nuclei: key.split('-').length,
+    key,
+  }));
 }
 
 export function createWriterAnchorStorage(db) {
