@@ -51,7 +51,9 @@ function lexicalSafety(rows) {
   return {
     unranked: rows.filter((row) => row.usageRank == null).length,
     usageRankOver100k: rows.filter((row) => Number(row.usageRank) > 100000).length,
+    usageRankOver250k: rows.filter((row) => Number(row.usageRank) > 250000).length,
     explicitRareOrHistorical: rows.filter((row) => (row.lexicalTags || []).some((tag) => rareTags.has(String(tag).toLowerCase()))).length,
+    writerSafetyTierPenalized: rows.filter((row) => Number(row.writer?.lexicalSafetyTierPenalty || 0) > 0).length,
   };
 }
 
@@ -68,6 +70,7 @@ function splitEvidence(row) {
     right: morphology.split?.right || null,
     leftEvidence: morphology.leftEvidence || null,
     rightHead: morphology.rightHead || null,
+    checks: morphology.checks || null,
   };
 }
 
@@ -83,6 +86,8 @@ function compactRow(row) {
       ? `${row.writerMorphology.split.leftRaw}|${row.writerMorphology.split.right}`
       : null,
     cheapTierPenalty: row.writer?.cheapRhymeTierPenalty ?? 0,
+    lexicalSafetyTierPenalty: row.writer?.lexicalSafetyTierPenalty ?? 0,
+    lexicalSafetyState: row.writer?.lexicalSafety?.state || null,
     diversityTierPenalty: row.writer?.diversityTierPenalty ?? 0,
     effectiveTier: row.writer?.effectiveTier ?? null,
     anchor: row.writerAnchor || null,
@@ -141,12 +146,13 @@ try {
     const unresolved = String(rows.length - families.resolvedRows).padStart(2);
     const unranked = String(safety.unranked).padStart(2);
     const rare = String(safety.explicitRareOrHistorical).padStart(2);
-    console.log(`${query.padEnd(16)} ${String(elapsedMs).padStart(8)} ms  repeat-family=${repeat}  unresolved=${unresolved}  unranked=${unranked}  rare=${rare}`);
+    const safetyTier = String(safety.writerSafetyTierPenalized).padStart(2);
+    console.log(`${query.padEnd(16)} ${String(elapsedMs).padStart(8)} ms  repeat-family=${repeat}  unresolved=${unresolved}  unranked=${unranked}  rare=${rare}  safety-tier=${safetyTier}`);
   }
 
   const ok = results.filter((entry) => entry.status === 'ok');
   const report = {
-    schema: 'rhymelab-writer-page-diagnostic-v1',
+    schema: 'rhymelab-writer-page-diagnostic-v2',
     generatedAt: new Date().toISOString(),
     database: dbPath,
     topLimit,
@@ -161,7 +167,9 @@ try {
       repeatedFamilyRows: ok.reduce((sum, entry) => sum + entry.morphology.repeatedFamilyRows, 0),
       unrankedRows: ok.reduce((sum, entry) => sum + entry.lexicalSafety.unranked, 0),
       usageRankOver100kRows: ok.reduce((sum, entry) => sum + entry.lexicalSafety.usageRankOver100k, 0),
+      usageRankOver250kRows: ok.reduce((sum, entry) => sum + entry.lexicalSafety.usageRankOver250k, 0),
       explicitRareOrHistoricalRows: ok.reduce((sum, entry) => sum + entry.lexicalSafety.explicitRareOrHistorical, 0),
+      writerSafetyTierPenalizedRows: ok.reduce((sum, entry) => sum + entry.lexicalSafety.writerSafetyTierPenalized, 0),
     },
     queries: results,
   };
