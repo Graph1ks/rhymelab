@@ -1,6 +1,6 @@
 # Public-facing status
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 
 RhymeLab's public repository is `Graph1ks/rhymelab`. `main` is protected and the required public CI check is `validate`.
 
@@ -104,10 +104,29 @@ It will not be collected from the project owner alone. Independent human usefuln
 
 Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`.
 
-Immediate next gate is **11A public-source survey**. Before implementing a phrase database/runtime, research candidate public German sources for multi-word phrases, n-grams/collocations, idioms/Redewendungen, formulaic expressions/proverbs, metaphorical/figurative expressions, useful sentence fragments, and deterministic semantic discovery resources.
+### Phase 11A source/licensing gate — COMPLETE
 
-For each serious source record bulk/reproducible access, license, redistribution/commercial compatibility, snapshot/version, scale/raw format, phrase coverage, provenance identifiers, and fully offline post-ingestion viability.
+Detailed source matrix: `docs/PHRASE_SOURCE_SURVEY.md`.
 
-OpenThesaurus and OdeNet are possible semantic ingredients, not assumed complete phraseology sources.
+Selected initial stack:
+
+- raw German Wiktionary via Kaikki/Wiktextract — source-backed phraseology, USE WITH CONDITIONS;
+- existing Leipzig News 2024 1M + Wikipedia 2021 1M + Web 2021 1M — corpus attestation/commonness, USE;
+- Tatoeba — conditional sentence/fragment layer after contributor attribution is proven;
+- Wikidata/OpenThesaurus/OdeNet — optional semantic support only;
+- ParlaMint-AT — optional later register/domain enrichment;
+- COLF-VID, PARSEME, GermaNet, DeReKo and broad DWDS corpus use — research-only under the documented conditions.
+
+No phrase runtime/database has been built from these sources yet.
+
+### Immediate next gate — Phase 11B1 provenance phrase catalog
+
+Milestone: `PHASE_11B1_PROVENANCE_PHRASE_CATALOG`.
+
+Build a separate source/snapshot/phrase/attestation/token/usage-evidence data model plus deterministic fixture ingestion. Start with a small raw-Wiktextract phrase fixture and Leipzig corpus-evidence fixture.
+
+Do **not** yet implement phrase pronunciation, connected speech, mosaic retrieval/indexing, phrase Writer ranking, API/UI phrase surfacing, giant new corpus downloads or Human Writer NDCG.
+
+The accepted German single-word Writer remains frozen and unchanged.
 
 English remains deferred until the German phrase/mosaic path is stable enough to freeze.
