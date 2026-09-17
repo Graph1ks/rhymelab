@@ -11,7 +11,8 @@ Feature branch `feat/deterministic-writer-ranking-v1` / draft PR #3 contains the
 - writer policy `deterministic_writer_utility_v5`;
 - German right-edge/secondary-stress retrieval policy `de-right-edge-anchors-v1`;
 - experimental multi-anchor writer scoring while leaving the legacy scorer endpoint unchanged;
-- conservative inferred right-head morphology-family policy `de-attested-right-head-v2`;
+- conservative inferred morphology-family policy `de-attested-right-head-v3`;
+- explicit productive German adverbial `-weise` construction rule `de-adverbial-weise-v1`;
 - query-family suppression and result-set family diversification;
 - deterministic lexical-safety tiers for unranked/very-low-usage/source-marked rare or historical candidates;
 - explicit explanation/provenance payloads;
@@ -20,10 +21,14 @@ Feature branch `feat/deterministic-writer-ranking-v1` / draft PR #3 contains the
 
 Owner-local `Arbeitsweise` diagnostics established that legacy retrieval omitted `Hochzeitsreise`, while right-edge retrieval found it through secondary-anchor suffix channels. Direct legacy pair scoring was a usable slant (`0.7574`); the experimental secondary-stress writer domain identifies the final two syllables as a multisyllabic perfect right-edge match.
 
-Writer v4 then solved repeated top-page lexical-head families, but a 12-query generalization audit exposed two broader defects: morphology v1 generated coincidental substring families (`Betriebe -> bet|riebe`, `Bestreben -> best|reben`, `Professoren -> profes|soren`, etc.), and the 360 audited top-page rows contained 69 unranked plus 60 usage-rank-over-100k results. Writer v5 / morphology v2 were introduced from this evidence rather than further tuning `Arbeitsweise`.
+Writer v4 then solved repeated top-page lexical-head families, but a 12-query generalization audit exposed two broader defects: morphology v1 generated coincidental substring families (`Betriebe -> bet|riebe`, `Bestreben -> best|reben`, `Professoren -> profes|soren`, etc.), and the 360 audited top-page rows contained 69 unranked plus 60 usage-rank-over-100k results.
 
-Morphology v2 is deliberately conservative: noun/adjective head POS must agree, the whole lemma must end in the right-head lemma, left evidence must have measured usage, and verbs/proper names stay unresolved until explicit deterministic rules exist. Writer v5 separately treats missing usage as `unranked_unknown` rather than linguistic rarity while conservatively lowering its default-page priority.
+The owner-local v5 / morphology-v2 rerun showed that lexical safety improved sharply: unranked top-30 rows fell from 69 to 2, usage-rank-over-100k rows from 60 to 51, explicit rare/historical rows from 2 to 0, and mean elapsed time from 1583.4 ms to 1428.3 ms. The earlier false splits such as `Betriebe -> bet|riebe` and `Bestreben -> best|reben` disappeared.
 
-The feature remains **draft / not accepted**. Current validation priority is the owner-local rerun of `npm run diagnose:writer-pages` on v5/v2, followed by formal page-quality benchmark v2. Only after quality evidence stabilizes should validated right-edge/morphology fields be materialized/indexed for local/mobile performance.
+That rerun also exposed a new conservative-morphology blind spot: productive adverbial `-weise` forms such as `schätzungsweise`, `stellenweise`, `paarweise` and `beispielsweise` became unresolved, so `Arbeitsweise` was again dominated by same-construction rows while the formal repeated-family counter stayed at zero. Morphology v3 therefore adds one narrow deterministic construction rule: an adverb ending in independently attested noun `Weise`, with measured left-side lexical evidence, receives family `right:weise`. Generic suffix similarity is still not accepted as morphology.
+
+Verbs and proper names remain unresolved until explicit deterministic rules exist. Missing usage remains `unranked_unknown`, not linguistic rarity.
+
+The feature remains **draft / not accepted**. Current validation priority is one owner-local rerun of `npm run diagnose:writer-pages` on writer v5 / morphology v3. If the `-weise` family is restored without reintroducing false splits, the next step is formal page-quality benchmark v2. Only after quality evidence stabilizes should validated right-edge/morphology fields be materialized/indexed for local/mobile performance.
 
 See `PROJECT_STATE.json`, `docs/HANDOVER.md`, `docs/WRITER_RANKING.md`, `docs/REPOSITORY_GOVERNANCE.md`, and `docs/BENCHMARK.md` for the execution boundary.
