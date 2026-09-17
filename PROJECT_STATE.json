@@ -1,33 +1,19 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-17",
-  "phase": "DETERMINISTIC_WRITER_SEARCH_V6_MORPHOLOGY_V4_VALIDATION",
+  "phase": "GERMAN_WRITER_PAGE_BENCHMARK_V2",
   "package_version": "0.10.0",
   "repository": {
-    "public_release_model": "sanitized_parentless_public_root",
     "public_release_live": true,
-    "pre_public_history_public": false,
-    "root_license": "PolyForm Noncommercial 1.0.0 plus Graph1ks no-monetization condition",
-    "third_party_licenses_preserved": true,
-    "public_readiness_audit": "scripts/public-readiness-audit.mjs",
+    "public_release_model": "sanitized_parentless_public_root",
     "public_ci": {
       "workflow": ".github/workflows/ci.yml",
       "workflow_name": "RhymeLab CI",
       "required_check": "validate"
     },
-    "branch_protection_policy": {
-      "document": "docs/REPOSITORY_GOVERNANCE.md",
-      "ruleset_name": "main-protection",
-      "target_branch": "main",
-      "require_pull_request": true,
-      "required_approving_reviews": 0,
-      "required_status_check": "validate",
-      "require_up_to_date_branch": true,
-      "block_force_pushes": true,
-      "block_branch_deletion": true,
-      "bypass_actors": 0,
-      "github_enforcement": "active_verified"
-    }
+    "protected_main": true,
+    "feature_branch": "feat/deterministic-writer-ranking-v1",
+    "draft_pull_request": 3
   },
   "runtime": {
     "mode": "local_only",
@@ -35,18 +21,15 @@
     "bind_default": "127.0.0.1:3030",
     "database": "data/local/rhymelab.sqlite",
     "accepted_database_schema": "rhymelab-local-db-v4",
-    "generated_data_committed": false,
-    "reports_committed": false,
-    "remote_deployment_supported": false,
     "core_search_requires_network": false,
     "core_search_allows_llm_inference": false,
-    "core_search_allows_ml_model_inference": false
+    "core_search_allows_ml_model_inference": false,
+    "generated_data_committed": false,
+    "reports_committed": false
   },
   "accepted_baseline": {
     "package_version": "0.10.0",
     "status": "ok",
-    "main_qa_gates": { "passed": 5, "total": 5 },
-    "tests": { "passed": 58, "total": 58, "files": 20 },
     "database_schema": "rhymelab-local-db-v4",
     "forms": 838209,
     "pronunciations": 904836,
@@ -55,173 +38,111 @@
     "historical_forms": 1038,
     "usage_ranked_forms": 260450,
     "sqlite_mib": 457.68,
-    "integrity_check": "ok",
     "phonology": {
       "analyzer": "de-ipa-v2",
       "scorer": "de-phon-v3",
       "relation_policy": "rhyme-relations-v2"
+    },
+    "ranking": {
+      "policy": "modern_entity_relative_commonness_1decade_0_05",
+      "benchmark": "de-human-rhyme-v1",
+      "mean_ndcg": 0.9562,
+      "mean_pairwise_concordance": 0.835
     }
   },
-  "accepted_ranking": {
-    "policy": "modern_entity_relative_commonness_1decade_0_05",
-    "benchmark": "de-human-rhyme-v1",
-    "mean_ndcg": 0.9562,
-    "mean_pairwise_concordance": 0.835,
-    "runtime_candidate_validation_passed": true,
-    "post_promotion_acceptance_complete": false
-  },
   "writer_search_feature": {
-    "branch": "feat/deterministic-writer-ranking-v1",
-    "pull_request": 3,
-    "status": "draft_v6_morphology_v4_validation",
+    "status": "draft_page_benchmark_v2",
     "accepted_runtime_baseline": false,
     "legacy_comparison_parameter": "ranking=legacy",
     "writer_ranking_policy": "deterministic_writer_utility_v6",
-    "writer_ranking_module": "src/writer-ranking-policy.mjs",
-    "search_wrapper": "src/writer-search.mjs",
     "writer_anchor_policy": "de-right-edge-anchors-v1",
     "writer_morphology_policy": "de-attested-right-head-v4",
-    "writer_morphology_module": "src/writer-morphology.mjs",
-    "explicit_morphology_constructions": [
-      "de-adverbial-weise-v2"
-    ],
-    "page_diagnostic": "scripts/diagnose-writer-pages.mjs",
-    "page_diagnostic_schema": "rhymelab-writer-page-diagnostic-v2",
+    "explicit_morphology_constructions": ["de-adverbial-weise-v2"],
     "database_schema_changed": false,
     "legacy_scorer_changed": false,
     "legacy_relation_policy_changed": false,
     "ui_enabled": true,
-    "features": [
-      "secondary_stress_right_edge_retrieval",
-      "multi_anchor_writer_scoring",
-      "same_lemma_suppression",
-      "shared_initial_construction_suppression",
-      "short_rhyme_spelling_not_cheapness",
-      "conservative_lemma_pos_right_head_family_evidence",
-      "explicit_productive_adverbial_weise_construction",
-      "dual_pos_weise_source_tolerance",
-      "query_morphology_family_penalty",
-      "morphology_family_result_diversity",
-      "query_relative_commonness",
-      "lexical_status_penalty",
-      "lexical_safety_tier",
-      "explainable_writer_payload"
-    ],
+    "ad_hoc_tuning_frozen": true,
     "live_regression_query": "Arbeitsweise",
-    "live_findings": {
-      "query_ipa": "ˈaʁbaɪ̯t͡sˌvaɪ̯zə",
-      "query_stress": "2010",
-      "hochzeitsreise_legacy_retrieved": false,
-      "hochzeitsreise_right_edge_retrieved": true,
-      "hochzeitsreise_legacy_direct_type": "slant",
-      "hochzeitsreise_legacy_direct_score": 0.7574,
-      "hochzeitsreise_writer_best_type": "multisyllabic_perfect",
-      "hochzeitsreise_writer_best_score": 1,
-      "hochzeitsreise_writer_anchor": "secondary syllable 3 to secondary syllable 3",
-      "notfallbleibe_in_current_lexicon": false,
-      "v3_page_problem": "true perfect right-edge results were dominated by repeated lexical head families",
-      "v4_family_rotation_worked": true,
-      "v4_generalization_report": {
-        "schema": "rhymelab-writer-page-diagnostic-v1",
-        "query_count": 12,
-        "ok_queries": 12,
-        "top_limit": 30,
-        "mean_elapsed_ms": 1583.4,
-        "repeated_family_rows": 0,
-        "unranked_rows": 69,
-        "usage_rank_over_100k_rows": 60,
-        "explicit_rare_or_historical_rows": 2,
-        "arbeitsweise_elapsed_ms": 8342.6,
-        "arbeitsweise_right_edge_candidates": 1353,
-        "arbeitsweise_merged_candidates": 1580
-      },
-      "v4_morphology_false_positive_examples": [
-        "Betriebe -> bet|riebe",
-        "Bestreben -> best|reben",
-        "Professoren -> profes|soren",
-        "deutscher -> deut|scher"
-      ],
-      "v5_morphology_v2_generalization_report": {
-        "schema": "rhymelab-writer-page-diagnostic-v2",
-        "query_count": 12,
-        "ok_queries": 12,
-        "top_limit": 30,
-        "mean_elapsed_ms": 1428.3,
-        "repeated_family_rows": 0,
-        "unranked_rows": 2,
-        "usage_rank_over_100k_rows": 51,
-        "usage_rank_over_250k_rows": 2,
-        "explicit_rare_or_historical_rows": 0,
-        "writer_safety_tier_penalized_rows": 4,
-        "arbeitsweise_elapsed_ms": 7241.1,
-        "arbeitsweise_right_edge_candidates": 1353,
-        "arbeitsweise_merged_candidates": 1580
-      },
-      "v5_morphology_v3_generalization_report": {
-        "schema": "rhymelab-writer-page-diagnostic-v2",
-        "query_count": 12,
-        "ok_queries": 12,
-        "top_limit": 30,
-        "mean_elapsed_ms": 1681.5,
-        "repeated_family_rows": 0,
-        "unranked_rows": 2,
-        "usage_rank_over_100k_rows": 50,
-        "usage_rank_over_250k_rows": 2,
-        "explicit_rare_or_historical_rows": 0,
-        "writer_safety_tier_penalized_rows": 4,
-        "arbeitsweise_elapsed_ms": 8416.4,
-        "arbeitsweise_right_edge_candidates": 1353,
-        "arbeitsweise_merged_candidates": 1580
-      },
-      "v5_morphology_v2_safety_result": "strong improvement retained through v3: unranked top-page intrusion stays at 2 and explicit rare/historical stays at 0",
-      "v5_morphology_v3_failed_goal": "productive -weise rows such as stufenweise, ausnahmsweise, abschnittsweise and auszugsweise remained unresolved on the real DB",
-      "v3_root_cause": "local DB stores one selected lexical lemma/POS analysis per form; dual adjective/adverb source entries can retain adj, so an adv-only construction gate is not stable",
-      "v5_short_rhyme_cheapness_false_positive_examples": [
-        "Liebe -> Diebe",
-        "Leben -> neben",
-        "Nacht -> macht"
-      ],
-      "v6_response": "edit similarity alone no longer creates lexical cheapness for short rhyme-shaped words; same lemma/family, long shared initial construction or long near-duplicate evidence is required"
+    "owner_local_v6_morphology_v4_report": {
+      "schema": "rhymelab-writer-page-diagnostic-v2",
+      "query_count": 12,
+      "ok_queries": 12,
+      "top_limit": 30,
+      "mean_elapsed_ms": 1502.8,
+      "repeated_family_rows": 0,
+      "unranked_rows": 2,
+      "usage_rank_over_100k_rows": 45,
+      "usage_rank_over_250k_rows": 2,
+      "explicit_rare_or_historical_rows": 0,
+      "writer_safety_tier_penalized_rows": 4,
+      "arbeitsweise_elapsed_ms": 7926.5,
+      "arbeitsweise_right_edge_candidates": 1353,
+      "arbeitsweise_merged_candidates": 1580,
+      "validation_passed": true
+    },
+    "validated_regressions": {
+      "productive_weise_top_page_flooding_removed": true,
+      "liebe_diebe_rank": 1,
+      "liebe_diebe_cheap_penalty": 0,
+      "leben_neben_rank": 2,
+      "leben_neben_cheap_penalty": 0,
+      "nacht_macht_rank": 1,
+      "nacht_macht_cheap_penalty": 0,
+      "betriebe_false_family_rejected": true,
+      "bestreben_false_family_rejected": true,
+      "professoren_false_family_rejected": true,
+      "deutscher_false_family_rejected": true
+    },
+    "known_coverage_case": {
+      "word": "Notfallbleibe",
+      "in_current_lexicon": false
     },
     "lexical_analysis_data_model_issue": {
       "current_state": "single selected lemma/POS analysis stored per surface form",
-      "selection_tie_risk": "equal-confidence homograph analyses can be selected by deterministic but semantically arbitrary resolution-key ordering",
-      "examples_in_audit": [
-        "Liebe stored as name in query metadata",
-        "Zeit stored as name in query metadata",
-        "stufenweise source supports adjective and adverb analyses"
-      ],
-      "future_requirement": "materialized lexical layer should preserve multiple lemma/POS analyses with provenance instead of forcing one semantic analysis"
-    },
-    "morphology_provenance_boundary": "writer family is inferred from local lemma/POS/surface/usage evidence plus explicitly documented deterministic German construction rules; it is not claimed as source-attested full morphology; unresolved is preferred over speculative analysis",
-    "lexical_safety_policy": {
-      "missing_usage_state": "unranked_unknown",
-      "missing_usage_is_not_rare": true,
-      "unranked_tier_penalty": 1,
-      "very_low_usage_rank_threshold": 250000,
-      "very_low_usage_tier_penalty": 1,
-      "explicit_rare_historical_tier_penalty": 2,
-      "status": "provisional_pending_page_quality_benchmark"
+      "risk": "equal-confidence source analyses can collapse to a semantically incidental selected analysis",
+      "future_requirement": "preserve multiple source-supported lemma/POS analyses with provenance in the materialized writer lexical layer"
     },
     "performance_boundary": {
       "current_right_edge_runtime_method": "validation_time_suffix_like_scan",
       "acceptable_final_mobile_runtime": false,
-      "materialization_after_quality_validation": true
+      "materialization_after_benchmark_validation": true
+    }
+  },
+  "writer_page_benchmark_v2": {
+    "status": "infrastructure_implemented_owner_run_pending",
+    "plan": "benchmarks/de-writer-v2/plan.json",
+    "runner": "scripts/benchmark-writer-page-v2.mjs",
+    "core": "scripts/writer-page-benchmark-core.mjs",
+    "review_queue_builder": "scripts/prepare-writer-page-benchmark-v2.mjs",
+    "test": "tests/writer-page-benchmark.test.mjs",
+    "commands": {
+      "structural": "npm run benchmark:writer-page:v2",
+      "prepare_human_review": "npm run benchmark:writer-page:prepare"
     },
-    "validation_requirements": [
-      "owner_local_v6_morphology_v4_page_diagnostic_rerun",
-      "verify_adverbial_weise_family_rotation",
-      "verify_short_perfect_rhymes_not_cheap_demoted",
-      "verify_false_splits_remain_rejected",
-      "lexical_safety_gate_review",
-      "runtime_latency_review",
-      "page_quality_benchmark_v2",
-      "rare_unranked_intrusion_metrics",
-      "exact_rhyme_and_relation_legacy_invariance",
-      "multi_analysis_lexical_schema_design_before_final_materialization",
-      "materialized_index_design_for_validated_right_edge_and_morphology_evidence",
-      "writer_search_acceptance_report"
-    ]
+    "metrics": [
+      "ndcg_at_10_when_fully_human_reviewed",
+      "ndcg_at_20_when_fully_human_reviewed",
+      "exact_duplicate_rate",
+      "near_duplicate_rate",
+      "same_lemma_rate",
+      "repeated_morphology_family_rate",
+      "morphology_diversity",
+      "unranked_intrusion",
+      "usage_rank_over_100k_intrusion",
+      "usage_rank_over_250k_intrusion",
+      "explicit_rare_historical_intrusion",
+      "preferred_pronunciation_rate",
+      "legacy_top250_tier0_retention",
+      "permanent_regression_anchors"
+    ],
+    "reference_policy": {
+      "source": "independent_human_review",
+      "llm_required": false,
+      "ml_required": false,
+      "sparse_labels_allowed_for_ndcg": false,
+      "missing_reference_state": "pending_reference"
+    }
   },
   "validation_boundary": {
     "v010_runtime_accepted": true,
@@ -231,20 +152,17 @@
   },
   "english": {
     "implemented": false,
-    "architecture_prepared": true,
-    "requirement": "own_sources_ipa_parser_inventory_similarity_thresholds_pronunciation_policy_and_language_specific_benchmark"
+    "architecture_prepared": true
   },
   "next_actions": [
-    "owner_pull_writer_v6_morphology_v4_branch",
-    "run_owner_local_check_and_tests",
-    "run_writer_page_diagnostic_v2",
-    "confirm_weise_construction_family_rotation_without_false_split_regression",
-    "confirm_short_perfect_rhymes_remain_above_weaker_classes",
-    "add_page_quality_benchmark_v2",
+    "owner_pull_current_feature_branch",
+    "run_npm_benchmark_writer_page_v2",
+    "review_structural_gate_and_legacy_tier0_retention",
+    "optionally_prepare_independent_human_usefulness_queue_for_ndcg10_ndcg20",
     "verify_legacy_exact_rhyme_and_relation_invariance",
-    "design_multi_analysis_lexical_storage_for_materialized_writer_evidence",
-    "materialize_validated_right_edge_and_morphology_evidence_for_local_mobile_runtime",
-    "promote_only_after_explicit_writer_search_acceptance",
+    "design_multi_analysis_lexical_storage",
+    "materialize_and_index_validated_writer_search_evidence_for_local_mobile_runtime",
+    "produce_writer_search_acceptance_report",
     "phrase_mosaic_after_single_word_writer_quality",
     "english_after_german_stable"
   ]
