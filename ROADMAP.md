@@ -1,6 +1,6 @@
 # RhymeLab Roadmap
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 
 ## Phase 0 — German phonology + source pipeline — complete
 
@@ -146,28 +146,44 @@ Future single-word Writer changes must preserve or explicitly supersede the froz
 
 ## Phase 11 — German phrase / mosaic / phraseology — current
 
-Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`.
+Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`. Source decision: `docs/PHRASE_SOURCE_SURVEY.md`.
 
-### 11A. Public phraseology source survey — immediate next action
+### 11A. Public phraseology source survey — complete
 
-Before implementing a phrase database or runtime, research publicly obtainable German resources for:
+The source/licensing gate is complete. The selected architecture is layered:
 
-- common multi-word phrases / n-grams / collocations;
-- idioms and Redewendungen;
-- proverbs / formulaic expressions where usable;
-- metaphorical / figurative expressions where structured public data exists;
-- common sentence fragments useful to lyricists;
-- semantic resources that can support deterministic discovery.
+- German Wiktionary via raw Kaikki/Wiktextract for source-backed phraseology;
+- existing Leipzig News/Web/Wikipedia corpora for deterministic phrase attestation/commonness;
+- Tatoeba conditionally for sentence/fragment diversity once contributor attribution is preserved;
+- Wikidata/OpenThesaurus/OdeNet as optional semantic support;
+- ParlaMint-AT as later domain/register enrichment;
+- non-commercial/restricted or insufficiently pinned resources remain research-only.
 
-For every candidate, document bulk access, license/redistribution/commercial compatibility, snapshot/version, scale, raw format, provenance, and offline ingestion viability. Public web visibility alone is insufficient.
+No universal phrase database was selected, and no giant new source download is required for the first implementation milestone.
 
-### 11B. Phrase data model
+### 11B1. Provenance-bearing phrase catalog — immediate next action
 
-Build a separate provenance-bearing phrase layer with token boundaries, phrase type, lexical/register evidence, commonness evidence where available, and phrase-level pronunciation derived from accepted local pronunciations.
+Milestone ID:
+
+`PHASE_11B1_PROVENANCE_PHRASE_CATALOG`
+
+Build a separate phrase source/snapshot/catalog layer with:
+
+- source/license/snapshot/checksum provenance;
+- phrase canonical/normalized identity;
+- source attestations and source-backed phrase types/tags;
+- deterministic token boundaries and unresolved-token state;
+- separate corpus usage/commonness evidence;
+- optional semantic links;
+- deterministic build fingerprints and idempotency tests.
+
+First ingestion work is fixture-scale raw German Wiktextract phrase records plus Leipzig phrase/commonness evidence over existing source fixtures.
+
+11B1 explicitly excludes phrase pronunciation, connected-speech rules, mosaic runtime/indexing, phrase ranking, UI/API surfacing, large new downloads and Human Writer NDCG.
 
 ### 11C. Deterministic phrase pronunciation
 
-Construct phrase pronunciations from accepted token pronunciations; preserve provenance and explicitly handle unknown/ambiguous tokens.
+After 11B1 acceptance, construct phrase pronunciations from accepted local token pronunciations; preserve provenance and explicitly handle unknown/ambiguous tokens.
 
 ### 11D. Mosaic retrieval architecture
 
