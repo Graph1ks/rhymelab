@@ -6,25 +6,18 @@ Last updated: 2026-09-17
 
 German IPA/feature models, Leipzig usage ranking, Kaikki resolver, deterministic local shard pipeline and compact pronunciation-backed publish data are implemented.
 
-## Phase 1 — Local runtime/product foundation — accepted through v0.10
+## Phase 1 — Local runtime/product foundation — current through v0.11
 
-Formal/default baseline remains:
+Current product/runtime baseline:
 
 ```text
-package         v0.10.0
-DB schema       rhymelab-local-db-v4
-forms           838,209
-pronunciations  904,836
-preferred       838,209
-alternate       66,627
-historical      1,038
-usage-ranked    260,450
-SQLite          457.68 MiB
-analyzer        de-ipa-v2
-scorer          de-phon-v3
-relation        rhyme-relations-v2
-ranking         modern_entity_relative_commonness_1decade_0_05
+package         v0.11.0
+default DB      rhymelab-local-db-v5
+writer runtime  materialized-writer-v5-v1
+writer ranking  deterministic_writer_utility_v6
 ```
+
+The previous v0.10.0 / DB-v4 engine remains only as the optional `?ranking=legacy` regression/control path.
 
 ## Phase 2 — German blind relation/reference benchmark — complete
 
@@ -34,15 +27,15 @@ ranking         modern_entity_relative_commonness_1decade_0_05
 
 Accepted improvements include `de-ipa-v2`, `de-phon-v3`, `rhyme-relations-v2`, curated-modern pronunciation overlay and provenance-aware pronunciation integrity policy.
 
-## Phase 4 — Runtime ranking isolation — accepted control path
+## Phase 4 — Runtime ranking isolation — accepted legacy control path
 
-Accepted/base ranking is `modern_entity_relative_commonness_1decade_0_05`. `?ranking=legacy` remains the protected control path.
+The preserved DB-v4 control ranking is `modern_entity_relative_commonness_1decade_0_05`. `?ranking=legacy` remains available for regression/comparison when the v4 control DB exists.
 
 ## Phase 5 — Pronunciation coverage + lexical quality — open background work
 
 Continue as background diagnostics: cluster remaining IPA failures, prioritize common-word failures, investigate poor preferred defaults, expand reviewed modern vocabulary/provenance, and add fallback/G2P only if attested coverage proves insufficient.
 
-## Phase 6 — Deterministic writer-oriented single-word search — engineering accepted
+## Phase 6 — Deterministic writer-oriented single-word search — accepted and promoted
 
 Frozen policies:
 
@@ -55,7 +48,7 @@ runtime:              materialized-writer-v5-v1
 DB schema:            rhymelab-local-db-v5
 ```
 
-No LLM/ML/neural inference, hosted ranking or runtime network dependency is allowed in core retrieval/ranking. Writer v7 remains rejected and rolled back.
+This stack is the normal v0.11 local/UI/API runtime. No LLM/ML/neural inference, hosted ranking or runtime network dependency is allowed in core retrieval/ranking. Writer v7 remains rejected and rolled back.
 
 ## Phase 7 — Multi-analysis lexical/morphology model — complete
 
@@ -82,9 +75,9 @@ legacy tier-0 retention             685 / 685
 
 `Arbeitsweise -> Hochzeitsreise` is a retrieval sentinel with `max_rank: 250`, not a Top-20 surfacing guard. `Arbeitsweise -> right:reise` is the family surfacing gate.
 
-Writer NDCG@10/20 is deliberately deferred until the German writer system is feature-complete enough for coherent independent human evaluation. The project owner is not treated as an independent human-reference source.
+Writer NDCG@10/20 is deliberately deferred until the German Writer system is feature-complete enough for coherent independent human evaluation. The project owner is not treated as an independent human-reference source.
 
-## Phase 9 — Legacy invariance + materialized writer runtime — complete
+## Phase 9 — Legacy invariance + materialized Writer runtime — complete
 
 ### 9A. Accepted legacy control-path invariance — PASS
 
@@ -137,17 +130,19 @@ No score, tier, ranking, morphology, or diversity policy changed. Prefix-stabili
 
 Three independent DB opens produced identical complete semantic `findWriterRhymes()` per-query and suite fingerprints across all 12 frozen queries; mismatch count 0.
 
-## Phase 10 — German single-word writer engineering acceptance — complete / PASS
+## Phase 10 — German single-word Writer acceptance + runtime promotion — complete / PASS
 
 Acceptance report: `docs/WRITER_SEARCH_ACCEPTANCE.md`.
 
-The deterministic German single-word writer architecture is accepted as the frozen writer engineering baseline.
+The deterministic German single-word Writer architecture is accepted, frozen, and promoted to the normal RhymeLab v0.11 runtime.
 
-Important distinction:
+```text
+normal runtime       Writer v5
+legacy control       DB-v4 via ?ranking=legacy
+human Writer NDCG    deferred / pending_reference
+```
 
-- engineering acceptance: **PASS**;
-- Writer Page human NDCG@10/20: **deferred / pending_reference** until the broader German writer surface is complete and independent human reviewers exist;
-- future writer changes must preserve or explicitly supersede the frozen single-word evidence.
+Future single-word Writer changes must preserve or explicitly supersede the frozen evidence with a new benchmarked candidate.
 
 ## Phase 11 — German phrase / mosaic / phraseology — current
 
@@ -178,17 +173,17 @@ Construct phrase pronunciations from accepted token pronunciations; preserve pro
 
 Add deterministic indexed phrase-span retrieval capable of matching rhyme spans across one or more word boundaries without scanning the full phrase corpus at query time.
 
-### 11E. Phrase writer ranking
+### 11E. Phrase Writer ranking
 
-Create a separate benchmarked phrase-ranking policy. Do not mutate the frozen single-word writer policy in place.
+Create a separate benchmarked phrase-ranking policy. Do not mutate the frozen single-word Writer policy in place.
 
 ### 11F. Phrase/mosaic benchmark
 
-Build dedicated structural, regression, lexical-safety, provenance, performance, and repeatability gates. Human usefulness NDCG comes only when the combined German writer system is mature and independent reviewers exist.
+Build dedicated structural, regression, lexical-safety, provenance, performance, and repeatability gates. Human usefulness NDCG comes only when the combined German Writer system is mature and independent reviewers exist.
 
 ## Phase 12 — English profile + benchmark
 
-Only after the German writer path, including phrase/mosaic work, is stable enough to freeze.
+Only after the German Writer path, including phrase/mosaic work, is stable enough to freeze.
 
 ## Phase 13 — Cross-language rhyme
 
