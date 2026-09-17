@@ -33,7 +33,7 @@ const query = {
 };
 
 test('writer ranking policy is explicit and deterministic', () => {
-  assert.equal(WRITER_RANKING_POLICY, 'deterministic_writer_utility_v1');
+  assert.equal(WRITER_RANKING_POLICY, 'deterministic_writer_utility_v2');
   const rows = [
     row('Hochzeitsreise', 0.96, { usageRank: 12000 }),
     row('Arbeitszweige', 0.93, { usageRank: 10000 }),
@@ -46,10 +46,9 @@ test('writer ranking policy is explicit and deterministic', () => {
   assert.deepEqual(first, second);
   assert.ok(first.indexOf('Hochzeitsreise') < first.indexOf('Arbeitszweige'));
   assert.ok(first.indexOf('Hochzeitsreise') < first.indexOf('Arbeitsweisen'));
-  assert.ok(first.indexOf('Notfallbleibe') < first.indexOf('Arbeitsweisen'));
 });
 
-test('same lemma and long shared compound prefix are writer-utility penalties, not phonetic penalties', () => {
+test('same lemma and long shared compound prefix are writer penalties, not phonetic penalties', () => {
   const inflection = row('Arbeitsweisen', 0.99, { lemma: 'Arbeitsweise', rhymeTier: 0, primaryType: 'perfect' });
   const compoundClone = row('Arbeitszweige', 0.94);
   const distinct = row('Hochzeitsreise', 0.94);
@@ -67,6 +66,7 @@ test('same lemma and long shared compound prefix are writer-utility penalties, n
   const writer = writerUtilityFeatures(inflection, query);
   assert.deepEqual({ score: inflection.score, type: inflection.primaryType }, before);
   assert.ok(writer.lexicalPenalty > 0);
+  assert.equal(writer.cheapRhymeTierPenalty, 3);
 });
 
 test('surface redundancy catches repeated productive endings without collapsing ordinary -eise rhyme spelling', () => {
@@ -78,16 +78,28 @@ test('surface redundancy catches repeated productive endings without collapsing 
   assert.ok(lexicalRedundancy(denkweise, hochzeitsreise) < lexicalRedundancy(denkweise, vorgehensweise));
 });
 
-test('diversity reranking prevents one lexical construction from consuming the top page', () => {
+test('phonetic tier gate stops unrelated slants from beating available family rhymes on commonness alone', () => {
   const rows = [
-    row('Denkweise', 0.94, { usageRank: 9000 }),
-    row('Vorgehensweise', 0.945, { usageRank: 8000 }),
-    row('Lebensweise', 0.94, { usageRank: 7000 }),
-    row('Hochzeitsreise', 0.93, { usageRank: 12000 }),
-    row('Notfallbleibe', 0.88, { rhymeTier: 2, primaryType: 'family', usageRank: 18000 }),
+    row('Wartezeiten', 0.80, { rhymeTier: 2, primaryType: 'family', usageRank: 9000 }),
+    row('jahrelange', 0.90, { rhymeTier: 3, primaryType: 'slant', usageRank: 1 }),
+    row('Fragezeichen', 0.88, { rhymeTier: 3, primaryType: 'slant', usageRank: 2 }),
   ];
 
-  const ranked = rankWriterRecommendedResults(rows, query, { limit: 5 });
+  const ranked = rankWriterRecommendedResults(rows, query, { limit: 3 });
+  assert.equal(ranked[0].word, 'Wartezeiten');
+  assert.equal(ranked[0].writer.effectiveTier, 2);
+  assert.ok(ranked.slice(1).every((item) => item.writer.effectiveTier >= 3));
+});
+
+test('diversity may promote the next phonetic tier when the current tier repeats one lexical construction', () => {
+  const rows = [
+    row('Denkweise', 0.94, { rhymeTier: 2, primaryType: 'family', usageRank: 9000 }),
+    row('Vorgehensweise', 0.945, { rhymeTier: 2, primaryType: 'family', usageRank: 8000 }),
+    row('Lebensweise', 0.94, { rhymeTier: 2, primaryType: 'family', usageRank: 7000 }),
+    row('Hochzeitsreise', 0.93, { rhymeTier: 3, primaryType: 'slant', usageRank: 12000 }),
+  ];
+
+  const ranked = rankWriterRecommendedResults(rows, query, { limit: 4 });
   const topThree = ranked.slice(0, 3).map((item) => item.word.toLocaleLowerCase('de-DE'));
   assert.ok(topThree.includes('hochzeitsreise'));
   assert.ok(topThree.filter((word) => word.endsWith('weise')).length <= 2);
