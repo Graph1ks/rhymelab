@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { analyzeGermanIpa } from '../scripts/german-ipa.mjs';
 import {
   WRITER_ANCHOR_POLICY,
+  WRITER_ANCHOR_STORAGE,
   createWriterAnchorStorage,
   insertWriterCandidateSuffixRows,
   lookupWriterAnchorRows,
@@ -48,6 +49,23 @@ test('candidate suffix rows materialize complete right-edge nucleus suffixes', (
   assert.ok(rows.some((entry) => entry.key === 'aɪ-ə'));
   assert.ok(rows.every((entry) => entry.policy === WRITER_ANCHOR_POLICY));
   assert.ok(rows.every((entry) => entry.kind === 'vowel_suffix_lookup'));
+});
+
+test('compact anchor storage keeps only lookup key and pronunciation identity', () => {
+  const db = fixtureDb();
+  try {
+    assert.equal(WRITER_ANCHOR_STORAGE, 'compact-primary-key-v2');
+    const columns = db.prepare('PRAGMA table_info(writer_anchor)').all().map((row) => row.name);
+    assert.deepEqual(columns, ['anchor_key', 'pronunciation_id']);
+    const sql = db.prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='writer_anchor'").get()?.sql || '';
+    assert.match(sql, /WITHOUT ROWID/i);
+    assert.equal(
+      db.prepare("SELECT COUNT(*) AS c FROM sqlite_schema WHERE type='index' AND name='idx_writer_anchor_lookup'").get().c,
+      0,
+    );
+  } finally {
+    db.close();
+  }
 });
 
 test('Arbeitsweise query keys retain the validated secondary-anchor channels', () => {
@@ -112,13 +130,13 @@ test('indexed writer-anchor lookup is candidate-equivalent to the validation-tim
   }
 });
 
-test('writer anchor lookup uses the policy/key index', () => {
+test('writer anchor lookup uses the WITHOUT ROWID primary key', () => {
   const db = fixtureDb();
   try {
     const plan = writerAnchorLookupPlan(db, 'aɪ-ə');
     const detail = plan.map((row) => String(row.detail || '')).join('\n');
-    assert.match(detail, /idx_writer_anchor_lookup/);
-    assert.match(detail, /anchor_policy=\? AND anchor_key=\?/);
+    assert.match(detail, /USING PRIMARY KEY/);
+    assert.match(detail, /anchor_key=\?/);
   } finally {
     db.close();
   }
