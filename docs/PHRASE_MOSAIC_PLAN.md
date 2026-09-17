@@ -1,6 +1,6 @@
 # German Phrase / Mosaic Rhyme — Phase 11 Plan
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 
 ## Goal
 
@@ -20,7 +20,7 @@ Independent Writer Page human NDCG is deliberately deferred until the German wri
 
 Until an independent reviewer pool or other defensible human-reference process exists, NDCG@10/20 remains `pending_reference`. Structural, regression, provenance, lexical-safety, determinism, and performance gates continue to be required during development.
 
-## Phase 11A — public-source survey and licensing gate
+## Phase 11A — public-source survey and licensing gate — COMPLETE
 
 Before runtime implementation, identify publicly obtainable sources that can legally and reproducibly support at least these layers:
 
@@ -135,6 +135,47 @@ Initial structural/regression gates should cover:
 
 Human usefulness NDCG should be collected only when the combined German writer surface is mature enough and independent reviewers are available.
 
-## Immediate next action
+## Phase 11A outcome
 
-Begin with Phase 11A only: research and document candidate public German phrase/phraseology datasets, their licenses, bulk-access methods, scale, and likely role. Produce a source decision before implementing the phrase database or runtime.
+Completed source matrix and decision:
+
+`docs/PHRASE_SOURCE_SURVEY.md`
+
+Selected initial production stack:
+
+- German Wiktionary via raw Kaikki/Wiktextract for source-backed phraseology;
+- existing Leipzig News 2024 1M + Wikipedia 2021 1M + Web 2021 1M corpora for deterministic phrase attestation/commonness;
+- Tatoeba only after attribution provenance is proven;
+- Wikidata/OpenThesaurus/OdeNet as optional semantic support, not phrase truth;
+- ParlaMint-AT as later register/domain enrichment;
+- COLF-VID, PARSEME, GermaNet, DeReKo/DWDS remain research-only under the documented conditions.
+
+## Immediate next action — Phase 11B1
+
+Milestone:
+
+`PHASE_11B1_PROVENANCE_PHRASE_CATALOG`
+
+Build the separate phrase source/snapshot/catalog schema and deterministic fixture ingestion only.
+
+Required first implementation slice:
+
+1. source + snapshot/license/provenance registry;
+2. separate phrase / attestation / token / usage-evidence storage, not the single-word `hot` table;
+3. raw German Wiktextract phrase fixture importer preserving source types/tags without invention;
+4. deterministic token-boundary storage and explicit unresolved lexical-token state;
+5. Leipzig fixture-derived attestation/commonness evidence kept separate from phraseological type;
+6. deterministic fingerprints, idempotency and provenance tests;
+7. Tatoeba schema fixture only until contributor attribution is resolved end-to-end.
+
+Explicitly out of scope for 11B1:
+
+- phrase pronunciation generation;
+- connected-speech rules;
+- mosaic retrieval/indexing;
+- phrase Writer ranking;
+- API/UI phrase surfacing;
+- Human Writer NDCG;
+- giant new corpus downloads.
+
+The frozen single-word Writer remains untouched.
