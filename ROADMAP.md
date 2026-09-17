@@ -19,6 +19,7 @@ preferred       838,209
 alternate       66,627
 historical      1,038
 usage-ranked    260,450
+SQLite          457.68 MiB
 analyzer        de-ipa-v2
 scorer          de-phon-v3
 relation        rhyme-relations-v2
@@ -54,9 +55,7 @@ construction:      de-adverbial-weise-v2
 
 No LLM/ML/neural inference, hosted ranking or runtime network dependency is allowed in core retrieval/ranking. Writer v7 remains rejected and rolled back. Ad-hoc writer ranking/morphology tuning is frozen at v6/v4.
 
-## Phase 7 — Multi-analysis lexical/morphology model — experimental migration implemented
-
-Accepted DB v4 stores one selected lemma/POS analysis per form; final writer morphology requires preserving multiple source-supported analyses.
+## Phase 7 — Multi-analysis lexical/morphology model — owner build complete
 
 Experimental migration:
 
@@ -65,14 +64,9 @@ publish  rhymelab-de-publish-v3
 DB       rhymelab-local-db-v5
 ```
 
-Implemented:
+Real-data owner build is complete. Publish-v3 preserves all source-supported lexical analyses/provenance; DB-v5 stores normalized `form_analysis` rows. Real DB-v5 before writer materialization is 727.21 MiB with 967,931 lexical-analysis rows and the accepted 838,209 / 904,836 form/pronunciation population after the existing supplemental overlay.
 
-- all merged lexical analyses/provenance preserved in publish `a[]`;
-- deterministic legacy `l/p/g` compatibility projection;
-- normalized `form_analysis` keyed by `(form_id, analysis_key)`;
-- v2/v4 remain accepted defaults;
-- v3/v5 use separate default outputs;
-- fixture tests cover ambiguity, provenance, deterministic ordering, normalized storage and end-to-end builder behavior.
+Accepted v2/v4 outputs remain unchanged.
 
 ## Phase 8 — Writer Page Benchmark v2 — structural baseline passed / human reference pending
 
@@ -95,7 +89,7 @@ preferred pronunciation rows        240 / 240
 legacy tier-0 retention             685 / 685
 ```
 
-Permanent regressions include `Arbeitsweise -> Hochzeitsreise` rank 120/perfect writer-anchor class, `right:reise` surfacing through `Weiterreise` rank 3, `Liebe -> Diebe` rank 1, `Leben -> neben` rank 2 and `Nacht -> macht` rank 1.
+Permanent regressions include `Arbeitsweise -> Hochzeitsreise` rank 120/perfect writer-anchor class, `right:reise` through `Weiterreise` rank 3, `Liebe -> Diebe` rank 1, `Leben -> neben` rank 2 and `Nacht -> macht` rank 1.
 
 NDCG@10/20 remains `pending_reference` until complete independent human usefulness labels cover the relevant writer cutoffs.
 
@@ -103,80 +97,58 @@ NDCG@10/20 remains `pending_reference` until complete independent human usefulne
 
 ### 9A. Accepted legacy control-path invariance — complete
 
-Owner-local runtime gate:
+Owner-local runtime gate passed 27/27 queries with no missing queries, runtime candidate mismatches, runtime-policy mismatches or protected-order mismatches. Newly surfaced candidates were safety-clean. Historical reference assets were unavailable, so reference metrics are intentionally absent.
+
+### 9B. Multi-analysis publish/storage — real-data build complete
+
+Publish-v3 / DB-v5 builder migration is complete and real-data counts are internally consistent. Accepted v2/v4 defaults remain unchanged.
+
+### 9C. Right-edge + morphology materialization — correctness passed; compact storage remeasurement next
+
+The first full owner materialization proved correctness and indexed lookup, but its initial schema was storage-inefficient:
 
 ```text
-schema                              rhymelab-benchmark-ranking-runtime-candidate-v2
-status                              ok
-queries                             27 / 27
-missing_queries                     []
-runtime_candidate_mismatch_queries []
-runtime_policy_mismatch_queries    []
-protected_order_mismatch_queries   []
-reference evidence                 unavailable_invariance_only
+DB-v5 before writer materialization     727.21 MiB
+first materialized DB-v5              1904.67 MiB
+writer materialization delta          1177.46 MiB
+writer_anchor                          551.32 MiB
+writer_morphology_evidence             626.13 MiB
 ```
 
-Newly surfaced safety: 14 Top-20 and 141 Top-250 candidates, with zero missing usage rank, zero explicit rare flags, zero >100k usage ranks and zero query-relative horizon violations.
+This first layout is rejected for storage efficiency, not linguistic correctness.
 
-### 9B. Multi-analysis publish/storage — fixture/builder gate complete
-
-Publish-v3 and DB-v5 migration paths are implemented and CI-covered. Accepted v2/v4 defaults and output paths remain unchanged.
-
-### 9C. Right-edge + morphology materialization — fixture gate complete / owner measurement next
-
-Implemented:
+Compact storage is now implemented and CI-covered:
 
 ```text
-scripts/writer-anchor-materialization-v5-core.mjs
-scripts/writer-morphology-materialization-v5-core.mjs
-scripts/materialize-writer-v5.mjs
-tests/writer-anchor-materialization-v5.test.mjs
-tests/writer-morphology-materialization-v5.test.mjs
+anchor storage      compact-primary-key-v2
+anchor PK           (anchor_key, pronunciation_id) WITHOUT ROWID
+morphology storage  positive-evidence-compact-v2
+morphology PK       (form_id, analysis_key) WITHOUT ROWID
 ```
 
-Anchor materialization:
+Anchor semantics are unchanged: every complete right-edge nucleus suffix is still materialized, preserving old suffix-LIKE candidate equivalence. Per-row constant policy/kind/position metadata and the second lookup index were removed.
 
-- query keys remain exactly `de-right-edge-anchors-v1`;
-- candidate side materializes every complete right-edge nucleus suffix, preserving the old `vowel_key LIKE '%key'` candidate universe without a suffix scan;
-- indexed lookup is `(anchor_policy, anchor_key)` through `idx_writer_anchor_lookup`;
-- fixture test proves candidate-ID equality with the old `LIKE` retrieval and preserves `Arbeitsweise -> Hochzeitsreise`;
-- `EXPLAIN QUERY PLAN` must use the anchor lookup index.
+Morphology derivation semantics are unchanged. Only positive family evidence is physically stored; unresolved evidence is represented by absence of a row because null-family rows never contributed family support. Duplicated JSON, repeated policy/status strings and a redundant family index were removed. Conflicting positive families remain detectable.
 
-Morphology materialization:
+CI run #145 passes all 157 tests for the compact layout. Runtime rewiring remains false.
 
-- evidence is stored per `(form_id, analysis_key, morphology_policy)`;
-- derivation happens independently per source-supported analysis;
-- family consensus is applied only after per-analysis derivation;
-- `stufenweise` adj+adv converges on `right:weise`;
-- `Verweise` remains unresolved;
-- conflicting analyses remain `ambiguous_conflict` with no hard family.
+Next owner measurement sequence uses the already-generated `data/de/publish-v3` and must not rebuild/download sources:
 
-End-to-end fixture:
-
-- publish-v3 -> DB-v5 -> writer materialization passes full public CI;
-- indexed anchor plan is verified;
-- runtime rewiring remains explicitly false.
-
-The fixture gate is now sufficient to authorize a **separate experimental owner v3/v5 build** for real-data size/runtime/equivalence measurements. Accepted v4 must not be overwritten.
-
-Required owner measurement sequence:
-
-1. build publish-v3 to its separate output;
-2. build DB-v5 to its separate SQLite/report defaults;
-3. run writer materialization;
-4. inspect form/pronunciation/analysis/materialization counts;
-5. measure SQLite size delta versus accepted v4;
-6. verify real DB anchor query plans;
-7. establish deterministic materialization repeatability;
-8. compare materialized retrieval candidate universe and runtime against the frozen v6/v4 writer benchmark;
-9. only then switch the experimental writer runtime away from suffix `LIKE`;
-10. rerun Writer Page Benchmark v2 against that materialized runtime.
+1. rebuild only separate DB-v5 from existing publish-v3;
+2. compact-materialize writer anchors/morphology;
+3. run `measure-writer-v5-storage.mjs`;
+4. verify real anchor/pronunciation counts and compact primary-key plan;
+5. verify morphology analysis/positive/unresolved/ambiguous counts;
+6. verify deterministic materialization repeatability;
+7. compare compact indexed retrieval candidate universe/runtime against frozen Writer Page Benchmark v2;
+8. only then switch the experimental writer runtime away from suffix `LIKE`;
+9. rerun Writer Page Benchmark v2 against the materialized runtime.
 
 Do not modify `findRhymes()` / accepted `ranking=legacy` as part of this phase.
 
 ## Phase 10 — Writer-search acceptance + German single-word stabilization
 
-Acceptance report must combine Writer Page structural evidence, independent human NDCG when available, legacy invariance, lexical/morphology provenance integrity, materialized runtime performance and deterministic reproducibility. Only then may writer search replace the accepted/base default.
+Acceptance report must combine Writer Page structural evidence, independent human NDCG when available, legacy invariance, lexical/morphology provenance integrity, compact materialized runtime performance and deterministic reproducibility. Only then may writer search replace the accepted/base default.
 
 ## Phase 11 — Phrase / mosaic rhyme
 
