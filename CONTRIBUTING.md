@@ -69,10 +69,14 @@ node scripts/public-readiness-audit.mjs
 
 Changes touching data/source policy should also run the relevant source/provenance tests and update the durable documentation.
 
+The public GitHub Actions workflow must pass its `validate` job before merge. The durable branch/merge policy is documented in `docs/REPOSITORY_GOVERNANCE.md`.
+
 ## Pull-request policy
 
+- Changes to public `main` are made through pull requests under the repository-governance policy.
 - Keep one coherent concern per PR.
 - Avoid unrelated refactors in feature/bug-fix PRs.
 - Do not change licensing, third-party attribution, provenance, privacy behavior, CI permissions, network behavior, or public-data boundaries silently.
 - Prefer deterministic tests and reproducible build steps.
 - Use GitHub's privacy-protecting `noreply` commit address for public contributions if you do not want your personal email exposed in Git metadata.
+- Do not rename the required `validate` CI job without updating the GitHub ruleset and `docs/REPOSITORY_GOVERNANCE.md` in the same change.

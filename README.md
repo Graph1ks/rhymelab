@@ -16,8 +16,15 @@ Repository state is authoritative for ongoing development. In a fresh developmen
 4. `PROJECT_STATE.json`
 5. `ROADMAP.md`
 6. `DATA_SOURCES.md`
-7. `docs/BENCHMARK.md`
-8. `docs/API.md`
+7. `docs/REPOSITORY_GOVERNANCE.md`
+8. `docs/BENCHMARK.md`
+9. `docs/API.md`
+
+## Repository governance
+
+The public `main` branch is governed by `docs/REPOSITORY_GOVERNANCE.md`. Project policy requires pull-request-based changes, successful `validate` CI, an up-to-date branch before merge, and protection against force pushes and deletion.
+
+GitHub-side activation of the `main` ruleset requires repository-admin settings and is tracked in issue #1. Until that issue is closed, the governance policy is documented but is not fully enforced by GitHub branch protection.
 
 ## Current runtime baseline
 
@@ -67,7 +74,7 @@ npm test
 node scripts/public-readiness-audit.mjs
 ```
 
-The public GitHub Actions workflow runs the same source/test/privacy checks on `main`, pull requests, and manual dispatch.
+The public GitHub Actions workflow runs the same source/test/privacy checks on `main`, pull requests, and manual dispatch. Its required job/check name is `validate`.
 
 ## Data and provenance
 

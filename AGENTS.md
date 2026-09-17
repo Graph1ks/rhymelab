@@ -11,12 +11,15 @@ Before changing the project in a fresh thread/session, read:
 3. `PROJECT_STATE.json`
 4. `ROADMAP.md`
 5. `DATA_SOURCES.md`
-6. `docs/BENCHMARK.md` for rhyme-quality/ranking work
-7. `docs/API.md` for local API work
+6. `docs/REPOSITORY_GOVERNANCE.md`
+7. `docs/BENCHMARK.md` for rhyme-quality/ranking work
+8. `docs/API.md` for local API work
 
 ## Public-repository guardrails
 
 The public repository starts from a sanitized root commit. Do not add references that expose the pre-public private Git history, branches, pull requests, personal email addresses, local user/profile paths, credentials, private URLs, or internal-only artifacts.
+
+Public `main` is governed by `docs/REPOSITORY_GOVERNANCE.md`: changes target pull requests, the required CI job/check is `validate`, and the intended GitHub ruleset blocks force pushes and branch deletion. GitHub-side ruleset activation is tracked in issue #1 until repository-admin enforcement is confirmed.
 
 Run before public-facing changes:
 
