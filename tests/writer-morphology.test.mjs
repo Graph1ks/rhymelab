@@ -61,15 +61,32 @@ test('productive German adverbial -weise uses explicit construction evidence', (
 
   assert.equal(evidence.status, 'attested_right_head_candidate');
   assert.equal(evidence.familyKey, 'right:weise');
-  assert.equal(evidence.constructionRule, 'de-adverbial-weise-v1');
+  assert.equal(evidence.constructionRule, 'de-adverbial-weise-v2');
   assert.equal(evidence.source, 'local_hot_explicit_construction_evidence');
   assert.equal(evidence.split.leftRaw, 'schätzungs');
   assert.equal(evidence.leftEvidence.normalized, 'schätzung');
   assert.equal(evidence.checks.headPartOfSpeechCompatible, false);
-  assert.equal(evidence.checks.explicitConstructionRule, 'de-adverbial-weise-v1');
+  assert.equal(evidence.checks.explicitConstructionRule, 'de-adverbial-weise-v2');
 });
 
-test('ordinary non-adverb forms ending near -weise do not receive the adverbial construction rule', () => {
+test('productive -weise survives a stored adjective analysis from dual-pos source data', () => {
+  const lexicon = attested(
+    ['stufe', 'Stufe', 'noun', 3000],
+    ['weise', 'Weise', 'noun', 691],
+  );
+  const evidence = chooseAttestedRightHead(
+    whole('stufenweise', 'stufenweise', 'adj'),
+    lexicon,
+  );
+
+  assert.equal(evidence.status, 'attested_right_head_candidate');
+  assert.equal(evidence.familyKey, 'right:weise');
+  assert.equal(evidence.constructionRule, 'de-adverbial-weise-v2');
+  assert.equal(evidence.split.leftRaw, 'stufen');
+  assert.equal(evidence.leftEvidence.normalized, 'stufe');
+});
+
+test('ordinary noun forms ending near -weise do not receive the adverbial construction rule', () => {
   const lexicon = attested(
     ['ver', 'ver', 'name', 1000],
     ['weise', 'Weise', 'noun', 691],
