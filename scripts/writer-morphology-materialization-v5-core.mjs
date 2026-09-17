@@ -5,31 +5,27 @@ import {
 import { resolveWriterFamilyConsensus } from './writer-lexical-model-core.mjs';
 
 export { WRITER_MORPHOLOGY_POLICY };
+export const WRITER_MORPHOLOGY_STORAGE = 'positive-evidence-compact-v2';
 
 export const CREATE_WRITER_MORPHOLOGY_EVIDENCE_SQL = `
 CREATE TABLE IF NOT EXISTS writer_morphology_evidence(
   form_id INTEGER NOT NULL,
   analysis_key TEXT NOT NULL,
-  morphology_policy TEXT NOT NULL,
-  status TEXT NOT NULL,
-  family_key TEXT,
+  family_key TEXT NOT NULL,
   construction_rule TEXT,
   split_index INTEGER,
   left_normalized TEXT,
   right_normalized TEXT,
   right_head_analysis_key TEXT,
-  evidence_json TEXT NOT NULL,
-  PRIMARY KEY(form_id, analysis_key, morphology_policy)
-);
-CREATE INDEX IF NOT EXISTS idx_writer_morphology_family
-  ON writer_morphology_evidence(morphology_policy, family_key, form_id);
+  PRIMARY KEY(form_id, analysis_key)
+) WITHOUT ROWID;
 `;
 
 const INSERT_EVIDENCE_SQL = `
   INSERT INTO writer_morphology_evidence(
-    form_id,analysis_key,morphology_policy,status,family_key,construction_rule,
-    split_index,left_normalized,right_normalized,right_head_analysis_key,evidence_json
-  ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+    form_id,analysis_key,family_key,construction_rule,
+    split_index,left_normalized,right_normalized,right_head_analysis_key
+  ) VALUES(?,?,?,?,?,?,?,?)
 `;
 
 const ADVERBIAL_WEISE_POS = new Set(['adv', 'adj']);
@@ -203,18 +199,20 @@ export function insertWriterMorphologyEvidence(db, formId, evidenceRows = [], pr
   let inserted = 0;
   for (const evidence of evidenceRows) {
     if (!evidence?.analysisKey) throw new Error('Writer morphology evidence requires analysisKey');
+    // Absence of a row is the compact representation of unresolved evidence. The
+    // consensus algorithm already ignores familyKey=null rows, so this preserves
+    // family resolution and ambiguity semantics while avoiding hundreds of thousands
+    // of negative rows and duplicated JSON payloads.
+    if (!evidence.familyKey) continue;
     insert.run(
       Number(formId),
       String(evidence.analysisKey),
-      WRITER_MORPHOLOGY_POLICY,
-      String(evidence.status || 'unresolved'),
-      evidence.familyKey ?? null,
+      String(evidence.familyKey),
       evidence.constructionRule ?? null,
       evidence.split?.index ?? null,
       evidence.leftEvidence?.normalized ?? null,
       evidence.rightHead?.normalized ?? null,
       evidence.rightHead?.analysisKey ?? null,
-      JSON.stringify(evidence),
     );
     inserted += 1;
   }
