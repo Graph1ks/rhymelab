@@ -64,24 +64,51 @@ Lexical historical/current state is derived only from preserved lexical source q
 
 The relation layer is language-neutral at the interface level, but its input similarities remain language-specific. German currently supplies the only registered phonology profile.
 
-## Phase 11 source gap — phrase / mosaic / phraseology
+## Phase 11 phrase / mosaic source decision
 
-The accepted German single-word writer baseline does **not** yet have a source-backed phrase database. Phase 11 therefore begins with a public-source and licensing survey before phrase runtime work.
+Phase 11A source/licensing research is complete. Detailed matrix and evidence:
 
-Required source categories include:
+`docs/PHRASE_SOURCE_SURVEY.md`
 
-- multi-word phrases and common n-grams / collocations;
-- idioms and fixed expressions / Redewendungen;
-- proverbs or formulaic expressions where licensing permits;
-- metaphorical / figurative expressions where a public structured source exists;
-- common sentence fragments useful for lyric continuation;
-- lexical-semantic resources that can support deterministic phrase discovery without becoming a runtime ML dependency.
+The selected source stack is layered rather than treating any single resource as a universal phrase database.
 
-Every candidate source must be evaluated for bulk/reproducible access, license, redistribution/commercial compatibility, language/snapshot/version, raw format, scale, phrase type coverage, provenance identifiers, and offline usability after ingestion. A website being publicly readable is not sufficient.
+### Selected production inputs
 
-OpenThesaurus and OdeNet remain candidate semantic resources, but they are **not** assumed to provide the complete phrase/idiom/metaphor layer. Phase 11 must research additional public German phraseological/corpus resources before choosing an implementation dataset.
+**German Wiktionary via raw Kaikki/Wiktextract — USE WITH CONDITIONS**
 
-The detailed execution plan is `docs/PHRASE_MOSAIC_PLAN.md`.
+Primary high-precision phraseology seed for source-backed phrase entries, idioms/fixed expressions, proverbs and figurative labels where actually present. Pin the deWiktionary dump date, Kaikki extraction date/Wiktextract revision and source-record provenance. Wiktionary CC BY-SA + GFDL obligations remain a separate third-party license boundary.
+
+Verified survey snapshot: Kaikki extraction 2026-09-15 from deWiktionary dump 2026-09-01; raw JSONL 2.8 GB / 289.3 MB gzip; German dictionary view reports 6,209 phrase-POS senses.
+
+**Leipzig Corpora Collection downloadable text corpora — USE**
+
+Reuse the already configured German News 2024 1M, German Wikipedia 2021 1M and German Web 2021 1M packages for deterministic phrase/n-gram attestation and commonness. The Leipzig terms distinguish downloadable text corpora (CC BY) from other site/data/service terms. Only explicitly downloaded, manifested CC-BY corpus packages are eligible production inputs.
+
+Corpus evidence may supply counts/commonness/association evidence. It must not manufacture idiom, metaphor, proverb or fixed-expression labels.
+
+### Selected conditional/optional layers
+
+- **Tatoeba German text — USE WITH CONDITIONS:** sentence/fragment diversity only after contributor attribution can be deterministically resolved and preserved for every retained record; never use Tatoeba contribution counts as general German commonness.
+- **Wikidata Lexemes — USE:** optional CC0 lexical identity/semantic support; no need to download the full dump for Phase 11B1.
+- **OpenThesaurus — USE WITH CONDITIONS:** optional synonym/association layer under a deliberately selected CC BY-SA 4.0 or LGPL boundary; not phraseological truth/commonness.
+- **OdeNet — USE WITH CONDITIONS:** optional CC BY-SA WordNet-style semantic graph; avoid double-counting evidence inherited from OpenThesaurus.
+- **ParlaMint-AT 4.1 — USE WITH CONDITIONS / LATER:** CC BY 4.0 German/Austrian parliamentary corpus for later register/formulaic enrichment, not general commonness.
+
+### Research-only / rejected product inputs
+
+- **COLF-VID — RESEARCH ONLY:** repository states CC BY-NC-SA 4.0; useful literal/figurative idiom evidence but not commercial-compatible product ingestion.
+- **PARSEME VMWE 1.3 — RESEARCH ONLY:** useful taxonomy/benchmark reference; do not ingest until the exact current German artifact and its text/license chain are pinned.
+- **GermaNet — RESEARCH ONLY:** use requires the appropriate agreement; no production ingestion without a separately recorded commercial redistribution license.
+- **DeReKo / COSMAS II — RESEARCH ONLY:** normal access is explicitly scientific/non-commercial.
+- **DWDS corpus families — RESEARCH ONLY:** corpus-specific rights are heterogeneous and are not assumed product-compatible.
+- **DWDS Wortprofil code — RESEARCH ONLY method reference:** GPL-3.0 collocation/MWE extraction implementation; useful algorithmic reference, not copied into RhymeLab by accident.
+- **Unlicensed public phrase websites — REJECT:** public readability without reproducible bulk access and explicit ingestion/redistribution rights is insufficient.
+
+### Phase 11B1 source boundary
+
+The next milestone is `PHASE_11B1_PROVENANCE_PHRASE_CATALOG`.
+
+It will build a separate provenance-bearing phrase catalog and fixture ingestion around the selected raw Wiktextract + existing Leipzig inputs. Tatoeba/semantic/domain layers remain schema-ready but optional. No phrase pronunciation, mosaic runtime retrieval, phrase ranking, API/UI surfacing or giant new downloads belong in 11B1.
 
 ## Deferred sources
 
