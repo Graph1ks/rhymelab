@@ -5,6 +5,10 @@ import {
 } from './local-engine.mjs';
 import { getPhonologyProfile } from '../scripts/phonology-profiles.mjs';
 import {
+  WRITER_MORPHOLOGY_POLICY,
+  resolveWriterMorphologyBatch,
+} from './writer-morphology.mjs';
+import {
   WRITER_RANKING_POLICY,
   rankWriterRecommendedResults,
 } from './writer-ranking-policy.mjs';
@@ -221,13 +225,30 @@ export function findWriterRhymes(db, word, options = {}) {
   }
 
   const soundSorted = [...merged.values()].sort(compareSound);
-  const ranked = rankWriterRecommendedResults(soundSorted, base.query, {
-    limit: soundSorted.length,
+  const morphology = resolveWriterMorphologyBatch(
+    db,
+    [{ normalized: base.query.normalized, surface: base.query.surface }, ...soundSorted],
+    base.language,
+  );
+  const query = {
+    ...base.query,
+    writerMorphology: morphology.get(base.query.normalized) || null,
+  };
+  const morphologyRows = soundSorted.map((row) => ({
+    ...row,
+    writerMorphology: morphology.get(row.normalized) || null,
+  }));
+  const ranked = rankWriterRecommendedResults(morphologyRows, query, {
+    limit: morphologyRows.length,
   });
   const results = ranked.slice(0, limit);
+  const resolvedMorphology = morphologyRows.filter(
+    (row) => row.writerMorphology?.status === 'attested_right_head_candidate',
+  ).length;
 
   return {
     ...base,
+    query,
     phonology: {
       ...base.phonology,
       writerAnchorPolicy: profile.writerAnchorPolicyVersion || null,
@@ -239,13 +260,20 @@ export function findWriterRhymes(db, word, options = {}) {
       coverageFloorPerType: 0,
     },
     rankingPolicy: WRITER_RANKING_POLICY,
-    ranking: 'deterministic multi-anchor phonetic relevance + lexical novelty/commonness utility + greedy lexical diversity; legacy endpoint remains unchanged',
+    ranking: 'deterministic multi-anchor phonetic relevance + attested right-head lexical-family evidence + lexical novelty/commonness utility + greedy family diversity; legacy endpoint remains unchanged',
     writerRetrieval: {
       policy: profile.writerAnchorPolicyVersion || null,
       rightEdgeKeys: retrieval.keys,
       baseCandidates: base.results.length,
       rightEdgeCandidates: retrieval.results.length,
       mergedCandidates: soundSorted.length,
+    },
+    writerMorphology: {
+      policy: WRITER_MORPHOLOGY_POLICY,
+      query: query.writerMorphology,
+      resolvedCandidates: resolvedMorphology,
+      totalCandidates: morphologyRows.length,
+      note: 'Inferred writer-family evidence from independently attested terminal and left-side lexemes in the local hot lexicon; not a source-attested full morphological parse.',
     },
     results,
     groups: groupsFor(results),
