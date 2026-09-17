@@ -2,21 +2,29 @@ import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { findRhymes, getStats, getWord, openRhymeDb, searchWords } from './local-engine.mjs';
+import { DEFAULT_WRITER_DB_PATH, openWriterDb } from './experimental-writer-db.mjs';
 import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
-const dbPath = resolve(process.env.RHYMELAB_DB || 'data/local/rhymelab.sqlite');
+const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYMELAB_DB || 'data/local/rhymelab.sqlite');
+const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
 const uiDir = resolve('src/ui');
 const benchmarkUiDir = resolve('src/benchmark-ui');
 
-let db;
+let legacyDb;
+let writerDb;
 try {
-  db = openRhymeDb(dbPath);
+  legacyDb = openRhymeDb(legacyDbPath);
+  writerDb = openWriterDb(writerDbPath);
 } catch (error) {
-  console.error(`Cannot open local RhymeLab database at ${dbPath}`);
-  console.error('Run: npm run local:refresh');
+  try { legacyDb?.close(); } catch {}
+  try { writerDb?.close(); } catch {}
+  console.error('Cannot open local RhymeLab runtime databases.');
+  console.error(`Legacy/control DB: ${legacyDbPath}`);
+  console.error(`Writer DB: ${writerDbPath}`);
+  console.error('The normal Writer UI requires the accepted materialized v5 database.');
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 }
@@ -108,14 +116,20 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/health') {
-      return json(res, { status: 'ok', mode: 'local', database: dbPath });
+      return json(res, {
+        status: 'ok',
+        mode: 'local',
+        writer_database: writerDbPath,
+        legacy_database: legacyDbPath,
+        writer_runtime: 'materialized-writer-v5-v1',
+      });
     }
-    if (url.pathname === '/api/stats') return json(res, getStats(db));
+    if (url.pathname === '/api/stats') return json(res, getStats(writerDb));
 
     if (url.pathname === '/api/search') {
       return json(res, {
         results: searchWords(
-          db,
+          writerDb,
           url.searchParams.get('q') || '',
           url.searchParams.get('limit'),
           { includeHistorical: url.searchParams.get('historical') === 'all' },
@@ -125,7 +139,7 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname.startsWith('/api/word/')) {
       const word = decodeURIComponent(url.pathname.slice('/api/word/'.length));
-      const result = getWord(db, word);
+      const result = getWord(writerDb, word);
       return result ? json(res, result) : json(res, { error: 'Word not found' }, 404);
     }
 
@@ -142,8 +156,8 @@ const server = createServer(async (req, res) => {
       };
       const useLegacyRanking = url.searchParams.get('ranking') === 'legacy';
       const result = useLegacyRanking
-        ? findRhymes(db, word, options)
-        : findWriterRhymes(db, word, options);
+        ? findRhymes(legacyDb, word, options)
+        : findWriterRhymes(writerDb, word, options);
       return result ? json(res, result) : json(res, { error: 'Word not found' }, 404);
     }
 
@@ -156,12 +170,14 @@ const server = createServer(async (req, res) => {
 server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
-  console.log(`SQLite: ${dbPath}`);
+  console.log(`Writer SQLite: ${writerDbPath}`);
+  console.log(`Legacy/control SQLite: ${legacyDbPath}`);
 });
 
 function shutdown() {
   server.close(() => {
-    try { db.close(); } catch {}
+    try { writerDb.close(); } catch {}
+    try { legacyDb.close(); } catch {}
     process.exit(0);
   });
 }
