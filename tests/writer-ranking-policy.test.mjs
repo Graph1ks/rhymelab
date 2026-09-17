@@ -38,7 +38,7 @@ const query = {
 };
 
 test('writer ranking policy is explicit and deterministic', () => {
-  assert.equal(WRITER_RANKING_POLICY, 'deterministic_writer_utility_v6');
+  assert.equal(WRITER_RANKING_POLICY, 'deterministic_writer_utility_v7');
   const rows = [
     row('Hochzeitsreise', 0.96, { usageRank: 12000, writerMorphology: morphology('right:reise') }),
     row('Arbeitszweige', 0.93, { usageRank: 10000, writerMorphology: morphology('right:zweige') }),
