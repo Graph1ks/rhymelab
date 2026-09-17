@@ -55,6 +55,7 @@
     "local:rebuild": "npm run de:publish:rebuild && npm run local:db",
     "local:refresh": "npm run de:publish:rebuild && npm run local:db && npm run report --silent",
     "local:run": "npm run dev",
-    "phrase:catalog": "node scripts/build-de-phrase-catalog.mjs"
+    "phrase:catalog": "node scripts/build-de-phrase-catalog.mjs",
+    "phrase:catalog:bootstrap": "node scripts/bootstrap-de-phrase-catalog-local.mjs"
   }
 }
