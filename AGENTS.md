@@ -132,16 +132,23 @@ modern_entity_relative_commonness_1decade_0_05
 
 ## Current project direction — Phase 11
 
-Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md` and `docs/PHRASE_SOURCE_SURVEY.md` before implementation.
+Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_SOURCE_SURVEY.md`, and `docs/PHRASE_CATALOG_V1.md` before implementation.
 
-The Phase 11A source/licensing gate is complete. The selected first production inputs are raw German Wiktionary via Kaikki/Wiktextract for source-backed phraseology and the already-used Leipzig News 2024 1M + Wikipedia 2021 1M + Web 2021 1M corpora for deterministic phrase attestation/commonness.
+Phase 11A is complete. Phase 11B1 now has a fixture-validated separate phrase catalog implementation:
 
-Conditional/optional layers remain separated: Tatoeba only after contributor attribution is proven; Wikidata/OpenThesaurus/OdeNet for semantic support; ParlaMint-AT for later register/domain enrichment. COLF-VID, PARSEME, GermaNet, DeReKo/COSMAS and broad DWDS corpus use are research-only under the documented conditions.
+```text
+schema                 rhymelab-phrase-catalog-v1
+catalog policy         de-phrase-catalog-v1
+Leipzig matching       leipzig-exact-token-sequence-v1
+single-word rewired    no
+```
 
-Immediate next milestone:
+It preserves source/snapshot/license provenance, source-backed phrase types/tags, deterministic token boundaries, explicit unresolved lexical tokens, historical/current state and per-corpus Leipzig usage evidence.
 
-`PHASE_11B1_PROVENANCE_PHRASE_CATALOG`
+Immediate next gate is the owner-local full-data build:
 
-Build the separate provenance-bearing phrase source/snapshot/catalog schema and deterministic fixture ingestion. Keep source-backed phrase type separate from corpus commonness. Preserve token boundaries and explicit unresolved states. Add deterministic fingerprints/idempotency/provenance tests.
+```powershell
+npm run phrase:catalog:bootstrap
+```
 
-Do not implement phrase pronunciation, mosaic runtime retrieval/indexing, phrase ranking, UI/API phrase surfacing, giant new downloads or Human Writer NDCG in 11B1. The accepted single-word Writer baseline remains frozen.
+Do not start Phase 11C phrase pronunciation or any mosaic retrieval/ranking/UI work until the full-data report and repeat fingerprint have been reviewed. The accepted single-word Writer baseline remains frozen.
