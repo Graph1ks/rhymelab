@@ -194,10 +194,10 @@ for (const input of transcriptInputs) {
   enrichArgs.push('--pdf', input.group + '=' + input.path);
 }
 
-console.log('\\nBuild Cologne youth/urban/spoken register evidence…');
+console.log('\nBuild Cologne youth/urban/spoken register evidence…');
 runNode('scripts/enrich-de-phrase-register-cologne.mjs', enrichArgs);
 
-console.log('\\nCOLOGNE KIEZDEUTSCH REGISTER EVIDENCE COMPLETE');
+console.log('\nCOLOGNE KIEZDEUTSCH REGISTER EVIDENCE COMPLETE');
 console.log(JSON.stringify({
   database: dbPath,
   report: reportPath,
