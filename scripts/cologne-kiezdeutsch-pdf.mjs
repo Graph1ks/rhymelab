@@ -22,14 +22,14 @@ function joinItems(items) {
     const previousEnd = previous.x + Math.max(previous.width || 0, 0);
     const gap = item.x - previousEnd;
     const needsSpace = gap > 1.5
-      && !/[\\s(\\/\\-]$/u.test(out)
-      && !/^[,.;:!?%)\\]}]/u.test(text);
+      && !/[\s(\/\-]$/u.test(out)
+      && !/^[,.;:!?%)\]}]/u.test(text);
 
     out += needsSpace ? ' ' + text : text;
     previous = item;
   }
 
-  return out.normalize('NFKC').replace(/\\s+/gu, ' ').trim();
+  return out.normalize('NFKC').replace(/\s+/gu, ' ').trim();
 }
 
 export async function loadPdfJs() {
