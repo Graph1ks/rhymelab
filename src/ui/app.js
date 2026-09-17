@@ -55,7 +55,7 @@ const POS_LABELS = {
 const ENTITY_LABELS={en:{platform:'Platform',company:'Company',product:'Product',internet:'Internet term',entity:'Entity'},de:{platform:'Plattform',company:'Unternehmen',product:'Produkt',internet:'Internetbegriff',entity:'Entität'}};
 
 const state={lang:localStorage.getItem('rhymelab.language')==='de'?'de':'en',data:null,visibleCount:30,pageSize:30,query:'',scrollObserver:null,wordCache:new Map(),detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null};
-const esc=(value)=>String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=(value)=>String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const t=(key)=>I18N[state.lang][key]??I18N.en[key]??key;
 const number=(value)=>Number(value).toLocaleString(state.lang==='de'?'de-DE':'en-US');
 const normalizeKey=(value)=>String(value??'').normalize('NFKC').trim().toLocaleLowerCase('de-DE');
