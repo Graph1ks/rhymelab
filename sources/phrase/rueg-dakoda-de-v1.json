@@ -1,0 +1,78 @@
+{
+  "id": "rueg-dakoda-de-v1",
+  "source_id": "rueg-dakoda-de",
+  "name": "RUEG German subcorpora via DAKODA",
+  "role": "modern_register_evidence",
+  "homepage_url": "https://dakoda.org/repository.en.html",
+  "documentation_url": "https://korpling.german.hu-berlin.de/rueg-docs/v0.4/",
+  "license_id": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "RUEG / Research Unit Emerging Grammars in Language-Contact Situations; DAKODA reprocessed distribution. See DAKODA corpus pages and RUEG documentation.",
+  "redistribution_policy": "DAKODA marks RUEG-Lx, RUEG-L1 and RUEG-HL open under CC0 1.0. Preserve provenance even though attribution is not legally required by CC0.",
+  "corpus_version": "DAKODA handover 2023-02-08",
+  "language": "deu",
+  "production_years": "2018-2023",
+  "layers": {
+    "diplomatic": "dipl",
+    "normalized": "norm",
+    "language": "language",
+    "communication_unit": "cu"
+  },
+  "ingestion_policy": {
+    "policy_id": "rueg-dakoda-register-dual-layer-v1",
+    "primary_format": "exb",
+    "metadata_format": "meta",
+    "keep_layers": [
+      "dipl",
+      "norm"
+    ],
+    "preserve_code_switching": true,
+    "candidate_generation": false,
+    "general_commonness": false,
+    "purpose": "Register evidence for known phrase-catalog entries plus locally browsable communication-unit text. Dipl preserves participant production; norm provides the orthographic normalization bridge."
+  },
+  "subcorpora": [
+    {
+      "code": "RUEG-Lx",
+      "speaker_profile": "multilingual",
+      "speakers": 165,
+      "texts": 659,
+      "reported_tokens": 103779,
+      "modalities": [
+        "spoken",
+        "written"
+      ],
+      "page_url": "https://dakoda.org/repository/rueg-lx/index.en.html",
+      "exb_url": "https://dakoda.org/data/repo/open/RUEG-Lx/RUEG-Lx_exb.zip",
+      "meta_url": "https://dakoda.org/data/repo/open/RUEG-Lx/RUEG-Lx_meta.zip"
+    },
+    {
+      "code": "RUEG-L1",
+      "speaker_profile": "monolingual",
+      "speakers": 64,
+      "texts": 256,
+      "reported_tokens": 41953,
+      "modalities": [
+        "spoken",
+        "written"
+      ],
+      "page_url": "https://dakoda.org/repository/rueg-l1/index.en.html",
+      "exb_url": "https://dakoda.org/data/repo/open/RUEG-L1/RUEG-L1_exb.zip",
+      "meta_url": "https://dakoda.org/data/repo/open/RUEG-L1/RUEG-L1_meta.zip"
+    },
+    {
+      "code": "RUEG-HL",
+      "speaker_profile": "heritage",
+      "speakers": 30,
+      "texts": 120,
+      "reported_tokens": 13413,
+      "modalities": [
+        "spoken",
+        "written"
+      ],
+      "page_url": "https://dakoda.org/repository/rueg-hl/index.en.html",
+      "exb_url": "https://dakoda.org/data/repo/open/RUEG-HL/RUEG-HL_exb.zip",
+      "meta_url": "https://dakoda.org/data/repo/open/RUEG-HL/RUEG-HL_meta.zip"
+    }
+  ]
+}
