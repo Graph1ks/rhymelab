@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { normalizeWriterLexicalAnalyses } from '../scripts/writer-lexical-model-core.mjs';
 import {
   WRITER_MORPHOLOGY_POLICY,
+  WRITER_MORPHOLOGY_STORAGE,
   createWriterMorphologyEvidenceStorage,
   deriveWriterMorphologyForForm,
   insertWriterMorphologyEvidence,
@@ -95,10 +96,30 @@ test('conflicting source-supported analyses stay ambiguous instead of selecting 
   assert.equal(result.consensus.familyKey, null);
 });
 
-test('morphology evidence storage is versioned per form and analysis key', () => {
+test('compact morphology storage keeps positive per-analysis evidence without duplicated JSON', () => {
   const db = new DatabaseSync(':memory:');
   try {
     createWriterMorphologyEvidenceStorage(db);
+    assert.equal(WRITER_MORPHOLOGY_POLICY, 'de-attested-right-head-v4');
+    assert.equal(WRITER_MORPHOLOGY_STORAGE, 'positive-evidence-compact-v2');
+
+    const columns = db.prepare('PRAGMA table_info(writer_morphology_evidence)').all().map((row) => row.name);
+    assert.deepEqual(columns, [
+      'form_id',
+      'analysis_key',
+      'family_key',
+      'construction_rule',
+      'split_index',
+      'left_normalized',
+      'right_normalized',
+      'right_head_analysis_key',
+    ]);
+    const sql = db.prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='writer_morphology_evidence'").get()?.sql || '';
+    assert.match(sql, /WITHOUT ROWID/i);
+    assert.doesNotMatch(sql, /evidence_json/i);
+    assert.doesNotMatch(sql, /morphology_policy/i);
+    assert.doesNotMatch(sql, /status\s+TEXT/i);
+
     const evidence = [
       {
         analysisKey: 'adj-key',
@@ -118,17 +139,22 @@ test('morphology evidence storage is versioned per form and analysis key', () =>
         leftEvidence: { normalized: 'stufen' },
         rightHead: { normalized: 'weise', analysisKey: 'weise-noun' },
       },
+      {
+        analysisKey: 'unresolved-key',
+        status: 'unresolved',
+        familyKey: null,
+      },
     ];
     assert.equal(insertWriterMorphologyEvidence(db, 1, evidence), 2);
 
     const rows = db.prepare(`
-      SELECT analysis_key,morphology_policy,family_key,right_head_analysis_key
+      SELECT analysis_key,family_key,right_head_analysis_key
       FROM writer_morphology_evidence
       WHERE form_id=1
       ORDER BY analysis_key
     `).all();
     assert.equal(rows.length, 2);
-    assert.ok(rows.every((row) => row.morphology_policy === WRITER_MORPHOLOGY_POLICY));
+    assert.deepEqual(rows.map((row) => row.analysis_key), ['adj-key', 'adv-key']);
     assert.ok(rows.every((row) => row.family_key === 'right:weise'));
     assert.ok(rows.every((row) => row.right_head_analysis_key === 'weise-noun'));
   } finally {
