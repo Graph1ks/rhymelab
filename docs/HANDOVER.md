@@ -16,6 +16,7 @@ Read in order:
 6. `DATA_SOURCES.md`
 7. `docs/BENCHMARK.md`
 8. `docs/API.md`
+9. `docs/WRITER_RANKING.md` for the current writer-search architecture work
 
 ## Public-repository boundary
 
@@ -39,6 +40,8 @@ node scripts/public-readiness-audit.mjs
 
 RhymeLab is local-only. Runtime is Node.js + SQLite on `127.0.0.1:3030`. Generated linguistic data, SQLite, benchmark queues/reviews/reference labels, reports, and downloaded raw sources remain local/gitignored.
 
+Core rhyme retrieval, scoring, writer ranking and diversification must be deterministic and locally executable. Do not add LLM inference, machine-learning/neural ranking, hosted ranking/search services, or a network dependency to the core search path.
+
 ## Formally accepted German baseline
 
 RhymeLab `v0.10.0` remains the last formally accepted runtime/data baseline:
@@ -54,17 +57,17 @@ RhymeLab `v0.10.0` remains the last formally accepted runtime/data baseline:
 
 Pre-public private commit IDs were deliberately removed from the public handover. The factual baseline values above remain the durable acceptance record.
 
-## Ranking state
+## Accepted ranking state on main
 
 Pure score-band, hybrid v1, and hybrid v2 were rejected. Hybrid v3 passed the isolated experiment and retrieval-aware pre-promotion gate.
 
-Current policy:
+Current accepted-source policy:
 
 ```text
 modern_entity_relative_commonness_1decade_0_05
 ```
 
-Current source contains:
+Current main contains:
 
 - `src/runtime-ranking-policy.mjs` — production v3 comparator;
 - `src/local-engine.mjs` — normal `type=all`, non-balanced ranked mode uses v3;
@@ -72,25 +75,51 @@ Current source contains:
 
 Scorer, relation policy, retrieval keys/pool mechanics, and DB schema were not changed by the ranking promotion. `coverage=balanced` and type-specific result modes retain their separate existing ordering.
 
-## Immediate engineering gate
-
-Run owner-local:
+The old owner-local post-promotion acceptance command remains:
 
 ```powershell
 npm run benchmark:ranking:runtime-candidate
 ```
 
-Required post-promotion report:
+That validates the accepted/base path only.
 
-- schema `rhymelab-benchmark-ranking-runtime-candidate-v2`;
-- `status=ok`;
-- zero runtime-candidate mismatches;
-- zero runtime-policy mismatches;
-- zero protected-order mismatches;
-- live metrics/safety consistent with the already-passed retrieval-aware candidate evidence.
+## Current feature branch — deterministic writer ranking v1
 
-Only after that should the formal runtime baseline/version be advanced.
+Branch:
 
-## After ranking isolation
+```text
+feat/deterministic-writer-ranking-v1
+```
 
-Cluster the remaining IPA-normalization failures, prioritize common-word failures and poor preferred defaults, then move to phrase/mosaic rhyme. English remains separate and unimplemented.
+Draft PR:
+
+```text
+#3 — feat: deterministic writer-oriented rhyme ranking v1
+```
+
+Implemented:
+
+- `src/writer-ranking-policy.mjs` — deterministic lexical novelty / writer utility / diversity;
+- `src/writer-search.mjs` — writer-oriented wrapper over accepted retrieval + phonetic scoring;
+- writer explanation payload per result;
+- same-lemma and high query-overlap penalties that do not change phonetic truth;
+- greedy O(n²) lexical diversification;
+- repeated productive surface-construction suppression baseline;
+- `Arbeitsweise` synthetic regression tests;
+- local API/UI use writer ranking on this branch;
+- `?ranking=legacy` retains the accepted/base result path for direct comparison;
+- `docs/WRITER_RANKING.md` documents design and limits.
+
+Public CI passed on the initial implementation. This writer policy is **not yet an accepted runtime baseline** and must not be described as such.
+
+## Immediate next work on this feature branch
+
+1. Owner switches local VS Code checkout to the public repository/feature branch.
+2. Run `npm install` if needed, then `npm run check` and `npm test`.
+3. Start the existing local DB/server and inspect real searches, especially `Arbeitsweise`.
+4. Compare writer ranking against `?ranking=legacy` on the same queries.
+5. Capture bad page-level patterns that remain.
+6. Build deterministic lexical/morphology evidence into the data pipeline rather than indefinitely adding surface string heuristics.
+7. Add search/page-quality benchmark metrics and only then decide whether to promote writer ranking.
+
+Do not move to phrase/mosaic rhyme or English until German single-word writer-search quality and the supporting lexical data model are stable.
