@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-17",
-  "phase": "GERMAN_WRITER_V5_RUNTIME_PERFORMANCE_REFINEMENT",
+  "phase": "GERMAN_WRITER_V5_RUNTIME_REPEATABILITY",
   "package_version": "0.10.0",
   "repository": {
     "public_release_live": true,
@@ -160,7 +160,7 @@
     "retrieval_speedup_x": 14.12
   },
   "phase_9e_materialized_runtime_benchmark": {
-    "status": "owner_structural_pass_performance_refinement_active",
+    "status": "complete_structural_pass",
     "runtime_id": "materialized-writer-v5-v1",
     "runtime_module": "src/writer-materialized-runtime.mjs",
     "experimental_database_opener": "src/experimental-writer-db.mjs",
@@ -173,13 +173,6 @@
     "structural_gate_passed": true,
     "query_count": 12,
     "ok_queries": 12,
-    "mean_elapsed_ms": 1401.9,
-    "median_elapsed_ms": 862.45,
-    "mean_elapsed_excluding_arbeitsweise_ms": 883.38,
-    "baseline_mean_elapsed_ms": 1528.8,
-    "mean_speedup_pct": 8.3,
-    "arbeitsweise_elapsed_ms": 7105.7,
-    "arbeitsweise_merged_candidates": 1580,
     "top20_exact_duplicates": 0,
     "top20_near_duplicates": 0,
     "top20_same_lemma_rows": 0,
@@ -191,24 +184,46 @@
     "preferred_pronunciation_rows": 240,
     "legacy_top250_tier0_retained": 685,
     "legacy_top250_tier0_total": 685,
-    "hochzeitsreise_rank": 116,
     "hochzeitsreise_role": "retrieval_sentinel_max_rank_250_not_top20_surfacing_guard",
     "right_reise_top20_word": "Weiterreise",
-    "right_reise_top20_rank": 3,
     "morphology_regressions_passed": 10,
     "ndcg_status": "pending_reference",
     "accepted_v4_default_unchanged": true
   },
   "phase_9f_runtime_performance_refinement": {
-    "status": "code_ci_green_owner_rerun_required",
+    "status": "owner_gate_passed",
     "change": "stop_greedy_writer_selection_at_requested_page_prefix",
     "ranking_policy_changed": false,
     "scores_changed": false,
     "diversity_policy_changed": false,
     "prefix_stability_test": "tests/writer-ranking-prefix-stability.test.mjs",
-    "ci_run": 174,
-    "ci_status": "success",
-    "owner_gate": "rerun benchmark:writer-page:v5 and verify structural/rank regressions plus latency"
+    "baseline_mean_elapsed_ms": 1528.8,
+    "pre_optimization_mean_elapsed_ms": 1401.9,
+    "post_optimization_mean_elapsed_ms": 1103.9,
+    "mean_improvement_vs_baseline_pct": 27.8,
+    "arbeitsweise_pre_optimization_ms": 7105.7,
+    "arbeitsweise_post_optimization_ms": 3021.8,
+    "arbeitsweise_improvement_pct": 57.5,
+    "hochzeitsreise_rank": 116,
+    "right_reise_top20_rank": 3,
+    "legacy_top250_tier0_retained": 685,
+    "legacy_top250_tier0_total": 685,
+    "structural_gate_passed": true
+  },
+  "phase_9g_runtime_repeatability": {
+    "status": "runner_implemented_ci_green_owner_run_required",
+    "schema": "rhymelab-writer-v5-repeatability-v1",
+    "core": "scripts/writer-v5-repeatability-core.mjs",
+    "runner": "scripts/benchmark-writer-v5-repeatability.mjs",
+    "npm_script": "benchmark:writer-v5:repeatability",
+    "report": "data/local/writer-v5-repeatability-report.json",
+    "independent_database_opens": 3,
+    "frozen_query_count": 12,
+    "fingerprint_scope": "complete_findWriterRhymes_response_excluding_timing_and_report_timestamp",
+    "requires_per_query_fingerprint_equality": true,
+    "requires_suite_fingerprint_equality": true,
+    "ci_run": 181,
+    "ci_status": "success"
   },
   "owner_measurement_outputs": {
     "publish_v3": "data/de/publish-v3",
@@ -218,15 +233,15 @@
     "anchor_rematerialization_report_v5": "data/local/writer-anchor-rematerialization-v5-report.json",
     "storage_report_v5": "data/local/writer-v5-storage-report.json",
     "equivalence_report_v5": "data/local/writer-v5-equivalence-report.json",
-    "materialized_writer_page_report_v5": "reports/de-writer-page-benchmark-v5-materialized.json"
+    "materialized_writer_page_report_v5": "reports/de-writer-page-benchmark-v5-materialized.json",
+    "repeatability_report_v5": "data/local/writer-v5-repeatability-report.json"
   },
   "next_actions": [
-    "rerun_owner_materialized_writer_page_v5_after_prefix_stable_runtime_optimization",
-    "verify_structural_metrics_and_protected_regressions_remain_pass",
-    "verify_legacy_tier0_retention_remains_685_of_685",
-    "measure_arbeitsweise_and_overall_latency_after_topk_greedy_optimization",
-    "establish_materialization_and_runtime_repeatability",
-    "produce_writer_search_acceptance_report_only_after_runtime_performance_gate_and_reference_requirements_are satisfied",
+    "run_owner_writer_v5_repeatability_gate",
+    "verify_three_independent_runs_have_identical_per_query_and_suite_fingerprints",
+    "produce_german_single_word_writer_search_acceptance_report_if_repeatability_passes",
+    "keep_human_ndcg_pending_reference_until_complete_independent_labels_exist",
+    "do_not_promote_or_mark_pr_ready_before_acceptance_report_review",
     "phrase_mosaic_after_german_single_word_acceptance",
     "english_after_german_stable"
   ]
