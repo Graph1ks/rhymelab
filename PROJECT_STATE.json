@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-17",
-  "phase": "PUBLIC_REPOSITORY_LIVE",
+  "phase": "DETERMINISTIC_WRITER_RANKING_V1",
   "package_version": "0.10.0",
   "repository": {
     "public_release_model": "sanitized_parentless_public_root",
@@ -48,8 +48,11 @@
     "generated_data_committed": false,
     "reports_committed": false,
     "remote_deployment_supported": false,
-    "default_ranking_source_changed": true,
-    "default_ranking_accepted": false
+    "core_search_requires_network": false,
+    "core_search_allows_llm_inference": false,
+    "core_search_allows_ml_model_inference": false,
+    "accepted_default_ranking_source_changed": true,
+    "accepted_default_ranking": false
   },
   "accepted_baseline": {
     "package_version": "0.10.0",
@@ -118,6 +121,41 @@
       "acceptance_report_schema": "rhymelab-benchmark-ranking-runtime-candidate-v2"
     }
   },
+  "writer_ranking_feature": {
+    "branch": "feat/deterministic-writer-ranking-v1",
+    "pull_request": 3,
+    "status": "draft_validation",
+    "policy": "deterministic_writer_utility_v1",
+    "policy_module": "src/writer-ranking-policy.mjs",
+    "search_wrapper": "src/writer-search.mjs",
+    "documentation": "docs/WRITER_RANKING.md",
+    "database_schema_changed": false,
+    "phonetic_scorer_changed": false,
+    "relation_policy_changed": false,
+    "ui_enabled": true,
+    "legacy_comparison_parameter": "ranking=legacy",
+    "public_ci_initial_implementation": "success",
+    "synthetic_regression_query": "Arbeitsweise",
+    "features": [
+      "same_lemma_overlap",
+      "normalized_edit_similarity",
+      "shared_prefix_overlap",
+      "shared_suffix_overlap",
+      "query_relative_commonness",
+      "lexical_status_penalty",
+      "greedy_lexical_diversity"
+    ],
+    "complexity": "O(n^2) candidate-pair redundancy checks",
+    "accepted_runtime_baseline": false,
+    "next_acceptance_requirements": [
+      "owner_local_live_search_review",
+      "legacy_vs_writer_comparison",
+      "page_quality_metrics",
+      "exact_rhyme_and_relation_invariance",
+      "deterministic_morphology_data_model",
+      "writer_ranking_acceptance_report"
+    ]
+  },
   "validation_boundary": {
     "public_release_complete": true,
     "public_ci_clean_root_passed": true,
@@ -126,7 +164,9 @@
     "hybrid_v3_experiment_gate_passed": true,
     "runtime_candidate_validation_passed": true,
     "runtime_promotion_source_wired": true,
-    "post_promotion_acceptance_complete": false
+    "post_promotion_acceptance_complete": false,
+    "writer_ranking_feature_ci_passed": true,
+    "writer_ranking_live_data_accepted": false
   },
   "english": {
     "implemented": false,
@@ -134,9 +174,14 @@
     "requirement": "own_sources_ipa_parser_inventory_similarity_thresholds_pronunciation_policy_and_language_specific_benchmark"
   },
   "next_actions": [
-    "run_post_promotion_runtime_candidate_acceptance",
-    "cluster_remaining_ipa_normalization_failures_after_ranking_isolation",
-    "phrase_mosaic_after_single_word_quality",
+    "switch_owner_local_checkout_to_public_writer_feature_branch",
+    "run_owner_local_check_and_tests",
+    "inspect_Arbeitsweise_and_other_writer_queries_live",
+    "compare_writer_vs_legacy_ranking",
+    "design_deterministic_german_morphology_data_model",
+    "add_page_quality_benchmark_metrics",
+    "promote_writer_ranking_only_after_explicit_acceptance",
+    "phrase_mosaic_after_single_word_writer_quality",
     "implement_english_separately_after_german_stable"
   ]
 }
