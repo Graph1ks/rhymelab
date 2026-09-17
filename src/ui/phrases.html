@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f2efe8">
+  <title>RhymeLab Phrase Browser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/phrase-styles.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-inner">
+  <a class="brand" href="/"><span class="brand-mark">R</span><span>RhymeLab</span><small>PHRASES</small></a>
+  <nav><a href="/">Rhymes</a><a class="active" href="/phrases">Phrases & corpora</a></nav>
+  <div class="language-switch"><button data-lang="en">EN</button><span>/</span><button data-lang="de">DE</button></div>
+</div></header>
+<main class="shell">
+  <section class="intro"><div><p class="eyebrow">PHASE 11 · LOCAL DATA EXPLORER</p><h1 data-t="headline">Browse phraseology and register evidence.</h1><p data-t="intro">Inspect Wiktionary phrase records, Leipzig corpus evidence and modern register corpora without changing the Writer ranking.</p></div><div id="stats" class="stats"></div></section>
+  <div class="tabs"><button class="tab active" data-tab="phrases" data-t="phrasesTab">Phrase catalog</button><button class="tab" data-tab="corpus" data-t="corpusTab">RUEG corpus units</button></div>
+  <section id="phrasesPane" class="pane">
+    <form id="phraseForm" class="filter-card">
+      <label class="wide"><span data-t="searchPhrase">Search phrase</span><input id="phraseQ" type="search" placeholder="e.g. keine Ahnung"></label>
+      <label><span data-t="type">Type</span><select id="phraseType"><option value="all">All</option><option value="phrase">Phrase</option><option value="idiom">Idiom</option><option value="proverb">Proverb</option><option value="figurative_expression">Figurative</option><option value="multiword_lexeme">Multiword lexeme</option></select></label>
+      <label><span data-t="leipzig">Leipzig evidence</span><select id="evidence"><option value="all">All</option><option value="3">3 corpora</option><option value="2plus">2+ corpora</option><option value="any">Any</option><option value="none">None</option></select></label>
+      <label><span data-t="register">Register evidence</span><select id="register"><option value="all">All</option><option value="any">Attested</option><option value="none">None</option></select></label>
+      <label><span data-t="history">Vocabulary</span><select id="history"><option value="current">Current / unmarked</option><option value="all">Include historical</option></select></label>
+      <button class="primary" type="submit" data-t="search">Search</button>
+    </form>
+    <div class="browser-grid"><div><div id="phraseSummary" class="summary"></div><div id="phraseResults" class="results"></div><button id="phraseMore" class="more hidden" type="button" data-t="more">Load more</button></div><aside id="phraseDetail" class="detail"><div class="empty-detail" data-t="selectPhrase">Select a phrase to inspect evidence.</div></aside></div>
+  </section>
+  <section id="corpusPane" class="pane hidden">
+    <form id="corpusForm" class="filter-card corpus-filters">
+      <label class="wide"><span data-t="searchCorpus">Search RUEG text</span><input id="corpusQ" type="search" placeholder="e.g. hab nix"></label>
+      <label><span>Layer</span><select id="layer"><option value="both">dipl + norm</option><option value="dipl">dipl</option><option value="norm">norm</option></select></label>
+      <label><span>Subcorpus</span><select id="subcorpus"><option value="all">All</option><option value="RUEG-Lx">RUEG-Lx</option><option value="RUEG-L1">RUEG-L1</option><option value="RUEG-HL">RUEG-HL</option></select></label>
+      <label><span data-t="mode">Mode</span><select id="mode"><option value="all">All</option><option value="spoken">Spoken</option><option value="written">Written</option></select></label>
+      <label><span data-t="formality">Formality</span><select id="formality"><option value="all">All</option><option value="informal">Informal</option><option value="formal">Formal</option></select></label>
+      <button class="primary" type="submit" data-t="search">Search</button>
+    </form>
+    <div id="corpusSummary" class="summary"></div><div id="corpusResults" class="corpus-results"></div><button id="corpusMore" class="more hidden" type="button" data-t="more">Load more</button>
+  </section>
+  <div id="error" class="error hidden"></div>
+</main>
+<script type="module" src="/assets/phrase-app.js"></script>
+</body>
+</html>
