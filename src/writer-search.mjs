@@ -227,7 +227,12 @@ export function findWriterRhymes(db, word, options = {}) {
   const soundSorted = [...merged.values()].sort(compareSound);
   const morphology = resolveWriterMorphologyBatch(
     db,
-    [{ normalized: base.query.normalized, surface: base.query.surface }, ...soundSorted],
+    [{
+      normalized: base.query.normalized,
+      surface: base.query.surface,
+      lemma: base.query.lemma,
+      partOfSpeech: base.query.partOfSpeech,
+    }, ...soundSorted],
     base.language,
   );
   const query = {
@@ -260,7 +265,7 @@ export function findWriterRhymes(db, word, options = {}) {
       coverageFloorPerType: 0,
     },
     rankingPolicy: WRITER_RANKING_POLICY,
-    ranking: 'deterministic multi-anchor phonetic relevance + attested right-head lexical-family evidence + lexical novelty/commonness utility + greedy family diversity; legacy endpoint remains unchanged',
+    ranking: 'deterministic multi-anchor phonetic relevance + conservative lemma/POS right-head family evidence + lexical novelty/commonness utility + greedy family diversity; legacy endpoint remains unchanged',
     writerRetrieval: {
       policy: profile.writerAnchorPolicyVersion || null,
       rightEdgeKeys: retrieval.keys,
@@ -273,7 +278,7 @@ export function findWriterRhymes(db, word, options = {}) {
       query: query.writerMorphology,
       resolvedCandidates: resolvedMorphology,
       totalCandidates: morphologyRows.length,
-      note: 'Inferred writer-family evidence from independently attested terminal and left-side lexemes in the local hot lexicon; not a source-attested full morphological parse.',
+      note: 'Conservative inferred writer-family evidence: whole lemma must end in the candidate right-head lemma, noun/adjective POS must be compatible, and the left side must have measured local usage evidence. Unresolved is preferred over speculative morphology.',
     },
     results,
     groups: groupsFor(results),
