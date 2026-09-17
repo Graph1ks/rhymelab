@@ -9,6 +9,11 @@ import {
   resolveWriterMorphologyBatch,
 } from './writer-morphology.mjs';
 import {
+  lookupMaterializedWriterAnchorRows,
+  materializedWriterRuntimeState,
+  resolveMaterializedWriterMorphologyBatch,
+} from './writer-materialized-runtime.mjs';
+import {
   WRITER_RANKING_POLICY,
   rankWriterRecommendedResults,
 } from './writer-ranking-policy.mjs';
@@ -146,11 +151,12 @@ function rescoreWriterResult(row, queryAnalysis, profile, querySyllables) {
 
 function collectRightEdgeCandidates(db, queryAnalysis, queryNormalized, querySyllables, profile, options = {}) {
   if (typeof profile.writerRetrievalKeys !== 'function' || typeof profile.scoreWriterAnalyses !== 'function') {
-    return { results: [], keys: [] };
+    return { results: [], keys: [], runtime: null };
   }
   const keys = profile.writerRetrievalKeys(queryAnalysis);
-  if (!keys.length) return { results: [], keys: [] };
+  if (!keys.length) return { results: [], keys: [], runtime: null };
 
+  const runtimeState = materializedWriterRuntimeState(db);
   const includeVariants = options.includeVariants === true;
   const includeHistorical = options.includeHistorical === true;
   const preferred = includeVariants ? '' : ' AND pronunciation_preferred=1';
@@ -159,16 +165,23 @@ function collectRightEdgeCandidates(db, queryAnalysis, queryNormalized, querySyl
   const byWord = new Map();
 
   for (const entry of keys) {
-    const pattern = `%${entry.key}`;
-    const rows = db.prepare(`
-      SELECT * FROM hot
-      WHERE vowel_key LIKE ?
-        AND normalized != ?
-        AND ABS(syllable_count-?) <= 1
-        ${preferred}${historical}
-      ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank, id
-      LIMIT ?
-    `).all(pattern, queryNormalized, querySyllables, querySyllables, perChannelLimit);
+    const rows = runtimeState.active
+      ? lookupMaterializedWriterAnchorRows(db, entry.key, {
+          queryNormalized,
+          querySyllables,
+          includeVariants,
+          includeHistorical,
+          limit: perChannelLimit,
+        })
+      : db.prepare(`
+          SELECT * FROM hot
+          WHERE vowel_key LIKE ?
+            AND normalized != ?
+            AND ABS(syllable_count-?) <= 1
+            ${preferred}${historical}
+          ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank, id
+          LIMIT ?
+        `).all(`%${entry.key}`, queryNormalized, querySyllables, querySyllables, perChannelLimit);
 
     for (const row of rows) {
       let candidateAnalysis;
@@ -183,7 +196,11 @@ function collectRightEdgeCandidates(db, queryAnalysis, queryNormalized, querySyl
     }
   }
 
-  return { results: [...byWord.values()], keys };
+  return {
+    results: [...byWord.values()],
+    keys,
+    runtime: runtimeState.active ? runtimeState : null,
+  };
 }
 
 export function findWriterRhymes(db, word, options = {}) {
@@ -196,6 +213,7 @@ export function findWriterRhymes(db, word, options = {}) {
   if (!base) return null;
 
   const profile = getPhonologyProfile(base.language);
+  const runtimeState = materializedWriterRuntimeState(db);
   let queryAnalysis;
   try { queryAnalysis = profile.analyzeIpa(base.query.preferredIpa); }
   catch { queryAnalysis = null; }
@@ -208,7 +226,7 @@ export function findWriterRhymes(db, word, options = {}) {
     merged.set(rescored.normalized, rescored);
   }
 
-  let retrieval = { results: [], keys: [] };
+  let retrieval = { results: [], keys: [], runtime: null };
   if (queryAnalysis) {
     retrieval = collectRightEdgeCandidates(
       db,
@@ -225,16 +243,15 @@ export function findWriterRhymes(db, word, options = {}) {
   }
 
   const soundSorted = [...merged.values()].sort(compareSound);
-  const morphology = resolveWriterMorphologyBatch(
-    db,
-    [{
-      normalized: base.query.normalized,
-      surface: base.query.surface,
-      lemma: base.query.lemma,
-      partOfSpeech: base.query.partOfSpeech,
-    }, ...soundSorted],
-    base.language,
-  );
+  const morphologyInput = [{
+    normalized: base.query.normalized,
+    surface: base.query.surface,
+    lemma: base.query.lemma,
+    partOfSpeech: base.query.partOfSpeech,
+  }, ...soundSorted];
+  const morphology = runtimeState.active
+    ? resolveMaterializedWriterMorphologyBatch(db, morphologyInput, base.language)
+    : resolveWriterMorphologyBatch(db, morphologyInput, base.language);
   const query = {
     ...base.query,
     writerMorphology: morphology.get(base.query.normalized) || null,
@@ -266,8 +283,24 @@ export function findWriterRhymes(db, word, options = {}) {
     },
     rankingPolicy: WRITER_RANKING_POLICY,
     ranking: 'deterministic multi-anchor phonetic relevance + conservative lemma/POS right-head family evidence + lexical novelty/commonness utility + greedy family diversity; legacy endpoint remains unchanged',
+    writerRuntime: runtimeState.active ? {
+      id: runtimeState.runtimeId,
+      databaseSchema: runtimeState.databaseSchema,
+      anchorStorage: runtimeState.anchorStorage,
+      anchorCandidateBasis: runtimeState.anchorCandidateBasis,
+      morphologyStorage: runtimeState.morphologyStorage,
+    } : {
+      id: 'validation-like-dynamic-v1',
+      databaseSchema: runtimeState.databaseSchema,
+      anchorStorage: 'vowel_key_suffix_like',
+      anchorCandidateBasis: 'legacy-vowel-key-string-suffix-v1',
+      morphologyStorage: 'dynamic-hot-single-analysis',
+    },
     writerRetrieval: {
       policy: profile.writerAnchorPolicyVersion || null,
+      source: runtimeState.active ? 'writer_anchor' : 'hot.vowel_key LIKE suffix',
+      storage: runtimeState.active ? runtimeState.anchorStorage : null,
+      candidateBasis: runtimeState.active ? runtimeState.anchorCandidateBasis : 'legacy-vowel-key-string-suffix-v1',
       rightEdgeKeys: retrieval.keys,
       baseCandidates: base.results.length,
       rightEdgeCandidates: retrieval.results.length,
@@ -275,10 +308,14 @@ export function findWriterRhymes(db, word, options = {}) {
     },
     writerMorphology: {
       policy: WRITER_MORPHOLOGY_POLICY,
+      source: runtimeState.active ? 'writer_morphology_evidence + form_analysis' : 'dynamic hot lookup',
+      storage: runtimeState.active ? runtimeState.morphologyStorage : null,
       query: query.writerMorphology,
       resolvedCandidates: resolvedMorphology,
       totalCandidates: morphologyRows.length,
-      note: 'Conservative inferred writer-family evidence: whole lemma must end in the candidate right-head lemma, noun/adjective POS must be compatible, and the left side must have measured local usage evidence. Unresolved is preferred over speculative morphology.',
+      note: runtimeState.active
+        ? 'Source-supported multi-analysis morphology reconstructed from compact materialized evidence; unresolved analyses are represented by absence of positive evidence and conflicting families remain unresolved.'
+        : 'Conservative inferred writer-family evidence: whole lemma must end in the candidate right-head lemma, noun/adjective POS must be compatible, and the left side must have measured local usage evidence. Unresolved is preferred over speculative morphology.',
     },
     results,
     groups: groupsFor(results),
