@@ -4,44 +4,47 @@ Last updated: 2026-09-17
 
 RhymeLab's public repository is `Graph1ks/rhymelab`. `main` is protected and the required public CI check is `validate`.
 
-## Formal control baseline
+## Current product/runtime baseline — v0.11.0
 
-The formally accepted control baseline remains RhymeLab `v0.10.0`:
+The normal local UI/API now uses the accepted materialized German Writer runtime by default:
 
-- DB schema `rhymelab-local-db-v4`;
-- 838,209 forms / 904,836 pronunciations;
-- 838,209 preferred / 66,627 alternate pronunciations;
-- 1,038 historical-only forms;
-- 260,450 usage-ranked forms;
-- 457.68 MiB SQLite;
-- analyzer `de-ipa-v2`;
-- scorer `de-phon-v3`;
-- relation policy `rhyme-relations-v2`;
-- ranking `modern_entity_relative_commonness_1decade_0_05`.
+```text
+package               v0.11.0
+writer DB             data/local/rhymelab-v5.sqlite
+writer DB schema      rhymelab-local-db-v5
+writer runtime        materialized-writer-v5-v1
+writer ranking        deterministic_writer_utility_v6
+right-edge anchor     de-right-edge-anchors-v1
+anchor storage        compact-primary-key-v2
+candidate basis       legacy-vowel-key-string-suffix-v1
+morphology            de-attested-right-head-v4
+construction          de-adverbial-weise-v2
+morphology storage    positive-evidence-compact-v2
+```
 
-`?ranking=legacy` remains the protected control path for regression evidence.
+`npm run dev` uses this Writer v5 path.
 
-## German single-word writer engineering baseline — ACCEPTED
+## Legacy/control baseline — preserved
+
+The previous v0.10.0 / DB-v4 runtime remains the protected regression/control path only:
+
+```text
+control DB            data/local/rhymelab.sqlite
+control DB schema     rhymelab-local-db-v4
+analyzer              de-ipa-v2
+scorer                de-phon-v3
+relation              rhyme-relations-v2
+ranking               modern_entity_relative_commonness_1decade_0_05
+request               ?ranking=legacy
+```
+
+The v4 DB is optional for normal v0.11 Writer use. If it is absent, the normal Writer UI still starts; only explicit `?ranking=legacy` requests are unavailable.
+
+## German single-word Writer — ACCEPTED / PROMOTED
 
 Acceptance document: `docs/WRITER_SEARCH_ACCEPTANCE.md`.
 
-Frozen stack:
-
-```text
-writer ranking       deterministic_writer_utility_v6
-right-edge anchor    de-right-edge-anchors-v1
-anchor storage       compact-primary-key-v2
-candidate basis      legacy-vowel-key-string-suffix-v1
-morphology family    de-attested-right-head-v4
-construction         de-adverbial-weise-v2
-morphology storage   positive-evidence-compact-v2
-runtime              materialized-writer-v5-v1
-DB schema            rhymelab-local-db-v5
-```
-
-Writer v7 remains rejected and rolled back. Core search remains deterministic, local-only, and free of LLM/ML/neural runtime inference, hosted ranking, telemetry, hidden uploads, or runtime network dependencies.
-
-## Final single-word engineering evidence
+Final engineering evidence before promotion:
 
 ```text
 legacy invariance queries             27 / 27
@@ -89,34 +92,22 @@ Protected behavior remains:
 - `Nacht -> macht`: rank 1;
 - all 10 productive-`-weise` / false-split morphology regressions pass.
 
+Writer v7 remains rejected and rolled back. Material changes to the frozen single-word Writer policies require a new benchmarked candidate.
+
 ## Human Writer NDCG policy
 
-Writer Page NDCG@10/20 remains `pending_reference` **by explicit project decision**.
+Writer Page NDCG@10/20 remains `pending_reference` by explicit project decision.
 
-It will not be collected from the project owner alone. Independent human usefulness evaluation is deferred until the broader German writer system — including Phase 11 phrase/mosaic/phraseology — is mature enough to evaluate coherently and independent reviewers are available.
-
-The existing `de-human-rhyme-v1` benchmark remains separate evidence for general rhyme relation/ranking quality and is not substituted for Writer Page human gold.
+It will not be collected from the project owner alone. Independent human usefulness evaluation is deferred until the broader German Writer system — including phrase/mosaic/phraseology — is mature enough to evaluate coherently and independent reviewers are available.
 
 ## Current phase — Phase 11 German phrase / mosaic / phraseology
 
 Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`.
 
-Immediate next gate is **11A public-source survey**. RhymeLab does not yet have a complete source-backed public phrase database for multi-word rhymes, idioms, Redewendungen, metaphors/figurative expressions, collocations, and useful sentence fragments.
+Immediate next gate is **11A public-source survey**. Before implementing a phrase database/runtime, research candidate public German sources for multi-word phrases, n-grams/collocations, idioms/Redewendungen, formulaic expressions/proverbs, metaphorical/figurative expressions, useful sentence fragments, and deterministic semantic discovery resources.
 
-Before implementing the phrase database/runtime, research candidate sources and record:
+For each serious source record bulk/reproducible access, license, redistribution/commercial compatibility, snapshot/version, scale/raw format, phrase coverage, provenance identifiers, and fully offline post-ingestion viability.
 
-- bulk/reproducible access;
-- license and redistribution/commercial compatibility;
-- snapshot/version;
-- scale and raw format;
-- phrase/idiom/metaphor coverage;
-- provenance identifiers;
-- ability to ingest once and run fully offline.
+OpenThesaurus and OdeNet are possible semantic ingredients, not assumed complete phraseology sources.
 
-OpenThesaurus/OdeNet are possible semantic ingredients, not assumed complete phraseology sources.
-
-After source selection: define the phrase data model, deterministic phrase pronunciation, indexed cross-word-boundary mosaic retrieval, a separate phrase writer-ranking policy, and a dedicated Phrase/Mosaic benchmark.
-
-## Language ordering
-
-German phrase/mosaic work comes next. English remains deferred until the German writer path is stable enough to freeze. Cross-language rhyme remains after both language profiles are independently strong.
+English remains deferred until the German phrase/mosaic path is stable enough to freeze.
