@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11e3_accepted_phase_11e4f_current",
+    "status": "phase_11e3_accepted_11e4_integrated_11f_acceptance_pending",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -1087,16 +1087,45 @@
         }
       },
       "phase_11e4f": {
-        "status": "CURRENT",
+        "status": "INTEGRATION_IMPLEMENTED_OWNER_ACCEPTANCE_PENDING",
         "combined_workstream": true,
         "integration_gate": "11E4",
         "final_acceptance_gate": "11F",
         "dependency_order_preserved": true,
-        "runtime_api_ui_integration_complete": false,
+        "runtime_api_ui_integration_complete": true,
         "final_benchmark_complete": false,
         "runtime_integration_allowed": true,
         "single_word_writer_must_remain_unchanged": true,
-        "local_only": true
+        "local_only": true,
+        "fixture_ci_gate_passed": true,
+        "owner_full_data_smoke_pending": true,
+        "unified_writer_schema": "rhymelab-unified-writer-v1",
+        "unified_writer_policy": "de-unified-word-phrase-writer-v1",
+        "unified_api": "/api/writer",
+        "standalone_phrase_ui_removed": true,
+        "phrase_bookmark_aliases_unified_writer": true,
+        "result_scopes": [
+          "all",
+          "words",
+          "phrases"
+        ],
+        "language_basis_contract": [
+          "de",
+          "en",
+          "both"
+        ],
+        "active_languages": [
+          "de"
+        ],
+        "english_runtime_status": "PHASE_12_NOT_IMPLEMENTED_CAPABILITY_GATED",
+        "both_language_mode_current_behavior": "german_active_english_unavailable_warning",
+        "multiword_query_resolution": [
+          "exact_accepted_phrase_catalog_pronunciation",
+          "writer_v5_preferred_token_citation_composition_when_all_tokens_resolve",
+          "unresolved_without_g2p_or_guessing"
+        ],
+        "cross_channel_score_calibration": false,
+        "phrase_quota": false
       }
     },
     "thread_handover": "docs/THREAD_HANDOVER_PHASE_11E3.md",
