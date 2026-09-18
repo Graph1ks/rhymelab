@@ -135,3 +135,13 @@ test('RhymePad suggestions expose persistent opt-in auto-scroll', () => {
   assert.match(padCss, /\.rhymeLabAutoScrollSurface/);
   assert.match(padCss, /\.rhymeLabAutoScrollToggle/);
 });
+
+
+test('RhymePad bar rail counters also scale with editor typography', () => {
+  assert.match(padApp, /--rhymePadRailMetricFontPx/);
+  assert.match(padApp, /const rail = \$\('#rail'\)/);
+  assert.match(padApp, /rhymePadRailCounter/);
+  assert.match(padApp, /railObserver\.observe\(rail/);
+  assert.match(padCss, /\.rhymePadRailCounter/);
+  assert.match(padCss, /font-size:var\(--rhymePadRailMetricFontPx/);
+});
