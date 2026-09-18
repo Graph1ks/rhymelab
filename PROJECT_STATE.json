@@ -191,8 +191,7 @@
       "wiktionary_malformed_lines": 4
     },
     "modern_register_sources": {
-      "cologne_kiezdeutsch_2025_v2": "selected_USE_CC_BY_4_0_lightweight_transcripts_only",
-      "rueg_1_0": "SELECTED_USE_VIA_DAKODA_SLIM_GERMAN_SUBCORPORA_CC0_EXB_PLUS_META"
+      "cologne_kiezdeutsch_2025_v2": "selected_USE_CC_BY_4_0_lightweight_transcripts_only"
     },
     "register_evidence_schema": "rhymelab-phrase-register-evidence-v1",
     "cologne_register_policy": "cologne-kiezdeutsch-register-exact-token-sequence-v1",
@@ -213,26 +212,6 @@
       "leipzig_three_corpora": 4683,
       "diagnostic_observation": "raw_catalog_is_intentionally_lexeme_heavy_and_contains_abbreviation_surface_alias_noise;do_not_treat_all_rows_as_songwriting_phrases"
     },
-    "rueg": {
-      "manifest": "sources/phrase/rueg-dakoda-de-v1.json",
-      "source_id": "rueg-dakoda",
-      "license": "CC0-1.0",
-      "subcorpora": [
-        "RUEG-Lx",
-        "RUEG-L1",
-        "RUEG-HL"
-      ],
-      "reported_tokens_total": 159145,
-      "layers": [
-        "dipl",
-        "norm"
-      ],
-      "policy": "rueg-dakoda-dual-layer-register-v1",
-      "detail_schema": "rhymelab-rueg-register-v1",
-      "candidate_generation": false,
-      "population_commonness": false,
-      "owner_full_build_completed": false
-    },
     "phrase_explorer": {
       "route": "/phrases",
       "database": "data/local/rhymelab-phrases-v1.sqlite",
@@ -242,8 +221,7 @@
       "surfaces": [
         "phrase_catalog",
         "leipzig_evidence",
-        "register_evidence",
-        "rueg_dipl_norm_contexts"
+        "register_evidence"
       ]
     },
     "phrase_pronunciation": {
@@ -262,6 +240,12 @@
       "g2p_fallback": false,
       "base_catalog_mutated": false,
       "owner_full_build_completed": false
+    },
+    "rueg_evaluation": {
+      "decision": "REJECTED_REMOVED",
+      "reason": "real DAKODA RUEG archives are learner/register utterance data with insufficient direct phraseology_metaphor_idiom value for current RhymeLab goals",
+      "production_source": false,
+      "runtime_surface": false
     }
   },
   "owner_measurement_outputs": {
@@ -274,7 +258,6 @@
     "phrase_catalog_report_v1": "data/local/phrase-catalog-v1-report.json",
     "cologne_register_report": "data/local/cologne-kiezdeutsch-register-report.json",
     "phrase_catalog_diagnostics": "data/local/phrase-catalog-v1-diagnostics.json",
-    "rueg_register_report": "data/local/rueg-register-report.json",
     "phrase_pronunciation_report": "data/local/phrase-pronunciation-v1-report.json"
   },
   "next_actions": [
@@ -284,7 +267,6 @@
     "inspect_phrase_ipa_stress_and_word_boundary_spans_in_phrase_explorer",
     "repeat_phrase_pronunciation_build_and_require_equal_pronunciation_fingerprint",
     "require_phase_11b1_base_catalog_fingerprint_to_remain_f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d",
-    "rueg_real_data_build_may_continue_independently_as_register_enrichment",
     "only_after_11c1_owner_gate_begin_phase_11d_mosaic_retrieval",
     "keep_single_word_writer_frozen"
   ]
