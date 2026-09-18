@@ -266,9 +266,9 @@ This is a data-browser ordering, not the future Phrase Writer ranking policy.
 
 Returns phrase tokens, source attestations, Leipzig evidence and generic register evidence. After Phase 11C1 materialization it also returns the preferred citation phrase IPA, syllable/stress data, explicit word-boundary positions, per-token IPA spans and token-resolution diagnostics.
 
-`/phrases` now serves the same unified Writer HTML as `/` for backward-compatible bookmarks; the old standalone phrase UI assets were removed.
+There is no `/phrases` product route. The main Writer UI at `/` is the only supported browser surface.
 
-These detail/catalog endpoints do not alter the frozen single-word Writer ranking path.
+These detail/catalog endpoints remain internal support surfaces and do not alter the frozen single-word Writer ranking path.
 
 
 
