@@ -183,24 +183,25 @@ Decision: do **not** block Phase 11D on a manual 11C2 lexical-gap campaign. Keep
 
 The repeatability gate passed: two owner full-data runs produced the identical pronunciation fingerprint `fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548`. Phase 11C1 is accepted and closed.
 
-Current milestone is Phase 11D1. Read `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md` before changing mosaic code. 11D1 materializes deterministic 2–6-syllable windows that strictly cross stored word boundaries, with exact phoneme/vowel indexes and stable span/fingerprint evidence. Fuzzy candidate retrieval and phrase ranking are not yet implemented.
-The first owner full-data 11D1 build is complete:
+Phase 11D1 is accepted/frozen after two identical full-data window fingerprints. Current milestone is Phase 11D2 bounded indexed candidate retrieval. Read both `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md` and `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md` before changing mosaic code.
+Phase 11D1 owner repeatability is accepted:
 
 ```text
-pronunciations scanned   90,089
-phrases with windows     90,089
-windows                 356,693
-SQLite                  510.09 MiB
-window fingerprint      24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+window fingerprint   24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+repeat equal         true
+windows              356,693
 ```
 
-Current owner gate:
+11D2 adds a separate retrieval-anchor table; do not mutate/fold these keys back into the accepted 11D1 window fingerprint. The exact rhyme-tail key must exclude the first rhyme-syllable onset to stay consistent with `de-phon-v3`.
+
+Current owner gate after merge:
 
 ```powershell
-npm run phrase:mosaic:windows
+npm run phrase:mosaic:retrieval
 ```
 
-Repeat once more and require the identical window fingerprint before 11D2. Exact indexed retrieval is available; fuzzy retrieval and phrase ranking are still deferred. The accepted single-word Writer baseline remains frozen.
+Require one repeat anchor fingerprint before moving to representative query diagnostics. Phrase ranking remains deferred to 11E. 
+The accepted single-word Writer baseline remains frozen.
 
 
 ## Deferred future architecture — preserve, do not implement prematurely

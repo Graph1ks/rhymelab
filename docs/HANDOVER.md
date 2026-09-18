@@ -251,6 +251,42 @@ window fingerprint
 Interpretation: the 11D1 substrate has useful scale without exploding combinatorially. Exact indexed lookup is ready; fuzzy candidate retrieval and phrase ranking remain intentionally deferred.
 
 Remaining 11D1 gate: rerun `npm run phrase:mosaic:windows` and require the same window fingerprint before 11D2.
+## Phase 11D1 repeatability — PASS / PHASE CLOSED
+
+Second owner-local materialization reproduced the accepted window substrate exactly:
+
+```text
+first   24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+repeat  24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+equal   true
+```
+
+Counts, distributions, source pronunciation fingerprint, base catalog fingerprint and 534,872,064-byte DB size were unchanged. 11D1 is accepted/frozen.
+
+## Phase 11D2 — current
+
+Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`.
+
+Fixture gate passed in required `validate` CI (run 248): source check, full test suite including SQLite query-plan assertions, and public-readiness audit all passed.
+
+Fixture implementation adds an additive `phrase_mosaic_retrieval_anchor` table and four bounded indexed channels:
+
+- exact rhyme-domain tail;
+- full vowel sequence + exact final coda;
+- full vowel sequence;
+- final nucleus + coarse coda class within ±1 syllable.
+
+The exact-tail anchor deliberately excludes the first onset to match `de-phon-v3`; do not replace it with raw 11D1 `phoneme_key` equality.
+
+All channels have hard SQL limits, no full-scan fallback, and candidates are scored by the existing German scorer. This is phonetic candidate ordering only, not phrase Writer ranking.
+
+Owner command after merge:
+
+```powershell
+npm run phrase:mosaic:retrieval
+```
+
+Review `data/local/phrase-mosaic-retrieval-v1-report.json`, then repeat once and require an identical anchor fingerprint before representative query diagnostics.
 ## Phase 11D1 — current
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`.
@@ -354,6 +390,6 @@ Do not implement these before current phrase IPA and deterministic mosaic retrie
 4. Phrase Catalog + Leipzig + IPA Explorer are the active phrase foundation.
 5. Coverage triage is complete: a blocking 11C2 pass is rejected; selected lexical gaps remain nonblocking/source-backed backlog only.
 6. 11C1 repeatability is confirmed and Phase 11C is closed.
-7. Current milestone is 11D1 owner full-data mosaic-window materialization and repeatability.
+7. 11D1 is accepted. Current milestone is 11D2 bounded indexed candidate retrieval.
 8. Only after 11D1 passes, design bounded 11D2 candidate retrieval without full-corpus scans.
 9. Preserve the future Markov/retrieval-first design note for the later generation phase.

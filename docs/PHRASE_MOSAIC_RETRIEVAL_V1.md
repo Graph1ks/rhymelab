@@ -182,7 +182,15 @@ Distribution:
 5 boundaries      89
 ```
 
-Run the materializer once more and require the same window fingerprint before 11D2.
+Repeat owner materialization produced the identical window fingerprint:
+
+```text
+24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+```
+
+Counts, distributions and database size were also identical. **Phase 11D1 is accepted and frozen.**
+
+Phase 11D2 contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`.
 
 ## Explicitly deferred to 11D2 / 11E
 
