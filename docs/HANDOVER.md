@@ -267,6 +267,8 @@ Counts, distributions, source pronunciation fingerprint, base catalog fingerprin
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`.
 
+Fixture gate passed in required `validate` CI (run 248): source check, full test suite including SQLite query-plan assertions, and public-readiness audit all passed.
+
 Fixture implementation adds an additive `phrase_mosaic_retrieval_anchor` table and four bounded indexed channels:
 
 - exact rhyme-domain tail;
