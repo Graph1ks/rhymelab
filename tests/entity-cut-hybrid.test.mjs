@@ -149,7 +149,7 @@ test('hybrid v2 raises missing-QRank ceiling without full renormalization', () =
 test('hybrid v2 can admit strong missing-QRank structural evidence across a strict cut', () => {
   const rows = [
     row('Q50', { qrank: 100, sitelinks: 100, de: 1, en: 1, externalIds: 4, statements: 100 }),
-    row('Q51', { qrank: 80, sitelinks: 10, de: 1, en: 0, externalIds: 1, statements: 10 }),
+    row('Q51', { qrank: 80, de: 1, statements: 10 }),
     row('Q52', { qrank: 60, sitelinks: 1, statements: 3 }),
     row('Q53', { qrank: 40, statements: 2 }),
     row('Q54', {
