@@ -3,12 +3,17 @@ import {
   classifyWiktionaryIpaLocale,
   collectWiktionaryTags,
   isExplicitProperNameRecord,
-  isWriterCandidateSurface,
   normalizeEnglishSurface,
 } from './en-writer-source-core.mjs';
 
 export const EN_PUBLISH_SCHEMA = 'rhymelab-en-publish-v1';
 export const EN_PUBLISH_POLICY = 'en-source-backed-publish-v1';
+
+export function isEnglishPublishSurface(value) {
+  const normalized = normalizeEnglishSurface(value);
+  return [...normalized].length <= 96
+    && /^\p{L}+(?:[-']\p{L}+)*$/u.test(normalized);
+}
 
 export function parseCmudictPronunciationLine(line) {
   const trimmed = String(line || '').trim();
@@ -43,12 +48,12 @@ function relationTargets(senses, key) {
       if (value) values.push(normalizeEnglishSurface(value));
     }
   }
-  return normalizeStringList(values).filter(isWriterCandidateSurface);
+  return normalizeStringList(values).filter(isEnglishPublishSurface);
 }
 
 export function lexicalEvidenceForHeadword(record) {
   const normalized = normalizeEnglishSurface(record?.word);
-  if (!isWriterCandidateSurface(normalized)) return null;
+  if (!isEnglishPublishSurface(normalized)) return null;
   const tags = collectWiktionaryTags(record);
   const history = classifyWiktionaryHistory(tags);
   const formOf = relationTargets(record?.senses, 'form_of');
@@ -80,7 +85,7 @@ export function lexicalEvidenceForListedForms(record) {
   const rows = [];
   for (const form of record?.forms || []) {
     const normalized = normalizeEnglishSurface(form?.form);
-    if (!isWriterCandidateSurface(normalized) || normalized === parent.normalized) continue;
+    if (!isEnglishPublishSurface(normalized) || normalized === parent.normalized) continue;
     const tags = normalizeStringList([form?.tags || [], form?.raw_tags || []])
       .map((value) => value.toLocaleLowerCase('en-US'));
     if (tags.some((tag) => NON_LEXICAL_FORM_TAGS.has(tag))) continue;
