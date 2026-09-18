@@ -400,6 +400,7 @@ const manifest={
     en_us_variants:enUsVariants,
     en_gb_variants:enGbVariants,
     source_attested_unprofiled_variants:unprofiledVariants,
+    source_attested_other_regional_variants:otherRegionalVariants,
     cmudict_rows_loaded:cmudictRows,
     esdb_rows_parsed:esdbParsedRows,
     wordfreq_distinct_surfaces:wordfreq.size,
