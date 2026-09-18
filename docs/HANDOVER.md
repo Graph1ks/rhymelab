@@ -527,3 +527,34 @@ npm run en:pronunciation:inflection:diagnose
 ```
 
 This command only reads existing publish shards. Do not run the expensive Kaikki publish rebuild until this diagnostic is reviewed unless specifically needed to validate Tier-A counts.
+
+
+### 12B7 inflection composition benchmark v1
+
+Owner report:
+
+```text
+control surfaces                         19,993
+phoneme-sequence match                    94.42%
+boundary-insensitive stressed-tail        94.97%
+syllable-count match                      99.36%
+stress-pattern match                      96.93%
+```
+
+CMUdict-base-only boundary-insensitive tail is 95.12%.
+
+The low global exact-key score (70.46%) is dominated by source/analyzer syllable-boundary placement and is not the acceptance metric. Progressive `-ing` is the clearest example: 14.60% exact-key vs 95.73% boundary-insensitive tail.
+
+The only materially weak allomorph classes are epenthetic `-es` and `-ed` after /t,d/. Mismatch review shows a systematic reduced-vowel transcription choice: composer `/ɪz, ɪd/` vs frequent CMUdict `/əz, əd/`.
+
+Diagnostic v2 now preserves both common reduced-vowel variants and measures best-set agreement. Production morphology remains disabled.
+
+Next owner command:
+
+```powershell
+git pull
+npm run en:pronunciation:inflection:diagnose
+```
+
+Expected output:
+`data/local/en-inflection-composition-diagnostic-v2-report.json`.
