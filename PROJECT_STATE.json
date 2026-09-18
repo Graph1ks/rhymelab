@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11C1_PHRASE_PRONUNCIATION_OWNER_BUILD_PENDING",
+  "phase": "GERMAN_PHASE_11C1_OWNER_FULL_BUILD_COMPLETE_GATE_PENDING",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11c1_phrase_pronunciation_implemented_fixture_gate_pending_owner_full_build",
+    "status": "phase_11c1_owner_full_data_build_complete_repeatability_and_coverage_triage_pending",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11C1_OWNER_PHRASE_PRONUNCIATION_GATE",
+    "next_milestone": "PHASE_11C1_REPEATABILITY_AND_COVERAGE_TRIAGE",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -239,7 +239,7 @@
       "connected_speech_variants_generated": false,
       "g2p_fallback": false,
       "base_catalog_mutated": false,
-      "owner_full_build_completed": false,
+      "owner_full_build_completed": true,
       "coverage_analyzer": {
         "schema": "rhymelab-phrase-pronunciation-coverage-report-v1",
         "ranking_policy": "single-blocker-modern-first-v1",
@@ -249,6 +249,29 @@
         "purpose": "measure_targeted_11c2_unlock_leverage_before_11d",
         "automatic_pronunciation_approval": false,
         "g2p_fallback": false
+      },
+      "owner_full_gate_accepted": false,
+      "repeatability_confirmed": false,
+      "coverage_triage_completed": false,
+      "full_data_evidence": {
+        "built_at": "2026-09-18T01:15:17.003Z",
+        "database_bytes": 367386624,
+        "database_mib": 350.37,
+        "base_catalog_fingerprint": "f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d",
+        "base_catalog_fingerprint_matches_stored": true,
+        "pronunciation_fingerprint": "fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548",
+        "distinct_normalized_tokens": 32560,
+        "phrase_count": 98504,
+        "ready_modern_phrases": 89865,
+        "token_resolutions": 205957,
+        "resolved_tokens": 195490,
+        "unresolved_tokens": 10467,
+        "ready_phrases": 90089,
+        "token_coverage_pct": 94.92,
+        "phrase_coverage_pct": 91.46,
+        "unresolved_reason": "unresolved_no_writer_form",
+        "unresolved_reason_count": 10467,
+        "blocked_phrase_count": 8415
       }
     },
     "rueg_evaluation": {
@@ -303,7 +326,7 @@
     "phrase_pronunciation_coverage_report": "data/local/phrase-pronunciation-coverage-v1-report.json"
   },
   "next_actions": [
-    "run_npm_phrase_pronunciation",
+    "compare_repeat_phrase_pronunciation_fingerprint_to_fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548",
     "run_npm_phrase_pronunciation_coverage_and_measure_top_n_unlock_impact",
     "inspect_phrase_token_and_phrase_pronunciation_coverage",
     "inspect_top_unresolved_tokens_and_phrase_blockers",
