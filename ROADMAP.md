@@ -298,7 +298,7 @@ repeat  24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
 
 11D1 is accepted/frozen.
 
-#### 11D2. Bounded indexed candidate retrieval — CURRENT
+#### 11D2. Bounded indexed candidate retrieval — COMPLETE / PASS
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`.
 
@@ -327,7 +327,24 @@ anchor fingerprint
 55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
 ```
 
-The source window fingerprint remained unchanged. Require one identical repeat anchor fingerprint before representative query diagnostics. Phrase usefulness ranking remains 11E.
+Repeatability: **PASS**.
+
+```text
+first   55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+repeat  55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+```
+
+11D2 is accepted/frozen.
+
+#### 11D3. Representative full-data query diagnostics — CURRENT
+
+Run the accepted retrieval stack against the existing Writer Page v2 query suite before defining phrase ranking.
+
+Measure query-anchor coverage, bounded candidate volume, exact/slant/family mix, retrieval-channel contribution, duplicates/window multiplicity, representative top candidates and owner-machine latency. Explicitly expose queries whose accepted stressed rhyme domain falls below the current two-syllable mosaic minimum.
+
+This phase is diagnostic only. If it reveals a structural retrieval gap, revise 11D explicitly before 11E rather than compensating with ranking weights.
+
+Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
 
 ### 11E. Phrase Writer ranking
 
