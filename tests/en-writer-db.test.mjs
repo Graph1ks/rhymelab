@@ -69,11 +69,11 @@ function fixtureRow(){
   };
 }
 
-test('English coda class is English-specific and preserves voicing',()=>{
+test('English coarse coda class is English-specific and leaves voicing to the scorer',()=>{
   assert.equal(englishCoarseCodaClass(''),'OPEN');
-  assert.equal(englishCoarseCodaClass('m'),'LAB-NAS-V');
+  assert.equal(englishCoarseCodaClass('m'),'LAB-NAS');
   assert.equal(englishCoarseCodaClass('t'),'COR-STOP');
-  assert.equal(englishCoarseCodaClass('d'),'COR-STOP-V');
+  assert.equal(englishCoarseCodaClass('d'),'COR-STOP');
 });
 
 test('English Writer DB stores source variants while gating default en-US retrieval',()=>{
@@ -85,7 +85,7 @@ test('English Writer DB stores source variants while gating default en-US retrie
     assert.equal(db.prepare('SELECT COUNT(*) AS c FROM en_form').get().c,1);
     assert.equal(db.prepare('SELECT COUNT(*) AS c FROM en_pronunciation').get().c,2);
     assert.equal(db.prepare('SELECT COUNT(*) AS c FROM en_pronunciation WHERE default_profile_eligible=1').get().c,1);
-    assert.equal(db.prepare('SELECT coda_class FROM en_pronunciation WHERE default_profile_eligible=1').get().coda_class,'LAB-NAS-V');
+    assert.equal(db.prepare('SELECT coda_class FROM en_pronunciation WHERE default_profile_eligible=1').get().coda_class,'LAB-NAS');
   }finally{
     db.close();
   }
