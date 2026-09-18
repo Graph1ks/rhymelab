@@ -327,6 +327,15 @@ export function materializePhrasePronunciations(phraseDb, writerDb) {
   const writerSchema = assertWriterDb(writerDb);
   ensurePhrasePronunciationStorage(phraseDb);
   const baseBefore = computePhraseCatalogFingerprint(phraseDb);
+  const storedBaseFingerprint = phraseDb.prepare(
+    "SELECT value FROM meta WHERE key='catalog_fingerprint'"
+  ).get()?.value || null;
+  if (storedBaseFingerprint && baseBefore !== storedBaseFingerprint) {
+    throw new Error(
+      'Core phrase catalog fingerprint no longer matches stored build fingerprint: '
+      + storedBaseFingerprint + ' != ' + baseBefore,
+    );
+  }
 
   phraseDb.exec('BEGIN');
   try {
@@ -355,6 +364,10 @@ export function materializePhrasePronunciations(phraseDb, writerDb) {
       analyzer: PHRASE_IPA_ANALYZER,
       writerSchema,
       baseCatalogFingerprint: baseBefore,
+      storedBaseCatalogFingerprint: storedBaseFingerprint,
+      baseCatalogFingerprintMatchesStored: storedBaseFingerprint
+        ? baseBefore === storedBaseFingerprint
+        : null,
       pronunciationFingerprint: computePhrasePronunciationFingerprint(phraseDb),
       distinctNormalizedTokens: resolved.normalized.length,
       phraseCount: phraseResult.phraseCount,
