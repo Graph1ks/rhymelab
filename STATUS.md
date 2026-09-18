@@ -122,7 +122,7 @@ Phase 11B2 diagnostics found 15,449 modern-eligible phrases with Leipzig evidenc
 
 ### Phase 11B3 — local Phrase Explorer
 
-The read-only Phrase Explorer remains available for source, Leipzig, pronunciation and optional generic register evidence. RUEG was evaluated and removed after inspecting the real DAKODA archives because it does not materially improve the project's phraseology/metaphor/idiom target.
+The read-only Phrase Explorer remains available for source, Leipzig, pronunciation and optional generic register evidence.
 
 Cologne Kiezdeutsch remains optional additive register evidence; automated Zenodo PDF 403 behavior is nonblocking because owner-local files may be supplied directly.
 
