@@ -264,7 +264,19 @@ gzip bytes                  93,454,429
 
 Visible cut evidence confirms that QRank coverage is category-dependent rather than uniformly high: examples include films 81.55%, albums 89.78%, actors 62.17%, companies 45.68% and video games 22.24%. Therefore QRank remains evidence, not the sole popularity truth; the existing deterministic fallback ordering by Wikipedia sitelinks, DE/EN presence, external IDs and statement count remains material.
 
-Before freezing the cut policy, rerun only `npm run entity:cut:diagnose` after the next code update. The diagnostic now reports **distinct retained entities** in addition to kept category memberships, so the actual retained population can be checked against the 500k–1.2M target and preferred 600k–900k working range without another QLever fetch or restage.
+The first distinct-retained recount is now owner-confirmed:
+
+```text
+total kept category memberships  1,109,302
+distinct retained entities       1,077,927
+retained membership overlap         31,375
+memberships per retained entity      1.029107
+Bud Spencer sentinel                   PASS
+```
+
+This is inside the allowed 500k–1.2M target but above the preferred 600k–900k working range. The overlap is small enough that multi-category duplication is not the reason for the high retained population.
+
+Do **not** freeze thresholds yet. The v1 cut currently places every QRank-present row before every QRank-missing row. In categories where retained share is below QRank coverage, this can make QRank presence an effective hard admission gate even though QRank coverage is known to be incomplete. The next diagnostic revision therefore reports retained/rejected counts split by QRank presence plus whether each category cuts entirely inside the QRank-present block. Rerun only `npm run entity:cut:diagnose -- --skip-qrank-join`; no QLever fetch, entity restage or QRank restage is required.
 
 The implementation streams the compressed Wikidata dump without creating an uncompressed copy, stores only structurally relevant cultural candidates in `data/work/entity/`, stages QRank separately, joins QRank locally, and reports category-relative cut distributions before any final 500k+ Entity Lexicon is materialized.
 
