@@ -220,7 +220,7 @@ coverage equal       true
 
 Phase 11C1 is therefore accepted and closed. The nonblocking lexical-gap backlog remains separate.
 
-### Phase 11D1 — cross-word mosaic window substrate — OWNER FULL-DATA BUILD COMPLETE / REPEATABILITY PENDING
+### Phase 11D1 — cross-word mosaic window substrate — ACCEPTED / COMPLETE
 
 11D1 materializes deterministic syllable-aligned windows only when the span strictly crosses at least one stored word boundary.
 
@@ -270,6 +270,36 @@ Boundary-crossing distribution:
 ```
 
 The substrate is structurally healthy: every IPA-ready phrase yields at least one true cross-word window, the corpus remains dominated by short 2–4-syllable spans, and exact indexed retrieval is ready. 11D1 is not accepted yet; one identical repeat window fingerprint is still required.
+11D1 repeatability gate: **PASS**.
+
+```text
+first window fingerprint   24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+repeat window fingerprint  24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+window count               356,693 / 356,693
+database bytes             534,872,064 / 534,872,064
+distributions equal        true
+```
+
+Phase 11D1 is accepted and frozen as the mosaic-window substrate.
+
+### Phase 11D2 — bounded indexed candidate retrieval — IMPLEMENTED AT FIXTURE LEVEL / CI + OWNER GATE PENDING
+
+11D2 keeps 11D1 immutable and adds a separate retrieval-anchor table because the raw 11D1 phoneme key includes the first-syllable onset while accepted German rhyme truth does not.
+
+```text
+schema              rhymelab-phrase-mosaic-retrieval-v1
+retrieval policy    de-bounded-indexed-mosaic-retrieval-v1
+anchor policy       de-mosaic-rhyme-anchors-v1
+scorer              de-phon-v3
+per-channel limit   128
+max candidates      512
+full scan fallback  no
+phrase ranking      no
+```
+
+Indexed channels: exact rhyme tail; full vowel sequence + exact final coda; full vowel sequence; final nucleus + coarse coda class with ±1 syllable.
+
+Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`.
 ### Immediate owner gate
 
 After merge:
@@ -277,13 +307,13 @@ After merge:
 ```powershell
 git switch main
 git pull --ff-only
-npm run phrase:mosaic:windows
+npm run phrase:mosaic:retrieval
 ```
 
 Generated report:
 
 ```text
-data/local/phrase-mosaic-windows-v1-report.json
+data/local/phrase-mosaic-retrieval-v1-report.json
 ```
 
 Review token coverage, phrase coverage, unresolved surfaces, syllable distribution, pronunciation-alternative counts and representative IPA/boundary samples. Run `npm run phrase:pronunciation` a second time and require the same pronunciation fingerprint.
