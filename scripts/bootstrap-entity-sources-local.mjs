@@ -390,6 +390,7 @@ const report = {
     local_sha256: wikidataSha256,
     downloader: wikidataDownloader,
     parallel_connections: wikidataConnections,
+    retention_policy: wd.retention_policy || 'retain_until_phase12_complete',
     http_headers: parseHeaders(wikidataHeadersRaw),
   },
   qrank: {
@@ -401,6 +402,10 @@ const report = {
     bytes: Number(qrankStat.size),
     local_sha256: qrankSha256,
     http_headers: parseHeaders(qrankHeadersRaw),
+    observed_http_last_modified: parseHeaders(qrankHeadersRaw)['last-modified'] || null,
+    observed_http_etag: parseHeaders(qrankHeadersRaw).etag || null,
+    freshness_semantics: qr.freshness_semantics || 'retrieval_date_is_not_data_vintage',
+    retention_policy: qr.retention_policy || 'retain_raw_artifact_until_phase12_complete',
     historical_retrieval_guaranteed: false,
     pinned_local_artifact: true,
   },
