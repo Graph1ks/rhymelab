@@ -394,6 +394,17 @@ Leipzig-backed top20      48 -> 100
 The safety behavior is correct and protected `Liebe`/`Freiheit` results survive, but commonness can overpower materially better same-type phonetics. `Leben` also still exposes a lone weak result. Preserve v1 as a control.
 
 11E2-v2 requirements: commonness/type evidence may reorder only within the same safety class, relation type and a conservative phonetic near-tie band (initially 0.02); weak and restricted candidates remain diagnostic but are not default Writer-page eligible; no diversification yet.
+
+11E2-v2 is now implemented at fixture/code level.
+
+```text
+schema         rhymelab-phrase-mosaic-ranking-candidate-v2
+policy         de-phrase-writer-utility-v2-phonetic-guard-candidate
+near-tie band  0.02
+command        npm run phrase:mosaic:rank:v2
+```
+
+The owner A/B runner asserts the 11E1 evidence fingerprint and the complete v1 suite ranking fingerprint before evaluating v2. It reports raw/v1/v2 tops, Writer-page counts, weak/restricted exclusions, marked/commonness Top-20 counts and any phonetic-guard violations.
 ## Phase 11D4 — candidate implementation
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md`.
