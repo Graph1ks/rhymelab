@@ -156,7 +156,7 @@ Phase 11C1 deterministic phrase pronunciation is now implemented at fixture/code
 ```text
 schema                  rhymelab-phrase-pronunciation-v1
 policy                  de-phrase-pronunciation-v1
-token resolver          writer-v5-preferred-normalized-exact-v1
+token resolver          writer-v5-preferred-surface-aware-v2
 composition             preferred-token-citation-composition-v1
 boundary policy         explicit-word-boundary-v1
 IPA analyzer            de-ipa-v2
