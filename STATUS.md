@@ -220,7 +220,7 @@ coverage equal       true
 
 Phase 11C1 is therefore accepted and closed. The nonblocking lexical-gap backlog remains separate.
 
-### Phase 11D1 — cross-word mosaic window substrate — IMPLEMENTED / OWNER FULL-DATA GATE PENDING
+### Phase 11D1 — cross-word mosaic window substrate — OWNER FULL-DATA BUILD COMPLETE / REPEATABILITY PENDING
 
 11D1 materializes deterministic syllable-aligned windows only when the span strictly crosses at least one stored word boundary.
 
@@ -237,6 +237,39 @@ Writer runtime rewired no
 ```
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`.
+Confirmed owner full-data 11D1 evidence:
+
+```text
+source pronunciation fp    fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+base catalog fp             f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d
+phrase DB after windows     510.09 MiB
+pronunciations scanned      90,089
+phrases with windows        90,089
+mosaic windows             356,693
+window fingerprint         24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+```
+
+Window-length distribution:
+
+```text
+2 syllables   97,867
+3 syllables  119,848
+4 syllables   74,036
+5 syllables   41,563
+6 syllables   23,379
+```
+
+Boundary-crossing distribution:
+
+```text
+1 boundary   327,828
+2 boundaries  19,941
+3 boundaries   7,397
+4 boundaries   1,438
+5 boundaries      89
+```
+
+The substrate is structurally healthy: every IPA-ready phrase yields at least one true cross-word window, the corpus remains dominated by short 2–4-syllable spans, and exact indexed retrieval is ready. 11D1 is not accepted yet; one identical repeat window fingerprint is still required.
 ### Immediate owner gate
 
 After merge:
