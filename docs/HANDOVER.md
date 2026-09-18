@@ -215,6 +215,22 @@ Use `data/local/phrase-pronunciation-coverage-v1-report.json` to measure whether
 Single-word Writer remains frozen; Human Writer NDCG remains pending.
 
 
+## Phase 11C coverage triage — COMPLETE
+
+The owner-local coverage-impact report has been reviewed. Current modern phrase coverage is 92.26%; 7,535 modern phrases remain blocked by 5,894 distinct unresolved normalized forms.
+
+Cumulative resolution-only upper bounds:
+
+```text
+Top-1     317 modern phrases -> 92.59% projected modern coverage
+Top-20    624 modern phrases -> 92.90%
+Top-100 1,036 modern phrases -> 93.33%
+Top-250 1,532 modern phrases -> 93.84%
+```
+
+`zurecht` dominates the clean high-impact tail at 317 single-blocker modern phrases; `inne` has 40 and `überein` 28. After the first few candidates the list rapidly becomes mixed/noisy: abbreviations and numerals, entities/foreign place-name components, specialist lexemes and historical forms.
+
+Decision: **skip a blocking 11C2 pass**. Keep selected ordinary-German lexical gaps as a nonblocking, source-backed backlog only. Do not add broad G2P and do not mutate the frozen Writer-v5 runtime for phrase coverage. After the outstanding repeatability check, proceed to 11D deterministic cross-word phonetic windows / mosaic retrieval.
 ## Latest owner observation — Phrase Explorer / 11C1
 
 The simplified Phrase Explorer works after RUEG removal.
@@ -279,7 +295,7 @@ Do not implement these before current phrase IPA and deterministic mosaic retrie
 2. Keep the single-word Writer frozen.
 3. RUEG is removed/rejected; do not revive it.
 4. Phrase Catalog + Leipzig + IPA Explorer are the active phrase foundation.
-5. Decide whether to:
-   - do a small 11C2 targeted high-value unresolved-token coverage pass first, or
-   - proceed directly to 11D deterministic cross-word phonetic windows / mosaic retrieval.
-6. Whichever path is chosen, preserve the future Markov/retrieval-first design note for the later generation phase.
+5. Coverage triage is complete: a blocking 11C2 pass is rejected; selected lexical gaps remain nonblocking/source-backed backlog only.
+6. Confirm 11C1 pronunciation repeatability against fingerprint `fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548`.
+7. After repeatability passes, begin 11D deterministic cross-word phonetic windows / mosaic retrieval.
+8. Preserve the future Markov/retrieval-first design note for the later generation phase.
