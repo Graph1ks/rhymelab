@@ -35,6 +35,7 @@ const enDbPath=resolve(argValue('--en-db','data/local/rhymelab-en-v1.sqlite'));
 const deDbPath=resolve(argValue('--de-db','data/local/rhymelab-v5.sqlite'));
 const sourceDiagnosticsPath=resolve(argValue('--source-diagnostics',registry.diagnostics_report||'data/local/en-source-diagnostics-v1.json'));
 const outPath=resolve(argValue('--out','data/local/en-coverage-audit-v1-report.json'));
+const previousAudit=await safeJson(outPath);
 const sampleLimit=Math.max(10,Math.min(500,Number.parseInt(argValue('--sample-limit','100'),10)||100));
 const checkpoints=[1000,5000,10000,25000,50000,100000,150000,250000,500000];
 
@@ -332,6 +333,35 @@ const [deDb,enDb,sourceDiagnostics]=await Promise.all([
   safeJson(sourceDiagnosticsPath),
 ]);
 
+function checkpointMap(report){
+  return new Map((report?.wordfreq_universe?.checkpoints||[]).map((row)=>[row.top_n_requested,row]));
+}
+function previousComparison(){
+  if(!previousAudit||previousAudit.schema!=='rhymelab-en-coverage-audit-v1') return null;
+  const previous=checkpointMap(previousAudit);
+  const checkpoint_deltas=checkpointReport.map((row)=>{
+    const old=previous.get(row.top_n_requested);
+    if(!old) return {top_n:row.top_n_requested,previous_available:false};
+    return {
+      top_n:row.top_n_requested,
+      published_delta:row.published.count-old.published.count,
+      analyzed_en_us_delta:row.analyzed_en_us.count-old.analyzed_en_us.count,
+      default_eligible_delta:row.default_eligible.count-old.default_eligible.count,
+      source_backed_pronunciation_delta:row.source_backed_pronunciation.count-old.source_backed_pronunciation.count,
+    };
+  });
+  return {
+    previous_publish_fingerprint:previousAudit.sources?.publish_fingerprint??null,
+    current_publish_fingerprint:manifest.semantic_fingerprint,
+    fingerprints_changed:(previousAudit.sources?.publish_fingerprint??null)!==manifest.semantic_fingerprint,
+    published_surfaces_delta:published-(previousAudit.publish_funnel?.published_surfaces??published),
+    default_eligible_surfaces_delta:defaultEligible-(previousAudit.publish_funnel?.default_eligible_surfaces??defaultEligible),
+    ranked_published_surfaces_delta:publishedRanked-(previousAudit.publish_funnel?.ranked_published_surfaces??publishedRanked),
+    ranked_default_surfaces_delta:defaultRanked-(previousAudit.publish_funnel?.ranked_default_surfaces??defaultRanked),
+    checkpoint_deltas,
+  };
+}
+
 publishRanks.sort((a,b)=>a-b);
 defaultRanks.sort((a,b)=>a-b);
 const rawKaikkiBytes=(await stat(sourcePath(kaikki))).size;
@@ -396,6 +426,7 @@ const report={
     english:enDb,
     warning:'German v5 contains mature Writer anchor/morphology materializations; English v1 is still a lean candidate DB. File size is not an apples-to-apples lexical coverage metric.',
   },
+  comparison_to_previous_audit:previousComparison(),
   diagnosis_hints:{
     pronunciation_bottleneck:
       'If top-N Wiktionary lexical coverage is high but source-backed pronunciation/publish coverage drops sharply, pronunciation acquisition/composition is the primary bottleneck.',
@@ -428,5 +459,6 @@ console.log(JSON.stringify({
   german_runtime:deDb,
   english_runtime:enDb,
   highest_ranked_missing_examples:missingHighFrequency.slice(0,25),
+  comparison_to_previous_audit:report.comparison_to_previous_audit,
   report:outPath,
 },null,2));
