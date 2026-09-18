@@ -61,6 +61,7 @@
     "phrase:register:cologne": "node --no-warnings scripts/enrich-de-phrase-register-cologne.mjs",
     "phrase:register:cologne:bootstrap": "node scripts/bootstrap-cologne-kiezdeutsch-local.mjs",
     "phrase:pronunciation": "node --no-warnings scripts/materialize-de-phrase-pronunciations.mjs",
-    "phrase:pronunciation:coverage": "node --no-warnings scripts/analyze-de-phrase-pronunciation-coverage.mjs"
+    "phrase:pronunciation:coverage": "node --no-warnings scripts/analyze-de-phrase-pronunciation-coverage.mjs",
+    "phrase:mosaic:windows": "node --no-warnings scripts/materialize-de-phrase-mosaic-windows.mjs"
   }
 }

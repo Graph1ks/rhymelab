@@ -151,7 +151,7 @@ Current work is Phase 11C phrase-pronunciation quality plus phrase-data diagnost
 
 Phase 11B2 diagnostics are complete: 15,449 modern-eligible phrases have Leipzig evidence (15.86%); the raw 98,504-row catalog is intentionally dominated by two-token multiword lexemes and contains abbreviation/surface-alias noise. Do not equate all catalog rows with songwriting phrases.
 
-Phase 11C1 deterministic phrase pronunciation is implemented and the first owner full-data materialization has completed successfully.
+Phase 11C1 deterministic phrase pronunciation is accepted and closed after two identical owner full-data materializations.
 
 ```text
 schema                  rhymelab-phrase-pronunciation-v1
@@ -181,16 +181,16 @@ The coverage-impact triage is now complete. Modern phrase coverage is 92.26%; 5,
 
 Decision: do **not** block Phase 11D on a manual 11C2 lexical-gap campaign. Keep any future lexical-gap additions source-backed, optional and separate from the frozen Writer-v5 runtime. Broad G2P remains disallowed.
 
-Do not mark the full 11C1 owner gate accepted yet: only repeat fingerprint equality remains pending. After that passes, begin 11D deterministic cross-word phonetic windows / mosaic retrieval.
+The repeatability gate passed: two owner full-data runs produced the identical pronunciation fingerprint `fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548`. Phase 11C1 is accepted and closed.
+
+Current milestone is Phase 11D1. Read `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md` before changing mosaic code. 11D1 materializes deterministic 2–6-syllable windows that strictly cross stored word boundaries, with exact phoneme/vowel indexes and stable span/fingerprint evidence. Fuzzy candidate retrieval and phrase ranking are not yet implemented.
 Current owner gate after merge:
 
 ```powershell
-npm run phrase:pronunciation
-npm run phrase:pronunciation:coverage
-npm run dev
+npm run phrase:mosaic:windows
 ```
 
-Inspect `data/local/phrase-pronunciation-v1-report.json` and `http://127.0.0.1:3030/phrases`. Require stable pronunciation fingerprint on repeat and unchanged Phase 11B1 base fingerprint before Phase 11D mosaic retrieval. The accepted single-word Writer baseline remains frozen.
+Inspect `data/local/phrase-mosaic-windows-v1-report.json`, then repeat the materializer and require the same window fingerprint before 11D2. The accepted single-word Writer baseline remains frozen.
 
 
 ## Deferred future architecture — preserve, do not implement prematurely

@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11C1_REPEATABILITY_PENDING_11D_SELECTED",
+  "phase": "GERMAN_PHASE_11D1_MOSAIC_WINDOW_OWNER_BUILD_PENDING",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,11 +100,11 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11c1_full_build_and_coverage_triage_complete_repeatability_pending_then_11d",
+    "status": "phase_11c1_accepted_phase_11d1_fixture_implemented_owner_build_pending",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
-    "runtime_implementation_started": false,
+    "runtime_implementation_started": true,
     "required_source_categories": [
       "multiword_phrases_ngrams_collocations",
       "idioms_redewendungen",
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11C1_REPEATABILITY_GATE_THEN_11D_MOSAIC_RETRIEVAL",
+    "next_milestone": "PHASE_11D1_OWNER_MOSAIC_WINDOW_BUILD_GATE",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -250,8 +250,8 @@
         "automatic_pronunciation_approval": false,
         "g2p_fallback": false
       },
-      "owner_full_gate_accepted": false,
-      "repeatability_confirmed": false,
+      "owner_full_gate_accepted": true,
+      "repeatability_confirmed": true,
       "coverage_triage_completed": true,
       "full_data_evidence": {
         "built_at": "2026-09-18T01:15:17.003Z",
@@ -358,6 +358,17 @@
           "ausfindig"
         ],
         "note": "Any future additions require explicit pronunciation provenance and successful de-ipa-v2 analysis; coverage impact alone is not approval."
+      },
+      "repeatability_evidence": {
+        "first_built_at": "2026-09-18T01:15:17.003Z",
+        "repeat_built_at": "2026-09-18T01:27:18.901Z",
+        "first_pronunciation_fingerprint": "fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548",
+        "repeat_pronunciation_fingerprint": "fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548",
+        "fingerprints_equal": true,
+        "base_catalog_fingerprint": "f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d",
+        "base_catalog_fingerprint_matches_stored": true,
+        "database_bytes_equal": true,
+        "coverage_counts_equal": true
       }
     },
     "rueg_evaluation": {
@@ -396,6 +407,25 @@
       ],
       "current_core_ml_inference_allowed": false,
       "current_core_llm_inference_allowed": false
+    },
+    "mosaic_window": {
+      "contract": "docs/PHRASE_MOSAIC_RETRIEVAL_V1.md",
+      "schema": "rhymelab-phrase-mosaic-v1",
+      "window_policy": "de-cross-word-syllable-windows-v1",
+      "default_min_syllables": 2,
+      "default_max_syllables": 6,
+      "strict_cross_word_boundary_required": true,
+      "coordinate_system": "zero_based_half_open",
+      "exact_index": true,
+      "vowel_index": true,
+      "phrase_span_index": true,
+      "fuzzy_candidate_retrieval": false,
+      "phrase_ranking": false,
+      "writer_runtime_rewired": false,
+      "fixture_gate_implemented": true,
+      "owner_full_build_completed": false,
+      "command": "npm run phrase:mosaic:windows",
+      "default_report": "data/local/phrase-mosaic-windows-v1-report.json"
     }
   },
   "owner_measurement_outputs": {
@@ -409,14 +439,16 @@
     "cologne_register_report": "data/local/cologne-kiezdeutsch-register-report.json",
     "phrase_catalog_diagnostics": "data/local/phrase-catalog-v1-diagnostics.json",
     "phrase_pronunciation_report": "data/local/phrase-pronunciation-v1-report.json",
-    "phrase_pronunciation_coverage_report": "data/local/phrase-pronunciation-coverage-v1-report.json"
+    "phrase_pronunciation_coverage_report": "data/local/phrase-pronunciation-coverage-v1-report.json",
+    "phrase_mosaic_window_report": "data/local/phrase-mosaic-windows-v1-report.json"
   },
   "next_actions": [
-    "repeat_phrase_pronunciation_build_and_require_equal_pronunciation_fingerprint",
-    "compare_repeat_phrase_pronunciation_fingerprint_to_fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548",
-    "require_phase_11b1_base_catalog_fingerprint_to_remain_f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d",
-    "after_repeatability_gate_begin_phase_11d_deterministic_cross_word_phonetic_windows",
-    "keep_optional_11c2_lexical_gap_work_nonblocking_and_source_backed_only",
+    "run_npm_phrase_mosaic_windows",
+    "inspect_mosaic_window_count_syllable_distribution_and_boundary_distribution",
+    "repeat_phrase_mosaic_window_build_and_require_equal_window_fingerprint",
+    "require_source_phrase_pronunciation_fingerprint_fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548",
+    "only_after_11d1_owner_gate_design_bounded_11d2_candidate_retrieval",
+    "keep_phrase_ranking_deferred_to_11e",
     "keep_single_word_writer_frozen"
   ]
 }
