@@ -358,7 +358,7 @@ Positive retrieval evidence exists: `Arbeitsweise` surfaces family candidates, `
 But the gate does **not** authorize 11E. `Leben`, `Feuer`, and `Gedanken` are saturated by the broad final-nucleus/coda-class channel with weak top rows; `Musik` has no mosaic anchor despite being multisyllabic because the reused single-word stressed rhyme domain is only one syllable.
 
 Decision: preserve 11D1/11D2 and open **11D4** as an additive retrieval revision before phrase ranking.
-### Phase 11D4 — mosaic query-domain + candidate-quality revision — OWNER A/B QUALITY PASS / REPEATABILITY PENDING
+### Phase 11D4 — mosaic query-domain + candidate-quality revision — ACCEPTED / FROZEN
 
 11D4 is a candidate layer over frozen 11D1/11D2 controls.
 
@@ -393,6 +393,25 @@ The vowel-family bridge is not merely duplicating strict vowel retrieval: `Arbei
 Remaining awkward lexical surfaces such as `Musik -> K.-o.-Siegen` and useful-but-not-necessarily-songwriting phrases such as `Gedanken -> notleidende Banken` are now **11E ranking/product-quality problems**, not evidence for another retrieval rewrite.
 
 One deterministic repeat is still required before 11D4 is accepted/frozen.
+Repeatability gate: **PASS**.
+
+```text
+candidate anchor fp       9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059
+repeat equal              true
+candidate semantic fp    4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd
+repeat equal              true
+database bytes           837,390,336 -> 837,390,336
+anchors                  356,693 -> 356,693
+family+coda keys         66,904 -> 66,904
+returned candidates      1,237 -> 1,237
+weak candidates          42 -> 42
+final fallback assigns   575 -> 575
+vowel-family assigns     375 -> 375
+```
+
+Owner latency moved from 35.9 ms to 37.6 ms; latency is observational and excluded from the semantic fingerprint. All deterministic semantic evidence is identical.
+
+Phase 11D retrieval is now frozen. Current milestone is **Phase 11E writer-oriented phrase ranking**. Retrieval/scorer changes require new evidence and must not be used to solve phrase commonness, lexical safety, or diversity problems.
 ### Immediate owner gate
 
 After merge:

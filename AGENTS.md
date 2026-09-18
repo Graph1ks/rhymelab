@@ -233,7 +233,9 @@ weak share                    55.84% -> 3.40%
 final fallback share          65.98% -> 31.01%
 ```
 
-Interpretation: remaining lexical/commonness/diversity quality is Phase 11E territory. Do not reopen 11D retrieval solely because product-poor lexical surfaces can still rank high. One identical owner repeat of both 11D4 fingerprints is required before freezing 11D4 and opening 11E.
+Interpretation: remaining lexical/commonness/diversity quality is Phase 11E territory. Do not reopen 11D retrieval solely because product-poor lexical surfaces can still rank high. The repeat passed: candidate anchor fingerprint `9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059` and candidate semantic fingerprint `4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd` reproduced exactly, as did semantic aggregate counts and DB bytes.
+
+Phase 11D is now accepted/frozen. Phase 11E phrase Writer ranking is current. Read `docs/PHRASE_MOSAIC_RANKING_V1.md`. Do not reopen 11D retrieval to solve lexical/commonness/diversity issues without new retrieval-specific evidence.
 
 Phrase ranking remains deferred to 11E. 
 The accepted single-word Writer baseline remains frozen.

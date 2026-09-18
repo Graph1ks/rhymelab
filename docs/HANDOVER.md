@@ -313,7 +313,7 @@ semantic fingerprint
 `Arbeitsweise`, `Liebe`, `Freiheit`, and `hitzefrei` demonstrate that the accepted substrate can return useful multiword phonetic candidates. However, `Leben`, `Feuer`, and `Gedanken` are dominated by weak final-fallback candidates, while `Musik` receives no mosaic anchor because its accepted stressed rhyme domain is one syllable even though the full word is two syllables.
 
 Decision: **do not proceed to 11E yet**. Keep 11D1 and 11D2 frozen and introduce a separate 11D4 candidate-retrieval revision with a full-surface multi-syllable query domain, a vowel-family bridge channel, and default rejection of weak candidates with no matched sound relation.
-## Phase 11D4 owner A/B quality gate — PASS / REPEATABILITY PENDING
+## Phase 11D4 owner A/B quality gate — ACCEPTED / FROZEN
 
 First owner full-data candidate materialization:
 
@@ -338,7 +338,21 @@ mean elapsed                 31.0 -> 35.9 ms
 
 Quality interpretation: retrieval structure passes. `Musik` is unlocked by full-surface retrieval; `Arbeitsweise`, `Liebe`, `Freiheit`, and `hitzefrei` preserve their strong tops; the family bridge contributes nonduplicate candidates. Lexical/commonness/diversity problems now belong to 11E.
 
-Do not accept/freeze 11D4 until one repeat produces the identical candidate anchor fingerprint and candidate semantic fingerprint.
+Repeatability passed. The second owner materialization and A/B diagnostic reproduced:
+
+```text
+candidate anchor fingerprint   9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059
+candidate semantic fingerprint 4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd
+database bytes                 837,390,336
+anchors                        356,693
+family+coda keys               66,904
+returned candidates            1,237
+weak candidates                42
+final fallback assignments     575
+vowel-family assignments       375
+```
+
+Phase 11D is accepted/frozen. Phase 11E is current. Read `docs/PHRASE_MOSAIC_RANKING_V1.md` before changing phrase result ordering.
 ## Phase 11D4 — candidate implementation
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md`.

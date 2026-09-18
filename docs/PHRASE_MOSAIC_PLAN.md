@@ -99,7 +99,7 @@ Required diagnostics include:
 - boundary/stress preservation;
 - deterministic reconstruction tests.
 
-## Phase 11D — mosaic retrieval architecture — CURRENT
+## Phase 11D — mosaic retrieval architecture — ACCEPTED / FROZEN
 
 A mosaic rhyme is a phonetic match whose aligned rhyme span can cross one or more word boundaries in the candidate phrase.
 
@@ -118,7 +118,7 @@ Implemented at fixture/code level:
 - deterministic row ids and whole-window-table fingerprint;
 - no full-corpus runtime scan is required for exact indexed lookup.
 
-11D1 owner full-data materialization/repeatability remains pending.
+11D1, 11D2 and the final 11D4 retrieval revision have passed owner full-data repeatability and are frozen.
 
 ### Phase 11D2 — bounded candidate retrieval
 
@@ -136,9 +136,13 @@ Keep separate evidence for:
 - relation class and score;
 - lexical/phrase usefulness signals.
 
-## Phase 11E — writer-oriented phrase ranking
+## Phase 11E — writer-oriented phrase ranking — CURRENT
 
 Phrase ranking is a new policy and must not mutate the accepted single-word writer policy in place.
+
+11E input is the frozen 11D4 retrieval candidate with anchor fingerprint `9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059` and diagnostic semantic fingerprint `4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd`.
+
+Implementation contract: `docs/PHRASE_MOSAIC_RANKING_V1.md`.
 
 Candidate signals may include, when source-backed and deterministic:
 
@@ -230,13 +234,13 @@ data/local/phrase-catalog-v1-report.json
 
 Review the full source build before Phase 11C. Required diagnostics include phrase/type/history/token distributions, Leipzig 1/2/3-corpus coverage, top/common phrase noise, build size/time, and deterministic repeat fingerprint equality.
 
-Phase 11C1 is complete and accepted. Phase 11D1 is now the active owner-local full-data gate.
+Phase 11C1 and Phase 11D are complete and accepted. Phase 11E deterministic phrase ranking is now the active milestone.
 
 Still explicitly out of scope after 11C1:
 
 - alternate/connected-speech phrase pronunciation generation;
-- mosaic retrieval/indexing;
-- phrase Writer ranking;
+- alternate retrieval revisions without new retrieval-specific evidence;
+- phrase Writer runtime promotion before 11E gates pass;
 - Markov/generative recombination;
 - semantic/vector reranking;
 - Human Writer NDCG.

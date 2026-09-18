@@ -358,7 +358,7 @@ The diagnostic did reveal structural retrieval gaps. Do not compensate with 11E 
 
 Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
 
-#### 11D4. Mosaic query-domain + candidate-quality revision — QUALITY PASS / REPEATABILITY PENDING
+#### 11D4. Mosaic query-domain + candidate-quality revision — ACCEPTED / FROZEN
 
 Fixture CI gate: **PASS** (`validate`, run 261).
 
@@ -394,7 +394,9 @@ vowel-family assignments  375
 latency                     31.0 -> 35.9 ms
 ```
 
-Require one identical repeat before accepting/finalizing 11D4 and opening 11E.
+Repeatability: **PASS**. Both owner runs produced the same candidate anchor fingerprint `9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059` and candidate semantic fingerprint `4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd`, with identical semantic counts.
+
+11D retrieval is frozen. 11E is now current.
 
 ### 11E. Phrase Writer ranking
 

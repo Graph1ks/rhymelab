@@ -239,7 +239,25 @@ Acceptance-question review:
 
 Product-quality observation: results such as `Musik -> K.-o.-Siegen` are evidence that phrase lexical/commonness/usefulness ranking is still necessary; they are not evidence that the cross-word phonetic retrieval layer failed.
 
-One deterministic repeat of the candidate anchor and candidate semantic fingerprints is still required before this phase is accepted/frozen.
+## Repeatability acceptance
+
+The second owner run reproduced the first deterministic state exactly:
+
+```text
+candidate anchor fingerprint   9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059
+candidate semantic fingerprint 4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd
+database bytes                 837,390,336
+anchors                        356,693
+distinct family+coda keys      66,904
+returned candidates            1,237
+weak candidates                42
+final fallback assignments     575
+vowel-family assignments       375
+```
+
+Owner mean latency was 35.9 ms in the first run and 37.6 ms in the repeat. Timing is machine-state evidence only and is excluded from semantic fingerprints.
+
+**Decision: Phase 11D4 accepted and frozen. Phase 11E may consume this retrieval output as its fixed input.**
 ## Explicitly deferred
 
 Still not part of 11D4:
@@ -252,4 +270,4 @@ Still not part of 11D4:
 - generated phrase recombination;
 - UI/API integration.
 
-Phase 11E remains blocked until the retrieval candidate is structurally acceptable.
+Phase 11E is now unblocked; retrieval remains frozen while phrase ranking is developed.
