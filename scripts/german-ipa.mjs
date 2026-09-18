@@ -31,6 +31,14 @@ const VOWEL_FAMILY = new Map([
   ['n=','SYLLABIC_N'],['m=','SYLLABIC_M'],['l=','SYLLABIC_L'],['ŋ=','SYLLABIC_NG'],['R=','SYLLABIC_R'],
 ]);
 
+export function germanVowelFamilySymbol(symbol) {
+  return VOWEL_FAMILY.get(String(symbol ?? '')) || String(symbol ?? '');
+}
+
+export function germanVowelFamilyKey(nuclei) {
+  return (nuclei || []).map((symbol) => germanVowelFamilySymbol(symbol)).join('-');
+}
+
 function stripOuter(value) {
   let s = String(value ?? '').normalize('NFC').trim();
   if ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('/') && s.endsWith('/'))) s = s.slice(1, -1).trim();
