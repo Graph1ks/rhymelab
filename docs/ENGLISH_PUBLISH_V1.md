@@ -110,3 +110,57 @@ Phase 12B4 does **not**:
 - resume Entity/P898 work.
 
 Those remain later gates.
+
+
+## Candidate policy v4 — bounded Tier-A recovery
+
+Candidate policy:
+
+```text
+en-source-backed-publish-v4-tier-a-candidate
+```
+
+The publish schema remains `rhymelab-en-publish-v1`; this is a policy revision, not a schema reset.
+
+Two bounded recovery channels are now implemented in the builder.
+
+### Exact CMUdict possessive surface
+
+A previously absent surface such as an apostrophe possessive may be admitted when:
+
+- the normalized surface exists exactly in pinned CMUdict;
+- the surface deterministically parses as `base + 's` or plural `base + '`;
+- the base already exists in the source-backed publish candidate population;
+- the base has an analyzed en-US pronunciation.
+
+The surface pronunciation remains the exact CMUdict pronunciation. The lexical relationship is stored as `possessive_of` with evidence kind
+`cmudict_exact_possessive_from_source_backed_base`.
+
+This is not G2P.
+
+### Punctuation-only explicit alias
+
+A pronunciation-free Wiktionary headword may be recovered when:
+
+- Wiktionary explicitly supplies an `alt_of` lemma relation;
+- removing apostrophe/hyphen punctuation makes surface and lemma identical;
+- exactly one such lemma target has analyzed en-US pronunciation.
+
+The derived pronunciation is stored with source
+`derived_punctuation_alias`.
+
+The lexical source remains Wiktionary; the pronunciation identity is a deterministic consequence of the explicit punctuation-only alias relation and is not mislabeled as direct Wiktionary IPA.
+
+### What v4 does not yet enable
+
+Regular inflection pronunciation composition is still disabled in the publisher.
+
+The candidate rules for `-s/-es/-ed/-ing` now have an explicit deterministic implementation plus a source-backed CMUdict control benchmark:
+
+```powershell
+npm run en:pronunciation:inflection:diagnose
+```
+
+The benchmark must be reviewed before morphology-derived pronunciations can become default-profile eligible.
+
+Strict tagless Wiktionary IPA also remains non-en-US provenance. The v3 owner benchmark reached 76.52% boundary-insensitive stressed-tail agreement against explicit en-US controls, which is insufficient for silent en-US promotion.
