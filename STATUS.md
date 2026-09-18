@@ -222,27 +222,33 @@ verify                         PASS
 
 The publish cut still requires one independent unchanged-source rebuild before freeze. The repository now provides `npm run en:publish:repeatability`.
 
-Phase 12B5 English Writer DB materialization is implemented but not yet owner-built:
+Phase 12B5 owner build + verification is now **PASS**:
 
 ```text
-contract              docs/ENGLISH_WRITER_DB_V1.md
-database              data/local/rhymelab-en-v1.sqlite
-schema                rhymelab-en-writer-db-v1-candidate
-retrieval             en-indexed-rhyme-retrieval-v1-candidate
-build                 npm run en:db
-verify                npm run en:db:verify
-G2P                   disabled
-EN product runtime    disabled
+database schema                  rhymelab-en-writer-db-v1-candidate
+forms                            147,904
+default eligible                  72,946
+pronunciations                   274,819
+analyzed pronunciations          239,819
+unresolved pronunciations         35,000
+default-profile pronunciations   101,330
+SQLite                            115.57 MiB
+semantic fingerprint
+fa078705ff6f4ae157b88301f6dea84933008590ff3f8c376832c684a1baca0b
+indexed-vs-scan mismatches              0 / 80
 ```
 
-12B5 preserves all pronunciation variants while only successfully analyzed pronunciations enter phonological indexes. The default profile remains explicit en-US; unqualified source IPA is not promoted.
+12B4 publish repeatability also passed with the unchanged `4087cc…6124` fingerprint.
 
-Immediate next engineering gate:
+The small English SQLite size must **not** be interpreted as adequate lexical coverage by itself. A dedicated Phase 12B6 coverage-funnel audit is now the next gate before ranking acceptance:
 
-1. run `npm run en:publish:repeatability` and require the same `4087cc…6124` fingerprint;
-2. run `npm run en:db`;
-3. run `npm run en:db:verify`;
-4. review DB size/counts, default-profile pronunciation count, retrieval equivalence and DB semantic fingerprint before 12B6 benchmark work.
+```powershell
+npm run en:coverage:audit
+```
+
+Contract: `docs/ENGLISH_COVERAGE_AUDIT_V1.md`.
+
+It measures Top-N wordfreq coverage, ranked vs unranked English forms, loss reasons between lexical source -> pronunciation -> publish -> en-US default eligibility, highest-frequency missing words, and a direct local comparison against the accepted German Writer DB.
 
 Proposed English DB target:
 
