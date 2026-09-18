@@ -136,7 +136,7 @@ Keep separate evidence for:
 - relation class and score;
 - lexical/phrase usefulness signals.
 
-## Phase 11E — writer-oriented phrase ranking — CURRENT
+## Phase 11E — writer-oriented phrase ranking — 11E2 ACCEPTED / 11E3 CURRENT
 
 Phrase ranking is a new policy and must not mutate the accepted single-word writer policy in place.
 
@@ -157,6 +157,8 @@ Candidate signals may include, when source-backed and deterministic:
 - duplicate / near-duplicate / same-template diversity.
 
 Do not promote a phrase merely because it is semantically interesting if its phonetic match is weak. Do not promote a phonetically strong phrase that is source-unsupported garbage merely to fill a page.
+
+Product decision after 11E2 owner acceptance: the default Writer does **not** reserve a phrase quota. Phrase/Mosaic results may sit below better single-word results or be absent from the default visible top list. They remain accessible through an explicit Phrase/Mosaic filter/channel. Cross-channel numeric score calibration is deferred; 11E3 diversification is phrase-channel-local only.
 
 ## Phase 11F — benchmark
 
