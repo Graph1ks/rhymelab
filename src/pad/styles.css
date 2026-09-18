@@ -70,3 +70,17 @@ html[data-mode="rhyme"] .railViewport{height:360px}
 .rhymeLabDeepHead select{font-size:10px}
 .rhymeLabSuggestion .score{margin-top:5px}
 .rhymeLabSuggestion .score span{display:block;height:2px;border-radius:999px;background:var(--accent)}
+
+.rhymeLabEntityCategoryWrap{display:inline-flex}
+#rhymeLabEntityCategory,#rhymeLabDeepEntityCategory{min-width:155px}
+.rhymeLabSuggestion .resultKind.entity{color:var(--green)}
+.entityCategoryBadge{display:inline-flex;align-items:center;padding:2px 5px;border:1px solid color-mix(in srgb,var(--green) 42%,var(--border));border-radius:999px;background:color-mix(in srgb,var(--green) 10%,transparent);color:var(--green);font:700 8px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.035em;white-space:nowrap}
+.rhymeLabDeepSection.entitySection{border-color:color-mix(in srgb,var(--green) 40%,var(--border))}
+.rhymeLabDeepSection.entitySection .rhymeLabDeepSectionHead{color:var(--green)}
+@media(max-width:1180px){
+  #rhymeLabEntityCategory,#rhymeLabDeepEntityCategory{min-width:135px}
+}
+@media(max-width:680px){
+  .rhymeLabEntityCategoryWrap{max-width:150px}
+  #rhymeLabEntityCategory,#rhymeLabDeepEntityCategory{min-width:120px;max-width:150px}
+}
