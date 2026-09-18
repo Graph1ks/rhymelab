@@ -117,8 +117,8 @@ export function wiktionaryPronunciationEvidence(sound) {
     locales,
     locale_status: locales.length
       ? 'qualified'
-      : locale.other_regional
-        ? 'source_attested_other_regional'
+      : locale.other_profiled
+        ? 'source_attested_other_profiled'
         : 'source_attested_unprofiled',
     tags: locale.tags,
   };
