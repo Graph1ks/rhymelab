@@ -417,8 +417,32 @@ try {
     }
     cmudictCategoryCandidateMap.set(key, bucket);
   }
+  const currentCategoryTier = new Map(
+    categoryRows.map((row) => [row.category + '\u001f' + row.tier, row]),
+  );
   const cmudictCandidatesByCategoryTier = [...cmudictCategoryCandidateMap.values()]
     .filter((row) => row.full_match_entity_candidates || row.preferred_full_match_entity_candidates)
+    .map((row) => {
+      const current = currentCategoryTier.get(row.category + '\u001f' + row.tier);
+      const memberships = Number(current?.entity_memberships || 0);
+      const currentPreferred = Number(current?.preferred_name_ready || 0);
+      const projectedPreferred = Math.min(
+        memberships,
+        currentPreferred + row.preferred_full_match_entity_candidates,
+      );
+      return {
+        ...row,
+        entity_memberships: memberships,
+        current_preferred_name_ready: currentPreferred,
+        current_preferred_name_ready_pct: pct(currentPreferred, memberships),
+        projected_preferred_name_ready_if_accepted: projectedPreferred,
+        projected_preferred_name_ready_pct_if_accepted: pct(projectedPreferred, memberships),
+        projected_preferred_gain_pp:
+          Math.round(
+            (pct(projectedPreferred, memberships) - pct(currentPreferred, memberships)) * 100,
+          ) / 100,
+      };
+    })
     .sort((a, b) =>
       a.category.localeCompare(b.category, 'en')
       || ['A','B','C'].indexOf(a.tier) - ['A','B','C'].indexOf(b.tier)
