@@ -1322,8 +1322,7 @@
       "review_qlever_source_and_stage_reports",
       "review_qrank_and_cut_diagnostics",
       "confirm_bud_spencer_and_category_distributions",
-      "optionally_compare_against_20260914_full_dump_control_later",
-      "then_freeze_source_acquisition_and_final_cut_policy"
+      "freeze_source_acquisition_and_final_cut_policy"
     ],
     "staging_v1": {
       "status": "QLEVER_FAST_ACQUISITION_IMPLEMENTED_OWNER_GATE_NEXT",
@@ -1390,7 +1389,7 @@
           "entity:stage:qrank",
           "entity:cut:diagnose"
         ],
-        "status": "OPTIONAL_CONTROL_RUNNING_OR_MAY_BE_STOPPED",
+        "status": "ABANDONED",
         "control_snapshot": "wikidata_20260914",
         "decompressor": "wsl:lbzip2:8t",
         "taxonomy_prefilter_qids": 13,
@@ -1406,22 +1405,19 @@
         "machine_note": "owner_i7_7700K_4c8t_cpu_saturated",
         "do_not_abort_for_source_experiment": false,
         "blocking": false,
-        "source_note": "Classic 20260914 full stage is optional control only; QLever fast path implemented and may replace the current blocking run."
+        "source_note": "Owner explicitly rejected further 103 GB classic-dump staging/comparison after QLever fast path was verified. Do not redownload or require the classic dump.",
+        "retained_for_control": false,
+        "raw_dump_required": false,
+        "raw_dump_may_be_deleted": true,
+        "compare_against_full_dump": false,
+        "partial_stage_sqlite_deleted": true
       },
       "source_alternatives": {
         "research_document": "docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md",
         "researched_at": "2026-09-18",
         "official_exact_taxonomy_subset_download_found": false,
         "preferred_future_experiment": "qlever_selective_export",
-        "qlever_status": "FAST_PATH_IMPLEMENTED_OWNER_RUN_NEXT",
-        "qlever_promotion_gate": [
-          "finish_20260914_control_stage",
-          "export_category_memberships",
-          "compare_exact_per_category_qid_sets",
-          "compare_core_fields_aliases_external_ids",
-          "classify_freshness_deltas_vs_extraction_bugs",
-          "promote_only_if_semantically_equivalent_or_explicitly_bounded"
-        ],
+        "qlever_status": "ONLY_ACTIVE_PHASE_12A2_ACQUISITION_PATH",
         "wikimedia_enterprise_snapshot_role": "future_chunked_full_source_transport_candidate_not_semantic_subset",
         "wdumper_role": "experiment_only",
         "derived_prebuilt_subsets_role": "diagnostic_or_acceleration_benchmark_not_canonical",
@@ -1521,7 +1517,8 @@
           "total_raw_bytes": 753947040,
           "total_gzip_bytes": 94050660,
           "summed_export_wall_seconds": 114.237
-        }
+        },
+        "classic_dump_status": "RETIRED_DO_NOT_REDOWNLOAD_DO_NOT_COMPARE"
       },
       "qlever_source_schema": "rhymelab-qlever-entity-source-v1",
       "qlever_source_policy": "wikidata-qlever-selective-all-statements-v1",

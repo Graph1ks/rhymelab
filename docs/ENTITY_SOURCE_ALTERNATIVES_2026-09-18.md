@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-18
 
-Status: **live acquisition feasibility verified**. QLever is now the preferred Phase 12A2 fast-acquisition implementation target. The accepted 20260914 dump remains retained locally as an optional dated validation/control source; this does not change the frozen German Writer.
+Status: **QLever fast acquisition implemented and selected**. The classic 20260914 103 GB dump is retired from the active workflow by owner decision and may be deleted. No classic-dump comparison is required; this does not change the frozen German Writer.
 
 ## Why this note exists
 
@@ -26,7 +26,7 @@ There is no official Wikimedia download that is already semantically filtered to
 
 The strongest alternative is **QLever selective export**. A live 2026-09-18 probe against `https://qlever.dev/api/wikidata` has now verified that it can return the complete current RhymeLab taxonomy candidate set and every field required by the Phase 12A2 staging contract. The measured selective artifacts are roughly **80.8 MB compressed in total**, versus the 103.1 GB classic Wikidata owner dump. QRank remains a separate ~105.5 MB local input.
 
-This is sufficient to implement the fast acquisition path without waiting for a multi-hour full-dump stage. The already-downloaded 20260914 dump remains valuable as an optional dated validation/control artifact and must not be deleted.
+This is sufficient to replace the multi-hour full-dump stage for the active Phase 12A2 workflow. By explicit owner decision, the already-downloaded 20260914 dump is no longer retained as control evidence and may be deleted.
 
 The second useful option is the new **Wikimedia Enterprise Wikidata Snapshot API**. It is official, chunked, monthly-free and excludes the scholarly graph, but it is still roughly 105 GB compressed for the Main Graph and therefore does not solve the semantic over-download problem. It may still be a better future full-source transport because it is chunked and gzip/NDJSON rather than one giant bzip2 stream.
 
@@ -387,7 +387,7 @@ Preferred status: **fallback enrichment strategy; QLever direct field exports ar
 
 The feasibility experiment is complete. Build the production-style **build-time-only** selective acquisition path next.
 
-The current multi-hour owner full-dump stage may be stopped if the owner does not need that optional control result immediately. The validated 20260914 raw dump remains retained locally, so a control stage can always be run later without another 103 GB download.
+The current multi-hour owner full-dump stage was stopped manually. The 20260914 raw dump is explicitly retired and may be deleted; do not plan a later classic-dump control run or redownload it.
 
 The next implementation should:
 
@@ -445,4 +445,4 @@ The all-in-one owner command:
 4. stages the already-pinned local QRank artifact;
 5. joins QRank locally and runs the existing category-cut diagnostics.
 
-This is a build-time acquisition path only. RhymeLab runtime remains fully offline/local. The validated 20260914 classic dump remains retained as a dated control/recovery input but is no longer required to block current Phase 12A2 work.
+This is a build-time acquisition path only. RhymeLab runtime remains fully offline/local. The classic 20260914 dump is retired from the project workflow and may be deleted; QLever selective artifacts plus pinned QRank are the active Phase 12A2 source inputs.

@@ -59,7 +59,7 @@ sources/entity/phase12a-sources-v1.json
 
 The production full build must use a dated/pinned Wikidata snapshot and a pinned QRank snapshot/checksum.
 
-Do not accept a final build whose provenance is only `latest`.
+Do not accept a final build without frozen local acquisition artifacts, exact query/source provenance and checksums. The active QLever path pins local response artifacts even though the public graph itself is not a dated archival snapshot.
 
 ## Wikidata staging schema
 
@@ -243,7 +243,7 @@ Semantic requirements:
 - statement count comes from `wikibase:statements`;
 - exact Wikipedia sitelink count plus DE/EN presence are reconstructed from `schema:isPartOf / wikibase:wikiGroup "wikipedia"` site pairs.
 
-The classic 20260914 JSON dump remains a retained dated control/recovery source. It is no longer required as a blocking full-scan step for Phase 12A2.
+The classic 20260914 JSON dump is retired from the active Phase 12A2 workflow. The owner may delete it; do not require, redownload, or compare against it. The QLever artifacts plus pinned QRank are the active source inputs.
 
 ## QRank staging
 
@@ -355,7 +355,7 @@ data/local/
 
 All remain gitignored.
 
-Do not keep an uncompressed Wikidata JSON copy. Keep the validated compressed `wikidata-20260914-all.json.bz2` raw snapshot until Phase 12 is complete; it is a pinned project input and should not be redownloaded between 12A/12B/12C/12D work.
+Do not keep an uncompressed Wikidata JSON copy. The old compressed `wikidata-20260914-all.json.bz2` bootstrap artifact is no longer a required project input and may be deleted. Do not redownload it unless the owner explicitly reopens the classic-dump path.
 
 The temporary QRank staging DB is intentionally separate and disposable. The downloaded raw `qrank-20260918.csv.gz` artifact is **not** disposable during Phase 12 and must be retained until Phase 12 is complete.
 
@@ -502,14 +502,13 @@ The large Wikidata SHA-1/SHA-256 validation requires sequential reads of the com
 
 ### Raw-source retention policy
 
-Retain these exact raw inputs locally until **Phase 12 is complete**:
+Retain the pinned QRank raw input locally through Phase 12:
 
 ```text
-data/raw/entity/phase12a-20260918/wikidata-20260914-all.json.bz2
 data/raw/entity/phase12a-20260918/qrank-20260918.csv.gz
 ```
 
-They remain gitignored and local-only. Do not delete either file after 12A staging or final 12A materialization. They may be reused by later Phase 12 rebuilds, diagnostics and provenance checks. Only temporary derived staging SQLite databases may be deleted once no longer needed.
+The old 103 GB Wikidata `.bz2` is explicitly retired and may be deleted. QLever selective artifacts under `data/raw/entity/qlever-<retrieval-label>/` are the reproducible Wikidata-side build inputs for the active path. Temporary derived staging SQLite databases may be deleted when no longer needed.
 
 ### Run complete owner staging
 

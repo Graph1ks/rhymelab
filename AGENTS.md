@@ -168,22 +168,21 @@ Phase 12A1 fixture CI and the owner-local report gate are accepted. Accepted sem
 
 Current work is **12A2 Wikidata + QRank staging**. Read `docs/ENTITY_STAGING_V1.md`.
 
-The classic 20260914 full owner stage is optional dated control evidence only and may be stopped. The preferred Phase 12A2 path is the implemented build-time QLever selective exporter/stager; keep the validated 20260914 raw dump locally for later control/recovery without redownloading.
+The classic 20260914 full-dump path is retired. The owner explicitly rejected further staging/comparison against the 103 GB dump and may delete it. Do not redownload it, require it, benchmark against it, or spend more time on BZip2/WSL/full-dump throughput. The only active Phase 12A2 acquisition path is the implemented build-time QLever selective exporter/stager.
 
 Read `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` before changing source acquisition. Live 2026-09-18 probes verified and the repository now implements QLever selective export as the preferred Phase 12A2 fast path. Final exact measured artifacts including Wikipedia site pairs total 94,050,660 gzip bytes (~89.7 MiB) / 753,947,040 raw bytes for roughly 1.838M all-statement candidates, versus the 103.1 GB classic dump. Match the current JSON importer with `p:/ps:` all-statement P31/P106 semantics, not only `wdt:` truthy relations. Use `npm run entity:owner:stage:qlever -- --retrieval-label 20260918`; it freezes all remote artifacts before offline staging/QRank join/cut diagnostics.
 
-Owner source bootstrap is accepted. The validated compressed Wikidata 20260914 dump and the downloaded QRank artifact must remain local/gitignored and be retained until Phase 12 is complete. Do not redownload them between Phase 12 rebuilds unless an explicit source-refresh decision is made. QRank retrieval date 2026-09-18 is not its data vintage; the accepted response carried a 2024-03-16 Last-Modified timestamp.
+Owner source bootstrap history is accepted, but only the downloaded QRank artifact remains required. The classic Wikidata 20260914 dump is no longer part of the active contract and may be deleted. QRank retrieval date 2026-09-18 is not its data vintage; the accepted response carried a 2024-03-16 Last-Modified timestamp.
 
-Owner source acquisition is now a gated local workflow:
+Owner source acquisition is now the QLever fast path:
 
 ```text
-npm run entity:sources:bootstrap
-npm run entity:owner:stage
+npm run entity:owner:stage:qlever -- --retrieval-label 20260918
 ```
 
 The selected Wikidata item snapshot is 20260914 with official SHA-1 `0a985a65262a665fa33808c7d40a1d42ad28d62c`. QRank is pinned by retaining the downloaded 2026-09-18 raw artifact plus local SHA-256/headers. Do not replace this with an unversioned latest-only acceptance claim.
 
-Do not materialize the final large Entity Lexicon yet. First pass CI, pin dated source snapshots/checksums, run the full owner staging/cut diagnostics on D:, then review category distributions and size. Fixture popularity values remain synthetic test scales only, never live QRank/pageview facts.
+Do not materialize the final large Entity Lexicon yet. First run the QLever owner staging/cut diagnostics on D:, then review category distributions and size. Fixture popularity values remain synthetic test scales only, never live QRank/pageview facts.
 
 Phase 12 sequence is now:
 
