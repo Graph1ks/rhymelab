@@ -32,7 +32,7 @@ import {
   englishPossessiveBase,
   isStrictEnglishInflectionRecovery,
   punctuationOnlyAliasTargets,
-  regularEnglishInflectionShape,
+  strictEnglishInflectionPairs,
 } from './en-pronunciation-recovery.mjs';
 
 const args=process.argv.slice(2);
@@ -137,27 +137,8 @@ let derivedInflectionPronunciationVariants=0;
 let ambiguousInflectionSurfaces=0;
 let unresolvedInflectionBaseSurfaces=0;
 
-function strictInflectionPairs(evidence){
-  if(!evidence) return [];
-  const relationKinds=new Set(evidence.relation_kinds||[]);
-  if(!relationKinds.has('form_of')&&!relationKinds.has('listed_form_of')) return [];
-  const pairs=[];
-  for(const lemma of evidence.lemma_candidates||[]){
-    const shape=regularEnglishInflectionShape(evidence.normalized,lemma);
-    if(!shape) continue;
-    if(!isStrictEnglishInflectionRecovery({
-      surface:evidence.normalized,
-      lemma,
-      tags:evidence.tags||[],
-    })) continue;
-    pairs.push({lemma,shape});
-  }
-  return [...new Map(pairs.map((item)=>[`${item.lemma}\u0000${item.shape}`,item])).values()]
-    .sort((a,b)=>a.lemma.localeCompare(b.lemma,'en')||a.shape.localeCompare(b.shape,'en'));
-}
-
 function addPendingInflection(evidence){
-  if(!strictInflectionPairs(evidence).length) return false;
+  if(!strictEnglishInflectionPairs(evidence).length) return false;
   let values=pendingInflections.get(evidence.normalized);
   if(!values){values=[];pendingInflections.set(evidence.normalized,values);}
   values.push(evidence);
@@ -362,7 +343,7 @@ for(const normalized of [...pendingInflections.keys()].sort((a,b)=>a.localeCompa
   const candidatePairs=[
     ...new Map(
       evidences
-        .flatMap((evidence)=>strictInflectionPairs(evidence))
+        .flatMap((evidence)=>strictEnglishInflectionPairs(evidence))
         .filter(({lemma})=>sourceBackedEnUsPronunciations(records.get(lemma)).length>0)
         .map((item)=>[`${item.lemma}\u0000${item.shape}`,item])
     ).values()
@@ -386,7 +367,7 @@ for(const normalized of [...pendingInflections.keys()].sort((a,b)=>a.localeCompa
   }
 
   const matching=evidences.filter((evidence)=>
-    strictInflectionPairs(evidence).some((item)=>item.lemma===lemma&&item.shape===shape));
+    strictEnglishInflectionPairs(evidence).some((item)=>item.lemma===lemma&&item.shape===shape));
   if(!matching.length) continue;
 
   const record=ensureRecord(matching[0]);
