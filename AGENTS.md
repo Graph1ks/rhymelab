@@ -198,7 +198,7 @@ English implementation rules:
 - core runtime remains deterministic/local/offline;
 - do not start Phase 13 cross-language rhyme during Phase 12B.
 
-The current implementation gate is **12B4 publish repeatability + 12B5 separate English Writer SQLite materialization/verification**. Run `npm run en:publish:repeatability`, then `npm run en:db` and `npm run en:db:verify`. Do not start with UI polish, product EN enablement, broad G2P, or Entity P898 owner work.
+The current implementation gate is **publish-v4 unchanged-source repeatability, then 12B5 separate English Writer SQLite rebuild/verification**. The reviewed v4 owner A/B fingerprint is `b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9` with 224,478 published / 123,533 default-eligible surfaces. Run `npm run en:publish:repeatability`; only after both runs reproduce that fingerprint, run `npm run en:db:rebuild` and review the rebuilt DB fingerprint plus multi-channel retrieval equivalence. The older 147,904-form DB is a pre-v4 control snapshot, not the current target. Do not start with UI polish, product EN enablement, broad G2P, ranking, or Entity P898 owner work.
 
 The classic 20260914 full-dump path is retired. The owner explicitly rejected further staging/comparison against the 103 GB dump and may delete it. Do not redownload it, require it, benchmark against it, or spend more time on BZip2/WSL/full-dump throughput. The only active Phase 12A2 acquisition path is the implemented build-time QLever selective exporter/stager.
 
