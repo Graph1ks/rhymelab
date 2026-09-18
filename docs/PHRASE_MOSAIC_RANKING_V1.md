@@ -4,7 +4,7 @@ Last updated: 2026-09-18
 
 ## Status
 
-**11E1 IMPLEMENTED AT FIXTURE/CODE LEVEL — CI PENDING**
+**11E1 OWNER EVIDENCE COMPLETE — 11E2 CANDIDATE IMPLEMENTED / CI PENDING**
 
 Phase 11D retrieval is accepted and frozen. Phase 11E consumes its output; it does not retune retrieval or phonetic relation truth.
 
@@ -287,9 +287,32 @@ Implemented at code/fixture level:
 
 ### 11E2
 
-- bounded deterministic phrase-utility candidate;
-- same-process A/B report against raw 11D4 ordering;
-- explicit protected-result checks.
+Owner 11E1 evidence established the constraints:
+
+```text
+Leipzig evidence       312 / 1,237 (25.22%)
+no Leipzig evidence    925 / 1,237 (74.78%)
+surface safe         1,219 / 1,237 (98.54%)
+surface marked           4 / 1,237 (0.32%)
+query overlap            0 / 1,237
+```
+
+Implemented candidate policy `de-phrase-writer-utility-v1-candidate`:
+
+- relation-type base: perfect 1.00, multisyllabic slant 0.82, family 0.78, slant 0.65, weak 0.25;
+- phonetic overall score weight: 0.45;
+- matched-span bonus: max +0.03;
+- Leipzig breadth+magnitude bonus: max +0.10;
+- phrase-type prior: max +0.025, non-cumulative;
+- marked surface penalty: -0.35;
+- restricted surface penalty: -0.50;
+- query-token-overlap penalty: max -0.08 (currently inert on the owner suite);
+- deterministic tie-breakers and whole-suite ranking fingerprint;
+- same-process raw-vs-ranked owner diagnostic via `npm run phrase:mosaic:rank:v1`;
+- explicit protected-result reporting for `Liebe`, `Freiheit`, `Musik`, and `Leben`;
+- no page diversification yet.
+
+This is a candidate, not an accepted ranking policy. Owner A/B output decides whether to accept or iterate.
 
 ### 11E3
 

@@ -402,7 +402,9 @@ Repeatability: **PASS**. Both owner runs produced the same candidate anchor fing
 
 Create a separate benchmarked phrase-ranking policy. Do not mutate the frozen single-word Writer policy in place.
 
-**11E1 evidence enrichment is implemented; fixture CI pending.** It adds deterministic Leipzig commonness, phrase/style evidence, surface safety, and normalized query-token overlap without reordering the frozen 11D4 candidate pool. Owner full-data distributions must be reviewed before any 11E2 ranking weights/policy are chosen.
+**11E1 owner evidence is complete.** Across 1,237 candidates, only 312 (25.22%) have Leipzig evidence, 1,219 (98.54%) are surface-safe, 4 (0.32%) are marked, and query-token overlap is zero. This makes commonness a bounded bonus and surface safety a sparse demotion signal.
+
+**11E2 phrase-utility candidate is implemented; fixture CI pending.** It keeps phonetic quality dominant, caps Leipzig commonness at +0.10 and phrase-type prior at +0.025, applies strong transparent penalties to marked/restricted surfaces, and deliberately excludes page diversification until owner A/B evidence exists.
 
 ### 11F. Phrase/mosaic benchmark
 

@@ -369,7 +369,20 @@ runtime UI  unchanged
 
 It adds frozen-Leipzig commonness, corpus breadth, source phrase/style evidence, transparent surface safety and normalized query-token overlap. The owner diagnostic refuses to run if the frozen 11D4 semantic fingerprint changes.
 
-Next gate: green fixture CI, then owner full-data evidence diagnostic. Do not select 11E2 weights before seeing those real distributions.
+The owner 11E1 diagnostic is complete:
+
+```text
+suite evidence fingerprint   04ecde26f0a59b7615d6b2a192e7cffed26aefe86ebac07e388e546210d58845
+total candidates             1,237
+Leipzig-backed                 312 (25.22%)
+no Leipzig evidence            925 (74.78%)
+safe surfaces                1,219 (98.54%)
+restricted surfaces             14 (1.13%)
+marked surfaces                  4 (0.32%)
+query-token overlap               0
+```
+
+11E2 is implemented as a candidate only. Run `npm run phrase:mosaic:rank:v1` after CI/merge. The candidate uses dominant phonetic components, bounded Leipzig bonus, tiny capped phrase-type prior and strong sparse surface-noise demotion. No page diversification yet.
 ## Phase 11D4 — candidate implementation
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md`.
