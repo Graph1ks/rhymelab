@@ -338,12 +338,12 @@ export function materializePhrasePronunciations(phraseDb, writerDb) {
     const resolved = resolveWriterForms(phraseDb, writerDb);
     const tokenResult = writeTokenResolutions(phraseDb, resolved.selected);
     const phraseResult = writePhrases(phraseDb, tokenResult.byToken);
-    phraseDb.exec('COMMIT');
-
     const baseAfter = computePhraseCatalogFingerprint(phraseDb);
     if (baseAfter !== baseBefore) {
       throw new Error('Base phrase catalog fingerprint changed: ' + baseBefore + ' -> ' + baseAfter);
     }
+    phraseDb.exec('COMMIT');
+
     const stats = phrasePronunciationStats(phraseDb);
     return {
       schema: PHRASE_PRONUNCIATION_SCHEMA,
