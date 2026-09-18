@@ -21,6 +21,36 @@ let writerDbPath = DEFAULT_WRITER_DB_PATH;
 let reportPath = 'data/local/entity-pronunciation-v1-report.json';
 let includeAliases = true;
 
+const CHECKPOINT_EVERY = 10000;
+const PROGRESS_EVERY = 5000;
+const PHONETIC_BUILD_REVISION = 'entity-phonetic-runtime-de-v1-checkpointed-v1';
+
+function metaValue(db, key) {
+  return db.prepare('SELECT value FROM meta WHERE key=?').get(key)?.value ?? null;
+}
+
+function progressLine(phase, current, total, startedAt, details = []) {
+  const elapsedMs = Math.max(1, Date.now() - startedAt);
+  const rate = current / (elapsedMs / 1000);
+  const pct = total ? current * 100 / total : 100;
+  const etaSeconds = rate > 0 && current < total ? Math.round((total - current) / rate) : 0;
+  const eta = etaSeconds >= 3600
+    ? `${Math.floor(etaSeconds / 3600)}h ${Math.floor((etaSeconds % 3600) / 60)}m`
+    : etaSeconds >= 60
+      ? `${Math.floor(etaSeconds / 60)}m ${etaSeconds % 60}s`
+      : `${etaSeconds}s`;
+  console.error(
+    `[${phase}] ${current.toLocaleString()} / ${total.toLocaleString()} (${pct.toFixed(1)}%)`
+    + ` · ${Math.round(rate).toLocaleString()}/s`
+    + (etaSeconds ? ` · ETA ~${eta}` : '')
+    + (details.length ? ` · ${details.join(' · ')}` : ''),
+  );
+}
+
+async function yieldToSignals() {
+  await new Promise((resolveImmediate) => setImmediate(resolveImmediate));
+}
+
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
   if (arg === '--entities') entityDbPath = args[++i] || entityDbPath;
@@ -55,34 +85,78 @@ function upsertMeta(db, key, value) {
   `).run(key, String(value));
 }
 
-function runtimeFingerprint(db) {
+async function runtimeFingerprint(db) {
   const hash = createHash('sha256');
   const feeds = [
-    db.prepare(`
-      SELECT n.entity_id,n.name_id,n.surface,n.language,
-        p.pronunciation_id,p.locale,p.pronunciation_role,p.ipa,p.preferred,
-        p.source_kind,p.source_record,p.generated,p.model_id,p.review_state
-      FROM entity_pronunciation p
-      JOIN entity_name n USING(name_id)
-      WHERE p.review_state IN ('accepted','reviewed','accepted_source_composition')
-      ORDER BY n.entity_id,n.name_id,p.pronunciation_id
-    `).all(),
-    db.prepare(`
-      SELECT pronunciation_id,analyzer_id,phonemes,syllables,syllable_count,
-        primary_stress,secondary_stress,stress_pattern,vowel_sequence,
-        consonant_sequence,rhyme_tail,rhyme_signature
-      FROM entity_phonetic_analysis
-      WHERE analyzer_id=?
-      ORDER BY pronunciation_id
-    `).all(ENTITY_RUNTIME_ANALYZER),
-    db.prepare(`
-      SELECT analyzer_id,channel,anchor_key,pronunciation_id
-      FROM entity_rhyme_anchor
-      WHERE analyzer_id=?
-      ORDER BY channel,anchor_key,pronunciation_id
-    `).all(ENTITY_RUNTIME_ANALYZER),
+    {
+      label: 'pronunciations',
+      count: Number(db.prepare(`
+        SELECT COUNT(*) AS c
+        FROM entity_pronunciation p
+        JOIN entity_name n USING(name_id)
+        WHERE p.review_state IN ('accepted','reviewed','accepted_source_composition')
+      `).get().c || 0),
+      statement: db.prepare(`
+        SELECT n.entity_id,n.name_id,n.surface,n.language,
+          p.pronunciation_id,p.locale,p.pronunciation_role,p.ipa,p.preferred,
+          p.source_kind,p.source_record,p.generated,p.model_id,p.review_state
+        FROM entity_pronunciation p
+        JOIN entity_name n USING(name_id)
+        WHERE p.review_state IN ('accepted','reviewed','accepted_source_composition')
+        ORDER BY n.entity_id,n.name_id,p.pronunciation_id
+      `),
+      args: [],
+    },
+    {
+      label: 'analyses',
+      count: Number(db.prepare(`
+        SELECT COUNT(*) AS c FROM entity_phonetic_analysis WHERE analyzer_id=?
+      `).get(ENTITY_RUNTIME_ANALYZER).c || 0),
+      statement: db.prepare(`
+        SELECT pronunciation_id,analyzer_id,phonemes,syllables,syllable_count,
+          primary_stress,secondary_stress,stress_pattern,vowel_sequence,
+          consonant_sequence,rhyme_tail,rhyme_signature
+        FROM entity_phonetic_analysis
+        WHERE analyzer_id=?
+        ORDER BY pronunciation_id
+      `),
+      args: [ENTITY_RUNTIME_ANALYZER],
+    },
+    {
+      label: 'anchors',
+      count: Number(db.prepare(`
+        SELECT COUNT(*) AS c FROM entity_rhyme_anchor WHERE analyzer_id=?
+      `).get(ENTITY_RUNTIME_ANALYZER).c || 0),
+      statement: db.prepare(`
+        SELECT analyzer_id,channel,anchor_key,pronunciation_id
+        FROM entity_rhyme_anchor
+        WHERE analyzer_id=?
+        ORDER BY channel,anchor_key,pronunciation_id
+      `),
+      args: [ENTITY_RUNTIME_ANALYZER],
+    },
   ];
-  for (const rows of feeds) hash.update(JSON.stringify(rows));
+
+  for (const feed of feeds) {
+    const startedAt = Date.now();
+    let current = 0;
+    let first = true;
+    hash.update('[');
+    for (const row of feed.statement.iterate(...feed.args)) {
+      if (!first) hash.update(',');
+      hash.update(JSON.stringify(row));
+      first = false;
+      current += 1;
+      if (current % 100000 === 0) {
+        progressLine(`fingerprint:${feed.label}`, current, feed.count, startedAt);
+        await yieldToSignals();
+      }
+    }
+    hash.update(']');
+    if (feed.count) {
+      progressLine(`fingerprint:${feed.label}`, current, feed.count, startedAt, ['done']);
+    }
+  }
   return hash.digest('hex');
 }
 
@@ -140,12 +214,38 @@ try {
   let existing = 0;
   let unresolved = 0;
   const unresolvedTokenCounts = new Map();
+  const nameStartedAt = Date.now();
 
+  async function checkpointNames(processed) {
+    if (processed % PROGRESS_EVERY === 0 || processed === nameRows.length) {
+      progressLine('pronunciation:names', processed, nameRows.length, nameStartedAt, [
+        `existing ${existing.toLocaleString()}`,
+        `new ${composed.toLocaleString()}`,
+        `unresolved ${unresolved.toLocaleString()}`,
+        `token-cache ${tokenCache.size.toLocaleString()}`,
+      ]);
+    }
+    if (processed % CHECKPOINT_EVERY === 0 && processed < nameRows.length) {
+      upsertMeta(entityDb, 'entity_pronunciation_build_state', 'names_in_progress');
+      upsertMeta(entityDb, 'entity_pronunciation_name_checkpoint', processed);
+      entityDb.exec('COMMIT');
+      await yieldToSignals();
+      entityDb.exec('BEGIN');
+    } else if (processed % PROGRESS_EVERY === 0) {
+      await yieldToSignals();
+    }
+  }
+
+  console.error(
+    `[entity-pronunciation] phase 1/3 · ${nameRows.length.toLocaleString()} DE names`
+    + ` · checkpoint every ${CHECKPOINT_EVERY.toLocaleString()}`,
+  );
   entityDb.exec('BEGIN');
   try {
     for (const name of nameRows) {
       if (eligibleExisting.get(name.name_id)) {
         existing += 1;
+        await checkpointNames(existing + composed + unresolved);
         continue;
       }
       const result = composeEntityNamePronunciation(name.surface, resolveToken);
@@ -155,6 +255,7 @@ try {
           const key = String(token).normalize('NFKC').toLocaleLowerCase('de-DE');
           unresolvedTokenCounts.set(key, (unresolvedTokenCounts.get(key) || 0) + 1);
         }
+        await checkpointNames(existing + composed + unresolved);
         continue;
       }
       insertPronunciation.run(
@@ -178,88 +279,211 @@ try {
         'accepted_source_composition',
       );
       composed += 1;
+      await checkpointNames(existing + composed + unresolved);
     }
+    upsertMeta(entityDb, 'entity_pronunciation_build_state', 'names_complete');
+    upsertMeta(entityDb, 'entity_pronunciation_name_checkpoint', nameRows.length);
     entityDb.exec('COMMIT');
   } catch (error) {
     entityDb.exec('ROLLBACK');
     throw error;
   }
 
+  const eligibleNamesFinal = Number(entityDb.prepare(`
+    SELECT COUNT(DISTINCT n.name_id) AS c
+    FROM entity_name n
+    JOIN entity_pronunciation p USING(name_id)
+    WHERE n.searchable=1
+      AND n.language='de'
+      ${includeAliases ? '' : 'AND n.preferred=1'}
+      AND p.locale='de-DE'
+      AND p.review_state IN ('accepted','reviewed','accepted_source_composition')
+  `).get().c || 0);
+  const composedTotal = Number(entityDb.prepare(`
+    SELECT COUNT(DISTINCT n.name_id) AS c
+    FROM entity_name n
+    JOIN entity_pronunciation p USING(name_id)
+    WHERE n.searchable=1
+      AND n.language='de'
+      ${includeAliases ? '' : 'AND n.preferred=1'}
+      AND p.locale='de-DE'
+      AND p.review_state='accepted_source_composition'
+      AND p.source_kind='writer_v5_exact_token_composition'
+  `).get().c || 0);
+  const sourceBackedTotal = Number(entityDb.prepare(`
+    SELECT COUNT(DISTINCT n.name_id) AS c
+    FROM entity_name n
+    JOIN entity_pronunciation p USING(name_id)
+    WHERE n.searchable=1
+      AND n.language='de'
+      ${includeAliases ? '' : 'AND n.preferred=1'}
+      AND p.locale='de-DE'
+      AND p.review_state IN ('accepted','reviewed')
+      AND p.source_kind<>'writer_v5_exact_token_composition'
+  `).get().c || 0);
+  const unresolvedFinal = Math.max(0, nameRows.length - eligibleNamesFinal);
+
+  const previousRevision = metaValue(entityDb, 'entity_phonetic_build_revision');
+  if (previousRevision !== PHONETIC_BUILD_REVISION) {
+    console.error('[entity-pronunciation] phase 2/3 · starting fresh analyzer index');
+    entityDb.exec('BEGIN');
+    try {
+      entityDb.prepare('DELETE FROM entity_rhyme_anchor WHERE analyzer_id=?')
+        .run(ENTITY_RUNTIME_ANALYZER);
+      entityDb.prepare('DELETE FROM entity_phonetic_analysis WHERE analyzer_id=?')
+        .run(ENTITY_RUNTIME_ANALYZER);
+      upsertMeta(entityDb, 'entity_phonetic_build_revision', PHONETIC_BUILD_REVISION);
+      upsertMeta(entityDb, 'entity_phonetic_analysis_checkpoint', 0);
+      entityDb.exec('COMMIT');
+    } catch (error) {
+      entityDb.exec('ROLLBACK');
+      throw error;
+    }
+  } else {
+    console.error('[entity-pronunciation] phase 2/3 · compatible partial analyzer index found; resuming');
+  }
+
+  const insertAnalysis = entityDb.prepare(`
+    INSERT INTO entity_phonetic_analysis(
+      pronunciation_id,analyzer_id,phonemes,syllables,syllable_count,
+      primary_stress,secondary_stress,stress_pattern,vowel_sequence,
+      consonant_sequence,rhyme_tail,rhyme_signature
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+  `);
+  const insertAnchor = entityDb.prepare(`
+    INSERT OR IGNORE INTO entity_rhyme_anchor(
+      analyzer_id,channel,anchor_key,pronunciation_id
+    ) VALUES(?,?,?,?)
+  `);
+  const hasAnalysis = entityDb.prepare(`
+    SELECT 1 AS yes
+    FROM entity_phonetic_analysis
+    WHERE pronunciation_id=? AND analyzer_id=?
+    LIMIT 1
+  `);
+
+  const pronunciations = entityDb.prepare(`
+    SELECT pronunciation_id,name_id,locale,review_state,ipa
+    FROM entity_pronunciation
+    ORDER BY pronunciation_id
+  `).all();
+  const eligiblePronunciationCount = pronunciations
+    .reduce((sum, row) => sum + (entityPronunciationRuntimeEligible(row) ? 1 : 0), 0);
+
+  let analyses = 0;
+  let analysesResumed = 0;
+  let rejectedAnalyses = 0;
+  let anchorsAddedThisRun = 0;
+  let processedPronunciations = 0;
+  const analysisStartedAt = Date.now();
+
+  console.error(
+    `[entity-pronunciation] phase 2/3 · ${eligiblePronunciationCount.toLocaleString()} eligible pronunciations`
+    + ` · checkpoint every ${CHECKPOINT_EVERY.toLocaleString()}`,
+  );
+
   entityDb.exec('BEGIN');
   try {
-    entityDb.prepare('DELETE FROM entity_rhyme_anchor WHERE analyzer_id=?')
-      .run(ENTITY_RUNTIME_ANALYZER);
-    entityDb.prepare('DELETE FROM entity_phonetic_analysis WHERE analyzer_id=?')
-      .run(ENTITY_RUNTIME_ANALYZER);
-
-    const insertAnalysis = entityDb.prepare(`
-      INSERT INTO entity_phonetic_analysis(
-        pronunciation_id,analyzer_id,phonemes,syllables,syllable_count,
-        primary_stress,secondary_stress,stress_pattern,vowel_sequence,
-        consonant_sequence,rhyme_tail,rhyme_signature
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
-    `);
-    const insertAnchor = entityDb.prepare(`
-      INSERT OR IGNORE INTO entity_rhyme_anchor(
-        analyzer_id,channel,anchor_key,pronunciation_id
-      ) VALUES(?,?,?,?)
-    `);
-
-    const pronunciations = entityDb.prepare(`
-      SELECT pronunciation_id,name_id,locale,review_state,ipa
-      FROM entity_pronunciation
-      ORDER BY pronunciation_id
-    `).all();
-
-    let analyses = 0;
-    let rejectedAnalyses = 0;
-    let anchors = 0;
     for (const pronunciation of pronunciations) {
       if (!entityPronunciationRuntimeEligible(pronunciation)) continue;
-      try {
-        const analyzed = analyzeEntityPronunciation(pronunciation.ipa, 'de');
-        const row = analyzed.row;
-        insertAnalysis.run(
-          pronunciation.pronunciation_id,
-          analyzed.analyzerId,
-          row.phonemes,
-          row.syllables,
-          row.syllableCount,
-          row.primaryStress,
-          row.secondaryStress,
-          row.stressPattern,
-          row.vowelSequence,
-          row.consonantSequence,
-          row.rhymeTail,
-          row.rhymeSignature,
-        );
+      processedPronunciations += 1;
+
+      if (hasAnalysis.get(pronunciation.pronunciation_id, ENTITY_RUNTIME_ANALYZER)) {
         analyses += 1;
-        for (const anchor of entityRetrievalAnchors(analyzed.analysis, 'de')) {
-          const info = insertAnchor.run(
-            analyzed.analyzerId,
-            anchor.channel,
-            anchor.key,
+        analysesResumed += 1;
+      } else {
+        try {
+          const analyzed = analyzeEntityPronunciation(pronunciation.ipa, 'de');
+          const row = analyzed.row;
+          insertAnalysis.run(
             pronunciation.pronunciation_id,
+            analyzed.analyzerId,
+            row.phonemes,
+            row.syllables,
+            row.syllableCount,
+            row.primaryStress,
+            row.secondaryStress,
+            row.stressPattern,
+            row.vowelSequence,
+            row.consonantSequence,
+            row.rhymeTail,
+            row.rhymeSignature,
           );
-          anchors += Number(info.changes || 0);
+          analyses += 1;
+          for (const anchor of entityRetrievalAnchors(analyzed.analysis, 'de')) {
+            const info = insertAnchor.run(
+              analyzed.analyzerId,
+              anchor.channel,
+              anchor.key,
+              pronunciation.pronunciation_id,
+            );
+            anchorsAddedThisRun += Number(info.changes || 0);
+          }
+        } catch {
+          rejectedAnalyses += 1;
         }
-      } catch {
-        rejectedAnalyses += 1;
+      }
+
+      if (
+        processedPronunciations % PROGRESS_EVERY === 0
+        || processedPronunciations === eligiblePronunciationCount
+      ) {
+        progressLine(
+          'pronunciation:phonetics',
+          processedPronunciations,
+          eligiblePronunciationCount,
+          analysisStartedAt,
+          [
+            `analyses ${analyses.toLocaleString()}`,
+            `resumed ${analysesResumed.toLocaleString()}`,
+            `rejected ${rejectedAnalyses.toLocaleString()}`,
+            `new anchors ${anchorsAddedThisRun.toLocaleString()}`,
+          ],
+        );
+      }
+
+      if (
+        processedPronunciations % CHECKPOINT_EVERY === 0
+        && processedPronunciations < eligiblePronunciationCount
+      ) {
+        upsertMeta(entityDb, 'entity_pronunciation_build_state', 'analysis_in_progress');
+        upsertMeta(entityDb, 'entity_phonetic_analysis_checkpoint', processedPronunciations);
+        entityDb.exec('COMMIT');
+        await yieldToSignals();
+        entityDb.exec('BEGIN');
+      } else if (processedPronunciations % PROGRESS_EVERY === 0) {
+        await yieldToSignals();
       }
     }
 
-    upsertMeta(entityDb, 'entity_pronunciation_policy', ENTITY_PRONUNCIATION_POLICY);
-    upsertMeta(entityDb, 'entity_phonetic_runtime', ENTITY_PHONETIC_RUNTIME);
-    upsertMeta(entityDb, 'entity_phonetic_analyzer', ENTITY_RUNTIME_ANALYZER);
-    upsertMeta(entityDb, 'entity_pronunciation_names_considered', nameRows.length);
-    upsertMeta(entityDb, 'entity_pronunciation_composed', composed);
-    upsertMeta(entityDb, 'entity_phonetic_analyses', analyses);
-    upsertMeta(entityDb, 'entity_rhyme_anchors', anchors);
+    upsertMeta(entityDb, 'entity_phonetic_analysis_checkpoint', processedPronunciations);
     entityDb.exec('COMMIT');
+  } catch (error) {
+    try { entityDb.exec('ROLLBACK'); } catch {}
+    throw error;
+  }
 
-    const fingerprint = runtimeFingerprint(entityDb);
+  const totalAnalyses = Number(entityDb.prepare(`
+    SELECT COUNT(*) AS c FROM entity_phonetic_analysis WHERE analyzer_id=?
+  `).get(ENTITY_RUNTIME_ANALYZER).c || 0);
+  const anchors = Number(entityDb.prepare(`
+    SELECT COUNT(*) AS c FROM entity_rhyme_anchor WHERE analyzer_id=?
+  `).get(ENTITY_RUNTIME_ANALYZER).c || 0);
+
+  upsertMeta(entityDb, 'entity_pronunciation_policy', ENTITY_PRONUNCIATION_POLICY);
+  upsertMeta(entityDb, 'entity_phonetic_runtime', ENTITY_PHONETIC_RUNTIME);
+  upsertMeta(entityDb, 'entity_phonetic_analyzer', ENTITY_RUNTIME_ANALYZER);
+  upsertMeta(entityDb, 'entity_pronunciation_names_considered', nameRows.length);
+  upsertMeta(entityDb, 'entity_pronunciation_composed', composedTotal);
+  upsertMeta(entityDb, 'entity_phonetic_analyses', totalAnalyses);
+  upsertMeta(entityDb, 'entity_rhyme_anchors', anchors);
+  upsertMeta(entityDb, 'entity_pronunciation_build_state', 'fingerprint_in_progress');
+
+  console.error('[entity-pronunciation] phase 3/3 · computing deterministic runtime fingerprint');
+  const fingerprint = await runtimeFingerprint(entityDb);
     upsertMeta(entityDb, 'entity_phonetic_runtime_fingerprint', fingerprint);
-    entityDb.exec('ANALYZE; PRAGMA optimize;');
+    upsertMeta(entityDb, 'entity_pronunciation_build_state', 'complete');
+    entityDb.exec('ANALYZE; PRAGMA optimize; PRAGMA wal_checkpoint(TRUNCATE);');
 
     const topUnresolvedTokens = [...unresolvedTokenCounts.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'de'))
@@ -277,27 +501,31 @@ try {
       database_bytes: (await stat(entityDbPath)).size,
       names_considered: nameRows.length,
       aliases_included: includeAliases,
-      existing_eligible_pronunciations: existing,
-      composed_from_writer_v5: composed,
-      unresolved_names: unresolved,
+      eligible_names_final: eligibleNamesFinal,
+      existing_eligible_pronunciations: sourceBackedTotal,
+      composed_from_writer_v5: composedTotal,
+      composed_this_run: composed,
+      unresolved_names: unresolvedFinal,
       resolved_name_pct: nameRows.length
-        ? Math.round((existing + composed) * 10000 / nameRows.length) / 100
+        ? Math.round(eligibleNamesFinal * 10000 / nameRows.length) / 100
         : 0,
-      phonetic_analyses: analyses,
+      eligible_pronunciations: eligiblePronunciationCount,
+      phonetic_analyses: totalAnalyses,
+      analyses_resumed: analysesResumed,
       rejected_analyses: rejectedAnalyses,
       rhyme_anchors: anchors,
+      anchors_added_this_run: anchorsAddedThisRun,
+      checkpoint_every: CHECKPOINT_EVERY,
+      progress_every: PROGRESS_EVERY,
+      resumable_checkpoints: true,
       top_unresolved_tokens: topUnresolvedTokens,
       semantic_fingerprint: fingerprint,
       generated_g2p_used: false,
       runtime_network_dependency: false,
     };
 
-    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-    console.log(JSON.stringify(report, null, 2));
-  } catch (error) {
-    try { entityDb.exec('ROLLBACK'); } catch {}
-    throw error;
-  }
+  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  console.log(JSON.stringify(report, null, 2));
 } finally {
   writerDb.close();
   entityDb.close();
