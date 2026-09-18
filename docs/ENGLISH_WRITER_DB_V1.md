@@ -1,6 +1,6 @@
 # English Writer DB v1 — Phase 12B5
 
-Status: **candidate implementation / owner materialization pending**
+Status: **v4 source accepted / owner DB repeatability gate pending**
 
 ## Purpose
 
@@ -111,16 +111,46 @@ The DB verifier checks:
 - foreign keys;
 - query plans using the intended indexes;
 - indexed-vs-full-scan retrieval equivalence over deterministic sample keys;
+- explicit multi-result indexed-vs-full-scan equivalence for exact, vowel, family+coda and coda channels;
 - deterministic semantic fingerprint over all stored form/pronunciation rows.
+
+The multi-result gate samples only retrieval keys with more than one default-profile pronunciation row and fails if indexed and full-scan result ID sequences differ. This closes the earlier verifier gap where deterministic sample keys were not guaranteed to exercise result sets larger than one row.
 
 The semantic fingerprint intentionally does not depend on build timestamps or physical SQLite page placement.
 
 ## Commands
 
+Publish-v4 repeatability is accepted at fingerprint:
+
+```text
+b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+```
+
+The preferred owner gate now runs two complete DB materializations plus verification:
+
 ```powershell
-npm run en:publish:repeatability
+npm run en:db:repeatability
+```
+
+The runner performs, twice:
+
+```text
+build English DB
+-> verify schema/counts/index plans
+-> verify general indexed/full-scan equivalence
+-> verify explicit multi-result indexed/full-scan equivalence
+-> verify semantic fingerprint
+-> foreign-key check
+```
+
+It compares both builds for identical semantic fingerprint, row counts and database bytes, and leaves the second successful build at the normal DB/report paths.
+
+Lower-level commands remain available:
+
+```powershell
 npm run en:db
 npm run en:db:verify
+npm run en:db:rebuild
 ```
 
 Reports:
@@ -128,6 +158,7 @@ Reports:
 ```text
 data/local/en-publish-repeatability-v1-report.json
 data/local/en-writer-db-v1-report.json
+data/local/en-writer-db-repeatability-v1-report.json
 ```
 
 ## Explicit non-goals

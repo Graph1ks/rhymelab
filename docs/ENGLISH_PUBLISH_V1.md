@@ -1,6 +1,6 @@
 # English Publish v1 — Phase 12B4
 
-Status: **candidate implementation / owner full build pending**
+Status: **publish-v4 accepted repeatable for DB materialization**
 
 ## Purpose
 
@@ -222,7 +222,7 @@ npm run en:pronunciation:inflection:diagnose
 
 The v2 report must be reviewed before any derived inflection pronunciation becomes default-profile eligible.
 
-## Publish-v4 owner full build result — HEALTHY, FREEZE PENDING REPEATABILITY
+## Publish-v4 owner full build result — ACCEPTED / REPEATABLE FOR DB MATERIALIZATION
 
 The first full owner build with bounded strict morphology enabled produced:
 
@@ -267,19 +267,23 @@ The following safety rules remain unchanged:
 - ambiguous and unresolved bases are rejected;
 - broad G2P remains disabled.
 
-This result advances the candidate to the repeatability gate; it does **not** freeze v4 by itself.
-
-Required next command:
-
-```powershell
-npm run en:publish:repeatability
-```
-
-Both unchanged-source runs must reproduce:
+The unchanged-source repeatability gate has now passed:
 
 ```text
-b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+first fingerprint   b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+second fingerprint  b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+equal               true
+published           224,478 -> 224,478
+default eligible    123,533 -> 123,533
 ```
 
-After repeatability passes, rebuild and verify the separate English SQLite. Do not enable product EN or start English ranking before the rebuilt DB/runtime gate is reviewed.
+Publish-v4 is therefore accepted as the source snapshot for the next English DB materialization gate. This does not enable product EN and does not start ranking.
+
+Next owner gate:
+
+```powershell
+npm run en:db:repeatability
+```
+
+The DB must reproduce its semantic fingerprint and counts across two builds and pass both general and explicit multi-result indexed/full-scan retrieval equivalence before English runtime/ranking work proceeds.
 

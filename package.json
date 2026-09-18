@@ -108,6 +108,7 @@
     "en:coverage:rescue": "node --no-warnings scripts/analyze-en-coverage-rescue-policy.mjs",
     "en:pronunciation:fallback:diagnose": "node --no-warnings scripts/diagnose-en-pronunciation-fallback.mjs",
     "en:coverage:wordlist": "node --no-warnings scripts/audit-en-wordlist-coverage.mjs",
-    "en:pronunciation:inflection:diagnose": "node --no-warnings scripts/diagnose-en-inflection-composition.mjs"
+    "en:pronunciation:inflection:diagnose": "node --no-warnings scripts/diagnose-en-inflection-composition.mjs",
+    "en:db:repeatability": "node --no-warnings scripts/repeat-en-writer-db.mjs"
   }
 }
