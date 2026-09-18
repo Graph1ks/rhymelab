@@ -1,0 +1,198 @@
+{
+  "schema": "rhymelab-wikidata-entity-taxonomy-v1",
+  "policy": "wikidata-cultural-entity-taxonomy-v1",
+  "snapshot_note": "Phase 12A fixture taxonomy. QIDs verified against Wikidata in September 2026; expansion requires reviewed taxonomy changes.",
+  "properties": {
+    "instance_of": "P31",
+    "occupation": "P106"
+  },
+  "categories": [
+    {
+      "category": "person.rapper",
+      "priority": 10,
+      "match_any": [
+        {
+          "property": "P106",
+          "qids": [
+            "Q2252262"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.2
+    },
+    {
+      "category": "person.musician",
+      "priority": 20,
+      "match_any": [
+        {
+          "property": "P106",
+          "qids": [
+            "Q639669"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.2
+    },
+    {
+      "category": "person.actor",
+      "priority": 30,
+      "match_any": [
+        {
+          "property": "P106",
+          "qids": [
+            "Q33999"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.34
+    },
+    {
+      "category": "person.director",
+      "priority": 40,
+      "match_any": [
+        {
+          "property": "P106",
+          "qids": [
+            "Q2526255"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.3
+    },
+    {
+      "category": "group.music_group",
+      "priority": 50,
+      "match_any": [
+        {
+          "property": "P31",
+          "qids": [
+            "Q215380"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.25
+    },
+    {
+      "category": "organization.car_brand",
+      "priority": 60,
+      "match_any": [
+        {
+          "property": "P31",
+          "qids": [
+            "Q10429667"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.65
+    },
+    {
+      "category": "organization.fashion_house",
+      "priority": 70,
+      "match_any": [
+        {
+          "property": "P31",
+          "qids": [
+            "Q1941779"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.6
+    },
+    {
+      "category": "organization.company",
+      "priority": 80,
+      "match_any": [
+        {
+          "property": "P31",
+          "qids": [
+            "Q4830453"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.75
+    },
+    {
+      "category": "work.film",
+      "priority": 90,
+      "match_any": [
+        {
+          "property": "P31",
+          "qids": [
+            "Q11424"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.25
+    },
+    {
+      "category": "work.video_game",
+      "priority": 100,
+      "match_any": [
+        {
+          "property": "P31",
+          "qids": [
+            "Q7889"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.25
+    },
+    {
+      "category": "work.album",
+      "priority": 110,
+      "match_any": [
+        {
+          "property": "P31",
+          "qids": [
+            "Q482994"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.2
+    },
+    {
+      "category": "work.song",
+      "priority": 120,
+      "match_any": [
+        {
+          "property": "P31",
+          "qids": [
+            "Q7366"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.35
+    },
+    {
+      "category": "fictional.character",
+      "priority": 130,
+      "match_any": [
+        {
+          "property": "P31",
+          "qids": [
+            "Q95074"
+          ]
+        }
+      ],
+      "retention_percentile_floor": 0.2
+    }
+  ],
+  "protected_sentinels": [
+    {
+      "qid": "Q221074",
+      "name": "Bud Spencer",
+      "required_category": "person.actor",
+      "expected_tier": "A"
+    }
+  ],
+  "external_id_whitelist": {
+    "P434": "musicbrainz_artist",
+    "P345": "imdb",
+    "P1953": "discogs_artist",
+    "P1902": "spotify_artist"
+  },
+  "retained_name_languages": [
+    "de",
+    "en"
+  ]
+}
