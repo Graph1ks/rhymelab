@@ -78,6 +78,7 @@
     "entity:stage:wikidata": "node --no-warnings scripts/stage-wikidata-entities.mjs",
     "entity:stage:qrank": "node --no-warnings scripts/stage-qrank.mjs",
     "entity:cut:diagnose": "node --no-warnings scripts/diagnose-entity-cut.mjs",
+    "entity:cut:diagnose:hybrid": "node --no-warnings scripts/diagnose-entity-cut-hybrid-candidate.mjs",
     "entity:sources:bootstrap": "node --no-warnings scripts/bootstrap-entity-sources-local.mjs",
     "entity:owner:stage": "node --no-warnings scripts/run-entity-owner-staging.mjs",
     "entity:sources:qlever": "node --no-warnings scripts/fetch-qlever-entity-source.mjs",
