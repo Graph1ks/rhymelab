@@ -86,37 +86,51 @@ function finalPhoneme(analysis){
   return phones.at(-1)||null;
 }
 
-export function englishInflectionSuffix(analysis,shape){
+export function englishInflectionSuffixVariants(analysis,shape){
   const last=finalPhoneme(analysis);
   if(!last) throw new Error('Cannot compose English inflection without a final base phoneme.');
 
   if(['s_suffix','es_suffix','y_to_ies'].includes(shape)){
-    if(SIBILANTS.has(last)) return {ipa:'ɪz',syllabic:true,rule:'plural_sibilant_iz'};
-    if(VOICELESS_PLURAL.has(last)) return {ipa:'s',syllabic:false,rule:'plural_voiceless_s'};
-    return {ipa:'z',syllabic:false,rule:'plural_voiced_z'};
+    if(SIBILANTS.has(last)) return [
+      {ipa:'ɪz',syllabic:true,rule:'plural_sibilant_reduced_vowel',variant:'front_reduced'},
+      {ipa:'əz',syllabic:true,rule:'plural_sibilant_reduced_vowel',variant:'schwa_reduced'},
+    ];
+    if(VOICELESS_PLURAL.has(last)) return [{ipa:'s',syllabic:false,rule:'plural_voiceless_s',variant:'only'}];
+    return [{ipa:'z',syllabic:false,rule:'plural_voiced_z',variant:'only'}];
   }
 
   if(['ed_suffix','e_to_ed','y_to_ied'].includes(shape)){
-    if(last==='t'||last==='d') return {ipa:'ɪd',syllabic:true,rule:'past_alveolar_id'};
-    if(VOICELESS_PAST.has(last)) return {ipa:'t',syllabic:false,rule:'past_voiceless_t'};
-    return {ipa:'d',syllabic:false,rule:'past_voiced_d'};
+    if(last==='t'||last==='d') return [
+      {ipa:'ɪd',syllabic:true,rule:'past_alveolar_reduced_vowel',variant:'front_reduced'},
+      {ipa:'əd',syllabic:true,rule:'past_alveolar_reduced_vowel',variant:'schwa_reduced'},
+    ];
+    if(VOICELESS_PAST.has(last)) return [{ipa:'t',syllabic:false,rule:'past_voiceless_t',variant:'only'}];
+    return [{ipa:'d',syllabic:false,rule:'past_voiced_d',variant:'only'}];
   }
 
   if(['ing_suffix','drop_e_ing','ie_to_ying'].includes(shape)){
-    return {ipa:'ɪŋ',syllabic:true,rule:'progressive_ing'};
+    return [{ipa:'ɪŋ',syllabic:true,rule:'progressive_ing',variant:'only'}];
   }
 
   throw new Error(`Unsupported English inflection shape: ${shape}`);
 }
 
-export function composeEnglishInflectionIpa(analysis,shape){
+export function englishInflectionSuffix(analysis,shape){
+  return englishInflectionSuffixVariants(analysis,shape)[0];
+}
+
+export function composeEnglishInflectionIpaVariants(analysis,shape){
   const base=englishAnalysisToCanonicalIpa(analysis);
-  const suffix=englishInflectionSuffix(analysis,shape);
-  return {
+  return englishInflectionSuffixVariants(analysis,shape).map((suffix)=>({
     raw:suffix.syllabic?`/${base}.${suffix.ipa}/`:`/${base}${suffix.ipa}/`,
     suffix_rule:suffix.rule,
+    suffix_variant:suffix.variant,
     suffix_ipa:suffix.ipa,
-  };
+  }));
+}
+
+export function composeEnglishInflectionIpa(analysis,shape){
+  return composeEnglishInflectionIpaVariants(analysis,shape)[0];
 }
 
 export const ENGLISH_MORPHOLOGY_BLOCK_TAGS=[...MORPHOLOGY_BLOCK_TAGS].sort();
