@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-18
 
-Status: **candidate / A-B diagnostic only / not frozen**
+Status: **owner A-B complete / rejected for freeze / retained as v2 control**
 
 ## Why this candidate exists
 
@@ -137,6 +137,26 @@ The terminal summary reports:
 - deterministic semantic fingerprint.
 
 The full report also records representative promoted/demoted boundary samples with QID, preferred DE/EN name and all score components.
+
+## Owner full-data decision
+
+Owner A/B completed on 2026-09-18.
+
+```text
+semantic fingerprint           e770c1cfc655764e9e0f26e033c53fba0f1e1af4e2ca3b7ac82adf4eabde1e04
+all sentinels pass             true
+Bud Spencer                    KEEP / Tier A
+control distinct retained      1,077,927
+v1 distinct retained           1,077,669
+distinct delta                      -258
+membership churn                    1.89%
+```
+
+Hybrid-v1 is **rejected for freeze**. It opened five of the seven categories that were completely QRank-gated under the original control, but `organization.car_brand` and `organization.company` still retained zero QRank-missing rows. The company result is decisive because QRank coverage is only 45.68% while 123,357 company candidates have missing QRank.
+
+The remaining defect is a mathematical score ceiling: because QRank owns 55% of the v1 score and missing QRank contributes zero, missing rows can never score above 45%, regardless of structural evidence.
+
+Keep this policy and its owner fingerprint as the control for Hybrid-v2. Read `docs/ENTITY_CUT_HYBRID_V2.md`.
 
 ## Acceptance decision
 
