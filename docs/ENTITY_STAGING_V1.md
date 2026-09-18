@@ -259,9 +259,9 @@ data/local/
 
 All remain gitignored.
 
-Do not keep an uncompressed Wikidata JSON copy.
+Do not keep an uncompressed Wikidata JSON copy. Keep the validated compressed `wikidata-20260914-all.json.bz2` raw snapshot until Phase 12 is complete; it is a pinned project input and should not be redownloaded between 12A/12B/12C/12D work.
 
-The temporary QRank staging DB is intentionally separate and disposable.
+The temporary QRank staging DB is intentionally separate and disposable. The downloaded raw `qrank-20260918.csv.gz` artifact is **not** disposable during Phase 12 and must be retained until Phase 12 is complete.
 
 ## 12A2 acceptance gate
 
@@ -305,6 +305,8 @@ sources/entity/phase12a-sources-v1.json
 ```
 
 QRank exposes a periodically updated latest artifact rather than a stable dated historical URL. The owner bootstrap therefore downloads it once to a dated local filename, preserves the raw artifact, captures response headers and records a local SHA-256. Do not pretend that the provider guarantees historical retrieval of that exact artifact.
+
+The accepted owner retrieval on 2026-09-18 returned `Last-Modified: Sat, 16 Mar 2024 11:36:47 GMT` and ETag `"79e65d73b0795eacb6e366964099ce77-7"`. Therefore `retrieved-2026-09-18` is a **retrieval label only**, not a claim that the underlying QRank data was generated in 2026. Effective data freshness is currently unknown beyond the server-provided 2024 last-modified metadata.
 
 ### Preflight
 
@@ -401,6 +403,17 @@ The command:
 8. records QRank SHA-256, size and HTTP headers.
 
 The large Wikidata SHA-1/SHA-256 validation requires sequential reads of the compressed artifact. This costs time but avoids accepting a corrupt 96 GiB input.
+
+### Raw-source retention policy
+
+Retain these exact raw inputs locally until **Phase 12 is complete**:
+
+```text
+data/raw/entity/phase12a-20260918/wikidata-20260914-all.json.bz2
+data/raw/entity/phase12a-20260918/qrank-20260918.csv.gz
+```
+
+They remain gitignored and local-only. Do not delete either file after 12A staging or final 12A materialization. They may be reused by later Phase 12 rebuilds, diagnostics and provenance checks. Only temporary derived staging SQLite databases may be deleted once no longer needed.
 
 ### Run complete owner staging
 
