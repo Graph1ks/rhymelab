@@ -849,3 +849,6 @@ Current 12B6 focus: stratified English long-tail coverage review. See docs/ENGLI
 
 
 Phase 12B6 stratified long-tail review is complete. Current gate is two cheap local diagnostics over existing artifacts: exact rescue-tier counts from the 311k classified sidecar and unprofiled/en-GB vs en-US rhyme-domain agreement from the current publish shards. No Kaikki restream is required. Publish v4 must be based on those results, with exact-CMUdict possessives and punctuation-only aliases as the strongest immediate candidates.
+
+
+Phase 12B6 exact rescue counts are complete: 4,204 Tier-A immediate candidates and 27,435 Tier-A+B candidates, including 12,406 strict morphology rows. Locale fallback cannot yet be promoted to en-US (62.86% unprofiled exact-tail agreement; 48.64% en-GB), and mismatch review exposed exact-key sensitivity to syllable-boundary placement. Current gate: enhanced boundary-insensitive fallback diagnostic plus the owner's 1,000-word rarity-stratified DB/default-selection audit.
