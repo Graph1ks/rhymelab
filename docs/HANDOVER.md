@@ -382,7 +382,18 @@ marked surfaces                  4 (0.32%)
 query-token overlap               0
 ```
 
-11E2 is implemented as a candidate only. Run `npm run phrase:mosaic:rank:v1` after CI/merge. The candidate uses dominant phonetic components, bounded Leipzig bonus, tiny capped phrase-type prior and strong sparse surface-noise demotion. No page diversification yet.
+11E2-v1 owner A/B is complete. It is **not accepted for promotion**.
+
+```text
+suite ranking fingerprint  593142fc70cc1e7b760d6bca3d94ea233c0bcaaf295f6f47f7659ccc7e805de4
+top changed                6 / 12
+marked top20              4 -> 0
+Leipzig-backed top20      48 -> 100
+```
+
+The safety behavior is correct and protected `Liebe`/`Freiheit` results survive, but commonness can overpower materially better same-type phonetics. `Leben` also still exposes a lone weak result. Preserve v1 as a control.
+
+11E2-v2 requirements: commonness/type evidence may reorder only within the same safety class, relation type and a conservative phonetic near-tie band (initially 0.02); weak and restricted candidates remain diagnostic but are not default Writer-page eligible; no diversification yet.
 ## Phase 11D4 — candidate implementation
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md`.

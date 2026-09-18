@@ -4,7 +4,7 @@ Last updated: 2026-09-18
 
 ## Status
 
-**11E1 OWNER EVIDENCE COMPLETE — 11E2 CANDIDATE IMPLEMENTED / CI PENDING**
+**11E2-v1 OWNER A/B COMPLETE — v1 REJECTED FOR PROMOTION / v2 CURRENT**
 
 Phase 11D retrieval is accepted and frozen. Phase 11E consumes its output; it does not retune retrieval or phonetic relation truth.
 
@@ -312,7 +312,26 @@ Implemented candidate policy `de-phrase-writer-utility-v1-candidate`:
 - explicit protected-result reporting for `Liebe`, `Freiheit`, `Musik`, and `Leben`;
 - no page diversification yet.
 
-This is a candidate, not an accepted ranking policy. Owner A/B output decides whether to accept or iterate.
+Owner A/B result for v1:
+
+```text
+suite ranking fingerprint   593142fc70cc1e7b760d6bca3d94ea233c0bcaaf295f6f47f7659ccc7e805de4
+changed tops                6 / 12
+marked top20                4 -> 0
+Leipzig-backed top20       48 -> 100
+```
+
+v1 is **not accepted for promotion**. Safety behavior is correct, but the additive utility allows commonness to cross phonetic gaps that are too large for a rhyme-first Writer. `Leben` also demonstrates that page eligibility must be distinct from diagnostic candidate retention.
+
+11E2-v2 requirements:
+
+- preserve v1 as control;
+- same safety class before product reranking; marked remains demoted;
+- same primary phonetic relation type before product reranking;
+- commonness/type bonuses may reorder only within a 0.02 phonetic near-tie band;
+- `weak` candidates remain diagnostic but default Writer-page ineligible;
+- restricted/historical-only surfaces remain diagnostic but default Writer-page ineligible;
+- no page diversification yet.
 
 ### 11E3
 

@@ -239,7 +239,9 @@ Phase 11D is now accepted/frozen. Phase 11E phrase Writer ranking is current. Re
 
 11E1 owner evidence is now complete. Suite fingerprint: `04ecde26f0a59b7615d6b2a192e7cffed26aefe86ebac07e388e546210d58845`. Only 25.22% of the 1,237 frozen candidates have Leipzig evidence; 98.54% are surface-safe; only four are marked; query-token overlap is zero.
 
-11E2 candidate command is `npm run phrase:mosaic:rank:v1`. Policy `de-phrase-writer-utility-v1-candidate` is not accepted yet. Treat Leipzig as bounded bonus, not eligibility. Treat surface safety as sparse high-confidence demotion. Do not add page diversification or runtime/UI integration until owner A/B results are reviewed.
+11E2-v1 owner A/B is complete. Policy `de-phrase-writer-utility-v1-candidate` is **rejected for promotion but retained as control**. Ranking fingerprint: `593142fc70cc1e7b760d6bca3d94ea233c0bcaaf295f6f47f7659ccc7e805de4`.
+
+Reason: safety demotion works, but commonness may outrank materially stronger same-type phonetics and `Leben` still exposes a lone weak row. Current work is 11E2-v2: commonness/type may reorder only within same safety class + relation type + conservative 0.02 phonetic near-tie band. Weak/restricted rows remain diagnostic but default Writer-page ineligible. No page diversification yet.
 
 Phrase ranking remains deferred to 11E. 
 The accepted single-word Writer baseline remains frozen.
