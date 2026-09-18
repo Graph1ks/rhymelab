@@ -71,6 +71,7 @@
     "phrase:mosaic:rank:v1": "node --no-warnings scripts/diagnose-de-phrase-mosaic-ranking-v1.mjs",
     "phrase:mosaic:rank:v2": "node --no-warnings scripts/diagnose-de-phrase-mosaic-ranking-v2.mjs",
     "phrase:mosaic:diversity:diagnose": "node --no-warnings scripts/diagnose-de-phrase-mosaic-diversity.mjs",
-    "phrase:mosaic:diversify:v1": "node --no-warnings scripts/diagnose-de-phrase-mosaic-diversity-candidate.mjs"
+    "phrase:mosaic:diversify:v1": "node --no-warnings scripts/diagnose-de-phrase-mosaic-diversity-candidate.mjs",
+    "phrase:mosaic:diversify:repeatability": "node --no-warnings scripts/repeat-de-phrase-mosaic-diversity-candidate.mjs"
   }
 }
