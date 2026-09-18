@@ -26,7 +26,7 @@ export function englishCoarseCodaClass(codaKey){
   return symbols.map((symbol)=>{
     const f=englishConsonantFeatures(symbol);
     if(!f.known) return `?${symbol}`;
-    return `${placeClass(f.place)}-${mannerClass(f.manner)}${f.voiced?'-V':''}`;
+    return `${placeClass(f.place)}-${mannerClass(f.manner)}`;
   }).join('+');
 }
 
