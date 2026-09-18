@@ -182,8 +182,27 @@ Must cover at least:
 
 Human Writer NDCG may remain `pending_reference`.
 
+## 11E4 integration implementation
+
+The unified product path is now implemented at code/fixture level:
+
+- one Writer UI at `/`;
+- `/phrases` aliases the same Writer HTML for old bookmarks;
+- standalone `src/phrase-ui` assets are removed;
+- `GET /api/writer` accepts words and multi-word queries;
+- `All / Words / Phrases-Mosaic` are filters in one result workspace;
+- frozen Word Writer order remains unchanged inside its channel;
+- accepted 11D4 -> 11E2-v2 -> 11E3 order remains unchanged inside Phrase/Mosaic;
+- no phrase quota and no invented cross-channel score calibration;
+- multi-word query pronunciation uses exact accepted phrase pronunciation first, then deterministic Writer-v5 preferred-token composition only when every token resolves;
+- no G2P/guessed pronunciation;
+- language-basis contract is `DE / EN / DE+EN`;
+- German is active; English is capability-gated until Phase 12 rather than being emulated.
+
 ## Immediate next action
 
-Inspect the current local Writer API/server/UI contract and implement the smallest additive Phrase/Mosaic product path that reuses the accepted 11D4 -> 11E2-v2 -> 11E3 stack without touching the single-word Writer path.
+Run the owner full-data integrated 11E4/11F acceptance command over the actual local Writer + phrase databases. The final suite must verify frozen single-word equivalence, protected Phrase/Mosaic cases, provenance, scope behavior, multi-word queries, latency and repeatability on the integrated `searchUnifiedWriter()` product path.
+
+Do not mark Phase 11 complete until that owner report passes.
 
 Use branch/PR + required `validate` CI for every accepted change.
