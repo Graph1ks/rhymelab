@@ -219,9 +219,9 @@ The checked-in fixture gate covers:
 - deterministic semantic fingerprint across independent builds;
 - explicit proof that runtime, phrase pronunciation, mosaic indexing and phrase ranking remain untouched.
 
-## Next acceptance gate
+## Catalog acceptance gate
 
-Before Phase 11C phrase pronunciation begins, run the owner-local full source build and inspect at minimum:
+The first owner-local full source build is complete. The following diagnostics remain the reference checklist for repeat-build validation:
 
 - total phrases and attestations;
 - phrase-type distribution;
@@ -255,7 +255,7 @@ Leipzig evidence rows       28,799
 unresolved lexical tokens  205,957
 ```
 
-The unresolved-token count is expected in 11B1: lexical token linkage is intentionally deferred rather than guessed.
+The unresolved-token count is expected in the immutable 11B1 base tables: lexical/pronunciation resolution is now materialized separately by Phase 11C1 so the accepted base catalog fingerprint remains unchanged.
 
 Each Leipzig corpus processed exactly 1,000,000 sentences with zero malformed sentence rows. The next acceptance work is distribution/noise diagnostics plus one independent repeat full build requiring the same semantic catalog fingerprint.
 
@@ -292,7 +292,7 @@ Bootstrap:
 npm run phrase:register:cologne:bootstrap
 ```
 
-RUEG is deferred until a practical slim German-only distribution is available; the current official corpus archive is too large for this milestone.
+RUEG is now available through DAKODA's slim German Lx/L1/HL EXB + metadata packages and is handled by the separate Phase 11B3 register-detail layer below.
 
 ## Phase 11B3 register detail layer
 
