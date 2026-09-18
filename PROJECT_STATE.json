@@ -1188,17 +1188,16 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "run_npm_en_sources_bootstrap_on_owner_machine",
-    "run_npm_en_sources_diagnose_after_bootstrap",
-    "review_english_lexical_form_pronunciation_dialect_history_source_coverage",
-    "review_cmudict_exact_match_esdb_disagreements_and_wordfreq_ranked_coverage",
-    "freeze_no_final_writer_row_count_until_diagnostics_are_reviewed",
-    "design_real_english_phonology_fixture_analyzer_scorer_after_source_diagnostics",
-    "materialize_separate_data_local_rhymelab_en_v1_sqlite_only_after_diagnostics"
+    "run_npm_en_publish_repeatability_on_owner_machine_for_publish_v4",
+    "require_repeatability_fingerprint_b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9_on_both_runs",
+    "after_repeatability_pass_run_npm_en_db_rebuild",
+    "verify_english_sqlite_counts_source_publish_fingerprint_and_multi_channel_retrieval_equivalence",
+    "record_new_english_db_semantic_fingerprint_and_repeatability_runtime_evidence",
+    "only_then_start_english_ranking_quality_plus_diversity_calibration"
   ],
-  "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
+  "next_milestone": "PHASE_12B7_PUBLISH_V4_REPEATABILITY_THEN_ENGLISH_DB_REBUILD_VERIFY",
   "phase_12_english": {
-    "status": "ACTIVE_12B7_PUBLISH_V4_FULL_BUILD_GATE",
+    "status": "ACTIVE_12B7_PUBLISH_V4_REPEATABILITY_GATE",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1278,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B7_OWNER_BUILD_VERIFY_PUBLISH_V4_AND_RUN_COVERAGE_AUDIT_BEFORE_EN_DB_REBUILD",
+    "next_gate": "PHASE_12B7_RUN_PUBLISH_V4_REPEATABILITY_THEN_REBUILD_VERIFY_EN_DB",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1384,7 +1383,7 @@
       }
     },
     "publish_layer_v1": {
-      "status": "PUBLISH_V4_MORPHOLOGY_CANDIDATE_IMPLEMENTED_OWNER_FULL_BUILD_PENDING",
+      "status": "PUBLISH_V4_OWNER_FULL_BUILD_COVERAGE_REVIEW_PASS_REPEATABILITY_PENDING",
       "contract": "docs/ENGLISH_PUBLISH_V1.md",
       "schema": "rhymelab-en-publish-v1",
       "policy": "en-source-backed-publish-v4-candidate",
@@ -1419,26 +1418,37 @@
       "english_runtime_materialized": false,
       "product_en_enabled": false,
       "owner_full_build": {
-        "status": "ok",
-        "published_surfaces": 147904,
-        "default_eligible_surfaces": 72946,
-        "analyzed_en_us_surfaces": 111574,
-        "pronunciation_variants": 274819,
-        "unresolved_pronunciation_variants": 35000,
-        "semantic_fingerprint": "4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124",
-        "verify_pass": true
+        "status": "PASS_ARTIFACT_REVIEW_REPEATABILITY_PENDING",
+        "policy": "en-source-backed-publish-v4-candidate",
+        "published_surfaces": 224478,
+        "default_eligible_surfaces": 123533,
+        "analyzed_en_us_surfaces": 188148,
+        "pronunciation_variants": 375321,
+        "analyzed_pronunciation_variants": 339987,
+        "unresolved_pronunciation_variants": 35334,
+        "recovered_punctuation_alias_surfaces": 2104,
+        "recovered_cmudict_possessive_surfaces": 5127,
+        "recovered_inflection_surfaces": 69343,
+        "derived_inflection_pronunciation_variants": 99727,
+        "ambiguous_inflection_surfaces": 176,
+        "unresolved_inflection_base_surfaces": 278099,
+        "semantic_fingerprint": "b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
+        "coverage_audit_generated_at": "2026-09-18T20:59:31.646Z",
+        "owner_manifest_generated_at": "2026-09-18T20:53:47.063Z",
+        "verify_command": "npm run en:publish:rebuild",
+        "verify_stdout_attached": false,
+        "interpretation": "full v4 manifest and coverage A/B are internally coherent; unchanged-source repeatability remains required before freeze"
       },
       "repeatability": {
         "required": true,
         "command": "npm run en:publish:repeatability",
         "report": "data/local/en-publish-repeatability-v1-report.json",
-        "status": "PASS",
-        "first_fingerprint": "4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124",
-        "second_fingerprint": "4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124",
-        "fingerprints_equal": true
+        "status": "PENDING_FOR_PUBLISH_V4",
+        "expected_fingerprint": "b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
+        "acceptance": "both unchanged-source runs must equal the expected v4 fingerprint"
       },
-      "previous_accepted_owner_fingerprint": "4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124",
-      "candidate_history_fix_owner_build_pending": true,
+      "previous_accepted_owner_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
+      "candidate_history_fix_owner_build_pending": false,
       "v2_history_fix_owner_result": {
         "status": "PASS_REPEATABLE",
         "published_surfaces": 147904,
@@ -1450,23 +1460,25 @@
         "fingerprints_equal": true
       },
       "candidate_pronunciation_provenance_policy": "en-source-backed-publish-v4-candidate",
-      "candidate_pronunciation_provenance_owner_rebuild_pending": true,
+      "candidate_pronunciation_provenance_owner_rebuild_pending": false,
       "tier_a_recovery": {
-        "status": "IMPLEMENTED_OWNER_FULL_BUILD_PENDING",
+        "status": "OWNER_FULL_BUILD_RESULT_AVAILABLE",
         "punctuation_alias": {
           "rule": "explicit_wiktionary_alt_of_plus_punctuation_only_identity_plus_exactly_one_analyzed_en_us_lemma",
           "pronunciation_source": "derived_punctuation_alias",
-          "diagnostic_ranked_population": 168
+          "diagnostic_ranked_population": 168,
+          "owner_full_build_surfaces": 2104
         },
         "cmudict_possessive": {
           "rule": "exact_cmudict_surface_plus_apostrophe_possessive_parse_plus_source_backed_analyzed_en_us_base",
-          "diagnostic_ranked_population": 4036
+          "diagnostic_ranked_population": 4036,
+          "owner_full_build_surfaces": 5127
         },
         "wordfreq_is_lexical_truth": false,
         "g2p": false
       },
       "regular_inflection_composition": {
-        "status": "V2_OWNER_ACCEPTED_ENABLED_IN_PUBLISH_V4_CANDIDATE_FULL_BUILD_PENDING",
+        "status": "OWNER_FULL_BUILD_RESULT_AVAILABLE_REPEATABILITY_PENDING",
         "command": "npm run en:pronunciation:inflection:diagnose",
         "report": "data/local/en-inflection-composition-diagnostic-v2-report.json",
         "shapes": [
@@ -1577,11 +1589,17 @@
           "unresolved_base_rejected": true,
           "pronunciation_source": "derived_inflection",
           "broad_g2p": false
+        },
+        "owner_full_build_result": {
+          "recovered_inflection_surfaces": 69343,
+          "derived_inflection_pronunciation_variants": 99727,
+          "ambiguous_inflection_surfaces": 176,
+          "unresolved_inflection_base_surfaces": 278099
         }
       }
     },
     "writer_db_v1": {
-      "status": "PUBLISH_V4_OWNER_BUILD_REVIEW_REQUIRED_BEFORE_EN_DB_REBUILD",
+      "status": "PUBLISH_V4_REPEATABILITY_REQUIRED_BEFORE_EN_DB_REBUILD",
       "contract": "docs/ENGLISH_WRITER_DB_V1.md",
       "schema": "rhymelab-en-writer-db-v1-candidate",
       "database": "data/local/rhymelab-en-v1.sqlite",
@@ -1590,7 +1608,7 @@
       "rebuild_command": "npm run en:db:rebuild",
       "report": "data/local/en-writer-db-v1-report.json",
       "source_publish_repeatability_required": true,
-      "source_publish_fingerprint": "PENDING_PUBLISH_V4_OWNER_BUILD",
+      "source_publish_fingerprint": "b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
       "retrieval_policy": "en-indexed-rhyme-retrieval-v1-candidate",
       "retrieval_channels": [
         "exact_stressed_tail",
@@ -1655,10 +1673,11 @@
         "semantic_fingerprint": "c6a0832d143979264a94c3e8d7cc30719011ed25404bca20321335389fea3377",
         "retrieval_equivalence_mismatches": 0,
         "verify_pass": true
-      }
+      },
+      "pending_owner_action": "after publish-v4 repeatability PASS run npm run en:db:rebuild"
     },
     "coverage_audit_v1": {
-      "status": "MORPHOLOGY_V2_ACCEPTED_PUBLISH_V4_FULL_BUILD_AND_COVERAGE_AB_PENDING",
+      "status": "PUBLISH_V4_OWNER_AB_REVIEW_PASS_REPEATABILITY_PENDING",
       "contract": "docs/ENGLISH_COVERAGE_AUDIT_V1.md",
       "command": "npm run en:coverage:audit",
       "report": "data/local/en-coverage-audit-v1-report.json",
@@ -2099,6 +2118,68 @@
           "progressive_ing": 95.73
         },
         "decision": "accept_bounded_strict_source_backed_single_hop_inflection_composition"
+      },
+      "owner_v4_result": {
+        "publish_fingerprint": "b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
+        "previous_publish_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
+        "published_surfaces": 224478,
+        "published_surfaces_delta": 76574,
+        "default_eligible_surfaces": 123533,
+        "default_eligible_surfaces_delta": 47836,
+        "analyzed_en_us_surfaces": 188148,
+        "analyzed_en_us_surfaces_delta": 76574,
+        "ranked_published_surfaces": 124285,
+        "ranked_published_surfaces_delta": 17506,
+        "ranked_default_surfaces": 80579,
+        "ranked_default_surfaces_delta": 15416,
+        "unranked_published_surfaces": 100193,
+        "unranked_default_surfaces": 42954,
+        "recovered_punctuation_alias_surfaces": 2104,
+        "recovered_cmudict_possessive_surfaces": 5127,
+        "recovered_inflection_surfaces": 69343,
+        "derived_inflection_pronunciation_variants": 99727,
+        "ambiguous_inflection_surfaces": 176,
+        "unresolved_inflection_base_surfaces": 278099,
+        "checkpoint_deltas": {
+          "top_1000": {
+            "published": 0,
+            "default_eligible": 0
+          },
+          "top_5000": {
+            "published": 12,
+            "default_eligible": 11
+          },
+          "top_10000": {
+            "published": 64,
+            "default_eligible": 59
+          },
+          "top_25000": {
+            "published": 337,
+            "default_eligible": 308
+          },
+          "top_50000": {
+            "published": 1599,
+            "default_eligible": 1399
+          },
+          "top_100000": {
+            "published": 5745,
+            "default_eligible": 5067
+          },
+          "top_150000": {
+            "published": 9589,
+            "default_eligible": 8513
+          },
+          "top_250000": {
+            "published": 15039,
+            "default_eligible": 13290
+          },
+          "full_ranked_311685": {
+            "published": 17506,
+            "default_eligible": 15416
+          }
+        },
+        "source_backed_pronunciation_checkpoint_delta": 0,
+        "interpretation": "bounded morphology expands analyzed en-US/published coverage without relabeling unprofiled pronunciation as source-backed en-US; safety exclusions remain active; repeatability is the remaining publish freeze gate"
       }
     },
     "unknown_query_pronunciation_fallback": {
