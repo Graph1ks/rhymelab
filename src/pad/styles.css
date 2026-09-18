@@ -84,3 +84,38 @@ html[data-mode="rhyme"] .railViewport{height:360px}
   .rhymeLabEntityCategoryWrap{max-width:150px}
   #rhymeLabEntityCategory,#rhymeLabDeepEntityCategory{min-width:120px;max-width:150px}
 }
+
+
+/* Safe readability scaling: follow v14's own --editor-size without changing bar geometry. */
+.rail button b{
+  font-size:clamp(12px,calc(var(--editor-size,17px) * .72),30px)!important;
+  line-height:1.05!important;
+}
+.rail button span{
+  font-size:clamp(9px,calc(var(--editor-size,17px) * .48),18px)!important;
+  line-height:1.1!important;
+}
+#barNo,#syl{
+  font-size:clamp(18px,calc(var(--editor-size,17px) * 1.05),42px)!important;
+  line-height:1!important;
+  font-variant-numeric:tabular-nums;
+}
+
+.rhymeLabAutoScrollToggle{
+  display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:4px 7px;
+  border:1px solid var(--border);border-radius:8px;background:var(--control);
+  color:var(--muted);font:700 9px/1 "IBM Plex Mono",ui-monospace,monospace;
+  letter-spacing:.04em;white-space:nowrap;cursor:pointer
+}
+.rhymeLabAutoScrollToggle input{margin:0;accent-color:var(--accent)}
+.rhymeLabAutoScrollToggle:has(input:checked){
+  color:var(--accent);border-color:color-mix(in srgb,var(--accent) 48%,var(--border));background:var(--accent-soft)
+}
+.rhymeLabAutoScrollSurface{
+  max-height:min(55vh,620px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable
+}
+.rhymeLabIntegrationFailure{
+  display:grid;gap:5px;padding:12px;border:1px solid color-mix(in srgb,var(--danger) 58%,var(--border));
+  border-radius:9px;background:color-mix(in srgb,var(--danger) 8%,var(--paper));color:var(--danger)
+}
+.rhymeLabIntegrationFailure span{font-size:10px;color:var(--muted)}
