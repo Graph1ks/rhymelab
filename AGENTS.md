@@ -168,7 +168,7 @@ Phase 12A1 fixture CI and the owner-local report gate are accepted. Accepted sem
 23e668d7a327982ba7367c875749d17d19697466cfa438a67df7a2d7ed9f4bba
 ```
 
-Current work is **12A2 Wikidata + QRank staging / final popularity-cut review**. Read `docs/ENTITY_STAGING_V1.md` and `docs/ENTITY_CUT_HYBRID_V1.md`. The QRank-present-first v1 cut is retained as control but is not freeze-ready after the owner fallback review.
+Current work is **12A2 Wikidata + QRank staging / final popularity-cut review**. Read `docs/ENTITY_STAGING_V1.md`, `docs/ENTITY_CUT_HYBRID_V1.md`, and `docs/ENTITY_CUT_HYBRID_V2.md`. The original QRank-present-first cut and Hybrid-v1 are retained as controls; Hybrid-v1 owner fingerprint `e770c1cfc655764e9e0f26e033c53fba0f1e1af4e2ca3b7ac82adf4eabde1e04` is rejected for freeze because `organization.company` still has zero missing-QRank retention. Hybrid-v2 geometric missing-evidence normalization is the active owner A/B gate.
 
 The classic 20260914 full-dump path is retired. The owner explicitly rejected further staging/comparison against the 103 GB dump and may delete it. Do not redownload it, require it, benchmark against it, or spend more time on BZip2/WSL/full-dump throughput. The only active Phase 12A2 acquisition path is the implemented build-time QLever selective exporter/stager.
 
