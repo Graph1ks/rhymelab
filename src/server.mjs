@@ -6,7 +6,7 @@ import { DEFAULT_WRITER_DB_PATH, openWriterDb } from './experimental-writer-db.m
 import { WRITER_RUNTIME_ID, selectRhymeRuntimeDatabases } from './runtime-db-routing.mjs';
 import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
-import { getPhraseBrowserStats, getPhraseDetail, getRegisterFacets, openPhraseBrowserDb, searchPhrases, searchRegisterUnits } from './phrase-browser-store.mjs';
+import { getPhraseBrowserStats, getPhraseDetail, openPhraseBrowserDb, searchPhrases } from './phrase-browser-store.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
@@ -177,25 +177,6 @@ const server = createServer(async (req, res) => {
       return result ? json(res, result) : json(res, { error: 'Phrase not found' }, 404);
     }
 
-    if (url.pathname === '/api/register/facets') {
-      if (!phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
-      return json(res, getRegisterFacets(phraseDb));
-    }
-
-    if (url.pathname === '/api/register/search') {
-      if (!phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
-      return json(res, {
-        results: searchRegisterUnits(phraseDb, {
-          q: url.searchParams.get('q') || '',
-          layer: url.searchParams.get('layer') || 'both',
-          subcorpus: url.searchParams.get('subcorpus') || 'all',
-          formality: url.searchParams.get('formality') || 'all',
-          mode: url.searchParams.get('mode') || 'all',
-          age: url.searchParams.get('age') || 'all',
-          limit: url.searchParams.get('limit'),
-        }),
-      });
-    }
     if (url.pathname === '/api/stats') return json(res, getStats(writerDb));
 
     if (url.pathname === '/api/search') {

@@ -139,15 +139,9 @@ RhymeLab deliberately downloads only the three transcription PDFs (about 970 KiB
 
 Policy: `cologne-kiezdeutsch-register-exact-token-sequence-v1`.
 
-### RUEG German via DAKODA — USE
+### RUEG German via DAKODA — REJECTED / REMOVED
 
-RUEG is ingested through DAKODA's open German subcorpora instead of the 4.4 GB all-corpus release. Selected source sets are RUEG-Lx (103,779 reported tokens), RUEG-L1 (41,953) and RUEG-HL (13,413), all exposed as German spoken/written resources by DAKODA under CC0 1.0.
-
-Source record: `sources/phrase/rueg-dakoda-de-v1.json`.
-
-RhymeLab downloads only EXB + metadata archives. It deliberately preserves both RUEG text layers: `dipl` for the participant/transcriber-near surface and `norm` for normalized standard-form lookup. Document metadata such as formality, mode and speaker age group is retained when present; token-level language annotations are preserved as evidence rather than used to strip ordinary code-switching by default.
-
-Policy: `rueg-dakoda-dual-layer-register-v1`. RUEG provides register/context evidence and browseable utterance pairs. It is not population-representative German commonness and it does not create new phrase candidates in Phase 11B3.
+The slim RUEG German subcorpora were evaluated locally. Inspection of the real EXB/metadata archives showed that their primary value is ordinary learner/register utterance evidence, not targeted phraseology, idioms, proverbs, metaphors, or formulaic songwriting material. The source was therefore removed from the production pipeline to avoid storage, schema, UI and maintenance cost without sufficient product value.
 
 ## Deferred sources
 

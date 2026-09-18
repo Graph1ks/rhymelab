@@ -190,7 +190,6 @@ The owner-local full source build is now complete: 98,504 phrases / 97,400 moder
 Add small, legally clear register sensors without turning them into general-frequency truth.
 
 - Cologne Kiezdeutsch 2025 v2: selected, CC BY 4.0, transcript-only bootstrap (~970 KiB; audio excluded), youth/urban/spoken register evidence only.
-- RUEG German: selected through DAKODA's slim open RUEG-Lx/L1/HL EXB + metadata packages; preserve `dipl` and `norm` as register/context evidence.
 - add full phrase diagnostics for type/token/history/Leipzig 1/2/3-corpus coverage, top commonness and anomaly samples;
 - require review of Cologne extraction/matches;
 - require one independent repeat full build with equal semantic fingerprint.
@@ -252,24 +251,15 @@ Only after German and English are individually strong.
 
 Not part of the current roadmap. Core search remains locally executable for desktop, web packaging and later mobile use.
 
-### 11B3. RUEG dual-layer register evidence + local Phrase Explorer — implemented
+### 11B3. Local Phrase Explorer — implemented
 
-- replace the previously deferred 4.4 GB RUEG route with DAKODA's slim German RUEG-Lx/L1/HL EXB + metadata packages;
-- preserve `dipl` and `norm` in parallel;
-- preserve document register metadata and token-language evidence;
-- exact-match existing modern-eligible catalog phrases independently on both layers;
-- do not use RUEG as representative German commonness;
-- do not generate new phrase candidates from RUEG yet;
-- expose phrase/source/Leipzig/register/RUEG evidence through a local read-only `/phrases` explorer;
-- keep the phrase DB optional for Writer startup and keep Writer v6/v5 frozen.
+- expose phrase/source/Leipzig/pronunciation and optional generic register evidence through a local read-only `/phrases` explorer;
+- keep the phrase DB optional for Writer startup and keep Writer v6/v5 frozen;
 
 Owner gate:
 
 ```powershell
-npm run phrase:register:rueg:bootstrap
 npm run phrase:catalog:diagnose
 npm run dev
 ```
-
-Inspect real metadata pairing, `dipl`/`norm` token totals and context quality before moving to 11C.
 

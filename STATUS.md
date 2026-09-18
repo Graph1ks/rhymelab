@@ -120,9 +120,9 @@ Leipzig evidence rows      28,799
 
 Phase 11B2 diagnostics found 15,449 modern-eligible phrases with Leipzig evidence (15.86%); 6,782 occur in one corpus, 3,984 in two and 4,683 in all three. The raw source catalog is intentionally broad and lexeme-heavy: 92,967 `multiword_lexeme` rows and 93,863 two-token rows. Abbreviation/surface aliases remain a known cleanup/ranking concern.
 
-### Phase 11B3 — register/context evidence + Phrase Explorer
+### Phase 11B3 — local Phrase Explorer
 
-RUEG is selected via the slim DAKODA German subcorpora (RUEG-Lx/L1/HL), preserving both `dipl` and `norm` plus available register metadata. It remains additive register/context evidence, not general German frequency and not automatic phrase-candidate generation.
+The read-only Phrase Explorer remains available for source, Leipzig, pronunciation and optional generic register evidence.
 
 Cologne Kiezdeutsch remains optional additive register evidence; automated Zenodo PDF 403 behavior is nonblocking because owner-local files may be supplied directly.
 

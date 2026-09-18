@@ -60,8 +60,6 @@
     "phrase:catalog:diagnose": "node --no-warnings scripts/diagnose-de-phrase-catalog.mjs",
     "phrase:register:cologne": "node --no-warnings scripts/enrich-de-phrase-register-cologne.mjs",
     "phrase:register:cologne:bootstrap": "node scripts/bootstrap-cologne-kiezdeutsch-local.mjs",
-    "phrase:register:rueg": "node --no-warnings scripts/enrich-de-phrase-register-rueg.mjs",
-    "phrase:register:rueg:bootstrap": "node scripts/bootstrap-rueg-dakoda-local.mjs",
     "phrase:pronunciation": "node --no-warnings scripts/materialize-de-phrase-pronunciations.mjs"
   }
 }

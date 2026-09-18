@@ -164,7 +164,6 @@ All three frozen Leipzig corpora completed with 1,000,000 sentences and zero mal
 
 Cologne Kiezdeutsch 2025 v2 is selected as a lightweight CC BY 4.0 youth/urban/spoken register sensor. Only the three transcription PDFs are downloaded (~970 KiB total); audio is deliberately excluded. Register evidence is additive and cannot create phrase types, candidates, or general commonness claims.
 
-RUEG is now selected through DAKODA's slim German subcorpora: RUEG-Lx (103,779 tokens), RUEG-L1 (41,953) and RUEG-HL (13,413), reported total 159,145. Use EXB + metadata only. Preserve `dipl` and `norm` in parallel; do not collapse the diplomatic surface into normalized text.
 
 Phase 11B2 diagnostics completed successfully. Key result: 15,449 modern-eligible phrases have Leipzig evidence (15.86%); 4,683 occur in all three frozen Leipzig corpora. The raw catalog is lexeme-heavy (92,967 `multiword_lexeme`; 93,863 two-token rows), so abbreviation aliases and generic lexical combinations must remain visible as lower-quality/noise classes rather than being mistaken for phraseology.
 
@@ -191,6 +190,6 @@ npm run phrase:pronunciation
 npm run dev
 ```
 
-Review `data/local/phrase-pronunciation-v1-report.json` and the IPA section in `http://127.0.0.1:3030/phrases`. Then run the pronunciation materializer again and require an identical pronunciation fingerprint. Phase 11D mosaic retrieval remains blocked until this full-data gate is accepted. RUEG remains independent additive register/context evidence; it is not required to construct citation IPA.
+Review `data/local/phrase-pronunciation-v1-report.json` and the IPA section in `http://127.0.0.1:3030/phrases`. Then run the pronunciation materializer again and require an identical pronunciation fingerprint. Phase 11D mosaic retrieval remains blocked until this full-data gate is accepted.
 
 Single-word Writer remains frozen; Human Writer NDCG remains pending.

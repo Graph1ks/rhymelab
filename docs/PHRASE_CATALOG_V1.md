@@ -292,27 +292,5 @@ Bootstrap:
 npm run phrase:register:cologne:bootstrap
 ```
 
-RUEG is now available through DAKODA's slim German Lx/L1/HL EXB + metadata packages and is handled by the separate Phase 11B3 register-detail layer below.
-
-## Phase 11B3 register detail layer
-
-RUEG uses a richer register-detail schema in addition to aggregate `phrase_register_evidence`:
-
-```text
-register_document
-register_unit
-phrase_register_occurrence
-```
-
-`register_document` retains source/subcorpus and available document metadata. `register_unit` stores both `dipl_text` and `norm_text`; they are not aliases and one must never overwrite the other. `phrase_register_occurrence` records exact existing-catalog phrase matches per unit and layer.
-
-Policy:
-
-```text
-rueg-dakoda-dual-layer-register-v1
-```
-
-This detail layer is intentionally outside the base `catalog_fingerprint`: RUEG is additive register evidence. The base Wiktionary + Leipzig fingerprint remains the acceptance reference for independent repeat-build verification.
-
-The local `/phrases` explorer is read-only and may expose this evidence for inspection. It is not a phrase ranking implementation.
+The local `/phrases` explorer is read-only and may expose the phrase catalog, Leipzig evidence, pronunciation data, and optional generic register evidence. It is not a phrase ranking implementation.
 

@@ -212,7 +212,7 @@ The phrase DB is optional. If it is missing, the promoted Writer runtime still s
 
 ### `GET /api/phrases/stats`
 
-Returns phrase-catalog counts plus available Leipzig/register/RUEG statistics and registered source records.
+Returns phrase-catalog counts plus available Leipzig/register statistics and registered source records.
 
 ### `GET /api/phrases/search`
 
@@ -221,30 +221,14 @@ Parameters:
 - `q=<text>` — normalized substring lookup;
 - `type=all|phrase|idiom|proverb|figurative_expression|multiword_lexeme`;
 - `historical=all` — include historical-only rows;
-- `evidence=all|leipzig|register|rueg|pronunciation`;
+- `evidence=all|leipzig|register|pronunciation`;
 - `limit=<n>` — maximum 250.
 
 This is a data-browser ordering, not the future Phrase Writer ranking policy.
 
 ### `GET /api/phrases/detail?id=<phrase-id-or-normalized-surface>`
 
-Returns phrase tokens, source attestations, Leipzig evidence, generic register evidence and up to 100 RUEG `dipl`/`norm` examples when available. After Phase 11C1 materialization it also returns the preferred citation phrase IPA, syllable/stress data, explicit word-boundary positions, per-token IPA spans and token-resolution diagnostics.
-
-### `GET /api/register/facets`
-
-Returns observed RUEG subcorpus/formality/mode/age-group values from imported metadata.
-
-### `GET /api/register/search`
-
-Parameters:
-
-- `q=<text>`;
-- `layer=both|dipl|norm`;
-- `subcorpus=<value>|all`;
-- `formality=<value>|all`;
-- `mode=<value>|all`;
-- `age=<value>|all`;
-- `limit=<n>`.
+Returns phrase tokens, source attestations, Leipzig evidence and generic register evidence. After Phase 11C1 materialization it also returns the preferred citation phrase IPA, syllable/stress data, explicit word-boundary positions, per-token IPA spans and token-resolution diagnostics.
 
 The browser UI is served at:
 

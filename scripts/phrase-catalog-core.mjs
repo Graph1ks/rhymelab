@@ -555,7 +555,7 @@ function rowsForFingerprint(db, table, columns, orderBy) {
 export function computePhraseCatalogFingerprint(db) {
   // The Phase 11B1 catalog fingerprint intentionally covers only source/snapshot
   // rows that participate in the core phrase-attestation or Leipzig-usage graph.
-  // Additive register layers (Cologne/RUEG) reuse phrase_source/phrase_snapshot for
+  // Additive register layers reuse phrase_source/phrase_snapshot for
   // provenance, but must not mutate the frozen B1 semantic fingerprint.
   const phraseSource = db.prepare(`
     SELECT
