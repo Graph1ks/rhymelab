@@ -478,7 +478,7 @@ PASS: `Liebe` perfect remains #1; `Freiheit -> dabei seid` remains #1; `Musik ->
 ITERATION REQUIRED: commonness can jump materially weaker phonetics (`verloren` 0.700 -> 0.622 at #1), `Gedanken` raw 0.912747 falls to rank 17, and `Leben` still exposes its lone `weak` candidate.
 
 Decision: keep v1 as a deterministic control; do not promote it. 11E2-v2 must add a conservative phonetic near-tie guard and default Writer-page eligibility that excludes `weak`/restricted rows without deleting them from diagnostics.
-### Phase 11E2 v2 — conservative phonetic-guard candidate — IMPLEMENTED / CI PENDING
+### Phase 11E2 v2 — conservative phonetic-guard candidate — FIXTURE GATE PASS / OWNER A/B PENDING
 
 v2 keeps v1's evidence components but changes **where they are allowed to act**:
 
