@@ -194,13 +194,23 @@ windows              356,693
 
 11D2 adds a separate retrieval-anchor table; do not mutate/fold these keys back into the accepted 11D1 window fingerprint. The exact rhyme-tail key must exclude the first rhyme-syllable onset to stay consistent with `de-phon-v3`.
 
-Current owner gate after merge:
+The first owner full-data 11D2 build is complete:
+
+```text
+anchor rows             356,693
+exact-tail keys         181,548
+vowel keys               52,174
+final class keys             772
+anchor fingerprint      55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+```
+
+Current owner gate:
 
 ```powershell
 npm run phrase:mosaic:retrieval
 ```
 
-Require one repeat anchor fingerprint before moving to representative query diagnostics. Phrase ranking remains deferred to 11E. 
+Repeat once more and require the identical anchor fingerprint before representative query diagnostics. Phrase ranking remains deferred to 11E. 
 The accepted single-word Writer baseline remains frozen.
 
 
