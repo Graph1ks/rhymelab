@@ -180,6 +180,20 @@ coverage diagnostic fingerprint
 
 PR #70 implemented selective qualified Wikidata P898 source evidence, but the owner explicitly did **not** run the new P898 owner workflow. No full-data P898 result is accepted or claimed. Do not execute that deferred Entity gate before Phase 12B.
 
+Phase 12B owner source result + 12B3 candidate:
+
+```text
+entries                         1,492,835
+headwords                       1,355,827
+Writer candidates               1,084,050
+combined pronunciation             13.77%
+ESDB overlap                       22.19%
+wordfreq overlap                   17.92%
+12B3 fixture                    22 entries / 19 checks / PASS
+English runtime                 still capability-gated
+broad G2P                       disabled
+```
+
 Phase 12B1/12B2 tooling checkpoint:
 
 ```text

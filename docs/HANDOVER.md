@@ -6,7 +6,7 @@ Repository state is authoritative. Do not reconstruct project state from prior c
 
 ## Active milestone
 
-**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark.**
+**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. 12B3 candidate is current.**
 
 Read first:
 
@@ -63,6 +63,25 @@ semantic fingerprint
 ```
 
 Do not retune the German Writer/Phrase stack while building English.
+
+## English 12B owner gate / current candidate
+
+Owner bootstrap and full 12B2 summary completed on 2026-09-18:
+
+```text
+English entries                         1,492,835
+distinct headwords                      1,355,827
+Writer candidate surfaces               1,084,050
+Wiktionary IPA coverage                     7.29%
+CMUdict candidate coverage                  8.77%
+combined pronunciation coverage            13.77%
+ESDB candidate coverage                    22.19%
+wordfreq candidate coverage                17.92%
+```
+
+12B3 candidate now provides deterministic CMUdict ARPAbet + Wiktionary IPA normalization, English-specific rhyme features/scoring, US/UK and rhotic/non-rhotic fixture coverage, and a 22-entry / 19-check fixture command: `npm run en:phonology:fixture`.
+
+English remains candidate-gated; no English runtime DB or broad G2P is accepted yet. Next engineering stage after fixture review is 12B4 source-backed publish materialization.
 
 ## Product contract
 

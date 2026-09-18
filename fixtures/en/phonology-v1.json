@@ -1,0 +1,45 @@
+{
+  "schema": "rhymelab-en-phonology-fixture-v1",
+  "status": "candidate_fixture_only",
+  "default_locale": "en-US",
+  "entries": [
+    {"id":"time-us","surface":"time","locale":"en-US","notation":"arpabet","pronunciation":"T AY1 M","source":"cmudict-fixture"},
+    {"id":"rhyme-us","surface":"rhyme","locale":"en-US","notation":"arpabet","pronunciation":"R AY1 M","source":"cmudict-fixture"},
+    {"id":"nation-us","surface":"nation","locale":"en-US","notation":"arpabet","pronunciation":"N EY1 SH AH0 N","source":"cmudict-fixture"},
+    {"id":"station-us","surface":"station","locale":"en-US","notation":"arpabet","pronunciation":"S T EY1 SH AH0 N","source":"cmudict-fixture"},
+    {"id":"record-noun-us","surface":"record","pos":"noun","locale":"en-US","notation":"arpabet","pronunciation":"R EH1 K ER0 D","source":"cmudict-fixture"},
+    {"id":"record-verb-us","surface":"record","pos":"verb","locale":"en-US","notation":"arpabet","pronunciation":"R IH0 K AO1 R D","source":"cmudict-fixture"},
+    {"id":"route-uw-us","surface":"route","locale":"en-US","notation":"arpabet","pronunciation":"R UW1 T","source":"cmudict-fixture"},
+    {"id":"route-aw-us","surface":"route","locale":"en-US","notation":"arpabet","pronunciation":"R AW1 T","source":"cmudict-fixture"},
+    {"id":"cat-us","surface":"cat","locale":"en-US","notation":"arpabet","pronunciation":"K AE1 T","source":"cmudict-fixture"},
+    {"id":"bad-us","surface":"bad","locale":"en-US","notation":"arpabet","pronunciation":"B AE1 D","source":"cmudict-fixture"},
+    {"id":"beat-us","surface":"beat","locale":"en-US","notation":"arpabet","pronunciation":"B IY1 T","source":"cmudict-fixture"},
+    {"id":"bit-us","surface":"bit","locale":"en-US","notation":"arpabet","pronunciation":"B IH1 T","source":"cmudict-fixture"},
+    {"id":"side-us","surface":"side","locale":"en-US","notation":"arpabet","pronunciation":"S AY1 D","source":"cmudict-fixture"},
+    {"id":"cut-us","surface":"cut","locale":"en-US","notation":"arpabet","pronunciation":"K AH1 T","source":"cmudict-fixture"},
+    {"id":"cough-us","surface":"cough","locale":"en-US","notation":"arpabet","pronunciation":"K AO1 F","source":"cmudict-fixture"},
+    {"id":"though-us","surface":"though","locale":"en-US","notation":"arpabet","pronunciation":"DH OW1","source":"cmudict-fixture"},
+    {"id":"love-us","surface":"love","locale":"en-US","notation":"arpabet","pronunciation":"L AH1 V","source":"cmudict-fixture"},
+    {"id":"move-us","surface":"move","locale":"en-US","notation":"arpabet","pronunciation":"M UW1 V","source":"cmudict-fixture"},
+    {"id":"tomato-us","surface":"tomato","locale":"en-US","notation":"ipa","pronunciation":"/təˈmeɪtoʊ/","source":"wiktionary-fixture"},
+    {"id":"tomato-gb","surface":"tomato","locale":"en-GB","notation":"ipa","pronunciation":"/təˈmɑːtəʊ/","source":"wiktionary-fixture"},
+    {"id":"car-us","surface":"car","locale":"en-US","notation":"ipa","pronunciation":"/kɑɹ/","source":"wiktionary-fixture"},
+    {"id":"car-gb","surface":"car","locale":"en-GB","notation":"ipa","pronunciation":"/kɑː/","source":"wiktionary-fixture"}
+  ],
+  "pair_expectations": [
+    {"id":"perfect-time-rhyme","left":"time-us","right":"rhyme-us","type":"perfect","exact_tail":true},
+    {"id":"multisyllabic-nation-station","left":"nation-us","right":"station-us","type":"multisyllabic_perfect","exact_tail":true},
+    {"id":"consonant-family-cat-bad","left":"cat-us","right":"bad-us","not_type":"weak"},
+    {"id":"vowel-family-beat-bit","left":"beat-us","right":"bit-us","not_type":"weak"},
+    {"id":"assonance-time-side","left":"time-us","right":"side-us","relation":"assonance"},
+    {"id":"consonance-cat-cut","left":"cat-us","right":"cut-us","relation":"consonance"},
+    {"id":"false-friend-cough-though","left":"cough-us","right":"though-us","not_exact":true,"exclude_relation":"assonance"},
+    {"id":"false-friend-love-move","left":"love-us","right":"move-us","not_exact":true,"exclude_relation":"assonance"}
+  ],
+  "variant_expectations": [
+    {"id":"stress-shift-record","left":"record-noun-us","right":"record-verb-us","distinct_tail":true,"distinct_stress":true},
+    {"id":"alternate-route","left":"route-uw-us","right":"route-aw-us","distinct_tail":true},
+    {"id":"us-uk-tomato","left":"tomato-us","right":"tomato-gb","distinct_tail":true,"locales":["en-US","en-GB"]},
+    {"id":"rhotic-nonrhotic-car","left":"car-us","right":"car-gb","distinct_tail":true,"rhotic":[true,false]}
+  ]
+}

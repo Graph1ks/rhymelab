@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-18
 
-Status: **ACTIVE / 12B1+12B2 TOOLING IMPLEMENTED / OWNER BOOTSTRAP+FULL DIAGNOSTIC RUN PENDING**
+Status: **ACTIVE / 12B1+12B2 OWNER GATE COMPLETE / 12B3 ENGLISH PHONOLOGY CANDIDATE IMPLEMENTED**
 
 
 ## Implementation checkpoint — 2026-09-18
@@ -17,12 +17,30 @@ Implemented in the Phase 12B1/12B2 source-workflow slice:
 - Kaikki moving-URL guard against the selected 2026-09-02 Wiktionary dump / 2026-09-16 extraction metadata;
 - local SHA-256/source-size reporting for every downloaded artifact.
 
-Still owner-run dependent:
+Owner source gate completed on 2026-09-18:
 
-- the ~2.7 GB compressed raw Kaikki artifact has not been downloaded/executed inside repository CI;
-- therefore no 12B2 coverage numbers, final lexical cut, row target, G2P decision or English runtime materialization is frozen yet.
+```text
+English entries                         1,492,835
+distinct headwords                      1,355,827
+Writer candidate surfaces               1,084,050
+Wiktionary IPA headword coverage            7.29%
+CMUdict candidate coverage                  8.77%
+combined pronunciation coverage            13.77%
+ESDB candidate coverage                    22.19%
+wordfreq candidate coverage                17.92%
+Kaikki raw gzip                        2,900,609,279 bytes
+```
 
-The next gate is the owner bootstrap + full diagnostics report review. Only after that review should 12B3 English phonology fixtures/analyzer/scorer begin.
+This is enough to start 12B3, but not enough to freeze a final runtime population or approve broad G2P. The measured pronunciation coverage is over the raw long-tail candidate universe, not a frequency-qualified Writer cut.
+
+12B3 candidate implementation now exists:
+
+- `fixtures/en/phonology-v1.json` — 22 reviewable pronunciation entries;
+- `scripts/english-phonology.mjs` — deterministic CMUdict ARPAbet + Wiktionary IPA normalization into one English canonical phone representation;
+- `scripts/english-rhyme-features.mjs` — English-specific feature/scoring candidate;
+- `npm run en:phonology:fixture` — 19 deterministic fixture checks;
+- English remains candidate-gated and is not added to the accepted runtime language list;
+- G2P remains disabled.
 
 
 ## Decision
