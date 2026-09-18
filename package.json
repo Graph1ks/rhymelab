@@ -69,6 +69,7 @@
     "phrase:mosaic:diagnose:v2": "node --no-warnings scripts/diagnose-de-phrase-mosaic-retrieval-v2.mjs",
     "phrase:mosaic:rank:evidence": "node --no-warnings scripts/diagnose-de-phrase-mosaic-ranking-evidence.mjs",
     "phrase:mosaic:rank:v1": "node --no-warnings scripts/diagnose-de-phrase-mosaic-ranking-v1.mjs",
-    "phrase:mosaic:rank:v2": "node --no-warnings scripts/diagnose-de-phrase-mosaic-ranking-v2.mjs"
+    "phrase:mosaic:rank:v2": "node --no-warnings scripts/diagnose-de-phrase-mosaic-ranking-v2.mjs",
+    "phrase:mosaic:diversity:diagnose": "node --no-warnings scripts/diagnose-de-phrase-mosaic-diversity.mjs"
   }
 }
