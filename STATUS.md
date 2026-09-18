@@ -100,6 +100,20 @@ Writer Page NDCG@10/20 remains `pending_reference` by explicit project decision.
 
 It will not be collected from the project owner alone. Independent human usefulness evaluation is deferred until the broader German Writer system — including phrase/mosaic/phraseology — is mature enough to evaluate coherently and independent reviewers are available.
 
+## Current checkpoint
+
+Compact next-thread handover: `docs/THREAD_HANDOVER_PHASE_11E3.md`.
+
+Current milestone: **11E3 phrase-channel diversification**. 11E2-v2 ranking is accepted/frozen. Phrase/Mosaic has no default visibility quota and will remain separately filterable.
+
+Remaining to close Phase 11:
+
+```text
+11E3 phrase-channel diversity
+11E4 local runtime/API/UI integration
+11F dedicated Phrase/Mosaic structural + performance benchmark
+Phase 11 closure
+```
 ## Current phase — Phase 11 German phrase / mosaic / phraseology
 
 Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`. Phrase catalog contract: `docs/PHRASE_CATALOG_V1.md`. Pronunciation contract: `docs/PHRASE_PRONUNCIATION_V1.md`.

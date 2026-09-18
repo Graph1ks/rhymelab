@@ -219,24 +219,12 @@ Implemented:
 
 No accepted single-word runtime code is rewired.
 
-### Immediate next action — owner-local full-data gate
 
-Run:
+Phase 11C1 and Phase 11D are complete and accepted. 11E2 ranking is accepted; **11E3 phrase-channel diversification is the active milestone**.
 
-```powershell
-npm run phrase:catalog:bootstrap
-```
+Fresh-thread checkpoint: `docs/THREAD_HANDOVER_PHASE_11E3.md`.
 
-Expected generated outputs:
-
-```text
-data/local/rhymelab-phrases-v1.sqlite
-data/local/phrase-catalog-v1-report.json
-```
-
-Review the full source build before Phase 11C. Required diagnostics include phrase/type/history/token distributions, Leipzig 1/2/3-corpus coverage, top/common phrase noise, build size/time, and deterministic repeat fingerprint equality.
-
-Phase 11C1 and Phase 11D are complete and accepted. Phase 11E deterministic phrase ranking is now the active milestone.
+Remaining order: 11E3 diversity -> 11E4 local runtime/API/UI integration -> 11F dedicated phrase/mosaic benchmark -> Phase 11 close.
 
 Still explicitly out of scope after 11C1:
 

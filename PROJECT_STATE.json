@@ -1065,6 +1065,21 @@
           "ui_runtime_rewire_before_diversity_acceptance"
         ]
       }
+    },
+    "thread_handover": "docs/THREAD_HANDOVER_PHASE_11E3.md",
+    "closure_sequence": [
+      "PHASE_11E3_PHRASE_CHANNEL_DIVERSIFICATION",
+      "PHASE_11E4_LOCAL_RUNTIME_API_UI_INTEGRATION",
+      "PHASE_11F_PHRASE_MOSAIC_FINAL_BENCHMARK",
+      "PHASE_11_COMPLETE"
+    ],
+    "phase_11_closure_policy": {
+      "human_ndcg_can_remain_pending_reference": true,
+      "independent_reviewers_required_for_human_gold": true,
+      "single_word_writer_must_remain_frozen": true,
+      "local_only_deterministic_core_required": true,
+      "phrase_quota_forbidden": true,
+      "phrase_filter_channel_required_at_integration": true
     }
   },
   "owner_measurement_outputs": {

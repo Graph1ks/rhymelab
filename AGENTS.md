@@ -7,16 +7,17 @@ This repository is the authoritative engineering/project memory for RhymeLab. Re
 Before changing the project in a fresh thread/session, read:
 
 1. `docs/HANDOVER.md`
-2. `STATUS.md`
-3. `PROJECT_STATE.json`
-4. `ROADMAP.md`
-5. `DATA_SOURCES.md`
-6. `docs/WRITER_SEARCH_ACCEPTANCE.md`
-7. `docs/PHRASE_MOSAIC_PLAN.md`
-8. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
-9. `docs/REPOSITORY_GOVERNANCE.md`
-10. `docs/BENCHMARK.md` for rhyme-quality/ranking work
-11. `docs/API.md` for local API work
+2. `docs/THREAD_HANDOVER_PHASE_11E3.md`
+3. `STATUS.md`
+4. `PROJECT_STATE.json`
+5. `ROADMAP.md`
+6. `DATA_SOURCES.md`
+7. `docs/WRITER_SEARCH_ACCEPTANCE.md`
+8. `docs/PHRASE_MOSAIC_PLAN.md`
+9. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
+10. `docs/REPOSITORY_GOVERNANCE.md`
+11. `docs/BENCHMARK.md` for rhyme-quality/ranking work
+12. `docs/API.md` for local API work
 
 ## Public-repository guardrails
 
@@ -131,6 +132,13 @@ Accepted general ranking policy for the legacy/control engine:
 modern_entity_relative_commonness_1decade_0_05
 ```
 
+## Current engineering checkpoint
+
+Current milestone is **Phase 11E3 phrase-channel diversification**. Read `docs/THREAD_HANDOVER_PHASE_11E3.md` before modifying phrase/mosaic code.
+
+11E2-v2 is accepted/frozen with suite ranking fingerprint `1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0`. Do not add a Phrase/Mosaic quota to the default result page. Phrase results may legitimately sit below better single-word results or be absent; they remain available through an explicit filter/channel.
+
+Remaining Phase 11 sequence: 11E3 deterministic phrase-channel diversity -> 11E4 local runtime/API/UI integration -> 11F dedicated Phrase/Mosaic final benchmark -> close Phase 11. Human NDCG remains nonblocking `pending_reference` until independent reviewers exist.
 ## Current project direction — Phase 11
 
 Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_SOURCE_SURVEY.md`, `docs/PHRASE_CATALOG_V1.md`, and `docs/PHRASE_PRONUNCIATION_V1.md`.
@@ -146,7 +154,7 @@ SQLite                 153.74 MiB
 single-word rewired    no
 ```
 
-Current work is Phase 11C phrase-pronunciation quality plus phrase-data diagnostics. Cologne Kiezdeutsch is allowed as an additive CC BY 4.0 youth/urban/spoken signal; it must not be treated as representative German commonness or as automatic phrase/candidate generation. The bootstrap downloads transcript PDFs only, not audio.
+Phase 11C pronunciation and Phase 11D retrieval are accepted/frozen; current work is Phase 11E3 phrase-channel diversification. Cologne Kiezdeutsch is allowed as an additive CC BY 4.0 youth/urban/spoken signal; it must not be treated as representative German commonness or as automatic phrase/candidate generation. The bootstrap downloads transcript PDFs only, not audio.
 
 
 Phase 11B2 diagnostics are complete: 15,449 modern-eligible phrases have Leipzig evidence (15.86%); the raw 98,504-row catalog is intentionally dominated by two-token multiword lexemes and contains abbreviation/surface-alias noise. Do not equate all catalog rows with songwriting phrases.
@@ -183,7 +191,7 @@ Decision: do **not** block Phase 11D on a manual 11C2 lexical-gap campaign. Keep
 
 The repeatability gate passed: two owner full-data runs produced the identical pronunciation fingerprint `fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548`. Phase 11C1 is accepted and closed.
 
-Phases 11D1 and 11D2 are accepted/frozen after exact owner repeatability. Phase 11D3 owner diagnostics are complete. Current milestone is the Phase 11D4 retrieval candidate; read `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`, `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`, `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`, and `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md` before changing mosaic code.
+Phases 11D1 and 11D2 are accepted/frozen after exact owner repeatability. Phase 11D3 owner diagnostics are complete. Phase 11D4 is accepted/frozen. Current milestone is Phase 11E3; read `docs/THREAD_HANDOVER_PHASE_11E3.md` and `docs/PHRASE_MOSAIC_RANKING_V1.md` before changing phrase ranking/diversity.
 Phase 11D1 owner repeatability is accepted:
 
 ```text
