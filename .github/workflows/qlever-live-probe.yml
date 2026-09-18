@@ -1,4 +1,4 @@
-name: QLever Rank Semantics Probe
+name: QLever Exact Stage Viability Probe
 
 on:
   push:
@@ -10,13 +10,13 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
-      - name: Compare truthy and all-statement taxonomy semantics
+      - name: Measure exact current-stage exports
         shell: bash
         run: |
-          cat > /tmp/qlever_rank_probe.py <<'PY'
-          import gzip, json, os, time, urllib.parse, urllib.request
+          cat > /tmp/qlever_exact_probe.py <<'PY'
+          import gzip, hashlib, json, os, time, urllib.parse, urllib.request
 
           ENDPOINT = "https://qlever.dev/api/wikidata"
           TAXONOMY = [
@@ -35,47 +35,152 @@ jobs:
               ("P31", "Q95074", "fictional.character"),
           ]
           PREFIX = """PREFIX wd: <http://www.wikidata.org/entity/>
-          PREFIX wdt: <http://www.wikidata.org/prop/direct/>
           PREFIX p: <http://www.wikidata.org/prop/>
           PREFIX ps: <http://www.wikidata.org/prop/statement/>
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
           PREFIX schema: <http://schema.org/>
+          PREFIX wikibase: <http://wikiba.se/ontology#>
           """
 
-          def fetch_json(query):
-              url = ENDPOINT + "?" + urllib.parse.urlencode({"query": query})
-              req = urllib.request.Request(url, headers={
-                  "Accept": "application/sparql-results+json",
-                  "User-Agent": "Graph1ks-RhymeLab-QLever-Probe/1.0",
-              })
-              t=time.time()
-              with urllib.request.urlopen(req, timeout=600) as r:
-                  payload=json.load(r)
-              return payload["results"]["bindings"], time.time()-t
+          def all_rank_branch(prop, qid, bind=None):
+              b = f' BIND("{bind}" AS ?category)' if bind else ""
+              return "{ ?item p:" + prop + " ?stmt_" + prop + "_" + qid + " . ?stmt_" + prop + "_" + qid + " ps:" + prop + " wd:" + qid + " ." + b + " }"
 
-          def count(pattern):
-              rows, elapsed = fetch_json(PREFIX + f"SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{ {pattern} }}")
-              return int(rows[0]["count"]["value"]), elapsed
+          membership_union = "\nUNION\n".join(
+              all_rank_branch(prop, qid, cat) for prop, qid, cat in TAXONOMY
+          )
+          candidate_union = "\nUNION\n".join(
+              all_rank_branch(prop, qid) for prop, qid, _ in TAXONOMY
+          )
 
-          truthy_total_branches=[]
-          all_total_branches=[]
-          print("category\ttruthy\tall_statements\tdelta\ttruthy_s\tall_s")
-          for prop,qid,cat in TAXONOMY:
-              truthy=f"?item wdt:{prop} wd:{qid} ."
-              allstmt=f"?item p:{prop} ?statement . ?statement ps:{prop} wd:{qid} ."
-              a,ta=count(truthy)
-              b,tb=count(allstmt)
-              print(f"{cat}\t{a}\t{b}\t{b-a}\t{ta:.3f}\t{tb:.3f}")
-              truthy_total_branches.append("{ "+truthy+" }")
-              all_total_branches.append("{ "+allstmt+" }")
+          def stream(query, path):
+              params=urllib.parse.urlencode({"query":query})
+              req=urllib.request.Request(
+                  ENDPOINT+"?"+params,
+                  headers={"Accept":"text/tab-separated-values","User-Agent":"Graph1ks-RhymeLab-QLever-Probe/1.0"},
+              )
+              started=time.time()
+              sha=hashlib.sha256()
+              rows=0
+              size=0
+              with urllib.request.urlopen(req, timeout=900) as r, open(path,"wb") as out:
+                  ctype=r.headers.get("Content-Type")
+                  while True:
+                      chunk=r.read(1024*1024)
+                      if not chunk: break
+                      out.write(chunk); sha.update(chunk)
+                      size += len(chunk); rows += chunk.count(b"\n")
+              rows=max(0,rows-1)
+              gz=path+".gz"
+              with open(path,"rb") as src, gzip.open(gz,"wb",compresslevel=6) as dst:
+                  while True:
+                      chunk=src.read(1024*1024)
+                      if not chunk: break
+                      dst.write(chunk)
+              return {
+                  "rows":rows, "raw_bytes":size, "gzip_bytes":os.path.getsize(gz),
+                  "sha256":sha.hexdigest(), "elapsed_s":round(time.time()-started,3),
+                  "content_type":ctype,
+              }
 
-          truthy_union=" UNION ".join(truthy_total_branches)
-          all_union=" UNION ".join(all_total_branches)
-          tcount,tt=count(truthy_union)
-          acount,at=count(all_union)
-          print(f"TOTAL_DISTINCT\t{tcount}\t{acount}\t{acount-tcount}\t{tt:.3f}\t{at:.3f}")
+          exports={}
 
-          # Current endpoint freshness marker used by WDQS/QLever-compatible graphs.
-          rows, elapsed = fetch_json(PREFIX + 'SELECT ?modified WHERE { <http://www.wikidata.org> schema:dateModified ?modified } ORDER BY DESC(?modified) LIMIT 5')
-          print("DATE_MODIFIED", json.dumps(rows, ensure_ascii=False), f"elapsed_s={elapsed:.3f}")
+          membership_q=PREFIX+f"""
+          SELECT DISTINCT ?item ?category WHERE {{
+            {membership_union}
+          }}
+          """
+          exports["membership"]=stream(membership_q,"/tmp/membership_all.tsv")
+          print("EXPORT membership",json.dumps(exports["membership"],sort_keys=True),flush=True)
+
+          core_q=PREFIX+f"""
+          SELECT DISTINCT ?item ?labelDe ?labelEn ?descriptionDe ?descriptionEn ?statementCount WHERE {{
+            {candidate_union}
+            OPTIONAL {{ ?item rdfs:label ?labelDe . FILTER(LANG(?labelDe)="de") }}
+            OPTIONAL {{ ?item rdfs:label ?labelEn . FILTER(LANG(?labelEn)="en") }}
+            OPTIONAL {{ ?item schema:description ?descriptionDe . FILTER(LANG(?descriptionDe)="de") }}
+            OPTIONAL {{ ?item schema:description ?descriptionEn . FILTER(LANG(?descriptionEn)="en") }}
+            OPTIONAL {{ ?item wikibase:statements ?statementCount }}
+          }}
+          """
+          exports["core"]=stream(core_q,"/tmp/core_all.tsv")
+          print("EXPORT core",json.dumps(exports["core"],sort_keys=True),flush=True)
+
+          alias_q=PREFIX+f"""
+          SELECT DISTINCT ?item ?language ?alias WHERE {{
+            {candidate_union}
+            ?item skos:altLabel ?alias .
+            FILTER(LANG(?alias) IN ("de","en"))
+            BIND(LANG(?alias) AS ?language)
+          }}
+          """
+          exports["aliases"]=stream(alias_q,"/tmp/aliases_all.tsv")
+          print("EXPORT aliases",json.dumps(exports["aliases"],sort_keys=True),flush=True)
+
+          ext_q=PREFIX+f"""
+          SELECT DISTINCT ?item ?propertyId ?value WHERE {{
+            {candidate_union}
+            {{
+              ?item p:P434 ?x1 . ?x1 ps:P434 ?value . BIND("P434" AS ?propertyId)
+            }} UNION {{
+              ?item p:P345 ?x2 . ?x2 ps:P345 ?value . BIND("P345" AS ?propertyId)
+            }} UNION {{
+              ?item p:P1953 ?x3 . ?x3 ps:P1953 ?value . BIND("P1953" AS ?propertyId)
+            }} UNION {{
+              ?item p:P1902 ?x4 . ?x4 ps:P1902 ?value . BIND("P1902" AS ?propertyId)
+            }}
+          }}
+          """
+          exports["external_ids"]=stream(ext_q,"/tmp/external_all.tsv")
+          print("EXPORT external_ids",json.dumps(exports["external_ids"],sort_keys=True),flush=True)
+
+          wiki_q=PREFIX+f"""
+          SELECT ?item
+                 (COUNT(DISTINCT ?site) AS ?wikipediaSitelinkCount)
+                 (MAX(?isDe) AS ?hasDewiki)
+                 (MAX(?isEn) AS ?hasEnwiki)
+          WHERE {{
+            {candidate_union}
+            ?article schema:about ?item ; schema:isPartOf ?site .
+            FILTER(REGEX(STR(?site), "^https://[^/]+\\.wikipedia\\.org/$"))
+            BIND(IF(?site=<https://de.wikipedia.org/>,1,0) AS ?isDe)
+            BIND(IF(?site=<https://en.wikipedia.org/>,1,0) AS ?isEn)
+          }}
+          GROUP BY ?item
+          """
+          exports["wikipedia_metrics"]=stream(wiki_q,"/tmp/wiki_metrics.tsv")
+          print("EXPORT wikipedia_metrics",json.dumps(exports["wikipedia_metrics"],sort_keys=True),flush=True)
+
+          # Current stage keeps an entity only if at least one DE/EN label or alias exists.
+          eligible_q=PREFIX+f"""
+          SELECT (COUNT(DISTINCT ?item) AS ?eligible) WHERE {{
+            {candidate_union}
+            {{ ?item rdfs:label ?name . }} UNION {{ ?item skos:altLabel ?name . }}
+            FILTER(LANG(?name) IN ("de","en"))
+          }}
+          """
+          params=urllib.parse.urlencode({"query":eligible_q})
+          req=urllib.request.Request(ENDPOINT+"?"+params,headers={
+              "Accept":"application/sparql-results+json","User-Agent":"Graph1ks-RhymeLab-QLever-Probe/1.0"
+          })
+          with urllib.request.urlopen(req,timeout=600) as r:
+              payload=json.load(r)
+          eligible=int(payload["results"]["bindings"][0]["eligible"]["value"])
+          print("NAME_ELIGIBLE",eligible,flush=True)
+
+          raw_total=sum(v["raw_bytes"] for v in exports.values())
+          gz_total=sum(v["gzip_bytes"] for v in exports.values())
+          wall_sum=sum(v["elapsed_s"] for v in exports.values())
+          print("TOTAL_RAW_BYTES",raw_total,flush=True)
+          print("TOTAL_GZIP_BYTES",gz_total,flush=True)
+          print("SUM_EXPORT_ELAPSED_S",round(wall_sum,3),flush=True)
+          print("SUMMARY",json.dumps({
+              "name_eligible":eligible,
+              "total_raw_bytes":raw_total,
+              "total_gzip_bytes":gz_total,
+              "sum_export_elapsed_s":round(wall_sum,3),
+              "exports":exports,
+          },sort_keys=True),flush=True)
           PY
-          python /tmp/qlever_rank_probe.py
+          python /tmp/qlever_exact_probe.py
