@@ -185,12 +185,12 @@ Phase 11B1 now implements `rhymelab-phrase-catalog-v1`, source/snapshot/license 
 
 The owner-local full source build is now complete: 98,504 phrases / 97,400 modern-eligible phrases in a 153.74 MiB SQLite catalog, fingerprint `f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d`.
 
-### 11B2. Modern register evidence + full-catalog diagnostics — current
+### 11B2. Modern register evidence + full-catalog diagnostics — diagnostics complete
 
 Add small, legally clear register sensors without turning them into general-frequency truth.
 
 - Cologne Kiezdeutsch 2025 v2: selected, CC BY 4.0, transcript-only bootstrap (~970 KiB; audio excluded), youth/urban/spoken register evidence only.
-- RUEG 1.0: linguistically valuable but deferred because the current official corpora archive is 4.4 GB. Revisit only if a slim reproducible German-only distribution/export is available.
+- RUEG German: selected through DAKODA's slim open RUEG-Lx/L1/HL EXB + metadata packages; preserve `dipl` and `norm` as register/context evidence.
 - add full phrase diagnostics for type/token/history/Leipzig 1/2/3-corpus coverage, top commonness and anomaly samples;
 - require review of Cologne extraction/matches;
 - require one independent repeat full build with equal semantic fingerprint.
@@ -202,9 +202,31 @@ npm run phrase:register:cologne:bootstrap
 npm run phrase:catalog:diagnose
 ```
 
-### 11C. Deterministic phrase pronunciation
+### 11C. Deterministic phrase pronunciation — current
 
-After 11B1 acceptance, construct phrase pronunciations from accepted local token pronunciations; preserve provenance and explicitly handle unknown/ambiguous tokens.
+#### 11C1. Preferred citation composition — implemented / owner full-data gate pending
+
+Contract: `docs/PHRASE_PRONUNCIATION_V1.md`.
+
+- exact normalized phrase-token resolution against accepted Writer-v5 preferred eligible pronunciations;
+- no G2P fallback and no guessed IPA;
+- one `citation_preferred` phrase pronunciation per fully resolved phrase;
+- explicit word-boundary coordinates across the continuous phoneme/syllable stream;
+- all citation primary/secondary stress positions retained without inventing sentence prosody;
+- per-token Writer form/pronunciation provenance and phoneme/syllable spans;
+- token alternate counts retained but no Cartesian phrase-variant expansion;
+- no generated connected speech in 11C1;
+- base phrase catalog fingerprint must remain unchanged;
+- deterministic pronunciation fingerprint required on repeat.
+
+Owner gate:
+
+```powershell
+npm run phrase:pronunciation
+npm run dev
+```
+
+Review `data/local/phrase-pronunciation-v1-report.json` and the `/phrases` IPA surface before 11D.
 
 ### 11D. Mosaic retrieval architecture
 
@@ -230,7 +252,7 @@ Only after German and English are individually strong.
 
 Not part of the current roadmap. Core search remains locally executable for desktop, web packaging and later mobile use.
 
-### 11B3. RUEG dual-layer register evidence + local Phrase Explorer — current
+### 11B3. RUEG dual-layer register evidence + local Phrase Explorer — implemented
 
 - replace the previously deferred 4.4 GB RUEG route with DAKODA's slim German RUEG-Lx/L1/HL EXB + metadata packages;
 - preserve `dipl` and `norm` in parallel;
