@@ -328,7 +328,7 @@ distinct key counts equal  true
 
 Phase 11D2 is accepted/frozen as the bounded indexed candidate-retrieval substrate.
 
-### Phase 11D3 — representative query diagnostics — IMPLEMENTED / CI + OWNER RUN PENDING
+### Phase 11D3 — representative query diagnostics — FIXTURE GATE PASS / OWNER RUN PENDING
 
 11D3 reuses the existing 12-query Writer Page v2 suite and Writer-v5 preferred IPA resolution. It records candidate volume, channel/type mix, latency, top candidate windows and deterministic semantic fingerprints without introducing phrase ranking.
 
