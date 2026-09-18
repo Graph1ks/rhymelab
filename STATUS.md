@@ -459,6 +459,25 @@ Owner command after fixture CI:
 npm run phrase:mosaic:rank:v1
 ```
 
+### Phase 11E2 v1 — owner A/B complete / NOT ACCEPTED
+
+The first phrase-utility candidate is useful as a control but is not safe to promote.
+
+```text
+suite ranking fp          593142fc70cc1e7b760d6bca3d94ea233c0bcaaf295f6f47f7659ccc7e805de4
+queries                   12
+candidates                1,237
+top changed               6
+marked raw top            1 -> ranked 0
+marked raw top20          4 -> ranked 0
+Leipzig-backed top20     48 -> 100
+```
+
+PASS: `Liebe` perfect remains #1; `Freiheit -> dabei seid` remains #1; `Musik -> K.-o.-Siegen` falls from raw #1 to rank 120.
+
+ITERATION REQUIRED: commonness can jump materially weaker phonetics (`verloren` 0.700 -> 0.622 at #1), `Gedanken` raw 0.912747 falls to rank 17, and `Leben` still exposes its lone `weak` candidate.
+
+Decision: keep v1 as a deterministic control; do not promote it. 11E2-v2 must add a conservative phonetic near-tie guard and default Writer-page eligibility that excludes `weak`/restricted rows without deleting them from diagnostics.
 ### Immediate owner gate
 
 After merge:
