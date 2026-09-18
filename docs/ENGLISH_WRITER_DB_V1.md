@@ -90,7 +90,7 @@ Indexed English retrieval channels are:
 - English vowel-family + English coda-class bridge;
 - exact final coda.
 
-The English coda class is derived from the English consonant feature inventory, including voicing distinctions. It is not copied from German `de-phon-v3`.
+The English coda class is derived from the English consonant place/manner inventory. Voicing stays available to the English scorer rather than fragmenting the coarse retrieval bucket. The class is not copied from German `de-phon-v3`.
 
 The current retrieval policy id is:
 
