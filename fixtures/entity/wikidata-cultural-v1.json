@@ -1,0 +1,525 @@
+{
+  "schema": "rhymelab-entity-fixture-v1",
+  "note": "Small Phase 12A development fixture. Real QIDs/labels are mixed with explicit synthetic tail/noise rows. Popularity values are fixture-scale inputs, not claims about live QRank/pageviews.",
+  "items": [
+    {
+      "id": "Q221074",
+      "labels": {
+        "de": {
+          "language": "de",
+          "value": "Bud Spencer"
+        },
+        "en": {
+          "language": "en",
+          "value": "Bud Spencer"
+        }
+      },
+      "descriptions": {
+        "de": {
+          "language": "de",
+          "value": "italienischer Schauspieler"
+        },
+        "en": {
+          "language": "en",
+          "value": "Italian actor"
+        }
+      },
+      "aliases": {
+        "de": [
+          {
+            "language": "de",
+            "value": "Carlo Pedersoli"
+          }
+        ],
+        "en": [
+          {
+            "language": "en",
+            "value": "Carlo Pedersoli"
+          }
+        ]
+      },
+      "sitelinks": {
+        "dewiki": {
+          "site": "dewiki",
+          "title": "Bud Spencer"
+        },
+        "enwiki": {
+          "site": "enwiki",
+          "title": "Bud Spencer"
+        },
+        "itwiki": {
+          "site": "itwiki",
+          "title": "Bud Spencer"
+        }
+      },
+      "claims": {
+        "P31": [
+          "Q5"
+        ],
+        "P106": [
+          "Q33999"
+        ],
+        "P345": [
+          "nm0817881"
+        ]
+      },
+      "fixture_metrics": {
+        "wikipedia_sitelink_count": 69,
+        "qrank_score": 0.9,
+        "pageviews_de_score": 0.95,
+        "pageviews_en_score": 0.6
+      }
+    },
+    {
+      "id": "Q130798",
+      "labels": {
+        "de": {
+          "language": "de",
+          "value": "Kendrick Lamar"
+        },
+        "en": {
+          "language": "en",
+          "value": "Kendrick Lamar"
+        }
+      },
+      "descriptions": {
+        "de": {
+          "language": "de",
+          "value": "US-amerikanischer Rapper"
+        },
+        "en": {
+          "language": "en",
+          "value": "American rapper and songwriter"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "language": "en",
+            "value": "Kendrick Lamar Duckworth"
+          },
+          {
+            "language": "en",
+            "value": "K.Dot"
+          },
+          {
+            "language": "en",
+            "value": "Oklama"
+          }
+        ]
+      },
+      "sitelinks": {
+        "dewiki": {
+          "site": "dewiki",
+          "title": "Kendrick Lamar"
+        },
+        "enwiki": {
+          "site": "enwiki",
+          "title": "Kendrick Lamar"
+        }
+      },
+      "claims": {
+        "P31": [
+          "Q5"
+        ],
+        "P106": [
+          "Q2252262",
+          "Q639669"
+        ],
+        "P434": [
+          "381086ea-f511-4aba-bdf9-71c753dc5077"
+        ],
+        "P1953": [
+          "1539549"
+        ]
+      },
+      "fixture_metrics": {
+        "wikipedia_sitelink_count": 72,
+        "qrank_score": 0.98,
+        "pageviews_de_score": 0.74,
+        "pageviews_en_score": 0.99
+      }
+    },
+    {
+      "id": "Q178516",
+      "labels": {
+        "de": {
+          "language": "de",
+          "value": "Gucci"
+        },
+        "en": {
+          "language": "en",
+          "value": "Gucci"
+        }
+      },
+      "descriptions": {
+        "de": {
+          "language": "de",
+          "value": "italienisches Modeunternehmen"
+        },
+        "en": {
+          "language": "en",
+          "value": "Italian luxury fashion house"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "language": "en",
+            "value": "GUCCI"
+          },
+          {
+            "language": "en",
+            "value": "Guccio Gucci S.p.A."
+          }
+        ]
+      },
+      "sitelinks": {
+        "dewiki": {
+          "site": "dewiki",
+          "title": "Gucci"
+        },
+        "enwiki": {
+          "site": "enwiki",
+          "title": "Gucci"
+        },
+        "itwiki": {
+          "site": "itwiki",
+          "title": "Gucci"
+        }
+      },
+      "claims": {
+        "P31": [
+          "Q4830453",
+          "Q1941779"
+        ]
+      },
+      "fixture_metrics": {
+        "wikipedia_sitelink_count": 61,
+        "qrank_score": 0.96,
+        "pageviews_de_score": 0.88,
+        "pageviews_en_score": 0.96
+      }
+    },
+    {
+      "id": "Q47703",
+      "labels": {
+        "de": {
+          "language": "de",
+          "value": "Der Pate"
+        },
+        "en": {
+          "language": "en",
+          "value": "The Godfather"
+        }
+      },
+      "descriptions": {
+        "de": {
+          "language": "de",
+          "value": "US-amerikanischer Film von Francis Ford Coppola"
+        },
+        "en": {
+          "language": "en",
+          "value": "1972 American epic gangster drama film"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "language": "en",
+            "value": "Godfather"
+          },
+          {
+            "language": "en",
+            "value": "The Godfather Part I"
+          }
+        ]
+      },
+      "sitelinks": {
+        "dewiki": {
+          "site": "dewiki",
+          "title": "Der Pate (Film)"
+        },
+        "enwiki": {
+          "site": "enwiki",
+          "title": "The Godfather"
+        }
+      },
+      "claims": {
+        "P31": [
+          "Q11424"
+        ],
+        "P345": [
+          "tt0068646"
+        ]
+      },
+      "fixture_metrics": {
+        "wikipedia_sitelink_count": 95,
+        "qrank_score": 0.97,
+        "pageviews_de_score": 0.86,
+        "pageviews_en_score": 0.97
+      }
+    },
+    {
+      "id": "Q17452",
+      "labels": {
+        "de": {
+          "language": "de",
+          "value": "Grand Theft Auto V"
+        },
+        "en": {
+          "language": "en",
+          "value": "Grand Theft Auto V"
+        }
+      },
+      "descriptions": {
+        "de": {
+          "language": "de",
+          "value": "Open-World-Videospiel"
+        },
+        "en": {
+          "language": "en",
+          "value": "2013 action-adventure video game"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "language": "en",
+            "value": "GTA V"
+          },
+          {
+            "language": "en",
+            "value": "GTA 5"
+          }
+        ]
+      },
+      "sitelinks": {
+        "dewiki": {
+          "site": "dewiki",
+          "title": "Grand Theft Auto V"
+        },
+        "enwiki": {
+          "site": "enwiki",
+          "title": "Grand Theft Auto V"
+        }
+      },
+      "claims": {
+        "P31": [
+          "Q7889"
+        ],
+        "P345": [
+          "tt2103188"
+        ]
+      },
+      "fixture_metrics": {
+        "wikipedia_sitelink_count": 80,
+        "qrank_score": 0.99,
+        "pageviews_de_score": 0.93,
+        "pageviews_en_score": 0.99
+      }
+    },
+    {
+      "id": "Q3244512",
+      "labels": {
+        "de": {
+          "language": "de",
+          "value": "Harry Potter"
+        },
+        "en": {
+          "language": "en",
+          "value": "Harry Potter"
+        }
+      },
+      "descriptions": {
+        "de": {
+          "language": "de",
+          "value": "fiktive Hauptfigur der Harry-Potter-Reihe"
+        },
+        "en": {
+          "language": "en",
+          "value": "main character of the Harry Potter series"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "language": "en",
+            "value": "Harry James Potter"
+          },
+          {
+            "language": "en",
+            "value": "The Boy Who Lived"
+          }
+        ]
+      },
+      "sitelinks": {
+        "dewiki": {
+          "site": "dewiki",
+          "title": "Harry Potter (Figur)"
+        },
+        "enwiki": {
+          "site": "enwiki",
+          "title": "Harry Potter (character)"
+        }
+      },
+      "claims": {
+        "P31": [
+          "Q95074"
+        ]
+      },
+      "fixture_metrics": {
+        "wikipedia_sitelink_count": 83,
+        "qrank_score": 0.99,
+        "pageviews_de_score": 0.96,
+        "pageviews_en_score": 0.99
+      }
+    },
+    {
+      "id": "Q900000001",
+      "fixture_only": true,
+      "labels": {
+        "de": {
+          "language": "de",
+          "value": "Fixture Actor Mid"
+        },
+        "en": {
+          "language": "en",
+          "value": "Fixture Actor Mid"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "synthetic fixture actor"
+        }
+      },
+      "aliases": {},
+      "sitelinks": {
+        "dewiki": {
+          "site": "dewiki",
+          "title": "Fixture Actor Mid"
+        }
+      },
+      "claims": {
+        "P31": [
+          "Q5"
+        ],
+        "P106": [
+          "Q33999"
+        ]
+      },
+      "fixture_metrics": {
+        "wikipedia_sitelink_count": 8,
+        "qrank_score": 0.35,
+        "pageviews_de_score": 0.25,
+        "pageviews_en_score": 0.1
+      }
+    },
+    {
+      "id": "Q900000002",
+      "fixture_only": true,
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Fixture Actor Tail"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "synthetic low-popularity fixture actor"
+        }
+      },
+      "aliases": {},
+      "sitelinks": {
+        "enwiki": {
+          "site": "enwiki",
+          "title": "Fixture Actor Tail"
+        }
+      },
+      "claims": {
+        "P31": [
+          "Q5"
+        ],
+        "P106": [
+          "Q33999"
+        ]
+      },
+      "fixture_metrics": {
+        "wikipedia_sitelink_count": 1,
+        "qrank_score": 0.02,
+        "pageviews_de_score": 0,
+        "pageviews_en_score": 0.02
+      }
+    },
+    {
+      "id": "Q900000003",
+      "fixture_only": true,
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Fixture Company Tail"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "synthetic low-popularity fixture company"
+        }
+      },
+      "aliases": {},
+      "sitelinks": {
+        "enwiki": {
+          "site": "enwiki",
+          "title": "Fixture Company Tail"
+        }
+      },
+      "claims": {
+        "P31": [
+          "Q4830453"
+        ]
+      },
+      "fixture_metrics": {
+        "wikipedia_sitelink_count": 1,
+        "qrank_score": 0.01,
+        "pageviews_de_score": 0,
+        "pageviews_en_score": 0.01
+      }
+    },
+    {
+      "id": "Q900000004",
+      "fixture_only": true,
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Fixture Structural Noise"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "synthetic non-target human fixture"
+        }
+      },
+      "aliases": {},
+      "sitelinks": {
+        "enwiki": {
+          "site": "enwiki",
+          "title": "Fixture Structural Noise"
+        }
+      },
+      "claims": {
+        "P31": [
+          "Q5"
+        ]
+      },
+      "fixture_metrics": {
+        "wikipedia_sitelink_count": 50,
+        "qrank_score": 0.9,
+        "pageviews_de_score": 0.4,
+        "pageviews_en_score": 0.9
+      }
+    }
+  ]
+}
