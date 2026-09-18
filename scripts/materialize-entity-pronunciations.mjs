@@ -21,6 +21,36 @@ let writerDbPath = DEFAULT_WRITER_DB_PATH;
 let reportPath = 'data/local/entity-pronunciation-v1-report.json';
 let includeAliases = true;
 
+const CHECKPOINT_EVERY = 10000;
+const PROGRESS_EVERY = 5000;
+const PHONETIC_BUILD_REVISION = 'entity-phonetic-runtime-de-v1-checkpointed-v1';
+
+function metaValue(db, key) {
+  return db.prepare('SELECT value FROM meta WHERE key=?').get(key)?.value ?? null;
+}
+
+function progressLine(phase, current, total, startedAt, details = []) {
+  const elapsedMs = Math.max(1, Date.now() - startedAt);
+  const rate = current / (elapsedMs / 1000);
+  const pct = total ? current * 100 / total : 100;
+  const etaSeconds = rate > 0 && current < total ? Math.round((total - current) / rate) : 0;
+  const eta = etaSeconds >= 3600
+    ? `${Math.floor(etaSeconds / 3600)}h ${Math.floor((etaSeconds % 3600) / 60)}m`
+    : etaSeconds >= 60
+      ? `${Math.floor(etaSeconds / 60)}m ${etaSeconds % 60}s`
+      : `${etaSeconds}s`;
+  console.error(
+    `[${phase}] ${current.toLocaleString()} / ${total.toLocaleString()} (${pct.toFixed(1)}%)`
+    + ` · ${Math.round(rate).toLocaleString()}/s`
+    + (etaSeconds ? ` · ETA ~${eta}` : '')
+    + (details.length ? ` · ${details.join(' · ')}` : ''),
+  );
+}
+
+async function yieldToSignals() {
+  await new Promise((resolveImmediate) => setImmediate(resolveImmediate));
+}
+
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
   if (arg === '--entities') entityDbPath = args[++i] || entityDbPath;
@@ -140,12 +170,38 @@ try {
   let existing = 0;
   let unresolved = 0;
   const unresolvedTokenCounts = new Map();
+  const nameStartedAt = Date.now();
 
+  async function checkpointNames(processed) {
+    if (processed % PROGRESS_EVERY === 0 || processed === nameRows.length) {
+      progressLine('pronunciation:names', processed, nameRows.length, nameStartedAt, [
+        `existing ${existing.toLocaleString()}`,
+        `new ${composed.toLocaleString()}`,
+        `unresolved ${unresolved.toLocaleString()}`,
+        `token-cache ${tokenCache.size.toLocaleString()}`,
+      ]);
+    }
+    if (processed % CHECKPOINT_EVERY === 0 && processed < nameRows.length) {
+      upsertMeta(entityDb, 'entity_pronunciation_build_state', 'names_in_progress');
+      upsertMeta(entityDb, 'entity_pronunciation_name_checkpoint', processed);
+      entityDb.exec('COMMIT');
+      await yieldToSignals();
+      entityDb.exec('BEGIN');
+    } else if (processed % PROGRESS_EVERY === 0) {
+      await yieldToSignals();
+    }
+  }
+
+  console.error(
+    `[entity-pronunciation] phase 1/3 · ${nameRows.length.toLocaleString()} DE names`
+    + ` · checkpoint every ${CHECKPOINT_EVERY.toLocaleString()}`,
+  );
   entityDb.exec('BEGIN');
   try {
     for (const name of nameRows) {
       if (eligibleExisting.get(name.name_id)) {
         existing += 1;
+        await checkpointNames(existing + composed + unresolved);
         continue;
       }
       const result = composeEntityNamePronunciation(name.surface, resolveToken);
@@ -155,6 +211,7 @@ try {
           const key = String(token).normalize('NFKC').toLocaleLowerCase('de-DE');
           unresolvedTokenCounts.set(key, (unresolvedTokenCounts.get(key) || 0) + 1);
         }
+        await checkpointNames(existing + composed + unresolved);
         continue;
       }
       insertPronunciation.run(
@@ -178,7 +235,10 @@ try {
         'accepted_source_composition',
       );
       composed += 1;
+      await checkpointNames(existing + composed + unresolved);
     }
+    upsertMeta(entityDb, 'entity_pronunciation_build_state', 'names_complete');
+    upsertMeta(entityDb, 'entity_pronunciation_name_checkpoint', nameRows.length);
     entityDb.exec('COMMIT');
   } catch (error) {
     entityDb.exec('ROLLBACK');
