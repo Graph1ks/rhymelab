@@ -2,7 +2,28 @@
 
 Last updated: 2026-09-18
 
-Status: **NEXT ACTIVE MILESTONE / SOURCE STACK RESEARCH COMPLETE / IMPLEMENTATION NOT STARTED**
+Status: **ACTIVE / 12B1+12B2 TOOLING IMPLEMENTED / OWNER BOOTSTRAP+FULL DIAGNOSTIC RUN PENDING**
+
+
+## Implementation checkpoint — 2026-09-18
+
+Implemented in the Phase 12B1/12B2 source-workflow slice:
+
+- versioned registry: `sources/en/phase12b-sources-v1.json`;
+- owner bootstrap: `npm run en:sources:bootstrap`;
+- source diagnostics: `npm run en:sources:diagnose`;
+- deterministic source parsers/normalization helpers with unit coverage;
+- pinned CMUdict, ESDB/SCOWL v2 and wordfreq artifacts;
+- Kaikki moving-URL guard against the selected 2026-09-02 Wiktionary dump / 2026-09-16 extraction metadata;
+- local SHA-256/source-size reporting for every downloaded artifact.
+
+Still owner-run dependent:
+
+- the ~2.7 GB compressed raw Kaikki artifact has not been downloaded/executed inside repository CI;
+- therefore no 12B2 coverage numbers, final lexical cut, row target, G2P decision or English runtime materialization is frozen yet.
+
+The next gate is the owner bootstrap + full diagnostics report review. Only after that review should 12B3 English phonology fixtures/analyzer/scorer begin.
+
 
 ## Decision
 
