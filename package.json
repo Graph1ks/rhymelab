@@ -74,6 +74,9 @@
     "phrase:mosaic:diversify:v1": "node --no-warnings scripts/diagnose-de-phrase-mosaic-diversity-candidate.mjs",
     "phrase:mosaic:diversify:repeatability": "node --no-warnings scripts/repeat-de-phrase-mosaic-diversity-candidate.mjs",
     "writer:unified:acceptance": "npm run check && npm test && node --no-warnings scripts/accept-unified-writer-phase-11.mjs",
-    "entity:fixture": "node --no-warnings scripts/build-entity-fixture.mjs"
+    "entity:fixture": "node --no-warnings scripts/build-entity-fixture.mjs",
+    "entity:stage:wikidata": "node --no-warnings scripts/stage-wikidata-entities.mjs",
+    "entity:stage:qrank": "node --no-warnings scripts/stage-qrank.mjs",
+    "entity:cut:diagnose": "node --no-warnings scripts/diagnose-entity-cut.mjs"
   }
 }

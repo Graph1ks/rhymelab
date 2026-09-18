@@ -465,7 +465,20 @@ Key decisions:
 - generated G2P remains provenance-bearing fallback, not pronunciation truth;
 - the entity DB remains separate from frozen German Writer/Phrase databases.
 
-12A first gate is schema/taxonomy/source/popularity/pronunciation-contract + fixture/prototype. Full 500k+ materialization follows only after diagnostics.
+12A1 schema/taxonomy/source/popularity/pronunciation fixture gate is **ACCEPTED**.
+
+Current submilestone: **12A2 Wikidata + QRank staging**.
+
+- stream the compressed Wikidata JSON dump without an uncompressed copy;
+- persist only structurally relevant cultural candidates;
+- stage QRank in a disposable build-time SQLite;
+- join QRank locally by QID;
+- produce category-relative cut diagnostics;
+- review category counts, QRank coverage, staging size and protected sentinels before final materialization.
+
+Contract: `docs/ENTITY_STAGING_V1.md`.
+
+Full 500k+ Entity Lexicon materialization follows only after the owner full-source staging/cut diagnostic is accepted.
 
 ### 12B. English phonology + single-word profile + benchmark
 
