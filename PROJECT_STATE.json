@@ -250,7 +250,7 @@
       "contract": "docs/PHRASE_PRONUNCIATION_V1.md",
       "schema": "rhymelab-phrase-pronunciation-v1",
       "policy": "de-phrase-pronunciation-v1",
-      "token_resolver_policy": "writer-v5-preferred-normalized-exact-v1",
+      "token_resolver_policy": "writer-v5-preferred-surface-aware-v2",
       "composition_policy": "preferred-token-citation-composition-v1",
       "boundary_policy": "explicit-word-boundary-v1",
       "connected_speech_policy": "attested-or-explicit-rule-only-v1",
