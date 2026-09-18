@@ -167,15 +167,8 @@ License boundary: Wiktionary-derived data remains under Wiktionary CC BY-SA + GF
 
 Use exact CMUdict pronunciations as the strong en-US overlay/control.
 
-RhymeLab already has a pinned CMUdict artifact for Entity diagnostics:
+RhymeLab already has a checksum-pinned CMUdict artifact for Entity diagnostics in `sources/entity/cmudict-entity-pronunciation-v1.json`.
 
-```text
-commit
-74790861f652b15e4ac49015a90074ad62a27690
-
-cmudict.dict Git blob
-2c0411740cce3e2026a80b90b650d5f6a7258164
-```
 
 CMUdict commercial use is unrestricted; preserve acknowledgment.
 
