@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11E2_V1_OWNER_AB_COMPLETE_V2_REQUIRED",
+  "phase": "GERMAN_PHASE_11E2_V2_PHONETIC_GUARD_CANDIDATE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11e2_v1_owner_ab_complete_useful_but_not_acceptable_v2_required",
+    "status": "phase_11e2_v2_candidate_implemented_fixture_ci_pending",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11E2_V2_PHONETIC_GUARD_AND_PAGE_ELIGIBILITY",
+    "next_milestone": "PHASE_11E2_V2_FIXTURE_GATE_THEN_OWNER_AB",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -817,7 +817,7 @@
       }
     },
     "phase_11e_ranking": {
-      "status": "11E2_V1_OWNER_AB_COMPLETE_ITERATION_REQUIRED",
+      "status": "11E2_V2_FIXTURE_GATE_PASS_OWNER_AB_PENDING",
       "contract": "docs/PHRASE_MOSAIC_RANKING_V1.md",
       "accepted_retrieval_input_schema": "rhymelab-phrase-mosaic-retrieval-v2-candidate",
       "accepted_retrieval_policy": "de-bounded-indexed-mosaic-retrieval-v2-candidate",
@@ -971,6 +971,40 @@
         "marked_surface_remains_diagnostic_and_demoted_not_deleted": true,
         "no_page_diversification_yet": true,
         "frozen_11d4_and_11e1_inputs_required": true
+      },
+      "v2_candidate": {
+        "schema": "rhymelab-phrase-mosaic-ranking-candidate-v2",
+        "policy": "de-phrase-writer-utility-v2-phonetic-guard-candidate",
+        "command": "npm run phrase:mosaic:rank:v2",
+        "default_report": "data/local/phrase-mosaic-ranking-v2-candidate-report.json",
+        "phonetic_near_tie_band": 0.02,
+        "guard_order": [
+          "writer_page_eligibility",
+          "surface_safety_class",
+          "primary_phonetic_relation_type",
+          "phonetic_near_tie_band",
+          "v1_control_utility",
+          "phonetic_score",
+          "stable_raw_and_window_tiebreakers"
+        ],
+        "writer_page_ineligible_reasons": [
+          "weak_primary_type",
+          "restricted_surface",
+          "not_modern_eligible"
+        ],
+        "marked_surface_deleted": false,
+        "weak_candidate_deleted": false,
+        "restricted_candidate_deleted": false,
+        "diagnostics_retain_all_candidates": true,
+        "v1_control_ranking_fingerprint": "593142fc70cc1e7b760d6bca3d94ea233c0bcaaf295f6f47f7659ccc7e805de4",
+        "accepted_11e1_suite_evidence_fingerprint": "04ecde26f0a59b7615d6b2a192e7cffed26aefe86ebac07e388e546210d58845",
+        "phrase_utility_ranking_accepted": false,
+        "page_diversification": false,
+        "fixture_gate_pending_ci": false,
+        "owner_ab_completed": false,
+        "fixture_gate_passed": true,
+        "ci_run": 277,
+        "ci_conclusion": "success"
       }
     }
   },
@@ -993,14 +1027,14 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_11e2_v1_owner_evidence",
-    "implement_11e2_v2_conservative_phonetic_guard",
-    "keep_v1_ranking_fingerprint_as_control",
-    "owner_run_v2_same_suite",
-    "require_Liebe_and_Freiheit_protected",
-    "require_Musik_marked_surface_demoted",
-    "require_Leben_default_writer_page_empty",
-    "require_commonness_not_to_jump_material_phonetic_gaps",
-    "keep_11d_and_single_word_writer_frozen"
+    "merge_11e2_v2_after_green_validate",
+    "owner_run_npm_phrase_mosaic_rank_v2",
+    "require_v1_control_fingerprint_exact",
+    "require_guard_violation_count_zero",
+    "require_Leben_writer_page_empty",
+    "require_Liebe_and_Freiheit_rank_1",
+    "require_Musik_marked_abbreviation_demoted",
+    "review_top20_leipzig_shift_is_material_but_not_dominant",
+    "accept_or_iterate_11e2_before_11e3_diversification"
   ]
 }

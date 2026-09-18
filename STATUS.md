@@ -478,6 +478,25 @@ PASS: `Liebe` perfect remains #1; `Freiheit -> dabei seid` remains #1; `Musik ->
 ITERATION REQUIRED: commonness can jump materially weaker phonetics (`verloren` 0.700 -> 0.622 at #1), `Gedanken` raw 0.912747 falls to rank 17, and `Leben` still exposes its lone `weak` candidate.
 
 Decision: keep v1 as a deterministic control; do not promote it. 11E2-v2 must add a conservative phonetic near-tie guard and default Writer-page eligibility that excludes `weak`/restricted rows without deleting them from diagnostics.
+### Phase 11E2 v2 — conservative phonetic-guard candidate — FIXTURE GATE PASS / OWNER A/B PENDING
+
+v2 keeps v1's evidence components but changes **where they are allowed to act**:
+
+1. diagnostic vs Writer-page eligibility;
+2. surface-safety class;
+3. primary phonetic relation type;
+4. 0.02 phonetic near-tie band;
+5. only then v1 product utility/commonness/type evidence.
+
+`weak`, restricted and non-modern rows remain in diagnostics but are not default Writer-page eligible. Marked rows such as abbreviations remain eligible but are demoted behind safe rows rather than deleted.
+
+The v2 owner runner must reproduce both frozen 11E1 evidence and the v1 control ranking fingerprint before reporting v2 deltas.
+
+Command after fixture CI:
+
+```powershell
+npm run phrase:mosaic:rank:v2
+```
 ### Immediate owner gate
 
 After merge:

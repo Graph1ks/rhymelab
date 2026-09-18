@@ -243,6 +243,8 @@ Phase 11D is now accepted/frozen. Phase 11E phrase Writer ranking is current. Re
 
 Reason: safety demotion works, but commonness may outrank materially stronger same-type phonetics and `Leben` still exposes a lone weak row. Current work is 11E2-v2: commonness/type may reorder only within same safety class + relation type + conservative 0.02 phonetic near-tie band. Weak/restricted rows remain diagnostic but default Writer-page ineligible. No page diversification yet.
 
+11E2-v2 is implemented behind `npm run phrase:mosaic:rank:v2`. Its owner runner must reproduce v1 suite ranking fingerprint `593142fc70cc1e7b760d6bca3d94ea233c0bcaaf295f6f47f7659ccc7e805de4` and 11E1 evidence fingerprint `04ecde26f0a59b7615d6b2a192e7cffed26aefe86ebac07e388e546210d58845`. Do not relax the 0.02 guard or restore weak rows to the Writer page without owner A/B evidence.
+
 Phrase ranking remains deferred to 11E. 
 The accepted single-word Writer baseline remains frozen.
 
