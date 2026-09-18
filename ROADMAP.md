@@ -336,7 +336,7 @@ repeat  55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
 
 11D2 is accepted/frozen.
 
-#### 11D3. Representative full-data query diagnostics — CURRENT
+#### 11D3. Representative full-data query diagnostics — COMPLETE / REVISION SIGNAL
 
 Fixture CI gate: **PASS** (`validate`, run 253).
 
@@ -344,9 +344,32 @@ Run the accepted retrieval stack against the existing Writer Page v2 query suite
 
 Measure query-anchor coverage, bounded candidate volume, exact/slant/family mix, retrieval-channel contribution, duplicates/window multiplicity, representative top candidates and owner-machine latency. Explicitly expose queries whose accepted stressed rhyme domain falls below the current two-syllable mosaic minimum.
 
-This phase is diagnostic only. If it reveals a structural retrieval gap, revise 11D explicitly before 11E rather than compensating with ranking weights.
+Owner result:
+
+```text
+9/12 queries with anchors
+1,771 returned candidates
+989 weak (55.84%)
+1,280 final-nucleus/coda-class channel assignments
+mean 33.6 ms
+```
+
+The diagnostic did reveal structural retrieval gaps. Do not compensate with 11E ranking weights.
 
 Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
+
+#### 11D4. Mosaic query-domain + candidate-quality revision — CURRENT
+
+Preserve the accepted 11D1 window and 11D2 retrieval-anchor fingerprints as frozen controls.
+
+Additive goals:
+
+- include a full-surface 2–6-syllable query domain when it is distinct from the stressed-tail domain, so final-stressed multi-syllable words such as `Musik` can participate in mosaic retrieval;
+- add a deterministic vowel-family bridge channel between exact full-vowel retrieval and the broad final-nucleus/coda-class fallback;
+- after scoring, suppress `weak` candidates that match no independent sound relation by default;
+- rerun the same 12-query diagnostic suite and compare coverage, weak-share, channel dependence, latency and existing strong examples before 11E.
+
+No phrase usefulness/commonness/diversity ranking belongs in 11D4.
 
 ### 11E. Phrase Writer ranking
 
