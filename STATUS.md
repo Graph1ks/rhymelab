@@ -358,6 +358,21 @@ Positive retrieval evidence exists: `Arbeitsweise` surfaces family candidates, `
 But the gate does **not** authorize 11E. `Leben`, `Feuer`, and `Gedanken` are saturated by the broad final-nucleus/coda-class channel with weak top rows; `Musik` has no mosaic anchor despite being multisyllabic because the reused single-word stressed rhyme domain is only one syllable.
 
 Decision: preserve 11D1/11D2 and open **11D4** as an additive retrieval revision before phrase ranking.
+### Phase 11D4 — mosaic query-domain + candidate-quality revision — IMPLEMENTED / CI PENDING
+
+11D4 is a candidate layer over frozen 11D1/11D2 controls.
+
+Implemented:
+
+- additive `phrase_mosaic_retrieval_v2_anchor` storage;
+- indexed `vowel_family_coda_class` bridge using the existing deterministic German vowel-family map;
+- `full_surface` query domain for distinct 2–6-syllable surfaces;
+- default phonetic gate that removes `weak` candidates with no Assonance/Consonance relation;
+- same-process A/B diagnostic that reruns the accepted 11D3 baseline and requires semantic fingerprint `294a26d6…625c` before comparing the candidate.
+
+No phrase ranking, commonness weighting, diversity or Writer runtime integration is included.
+
+Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md`.
 ### Immediate owner gate
 
 After merge:
