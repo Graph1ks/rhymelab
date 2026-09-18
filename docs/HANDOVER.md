@@ -163,14 +163,29 @@ gzip bytes           93,454,429
 
 Do not fetch or restage these inputs again for the next gate. The local stage/QRank DBs already exist.
 
-The immediate next owner command after the distinct-retained diagnostic change lands is only:
+The first distinct-retained owner recount is complete:
+
+```text
+status                          ok
+all sentinels pass             true
+total kept category memberships 1,109,302
+distinct retained entities      1,077,927
+retained membership overlap        31,375
+retained memberships/entity        1.029107
+```
+
+Interpretation: the distinct population is inside the allowed 500k–1.2M range, but above the preferred 600k–900k working range. Multi-category overlap is small and is not the reason for the high retained population.
+
+The remaining pre-freeze gate is QRank-missing fallback behavior. The current v1 ordering places every QRank-present row before every QRank-missing row. In categories where the retained share is lower than QRank coverage, the cut can therefore occur entirely inside the QRank-present block. That must be measured explicitly before the final popularity policy is frozen.
+
+After the fallback-diagnostic change lands, the only owner command is:
 
 ```powershell
 git pull
-npm run entity:cut:diagnose
+npm run entity:cut:diagnose -- --skip-qrank-join
 ```
 
-Review `distinct_retained_entities`, `retained_membership_overlap`, category distributions, low-QRank-coverage categories and Bud Spencer sentinel evidence before freezing the final cut policy.
+Review the compact `category_cut_summary`, especially `kept_without_qrank`, `qrank_missing_retention_pct`, `cut_within_qrank_present_block`, the known low-QRank-coverage categories, and the Bud Spencer sentinel. Do not fetch QLever, restage entities, or restage QRank.
 
 
 ```powershell
