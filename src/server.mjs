@@ -7,6 +7,7 @@ import { WRITER_RUNTIME_ID, selectRhymeRuntimeDatabases } from './runtime-db-rou
 import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
 import { getPhraseBrowserStats, getPhraseDetail, openPhraseBrowserDb, searchPhrases } from './phrase-browser-store.mjs';
+import { searchUnifiedWriter, unifiedWriterCapabilities } from './unified-writer-search.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
@@ -15,7 +16,6 @@ const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB
 const phraseDbPath = resolve(process.env.RHYMELAB_PHRASE_DB || 'data/local/rhymelab-phrases-v1.sqlite');
 const uiDir = resolve('src/ui');
 const benchmarkUiDir = resolve('src/benchmark-ui');
-const phraseUiDir = resolve('src/phrase-ui');
 
 let writerDb;
 try {
@@ -47,9 +47,10 @@ try {
   console.warn('Normal Writer runtime remains available; /phrases will show the missing local phrase DB state.');
 }
 
+const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const assets = {
-  '/': { type: 'text/html; charset=utf-8', body: readFileSync(resolve(uiDir, 'index.html')) },
+  '/': { type: 'text/html; charset=utf-8', body: writerHtml },
   '/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'styles.css')) },
   '/assets/mobile.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'mobile.css')) },
   '/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'app.js')) },
@@ -57,10 +58,8 @@ const assets = {
   '/benchmark/': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
   '/benchmark/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'styles.css')) },
   '/benchmark/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'app.js')) },
-  '/phrases': { type: 'text/html; charset=utf-8', body: readFileSync(resolve(phraseUiDir, 'index.html')) },
-  '/phrases/': { type: 'text/html; charset=utf-8', body: readFileSync(resolve(phraseUiDir, 'index.html')) },
-  '/phrases/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(phraseUiDir, 'styles.css')) },
-  '/phrases/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(phraseUiDir, 'app.js')) },
+  '/phrases': { type: 'text/html; charset=utf-8', body: writerHtml },
+  '/phrases/': { type: 'text/html; charset=utf-8', body: writerHtml },
 };
 
 function json(res, data, status = 200, allowCors = true) {
@@ -150,7 +149,35 @@ const server = createServer(async (req, res) => {
         phrase_database: phraseDb ? phraseDbPath : null,
         phrase_available: Boolean(phraseDb),
         phrase_error: phraseDb ? null : phraseDbError,
+        unified_writer: unifiedWriterCapabilities({ writerDb, phraseDb }),
       });
+    }
+
+    if (url.pathname === '/api/writer') {
+      const q = url.searchParams.get('q') || '';
+      if (!q.trim()) return json(res, { error: 'q is required' }, 400);
+      const result = searchUnifiedWriter(
+        { writerDb, phraseDb },
+        q,
+        {
+          language: url.searchParams.get('language') || 'de',
+          scope: url.searchParams.get('scope') || 'all',
+          type: url.searchParams.get('type') || 'all',
+          includeVariants: url.searchParams.get('variants') === 'all',
+          includeHistorical: url.searchParams.get('historical') === 'all',
+          wordLimit: url.searchParams.get('word_limit') || url.searchParams.get('limit'),
+          wordPoolLimit: url.searchParams.get('word_pool') || url.searchParams.get('pool'),
+          phraseLimit: url.searchParams.get('phrase_limit') || url.searchParams.get('limit'),
+          phrasePoolLimit: url.searchParams.get('phrase_pool'),
+          phrasePerChannelLimit: url.searchParams.get('phrase_per_channel'),
+        },
+      );
+      const status = result.status === 'language_unavailable'
+        ? 503
+        : result.status === 'query_not_found'
+          ? 404
+          : 200;
+      return json(res, result, status);
     }
 
     if (url.pathname === '/api/phrases/stats') {
@@ -226,8 +253,8 @@ server.listen(port, host, () => {
   console.log(`Writer v5 SQLite: ${writerDbPath}`);
   console.log(`Writer runtime: ${WRITER_RUNTIME_ID}`);
   console.log(`Legacy/control SQLite: ${legacyDb ? legacyDbPath : 'unavailable'}`);
-  console.log(`Phrase explorer: http://${host}:${port}/phrases`);
-  console.log(`Phrase SQLite: ${phraseDb ? phraseDbPath : 'unavailable'}`);
+  console.log(`Unified Writer: http://${host}:${port}`);
+  console.log(`Phrase/Mosaic SQLite: ${phraseDb ? phraseDbPath : 'unavailable'}`);
 });
 
 function shutdown() {

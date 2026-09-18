@@ -134,11 +134,13 @@ modern_entity_relative_commonness_1decade_0_05
 
 ## Current engineering checkpoint
 
-Current milestone is **Phase 11E3 phrase-channel diversification**. Read `docs/THREAD_HANDOVER_PHASE_11E3.md` before modifying phrase/mosaic code.
+Current milestone is **Phase 11E4/F runtime integration + final acceptance**. Read `docs/THREAD_HANDOVER_PHASE_11E4F.md` before modifying the integrated Writer surface.
 
-11E2-v2 is accepted/frozen with suite ranking fingerprint `1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0`. Do not add a Phrase/Mosaic quota to the default result page. Phrase results may legitimately sit below better single-word results or be absent; they remain available through an explicit filter/channel.
+11E2-v2 ranking and 11E3 phrase-channel diversification are accepted/frozen. The product now uses one unified Writer UI and `GET /api/writer` for single-word and Phrase/Mosaic search. `All / Words / Phrases-Mosaic` are filters inside that one surface; there is no separate Phrase Explorer product UI. Phrase/Mosaic remains optional, has no quota, and may return zero results.
 
-Remaining Phase 11 sequence: 11E3 deterministic phrase-channel diversity -> 11E4 local runtime/API/UI integration -> 11F dedicated Phrase/Mosaic final benchmark -> close Phase 11. Human NDCG remains nonblocking `pending_reference` until independent reviewers exist.
+The product search-language basis contract is `DE / EN / DE+EN`. German is the only accepted runtime today. English must remain capability-gated until Phase 12 provides an accepted English analyzer/scorer/database; never emulate English with German phonology.
+
+Remaining Phase 11 sequence: 11E4 integrated-surface owner validation -> 11F structural/provenance/performance/repeatability acceptance -> close Phase 11. Human NDCG remains nonblocking `pending_reference` until independent reviewers exist.
 ## Current project direction — Phase 11
 
 Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_SOURCE_SURVEY.md`, `docs/PHRASE_CATALOG_V1.md`, and `docs/PHRASE_PRONUNCIATION_V1.md`.
@@ -154,7 +156,7 @@ SQLite                 153.74 MiB
 single-word rewired    no
 ```
 
-Phase 11C pronunciation and Phase 11D retrieval are accepted/frozen; current work is Phase 11E3 phrase-channel diversification. Cologne Kiezdeutsch is allowed as an additive CC BY 4.0 youth/urban/spoken signal; it must not be treated as representative German commonness or as automatic phrase/candidate generation. The bootstrap downloads transcript PDFs only, not audio.
+Phase 11C pronunciation, Phase 11D retrieval, 11E2 ranking and 11E3 diversification are accepted/frozen; current work is the integrated 11E4/F Writer surface. Cologne Kiezdeutsch is allowed as an additive CC BY 4.0 youth/urban/spoken signal; it must not be treated as representative German commonness or as automatic phrase/candidate generation. The bootstrap downloads transcript PDFs only, not audio.
 
 
 Phase 11B2 diagnostics are complete: 15,449 modern-eligible phrases have Leipzig evidence (15.86%); the raw 98,504-row catalog is intentionally dominated by two-token multiword lexemes and contains abbreviation/surface-alias noise. Do not equate all catalog rows with songwriting phrases.
@@ -191,7 +193,7 @@ Decision: do **not** block Phase 11D on a manual 11C2 lexical-gap campaign. Keep
 
 The repeatability gate passed: two owner full-data runs produced the identical pronunciation fingerprint `fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548`. Phase 11C1 is accepted and closed.
 
-Phases 11D1 and 11D2 are accepted/frozen after exact owner repeatability. Phase 11D3 owner diagnostics are complete. Phase 11D4 is accepted/frozen. Current milestone is Phase 11E3; read `docs/THREAD_HANDOVER_PHASE_11E3.md` and `docs/PHRASE_MOSAIC_RANKING_V1.md` before changing phrase ranking/diversity.
+Phases 11D1 and 11D2 are accepted/frozen after exact owner repeatability. Phase 11D3 owner diagnostics are complete. Phase 11D4, 11E2-v2 and 11E3 are accepted/frozen. Current milestone is Phase 11E4/F; read `docs/THREAD_HANDOVER_PHASE_11E4F.md` before changing the integrated Writer path.
 Phase 11D1 owner repeatability is accepted:
 
 ```text
@@ -253,7 +255,7 @@ Reason: safety demotion works, but commonness may outrank materially stronger sa
 
 11E2-v2 is accepted. Accepted suite ranking fingerprint: `1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0`; owner A/B had zero phonetic-guard violations. Keep the 0.02 guard, Writer-page eligibility and v1 control unchanged unless new evidence justifies a revision.
 
-Current milestone is 11E3 phrase-channel diversity. Product rule: no phrase quota and no forced Phrase/Mosaic visibility in the default single-word ranking. Better words may legitimately sit above all phrase results. Phrase/Mosaic must remain separately filterable; diagnostic-only/weak rows can be surfaced only through explicit filters or diagnostics. Diversification must not cross-promote phrases against the single-word Writer.
+11E3 phrase-channel diversity is accepted/frozen. Product rule: no phrase quota and no forced Phrase/Mosaic visibility. Word and Phrase/Mosaic channels share one UI but retain their accepted internal order because their numeric scores are not globally calibrated. Diagnostic-only/weak rows remain explicit diagnostics only.
 
 Phrase ranking remains deferred to 11E. 
 The accepted single-word Writer baseline remains frozen.

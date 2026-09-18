@@ -12,7 +12,11 @@ Current milestone: **Phase 11E4/F runtime integration + final acceptance**.
 
 Phase 11E3 phrase-channel diversification is accepted/frozen. Accepted diversity fingerprint: `ca7e04e91226cd5a3855dbe302a54bffaccce8c6d3a9defff8be049ca6153ef1`; three owner repeatability runs matched exactly and all protected checks passed. Product rule remains unchanged: Phrase/Mosaic is an optional channel, never a quota in the default single-word result list. Better single-word results may legitimately outrank or fully displace phrase results; an empty phrase channel is valid.
 
-Remaining Phase 11 work is managed as one continuous milestone: **11E4 local runtime/API/UI integration -> 11F structural/provenance/performance/repeatability acceptance -> Phase 11 close**. The two gates remain ordered even though the workstream is combined. Human NDCG may remain `pending_reference` if independent reviewers are unavailable.
+11E4 code integration now exposes one unified Writer product surface and `GET /api/writer` for single words and Phrase/Mosaic. The old standalone Phrase Explorer UI is removed; `/phrases` is only a backward-compatible alias to the same Writer page. `All / Words / Phrases-Mosaic` are filters in that one workspace. Word and phrase channels retain their accepted internal ranking because their scores are not globally calibrated.
+
+The product search-language basis contract is `DE / EN / DE+EN`. German is active. English remains explicitly unavailable/capability-gated until Phase 12 provides an accepted English analyzer/scorer/database; `DE+EN` currently runs German and surfaces that English is unavailable.
+
+Remaining Phase 11 work is: **11E4 owner full-data integrated smoke/performance -> 11F structural/provenance/performance/repeatability acceptance -> Phase 11 close**. Human NDCG may remain `pending_reference` if independent reviewers are unavailable.
 
 **Continuity note:** older sections below are retained as engineering chronology and may contain then-current phrases such as “pending” or “blocked”. For fresh work, the authoritative current checkpoint above plus `docs/THREAD_HANDOVER_PHASE_11E4F.md`, `PROJECT_STATE.json`, and `STATUS.md` override historical pending-language.
 ## Start here

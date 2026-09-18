@@ -47,7 +47,37 @@ Returns local runtime status including:
 - `writer_database`;
 - `writer_runtime`;
 - whether the legacy/control DB is available;
-- the legacy DB path/error when applicable.
+- the legacy DB path/error when applicable;
+- `unified_writer` language/channel capabilities, including whether German Word Writer and Phrase/Mosaic are ready and whether an English runtime is installed.
+
+## `GET /api/writer?q=<word-or-phrase>`
+
+This is the normal unified product endpoint for the main Writer UI.
+
+Parameters:
+
+- `q=<text>` — one word or a multi-word query;
+- `language=de|en|both` — requested search-language basis;
+- `scope=all|words|phrases` — one UI/result surface, optionally filtered by result kind;
+- `type=<category>` — rhyme/sound-relation filter;
+- `variants=all` — allow stored alternate word pronunciations;
+- `historical=all` — include historical single-word candidates;
+- `word_limit=<n>`, `word_pool=<n>` — bounded frozen Writer-v5 controls;
+- `phrase_limit=<n>`, `phrase_pool=<n>`, `phrase_per_channel=<n>` — bounded Phrase/Mosaic controls.
+
+German single-word queries reuse the frozen `findWriterRhymes()` path unchanged. Phrase/Mosaic results run through the accepted 11D4 retrieval -> 11E2-v2 ranking -> 11E3 diversification stack.
+
+Multi-word user queries are resolved in this order:
+
+1. exact accepted phrase-catalog pronunciation when available;
+2. otherwise deterministic composition of preferred Writer-v5 token pronunciations when every lexical token resolves;
+3. otherwise the query is returned as pronunciation-unresolved; no G2P or guessed IPA is introduced.
+
+The response keeps Word and Phrase/Mosaic channel orders separate. Numeric scores are not treated as globally calibrated across channels; the unified UI groups both channels in one workspace rather than inventing a cross-channel score.
+
+### Language capability
+
+The UI/API contract accepts `de`, `en`, and `both`. At the current Phase 11E4/F checkpoint only the accepted German phonology/runtime exists. `en` therefore returns an explicit unavailable status; `both` runs German and returns an explicit English-unavailable warning. No German scorer is reused to fake English results. When Phase 12 supplies an accepted English runtime, it plugs into this same endpoint/UI contract.
 
 ## `GET /api/stats`
 
@@ -164,9 +194,13 @@ Missing usage is unknown/unranked, not automatically rare.
 
 ## Browser behavior
 
-The browser uses Writer v5 by default and respects server-side writer ordering. Explicit alternative UI sorts remain user overrides.
+The browser has one Writer surface for words and Phrase/Mosaic results. There is no separate Phrase Explorer product UI. The main search field accepts a word or multi-word query; `All / Words / Phrases-Mosaic` filters operate inside the same result workspace.
 
-`ranking=legacy` is only a debugging/regression control option; the normal UI does not need it.
+The language-basis selector is `DE / EN / DE+EN`. Availability is capability-driven by `/api/health`; unavailable English is surfaced explicitly rather than emulated.
+
+Word results keep frozen Writer-v5 server ordering. Phrase/Mosaic results keep accepted 11E2-v2 + 11E3 ordering. Explicit UI sorts operate within each channel.
+
+`ranking=legacy` remains only a debugging/regression control endpoint; the normal unified UI does not use it.
 
 ## Database build commands
 
@@ -194,9 +228,11 @@ Human Writer NDCG@10/20 remains `pending_reference` until the broader German Wri
 
 The server binds to `127.0.0.1` by default. There is no hosted/public API contract and no runtime network dependency in core search.
 
-## Phrase Explorer API — Phase 11B3
+## Phrase catalog/detail diagnostic API
 
-The Phrase Explorer is a separate read-only surface over:
+These read-only endpoints remain available as internal data/detail support for the unified Writer and diagnostics. They are no longer backed by a separate product UI.
+
+The phrase data lives in:
 
 ```text
 data/local/rhymelab-phrases-v1.sqlite
@@ -230,13 +266,9 @@ This is a data-browser ordering, not the future Phrase Writer ranking policy.
 
 Returns phrase tokens, source attestations, Leipzig evidence and generic register evidence. After Phase 11C1 materialization it also returns the preferred citation phrase IPA, syllable/stress data, explicit word-boundary positions, per-token IPA spans and token-resolution diagnostics.
 
-The browser UI is served at:
+`/phrases` now serves the same unified Writer HTML as `/` for backward-compatible bookmarks; the old standalone phrase UI assets were removed.
 
-```text
-http://127.0.0.1:3030/phrases
-```
-
-These endpoints do not alter or participate in the frozen single-word Writer search path.
+These detail/catalog endpoints do not alter the frozen single-word Writer ranking path.
 
 
 
