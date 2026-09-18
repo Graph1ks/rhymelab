@@ -95,6 +95,9 @@
     "entity:pronunciation:owner": "node --no-warnings scripts/run-entity-pronunciation-owner.mjs",
     "entity:pronunciation:wikidata:p898:fetch": "node --no-warnings scripts/fetch-qlever-entity-pronunciations.mjs",
     "entity:pronunciation:wikidata:p898": "node --no-warnings scripts/materialize-wikidata-p898-pronunciations.mjs",
-    "en:phonology:fixture": "node --no-warnings scripts/verify-en-phonology-fixture.mjs"
+    "en:phonology:fixture": "node --no-warnings scripts/verify-en-phonology-fixture.mjs",
+    "en:publish": "node --no-warnings scripts/build-en-rhyme-publish.mjs",
+    "en:publish:verify": "node --no-warnings scripts/verify-en-rhyme-publish.mjs",
+    "en:publish:rebuild": "npm run en:publish && npm run en:publish:verify"
   }
 }

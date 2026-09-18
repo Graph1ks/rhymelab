@@ -204,14 +204,28 @@ bootstrap report       data/local/en-source-bootstrap-v1-report.json
 diagnostic report      data/local/en-source-diagnostics-v1.json
 ```
 
-The source tooling is implemented, but the owner-local ~2.7 GB Kaikki bootstrap/full diagnostic has **not** been run yet. No 12B2 coverage result, final English Writer row count, G2P decision, or English runtime database is accepted or frozen at this checkpoint.
+The owner-local source bootstrap and 12B2 diagnostic are complete, and the 12B3 owner phonology fixture is **PASS** (22 entries / 19 checks / 0 failures).
+
+Phase 12B4 is now implemented as a source-backed publish layer, not a runtime DB:
+
+```text
+contract              docs/ENGLISH_PUBLISH_V1.md
+build                 npm run en:publish
+verify                npm run en:publish:verify
+output                data/local/en-publish-v1/
+schema                rhymelab-en-publish-v1
+G2P                   disabled
+EN product runtime    disabled
+```
+
+The publish cut requires Wiktionary lexical evidence plus at least one source-backed Wiktionary IPA or exact CMUdict pronunciation. Default eligibility is stricter: analyzed en-US pronunciation, not historical-only, not proper-name-only, and not ESDB-invalid. Proper-name/common-word homographs are retained when ordinary lexical evidence exists.
 
 Immediate next engineering gate:
 
-1. run the owner-local English source bootstrap and capture verified SHA-256/source metadata;
-2. run and review the full Kaikki + CMUdict + ESDB + wordfreq source diagnostic;
-3. only then design the English phonology fixture/analyzer/scorer;
-4. then materialize the first separate English Writer DB candidate.
+1. run `npm run en:publish`;
+2. run `npm run en:publish:verify`;
+3. review full-data publish/default-eligible counts, pronunciation analysis failures, locale mix, ESDB/wordfreq evidence and semantic fingerprint;
+4. only after that owner gate design 12B5 indexed English SQLite materialization.
 
 Proposed English DB target:
 

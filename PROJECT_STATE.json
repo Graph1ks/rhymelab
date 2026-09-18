@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B3_ENGLISH_PHONOLOGY_CANDIDATE",
+    "status": "ACTIVE_12B4_ENGLISH_PUBLISH_LAYER_IMPLEMENTED_OWNER_BUILD_PENDING",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B3_FIXTURE_REVIEW_THEN_12B4_SOURCE_BACKED_PUBLISH_LAYER",
+    "next_gate": "PHASE_12B4_OWNER_FULL_PUBLISH_BUILD_VERIFY_AND_REVIEW_BEFORE_12B5",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1344,7 +1344,7 @@
       }
     },
     "phonology_candidate_v1": {
-      "status": "IMPLEMENTED_FIXTURE_CANDIDATE_NOT_RUNTIME_ACCEPTED",
+      "status": "OWNER_FIXTURE_PASS_CANDIDATE_NOT_RUNTIME_ACCEPTED",
       "default_locale": "en-US",
       "analyzer": "en-pron-v1-candidate",
       "scorer": "en-phon-v1-candidate",
@@ -1373,7 +1373,49 @@
         "assonance",
         "consonance",
         "false_orthographic_friends"
-      ]
+      ],
+      "owner_fixture_confirmed": true,
+      "owner_fixture_result": {
+        "status": "ok",
+        "entries": 22,
+        "checks": 19,
+        "failures": 0,
+        "report": "data/local/en-phonology-fixture-v1-report.json"
+      }
+    },
+    "publish_layer_v1": {
+      "status": "IMPLEMENTED_OWNER_FULL_BUILD_PENDING",
+      "contract": "docs/ENGLISH_PUBLISH_V1.md",
+      "schema": "rhymelab-en-publish-v1",
+      "policy": "en-source-backed-publish-v1",
+      "build_command": "npm run en:publish",
+      "verify_command": "npm run en:publish:verify",
+      "rebuild_command": "npm run en:publish:rebuild",
+      "output_directory": "data/local/en-publish-v1",
+      "lexical_requirement": "wiktionary_lexical_evidence_plus_source_backed_pronunciation",
+      "pronunciation_sources": [
+        "wiktionary_ipa",
+        "cmudict_exact_en_us"
+      ],
+      "default_locale": "en-US",
+      "preserve_en_gb": true,
+      "preserve_unqualified_ipa_as_source_attested_unprofiled": true,
+      "default_eligibility_requires": [
+        "analyzed_en_us_pronunciation",
+        "not_historical_only",
+        "not_proper_name_only",
+        "not_esdb_invalid_variant"
+      ],
+      "proper_name_homographs_preserved_when_common_lexical_evidence_exists": true,
+      "wordfreq_role": "ordering_evidence_only_not_materialization_order_or_lexical_truth",
+      "esdb_role": "independent_lexical_variant_guard_evidence",
+      "deterministic_lexical_output_order": true,
+      "per_shard_sha256": true,
+      "semantic_fingerprint": true,
+      "final_writer_row_count_frozen": false,
+      "broad_g2p": false,
+      "english_runtime_materialized": false,
+      "product_en_enabled": false
     }
   },
   "phase_12_entity_lexicon": {
