@@ -1,0 +1,213 @@
+name: QLever Live Probe
+
+on:
+  push:
+    branches: [qlever-live-probe]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Probe QLever with RhymeLab taxonomy
+        shell: bash
+        run: |
+          cat > /tmp/qlever_probe.py <<'PY'
+          import gzip
+          import json
+          import os
+          import sys
+          import time
+          import urllib.parse
+          import urllib.request
+
+          ENDPOINT = "https://qlever.dev/api/wikidata"
+
+          TAXONOMY = [
+              ("P106", "Q2252262", "person.rapper"),
+              ("P106", "Q639669", "person.musician"),
+              ("P106", "Q33999", "person.actor"),
+              ("P106", "Q2526255", "person.director"),
+              ("P31", "Q215380", "group.music_group"),
+              ("P31", "Q10429667", "organization.car_brand"),
+              ("P31", "Q1941779", "organization.fashion_house"),
+              ("P31", "Q4830453", "organization.company"),
+              ("P31", "Q11424", "work.film"),
+              ("P31", "Q7889", "work.video_game"),
+              ("P31", "Q482994", "work.album"),
+              ("P31", "Q7366", "work.song"),
+              ("P31", "Q95074", "fictional.character"),
+          ]
+
+          PREFIX = """PREFIX wd: <http://www.wikidata.org/entity/>
+          PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+          PREFIX schema: <http://schema.org/>
+          PREFIX wikibase: <http://wikiba.se/ontology#>
+          """
+
+          values = "\n".join(
+              f'(wdt:{prop} wd:{qid} "{cat}")'
+              for prop, qid, cat in TAXONOMY
+          )
+
+          def candidate_pattern():
+              return f"""VALUES (?property ?target ?category) {{
+          {values}
+          }}
+          ?item ?property ?target ."""
+
+          def fetch(query, accept="application/sparql-results+json", timeout=600):
+              params = urllib.parse.urlencode({"query": query})
+              req = urllib.request.Request(
+                  ENDPOINT + "?" + params,
+                  headers={
+                      "Accept": accept,
+                      "User-Agent": "Graph1ks-RhymeLab-QLever-Probe/1.0",
+                  },
+              )
+              started = time.time()
+              with urllib.request.urlopen(req, timeout=timeout) as response:
+                  data = response.read()
+                  return data, response.headers.get("Content-Type"), time.time() - started
+
+          def json_bindings(query):
+              data, content_type, elapsed = fetch(query)
+              payload = json.loads(data)
+              rows = payload.get("results", {}).get("bindings", [])
+              return rows, len(data), content_type, elapsed
+
+          def value(binding, name):
+              return binding.get(name, {}).get("value")
+
+          print("=== QLEVER RHYMELAB LIVE PROBE ===")
+          print("endpoint", ENDPOINT)
+
+          count_query = PREFIX + f"""
+          SELECT ?category (COUNT(DISTINCT ?item) AS ?count) WHERE {{
+            {candidate_pattern()}
+          }}
+          GROUP BY ?category
+          ORDER BY ?category
+          """
+          rows, byte_count, ctype, elapsed = json_bindings(count_query)
+          counts = {}
+          print("\n=== CATEGORY COUNTS ===")
+          for row in rows:
+              cat = value(row, "category")
+              count = int(value(row, "count"))
+              counts[cat] = count
+              print(f"{cat}\t{count:,}")
+          print(f"query_bytes={byte_count} content_type={ctype} elapsed_s={elapsed:.3f}")
+
+          total_query = PREFIX + f"""
+          SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{
+            {candidate_pattern()}
+          }}
+          """
+          rows, byte_count, ctype, elapsed = json_bindings(total_query)
+          total = int(value(rows[0], "count"))
+          print("\n=== TOTAL DISTINCT CANDIDATES ===")
+          print(f"{total:,}")
+          print(f"query_bytes={byte_count} content_type={ctype} elapsed_s={elapsed:.3f}")
+
+          checks = {
+              "de_label": '?item rdfs:label ?v . FILTER(LANG(?v) = "de")',
+              "en_label": '?item rdfs:label ?v . FILTER(LANG(?v) = "en")',
+              "de_alias": '?item skos:altLabel ?v . FILTER(LANG(?v) = "de")',
+              "en_alias": '?item skos:altLabel ?v . FILTER(LANG(?v) = "en")',
+              "de_description": '?item schema:description ?v . FILTER(LANG(?v) = "de")',
+              "en_description": '?item schema:description ?v . FILTER(LANG(?v) = "en")',
+              "dewiki": '?article schema:about ?item ; schema:isPartOf <https://de.wikipedia.org/> .',
+              "enwiki": '?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> .',
+              "whitelisted_external_id": 'VALUES ?externalProperty { wdt:P434 wdt:P345 wdt:P1953 wdt:P1902 } ?item ?externalProperty ?externalValue .',
+          }
+          print("\n=== FIELD COVERAGE ===")
+          coverage = {}
+          for name, extra in checks.items():
+              query = PREFIX + f"""
+              SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{
+                {candidate_pattern()}
+                {extra}
+              }}
+              """
+              rows, byte_count, ctype, elapsed = json_bindings(query)
+              count = int(value(rows[0], "count"))
+              coverage[name] = count
+              pct = (count / total * 100) if total else 0
+              print(f"{name}\t{count:,}\t{pct:.2f}%\telapsed_s={elapsed:.3f}")
+
+          membership_query = PREFIX + f"""
+          SELECT DISTINCT ?item ?category WHERE {{
+            {candidate_pattern()}
+          }}
+          """
+          data, ctype, elapsed = fetch(membership_query, "text/tab-separated-values")
+          path = "/tmp/membership.tsv"
+          with open(path, "wb") as f:
+              f.write(data)
+          gz_path = path + ".gz"
+          with gzip.open(gz_path, "wb", compresslevel=9) as f:
+              f.write(data)
+          rows_count = max(0, data.count(b"\n") - 1)
+          print("\n=== FULL MEMBERSHIP EXPORT ===")
+          print(f"rows={rows_count:,}")
+          print(f"raw_bytes={len(data):,}")
+          print(f"gzip_bytes={os.path.getsize(gz_path):,}")
+          print(f"content_type={ctype}")
+          print(f"elapsed_s={elapsed:.3f}")
+
+          bud_core = PREFIX + """
+          SELECT ?labelDe ?labelEn ?descriptionDe ?descriptionEn ?sitelinks WHERE {
+            OPTIONAL { wd:Q221074 rdfs:label ?labelDe . FILTER(LANG(?labelDe) = "de") }
+            OPTIONAL { wd:Q221074 rdfs:label ?labelEn . FILTER(LANG(?labelEn) = "en") }
+            OPTIONAL { wd:Q221074 schema:description ?descriptionDe . FILTER(LANG(?descriptionDe) = "de") }
+            OPTIONAL { wd:Q221074 schema:description ?descriptionEn . FILTER(LANG(?descriptionEn) = "en") }
+            OPTIONAL { wd:Q221074 wikibase:sitelinks ?sitelinks }
+          }
+          """
+          rows, _, _, elapsed = json_bindings(bud_core)
+          print("\n=== BUD SPENCER CORE SAMPLE ===")
+          print(json.dumps(rows[:5], ensure_ascii=False, indent=2))
+          print(f"elapsed_s={elapsed:.3f}")
+
+          bud_alias = PREFIX + """
+          SELECT ?alias WHERE {
+            wd:Q221074 skos:altLabel ?alias .
+            FILTER(LANG(?alias) IN ("de", "en"))
+          }
+          ORDER BY ?alias
+          """
+          rows, _, _, elapsed = json_bindings(bud_alias)
+          print("\n=== BUD SPENCER DE/EN ALIASES ===")
+          print(json.dumps(rows[:30], ensure_ascii=False, indent=2))
+          print(f"count={len(rows)} elapsed_s={elapsed:.3f}")
+
+          bud_ext = PREFIX + """
+          SELECT ?property ?value WHERE {
+            VALUES ?property { wdt:P434 wdt:P345 wdt:P1953 wdt:P1902 }
+            wd:Q221074 ?property ?value .
+          }
+          ORDER BY ?property ?value
+          """
+          rows, _, _, elapsed = json_bindings(bud_ext)
+          print("\n=== BUD SPENCER WHITELISTED EXTERNAL IDS ===")
+          print(json.dumps(rows, ensure_ascii=False, indent=2))
+          print(f"count={len(rows)} elapsed_s={elapsed:.3f}")
+
+          summary = {
+              "total_distinct_candidates": total,
+              "category_counts": counts,
+              "coverage": coverage,
+              "membership_rows": rows_count,
+              "membership_raw_bytes": len(data),
+              "membership_gzip_bytes": os.path.getsize(gz_path),
+          }
+          print("\n=== MACHINE SUMMARY ===")
+          print(json.dumps(summary, sort_keys=True))
+          PY
+          python /tmp/qlever_probe.py
