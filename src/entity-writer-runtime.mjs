@@ -154,14 +154,7 @@ export function entityWriterCapabilities(db) {
     && analyzer === ENTITY_RUNTIME_ANALYZER;
 
   const pronunciations = active
-    ? Number(db.prepare(`
-        SELECT COUNT(*) AS c
-        FROM entity_pronunciation p
-        JOIN entity_phonetic_analysis a USING(pronunciation_id)
-        WHERE a.analyzer_id=?
-          AND p.locale='de-DE'
-          AND p.review_state IN ('accepted','reviewed','accepted_source_composition')
-      `).get(ENTITY_RUNTIME_ANALYZER).c || 0)
+    ? Number(metaValue(db, 'entity_phonetic_analyses') || 0)
     : 0;
   const categories = tableExists(db, 'entity_category')
     ? db.prepare('SELECT DISTINCT category FROM entity_category ORDER BY category')
