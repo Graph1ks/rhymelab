@@ -358,7 +358,7 @@ Positive retrieval evidence exists: `Arbeitsweise` surfaces family candidates, `
 But the gate does **not** authorize 11E. `Leben`, `Feuer`, and `Gedanken` are saturated by the broad final-nucleus/coda-class channel with weak top rows; `Musik` has no mosaic anchor despite being multisyllabic because the reused single-word stressed rhyme domain is only one syllable.
 
 Decision: preserve 11D1/11D2 and open **11D4** as an additive retrieval revision before phrase ranking.
-### Phase 11D4 — mosaic query-domain + candidate-quality revision — IMPLEMENTED / CI PENDING
+### Phase 11D4 — mosaic query-domain + candidate-quality revision — FIXTURE GATE PASS / OWNER A/B PENDING
 
 11D4 is a candidate layer over frozen 11D1/11D2 controls.
 
