@@ -148,7 +148,7 @@ G2P fallback            none
 phrase variants         preferred citation only
 ```
 
-For every phrase token, 11C1 performs exact normalized lookup against the preferred eligible Writer-v5 pronunciation. Unknown tokens remain explicitly unresolved.
+For every phrase token, 11C1 retrieves preferred eligible Writer-v5 candidates by normalized form and resolves collisions deterministically using exact surface/case first, then dictionary/non-entity, currentness, usage and stable ids. Unknown tokens remain explicitly unresolved.
 
 For fully resolved phrases it stores:
 
