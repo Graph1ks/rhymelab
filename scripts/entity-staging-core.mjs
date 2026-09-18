@@ -588,6 +588,10 @@ export function categoryCutDiagnostics(db, taxonomy, options = {}) {
     let tierB = 0;
     let tierC = 0;
     let qrankCoverage = 0;
+    let keptWithQRank = 0;
+    let keptWithoutQRank = 0;
+    let rejectedWithQRank = 0;
+    let rejectedWithoutQRank = 0;
 
     const ranked = rows.map((row, index) => {
       if (row.qrank != null) qrankCoverage += 1;
@@ -597,9 +601,15 @@ export function categoryCutDiagnostics(db, taxonomy, options = {}) {
       if (keep) {
         kept += 1;
         retainedQids?.add(row.qid);
+        if (row.qrank == null) keptWithoutQRank += 1;
+        else keptWithQRank += 1;
         if (tier === 'A') tierA += 1;
         else if (tier === 'B') tierB += 1;
         else tierC += 1;
+      } else if (row.qrank == null) {
+        rejectedWithoutQRank += 1;
+      } else {
+        rejectedWithQRank += 1;
       }
       return {
         qid: row.qid,
@@ -615,8 +625,18 @@ export function categoryCutDiagnostics(db, taxonomy, options = {}) {
       candidates: size,
       qrankCoverage,
       qrankCoveragePct: size ? Math.round(qrankCoverage * 10000 / size) / 100 : 0,
+      qrankMissing: size - qrankCoverage,
       retentionPercentileFloor: size ? Number(rows[0].retention_percentile_floor) : null,
       kept,
+      keptWithQRank,
+      keptWithoutQRank,
+      keptWithoutQRankPct: kept ? Math.round(keptWithoutQRank * 10000 / kept) / 100 : 0,
+      qrankMissingRetentionPct: size - qrankCoverage
+        ? Math.round(keptWithoutQRank * 10000 / (size - qrankCoverage)) / 100
+        : 0,
+      rejectedWithQRank,
+      rejectedWithoutQRank,
+      cutWithinQRankPresentBlock: qrankCoverage < size && keptWithoutQRank === 0,
       rejected: size - kept,
       keptTierA: tierA,
       keptTierB: tierB,

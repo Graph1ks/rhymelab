@@ -222,8 +222,6 @@ test('staging DB joins QRank and produces category-relative cut diagnostics', as
     createQRankStageStorage(qrankDb);
     const insert = qrankDb.prepare('INSERT INTO qrank_stage(qid,qrank) VALUES(?,?)');
     insert.run('Q221074', 900000);
-    insert.run('Q900000011', 100000);
-    insert.run('Q900000012', 10);
     finalizeQRankStage(qrankDb);
     qrankDb.close();
 
@@ -234,7 +232,7 @@ test('staging DB joins QRank and produces category-relative cut diagnostics', as
       categories: 3,
       names: 6,
       externalIds: 0,
-      withQRank: 3,
+      withQRank: 1,
       withDewiki: 2,
       withEnwiki: 3,
     });
@@ -243,7 +241,16 @@ test('staging DB joins QRank and produces category-relative cut diagnostics', as
     const diagnostics = categoryCutDiagnostics(entityDb, taxonomy, { retainedQids });
     const actorRows = diagnostics.find((row) => row.category === 'person.actor');
     assert.equal(actorRows.candidates, 3);
+    assert.equal(actorRows.qrankCoverage, 1);
+    assert.equal(actorRows.qrankMissing, 2);
     assert.equal(actorRows.kept, 2);
+    assert.equal(actorRows.keptWithQRank, 1);
+    assert.equal(actorRows.keptWithoutQRank, 1);
+    assert.equal(actorRows.keptWithoutQRankPct, 50);
+    assert.equal(actorRows.qrankMissingRetentionPct, 50);
+    assert.equal(actorRows.rejectedWithQRank, 0);
+    assert.equal(actorRows.rejectedWithoutQRank, 1);
+    assert.equal(actorRows.cutWithinQRankPresentBlock, false);
     assert.equal(actorRows.top[0].qid, 'Q221074');
     assert.equal(actorRows.tail.at(-1).qid, 'Q900000012');
     assert.equal(actorRows.tail.at(-1).keep, false);
@@ -253,6 +260,18 @@ test('staging DB joins QRank and produces category-relative cut diagnostics', as
     assert.equal(sentinel[0].qid, 'Q221074');
     assert.equal(sentinel[0].pass, true);
     assert.equal(sentinel[0].qrank, 900000);
+
+    entityDb.prepare(
+      'UPDATE entity_stage_category SET retention_percentile_floor=? WHERE category=?',
+    ).run(0.67, 'person.actor');
+    const strictRows = categoryCutDiagnostics(entityDb, taxonomy)
+      .find((row) => row.category === 'person.actor');
+    assert.equal(strictRows.kept, 1);
+    assert.equal(strictRows.keptWithQRank, 1);
+    assert.equal(strictRows.keptWithoutQRank, 0);
+    assert.equal(strictRows.rejectedWithoutQRank, 2);
+    assert.equal(strictRows.qrankMissingRetentionPct, 0);
+    assert.equal(strictRows.cutWithinQRankPresentBlock, true);
   } finally {
     try { entityDb.close(); } catch {}
     try { qrankDb.close(); } catch {}

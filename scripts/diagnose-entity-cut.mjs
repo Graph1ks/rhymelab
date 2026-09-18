@@ -91,6 +91,16 @@ try {
       distinct_retained_entities: report.distinct_retained_entities,
       retained_membership_overlap: report.retained_membership_overlap,
       retained_memberships_per_entity: report.retained_memberships_per_entity,
+      category_cut_summary: report.categories.map((row) => ({
+        category: row.category,
+        candidates: row.candidates,
+        retention_percentile_floor: row.retentionPercentileFloor,
+        qrank_coverage_pct: row.qrankCoveragePct,
+        kept: row.kept,
+        kept_without_qrank: row.keptWithoutQRank,
+        qrank_missing_retention_pct: row.qrankMissingRetentionPct,
+        cut_within_qrank_present_block: row.cutWithinQRankPresentBlock,
+      })),
       report: reportPath,
     };
     console.log(JSON.stringify(compact, null, 2));

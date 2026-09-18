@@ -312,11 +312,16 @@ The reviewed taxonomy currently supplies one `retention_percentile_floor` per ca
 The cut diagnostic computes category-relative percentiles and reports:
 
 - candidate count;
-- QRank coverage;
+- QRank coverage and missing-QRank count;
 - cut floor;
 - kept/rejected count;
+- retained/rejected counts split by QRank present vs missing;
+- retained share among QRank-missing candidates;
+- whether the cut falls entirely inside the QRank-present block;
 - A/B/C retained counts;
 - representative top/tail rows.
+
+The QRank split is decision evidence only. It does not change the current ordering. The v1 diagnostic still places every QRank-present row before every QRank-missing row, then applies Wikipedia sitelinks, DE/EN presence, external IDs, statement count and stable QID ordering. Categories whose retained share is smaller than QRank coverage can therefore cut entirely inside the QRank-present block; those categories require explicit review before the final popularity policy is frozen.
 
 Protected sentinels are never silently removed by the cut.
 
@@ -380,7 +385,8 @@ After CI passes, the next owner gate is:
 4. stage QRank;
 5. run cut diagnostics;
 6. review counts, QRank coverage, size, category tails and Bud Spencer;
-7. only then freeze final cut/popularity policy and materialize the large Entity Lexicon.
+7. verify that low/uneven QRank coverage does not make QRank presence an accidental hard gate in category cuts;
+8. only then freeze final cut/popularity policy and materialize the large Entity Lexicon.
 
 
 ## Owner source bootstrap — pinned 2026-09-18 gate
