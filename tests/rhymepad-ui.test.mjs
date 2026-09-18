@@ -97,3 +97,39 @@ test('RhymePad v14 exposes Entity scope, semantic categories and IPA-bearing car
   assert.match(padCss, /\.entityCategoryBadge/);
   assert.match(padCss, /\.resultKind\.entity/);
 });
+
+
+test('RhymePad UI additions never reparent authoritative v14 controls', () => {
+  assert.doesNotMatch(padApp, /appendChild\(modeTabs\)/);
+  assert.doesNotMatch(padApp, /appendChild\(document\.getElementById/);
+  assert.doesNotMatch(padApp, /rhymePadCommandDeck/);
+  assert.doesNotMatch(padCss, /rhymePadLegacyTopHidden/);
+});
+
+test('RhymePad bar and syllable readability follows the existing editor size variable', () => {
+  assert.match(padCss, /\.rail button b\{/);
+  assert.match(padCss, /\.rail button span\{/);
+  assert.match(padCss, /#barNo,#syl\{/);
+  assert.match(padCss, /var\(--editor-size,17px\)/);
+  assert.doesNotMatch(padApp, /rhymePadRailCounter/);
+});
+
+test('RhymePad suggestions support opt-in auto-scroll without changing search depth', () => {
+  assert.match(padApp, /AUTO_SCROLL_STORAGE_KEY/);
+  assert.match(padApp, /id="rhymeLabAutoScroll"/);
+  assert.match(padApp, /function suggestionAutoScrollFrame\(/);
+  assert.match(padApp, /new MutationObserver\(\(\) => \{/);
+  assert.match(padApp, /word_limit: '250'/);
+  assert.match(padApp, /word_pool: '800'/);
+  assert.match(padApp, /phrase_limit: '250'/);
+  assert.match(padApp, /entity_limit: '250'/);
+  assert.match(padCss, /\.rhymeLabAutoScrollSurface/);
+});
+
+test('RhymePad integration fails visibly instead of silently falling back to demo results', () => {
+  assert.doesNotThrow(() => new Function(padApp));
+  assert.match(padApp, /function initializeRhymeLabPad\(/);
+  assert.match(padApp, /RhymeLab integration failed\./);
+  assert.match(padApp, /root\.dataset\.rhymeLabIntegration = 'failed'/);
+  assert.doesNotMatch(padApp, /\$\([^\n;]*\)\.forEach\(/);
+});
