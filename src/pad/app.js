@@ -326,8 +326,25 @@ function syncEditorMetricScale() {
       ? controlPx
       : 18;
   const metricPx = Math.max(12, Math.min(34, editorPx * 0.72));
+  const railMetricPx = Math.max(10, Math.min(28, editorPx * 0.56));
   root.style.setProperty('--rhymePadEditorFontPx', `${editorPx.toFixed(2)}px`);
   root.style.setProperty('--rhymePadMetricFontPx', `${metricPx.toFixed(2)}px`);
+  root.style.setProperty('--rhymePadRailMetricFontPx', `${railMetricPx.toFixed(2)}px`);
+
+  const rail = $('#rail');
+  if (rail) {
+    $('*', rail).forEach((node) => {
+      if (node.children.length) return;
+      const text = (node.textContent || '').trim();
+      const semanticKey = `${node.id || ''} ${typeof node.className === 'string' ? node.className : ''}`.toLocaleLowerCase('en-US');
+      const looksLikeCounter = /^\d{1,3}$/.test(text)
+        || /^bar\s*\d{1,3}$/i.test(text)
+        || /^\d{1,3}\s*(?:syl|syllables?)$/i.test(text)
+        || semanticKey.includes('syl')
+        || (semanticKey.includes('bar') && /(num|no|number|count)/.test(semanticKey));
+      if (looksLikeCounter) node.classList.add('rhymePadRailCounter');
+    });
+  }
 
   const readout = $('#rhymePadFontSizeReadout');
   if (readout) readout.textContent = `${Math.round(editorPx)} px`;
@@ -430,6 +447,11 @@ function installCommandDeck() {
 
   const editorStyleObserver = new MutationObserver(scheduleMetricScaleSync);
   editorStyleObserver.observe(editor, { attributes: true, attributeFilter: ['style', 'class'] });
+  const rail = $('#rail');
+  if (rail) {
+    const railObserver = new MutationObserver(scheduleMetricScaleSync);
+    railObserver.observe(rail, { childList: true, subtree: true, characterData: true });
+  }
   window.addEventListener('resize', scheduleMetricScaleSync, { passive: true });
   scheduleMetricScaleSync();
 }
