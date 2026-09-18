@@ -8,12 +8,14 @@ import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
 import { getPhraseBrowserStats, getPhraseDetail, openPhraseBrowserDb, searchPhrases } from './phrase-browser-store.mjs';
 import { searchUnifiedWriter, unifiedWriterCapabilities } from './unified-writer-search.mjs';
+import { DEFAULT_ENTITY_DB_PATH, openEntityWriterDb } from './entity-writer-runtime.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
 const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYMELAB_DB || 'data/local/rhymelab.sqlite');
 const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
 const phraseDbPath = resolve(process.env.RHYMELAB_PHRASE_DB || 'data/local/rhymelab-phrases-v1.sqlite');
+const entityDbPath = resolve(process.env.RHYMELAB_ENTITY_DB || DEFAULT_ENTITY_DB_PATH);
 const uiDir = resolve('src/ui');
 const padUiDir = resolve('src/pad');
 const benchmarkUiDir = resolve('src/benchmark-ui');
@@ -46,6 +48,16 @@ try {
   phraseDbError = error instanceof Error ? error.message : String(error);
   console.warn(`Phrase/Mosaic DB unavailable at ${phraseDbPath}`);
   console.warn('Normal Writer runtime remains available; only the Phrase/Mosaic channel is unavailable.');
+}
+
+let entityDb = null;
+let entityDbError = null;
+try {
+  entityDb = openEntityWriterDb(entityDbPath);
+} catch (error) {
+  entityDbError = error instanceof Error ? error.message : String(error);
+  console.warn(`Entity DB unavailable at ${entityDbPath}`);
+  console.warn('Normal Writer runtime remains available; only the Entity rhyme channel is unavailable.');
 }
 
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
@@ -153,7 +165,10 @@ const server = createServer(async (req, res) => {
         phrase_database: phraseDb ? phraseDbPath : null,
         phrase_available: Boolean(phraseDb),
         phrase_error: phraseDb ? null : phraseDbError,
-        unified_writer: unifiedWriterCapabilities({ writerDb, phraseDb }),
+        entity_database: entityDb ? entityDbPath : null,
+        entity_available: Boolean(entityDb),
+        entity_error: entityDb ? null : entityDbError,
+        unified_writer: unifiedWriterCapabilities({ writerDb, phraseDb, entityDb }),
       });
     }
 
@@ -161,7 +176,7 @@ const server = createServer(async (req, res) => {
       const q = url.searchParams.get('q') || '';
       if (!q.trim()) return json(res, { error: 'q is required' }, 400);
       const result = searchUnifiedWriter(
-        { writerDb, phraseDb },
+        { writerDb, phraseDb, entityDb },
         q,
         {
           language: url.searchParams.get('language') || 'de',
@@ -174,6 +189,9 @@ const server = createServer(async (req, res) => {
           phraseLimit: url.searchParams.get('phrase_limit') || url.searchParams.get('limit'),
           phrasePoolLimit: url.searchParams.get('phrase_pool'),
           phrasePerChannelLimit: url.searchParams.get('phrase_per_channel'),
+          entityLimit: url.searchParams.get('entity_limit') || url.searchParams.get('limit'),
+          entityPoolLimit: url.searchParams.get('entity_pool'),
+          entityCategory: url.searchParams.get('entity_category') || 'all',
         },
       );
       const status = result.status === 'language_unavailable'
@@ -260,6 +278,7 @@ server.listen(port, host, () => {
   console.log(`Legacy/control SQLite: ${legacyDb ? legacyDbPath : 'unavailable'}`);
   console.log(`Unified Writer: http://${host}:${port}`);
   console.log(`Phrase/Mosaic SQLite: ${phraseDb ? phraseDbPath : 'unavailable'}`);
+  console.log(`Entity SQLite: ${entityDb ? entityDbPath : 'unavailable'}`);
 });
 
 function shutdown() {
@@ -267,6 +286,7 @@ function shutdown() {
     try { writerDb.close(); } catch {}
     try { legacyDb?.close(); } catch {}
     try { phraseDb?.close(); } catch {}
+    try { entityDb?.close(); } catch {}
     process.exit(0);
   });
 }
