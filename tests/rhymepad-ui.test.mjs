@@ -15,6 +15,8 @@ const padCss = await readFile(new URL('../src/pad/styles.css', import.meta.url),
 test('RhymePad serves the checksum-verified authoritative v14 product surface', () => {
   const { sourceHtml, html, sha256 } = materializeRhymePadV14();
   assert.equal(sha256, RHYMEPAD_V14_SHA256);
+  assert.equal((sourceHtml.match(/id="libraryOpen"/g) || []).length, 1);
+  assert.equal((sourceHtml.match(/id="libraryOverlay"/g) || []).length, 1);
 
   for (const marker of [
     'id="libraryOpen"',
@@ -61,6 +63,8 @@ test('RhymePad live suggestions use RhymeLab at full accepted result depth', () 
   assert.match(padApp, /lyricWords\(\)\.has\(candidate\)/);
   assert.match(padApp, /rhymeLabDeepResults/);
   assert.match(padCss, /html\[data-mode="rhyme"\] \.rhymeLabDeepResults\{display:block\}/);
+  assert.match(padApp, /basis === 'en'/);
+  assert.match(padApp, /original RhymePad phonetic fallback stays active/);
   assert.doesNotMatch(padApp, /candidateBank/);
   assert.doesNotMatch(padApp, /Math\.random/);
 });
