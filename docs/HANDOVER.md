@@ -32,6 +32,31 @@ semantic fingerprint
 
 Current milestone is **Phase 12A — multilingual cultural Entity Lexicon**. Architecture: `docs/ENTITY_LEXICON_PLAN.md`.
 
+The first deterministic fixture/prototype is implemented on branch work and must pass CI + owner-local build before the full dump streamer is started:
+
+```text
+npm run entity:fixture
+
+DB      data/local/rhymelab-entities-v1-fixture.sqlite
+report  data/local/entity-lexicon-v1-fixture-report.json
+```
+
+Expected fixture gate:
+
+```text
+10 input items
+1 structural rejection
+2 category-relative popularity rejections
+7 retained entities
+Bud Spencer / Q221074 = person.actor Tier A
+no arbitrary token aliases
+FTS search works
+pronunciation tables remain empty
+semantic fingerprint repeatable
+```
+
+Fixture popularity inputs are synthetic scales for deterministic tests only; they are not live QRank/pageview measurements.
+
 The Phase 12 sequence is:
 
 ```text
