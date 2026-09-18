@@ -280,7 +280,19 @@ The accepted triage decision is therefore:
 - selected lexical gaps may be revisited later as source-backed background coverage work;
 - no automatic G2P approval from impact ranking;
 - no mutation of the frozen Writer-v5 runtime for this phrase-only coverage tail;
-- after deterministic repeatability is confirmed, Phase 11D may begin.## Phrase Explorer
+- deterministic repeatability is confirmed; Phase 11D may begin.
+
+### Owner repeatability result
+
+Two independent owner-local materializations produced the identical pronunciation fingerprint:
+
+```text
+fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+```
+
+The base catalog fingerprint and all coverage counts also remained unchanged. **Phase 11C1 is accepted and closed.**
+
+## Phrase Explorer
 
 After materialization:
 
