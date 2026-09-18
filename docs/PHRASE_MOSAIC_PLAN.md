@@ -86,7 +86,7 @@ Implemented baseline:
 - deterministic pronunciation fingerprint;
 - hard assertion that the Phase 11B1 base catalog fingerprint is unchanged.
 
-The owner full-data pronunciation gate remains pending.
+The owner full-data pronunciation gate is complete. Two independent owner runs produced the identical pronunciation fingerprint `fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548`; Phase 11C1 is accepted.
 
 Connected-speech variants may be added only when backed by explicit deterministic rules or attested source evidence and must remain distinguishable from lexical citation pronunciations.
 
@@ -99,9 +99,30 @@ Required diagnostics include:
 - boundary/stress preservation;
 - deterministic reconstruction tests.
 
-## Phase 11D — mosaic retrieval architecture
+## Phase 11D — mosaic retrieval architecture — CURRENT
 
 A mosaic rhyme is a phonetic match whose aligned rhyme span can cross one or more word boundaries in the candidate phrase.
+
+### Phase 11D1 — deterministic cross-word window substrate
+
+Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`.
+
+Implemented at fixture/code level:
+
+- materialized 2–6-syllable windows over accepted 11C1 pronunciations;
+- retain only windows with at least one strict interior word boundary;
+- preserve zero-based half-open syllable and phoneme coordinates;
+- preserve overlapping token span and whether a window begins/ends inside a token;
+- store exact phoneme key, exact vowel/nucleus key, stress shape and final coda;
+- materialize exact/vowel/phrase indexes;
+- deterministic row ids and whole-window-table fingerprint;
+- no full-corpus runtime scan is required for exact indexed lookup.
+
+11D1 owner full-data materialization/repeatability remains pending.
+
+### Phase 11D2 — bounded candidate retrieval
+
+After 11D1 owner acceptance, add deterministic query-side candidate generation over indexed keys. Do not introduce broad fuzzy scans; any slant/feature candidate expansion needs an explicit bounded anchor policy and benchmark.
 
 The first architecture should reuse the accepted German phonology/scorer primitives where possible while introducing explicit phrase-span alignment. Candidate generation must avoid scanning every phrase at query time; design materialized/indexed right-edge phrase anchors or an equivalent deterministic local index.
 
@@ -209,7 +230,7 @@ data/local/phrase-catalog-v1-report.json
 
 Review the full source build before Phase 11C. Required diagnostics include phrase/type/history/token distributions, Leipzig 1/2/3-corpus coverage, top/common phrase noise, build size/time, and deterministic repeat fingerprint equality.
 
-Phase 11C1 code is implemented. The remaining gate is the owner-local full pronunciation materialization and repeat-fingerprint review.
+Phase 11C1 is complete and accepted. Phase 11D1 is now the active owner-local full-data gate.
 
 Still explicitly out of scope after 11C1:
 
