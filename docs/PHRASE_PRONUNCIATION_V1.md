@@ -27,21 +27,27 @@ writer inventory          rhymelab-local-db-v5
 
 11C1 does not run a new G2P model and does not guess IPA for unknown tokens.
 
-Every phrase token is looked up by exact normalized surface in the accepted Writer-v5 pronunciation inventory:
+Every phrase token first retrieves Writer-v5 candidates by normalized surface. Candidate selection is then surface-aware so case-distinct lexical collisions such as `tu` vs `TU` do not collapse:
 
 ```text
 phrase_token.normalized
-  -> writer hot.normalized
+  -> Writer candidates with same normalized form
   -> pronunciation_preferred=1
   -> pronunciation_eligible=1
-  -> stored IPA + writer pronunciation id
+  -> surface-aware deterministic selection
+  -> stored IPA + Writer pronunciation id
 ```
 
 Selection is deterministic. When multiple Writer forms share one normalized surface, the resolver prefers:
 
-1. current over historical;
-2. known/lower usage rank;
-3. lower stable Writer form/pronunciation ids.
+1. exact NFKC surface match, including case (`tu` before `TU` for a lowercase token);
+2. dictionary + non-entity form;
+3. any remaining non-entity form;
+4. current over historical;
+5. known/lower usage rank;
+6. lower stable Writer form/pronunciation ids.
+
+This is lexical collision handling, not contextual POS inference. If no Writer candidate exists, the token remains unresolved.
 
 All source ids and selected Writer ids are retained.
 
@@ -67,7 +73,7 @@ One row per source phrase token.
 Important fields:
 
 - phrase/token identity;
-- exact normalized token;
+- normalized candidate retrieval plus surface-aware lexical selection;
 - resolution status;
 - Writer form id;
 - Writer pronunciation-row id;
