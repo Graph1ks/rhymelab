@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B7_INFLECTION_VARIANT_SET_BENCHMARK",
+    "status": "ACTIVE_12B7_PUBLISH_V4_FULL_BUILD_GATE",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B7_OWNER_RUN_INFLECTION_COMPOSITION_DIAGNOSTIC_V2_THEN_DECIDE_MORPHOLOGY_ADMISSION",
+    "next_gate": "PHASE_12B7_OWNER_BUILD_VERIFY_PUBLISH_V4_AND_RUN_COVERAGE_AUDIT_BEFORE_EN_DB_REBUILD",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1384,18 +1384,20 @@
       }
     },
     "publish_layer_v1": {
-      "status": "V2_HISTORY_FIX_OWNER_PASS_V3_PROPER_NAME_FIX_CANDIDATE_IMPLEMENTED",
+      "status": "PUBLISH_V4_MORPHOLOGY_CANDIDATE_IMPLEMENTED_OWNER_FULL_BUILD_PENDING",
       "contract": "docs/ENGLISH_PUBLISH_V1.md",
       "schema": "rhymelab-en-publish-v1",
-      "policy": "en-source-backed-publish-v4-tier-a-candidate",
+      "policy": "en-source-backed-publish-v4-candidate",
       "build_command": "npm run en:publish",
       "verify_command": "npm run en:publish:verify",
       "rebuild_command": "npm run en:publish:rebuild",
       "output_directory": "data/local/en-publish-v1",
-      "lexical_requirement": "wiktionary_lexical_evidence_plus_source_backed_pronunciation",
+      "lexical_requirement": "wiktionary_lexical_evidence_plus_source_backed_or_bounded_source_composed_pronunciation",
       "pronunciation_sources": [
         "wiktionary_ipa",
-        "cmudict_exact_en_us"
+        "cmudict_exact_en_us",
+        "derived_punctuation_alias",
+        "derived_inflection"
       ],
       "default_locale": "en-US",
       "preserve_en_gb": true,
@@ -1447,7 +1449,7 @@
         "semantic_fingerprint": "0be8f5509d4d618f3e2343dc4e543f2b3612c53e1ac02862f962a0006eaf0508",
         "fingerprints_equal": true
       },
-      "candidate_pronunciation_provenance_policy": "en-source-backed-publish-v4-tier-a-candidate",
+      "candidate_pronunciation_provenance_policy": "en-source-backed-publish-v4-candidate",
       "candidate_pronunciation_provenance_owner_rebuild_pending": true,
       "tier_a_recovery": {
         "status": "IMPLEMENTED_OWNER_FULL_BUILD_PENDING",
@@ -1464,7 +1466,7 @@
         "g2p": false
       },
       "regular_inflection_composition": {
-        "status": "V1_OWNER_COMPLETE_V2_VARIANT_SET_IMPLEMENTED_PRODUCTION_DISABLED",
+        "status": "V2_OWNER_ACCEPTED_ENABLED_IN_PUBLISH_V4_CANDIDATE_FULL_BUILD_PENDING",
         "command": "npm run en:pronunciation:inflection:diagnose",
         "report": "data/local/en-inflection-composition-diagnostic-v2-report.json",
         "shapes": [
@@ -1478,8 +1480,8 @@
           "drop_e_ing",
           "ie_to_ying"
         ],
-        "production_enabled": false,
-        "requires_owner_benchmark_review": true,
+        "production_enabled": true,
+        "requires_owner_benchmark_review": false,
         "diagnostic_schema": "rhymelab-en-inflection-composition-diagnostic-v2",
         "owner_v1_result": {
           "publish_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
@@ -1522,11 +1524,64 @@
           ],
           "rationale": "preserve common reduced-vowel variants instead of overfitting production output to CMUdict AH0/IH0 transcription choice",
           "best_supported_variant_control": true
+        },
+        "production_scope": "strict_source_relation_single_hop_only",
+        "owner_v2_result": {
+          "publish_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
+          "control_surfaces": 19993,
+          "phoneme_sequence_match_pct": 95.46,
+          "exact_tail_match_pct": 70.46,
+          "boundary_insensitive_tail_match_pct": 96.02,
+          "syllable_count_match_pct": 99.36,
+          "stress_pattern_match_pct": 96.92,
+          "vowel_family_match_pct": 96.69,
+          "cmudict_base_only": {
+            "surfaces": 19652,
+            "phoneme_sequence_match_pct": 95.73,
+            "boundary_insensitive_tail_match_pct": 96.17,
+            "syllable_count_match_pct": 99.38,
+            "stress_pattern_match_pct": 97.31,
+            "vowel_family_match_pct": 96.8
+          },
+          "suffix_rule_tail_pct": {
+            "past_alveolar_reduced_vowel": 97.06,
+            "past_voiced_d": 97.86,
+            "past_voiceless_t": 97.28,
+            "plural_sibilant_reduced_vowel": 95.47,
+            "plural_voiced_z": 95.24,
+            "plural_voiceless_s": 96.66,
+            "progressive_ing": 95.73
+          },
+          "decision": "accept_bounded_strict_source_backed_single_hop_inflection_composition"
+        },
+        "admission_contract": {
+          "explicit_relation_required": [
+            "form_of",
+            "listed_form_of"
+          ],
+          "exactly_one_lemma_shape_required": true,
+          "source_morphology_tags_required": true,
+          "blocked_tags": [
+            "abbreviation",
+            "initialism",
+            "acronym",
+            "letter",
+            "number",
+            "symbol",
+            "contraction",
+            "misspelling"
+          ],
+          "analyzed_en_us_base_required": true,
+          "derived_inflection_base_forbidden": true,
+          "ambiguous_base_rejected": true,
+          "unresolved_base_rejected": true,
+          "pronunciation_source": "derived_inflection",
+          "broad_g2p": false
         }
       }
     },
     "writer_db_v1": {
-      "status": "V2_HISTORY_FIX_OWNER_BUILD_VERIFY_PASS_CANDIDATE",
+      "status": "PUBLISH_V4_OWNER_BUILD_REVIEW_REQUIRED_BEFORE_EN_DB_REBUILD",
       "contract": "docs/ENGLISH_WRITER_DB_V1.md",
       "schema": "rhymelab-en-writer-db-v1-candidate",
       "database": "data/local/rhymelab-en-v1.sqlite",
@@ -1535,7 +1590,7 @@
       "rebuild_command": "npm run en:db:rebuild",
       "report": "data/local/en-writer-db-v1-report.json",
       "source_publish_repeatability_required": true,
-      "source_publish_fingerprint": "4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124",
+      "source_publish_fingerprint": "PENDING_PUBLISH_V4_OWNER_BUILD",
       "retrieval_policy": "en-indexed-rhyme-retrieval-v1-candidate",
       "retrieval_channels": [
         "exact_stressed_tail",
@@ -1603,7 +1658,7 @@
       }
     },
     "coverage_audit_v1": {
-      "status": "STRICT_TAGLESS_OWNER_RESULT_COMPLETE_PUBLISH_V4_TIER_A_IMPLEMENTED_INFLECTION_BENCHMARK_PENDING",
+      "status": "MORPHOLOGY_V2_ACCEPTED_PUBLISH_V4_FULL_BUILD_AND_COVERAGE_AB_PENDING",
       "contract": "docs/ENGLISH_COVERAGE_AUDIT_V1.md",
       "command": "npm run en:coverage:audit",
       "report": "data/local/en-coverage-audit-v1-report.json",
@@ -2016,6 +2071,34 @@
           "en_gb_boundary_insensitive_tail_match_pct": 49.29,
           "decision": "do_not_promote_or_relabel_tagless_unprofiled_ipa_as_en_us"
         }
+      },
+      "morphology_v2_owner_result": {
+        "publish_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
+        "control_surfaces": 19993,
+        "phoneme_sequence_match_pct": 95.46,
+        "exact_tail_match_pct": 70.46,
+        "boundary_insensitive_tail_match_pct": 96.02,
+        "syllable_count_match_pct": 99.36,
+        "stress_pattern_match_pct": 96.92,
+        "vowel_family_match_pct": 96.69,
+        "cmudict_base_only": {
+          "surfaces": 19652,
+          "phoneme_sequence_match_pct": 95.73,
+          "boundary_insensitive_tail_match_pct": 96.17,
+          "syllable_count_match_pct": 99.38,
+          "stress_pattern_match_pct": 97.31,
+          "vowel_family_match_pct": 96.8
+        },
+        "suffix_rule_tail_pct": {
+          "past_alveolar_reduced_vowel": 97.06,
+          "past_voiced_d": 97.86,
+          "past_voiceless_t": 97.28,
+          "plural_sibilant_reduced_vowel": 95.47,
+          "plural_voiced_z": 95.24,
+          "plural_voiceless_s": 96.66,
+          "progressive_ing": 95.73
+        },
+        "decision": "accept_bounded_strict_source_backed_single_hop_inflection_composition"
       }
     },
     "unknown_query_pronunciation_fallback": {
