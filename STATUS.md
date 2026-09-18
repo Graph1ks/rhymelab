@@ -858,3 +858,6 @@ Phase 12B6 1,000-word stress probe reviewed. Corrected actual-word coverage is 8
 
 
 Phase 12B6 segmented fallback v2 rerun completed. Corrected 1,000-word probe is confirmed at 882/1000 DB coverage and 676/1000 default. The v2 `unqualified_fullword` bucket improved to 70.38% boundary-insensitive tail agreement but is still contaminated by tagged pronunciations. Current gate is diagnostic v3: only tagless full-word no-locale IPA counts as unqualified; tagged-unmapped, other-profiled and partial IPA are separated. No publish-v4 eligibility expansion yet.
+
+
+Phase 12B7: strict tagless IPA owner benchmark closed the locale shortcut (76.52% boundary-insensitive tail / 71.46% full-phone agreement vs en-US), so no General-English -> en-US promotion. Publish-v4 Tier-A candidate now implements exact-CMUdict possessives and explicit punctuation-only aliases. Regular inflection composition remains production-disabled behind `npm run en:pronunciation:inflection:diagnose`.
