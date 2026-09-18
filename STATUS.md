@@ -171,6 +171,21 @@ Bud Spencer             person.actor / Tier A / PASS
 
 Current milestone is **12A2 — Wikidata + QRank staging and category-cut diagnostics**.
 
+Owner source bootstrap is now **ACCEPTED**:
+
+```text
+Wikidata snapshot      20260914
+bytes                  103,137,817,948
+official SHA-1         0a985a65262a665fa33808c7d40a1d42ad28d62c
+local SHA-256          63f20c9595fc81209c975a96ff5c0a2d6895d94541f258d4092fa0f0ad390888
+transport              ACC/Umeå mirror
+QRank bytes            105,533,721
+QRank SHA-256          daf93ed3eaeeb7d9d88237118db44e34880680921e5e8eb3353626e4e76ed4dd
+QRank Last-Modified    2024-03-16
+```
+
+Both raw files are retained locally and gitignored until Phase 12 is complete. QRank's 2026-09-18 label is retrieval provenance only; server metadata reports a 2024 last-modified timestamp, so do not describe it as a 2026-generated popularity snapshot.
+
 The pinned owner-source bootstrap is implemented:
 
 ```text
