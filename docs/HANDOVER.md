@@ -13,6 +13,8 @@ Current milestone: **Phase 11E3 phrase-channel diversification**.
 Phase 11E2-v2 is accepted with suite ranking fingerprint `1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0`. Product rule: Phrase/Mosaic is an optional channel, never a quota in the default single-word result list. Better single-word results may legitimately outrank or fully displace phrase results; an empty phrase channel is valid.
 
 Remaining Phase 11 work is: **11E3 diversity -> 11E4 local runtime/API/UI integration -> 11F dedicated structural/performance benchmark -> Phase 11 close**. Human NDCG may remain `pending_reference` if independent reviewers are unavailable.
+
+**Continuity note:** older sections below are retained as engineering chronology and may contain then-current phrases such as “pending” or “blocked”. For fresh work, the authoritative current checkpoint above plus `docs/THREAD_HANDOVER_PHASE_11E3.md`, `PROJECT_STATE.json`, and `STATUS.md` override historical pending-language.
 ## Start here
 
 Read in order:
