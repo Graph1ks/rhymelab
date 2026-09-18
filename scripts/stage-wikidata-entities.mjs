@@ -6,11 +6,13 @@ import {
   ENTITY_STAGE_POLICY,
   ENTITY_STAGE_SCHEMA,
   createEntityStageStorage,
+  createStageEntityWriter,
+  createTaxonomyRawPrefilter,
   extractStageEntity,
+  finalizeEntityStageStorage,
   openTextLines,
   parseWikidataDumpLine,
   stageStats,
-  writeStageEntity,
 } from './entity-staging-core.mjs';
 
 const args = process.argv.slice(2);
@@ -21,7 +23,8 @@ let reportPath = 'data/local/entity-wikidata-stage-v1-report.json';
 let snapshotLabel = '';
 let sourceUrl = '';
 let inputSha256 = '';
-let transactionSize = 10000;
+let transactionSize = 50000;
+let progressEvery = 250000;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
@@ -33,6 +36,7 @@ for (let i = 0; i < args.length; i += 1) {
   else if (arg === '--source-url') sourceUrl = args[++i] || '';
   else if (arg === '--input-sha256') inputSha256 = args[++i] || '';
   else if (arg === '--transaction-size') transactionSize = Number.parseInt(args[++i] || '', 10) || transactionSize;
+  else if (arg === '--progress-every') progressEvery = Number.parseInt(args[++i] || '', 10) || progressEvery;
 }
 
 if (!inputPath || !snapshotLabel) {
@@ -61,7 +65,9 @@ if (taxonomy.schema !== 'rhymelab-wikidata-entity-taxonomy-v1') {
 }
 
 const db = new DatabaseSync(outPath);
-let parsedLines = 0;
+let linesRead = 0;
+let jsonParsedLines = 0;
+let prefilterSkippedLines = 0;
 let malformedLines = 0;
 let nonItemLines = 0;
 let structuralRejected = 0;
@@ -71,7 +77,7 @@ let batchRows = 0;
 const startedAt = Date.now();
 
 try {
-  db.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA temp_store=MEMORY;');
+  db.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; PRAGMA temp_store=MEMORY; PRAGMA locking_mode=EXCLUSIVE; PRAGMA cache_size=-131072;');
   createEntityStageStorage(db);
 
   const meta = db.prepare('INSERT INTO meta(key,value) VALUES(?,?)');
@@ -86,29 +92,70 @@ try {
   })) meta.run(key, String(value ?? ''));
 
   const stream = openTextLines(inputPath);
+  const prefilter = createTaxonomyRawPrefilter(taxonomy);
+  const writeStage = createStageEntityWriter(db);
+
+  const printProgress = () => {
+    const elapsedMs = Date.now() - startedAt;
+    const elapsedSeconds = Math.max(0.001, elapsedMs / 1000);
+    const linesPerSecond = linesRead / elapsedSeconds;
+    const parsedPct = linesRead ? jsonParsedLines * 100 / linesRead : 0;
+    console.error(
+      '[wikidata-stage] '
+      + `lines=${linesRead.toLocaleString('en-US')} `
+      + `json=${jsonParsedLines.toLocaleString('en-US')} (${parsedPct.toFixed(2)}%) `
+      + `staged=${staged.toLocaleString('en-US')} `
+      + `rate=${Math.round(linesPerSecond).toLocaleString('en-US')} lines/s `
+      + `elapsed=${(elapsedSeconds / 3600).toFixed(2)}h`,
+    );
+  };
+
+  console.error(
+    '[wikidata-stage] '
+    + `decompressor=${stream.decompressor} `
+    + `taxonomy-prefilter-qids=${prefilter.qids.length} `
+    + `transaction-size=${transactionSize.toLocaleString('en-US')}`,
+  );
+
   db.exec('BEGIN');
   try {
     for await (const line of stream.lines) {
-      parsedLines += 1;
+      linesRead += 1;
+
+      if (!prefilter.test(line)) {
+        prefilterSkippedLines += 1;
+        if (progressEvery > 0 && linesRead % progressEvery === 0) printProgress();
+        continue;
+      }
+
+      jsonParsedLines += 1;
       let item;
       try {
         item = parseWikidataDumpLine(line);
       } catch {
         malformedLines += 1;
+        if (progressEvery > 0 && linesRead % progressEvery === 0) printProgress();
         continue;
       }
-      if (!item) continue;
+      if (!item) {
+        if (progressEvery > 0 && linesRead % progressEvery === 0) printProgress();
+        continue;
+      }
       if (item.type && item.type !== 'item') {
         nonItemLines += 1;
+        if (progressEvery > 0 && linesRead % progressEvery === 0) printProgress();
         continue;
       }
+
       ordinal += 1;
       const record = extractStageEntity(item, taxonomy);
       if (!record) {
         structuralRejected += 1;
+        if (progressEvery > 0 && linesRead % progressEvery === 0) printProgress();
         continue;
       }
-      writeStageEntity(db, record, ordinal);
+
+      writeStage(record, ordinal);
       staged += 1;
       batchRows += 1;
 
@@ -116,6 +163,8 @@ try {
         db.exec('COMMIT; BEGIN;');
         batchRows = 0;
       }
+
+      if (progressEvery > 0 && linesRead % progressEvery === 0) printProgress();
     }
     db.exec('COMMIT');
     await stream.done;
@@ -124,7 +173,9 @@ try {
     throw error;
   }
 
-  db.exec('ANALYZE; PRAGMA optimize;');
+  printProgress();
+  finalizeEntityStageStorage(db);
+  db.exec('PRAGMA optimize;');
   const stats = stageStats(db);
   const databaseBytes = (await stat(outPath)).size;
   const elapsedMs = Date.now() - startedAt;
@@ -143,7 +194,12 @@ try {
     taxonomy_policy: taxonomy.policy,
     database: outPath,
     database_bytes: databaseBytes,
-    parsed_lines: parsedLines,
+    lines_read: linesRead,
+    json_parsed_lines: jsonParsedLines,
+    prefilter_skipped_lines: prefilterSkippedLines,
+    json_parse_share_pct: linesRead ? Math.round(jsonParsedLines * 10000 / linesRead) / 100 : 0,
+    taxonomy_prefilter_qids: prefilter.qids,
+    decompressor: stream.decompressor,
     malformed_lines: malformedLines,
     non_item_lines: nonItemLines,
     item_ordinal_count: ordinal,

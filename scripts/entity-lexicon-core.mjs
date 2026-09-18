@@ -110,18 +110,22 @@ function retainedNames(item, taxonomy) {
 
 function externalIds(item, taxonomy) {
   const rows = [];
+  const seen = new Set();
   for (const [propertyId, system] of Object.entries(taxonomy.external_id_whitelist || {})) {
     for (const value of rawClaimValues(item, propertyId)) {
       if (/^Q\d+$/u.test(value)) continue;
-      rows.push({ propertyId, system, value: cleanText(value) });
+      const clean = cleanText(value);
+      if (!clean) continue;
+      const key = `${system}\u001f${clean}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({ propertyId, system, value: clean });
     }
   }
-  return rows
-    .filter((row) => row.value)
-    .sort((a, b) =>
-      a.system.localeCompare(b.system, 'en')
-      || a.value.localeCompare(b.value, 'en')
-    );
+  return rows.sort((a, b) =>
+    a.system.localeCompare(b.system, 'en')
+    || a.value.localeCompare(b.value, 'en')
+  );
 }
 
 function statementCount(item) {
