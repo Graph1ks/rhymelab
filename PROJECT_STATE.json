@@ -1318,8 +1318,8 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "12A2_fixture_ci",
-      "pin_dated_wikidata_and_qrank_snapshots_and_checksums",
+      "12A2_bootstrap_ci",
+      "owner_source_bootstrap_on_D_drive",
       "owner_full_wikidata_stage",
       "owner_full_qrank_stage",
       "owner_cut_diagnostics",
@@ -1352,7 +1352,32 @@
       "qrank_temp_db_disposable": true,
       "runtime_rewired": false,
       "final_popularity_policy_frozen": false,
-      "full_snapshot_download_allowed_after_fixture_ci": true
+      "full_snapshot_download_allowed_after_fixture_ci": true,
+      "owner_source_bootstrap": {
+        "status": "IMPLEMENTED_CI_PENDING",
+        "command": "npm run entity:sources:bootstrap",
+        "report": "data/local/entity-source-bootstrap-v1-report.json",
+        "raw_dir": "data/raw/entity/phase12a-20260918",
+        "wikidata_snapshot": "20260914",
+        "wikidata_filename": "wikidata-20260914-all.json.bz2",
+        "wikidata_bytes": 103137817948,
+        "wikidata_official_sha1": "0a985a65262a665fa33808c7d40a1d42ad28d62c",
+        "wikidata_local_sha256_recorded_after_download": true,
+        "qrank_snapshot_policy": "download_once_2026-09-18_keep_local_raw_sha256_and_headers",
+        "resumable_wikidata_download": true,
+        "uncompressed_wikidata_copy_required": false,
+        "free_space_preflight": true,
+        "bzip2_decompressor_preflight": true
+      },
+      "owner_full_runner": {
+        "command": "npm run entity:owner:stage",
+        "requires_bootstrap_report_status_ok": true,
+        "stages": [
+          "entity:stage:wikidata",
+          "entity:stage:qrank",
+          "entity:cut:diagnose"
+        ]
+      }
     }
   }
 }
