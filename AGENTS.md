@@ -7,7 +7,7 @@ This repository is the authoritative engineering/project memory for RhymeLab. Re
 Before changing the project in a fresh thread/session, read:
 
 1. `docs/HANDOVER.md`
-2. `docs/THREAD_HANDOVER_PHASE_11E3.md`
+2. `docs/PHASE_11_ACCEPTANCE.md`
 3. `STATUS.md`
 4. `PROJECT_STATE.json`
 5. `ROADMAP.md`
@@ -134,16 +134,28 @@ modern_entity_relative_commonness_1decade_0_05
 
 ## Current engineering checkpoint
 
-Current milestone is **Phase 11E4/F runtime integration + final acceptance**. Read `docs/THREAD_HANDOVER_PHASE_11E4F.md` before modifying the integrated Writer surface.
+Phase 11 German phrase/mosaic/phraseology is **complete, accepted and frozen**. Read `docs/PHASE_11_ACCEPTANCE.md` before changing any accepted German Phrase/Mosaic behavior.
 
-11E2-v2 ranking and 11E3 phrase-channel diversification are accepted/frozen. The product now uses one unified Writer UI and `GET /api/writer` for single-word and Phrase/Mosaic search. `All / Words / Phrases-Mosaic` are filters inside that one surface; there is no separate Phrase Explorer product UI. Phrase/Mosaic remains optional, has no quota, and may return zero results.
+The accepted product path is one unified Writer UI at `/` and `GET /api/writer`. There is no separate `/phrases` product route. Phrase catalog/detail APIs remain internal read-only support for result inspection and diagnostics.
 
-The product search-language basis contract is `DE / EN / DE+EN`. German is the only accepted runtime today. English must remain capability-gated until Phase 12 provides an accepted English analyzer/scorer/database; never emulate English with German phonology.
+Frozen product rules:
 
-Remaining Phase 11 sequence: 11E4 integrated-surface owner validation -> 11F structural/provenance/performance/repeatability acceptance -> close Phase 11. Human NDCG remains nonblocking `pending_reference` until independent reviewers exist.
+- single-word Writer v5/v6 remains unchanged;
+- 11D4 retrieval, 11E2-v2 ranking and 11E3 diversity remain frozen;
+- no Phrase/Mosaic quota or forced visibility;
+- no invented cross-channel score calibration;
+- zero Phrase/Mosaic results remain valid;
+- no guessed/G2P pronunciation for unresolved multi-word input;
+- `DE / EN / DE+EN` remains the unified language-basis contract;
+- English stays capability-gated until Phase 12 supplies a real accepted English runtime.
+
+Current next milestone: **Phase 12 — English profile + benchmark**, not yet started.
+
+Do not spend the current data/algorithm phase on cosmetic UI polish or database micro-optimization. Visual/UX refinement, SQLite size/layout optimization, caching and final latency tuning are deferred until the broader databases and search/display algorithms are complete. Human NDCG remains nonblocking `pending_reference` until independent reviewers exist.
+
 ## Current project direction — Phase 11
 
-Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_SOURCE_SURVEY.md`, `docs/PHRASE_CATALOG_V1.md`, and `docs/PHRASE_PRONUNCIATION_V1.md`.
+Phase 11 German phrase/mosaic/phraseology is accepted/frozen; the next roadmap milestone is Phase 12 English. Read `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_SOURCE_SURVEY.md`, `docs/PHRASE_CATALOG_V1.md`, and `docs/PHRASE_PRONUNCIATION_V1.md`.
 
 The owner-local Phase 11B1 full build is complete:
 
@@ -156,7 +168,7 @@ SQLite                 153.74 MiB
 single-word rewired    no
 ```
 
-Phase 11C pronunciation, Phase 11D retrieval, 11E2 ranking and 11E3 diversification are accepted/frozen; current work is the integrated 11E4/F Writer surface. Cologne Kiezdeutsch is allowed as an additive CC BY 4.0 youth/urban/spoken signal; it must not be treated as representative German commonness or as automatic phrase/candidate generation. The bootstrap downloads transcript PDFs only, not audio.
+Phase 11C pronunciation, Phase 11D retrieval, 11E2 ranking, 11E3 diversification and 11E4/F integration/acceptance are accepted/frozen. Cologne Kiezdeutsch is allowed as an additive CC BY 4.0 youth/urban/spoken signal; it must not be treated as representative German commonness or as automatic phrase/candidate generation. The bootstrap downloads transcript PDFs only, not audio.
 
 
 Phase 11B2 diagnostics are complete: 15,449 modern-eligible phrases have Leipzig evidence (15.86%); the raw 98,504-row catalog is intentionally dominated by two-token multiword lexemes and contains abbreviation/surface-alias noise. Do not equate all catalog rows with songwriting phrases.
@@ -193,7 +205,7 @@ Decision: do **not** block Phase 11D on a manual 11C2 lexical-gap campaign. Keep
 
 The repeatability gate passed: two owner full-data runs produced the identical pronunciation fingerprint `fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548`. Phase 11C1 is accepted and closed.
 
-Phases 11D1 and 11D2 are accepted/frozen after exact owner repeatability. Phase 11D3 owner diagnostics are complete. Phase 11D4, 11E2-v2 and 11E3 are accepted/frozen. Current milestone is Phase 11E4/F; read `docs/THREAD_HANDOVER_PHASE_11E4F.md` before changing the integrated Writer path.
+Phases 11D1 and 11D2 are accepted/frozen after exact owner repeatability. Phase 11D3 owner diagnostics are complete. Phase 11D4, 11E2-v2, 11E3 and the integrated 11E4/F surface are accepted/frozen. Read `docs/PHASE_11_ACCEPTANCE.md` before changing the German integrated Writer path.
 Phase 11D1 owner repeatability is accepted:
 
 ```text
