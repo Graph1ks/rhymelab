@@ -1195,7 +1195,7 @@
     "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
     "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
   ],
-  "next_milestone": "PHASE_12A2_DISTINCT_RETAINED_COUNT_AND_FINAL_CUT_POLICY_REVIEW",
+  "next_milestone": "PHASE_12A2_QRANK_FALLBACK_USAGE_AND_FINAL_CUT_POLICY_REVIEW",
   "phase_12_english": {
     "status": "PLANNED_AFTER_12A",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -1320,13 +1320,14 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "rerun_cut_diagnostic_for_distinct_retained_entity_count_only",
-      "review_distinct_retained_count_against_500k_1200k_and_preferred_600k_900k_ranges",
+      "review_owner_distinct_retained_count_complete_1077927_inside_allowed_range_above_preferred_range",
+      "rerun_cut_diagnostic_with_qrank_present_missing_retention_split_only",
+      "review_categories_whose_cut_falls_entirely_inside_qrank_present_block",
       "review_low_qrank_coverage_categories_and_fallback_ordering",
-      "freeze_source_acquisition_and_final_cut_policy"
+      "freeze_source_acquisition_and_final_cut_policy_only_if_category_behavior_is_plausible"
     ],
     "staging_v1": {
-      "status": "OWNER_QLEVER_RUN_PASSED_DISTINCT_RETAINED_RECOUNT_PENDING",
+      "status": "OWNER_DISTINCT_RECOUNT_PASSED_QRANK_FALLBACK_REVIEW_PENDING",
       "contract": "docs/ENTITY_STAGING_V1.md",
       "source_registry": "sources/entity/phase12a-sources-v1.json",
       "wikidata_stage_schema": "rhymelab-entity-stage-v1",
@@ -1547,7 +1548,41 @@
         "cut_diagnostic_completed": true,
         "all_sentinels_pass": true,
         "cut_policy_frozen": false,
-        "note": "Owner command returned cleanly to PowerShell prompt after full cut diagnostic. Final cut freeze waits only for distinct retained entity count and distribution review."
+        "note": "Owner command returned cleanly to PowerShell prompt after full cut diagnostic. Distinct retained recount is now 1,077,927; final cut freeze waits for category-level QRank-missing fallback review."
+      },
+      "owner_distinct_retained_recount": {
+        "status": "PASSED_WITHIN_ALLOWED_RANGE_ABOVE_PREFERRED_RANGE",
+        "completed_at": "2026-09-18",
+        "command": "npm run entity:cut:diagnose -- --skip-qrank-join",
+        "total_kept_category_memberships": 1109302,
+        "distinct_retained_entities": 1077927,
+        "retained_membership_overlap": 31375,
+        "retained_memberships_per_entity": 1.029107,
+        "allowed_target_range": [
+          500000,
+          1200000
+        ],
+        "preferred_working_range": [
+          600000,
+          900000
+        ],
+        "all_sentinels_pass": true,
+        "interpretation": "allowed_global_size_but_above_preferred_working_range_overlap_is_small",
+        "final_cut_policy_frozen": false
+      },
+      "qrank_fallback_review": {
+        "status": "PENDING_OWNER_RERUN_AFTER_DIAGNOSTIC_CI",
+        "ordering_contract": "qrank_present_first_then_qrank_desc_then_wikipedia_sitelinks_de_en_presence_external_ids_statement_count_qid",
+        "diagnostic_fields": [
+          "keptWithQRank",
+          "keptWithoutQRank",
+          "qrankMissingRetentionPct",
+          "cutWithinQRankPresentBlock"
+        ],
+        "owner_command": "npm run entity:cut:diagnose -- --skip-qrank-join",
+        "fetch_required": false,
+        "entity_restage_required": false,
+        "qrank_restage_required": false
       }
     }
   }
