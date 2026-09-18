@@ -1,7 +1,8 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { createReadStream } from 'node:fs';
+import { createReadStream, existsSync } from 'node:fs';
 import { createGunzip } from 'node:zlib';
 import readline from 'node:readline';
+import { basename, resolve } from 'node:path';
 import { classifyEntity, normalizeEntityName } from './entity-lexicon-core.mjs';
 
 export const ENTITY_STAGE_SCHEMA = 'rhymelab-entity-stage-v1';
@@ -123,24 +124,44 @@ export function parseWikidataDumpLine(line) {
 }
 
 function commandExists(command) {
+  if (existsSync(command)) return true;
   const probe = process.platform === 'win32'
     ? spawnSync('where.exe', [command], { stdio: 'ignore' })
     : spawnSync('sh', ['-lc', `command -v "${command}" >/dev/null 2>&1`], { stdio: 'ignore' });
   return probe.status === 0;
 }
 
+function windows7ZipCandidates() {
+  const values = [
+    process.env.ProgramFiles && resolve(process.env.ProgramFiles, '7-Zip', '7z.exe'),
+    process.env['ProgramFiles(x86)'] && resolve(process.env['ProgramFiles(x86)'], '7-Zip', '7z.exe'),
+    'C:\\Program Files\\7-Zip\\7z.exe',
+    'C:\\Program Files (x86)\\7-Zip\\7z.exe',
+  ];
+  return [...new Set(values.filter(Boolean))];
+}
+
+function is7ZipCommand(command) {
+  return /^(?:7z|7zz)(?:\.exe)?$/iu.test(basename(String(command)));
+}
+
 function bz2Command(path) {
   const explicit = String(process.env.RHYMELAB_BZIP2_CMD || '').trim();
   if (explicit) {
-    if (/^(?:7z|7zz)$/iu.test(explicit)) return { command: explicit, args: ['x', '-so', path] };
+    if (!commandExists(explicit)) {
+      throw new Error(`RHYMELAB_BZIP2_CMD does not exist or is not executable: ${explicit}`);
+    }
+    if (is7ZipCommand(explicit)) return { command: explicit, args: ['x', '-so', path] };
     return { command: explicit, args: ['-dc', path] };
   }
 
   const candidates = process.platform === 'win32'
     ? [
       { command: '7z', args: ['x', '-so', path] },
+      { command: '7z.exe', args: ['x', '-so', path] },
       { command: '7zz', args: ['x', '-so', path] },
       { command: 'bzip2', args: ['-dc', path] },
+      ...windows7ZipCandidates().map((command) => ({ command, args: ['x', '-so', path] })),
     ]
     : [
       { command: 'lbzip2', args: ['-dc', path] },
@@ -174,7 +195,8 @@ export function openTextLines(path) {
     const selected = bz2Command(path);
     if (!selected) {
       throw new Error(
-        'Cannot stream .bz2: install 7-Zip/bzip2/lbzip2 or set RHYMELAB_BZIP2_CMD. '
+        'Cannot stream .bz2: install 7-Zip (winget install --id 7zip.7zip -e), '
+        + 'bzip2/lbzip2 or set RHYMELAB_BZIP2_CMD to the executable path. '
         + 'The importer deliberately does not require an uncompressed Wikidata copy.',
       );
     }
