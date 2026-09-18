@@ -7,16 +7,17 @@ This repository is the authoritative engineering/project memory for RhymeLab. Re
 Before changing the project in a fresh thread/session, read:
 
 1. `docs/HANDOVER.md`
-2. `STATUS.md`
-3. `PROJECT_STATE.json`
-4. `ROADMAP.md`
-5. `DATA_SOURCES.md`
-6. `docs/WRITER_SEARCH_ACCEPTANCE.md`
-7. `docs/PHRASE_MOSAIC_PLAN.md`
-8. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
-9. `docs/REPOSITORY_GOVERNANCE.md`
-10. `docs/BENCHMARK.md` for rhyme-quality/ranking work
-11. `docs/API.md` for local API work
+2. `docs/THREAD_HANDOVER_PHASE_11E3.md`
+3. `STATUS.md`
+4. `PROJECT_STATE.json`
+5. `ROADMAP.md`
+6. `DATA_SOURCES.md`
+7. `docs/WRITER_SEARCH_ACCEPTANCE.md`
+8. `docs/PHRASE_MOSAIC_PLAN.md`
+9. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
+10. `docs/REPOSITORY_GOVERNANCE.md`
+11. `docs/BENCHMARK.md` for rhyme-quality/ranking work
+12. `docs/API.md` for local API work
 
 ## Public-repository guardrails
 
@@ -131,6 +132,13 @@ Accepted general ranking policy for the legacy/control engine:
 modern_entity_relative_commonness_1decade_0_05
 ```
 
+## Current engineering checkpoint
+
+Current milestone is **Phase 11E3 phrase-channel diversification**. Read `docs/THREAD_HANDOVER_PHASE_11E3.md` before modifying phrase/mosaic code.
+
+11E2-v2 is accepted/frozen with suite ranking fingerprint `1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0`. Do not add a Phrase/Mosaic quota to the default result page. Phrase results may legitimately sit below better single-word results or be absent; they remain available through an explicit filter/channel.
+
+Remaining Phase 11 sequence: 11E3 deterministic phrase-channel diversity -> 11E4 local runtime/API/UI integration -> 11F dedicated Phrase/Mosaic final benchmark -> close Phase 11. Human NDCG remains nonblocking `pending_reference` until independent reviewers exist.
 ## Current project direction — Phase 11
 
 Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_SOURCE_SURVEY.md`, `docs/PHRASE_CATALOG_V1.md`, and `docs/PHRASE_PRONUNCIATION_V1.md`.
