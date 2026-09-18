@@ -553,13 +553,46 @@ function rowsForFingerprint(db, table, columns, orderBy) {
 }
 
 export function computePhraseCatalogFingerprint(db) {
+  // The Phase 11B1 catalog fingerprint intentionally covers only source/snapshot
+  // rows that participate in the core phrase-attestation or Leipzig-usage graph.
+  // Additive register layers (Cologne/RUEG) reuse phrase_source/phrase_snapshot for
+  // provenance, but must not mutate the frozen B1 semantic fingerprint.
+  const phraseSource = db.prepare(`
+    SELECT
+      src.source_id,src.name,src.role,src.homepage_url,src.license_id,src.license_url,
+      src.attribution,src.redistribution_policy
+    FROM phrase_source src
+    WHERE EXISTS (
+      SELECT 1
+      FROM phrase_snapshot s
+      JOIN phrase_attestation a ON a.snapshot_id=s.snapshot_id
+      WHERE s.source_id=src.source_id
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM phrase_snapshot s
+      JOIN phrase_usage_evidence u ON u.snapshot_id=s.snapshot_id
+      WHERE s.source_id=src.source_id
+    )
+    ORDER BY src.source_id
+  `).all();
+  const phraseSnapshot = db.prepare(`
+    SELECT
+      s.snapshot_id,s.source_id,s.snapshot_label,s.artifact_sha256,s.upstream_url,
+      s.evidence_year,s.genre,s.country,s.metadata_json
+    FROM phrase_snapshot s
+    WHERE EXISTS (
+      SELECT 1 FROM phrase_attestation a WHERE a.snapshot_id=s.snapshot_id
+    )
+    OR EXISTS (
+      SELECT 1 FROM phrase_usage_evidence u WHERE u.snapshot_id=s.snapshot_id
+    )
+    ORDER BY s.snapshot_id
+  `).all();
+
   const payload = {
-    phrase_source: rowsForFingerprint(db, 'phrase_source', [
-      'source_id','name','role','homepage_url','license_id','license_url','attribution','redistribution_policy',
-    ], 'source_id'),
-    phrase_snapshot: rowsForFingerprint(db, 'phrase_snapshot', [
-      'snapshot_id','source_id','snapshot_label','artifact_sha256','upstream_url','evidence_year','genre','country','metadata_json',
-    ], 'snapshot_id'),
+    phrase_source: phraseSource,
+    phrase_snapshot: phraseSnapshot,
     phrase: rowsForFingerprint(db, 'phrase', [
       'phrase_id','canonical','normalized','token_key','token_count','phrase_types_json',
       'historical_state','modern_eligible','identity_fingerprint',
