@@ -123,6 +123,7 @@
               <option value="best">Best of everything</option>
               <option value="words">Words only</option>
               <option value="phrases">Phrases / Mosaic only</option>
+              <option value="entities">Entities only</option>
               <option value="multisyllabic_perfect">Multisyllabic perfect</option>
               <option value="perfect">Perfect rhyme</option>
               <option value="multisyllabic_slant">Multisyllabic slant</option>
@@ -134,9 +135,10 @@
           </label>
           <label class="rhyme-only-control">Scope
             <select id="rhymeScope">
-              <option value="all">Words + phrases</option>
+              <option value="all">Words + phrases + entities</option>
               <option value="words">Words</option>
               <option value="phrases">Phrases / Mosaic</option>
+              <option value="entities">Entities</option>
             </select>
           </label>
           <label class="rhyme-only-control">Relation
@@ -149,6 +151,30 @@
               <option value="slant">Slant rhyme</option>
               <option value="assonance">Assonance</option>
               <option value="consonance">Consonance</option>
+            </select>
+          </label>
+          <label class="entity-filter-control">Entity category
+            <select id="entityCategory">
+              <option value="all">All entities</option>
+              <optgroup label="People">
+                <option value="person.rapper">Rapper</option>
+                <option value="person.musician">Musicians</option>
+                <option value="person.actor">Actors</option>
+                <option value="person.director">Directors</option>
+              </optgroup>
+              <optgroup label="Music / culture">
+                <option value="group.music_group">Bands / music groups</option>
+                <option value="work.song">Songs</option>
+                <option value="work.album">Albums</option>
+                <option value="work.film">Films</option>
+                <option value="work.video_game">Games</option>
+                <option value="fictional.character">Fictional characters</option>
+              </optgroup>
+              <optgroup label="Brands / organizations">
+                <option value="organization.car_brand">Car brands</option>
+                <option value="organization.fashion_house">Fashion houses</option>
+                <option value="organization.company">Companies</option>
+              </optgroup>
             </select>
           </label>
         </div>
