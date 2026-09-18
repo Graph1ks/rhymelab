@@ -103,6 +103,7 @@
     "en:db": "node --no-warnings scripts/build-en-writer-db.mjs",
     "en:db:verify": "node --no-warnings scripts/verify-en-writer-db.mjs",
     "en:db:rebuild": "npm run en:db && npm run en:db:verify",
-    "en:coverage:audit": "node --no-warnings scripts/analyze-en-coverage-funnel.mjs"
+    "en:coverage:audit": "node --no-warnings scripts/analyze-en-coverage-funnel.mjs",
+    "en:coverage:sample": "node --no-warnings scripts/sample-en-coverage-candidates.mjs"
   }
 }
