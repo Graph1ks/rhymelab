@@ -5,6 +5,7 @@ import {
   evaluateRankedEntityCutRows,
   rankControlEntityCutRows,
   rankHybridEntityCutRows,
+  rankHybridV2EntityCutRows,
   summarizeEvaluatedEntityCutRows,
 } from '../scripts/entity-cut-hybrid-core.mjs';
 
@@ -103,4 +104,81 @@ test('protected sentinels remain retained below a category floor', () => {
     new Set(['Q221074']),
   );
   assert.equal(evaluated.find((entry) => entry.qid === 'Q221074').keep, true);
+});
+
+
+test('hybrid v2 preserves v1 scores exactly when QRank is present', () => {
+  const rows = [
+    row('Q30', { qrank: 1000, sitelinks: 10, de: 1, en: 1, externalIds: 2, statements: 20 }),
+    row('Q31', { qrank: 500, sitelinks: 5, de: 1, en: 0, externalIds: 1, statements: 10 }),
+    row('Q32', { qrank: 100, sitelinks: 1, statements: 3 }),
+  ];
+  const v1 = rankHybridEntityCutRows(rows);
+  const v2 = rankHybridV2EntityCutRows(rows);
+  assert.deepEqual(
+    v2.map((entry) => [entry.qid, entry.candidate_score_ppm]),
+    v1.map((entry) => [entry.qid, entry.candidate_score_ppm]),
+  );
+  assert.ok(v2.every((entry) => entry.candidate_available_weight_pct === 100));
+});
+
+test('hybrid v2 raises missing-QRank ceiling without full renormalization', () => {
+  const rows = [
+    row('Q40', { qrank: 1000 }),
+    row('Q41', {
+      qrank: null,
+      sitelinks: 100,
+      de: 1,
+      en: 1,
+      externalIds: 4,
+      statements: 100,
+    }),
+  ];
+  const v1Missing = rankHybridEntityCutRows(rows).find((entry) => entry.qid === 'Q41');
+  const v2Missing = rankHybridV2EntityCutRows(rows).find((entry) => entry.qid === 'Q41');
+
+  assert.equal(v1Missing.candidate_score_ppm, 450000);
+  assert.equal(v2Missing.candidate_raw_score_ppm, 450000);
+  assert.equal(v2Missing.candidate_available_evidence_score_ppm, 1000000);
+  assert.equal(v2Missing.candidate_available_weight_pct, 45);
+  assert.equal(v2Missing.candidate_score_ppm, 670820);
+  assert.ok(v2Missing.candidate_score_ppm > v1Missing.candidate_score_ppm);
+  assert.ok(v2Missing.candidate_score_ppm < 1000000);
+});
+
+test('hybrid v2 can admit strong missing-QRank structural evidence across a strict cut', () => {
+  const rows = [
+    row('Q50', { qrank: 100, sitelinks: 100, de: 1, en: 1, externalIds: 4, statements: 100 }),
+    row('Q51', { qrank: 80, sitelinks: 10, de: 1, en: 0, externalIds: 1, statements: 10 }),
+    row('Q52', { qrank: 60, sitelinks: 1, statements: 3 }),
+    row('Q53', { qrank: 40, statements: 2 }),
+    row('Q54', {
+      qrank: null,
+      sitelinks: 90,
+      de: 1,
+      en: 1,
+      externalIds: 4,
+      statements: 90,
+    }),
+    row('Q55'),
+    row('Q56'),
+    row('Q57'),
+  ];
+
+  const v1 = evaluateRankedEntityCutRows(rankHybridEntityCutRows(rows), 0.75);
+  const v2 = evaluateRankedEntityCutRows(rankHybridV2EntityCutRows(rows), 0.75);
+
+  assert.equal(v1.find((entry) => entry.qid === 'Q54').keep, false);
+  assert.equal(v2.find((entry) => entry.qid === 'Q54').keep, true);
+  assert.ok(v2.find((entry) => entry.qid === 'Q54').candidate_score_ppm > 450000);
+});
+
+test('hybrid v2 does not give weak missing-QRank rows a neutral popularity prior', () => {
+  const rows = [
+    row('Q60', { qrank: 100 }),
+    row('Q61', { qrank: null }),
+  ];
+  const v2Missing = rankHybridV2EntityCutRows(rows).find((entry) => entry.qid === 'Q61');
+  assert.equal(v2Missing.candidate_score_ppm, 0);
+  assert.equal(v2Missing.candidate_available_evidence_score_ppm, 0);
 });
