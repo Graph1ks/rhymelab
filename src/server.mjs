@@ -44,7 +44,7 @@ try {
 } catch (error) {
   phraseDbError = error instanceof Error ? error.message : String(error);
   console.warn(`Phrase browser DB unavailable at ${phraseDbPath}`);
-  console.warn('Normal Writer runtime remains available; /phrases will show the missing local phrase DB state.');
+  console.warn('Normal Writer runtime remains available; only the Phrase/Mosaic channel is unavailable.');
 }
 
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
@@ -58,8 +58,6 @@ const assets = {
   '/benchmark/': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
   '/benchmark/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'styles.css')) },
   '/benchmark/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'app.js')) },
-  '/phrases': { type: 'text/html; charset=utf-8', body: writerHtml },
-  '/phrases/': { type: 'text/html; charset=utf-8', body: writerHtml },
 };
 
 function json(res, data, status = 200, allowCors = true) {
