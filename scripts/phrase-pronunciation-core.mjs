@@ -4,7 +4,7 @@ import { computePhraseCatalogFingerprint } from './phrase-catalog-core.mjs';
 
 export const PHRASE_PRONUNCIATION_SCHEMA = 'rhymelab-phrase-pronunciation-v1';
 export const PHRASE_PRONUNCIATION_POLICY = 'de-phrase-pronunciation-v1';
-export const PHRASE_TOKEN_RESOLVER_POLICY = 'writer-v5-preferred-normalized-exact-v1';
+export const PHRASE_TOKEN_RESOLVER_POLICY = 'writer-v5-preferred-surface-aware-v2';
 export const PHRASE_CITATION_COMPOSITION_POLICY = 'preferred-token-citation-composition-v1';
 export const PHRASE_BOUNDARY_POLICY = 'explicit-word-boundary-v1';
 export const PHRASE_CONNECTED_SPEECH_POLICY = 'attested-or-explicit-rule-only-v1';
@@ -67,6 +67,57 @@ function assertWriterDb(writerDb) {
   return schema;
 }
 
+function exactSurface(value) {
+  return String(value ?? '').normalize('NFKC').trim();
+}
+
+function writerCandidatePriority(tokenSurface, row) {
+  const exactSurfaceMatch = exactSurface(tokenSurface) === exactSurface(row.surface);
+  const dictionaryLike = row.lexicon_layer === 'dictionary' && !row.entity_kind;
+  const nonEntity = !row.entity_kind;
+  return [
+    exactSurfaceMatch ? 0 : 1,
+    dictionaryLike ? 0 : 1,
+    nonEntity ? 0 : 1,
+    Number(row.historical || 0),
+    row.usage_rank == null ? 1 : 0,
+    row.usage_rank ?? Number.MAX_SAFE_INTEGER,
+    Number(row.form_id),
+    Number(row.pronunciation_id),
+  ];
+}
+
+function comparePriority(a, b) {
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const delta = Number(a[i] ?? 0) - Number(b[i] ?? 0);
+    if (delta) return delta;
+  }
+  return 0;
+}
+
+function chooseWriterCandidate(token, rows) {
+  if (!rows.length) return null;
+  const ordered = [...rows].sort((a, b) =>
+    comparePriority(
+      writerCandidatePriority(token.surface, a),
+      writerCandidatePriority(token.surface, b),
+    )
+  );
+  const selected = ordered[0];
+  const surfaceMatched = exactSurface(token.surface) === exactSurface(selected.surface);
+  let selectionBasis = 'normalized_fallback';
+  if (surfaceMatched) selectionBasis = 'exact_surface';
+  else if (selected.lexicon_layer === 'dictionary' && !selected.entity_kind) {
+    selectionBasis = 'dictionary_fallback';
+  } else if (!selected.entity_kind) selectionBasis = 'non_entity_fallback';
+  return {
+    ...selected,
+    normalizedFormCandidates: new Set(rows.map((row) => Number(row.form_id))).size,
+    selectionBasis,
+    surfaceMatched,
+  };
+}
+
 function resolveWriterForms(phraseDb, writerDb) {
   const normalized = phraseDb.prepare(
     "SELECT DISTINCT normalized FROM phrase_token WHERE normalized<>'' ORDER BY normalized",
@@ -77,9 +128,10 @@ function resolveWriterForms(phraseDb, writerDb) {
     const marks = batch.map(() => '?').join(',');
     const rows = writerDb.prepare(
       'SELECT id pronunciation_id,publish_order form_id,surface,normalized,historical,usage_rank,ipa,' +
-      'pronunciation_source,pronunciation_flags FROM hot WHERE normalized IN (' + marks + ') ' +
+      'pronunciation_source,pronunciation_flags,lexicon_layer,entity_kind,pos,lemma ' +
+      'FROM hot WHERE normalized IN (' + marks + ') ' +
       'AND pronunciation_preferred=1 AND pronunciation_eligible=1 ' +
-      'ORDER BY normalized,historical,usage_rank IS NULL,usage_rank,publish_order,id',
+      'ORDER BY normalized,publish_order,id',
     ).all(...batch);
     for (const row of rows) {
       const list = candidates.get(row.normalized) || [];
@@ -88,16 +140,9 @@ function resolveWriterForms(phraseDb, writerDb) {
     }
   }
 
-  const selected = new Map();
   const formIds = [];
-  for (const value of normalized) {
-    const rows = candidates.get(value) || [];
-    if (!rows.length) continue;
-    selected.set(value, {
-      ...rows[0],
-      normalizedFormCandidates: new Set(rows.map((row) => Number(row.form_id))).size,
-    });
-    formIds.push(Number(rows[0].form_id));
+  for (const rows of candidates.values()) {
+    for (const row of rows) formIds.push(Number(row.form_id));
   }
 
   const counts = new Map();
@@ -108,11 +153,15 @@ function resolveWriterForms(phraseDb, writerDb) {
       marks + ') GROUP BY publish_order',
     ).all(...batch)) counts.set(Number(row.form_id), Number(row.pronunciation_count));
   }
-  for (const row of selected.values()) row.availablePronunciations = counts.get(Number(row.form_id)) || 1;
-  return { normalized, selected };
+  for (const rows of candidates.values()) {
+    for (const row of rows) {
+      row.availablePronunciations = counts.get(Number(row.form_id)) || 1;
+    }
+  }
+  return { normalized, candidates };
 }
 
-function writeTokenResolutions(phraseDb, selected) {
+function writeTokenResolutions(phraseDb, candidates) {
   const insert = phraseDb.prepare([
     'INSERT INTO phrase_token_pronunciation_resolution(',
     'phrase_id,token_index,normalized,status,resolver_policy,writer_form_id,writer_pronunciation_id,writer_surface,ipa,',
@@ -121,13 +170,18 @@ function writeTokenResolutions(phraseDb, selected) {
   ].join(''));
   const byToken = new Map();
   const reasons = new Map();
+  const selectionBasisCounts = new Map();
 
   for (const token of phraseDb.prepare(
-    'SELECT phrase_id,token_index,normalized FROM phrase_token ORDER BY phrase_id,token_index',
+    'SELECT phrase_id,token_index,surface,normalized FROM phrase_token ORDER BY phrase_id,token_index',
   ).all()) {
-    const writer = selected.get(token.normalized) || null;
+    const writer = chooseWriterCandidate(token, candidates.get(token.normalized) || []);
     const status = writer ? 'resolved_preferred' : 'unresolved_no_writer_form';
     if (!writer) reasons.set(status, (reasons.get(status) || 0) + 1);
+    else selectionBasisCounts.set(
+      writer.selectionBasis,
+      (selectionBasisCounts.get(writer.selectionBasis) || 0) + 1,
+    );
     const row = {
       phraseId: token.phrase_id,
       tokenIndex: Number(token.token_index),
@@ -143,16 +197,25 @@ function writeTokenResolutions(phraseDb, selected) {
       candidateCount: writer?.normalizedFormCandidates ?? 0,
       source: writer?.pronunciation_source ?? null,
       flags: writer?.pronunciation_flags || '[]',
+      selectionBasis: writer?.selectionBasis ?? null,
     };
     insert.run(
       row.phraseId,row.tokenIndex,row.normalized,row.status,PHRASE_TOKEN_RESOLVER_POLICY,
       row.writerFormId,row.writerPronunciationId,row.writerSurface,row.ipa,row.historical,row.usageRank,
       row.pronunciationCount,row.candidateCount,row.source,row.flags,
-      json({ source_database_schema: 'rhymelab-local-db-v5', matching: 'exact_normalized_form' }),
+      json({
+        source_database_schema: 'rhymelab-local-db-v5',
+        matching: writer?.selectionBasis ?? 'no_match',
+        token_surface: token.surface,
+        selected_lexicon_layer: writer?.lexicon_layer ?? null,
+        selected_entity_kind: writer?.entity_kind ?? null,
+        selected_pos: writer?.pos ?? null,
+        selected_lemma: writer?.lemma ?? null,
+      }),
     );
     byToken.set(row.phraseId + '\u001f' + row.tokenIndex, row);
   }
-  return { byToken, reasons };
+  return { byToken, reasons, selectionBasisCounts };
 }
 
 function composePhrase(phrase, tokens, byToken) {
@@ -345,7 +408,7 @@ export function materializePhrasePronunciations(phraseDb, writerDb) {
       'DELETE FROM phrase_token_pronunciation_resolution;',
     ].join('\n'));
     const resolved = resolveWriterForms(phraseDb, writerDb);
-    const tokenResult = writeTokenResolutions(phraseDb, resolved.selected);
+    const tokenResult = writeTokenResolutions(phraseDb, resolved.candidates);
     const phraseResult = writePhrases(phraseDb, tokenResult.byToken);
     const baseAfter = computePhraseCatalogFingerprint(phraseDb);
     if (baseAfter !== baseBefore) {
@@ -376,6 +439,7 @@ export function materializePhrasePronunciations(phraseDb, writerDb) {
       tokenCoverage: stats.tokenResolutions ? stats.resolvedTokens / stats.tokenResolutions : 0,
       phraseCoverage: phraseResult.phraseCount ? phraseResult.ready / phraseResult.phraseCount : 0,
       unresolvedReasonCounts: Object.fromEntries([...tokenResult.reasons.entries()].sort()),
+      selectionBasisCounts: Object.fromEntries([...tokenResult.selectionBasisCounts.entries()].sort()),
       ineligiblePhraseReasonCounts: Object.fromEntries([...phraseResult.reasons.entries()].sort()),
     };
   } catch (error) {
