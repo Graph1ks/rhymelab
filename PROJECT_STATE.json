@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B6_STRICT_TAGLESS_IPA_DIAGNOSTIC",
+    "status": "ACTIVE_12B7_PUBLISH_V4_TIER_A_AND_INFLECTION_BENCHMARK",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B6_OWNER_RUN_PRONUNCIATION_FALLBACK_DIAGNOSTIC_V3_THEN_DEFINE_PUBLISH_V4",
+    "next_gate": "PHASE_12B7_OWNER_RUN_INFLECTION_COMPOSITION_DIAGNOSTIC_THEN_DECIDE_MORPHOLOGY_ADMISSION",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1387,7 +1387,7 @@
       "status": "V2_HISTORY_FIX_OWNER_PASS_V3_PROPER_NAME_FIX_CANDIDATE_IMPLEMENTED",
       "contract": "docs/ENGLISH_PUBLISH_V1.md",
       "schema": "rhymelab-en-publish-v1",
-      "policy": "en-source-backed-publish-v3-candidate",
+      "policy": "en-source-backed-publish-v4-tier-a-candidate",
       "build_command": "npm run en:publish",
       "verify_command": "npm run en:publish:verify",
       "rebuild_command": "npm run en:publish:rebuild",
@@ -1447,8 +1447,40 @@
         "semantic_fingerprint": "0be8f5509d4d618f3e2343dc4e543f2b3612c53e1ac02862f962a0006eaf0508",
         "fingerprints_equal": true
       },
-      "candidate_pronunciation_provenance_policy": "en-source-backed-publish-v3.2-candidate",
-      "candidate_pronunciation_provenance_owner_rebuild_pending": true
+      "candidate_pronunciation_provenance_policy": "en-source-backed-publish-v4-tier-a-candidate",
+      "candidate_pronunciation_provenance_owner_rebuild_pending": true,
+      "tier_a_recovery": {
+        "status": "IMPLEMENTED_OWNER_FULL_BUILD_PENDING",
+        "punctuation_alias": {
+          "rule": "explicit_wiktionary_alt_of_plus_punctuation_only_identity_plus_exactly_one_analyzed_en_us_lemma",
+          "pronunciation_source": "derived_punctuation_alias",
+          "diagnostic_ranked_population": 168
+        },
+        "cmudict_possessive": {
+          "rule": "exact_cmudict_surface_plus_apostrophe_possessive_parse_plus_source_backed_analyzed_en_us_base",
+          "diagnostic_ranked_population": 4036
+        },
+        "wordfreq_is_lexical_truth": false,
+        "g2p": false
+      },
+      "regular_inflection_composition": {
+        "status": "IMPLEMENTED_DIAGNOSTIC_ONLY_PRODUCTION_DISABLED",
+        "command": "npm run en:pronunciation:inflection:diagnose",
+        "report": "data/local/en-inflection-composition-diagnostic-v1-report.json",
+        "shapes": [
+          "s_suffix",
+          "es_suffix",
+          "y_to_ies",
+          "ed_suffix",
+          "e_to_ed",
+          "y_to_ied",
+          "ing_suffix",
+          "drop_e_ing",
+          "ie_to_ying"
+        ],
+        "production_enabled": false,
+        "requires_owner_benchmark_review": true
+      }
     },
     "writer_db_v1": {
       "status": "V2_HISTORY_FIX_OWNER_BUILD_VERIFY_PASS_CANDIDATE",
@@ -1528,7 +1560,7 @@
       }
     },
     "coverage_audit_v1": {
-      "status": "OWNER_1000_WORD_RERUN_PASS_FALLBACK_V2_REVIEWED_STRICT_V3_PENDING",
+      "status": "STRICT_TAGLESS_OWNER_RESULT_COMPLETE_PUBLISH_V4_TIER_A_IMPLEMENTED_INFLECTION_BENCHMARK_PENDING",
       "contract": "docs/ENGLISH_COVERAGE_AUDIT_V1.md",
       "command": "npm run en:coverage:audit",
       "report": "data/local/en-coverage-audit-v1-report.json",
@@ -1863,7 +1895,7 @@
         "rerun_ignored_metadata_lines": 3
       },
       "pronunciation_provenance_fix": {
-        "status": "V2_OWNER_RERUN_REVIEWED_STRICT_V3_IMPLEMENTED_OWNER_RERUN_PENDING",
+        "status": "V3_OWNER_COMPLETE_NO_EN_US_PROMOTION",
         "current_owner_publish_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
         "candidate_publish_policy": "en-source-backed-publish-v3.2-candidate",
         "diagnostic_schema": "rhymelab-en-pronunciation-fallback-diagnostic-v3",
@@ -1913,7 +1945,34 @@
         ],
         "acceptance_rule": "only_tagless_fullword_no-locale_ipa_may_be_considered_for_general_english_fallback",
         "command": "npm run en:pronunciation:fallback:diagnose",
-        "no_publish_rebuild_required_for_diagnostic": true
+        "no_publish_rebuild_required_for_diagnostic": true,
+        "owner_v3_result": {
+          "publish_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
+          "surface_inventory": {
+            "analyzed_en_us": 111574,
+            "analyzed_en_gb": 32855,
+            "analyzed_no_mapped_locale": 46840,
+            "analyzed_unqualified_fullword": 42442,
+            "analyzed_other_profiled_fullword": 3768,
+            "analyzed_tagged_unmapped_fullword": 1972,
+            "analyzed_unmapped_partial": 769
+          },
+          "strict_tagless_vs_en_us": {
+            "surfaces": 17427,
+            "exact_tail_match_pct": 73.27,
+            "boundary_insensitive_tail_match_pct": 76.52,
+            "boundary_insensitive_tail_plus_stress_match_pct": 71.39,
+            "phoneme_sequence_match_pct": 71.46,
+            "syllable_count_match_pct": 97.34,
+            "stress_pattern_match_pct": 82.94,
+            "vowel_family_match_pct": 78.03
+          },
+          "other_profiled_boundary_insensitive_tail_match_pct": 13.31,
+          "tagged_unmapped_boundary_insensitive_tail_match_pct": 18.52,
+          "partial_boundary_insensitive_tail_match_pct": 4.08,
+          "en_gb_boundary_insensitive_tail_match_pct": 49.29,
+          "decision": "do_not_promote_or_relabel_tagless_unprofiled_ipa_as_en_us"
+        }
       }
     },
     "unknown_query_pronunciation_fallback": {
