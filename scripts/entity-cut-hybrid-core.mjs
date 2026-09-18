@@ -64,7 +64,7 @@ function integerSqrt(value) {
   let n = BigInt(value);
   if (n < 0n) throw new RangeError('integerSqrt requires a non-negative value');
   if (n < 2n) return Number(n);
-  let x0 = 1n << (BigInt(n.toString(2).length) >> 1n);
+  let x0 = 1n << ((BigInt(n.toString(2).length) + 1n) >> 1n);
   let x1 = (x0 + n / x0) >> 1n;
   while (x1 < x0) {
     x0 = x1;
