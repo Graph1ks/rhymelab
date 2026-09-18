@@ -260,7 +260,11 @@ Top-100k dominant losses are 17,667 without source-backed pronunciation, 12,469 
 
 A concrete history-classification defect was identified: record tags and all sense tags were flattened before history classification, so one archaic/obsolete/dated sense could classify an otherwise current entry as historical evidence. The candidate fix uses sense-aware `historical_only` semantics and versions the publish policy as `en-source-backed-publish-v2-candidate`.
 
-The current gate is an owner A/B rebuild of publish -> DB -> coverage audit before any ranking work.
+The history-fix owner A/B is now PASS and repeatable. Published surface count stayed at 147,904, while default-eligible surfaces rose from 72,946 to 75,695 (+2,749) and ranked-default surfaces rose by 2,503. Top-10k default coverage improved from 89.03% to 94.38%; Top-100k improved from 50.46% to 52.52%. Historical-only losses collapsed from 567 to 1 in Top-10k and from 2,670 to 208 in Top-100k.
+
+The rerun exposed a second analogous defect: sense-level `proper-noun` / `proper-name` tags were being flattened into record-level proper-name evidence. This can exclude common lexical records such as `college`. Candidate publish policy `en-source-backed-publish-v3-candidate` fixes proper-name evidence to use POS or record-level tags only.
+
+The coverage audit now also quantifies three rescue channels before ranking: independent ESDB+CMUdict evidence for non-Wiktionary lexical gaps, regular-inflection-shape candidates whose lemma already has analyzed en-US pronunciation, and locale-only pronunciation gaps (en-GB / unprofiled / unresolved).
 
 Proposed English DB target:
 
