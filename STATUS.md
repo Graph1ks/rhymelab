@@ -867,3 +867,6 @@ Phase 12B7 inflection control v1 complete: 19,993 controls, 94.42% full-phone an
 
 
 Phase 12B7 morphology v2 benchmark PASSED for bounded source-backed composition: 95.46% full-phone / 96.02% boundary-insensitive tail across 19,993 controls; weak epenthetic rules now reach 95-97% tail agreement. Publish policy candidate advanced to `en-source-backed-publish-v4-candidate` with strict one-hop `derived_inflection` provenance. Next gate: full publish-v4 build/verify + coverage A/B; English DB rebuild remains deferred.
+
+
+Post-English execution order is now documented in `docs/POST_ENGLISH_ROADMAP.md`: English must receive the same two-dimensional Writer concept as German — quality/utility plus greedy diversity/redundancy suppression — with English-specific calibration. After EN runtime/ranking acceptance, resume Entity pronunciation + prominence/diversity ranking, then optimize the final DE+EN+Entity hot path toward <100 ms warm p95 while preserving accepted result fingerprints.
