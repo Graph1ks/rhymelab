@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "PHASE_12A2_WIKIDATA_QRANK_STAGING",
+  "phase": "PHASE_12B_ENGLISH_SINGLE_WORD_WRITER",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -1188,16 +1188,19 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "run_one_command_entity_pronunciation_owner_workflow_with_p898_source_layer",
-    "require_de_runtime_fingerprint_38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3_to_remain_unchanged",
-    "inspect_retained_entity_p898_coverage_by_language_category_and_tier",
-    "combine_p898_and_cmudict_evidence_to_define_english_pronunciation_promotion_policy",
-    "prioritize_remaining_multilingual_source_gaps_before_any_g2p_candidate"
+    "create_versioned_english_source_manifests_for_kaikki_cmudict_esdb_wordfreq",
+    "implement_owner_local_english_source_bootstrap_with_checksums",
+    "stream_filter_raw_enwiktionary_wiktextract_for_lang_code_en",
+    "measure_english_lexical_form_pronunciation_dialect_history_source_coverage",
+    "measure_cmudict_exact_match_and_esdb_wordfreq_overlap",
+    "design_real_english_phonology_fixture_analyzer_scorer_after_source_diagnostics",
+    "materialize_separate_data_local_rhymelab_en_v1_sqlite_only_after_diagnostics"
   ],
-  "next_milestone": "PHASE_12A3_WIKIDATA_P898_SOURCE_EVIDENCE_OWNER_BUILD",
+  "next_milestone": "PHASE_12B1_ENGLISH_SOURCE_MANIFESTS_BOOTSTRAP_AND_DIAGNOSTICS",
   "phase_12_english": {
-    "status": "PLANNED_AFTER_12A",
+    "status": "ACTIVE_SOURCE_STACK_SELECTED_IMPLEMENTATION_PENDING",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
+    "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
     "language_basis_contract": [
       "de",
@@ -1207,10 +1210,79 @@
     "active_runtime_languages": [
       "de"
     ],
-    "must_not_emulate_english_with_german_phonology": true
+    "english_runtime_capability_gated": true,
+    "must_not_emulate_english_with_german_phonology": true,
+    "separate_database_during_development": true,
+    "proposed_database": "data/local/rhymelab-en-v1.sqlite",
+    "initial_default_pronunciation_profile": "en-US",
+    "preserve_source_backed_en_gb_variants": true,
+    "raw_source_scale_research": {
+      "kaikki_english_distinct_word_forms": 1390507,
+      "kaikki_english_senses": 1787236,
+      "enwiktionary_dump": "2026-09-02",
+      "kaikki_extraction": "2026-09-16",
+      "raw_jsonl_gb": 23.5,
+      "raw_gzip_gb": 2.7,
+      "interpretation": "raw_source_universe_not_default_writer_row_count"
+    },
+    "selected_sources": {
+      "primary_lexical": {
+        "id": "english_wiktionary_via_raw_kaikki_wiktextract",
+        "role": [
+          "lexical_inventory",
+          "forms",
+          "pos",
+          "form_relations",
+          "register_history",
+          "ipa",
+          "dialect_tags"
+        ],
+        "license": "Wiktionary CC BY-SA + GFDL",
+        "status": "SELECTED"
+      },
+      "primary_en_us_pronunciation": {
+        "id": "cmudict",
+        "role": [
+          "exact_en_US_pronunciation",
+          "alternate_pronunciations",
+          "lexical_stress"
+        ],
+        "status": "SELECTED",
+        "existing_pinned_commit": "74790861f652b15e4ac49015a90074ad62a27690",
+        "existing_pinned_git_blob": "2c0411740cce3e2026a80b90b650d5f6a7258164"
+      },
+      "secondary_lexical_guard": {
+        "id": "esdb_scowl_v2",
+        "role": [
+          "dialect_spelling",
+          "variants",
+          "inflection",
+          "basic_pos",
+          "lexical_quality"
+        ],
+        "status": "SELECTED"
+      },
+      "usage_commonness": {
+        "id": "wordfreq",
+        "role": [
+          "initial_usage_commonness_candidate"
+        ],
+        "status": "SELECTED_CANDIDATE_NOT_FINAL_ACCEPTANCE_TRUTH",
+        "data_snapshot_through_approx": "2021",
+        "warning": "benchmark_modern_songwriting_rap_vocabulary_before_final_acceptance"
+      }
+    },
+    "source_truth_boundaries": [
+      "usage_is_ordering_evidence_not_lexical_truth",
+      "cmudict_is_pronunciation_overlay_not_lexical_universe",
+      "esdb_is_quality_dialect_inflection_evidence_not_pronunciation_or_fine_frequency_truth",
+      "historical_obsolete_forms_hidden_by_default_not_deleted",
+      "no_broad_g2p_before_source_coverage_diagnostics"
+    ],
+    "next_gate": "12B1_source_manifests_bootstrap_plus_12B2_source_diagnostics"
   },
   "phase_12_entity_lexicon": {
-    "status": "12A3_COVERAGE_MEASURED_P898_SOURCE_EVIDENCE_IMPLEMENTED_OWNER_BUILD_PENDING",
+    "status": "DEFERRED_FROZEN_CHECKPOINT_WHILE_PHASE_12B_ACTIVE",
     "plan": "docs/ENTITY_LEXICON_PLAN.md",
     "database": "data/local/rhymelab-entities-v1.sqlite",
     "runtime_local_only": true,
@@ -1319,12 +1391,10 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "owner_de_runtime_baseline_fingerprint_38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3",
-      "owner_coverage_diagnostic_fingerprint_69e6ec4d14091d22c5a76ca5869d38908f09f95fcac248b2e6791f329ad99bfa",
-      "materialize_selective_wikidata_p898_as_source_attested_unprofiled",
-      "require_zero_p898_runtime_promotion_and_unchanged_de_runtime_fingerprint",
-      "measure_p898_preferred_name_coverage_by_category_tier",
-      "use_p898_plus_cmudict_evidence_before_any_g2p_candidate"
+      "DEFERRED_DO_NOT_EXECUTE_DURING_PHASE_12B",
+      "preserve_hybrid_v2_fingerprint_337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201",
+      "preserve_de_entity_runtime_fingerprint_38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3",
+      "when_resumed_run_p898_owner_workflow_then_reuse_accepted_english_profile"
     ],
     "staging_v1": {
       "status": "HYBRID_V2_OWNER_AB_ACCEPTED_PHASE_12A2_CLOSED",
@@ -1795,6 +1865,9 @@
         "runtime_network": false,
         "build_time_qlever_selective": true
       }
-    }
+    },
+    "deferred_checkpoint": "docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md",
+    "resume_after": "accepted_initial_english_single_word_writer_runtime_checkpoint",
+    "owner_p898_workflow_executed": false
   }
 }
