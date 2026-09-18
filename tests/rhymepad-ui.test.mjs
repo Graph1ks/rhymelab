@@ -106,24 +106,32 @@ test('RhymePad UI additions never reparent authoritative v14 controls', () => {
   assert.doesNotMatch(padCss, /rhymePadLegacyTopHidden/);
 });
 
-test('RhymePad bar and syllable readability follows the existing editor size variable', () => {
-  assert.match(padCss, /\.rail button b\{/);
-  assert.match(padCss, /\.rail button span\{/);
-  assert.match(padCss, /#barNo,#syl\{/);
+test('RhymePad bar and syllable readability scales conservatively inside rail cards', () => {
+  assert.match(padCss, /\.rail button\{[\s\S]*overflow:hidden/);
+  assert.match(padCss, /\.rail button b\{[\s\S]*clamp\(11px,[^;]*,16px\)/);
+  assert.match(padCss, /\.rail button span\{[\s\S]*clamp\(8px,[^;]*,10px\)/);
+  assert.match(padCss, /#barNo,#syl\{[\s\S]*clamp\(18px,[^;]*,26px\)/);
   assert.match(padCss, /var\(--editor-size,17px\)/);
   assert.doesNotMatch(padApp, /rhymePadRailCounter/);
 });
 
-test('RhymePad suggestions support opt-in auto-scroll without changing search depth', () => {
+test('RhymePad suggestions use one inspector scrollbar with endless opt-in auto-scroll', () => {
   assert.match(padApp, /AUTO_SCROLL_STORAGE_KEY/);
   assert.match(padApp, /id="rhymeLabAutoScroll"/);
-  assert.match(padApp, /function suggestionAutoScrollFrame\(/);
+  assert.match(padApp, /function suggestionScrollRange\(/);
+  assert.match(padApp, /suggestions\.closest\('\.inspector'\)/);
+  assert.match(padApp, /inspector\.scrollTop = start/);
+  assert.match(padApp, /inspector\.scrollTop = Math\.min\(end/);
+  assert.match(padApp, /state\.autoScrollPauseUntil = timestamp \+ 850/);
   assert.match(padApp, /new MutationObserver\(\(\) => \{/);
   assert.match(padApp, /word_limit: '250'/);
   assert.match(padApp, /word_pool: '800'/);
   assert.match(padApp, /phrase_limit: '250'/);
   assert.match(padApp, /entity_limit: '250'/);
-  assert.match(padCss, /\.rhymeLabAutoScrollSurface/);
+  assert.match(padCss, /\.inspector\{[\s\S]*overflow-x:hidden!important/);
+  assert.match(padCss, /\.rhymeLabAutoScrollSurface\{[\s\S]*max-height:none!important;[\s\S]*overflow:visible!important/);
+  assert.doesNotMatch(padCss, /\.rhymeLabAutoScrollSurface\{[^}]*overflow-y:auto/);
+  assert.doesNotMatch(padCss, /\.rhymeLabAutoScrollSurface\{[^}]*scrollbar-gutter/);
 });
 
 test('RhymePad integration fails visibly instead of silently falling back to demo results', () => {

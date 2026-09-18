@@ -271,23 +271,47 @@ function stopSuggestionAutoScroll() {
   state.autoScrollLastTs = 0;
 }
 
+function suggestionScrollRange() {
+  const inspector = suggestions.closest('.inspector');
+  const section = suggestions.closest('.section');
+  if (!inspector || !section) return null;
+
+  const inspectorRect = inspector.getBoundingClientRect();
+  const sectionRect = section.getBoundingClientRect();
+  const sectionTop = inspector.scrollTop + sectionRect.top - inspectorRect.top;
+  const sectionBottom = sectionTop + section.offsetHeight;
+  const maxContainerScroll = Math.max(0, inspector.scrollHeight - inspector.clientHeight);
+  const start = Math.max(0, Math.min(maxContainerScroll, sectionTop - 6));
+  const end = Math.max(
+    start,
+    Math.min(maxContainerScroll, sectionBottom - inspector.clientHeight + 10),
+  );
+
+  return { inspector, start, end };
+}
+
 function suggestionAutoScrollFrame(timestamp) {
   if (!state.autoScrollEnabled) {
     stopSuggestionAutoScroll();
     return;
   }
 
-  const maxScroll = Math.max(0, suggestions.scrollHeight - suggestions.clientHeight);
+  const range = suggestionScrollRange();
   const previous = state.autoScrollLastTs || timestamp;
   const elapsed = Math.min(64, Math.max(0, timestamp - previous));
   state.autoScrollLastTs = timestamp;
 
-  if (!document.hidden && timestamp >= state.autoScrollPauseUntil && maxScroll > 2) {
-    if (suggestions.scrollTop >= maxScroll - 1) {
-      suggestions.scrollTop = 0;
-      state.autoScrollPauseUntil = timestamp + 900;
+  if (range && !document.hidden && timestamp >= state.autoScrollPauseUntil && range.end > range.start + 2) {
+    const { inspector, start, end } = range;
+
+    if (inspector.scrollTop < start - 2 || inspector.scrollTop > end + 2) {
+      inspector.scrollTop = start;
+      state.autoScrollPauseUntil = timestamp + 350;
+    } else if (inspector.scrollTop >= end - 1) {
+      inspector.scrollTop = start;
+      state.autoScrollPauseUntil = timestamp + 850;
     } else {
-      suggestions.scrollTop = Math.min(maxScroll, suggestions.scrollTop + elapsed * 0.022);
+      inspector.scrollTop = Math.min(end, inspector.scrollTop + elapsed * 0.045);
     }
   }
 
@@ -296,8 +320,10 @@ function suggestionAutoScrollFrame(timestamp) {
 
 function restartSuggestionAutoScroll({ reset = false } = {}) {
   stopSuggestionAutoScroll();
-  if (reset) suggestions.scrollTop = 0;
+  const range = suggestionScrollRange();
+  if (reset && range) range.inspector.scrollTop = range.start;
   if (!state.autoScrollEnabled) return;
+  state.autoScrollPauseUntil = performance.now() + 250;
   state.autoScrollFrame = requestAnimationFrame(suggestionAutoScrollFrame);
 }
 
@@ -316,7 +342,7 @@ function setSuggestionAutoScroll(enabled, { persist = true } = {}) {
     }
   }
 
-  restartSuggestionAutoScroll();
+  restartSuggestionAutoScroll({ reset: state.autoScrollEnabled });
 }
 
 function installSuiteNavigation() {
@@ -397,14 +423,15 @@ function installRhymeLabControls() {
     setSuggestionAutoScroll(autoScrollInput.checked);
   });
 
-  for (const eventName of ['pointerenter', 'focusin', 'wheel', 'touchstart']) {
-    suggestions.addEventListener(eventName, () => {
-      state.autoScrollPauseUntil = performance.now() + 2200;
+  const inspector = suggestions.closest('.inspector');
+  for (const eventName of ['wheel', 'touchstart', 'pointerdown', 'focusin']) {
+    inspector?.addEventListener(eventName, () => {
+      state.autoScrollPauseUntil = performance.now() + 3000;
     }, { passive: true });
   }
 
   const suggestionObserver = new MutationObserver(() => {
-    restartSuggestionAutoScroll({ reset: true });
+    restartSuggestionAutoScroll({ reset: state.autoScrollEnabled });
   });
   suggestionObserver.observe(suggestions, { childList: true, subtree: false });
   setSuggestionAutoScroll(state.autoScrollEnabled, { persist: false });
