@@ -43,7 +43,7 @@ try {
   phraseDb = openPhraseBrowserDb(phraseDbPath);
 } catch (error) {
   phraseDbError = error instanceof Error ? error.message : String(error);
-  console.warn(`Phrase browser DB unavailable at ${phraseDbPath}`);
+  console.warn(`Phrase/Mosaic DB unavailable at ${phraseDbPath}`);
   console.warn('Normal Writer runtime remains available; only the Phrase/Mosaic channel is unavailable.');
 }
 
