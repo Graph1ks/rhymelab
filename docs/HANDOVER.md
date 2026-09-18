@@ -6,7 +6,7 @@ Repository state is authoritative. Do not reconstruct project state from prior c
 
 ## Active milestone
 
-**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. 12B3 candidate is current.**
+**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. 12B4 publish owner gate is current.**
 
 Read first:
 
@@ -79,9 +79,11 @@ ESDB candidate coverage                    22.19%
 wordfreq candidate coverage                17.92%
 ```
 
-12B3 candidate now provides deterministic CMUdict ARPAbet + Wiktionary IPA normalization, English-specific rhyme features/scoring, US/UK and rhotic/non-rhotic fixture coverage, and a 22-entry / 19-check fixture command: `npm run en:phonology:fixture`.
+12B3 now has an owner-confirmed fixture PASS: 22 entries / 19 checks / 0 failures. It provides deterministic CMUdict ARPAbet + Wiktionary IPA normalization, English-specific rhyme features/scoring, and US/UK plus rhotic/non-rhotic coverage.
 
-English remains candidate-gated; no English runtime DB or broad G2P is accepted yet. Next engineering stage after fixture review is 12B4 source-backed publish materialization.
+12B4 source-backed publish is implemented. Contract: `docs/ENGLISH_PUBLISH_V1.md`. Commands: `npm run en:publish` then `npm run en:publish:verify`. Output stays local under `data/local/en-publish-v1/`.
+
+English remains candidate-gated; no English runtime DB or broad G2P is accepted yet. The current gate is the full-data 12B4 owner build/verify review before 12B5 SQLite materialization.
 
 ## Product contract
 
@@ -267,18 +269,18 @@ diagnostic report     data/local/en-source-diagnostics-v1.json
 
 Pinned static artifacts are CMUdict `74790861…`, ESDB/SCOWL v2 `1e5b7d3a…`, and wordfreq `912caf64…`. The moving Kaikki raw URL is guarded against the selected 2026-09-02 Wiktionary dump / 2026-09-16 extraction metadata before a fresh download, then locally pinned by SHA-256.
 
-The full owner-local bootstrap/diagnostic has **not** been executed at this checkpoint. Do not invent 12B2 coverage numbers and do not freeze the final Writer row count from the research-scale 1.39M figure.
+The owner bootstrap and 12B2 diagnostics are complete. The 12B3 owner fixture also passes. Do not regress these gates or reinterpret the raw 1.39M research scale as a final Writer population.
 
 ## Next-thread execution order
 
-Continue with the **owner 12B1 bootstrap + 12B2 diagnostic review**, not UI work.
+Continue with the **12B4 owner publish gate**, not UI work and not Entity work.
 
-1. run `npm run en:sources:bootstrap`;
-2. run `npm run en:sources:diagnose`;
-3. inspect lexical/form/proper-name/history/pronunciation coverage;
-4. inspect CMUdict exact matches, ESDB disagreements and wordfreq ranked coverage;
-5. only after that evidence is understood, design the English phonology fixture/analyzer/scorer;
-6. materialize the first English Writer candidate DB only after the source diagnostic is accepted.
+1. run `npm run en:publish`;
+2. run `npm run en:publish:verify`;
+3. inspect published surfaces, default-eligible surfaces, analyzed/unresolved pronunciation variants and locale distribution;
+4. inspect historical/proper-name-only/ESDB-invalid filtering plus wordfreq/ESDB coverage;
+5. require a stable semantic fingerprint on an unchanged-source repeat before treating the publish layer as frozen;
+6. only then implement 12B5 `data/local/rhymelab-en-v1.sqlite` retrieval/index materialization.
 
 Required diagnostics are specified in `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
 
