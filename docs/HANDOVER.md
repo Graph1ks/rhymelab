@@ -59,6 +59,15 @@ Fixture popularity inputs are synthetic scales for deterministic tests only; the
 
 Current milestone: **12A2 Wikidata + QRank staging**.
 
+The owner source bootstrap is accepted. Keep these local raw files through all of Phase 12:
+
+```text
+data/raw/entity/phase12a-20260918/wikidata-20260914-all.json.bz2
+data/raw/entity/phase12a-20260918/qrank-20260918.csv.gz
+```
+
+Wikidata passed exact-size + official SHA-1 and local SHA-256 verification. QRank was retrieved on 2026-09-18 but the response reported `Last-Modified: 2024-03-16`; treat the retrieval date and data vintage as separate provenance fields.
+
 Owner commands after the bootstrap PR merges:
 
 ```powershell
