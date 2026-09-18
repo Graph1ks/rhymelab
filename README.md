@@ -126,7 +126,7 @@ Phase 11 is German phrase / mosaic / phraseology.
 
 The full Phase 11B1 phrase catalog has been built locally: 98,504 phrases / 97,400 modern-eligible, with Leipzig commonness evidence and the frozen base catalog fingerprint `f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d`.
 
-Phase 11B2 diagnostics and the Phase 11B3 Phrase Explorer are implemented. RUEG was evaluated against the real DAKODA archives and removed because it did not provide enough direct phraseology/metaphor/idiom value for the project.
+Phase 11B2 diagnostics and the Phase 11B3 Phrase Explorer are implemented.
 
 Phase 11C1 deterministic phrase pronunciation is now implemented. It resolves phrase tokens against the accepted Writer-v5 pronunciation inventory, builds preferred citation IPA with explicit word-boundary coordinates, and never guesses unknown tokens.
 
