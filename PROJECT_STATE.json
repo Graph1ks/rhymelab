@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B1_12B2_TOOLING_IMPLEMENTED_OWNER_RUN_PENDING",
+    "status": "ACTIVE_12B3_ENGLISH_PHONOLOGY_CANDIDATE",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,9 +1279,9 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "owner_source_bootstrap_then_full_12B2_diagnostic_review_before_12B3",
+    "next_gate": "PHASE_12B3_FIXTURE_REVIEW_THEN_12B4_SOURCE_BACKED_PUBLISH_LAYER",
     "source_workflow_v1": {
-      "status": "IMPLEMENTED_OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_RUN_PENDING",
+      "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
       "bootstrap_command": "npm run en:sources:bootstrap",
       "diagnostic_command": "npm run en:sources:diagnose",
@@ -1305,7 +1305,75 @@
         "no_english_runtime_materialization"
       ],
       "unit_tests": "5_passed_locally_for_source_parsing_normalization_and_wordfreq_cbpack_decoder",
-      "owner_full_source_metrics_available": false
+      "owner_full_source_metrics_available": true,
+      "owner_bootstrap": {
+        "completed": true,
+        "artifacts": [
+          {
+            "source_id": "enwiktionary-kaikki-raw-20260916",
+            "bytes": 2900609279,
+            "sha256": "c7f0ebb9bc6f7ed8bd396dd338d62ef67e1141fe2acfedb2ef6e09e34fe3d4f9"
+          },
+          {
+            "source_id": "cmudict-en-us-74790861",
+            "bytes": 3618488,
+            "sha256": "81917843c7f44ce2b094ac63873c2c7a4cf802040792c455ba3ca406891c3d22"
+          },
+          {
+            "source_id": "esdb-scowl-v2-20260624",
+            "bytes": 14394793,
+            "sha256": "a5fe3f11682a6ab9d31f2ea2a185833b1a01be7af83409c671bd0756a870f6c7"
+          },
+          {
+            "source_id": "wordfreq-en-3.2",
+            "bytes": 1494836,
+            "sha256": "dffae8066b78dce0a6667cf5f58e567054f902674667090a7ac8a8a44628b05c"
+          }
+        ]
+      },
+      "owner_diagnostic_summary": {
+        "english_entries": 1492835,
+        "distinct_headwords": 1355827,
+        "writer_candidate_surfaces": 1084050,
+        "wiktionary_ipa_headword_coverage_pct": 7.29,
+        "cmudict_candidate_coverage_pct": 8.77,
+        "combined_pronunciation_coverage_pct": 13.77,
+        "esdb_candidate_coverage_pct": 22.19,
+        "wordfreq_candidate_coverage_pct": 17.92,
+        "interpretation": "raw long-tail candidate universe remains much larger than source-backed pronunciation coverage; do not freeze final runtime population or approve broad G2P from this summary alone"
+      }
+    },
+    "phonology_candidate_v1": {
+      "status": "IMPLEMENTED_FIXTURE_CANDIDATE_NOT_RUNTIME_ACCEPTED",
+      "default_locale": "en-US",
+      "analyzer": "en-pron-v1-candidate",
+      "scorer": "en-phon-v1-candidate",
+      "fixture": "fixtures/en/phonology-v1.json",
+      "fixture_command": "npm run en:phonology:fixture",
+      "fixture_entries": 22,
+      "fixture_checks": 19,
+      "local_fixture_result": "19/19 PASS",
+      "accepted_runtime_languages_unchanged": [
+        "de"
+      ],
+      "candidate_languages": [
+        "en"
+      ],
+      "g2p": false,
+      "english_runtime_materialized": false,
+      "covers": [
+        "perfect",
+        "multisyllabic_perfect",
+        "stress_shift_homographs",
+        "alternate_pronunciations",
+        "en_US_en_GB_variants",
+        "rhotic_nonrhotic",
+        "consonant_family_slants",
+        "vowel_family_slants",
+        "assonance",
+        "consonance",
+        "false_orthographic_friends"
+      ]
     }
   },
   "phase_12_entity_lexicon": {
