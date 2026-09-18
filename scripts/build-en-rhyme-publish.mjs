@@ -261,7 +261,7 @@ let unresolvedPronunciationVariants=0;
 let enUsVariants=0;
 let enGbVariants=0;
 let unprofiledVariants=0;
-let otherRegionalVariants=0;
+let otherProfiledVariants=0;
 
 for(const record of records.values()){
   const pronunciations=[...record.pronunciations.values()].map((item)=>{
@@ -271,7 +271,7 @@ for(const record of records.values()){
     if(locales.includes('en-US')) enUsVariants+=1;
     if(locales.includes('en-GB')) enGbVariants+=1;
     if(!locales.length){
-      if(item.locale_status==='source_attested_other_regional') otherRegionalVariants+=1;
+      if(item.locale_status==='source_attested_other_profiled') otherProfiledVariants+=1;
       else unprofiledVariants+=1;
     }
     return {
@@ -400,7 +400,7 @@ const manifest={
     en_us_variants:enUsVariants,
     en_gb_variants:enGbVariants,
     source_attested_unprofiled_variants:unprofiledVariants,
-    source_attested_other_regional_variants:otherRegionalVariants,
+    source_attested_other_profiled_variants:otherProfiledVariants,
     cmudict_rows_loaded:cmudictRows,
     esdb_rows_parsed:esdbParsedRows,
     wordfreq_distinct_surfaces:wordfreq.size,
