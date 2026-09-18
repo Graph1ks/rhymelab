@@ -77,20 +77,7 @@ const state = {
   hiddenUsed: 0,
   writePage: 1,
   writePageSize: 30,
-  autoScrollEnabled: false,
-  autoScrollFrame: null,
-  autoScrollLastTs: 0,
-  autoScrollResetAt: 0,
-  autoScrollPaused: false,
 };
-
-const AUTO_SCROLL_STORAGE_KEY = 'rhymepad:suggestions:auto-scroll';
-
-try {
-  state.autoScrollEnabled = localStorage.getItem(AUTO_SCROLL_STORAGE_KEY) === '1';
-} catch {
-  state.autoScrollEnabled = false;
-}
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -266,254 +253,6 @@ function groupHtml(label, rows, limit) {
     </div>`;
 }
 
-function createDeckField(id, label, target, { compact = false } = {}) {
-  const control = document.getElementById(id);
-  if (!control || !target) return null;
-
-  const field = document.createElement('label');
-  field.className = `rhymePadDeckField${compact ? ' compact' : ''}`;
-  const caption = document.createElement('span');
-  caption.className = 'rhymePadDeckLabel';
-  caption.textContent = label;
-  field.append(caption, control);
-  target.appendChild(field);
-  return field;
-}
-
-function createDeckAction(id, target, ariaLabel = '') {
-  const control = document.getElementById(id);
-  if (!control || !target) return null;
-  control.classList.add('rhymePadDeckAction');
-  if (ariaLabel && !control.getAttribute('aria-label')) control.setAttribute('aria-label', ariaLabel);
-  target.appendChild(control);
-  return control;
-}
-
-function createDeckToggle(id, label, target) {
-  const control = document.getElementById(id);
-  if (!control || !target) return null;
-
-  const wrap = document.createElement('label');
-  wrap.className = 'rhymePadDeckToggle';
-  const text = document.createElement('span');
-  text.textContent = label;
-  wrap.append(control, text);
-  target.appendChild(wrap);
-  return wrap;
-}
-
-function createMetricTile(id, label, target, { primary = false } = {}) {
-  const value = document.getElementById(id);
-  if (!value || !target) return null;
-
-  const tile = document.createElement('div');
-  tile.className = `rhymePadMetricTile${primary ? ' primary' : ''}`;
-  const caption = document.createElement('span');
-  caption.className = 'rhymePadMetricLabel';
-  caption.textContent = label;
-  value.classList.add('rhymePadMetricValue');
-  tile.append(caption, value);
-  target.appendChild(tile);
-  return tile;
-}
-
-function syncEditorMetricScale() {
-  const computedPx = Number.parseFloat(getComputedStyle(editor).fontSize);
-  const controlPx = Number.parseFloat($('#fontSize')?.value || '');
-  const editorPx = Number.isFinite(computedPx) && computedPx > 0
-    ? computedPx
-    : Number.isFinite(controlPx) && controlPx > 0
-      ? controlPx
-      : 18;
-  const metricPx = Math.max(12, Math.min(34, editorPx * 0.72));
-  const railMetricPx = Math.max(10, Math.min(28, editorPx * 0.56));
-  root.style.setProperty('--rhymePadEditorFontPx', `${editorPx.toFixed(2)}px`);
-  root.style.setProperty('--rhymePadMetricFontPx', `${metricPx.toFixed(2)}px`);
-  root.style.setProperty('--rhymePadRailMetricFontPx', `${railMetricPx.toFixed(2)}px`);
-
-  const rail = $('#rail');
-  if (rail) {
-    $('*', rail).forEach((node) => {
-      if (node.children.length) return;
-      const text = (node.textContent || '').trim();
-      const semanticKey = `${node.id || ''} ${typeof node.className === 'string' ? node.className : ''}`.toLocaleLowerCase('en-US');
-      const looksLikeCounter = /^\d{1,3}$/.test(text)
-        || /^bar\s*\d{1,3}$/i.test(text)
-        || /^\d{1,3}\s*(?:syl|syllables?)$/i.test(text)
-        || semanticKey.includes('syl')
-        || (semanticKey.includes('bar') && /(num|no|number|count)/.test(semanticKey));
-      if (looksLikeCounter) node.classList.add('rhymePadRailCounter');
-    });
-  }
-
-  const readout = $('#rhymePadFontSizeReadout');
-  if (readout) readout.textContent = `${Math.round(editorPx)} px`;
-}
-
-function scheduleMetricScaleSync() {
-  syncEditorMetricScale();
-  requestAnimationFrame(syncEditorMetricScale);
-}
-
-function installCommandDeck() {
-  if ($('#rhymePadCommandDeck')) return;
-
-  const editorWrap = $('#editorWrap') || editor.closest('.editorWrap') || editor;
-  const center = $('.centerPanel') || editorWrap.parentElement;
-  if (!center) return;
-
-  const deck = document.createElement('section');
-  deck.id = 'rhymePadCommandDeck';
-  deck.className = 'rhymePadCommandDeck';
-  deck.setAttribute('aria-label', 'RhymePad writing controls');
-  deck.innerHTML = `
-    <div class="rhymePadDeckPrimary">
-      <div class="rhymePadDeckSong"></div>
-      <div class="rhymePadDeckMetadata"></div>
-      <div class="rhymePadDeckActions"></div>
-    </div>
-    <div class="rhymePadDeckWorkflow">
-      <div class="rhymePadDeckModes"></div>
-      <div class="rhymePadDeckTypography"></div>
-    </div>
-    <div class="rhymePadDeckMetrics">
-      <div class="rhymePadMetricStrip"></div>
-      <div class="rhymePadDeckStatus"></div>
-    </div>`;
-  center.insertBefore(deck, editorWrap);
-
-  const song = $('.rhymePadDeckSong', deck);
-  const metadata = $('.rhymePadDeckMetadata', deck);
-  const actions = $('.rhymePadDeckActions', deck);
-  const modes = $('.rhymePadDeckModes', deck);
-  const typography = $('.rhymePadDeckTypography', deck);
-  const metrics = $('.rhymePadMetricStrip', deck);
-  const status = $('.rhymePadDeckStatus', deck);
-
-  createDeckField('songTitle', 'Song', song);
-  createDeckField('bpm', 'BPM', metadata, { compact: true });
-  createDeckField('lang', 'Language', metadata, { compact: true });
-
-  createDeckAction('libraryOpen', actions, 'Open Library');
-  const history = document.createElement('div');
-  history.className = 'rhymePadHistoryActions';
-  actions.appendChild(history);
-  createDeckAction('historyBack', history, 'History back');
-  createDeckAction('historyForward', history, 'History forward');
-  createDeckAction('themeToggle', actions, 'Toggle theme');
-
-  const modeTabs = $('.modeTabs');
-  if (modeTabs) modes.appendChild(modeTabs);
-
-  createDeckField('fontPicker', 'Typeface', typography);
-  const sizeField = createDeckField('fontSize', 'Size', typography, { compact: true });
-  if (sizeField) {
-    const readout = document.createElement('span');
-    readout.id = 'rhymePadFontSizeReadout';
-    readout.className = 'rhymePadFontSizeReadout';
-    sizeField.appendChild(readout);
-  }
-  createDeckToggle('strict', 'Strict', typography);
-
-  createMetricTile('barNo', 'Bar', metrics, { primary: true });
-  createMetricTile('syl', 'Syllables', metrics, { primary: true });
-  createMetricTile('words', 'Words', metrics);
-  createMetricTile('hits', 'Rhyme hits', metrics);
-  createMetricTile('breath', 'Breath', metrics);
-  createMetricTile('stressCount', 'Stress', metrics);
-
-  const songStats = $('#songStats');
-  if (songStats) status.appendChild(songStats);
-  const autosave = $('#autosave');
-  if (autosave) status.appendChild(autosave);
-
-  const toolbar = $('.toolbar');
-  const brand = $('.brand');
-  const productNav = $('.rhymeLabProductNav');
-  if (toolbar) {
-    [...toolbar.children].forEach((child) => {
-      const keep = child === brand
-        || child === productNav
-        || child.contains(brand)
-        || child.contains(productNav);
-      if (!keep) child.classList.add('rhymePadLegacyTopHidden');
-    });
-  }
-
-  const fontSize = $('#fontSize');
-  fontSize?.addEventListener('input', scheduleMetricScaleSync);
-  fontSize?.addEventListener('change', scheduleMetricScaleSync);
-  $('#fontPicker')?.addEventListener('change', scheduleMetricScaleSync);
-
-  const editorStyleObserver = new MutationObserver(scheduleMetricScaleSync);
-  editorStyleObserver.observe(editor, { attributes: true, attributeFilter: ['style', 'class'] });
-  const rail = $('#rail');
-  if (rail) {
-    const railObserver = new MutationObserver(scheduleMetricScaleSync);
-    railObserver.observe(rail, { childList: true, subtree: true, characterData: true });
-  }
-  window.addEventListener('resize', scheduleMetricScaleSync, { passive: true });
-  scheduleMetricScaleSync();
-}
-
-function stopSuggestionAutoScroll() {
-  if (state.autoScrollFrame != null) cancelAnimationFrame(state.autoScrollFrame);
-  state.autoScrollFrame = null;
-  state.autoScrollLastTs = 0;
-  state.autoScrollResetAt = 0;
-}
-
-function autoScrollSuggestionFrame(timestamp) {
-  if (!state.autoScrollEnabled) {
-    stopSuggestionAutoScroll();
-    return;
-  }
-
-  const maxScroll = Math.max(0, suggestions.scrollHeight - suggestions.clientHeight);
-  const previous = state.autoScrollLastTs || timestamp;
-  const elapsed = Math.min(80, Math.max(0, timestamp - previous));
-  state.autoScrollLastTs = timestamp;
-
-  if (!state.autoScrollPaused && !document.hidden && maxScroll > 2) {
-    if (suggestions.scrollTop >= maxScroll - 1) {
-      if (!state.autoScrollResetAt) state.autoScrollResetAt = timestamp + 1100;
-      if (timestamp >= state.autoScrollResetAt) {
-        suggestions.scrollTop = 0;
-        state.autoScrollResetAt = 0;
-      }
-    } else {
-      suggestions.scrollTop = Math.min(maxScroll, suggestions.scrollTop + elapsed * 0.026);
-      state.autoScrollResetAt = 0;
-    }
-  }
-
-  state.autoScrollFrame = requestAnimationFrame(autoScrollSuggestionFrame);
-}
-
-function startSuggestionAutoScroll({ reset = false } = {}) {
-  stopSuggestionAutoScroll();
-  if (reset) suggestions.scrollTop = 0;
-  if (!state.autoScrollEnabled) return;
-  state.autoScrollFrame = requestAnimationFrame(autoScrollSuggestionFrame);
-}
-
-function setSuggestionAutoScroll(enabled, { persist = true } = {}) {
-  state.autoScrollEnabled = Boolean(enabled);
-  const checkbox = $('#rhymeLabAutoScroll');
-  if (checkbox) checkbox.checked = state.autoScrollEnabled;
-  suggestions.classList.toggle('is-auto-scrolling', state.autoScrollEnabled);
-
-  if (persist) {
-    try {
-      localStorage.setItem(AUTO_SCROLL_STORAGE_KEY, state.autoScrollEnabled ? '1' : '0');
-    } catch {
-      // Browser storage is optional; the current session still keeps the preference.
-    }
-  }
-
-  startSuggestionAutoScroll();
-}
-
 function installSuiteNavigation() {
   const toolbar = $('.toolbar');
   const brand = $('.brand');
@@ -573,38 +312,11 @@ function installRhymeLabControls() {
   if (relationWrap) head.insertBefore(entityWrap, relationWrap);
   else head.appendChild(entityWrap);
 
-  const autoScroll = document.createElement('label');
-  autoScroll.className = 'rhymeLabAutoScrollToggle';
-  autoScroll.innerHTML = '<input id="rhymeLabAutoScroll" type="checkbox"> <span>Auto-scroll</span>';
-  const autoScrollInput = $('input', autoScroll);
-  autoScrollInput.checked = state.autoScrollEnabled;
-  if (relationWrap) head.insertBefore(autoScroll, relationWrap);
-  else head.appendChild(autoScroll);
-
   const meta = document.createElement('div');
   meta.id = 'rhymeLabAssistMeta';
   meta.className = 'rhymeLabAssistMeta';
   meta.textContent = 'RhymeLab follows the active word or selected phrase.';
   suggestions.insertAdjacentElement('beforebegin', meta);
-  suggestions.classList.add('rhymeLabAutoScrollSurface');
-  suggestions.addEventListener('pointerenter', () => {
-    state.autoScrollPaused = true;
-  });
-  suggestions.addEventListener('pointerleave', () => {
-    state.autoScrollPaused = false;
-    state.autoScrollLastTs = 0;
-  });
-  suggestions.addEventListener('focusin', () => {
-    state.autoScrollPaused = true;
-  });
-  suggestions.addEventListener('focusout', () => {
-    state.autoScrollPaused = false;
-    state.autoScrollLastTs = 0;
-  });
-  autoScrollInput.addEventListener('change', () => {
-    setSuggestionAutoScroll(autoScrollInput.checked);
-  });
-  setSuggestionAutoScroll(state.autoScrollEnabled, { persist: false });
 
   $('#rhymeLabPreset')?.addEventListener('change', () => {
     state.writePage = 1;
@@ -693,7 +405,6 @@ function renderWriteResults() {
   }
 
   suggestions.innerHTML = html;
-  startSuggestionAutoScroll({ reset: true });
   $('#rhymeLabLoadMore')?.addEventListener('click', () => {
     state.writePage += 1;
     renderWriteResults();
@@ -880,7 +591,6 @@ function installListeners() {
 }
 
 installSuiteNavigation();
-installCommandDeck();
 installRhymeLabControls();
 installDeepResults();
 installListeners();
