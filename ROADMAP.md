@@ -315,7 +315,19 @@ Implemented at fixture level:
 - existing German scorer reused after bounded retrieval;
 - `EXPLAIN QUERY PLAN` tests reject full-table scans.
 
-Owner full-data anchor materialization/repeatability is the next gate. Phrase usefulness ranking remains 11E.
+First owner full-data anchor build:
+
+```text
+anchor rows                 356,693
+distinct exact-tail keys    181,548
+distinct vowel keys          52,174
+distinct final keys              772
+SQLite                     686.76 MiB
+anchor fingerprint
+55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+```
+
+The source window fingerprint remained unchanged. Require one identical repeat anchor fingerprint before representative query diagnostics. Phrase usefulness ranking remains 11E.
 
 ### 11E. Phrase Writer ranking
 
