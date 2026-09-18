@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-18
 
-Status: **owner baseline complete / source-coverage diagnostic implemented / acceptance pending repeatability**
+Status: **owner coverage measured / Wikidata P898 source-evidence layer implemented / owner P898 build pending**
 
 ## Scope
 
@@ -277,6 +277,30 @@ runtime fingerprint
 
 This proves the conservative pipeline is technically sound, but 12.58% name coverage is not sufficient to call the Entity channel complete. The dominant unresolved-token evidence contains large English/title/name components, so the next gate is source coverage measurement rather than blind G2P.
 
+The owner source-coverage diagnostic is now complete:
+
+```text
+DE preferred names                         577,228
+runtime-ready preferred names               73,755
+preferred runtime coverage                   12.78%
+unresolved names probed                    626,716
+
+CMUdict full-token source candidates       261,833   41.78%
+CMUdict partial-token candidates           233,283   37.22%
+CMUdict no-token candidates                131,600   21.00%
+unresolved preferred full-token matches    227,428
+projected preferred ceiling if every
+full CMUdict match had an accepted
+English runtime                              52.18%
+
+coverage diagnostic fingerprint
+69e6ec4d14091d22c5a76ca5869d38908f09f95fcac248b2e6791f329ad99bfa
+```
+
+Decision: do not mass-generate German proper-name IPA. The evidence supports adding source-backed pronunciation layers first, then building a real English phonology/runtime profile before CMUdict candidates can become runtime-eligible.
+
+The remaining CMUdict misses are not one homogeneous gap. They include numbers/roman numerals, German title words, transliterated Slavic names/patronymics and names with French/Spanish/Portuguese/Czech/etc. diacritics. Those classes require explicit source or locale policies rather than one broad fallback.
+
 ## One-command owner workflow
 
 After merge, the normal owner command is:
@@ -293,15 +317,20 @@ The runner:
 2. materializes the catalog only if the DB is absent;
 3. resumes/builds DE pronunciations only if the phonetic runtime is incomplete;
 4. fetches or verifies the pinned CMUdict probe artifact;
-5. computes preferred-vs-alias, category and category-tier runtime coverage;
-6. records the highest-priority unresolved preferred names per category;
-7. measures the source-backed CMUdict full/partial token-match ceiling;
-8. writes one owner summary plus the detailed coverage report.
+5. selectively fetches qualified Wikidata IPA transcription (`P898`) evidence through QLever;
+6. materializes P898 rows as `source_attested_unprofiled` with language/name/variety qualifiers preserved;
+7. asserts that P898 evidence did not change the accepted German runtime fingerprint;
+8. computes preferred-vs-alias, category and category-tier runtime/source coverage;
+9. records the highest-priority unresolved preferred names per category;
+10. measures the CMUdict full/partial token-match ceiling;
+11. writes one owner summary plus the detailed source and coverage reports.
 
 Outputs:
 
 ```text
 data/local/entity-pronunciation-source-report.json
+data/local/entity-wikidata-p898-source-report.json
+data/local/entity-wikidata-p898-materialization-report.json
 data/local/entity-pronunciation-coverage-report.json
 data/local/entity-pronunciation-owner-report.json
 ```
@@ -311,7 +340,30 @@ CMUdict is pinned by source commit and Git blob SHA-1 in
 
 Important boundary: CMUdict supplies North American English pronunciation evidence. Phase 12A3 uses it only as a source-coverage probe. Its rows are **not** relabeled as `de-DE`, are **not** passed into `de-ipa-v2`, and are **not** runtime-eligible until an English phonology/runtime policy is accepted.
 
-No QLever fetch, Wikidata restage or QRank restage is required.
+### Wikidata P898 source-evidence layer
+
+Manifest:
+
+`sources/entity/wikidata-p898-pronunciation-v1.json`
+
+Policy:
+
+`wikidata-p898-qualified-selective-v1`
+
+The owner workflow uses one additional small/selective QLever query over the already accepted cultural taxonomy to obtain only source-backed Wikidata IPA transcription statements. It preserves:
+
+- `P898` IPA transcription;
+- `P407` language of work or name;
+- `P5237` pronunciation variety;
+- `P5168` applies to name of subject;
+- source QID and statement URI;
+- pinned query/taxonomy/artifact fingerprints.
+
+P898 rows are inserted into `entity_pronunciation` with review state `source_attested_unprofiled`. Generic Wikidata language evidence such as German or English does not by itself establish a regional runtime locale such as `de-DE` or `en-US`.
+
+Therefore the P898 layer deliberately creates **zero runtime-eligible rows**, no phonetic analyses and no rhyme anchors in this step. The owner runner requires the pre/post German runtime fingerprint to be identical.
+
+No entity/QRank restage is required. Only the small pronunciation-specific P898 selective export uses build-time network access.
 
 ## Acceptance gate
 
