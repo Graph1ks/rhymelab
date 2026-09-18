@@ -202,6 +202,23 @@ The bootstrap is resumable for the static Wikidata URL, requires a streaming bzi
 
 Contract: `docs/ENTITY_STAGING_V1.md`.
 
+Owner full-stage is currently running against the accepted 20260914 control snapshot. The Windows path now prefers WSL + `lbzip2` for parallel BZip2 decompression and uses a lossless 13-QID raw-line taxonomy prefilter before JSON parsing. Latest observed owner evidence in the current run:
+
+```text
+decompressor            wsl:lbzip2:8t
+transaction size        50,000
+lines read              4,750,000
+JSON parsed               150,620 (3.17%)
+staged entities           115,358
+average rate              5,842 lines/s
+elapsed                    0.23 h
+CPU                        saturated on i7-7700K
+```
+
+Do not abort this run merely to try another acquisition path: it is the dated/checksum-verified control that future selective-source experiments must reproduce semantically.
+
+Source-acquisition alternatives were researched in `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md`. Current decision: QLever selective export is the strongest candidate for a future fast acquisition path because it can query only the reviewed P31/P106 cultural memberships and selected fields. It is **not promoted yet** because the public graph is near-real-time rather than a dated archival snapshot. First complete the current control stage, then implement a diagnostic QLever exporter and compare category QID sets/selected fields against the 20260914 control before any source-policy change. Wikimedia Enterprise Wikidata snapshots are an official chunked full-source transport candidate but remain about 105 GB compressed and therefore do not solve semantic over-download.
+
 The implementation streams the compressed Wikidata dump without creating an uncompressed copy, stores only structurally relevant cultural candidates in `data/work/entity/`, stages QRank separately, joins QRank locally, and reports category-relative cut distributions before any final 500k+ Entity Lexicon is materialized.
 
 Plan: `docs/ENTITY_LEXICON_PLAN.md`.

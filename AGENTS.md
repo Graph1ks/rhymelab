@@ -18,6 +18,7 @@ Before changing the project in a fresh thread/session, read:
 10. `docs/REPOSITORY_GOVERNANCE.md`
 11. `docs/BENCHMARK.md` for rhyme-quality/ranking work
 12. `docs/API.md` for local API work
+13. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition work
 
 ## Public-repository guardrails
 
@@ -166,6 +167,10 @@ Phase 12A1 fixture CI and the owner-local report gate are accepted. Accepted sem
 ```
 
 Current work is **12A2 Wikidata + QRank staging**. Read `docs/ENTITY_STAGING_V1.md`.
+
+The first full owner stage is currently running against the checksum-verified Wikidata 20260914 control snapshot using WSL + `lbzip2` and the reviewed raw-line taxonomy prefilter. Do not abandon this run merely to switch acquisition methods: its output is the validation control for faster sources.
+
+Read `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` before changing source acquisition. QLever selective export is the preferred future acquisition experiment, but it is not promoted: compare its exact category QID sets and selected fields against the completed 20260914 control first. Wikimedia Enterprise's chunked Wikidata snapshot is a transport alternative, not a semantic-subset solution.
 
 Owner source bootstrap is accepted. The validated compressed Wikidata 20260914 dump and the downloaded QRank artifact must remain local/gitignored and be retained until Phase 12 is complete. Do not redownload them between Phase 12 rebuilds unless an explicit source-refresh decision is made. QRank retrieval date 2026-09-18 is not its data vintage; the accepted response carried a 2024-03-16 Last-Modified timestamp.
 
