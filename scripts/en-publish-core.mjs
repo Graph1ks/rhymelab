@@ -1,5 +1,4 @@
 import {
-  classifyWiktionaryHistory,
   classifyWiktionaryRecordHistory,
   classifyWiktionaryIpaLocale,
   collectWiktionaryTags,
