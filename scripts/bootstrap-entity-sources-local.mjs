@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
+import { createReadStream, existsSync } from 'node:fs';
 import {
   mkdir, readFile, rm, stat, statfs, writeFile,
 } from 'node:fs/promises';
@@ -28,10 +28,21 @@ rawDir = resolve(rawDir);
 reportPath = resolve(reportPath);
 
 function commandExists(command) {
+  if (existsSync(command)) return true;
   const probe = process.platform === 'win32'
     ? spawnSync('where.exe', [command], { stdio: 'ignore' })
     : spawnSync('sh', ['-lc', `command -v "${command}" >/dev/null 2>&1`], { stdio: 'ignore' });
   return probe.status === 0;
+}
+
+function windows7ZipCandidates() {
+  const values = [
+    process.env.ProgramFiles && resolve(process.env.ProgramFiles, '7-Zip', '7z.exe'),
+    process.env['ProgramFiles(x86)'] && resolve(process.env['ProgramFiles(x86)'], '7-Zip', '7z.exe'),
+    'C:\\Program Files\\7-Zip\\7z.exe',
+    'C:\\Program Files (x86)\\7-Zip\\7z.exe',
+  ];
+  return [...new Set(values.filter(Boolean))];
 }
 
 function chooseCurl() {
@@ -43,7 +54,7 @@ function chooseBzip2Decompressor() {
   const explicit = String(process.env.RHYMELAB_BZIP2_CMD || '').trim();
   if (explicit) return explicit;
   const names = process.platform === 'win32'
-    ? ['7z', '7zz', 'bzip2']
+    ? ['7z', '7z.exe', '7zz', 'bzip2', ...windows7ZipCandidates()]
     : ['lbzip2', 'bzip2', '7zz', '7z'];
   return names.find(commandExists) || null;
 }
@@ -117,8 +128,9 @@ if (!curl) throw new Error('curl is required for resumable owner-source download
 const bzip2 = chooseBzip2Decompressor();
 if (!bzip2) {
   throw new Error(
-    'No streaming bzip2 decompressor found. Install 7-Zip CLI, bzip2/lbzip2, '
-    + 'or set RHYMELAB_BZIP2_CMD before downloading the 96 GiB Wikidata .bz2 snapshot.',
+    'No streaming bzip2 decompressor found. Install 7-Zip (winget install --id 7zip.7zip -e), '
+    + 'bzip2/lbzip2, or set RHYMELAB_BZIP2_CMD to the executable path before downloading '
+    + 'the 96 GiB Wikidata .bz2 snapshot.',
   );
 }
 
