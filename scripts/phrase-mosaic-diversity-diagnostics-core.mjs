@@ -26,7 +26,7 @@ function stableCandidateId(candidate) {
   return String(candidate?.windowId || candidate?.phraseId || candidate?.canonical || '');
 }
 
-function candidateKeys(candidate) {
+export function phraseMosaicDiversityKeys(candidate) {
   const exactCanonical = exactCanonicalKey(candidate?.canonical);
   const normalizedCanonical = normalizePhraseText(candidate?.canonical);
   const tokens = tokenizePhrase(candidate?.canonical).map((token) => token.normalized);
@@ -121,21 +121,21 @@ function frameMemberships(groups, keys) {
 }
 
 function analyzeCut(candidates) {
-  const exactGroups = buildGroupMap(candidates, (candidate) => candidateKeys(candidate).exactCanonical);
+  const exactGroups = buildGroupMap(candidates, (candidate) => phraseMosaicDiversityKeys(candidate).exactCanonical);
   const normalizedGroups = buildGroupMap(
     candidates,
-    (candidate) => candidateKeys(candidate).normalizedCanonical,
+    (candidate) => phraseMosaicDiversityKeys(candidate).normalizedCanonical,
   );
-  const headGroups = buildGroupMap(candidates, (candidate) => candidateKeys(candidate).lexicalHead);
-  const familyGroups = buildGroupMap(candidates, (candidate) => candidateKeys(candidate).phraseFamily);
+  const headGroups = buildGroupMap(candidates, (candidate) => phraseMosaicDiversityKeys(candidate).lexicalHead);
+  const familyGroups = buildGroupMap(candidates, (candidate) => phraseMosaicDiversityKeys(candidate).phraseFamily);
   const frameGroups = buildGroupMap(
     candidates,
-    (candidate) => candidateKeys(candidate).lexicalFrames,
+    (candidate) => phraseMosaicDiversityKeys(candidate).lexicalFrames,
     { multiple: true },
   );
 
   const rows = candidates.map((candidate) => {
-    const keys = candidateKeys(candidate);
+    const keys = phraseMosaicDiversityKeys(candidate);
     return {
       writerPageRank: candidate.writerPageRank ?? null,
       windowId: candidate.windowId ?? null,
