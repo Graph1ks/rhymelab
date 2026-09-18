@@ -59,6 +59,9 @@ test('RhymePad live suggestions use RhymeLab at full accepted result depth', () 
   assert.match(padApp, /phrase_limit: '250'/);
   assert.match(padApp, /phrase_pool: '1024'/);
   assert.match(padApp, /phrase_per_channel: '256'/);
+  assert.match(padApp, /entity_limit: '250'/);
+  assert.match(padApp, /entity_pool: '512'/);
+  assert.match(padApp, /entity_category: entityCategory/);
   assert.match(padApp, /function isAlreadyUsed\(/);
   assert.match(padApp, /lyricWords\(\)\.has\(candidate\)/);
   assert.match(padApp, /rhymeLabDeepResults/);
@@ -75,4 +78,22 @@ test('RhymeLab and RhymePad share a first-class workspace switcher', () => {
   assert.match(writerHtml, /class="primary-nav-link" href="\/pad"/);
   assert.match(padApp, /className = 'rhymeLabProductNav'/);
   assert.match(padApp, /<a href="\/">SEARCH<\/a><a href="\/pad" class="active"/);
+});
+
+
+test('RhymePad v14 exposes Entity scope, semantic categories and IPA-bearing cards', () => {
+  assert.ok(serverSource.includes('DEFAULT_ENTITY_DB_PATH'));
+  assert.ok(serverSource.includes('openEntityWriterDb'));
+  assert.ok(serverSource.includes("entityCategory: url.searchParams.get('entity_category')"));
+  assert.ok(padApp.includes('<option value="entities">Entities only</option>'));
+  assert.ok(padApp.includes('<option value="entities">Entities</option>'));
+  assert.ok(padApp.includes("'person.rapper': 'Rapper'"));
+  assert.ok(padApp.includes("'person.musician': 'Musician'"));
+  assert.ok(padApp.includes("'group.music_group': 'Band / group'"));
+  assert.ok(padApp.includes("row.resultKind === 'entity'"));
+  assert.ok(padApp.includes('entityCategoryBadges'));
+  assert.ok(padApp.includes('ENTITY_CATEGORY_LABELS'));
+  assert.ok(padApp.includes("const ipa = row.ipa ?"));
+  assert.match(padCss, /\.entityCategoryBadge/);
+  assert.match(padCss, /\.resultKind\.entity/);
 });

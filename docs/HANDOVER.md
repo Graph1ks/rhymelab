@@ -207,23 +207,50 @@ Hybrid-v1 is **rejected for freeze** and retained as control. It opens five of t
 
 The defect is now understood as a score-ceiling problem. Hybrid-v1 reserves 55% of the score for QRank, so a missing-QRank row can never exceed 45%, no matter how strong its sitelink/DE+EN/authority evidence is.
 
-Current decision:
+Hybrid-v2 owner A/B is complete and accepted as the Phase 12A2 materialization baseline.
 
-- keep `qrank-category-relative-cut-v1` as original control;
-- keep `category-relative-popularity-hybrid-v1-candidate` + fingerprint above as v2 control evidence;
-- do not freeze final popularity/cut policy;
-- do not change category floors yet;
-- evaluate `category-relative-popularity-hybrid-v2-geometric-missing-evidence-candidate`;
-- read `docs/ENTITY_CUT_HYBRID_V2.md`.
+```text
+status                         ok
+semantic fingerprint           337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201
+v1 anchor matches              true
+all sentinels pass             true
+Bud Spencer                    KEEP / Tier A
+v1 distinct retained           1,077,669
+v2 distinct retained           1,077,644
+v1 -> v2 membership churn           0.41%
+hard-gate categories v1        car_brand, company
+hard-gate categories v2        none
+```
 
-After the v2 PR lands, the only owner command is:
+The preferred 600k–900k population remains a nonblocking product-budget target. Any future floor tightening is a separate candidate; do not silently mutate the accepted Hybrid-v2 fingerprint.
+
+Current milestone: **12A3 Entity catalog + DE pronunciation/phonetic runtime + RhymePad Entity channel**.
+
+Read `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`.
+
+Implemented owner path after merge:
 
 ```powershell
 git pull
-npm run entity:cut:diagnose:hybrid-v2
+npm run entity:runtime:build
 ```
 
-This requires the existing Hybrid-v1 owner report and existing stage DB. Do not fetch QLever, restage entities, restage QRank, change floors, or materialize the final Entity Lexicon.
+This first materializes `data/local/rhymelab-entities-v1.sqlite` by independently reproducing the accepted Hybrid-v2 cut, then adds conservative `de-DE` pronunciations and `de-ipa-v2` analyses/anchors.
+
+Pronunciation v1 rules:
+
+- preserve eligible existing source-backed `de-DE` pronunciations;
+- otherwise use Writer-v5 exact-token composition only when every name token resolves;
+- unresolved tokens keep the entity name out of phonetic retrieval;
+- no broad G2P;
+- no guessed IPA;
+- no runtime network.
+
+RhymePad v14 remains the checksum-verified authoritative surface. Its integration layer gains an optional Entity channel with semantic category filters (Rapper, Musician, Actor, Band, Song, Album, Film, Game, Character, brands/companies), multi-category badges and IPA. Missing Entity DB/runtime must not break Word or Phrase/Mosaic behavior.
+
+Owner must inspect `data/local/entity-catalog-v1-report.json` and `data/local/entity-pronunciation-v1-report.json`, then rerun pronunciation materialization and require the same phonetic runtime fingerprint before acceptance.
+
+No QLever fetch, entity restage or QRank restage is required.
 
 
 ```powershell

@@ -1195,7 +1195,7 @@
     "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
     "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
   ],
-  "next_milestone": "PHASE_12A2_HYBRID_POPULARITY_V2_OWNER_AB",
+  "next_milestone": "PHASE_12A3_ENTITY_PRONUNCIATION_RUNTIME_OWNER_BUILD",
   "phase_12_english": {
     "status": "PLANNED_AFTER_12A",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -1211,7 +1211,7 @@
     "must_not_emulate_english_with_german_phonology": true
   },
   "phase_12_entity_lexicon": {
-    "status": "12A2_QLEVER_OWNER_RUN_PASSED_CUT_REVIEW_ACTIVE",
+    "status": "12A3_ENTITY_CATALOG_PRONUNCIATION_RUNTIME_IMPLEMENTED_OWNER_BUILD_PENDING",
     "plan": "docs/ENTITY_LEXICON_PLAN.md",
     "database": "data/local/rhymelab-entities-v1.sqlite",
     "runtime_local_only": true,
@@ -1320,16 +1320,16 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "original_qrank_present_first_control_rejected_for_freeze",
-      "hybrid_v1_owner_ab_complete_rejected_for_freeze_fingerprint_e770c1cfc655764e9e0f26e033c53fba0f1e1af4e2ca3b7ac82adf4eabde1e04",
-      "run_hybrid_v2_geometric_missing_evidence_ab_on_existing_stage_db",
-      "require_bud_spencer_keep_tier_a",
-      "require_organization_company_missing_qrank_gate_to_open_without_implausible_churn",
-      "review_car_brand_diagnostically_not_by_quota",
-      "only_after_ranking_acceptance_review_category_floors_toward_preferred_600k_900k_range"
+      "hybrid_v2_popularity_cut_owner_ab_accepted_fingerprint_337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201",
+      "materialize_distinct_retained_entity_catalog_from_existing_stage_without_refetch_or_restage",
+      "materialize_conservative_de_entity_pronunciations_without_g2p",
+      "measure_full_data_entity_pronunciation_coverage_and_unresolved_tokens",
+      "require_repeatable_entity_phonetic_runtime_fingerprint",
+      "validate_rhymepad_entity_categories_ipa_and_optional_database_fallback",
+      "only_after_coverage_review_design_source_backed_pronunciation_enrichment_or_audited_g2p_candidate"
     ],
     "staging_v1": {
-      "status": "HYBRID_V1_OWNER_AB_REJECTED_HYBRID_V2_OWNER_AB_PENDING",
+      "status": "HYBRID_V2_OWNER_AB_ACCEPTED_PHASE_12A2_CLOSED",
       "contract": "docs/ENTITY_STAGING_V1.md",
       "source_registry": "sources/entity/phase12a-sources-v1.json",
       "wikidata_stage_schema": "rhymelab-entity-stage-v1",
@@ -1354,7 +1354,7 @@
       ],
       "qrank_temp_db_disposable": true,
       "runtime_rewired": false,
-      "final_popularity_policy_frozen": false,
+      "final_popularity_policy_frozen": true,
       "full_snapshot_download_allowed_after_fixture_ci": true,
       "owner_source_bootstrap": {
         "status": "OWNER_BOOTSTRAP_ACCEPTED",
@@ -1549,8 +1549,8 @@
         "qrank_join_completed": true,
         "cut_diagnostic_completed": true,
         "all_sentinels_pass": true,
-        "cut_policy_frozen": false,
-        "note": "Owner QLever stage/join remains accepted. The v1 QRank-present-first cut is now rejected for freeze after the owner fallback review; hybrid popularity candidate A/B is the active gate."
+        "cut_policy_frozen": true,
+        "note": "Owner QLever stage/join accepted. Hybrid-v2 is the accepted Phase 12A2 popularity/cut materialization baseline; no refetch/restage is required for Phase 12A3."
       },
       "owner_distinct_retained_recount": {
         "status": "PASSED_WITHIN_ALLOWED_RANGE_ABOVE_PREFERRED_RANGE",
@@ -1644,7 +1644,7 @@
         "final_policy_frozen": false
       },
       "hybrid_popularity_v2_candidate": {
-        "status": "IMPLEMENTED_CI_PENDING_OWNER_AB_PENDING",
+        "status": "OWNER_AB_ACCEPTED_FROZEN_AS_PHASE_12A2_MATERIALIZATION_BASELINE",
         "contract": "docs/ENTITY_CUT_HYBRID_V2.md",
         "policy": "category-relative-popularity-hybrid-v2-geometric-missing-evidence-candidate",
         "command": "npm run entity:cut:diagnose:hybrid-v2",
@@ -1659,8 +1659,53 @@
         "entity_restage_required": false,
         "qrank_restage_required": false,
         "runtime_rewired": false,
-        "final_policy_frozen": false
+        "final_policy_frozen": true,
+        "semantic_fingerprint": "337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201",
+        "v1_anchor_matches_owner_report": true,
+        "all_sentinels_pass": true,
+        "bud_spencer_keep": true,
+        "bud_spencer_tier": "A",
+        "v1_distinct_retained_entities": 1077669,
+        "v2_distinct_retained_entities": 1077644,
+        "v2_distinct_delta_vs_v1": -25,
+        "membership_churn_pct": 0.41,
+        "hard_gate_categories_v1": [
+          "organization.car_brand",
+          "organization.company"
+        ],
+        "hard_gate_categories_v2": [],
+        "in_allowed_target_range": true,
+        "in_preferred_working_range": false,
+        "work_video_game_promoted": 1,
+        "work_video_game_demoted": 1,
+        "decision": "accept_and_freeze_phase12a2_materialization_baseline"
       }
+    },
+    "pronunciation_runtime_v1": {
+      "status": "IMPLEMENTED_OWNER_FULL_DATA_BUILD_PENDING",
+      "contract": "docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md",
+      "entity_schema": "rhymelab-entity-catalog-v1",
+      "catalog_command": "npm run entity:catalog:materialize",
+      "pronunciation_command": "npm run entity:pronunciation",
+      "combined_command": "npm run entity:runtime:build",
+      "entity_database": "data/local/rhymelab-entities-v1.sqlite",
+      "catalog_report": "data/local/entity-catalog-v1-report.json",
+      "pronunciation_report": "data/local/entity-pronunciation-v1-report.json",
+      "accepted_cut_fingerprint": "337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201",
+      "pronunciation_policy": "entity-pronunciation-source-composition-v1",
+      "phonetic_runtime": "entity-phonetic-runtime-de-v1",
+      "analyzer": "de-ipa-v2",
+      "source_backed_existing_pronunciations_preserved": true,
+      "writer_v5_exact_token_composition": true,
+      "requires_every_token_resolved": true,
+      "broad_g2p": false,
+      "guessed_ipa": false,
+      "runtime_network": false,
+      "rhyme_anchor_index": true,
+      "rhymepad_entity_channel": true,
+      "rhymepad_semantic_category_filter": true,
+      "multi_category_preserved": true,
+      "owner_repeatability_required": true
     }
   }
 }

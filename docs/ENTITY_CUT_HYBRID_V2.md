@@ -2,7 +2,37 @@
 
 Last updated: 2026-09-18
 
-Status: **candidate / owner A-B pending / not frozen**
+Status: **owner A-B accepted / Phase 12A2 materialization baseline frozen**
+
+## Owner acceptance — 2026-09-18
+
+The full-data owner A/B passed the v2 acceptance gate.
+
+```text
+status                         ok
+semantic fingerprint           337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201
+v1 anchor matches              true
+all sentinels pass             true
+Bud Spencer                    KEEP / Tier A
+v1 distinct retained           1,077,669
+v2 distinct retained           1,077,644
+distinct delta                       -25
+v1 -> v2 membership churn           0.41%
+hard-gate categories v1        car_brand, company
+hard-gate categories v2        none
+```
+
+The strict company category now admits a small evidence-backed missing-QRank set rather than treating source coverage as a hard gate. `organization.car_brand` also opens without a quota rule. The sparse-QRank `work.video_game` category changes by only one promoted and one demoted membership, providing a useful stability check.
+
+Decision:
+
+- accept `category-relative-popularity-hybrid-v2-geometric-missing-evidence-candidate` as the Phase 12A2 popularity/cut materialization baseline;
+- pin semantic fingerprint `337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201`;
+- preserve original control and Hybrid-v1 as diagnostic controls;
+- do not refetch or restage sources for the pronunciation/runtime phase;
+- the preferred 600k–900k size remains a nonblocking product-budget target, not a reason to alter an accepted ranking policy while pronunciation coverage is being measured.
+
+Any future category-floor tightening is a separate candidate revision and must not silently change this accepted fingerprint.
 
 ## Evidence that rejects v1 for freeze
 
