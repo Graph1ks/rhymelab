@@ -264,7 +264,7 @@ repeat fingerprint  fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e
 Phase 11C1 is closed.
 ### 11D. Mosaic retrieval architecture — current
 
-#### 11D1. Deterministic cross-word window substrate — implemented / owner full-data gate pending
+#### 11D1. Deterministic cross-word window substrate — owner full-data build complete / repeatability pending
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`.
 
@@ -276,7 +276,20 @@ Owner gate:
 npm run phrase:mosaic:windows
 ```
 
-Require a stable repeat window fingerprint before 11D2.
+First owner full-data build:
+
+```text
+pronunciations scanned   90,089
+phrases with windows     90,089
+windows                 356,693
+SQLite                  510.09 MiB
+window fingerprint
+24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+```
+
+Window lengths are concentrated at 2–4 syllables; 327,828 windows cross one boundary and the remainder provide bounded multi-boundary coverage up to five boundaries.
+
+Require one stable repeat window fingerprint before 11D2.
 
 #### 11D2. Bounded indexed candidate retrieval — next
 
