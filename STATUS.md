@@ -102,18 +102,19 @@ It will not be collected from the project owner alone. Independent human usefuln
 
 ## Current checkpoint
 
-Compact next-thread handover: `docs/THREAD_HANDOVER_PHASE_11E3.md`.
+Compact next-thread handover: `docs/THREAD_HANDOVER_PHASE_11E4F.md`.
 
-Current milestone: **11E3 phrase-channel diversification**. 11E2-v2 ranking is accepted/frozen. Phrase/Mosaic has no default visibility quota and will remain separately filterable.
+Current milestone: **11E4/F runtime integration + final acceptance**. 11E3 phrase-channel diversification is accepted/frozen with diversity fingerprint `ca7e04e91226cd5a3855dbe302a54bffaccce8c6d3a9defff8be049ca6153ef1`; three repeatability runs matched exactly and all protected checks passed. Phrase/Mosaic has no default visibility quota and remains separately filterable.
 
 Remaining to close Phase 11:
 
 ```text
-11E3 phrase-channel diversity
 11E4 local runtime/API/UI integration
-11F dedicated Phrase/Mosaic structural + performance benchmark
+11F integrated structural + provenance + performance + repeatability benchmark
 Phase 11 closure
 ```
+
+11E4 and 11F are one continuous engineering workstream, but the final 11F benchmark still runs only after the 11E4 integrated surface exists.
 ## Current phase — Phase 11 German phrase / mosaic / phraseology
 
 Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`. Phrase catalog contract: `docs/PHRASE_CATALOG_V1.md`. Pronunciation contract: `docs/PHRASE_PRONUNCIATION_V1.md`.
