@@ -40,6 +40,10 @@ function sha256Json(value) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 
+function compareQid(a, b) {
+  return a.qid < b.qid ? -1 : a.qid > b.qid ? 1 : 0;
+}
+
 const db = new DatabaseSync(entityStagePath, { readOnly: true });
 try {
   const categories = db.prepare(
@@ -128,12 +132,12 @@ try {
     const promoted = candidate
       .filter((row) => row.keep && !controlByQid.get(row.qid).keep)
       .map((row) => sampleRow(row, controlByQid.get(row.qid)))
-      .sort((a, b) => a.candidate_rank_delta - b.candidate_rank_delta || a.qid < b.qid ? -1 : a.qid > b.qid ? 1 : 0)
+      .sort((a, b) => a.candidate_rank_delta - b.candidate_rank_delta || compareQid(a, b))
       .slice(0, 5);
     const demoted = control
       .filter((row) => row.keep && !candidateByQid.get(row.qid).keep)
       .map((row) => sampleRow(candidateByQid.get(row.qid), row))
-      .sort((a, b) => b.candidate_rank_delta - a.candidate_rank_delta || a.qid < b.qid ? -1 : a.qid > b.qid ? 1 : 0)
+      .sort((a, b) => b.candidate_rank_delta - a.candidate_rank_delta || compareQid(a, b))
       .slice(0, 5);
 
     const controlSummary = summarizeEvaluatedEntityCutRows(control);
