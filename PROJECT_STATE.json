@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B6_STRATIFIED_LONG_TAIL_REVIEW",
+    "status": "ACTIVE_12B6_RESCUE_POLICY_EXACT_COUNTS_AND_LOCALE_FALLBACK_DIAGNOSTIC",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B6_RUN_IMPROVED_COVERAGE_AUDIT_REVIEW_STRATIFIED_RANK_BANDS_THEN_SELECT_CONTROLLED_LEXICAL_PRONUNCIATION_RESCUE",
+    "next_gate": "PHASE_12B6_RUN_CHEAP_RESCUE_AND_PRONUNCIATION_FALLBACK_DIAGNOSTICS_THEN_DEFINE_PUBLISH_V4",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1702,6 +1702,66 @@
         "sample_command": "npm run en:coverage:sample",
         "deterministic_seed": "phase12b6-stratified-v1",
         "owner_generation_pending": true
+      },
+      "stratified_owner_review": {
+        "status": "COMPLETE",
+        "source_publish_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
+        "rank_bands": 7,
+        "sample_per_status_band": 8,
+        "populations": {
+          "not_wiktionary_lexical_candidate": 97144,
+          "no_source_backed_pronunciation": 52864,
+          "published_explicit_proper_name_only": 26264,
+          "form_of_without_analyzed_en_us_lemma": 14976,
+          "published_no_analyzed_en_us_pronunciation": 14821,
+          "regular_inflection_shape_with_analyzed_en_us_lemma": 13454,
+          "non_wiktionary_cmudict_only": 8764,
+          "form_of_with_analyzed_en_us_lemma": 5505,
+          "possessive_with_cmudict_and_analyzed_en_us_base": 4036,
+          "non_wiktionary_esdb_current_plus_cmudict": 918,
+          "orthographic_variant_with_analyzed_en_us_lemma": 168
+        },
+        "interpretation": "multiple large losses are admission/provenance/composition issues rather than absence of English lexical material"
+      },
+      "rescue_policy_diagnostic": {
+        "status": "IMPLEMENTED_OWNER_RUN_PENDING",
+        "command": "npm run en:coverage:rescue",
+        "report": "data/local/en-coverage-rescue-policy-v1-report.json",
+        "tier_a": [
+          "exact_cmudict_possessive",
+          "punctuation_only_alias"
+        ],
+        "strict_morphology_blocks": [
+          "abbreviation",
+          "initialism",
+          "acronym",
+          "letter",
+          "number",
+          "symbol",
+          "contraction",
+          "misspelling"
+        ],
+        "mutates_runtime": false
+      },
+      "pronunciation_fallback_diagnostic": {
+        "status": "IMPLEMENTED_OWNER_RUN_PENDING",
+        "command": "npm run en:pronunciation:fallback:diagnose",
+        "report": "data/local/en-pronunciation-fallback-diagnostic-v1-report.json",
+        "comparisons": [
+          "unprofiled_vs_en_us",
+          "en_gb_vs_en_us"
+        ],
+        "metrics": [
+          "exact_tail",
+          "final_tail",
+          "vowel_family",
+          "vowel_key",
+          "syllable_count",
+          "stress_pattern",
+          "primary_stress"
+        ],
+        "relabels_fallback_as_en_us": false,
+        "mutates_runtime": false
       }
     },
     "unknown_query_pronunciation_fallback": {
