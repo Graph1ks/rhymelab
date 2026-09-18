@@ -1,4 +1,4 @@
-name: QLever Live Probe
+name: QLever Rank Semantics Probe
 
 on:
   push:
@@ -10,22 +10,15 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
-      - name: Probe QLever with RhymeLab taxonomy
+      - name: Compare truthy and all-statement taxonomy semantics
         shell: bash
         run: |
-          cat > /tmp/qlever_probe.py <<'PY'
-          import gzip
-          import json
-          import os
-          import sys
-          import time
-          import urllib.parse
-          import urllib.request
+          cat > /tmp/qlever_rank_probe.py <<'PY'
+          import gzip, json, os, time, urllib.parse, urllib.request
 
           ENDPOINT = "https://qlever.dev/api/wikidata"
-
           TAXONOMY = [
               ("P106", "Q2252262", "person.rapper"),
               ("P106", "Q639669", "person.musician"),
@@ -41,270 +34,48 @@ jobs:
               ("P31", "Q7366", "work.song"),
               ("P31", "Q95074", "fictional.character"),
           ]
-
           PREFIX = """PREFIX wd: <http://www.wikidata.org/entity/>
           PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-          PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+          PREFIX p: <http://www.wikidata.org/prop/>
+          PREFIX ps: <http://www.wikidata.org/prop/statement/>
           PREFIX schema: <http://schema.org/>
-          PREFIX wikibase: <http://wikiba.se/ontology#>
           """
 
-          def candidate_union(bind_category=True):
-              branches = []
-              for prop, qid, cat in TAXONOMY:
-                  bind = f' BIND("{cat}" AS ?category)' if bind_category else ""
-                  branches.append(
-                      "{ ?item wdt:" + prop + " wd:" + qid + " ." + bind + " }"
-                  )
-              return "\nUNION\n".join(branches)
+          def fetch_json(query):
+              url = ENDPOINT + "?" + urllib.parse.urlencode({"query": query})
+              req = urllib.request.Request(url, headers={
+                  "Accept": "application/sparql-results+json",
+                  "User-Agent": "Graph1ks-RhymeLab-QLever-Probe/1.0",
+              })
+              t=time.time()
+              with urllib.request.urlopen(req, timeout=600) as r:
+                  payload=json.load(r)
+              return payload["results"]["bindings"], time.time()-t
 
-          def fetch(query, accept="application/sparql-results+json", timeout=600):
-              params = urllib.parse.urlencode({"query": query})
-              req = urllib.request.Request(
-                  ENDPOINT + "?" + params,
-                  headers={
-                      "Accept": accept,
-                      "User-Agent": "Graph1ks-RhymeLab-QLever-Probe/1.0",
-                  },
-              )
-              started = time.time()
-              with urllib.request.urlopen(req, timeout=timeout) as response:
-                  data = response.read()
-                  return data, response.headers.get("Content-Type"), time.time() - started
+          def count(pattern):
+              rows, elapsed = fetch_json(PREFIX + f"SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{ {pattern} }}")
+              return int(rows[0]["count"]["value"]), elapsed
 
-          def json_bindings(query):
-              data, content_type, elapsed = fetch(query)
-              payload = json.loads(data)
-              rows = payload.get("results", {}).get("bindings", [])
-              return rows, len(data), content_type, elapsed
+          truthy_total_branches=[]
+          all_total_branches=[]
+          print("category\ttruthy\tall_statements\tdelta\ttruthy_s\tall_s")
+          for prop,qid,cat in TAXONOMY:
+              truthy=f"?item wdt:{prop} wd:{qid} ."
+              allstmt=f"?item p:{prop} ?statement . ?statement ps:{prop} wd:{qid} ."
+              a,ta=count(truthy)
+              b,tb=count(allstmt)
+              print(f"{cat}\t{a}\t{b}\t{b-a}\t{ta:.3f}\t{tb:.3f}")
+              truthy_total_branches.append("{ "+truthy+" }")
+              all_total_branches.append("{ "+allstmt+" }")
 
-          def value(binding, name):
-              return binding.get(name, {}).get("value")
+          truthy_union=" UNION ".join(truthy_total_branches)
+          all_union=" UNION ".join(all_total_branches)
+          tcount,tt=count(truthy_union)
+          acount,at=count(all_union)
+          print(f"TOTAL_DISTINCT\t{tcount}\t{acount}\t{acount-tcount}\t{tt:.3f}\t{at:.3f}")
 
-          def stream_to_file(query, path, accept="text/tab-separated-values", timeout=600):
-              params = urllib.parse.urlencode({"query": query})
-              req = urllib.request.Request(
-                  ENDPOINT + "?" + params,
-                  headers={
-                      "Accept": accept,
-                      "User-Agent": "Graph1ks-RhymeLab-QLever-Probe/1.0",
-                  },
-              )
-              started = time.time()
-              rows = 0
-              size = 0
-              with urllib.request.urlopen(req, timeout=timeout) as response, open(path, "wb") as out:
-                  content_type = response.headers.get("Content-Type")
-                  while True:
-                      chunk = response.read(1024 * 1024)
-                      if not chunk:
-                          break
-                      out.write(chunk)
-                      size += len(chunk)
-                      rows += chunk.count(b"\n")
-              rows = max(0, rows - 1)
-              return {
-                  "path": path,
-                  "rows": rows,
-                  "raw_bytes": size,
-                  "content_type": content_type,
-                  "elapsed_s": time.time() - started,
-              }
-
-          def gzip_size(path):
-              gz_path = path + ".gz"
-              with open(path, "rb") as src, gzip.open(gz_path, "wb", compresslevel=6) as dst:
-                  while True:
-                      chunk = src.read(1024 * 1024)
-                      if not chunk:
-                          break
-                      dst.write(chunk)
-              return os.path.getsize(gz_path)
-
-          print("=== QLEVER RHYMELAB LIVE PROBE ===")
-          print("endpoint", ENDPOINT)
-
-          counts = {}
-          print("\n=== CATEGORY COUNTS ===")
-          for prop, qid, cat in TAXONOMY:
-              count_query = PREFIX + f"""
-              SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{
-                ?item wdt:{prop} wd:{qid} .
-              }}
-              """
-              rows, byte_count, ctype, elapsed = json_bindings(count_query)
-              count = int(value(rows[0], "count"))
-              counts[cat] = count
-              print(f"{cat}\t{count:,}\telapsed_s={elapsed:.3f}")
-
-          total_query = PREFIX + f"""
-          SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{
-            {candidate_union(bind_category=False)}
-          }}
-          """
-          rows, byte_count, ctype, elapsed = json_bindings(total_query)
-          total = int(value(rows[0], "count"))
-          print("\n=== TOTAL DISTINCT CANDIDATES ===")
-          print(f"{total:,}")
-          print(f"query_bytes={byte_count} content_type={ctype} elapsed_s={elapsed:.3f}")
-
-          checks = {
-              "de_label": '?item rdfs:label ?v . FILTER(LANG(?v) = "de")',
-              "en_label": '?item rdfs:label ?v . FILTER(LANG(?v) = "en")',
-              "de_alias": '?item skos:altLabel ?v . FILTER(LANG(?v) = "de")',
-              "en_alias": '?item skos:altLabel ?v . FILTER(LANG(?v) = "en")',
-              "de_description": '?item schema:description ?v . FILTER(LANG(?v) = "de")',
-              "en_description": '?item schema:description ?v . FILTER(LANG(?v) = "en")',
-              "dewiki": '?article schema:about ?item ; schema:isPartOf <https://de.wikipedia.org/> .',
-              "enwiki": '?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> .',
-              "whitelisted_external_id": 'VALUES ?externalProperty { wdt:P434 wdt:P345 wdt:P1953 wdt:P1902 } ?item ?externalProperty ?externalValue .',
-          }
-          print("\n=== FIELD COVERAGE ===")
-          coverage = {}
-          for name, extra in checks.items():
-              query = PREFIX + f"""
-              SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{
-                {candidate_union(bind_category=False)}
-                {extra}
-              }}
-              """
-              rows, byte_count, ctype, elapsed = json_bindings(query)
-              count = int(value(rows[0], "count"))
-              coverage[name] = count
-              pct = (count / total * 100) if total else 0
-              print(f"{name}\t{count:,}\t{pct:.2f}%\telapsed_s={elapsed:.3f}")
-
-          membership_query = PREFIX + f"""
-          SELECT DISTINCT ?item ?category WHERE {{
-            {candidate_union(bind_category=True)}
-          }}
-          """
-          data, ctype, elapsed = fetch(membership_query, "text/tab-separated-values")
-          path = "/tmp/membership.tsv"
-          with open(path, "wb") as f:
-              f.write(data)
-          gz_path = path + ".gz"
-          with gzip.open(gz_path, "wb", compresslevel=9) as f:
-              f.write(data)
-          rows_count = max(0, data.count(b"\n") - 1)
-          print("\n=== FULL MEMBERSHIP EXPORT ===")
-          print(f"rows={rows_count:,}")
-          print(f"raw_bytes={len(data):,}")
-          print(f"gzip_bytes={os.path.getsize(gz_path):,}")
-          print(f"content_type={ctype}")
-          print(f"elapsed_s={elapsed:.3f}")
-
-          bud_core = PREFIX + """
-          SELECT ?labelDe ?labelEn ?descriptionDe ?descriptionEn ?sitelinks WHERE {
-            OPTIONAL { wd:Q221074 rdfs:label ?labelDe . FILTER(LANG(?labelDe) = "de") }
-            OPTIONAL { wd:Q221074 rdfs:label ?labelEn . FILTER(LANG(?labelEn) = "en") }
-            OPTIONAL { wd:Q221074 schema:description ?descriptionDe . FILTER(LANG(?descriptionDe) = "de") }
-            OPTIONAL { wd:Q221074 schema:description ?descriptionEn . FILTER(LANG(?descriptionEn) = "en") }
-            OPTIONAL { wd:Q221074 wikibase:sitelinks ?sitelinks }
-          }
-          """
-          rows, _, _, elapsed = json_bindings(bud_core)
-          print("\n=== BUD SPENCER CORE SAMPLE ===")
-          print(json.dumps(rows[:5], ensure_ascii=False, indent=2))
-          print(f"elapsed_s={elapsed:.3f}")
-
-          bud_alias = PREFIX + """
-          SELECT ?alias WHERE {
-            wd:Q221074 skos:altLabel ?alias .
-            FILTER(LANG(?alias) IN ("de", "en"))
-          }
-          ORDER BY ?alias
-          """
-          rows, _, _, elapsed = json_bindings(bud_alias)
-          print("\n=== BUD SPENCER DE/EN ALIASES ===")
-          print(json.dumps(rows[:30], ensure_ascii=False, indent=2))
-          print(f"count={len(rows)} elapsed_s={elapsed:.3f}")
-
-          bud_ext = PREFIX + """
-          SELECT ?property ?value WHERE {
-            VALUES ?property { wdt:P434 wdt:P345 wdt:P1953 wdt:P1902 }
-            wd:Q221074 ?property ?value .
-          }
-          ORDER BY ?property ?value
-          """
-          rows, _, _, elapsed = json_bindings(bud_ext)
-          print("\n=== BUD SPENCER WHITELISTED EXTERNAL IDS ===")
-          print(json.dumps(rows, ensure_ascii=False, indent=2))
-          print(f"count={len(rows)} elapsed_s={elapsed:.3f}")
-
-          core_query = PREFIX + f"""
-          SELECT DISTINCT
-            ?item ?labelDe ?labelEn ?descriptionDe ?descriptionEn
-            ?sitelinks ?statements ?identifiers ?hasDeWiki ?hasEnWiki
-          WHERE {{
-            {candidate_union(bind_category=False)}
-            OPTIONAL {{ ?item rdfs:label ?labelDe . FILTER(LANG(?labelDe) = "de") }}
-            OPTIONAL {{ ?item rdfs:label ?labelEn . FILTER(LANG(?labelEn) = "en") }}
-            OPTIONAL {{ ?item schema:description ?descriptionDe . FILTER(LANG(?descriptionDe) = "de") }}
-            OPTIONAL {{ ?item schema:description ?descriptionEn . FILTER(LANG(?descriptionEn) = "en") }}
-            OPTIONAL {{ ?item wikibase:sitelinks ?sitelinks }}
-            OPTIONAL {{ ?item wikibase:statements ?statements }}
-            OPTIONAL {{ ?item wikibase:identifiers ?identifiers }}
-            OPTIONAL {{ ?deArticle schema:about ?item ; schema:isPartOf <https://de.wikipedia.org/> . }}
-            OPTIONAL {{ ?enArticle schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }}
-            BIND(IF(BOUND(?deArticle), 1, 0) AS ?hasDeWiki)
-            BIND(IF(BOUND(?enArticle), 1, 0) AS ?hasEnWiki)
-          }}
-          """
-          core_export = stream_to_file(core_query, "/tmp/core.tsv")
-          core_export["gzip_bytes"] = gzip_size(core_export["path"])
-          print("\n=== FULL CORE EXPORT ===")
-          print(json.dumps(core_export, sort_keys=True))
-
-          alias_query = PREFIX + f"""
-          SELECT DISTINCT ?item ?language ?alias WHERE {{
-            {candidate_union(bind_category=False)}
-            ?item skos:altLabel ?alias .
-            FILTER(LANG(?alias) IN ("de", "en"))
-            BIND(LANG(?alias) AS ?language)
-          }}
-          """
-          alias_export = stream_to_file(alias_query, "/tmp/aliases.tsv")
-          alias_export["gzip_bytes"] = gzip_size(alias_export["path"])
-          print("\n=== FULL DE/EN ALIAS EXPORT ===")
-          print(json.dumps(alias_export, sort_keys=True))
-
-          external_query = PREFIX + f"""
-          SELECT DISTINCT ?item ?property ?value WHERE {{
-            {candidate_union(bind_category=False)}
-            VALUES ?property {{ wdt:P434 wdt:P345 wdt:P1953 wdt:P1902 }}
-            ?item ?property ?value .
-          }}
-          """
-          external_export = stream_to_file(external_query, "/tmp/external_ids.tsv")
-          external_export["gzip_bytes"] = gzip_size(external_export["path"])
-          print("\n=== FULL WHITELISTED EXTERNAL-ID EXPORT ===")
-          print(json.dumps(external_export, sort_keys=True))
-
-          dump_date_query = PREFIX + """
-          SELECT ?date WHERE {
-            wikibase:Dump schema:dateModified ?date .
-          }
-          LIMIT 10
-          """
-          dump_rows, _, _, dump_elapsed = json_bindings(dump_date_query)
-          print("\n=== QLEVER WIKIDATA DUMP DATE ===")
-          print(json.dumps(dump_rows, ensure_ascii=False))
-          print(f"elapsed_s={dump_elapsed:.3f}")
-
-          summary = {
-              "total_distinct_candidates": total,
-              "category_counts": counts,
-              "coverage": coverage,
-              "membership_rows": rows_count,
-              "membership_raw_bytes": len(data),
-              "membership_gzip_bytes": os.path.getsize(gz_path),
-              "core_export": core_export,
-              "alias_export": alias_export,
-              "external_export": external_export,
-          }
-          print("\n=== MACHINE SUMMARY ===")
-          print(json.dumps(summary, sort_keys=True))
+          # Current endpoint freshness marker used by WDQS/QLever-compatible graphs.
+          rows, elapsed = fetch_json(PREFIX + 'SELECT ?modified WHERE { <http://www.wikidata.org> schema:dateModified ?modified } ORDER BY DESC(?modified) LIMIT 5')
+          print("DATE_MODIFIED", json.dumps(rows, ensure_ascii=False), f"elapsed_s={elapsed:.3f}")
           PY
-          python /tmp/qlever_probe.py
+          python /tmp/qlever_rank_probe.py
