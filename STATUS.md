@@ -104,17 +104,21 @@ It will not be collected from the project owner alone. Independent human usefuln
 
 Compact next-thread handover: `docs/THREAD_HANDOVER_PHASE_11E4F.md`.
 
-Current milestone: **11E4/F runtime integration + final acceptance**. 11E3 phrase-channel diversification is accepted/frozen with diversity fingerprint `ca7e04e91226cd5a3855dbe302a54bffaccce8c6d3a9defff8be049ca6153ef1`; three repeatability runs matched exactly and all protected checks passed. Phrase/Mosaic has no default visibility quota and remains separately filterable.
+Current milestone: **11E4/F runtime integration + final acceptance**. 11E3 phrase-channel diversification is accepted/frozen with diversity fingerprint `ca7e04e91226cd5a3855dbe302a54bffaccce8c6d3a9defff8be049ca6153ef1`; three repeatability runs matched exactly and all protected checks passed.
+
+The 11E4 code integration now provides one Writer product surface and one `/api/writer` contract for single words and Phrase/Mosaic. `All / Words / Phrases-Mosaic` are filters inside the same workspace; the standalone Phrase Explorer product UI has been removed. `/phrases` remains only a backward-compatible alias to the same Writer HTML.
+
+Search-language basis is exposed as `DE / EN / DE+EN`. German is active. English is explicitly capability-gated because no accepted English phonology/runtime exists yet; `DE+EN` therefore runs German with an English-unavailable warning until Phase 12.
 
 Remaining to close Phase 11:
 
 ```text
-11E4 local runtime/API/UI integration
+11E4 owner full-data integrated smoke/performance gate
 11F integrated structural + provenance + performance + repeatability benchmark
 Phase 11 closure
 ```
 
-11E4 and 11F are one continuous engineering workstream, but the final 11F benchmark still runs only after the 11E4 integrated surface exists.
+11E4 and 11F remain one continuous engineering workstream.
 ## Current phase — Phase 11 German phrase / mosaic / phraseology
 
 Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`. Phrase catalog contract: `docs/PHRASE_CATALOG_V1.md`. Pronunciation contract: `docs/PHRASE_PRONUNCIATION_V1.md`.
@@ -135,17 +139,13 @@ Leipzig evidence rows      28,799
 
 Phase 11B2 diagnostics found 15,449 modern-eligible phrases with Leipzig evidence (15.86%); 6,782 occur in one corpus, 3,984 in two and 4,683 in all three. The raw source catalog is intentionally broad and lexeme-heavy: 92,967 `multiword_lexeme` rows and 93,863 two-token rows. Abbreviation/surface aliases remain a known cleanup/ranking concern.
 
-### Phase 11B3 — local Phrase Explorer
+### Phase 11B3 — phrase detail/catalog diagnostics
 
-The read-only Phrase Explorer remains available for source, Leipzig, pronunciation and optional generic register evidence.
+The old standalone Phrase Explorer product UI is superseded by the unified Writer. Phrase catalog/detail APIs remain read-only diagnostic/provenance support for the unified result inspector.
+
+`http://127.0.0.1:3030/phrases` now serves the same Writer UI as `/` for backward-compatible bookmarks.
 
 Cologne Kiezdeutsch remains optional additive register evidence; automated Zenodo PDF 403 behavior is nonblocking because owner-local files may be supplied directly.
-
-The read-only Phrase Explorer is available at:
-
-```text
-http://127.0.0.1:3030/phrases
-```
 
 ### Phase 11C1 — deterministic phrase pronunciation — ACCEPTED / COMPLETE
 
