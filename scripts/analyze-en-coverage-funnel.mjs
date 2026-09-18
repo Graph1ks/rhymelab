@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { DatabaseSync } from 'node:sqlite';
+import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { access, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { createGunzip, gunzipSync } from 'node:zlib';
@@ -36,6 +37,8 @@ const enDbPath=resolve(argValue('--en-db','data/local/rhymelab-en-v1.sqlite'));
 const deDbPath=resolve(argValue('--de-db','data/local/rhymelab-v5.sqlite'));
 const sourceDiagnosticsPath=resolve(argValue('--source-diagnostics',registry.diagnostics_report||'data/local/en-source-diagnostics-v1.json'));
 const outPath=resolve(argValue('--out','data/local/en-coverage-audit-v1-report.json'));
+const candidatesOutPath=resolve(argValue('--candidates-out','data/local/en-coverage-candidates-v1.jsonl'));
+const stratifiedOutPath=resolve(argValue('--stratified-out','data/local/en-coverage-stratified-sample-v1.json'));
 const previousAudit=await safeJson(outPath);
 const sampleLimit=Math.max(10,Math.min(500,Number.parseInt(argValue('--sample-limit','100'),10)||100));
 const checkpoints=[1000,5000,10000,25000,50000,100000,150000,250000,500000];
@@ -259,6 +262,21 @@ function orthographicVariantRecovery(meta){
     .map((lemma)=>({lemma,kind:'punctuation_only_variant'}));
 }
 
+function possessiveRecovery(meta){
+  const surface=meta.normalized;
+  let base=null;
+  if(surface.endsWith("'s")&&surface.length>2) base=surface.slice(0,-2);
+  else if(surface.endsWith("s'")&&surface.length>2) base=surface.slice(0,-1);
+  if(!base) return [];
+  const row=publishByNormalized.get(base);
+  if(!row?.eligibility?.analyzed_en_us) return [];
+  return [{lemma:base,kind:'possessive_surface'}];
+}
+
+function deterministicScore(seed,row){
+  return createHash('sha256').update(`${seed}\u0000${row.rank}\u0000${row.normalized}\u0000${row.status}`).digest('hex');
+}
+
 function publishedLocaleGap(row){
   const pronunciations=row?.pronunciations||[];
   const analyzed=pronunciations.filter((p)=>p.analysis_status==='ok'&&p.analysis);
@@ -283,6 +301,7 @@ function classify(meta){
   }
   if(!meta.strict_publish_surface) return 'not_strict_publish_surface';
   if(!meta.lexical_headword&&!meta.lexical_listed_form){
+    if(meta.cmudict&&possessiveRecovery(meta).length) return 'possessive_with_cmudict_and_analyzed_en_us_base';
     if(meta.esdb_current&&meta.cmudict) return 'non_wiktionary_esdb_current_plus_cmudict';
     if(meta.esdb&&meta.cmudict) return 'non_wiktionary_esdb_plus_cmudict';
     if(meta.cmudict) return 'non_wiktionary_cmudict_only';
@@ -291,9 +310,10 @@ function classify(meta){
     return 'not_wiktionary_lexical_candidate';
   }
   if(!meta.wikt_ipa&&!meta.cmudict){
+    const ortho=orthographicVariantRecovery(meta);
+    if(ortho.length) return 'orthographic_variant_with_analyzed_en_us_lemma';
     const formRelation=meta.relation_kinds.has('form_of')||meta.relation_kinds.has('listed_form_of');
     if(formRelation&&morphologyRecovery(meta).length) return 'regular_inflection_shape_with_analyzed_en_us_lemma';
-    if(formRelation&&orthographicVariantRecovery(meta).length) return 'orthographic_variant_with_analyzed_en_us_lemma';
     if(formRelation&&analyzedLemmaCandidates(meta).length) return 'form_of_with_analyzed_en_us_lemma';
     if(formRelation) return 'form_of_without_analyzed_en_us_lemma';
     return 'no_source_backed_pronunciation';
@@ -306,63 +326,13 @@ const classified=ranked.map((row)=>{
   return {...meta,status:classify(meta)};
 });
 
-const checkpointReport=checkpoints.map((topN)=>{
-  const slice=classified.slice(0,Math.min(topN,classified.length));
-  const reasons=new Map();
-  let wiktLexical=0;
-  let strictSurface=0;
-  let sourcePron=0;
-  let publishedCount=0;
-  let analyzedUs=0;
-  let defaultCount=0;
-  const localeGaps=new Map();
-  let esdbCmuLexicalRescue=0;
-  let morphologyShapeRescue=0;
-  let orthographicVariantRescue=0;
-  for(const row of slice){
-    addReason(reasons,row.status);
-    if(row.lexical_headword||row.lexical_listed_form) wiktLexical+=1;
-    if(row.strict_publish_surface) strictSurface+=1;
-    if(row.wikt_ipa||row.cmudict) sourcePron+=1;
-    if(row.publish) publishedCount+=1;
-    if(row.publish?.eligibility?.analyzed_en_us) analyzedUs+=1;
-    if(row.publish?.eligibility?.default_eligible) defaultCount+=1;
-    if(row.status==='published_no_analyzed_en_us_pronunciation') addReason(localeGaps,publishedLocaleGap(row.publish));
-    if(row.status==='non_wiktionary_esdb_current_plus_cmudict'||row.status==='non_wiktionary_esdb_plus_cmudict') esdbCmuLexicalRescue+=1;
-    if(row.status==='regular_inflection_shape_with_analyzed_en_us_lemma') morphologyShapeRescue+=1;
-    if(row.status==='orthographic_variant_with_analyzed_en_us_lemma') orthographicVariantRescue+=1;
-  }
+function reviewRow(row){
   return {
-    top_n_requested:topN,
-    available_ranked_surfaces:slice.length,
-    strict_publish_surface:{count:strictSurface,pct:pct(strictSurface,slice.length)},
-    wiktionary_lexical:{count:wiktLexical,pct:pct(wiktLexical,slice.length)},
-    source_backed_pronunciation:{count:sourcePron,pct:pct(sourcePron,slice.length)},
-    published:{count:publishedCount,pct:pct(publishedCount,slice.length)},
-    analyzed_en_us:{count:analyzedUs,pct:pct(analyzedUs,slice.length)},
-    default_eligible:{count:defaultCount,pct:pct(defaultCount,slice.length)},
-    rescue_opportunities:{
-      esdb_plus_cmudict_non_wiktionary:esdbCmuLexicalRescue,
-      regular_inflection_shape_with_analyzed_en_us_lemma:morphologyShapeRescue,
-      orthographic_variant_with_analyzed_en_us_lemma:orthographicVariantRescue,
-      published_no_en_us_locale_breakdown:reasonDistribution(localeGaps),
-    },
-    losses:reasonDistribution(reasons).filter((item)=>item.reason!=='default_eligible'),
-  };
-});
-
-const allReasons=new Map();
-for(const row of classified) addReason(allReasons,row.status);
-const missingHighFrequency=classified
-  .filter((row)=>row.status!=='default_eligible')
-  .slice(0,sampleLimit)
-  .map((row)=>({
     rank:row.rank,
     surface:row.surface,
     normalized:row.normalized,
     zipf:row.zipf,
     status:row.status,
-    strict_publish_surface:row.strict_publish_surface,
     lexical_headword:row.lexical_headword,
     lexical_listed_form:row.lexical_listed_form,
     wiktionary_ipa:row.wikt_ipa,
@@ -378,10 +348,67 @@ const missingHighFrequency=classified
     analyzed_en_us_lemma_candidates:analyzedLemmaCandidates(row),
     morphology_recovery_candidates:morphologyRecovery(row),
     orthographic_variant_recovery_candidates:orthographicVariantRecovery(row),
+    possessive_recovery_candidates:possessiveRecovery(row),
     lexical_tags:[...row.lexical_tags].sort(),
     published_locale_gap:row.status==='published_no_analyzed_en_us_pronunciation'?publishedLocaleGap(row.publish):null,
     publish_exclusion_reasons:row.publish?.eligibility?.exclusion_reasons||[],
-  }));
+  };
+}
+
+const checkpointReport=checkpoints.map((topN)=>{
+  const slice=classified.slice(0,Math.min(topN,classified.length));
+  const reasons=new Map();
+  let wiktLexical=0;
+  let strictSurface=0;
+  let sourcePron=0;
+  let publishedCount=0;
+  let analyzedUs=0;
+  let defaultCount=0;
+  const localeGaps=new Map();
+  let esdbCmuLexicalRescue=0;
+  let morphologyShapeRescue=0;
+  let orthographicVariantRescue=0;
+  let possessiveRescue=0;
+  for(const row of slice){
+    addReason(reasons,row.status);
+    if(row.lexical_headword||row.lexical_listed_form) wiktLexical+=1;
+    if(row.strict_publish_surface) strictSurface+=1;
+    if(row.wikt_ipa||row.cmudict) sourcePron+=1;
+    if(row.publish) publishedCount+=1;
+    if(row.publish?.eligibility?.analyzed_en_us) analyzedUs+=1;
+    if(row.publish?.eligibility?.default_eligible) defaultCount+=1;
+    if(row.status==='published_no_analyzed_en_us_pronunciation') addReason(localeGaps,publishedLocaleGap(row.publish));
+    if(row.status==='non_wiktionary_esdb_current_plus_cmudict'||row.status==='non_wiktionary_esdb_plus_cmudict') esdbCmuLexicalRescue+=1;
+    if(row.status==='regular_inflection_shape_with_analyzed_en_us_lemma') morphologyShapeRescue+=1;
+    if(row.status==='orthographic_variant_with_analyzed_en_us_lemma') orthographicVariantRescue+=1;
+    if(row.status==='possessive_with_cmudict_and_analyzed_en_us_base') possessiveRescue+=1;
+  }
+  return {
+    top_n_requested:topN,
+    available_ranked_surfaces:slice.length,
+    strict_publish_surface:{count:strictSurface,pct:pct(strictSurface,slice.length)},
+    wiktionary_lexical:{count:wiktLexical,pct:pct(wiktLexical,slice.length)},
+    source_backed_pronunciation:{count:sourcePron,pct:pct(sourcePron,slice.length)},
+    published:{count:publishedCount,pct:pct(publishedCount,slice.length)},
+    analyzed_en_us:{count:analyzedUs,pct:pct(analyzedUs,slice.length)},
+    default_eligible:{count:defaultCount,pct:pct(defaultCount,slice.length)},
+    rescue_opportunities:{
+      esdb_plus_cmudict_non_wiktionary:esdbCmuLexicalRescue,
+      regular_inflection_shape_with_analyzed_en_us_lemma:morphologyShapeRescue,
+      orthographic_variant_with_analyzed_en_us_lemma:orthographicVariantRescue,
+      possessive_with_cmudict_and_analyzed_en_us_base:possessiveRescue,
+      published_no_en_us_locale_breakdown:reasonDistribution(localeGaps),
+    },
+    losses:reasonDistribution(reasons).filter((item)=>item.reason!=='default_eligible'),
+  };
+});
+
+const allReasons=new Map();
+for(const row of classified) addReason(allReasons,row.status);
+const missingHighFrequency=classified
+  .filter((row)=>row.status!=='default_eligible')
+  .slice(0,sampleLimit)
+  .map(reviewRow);
 
 const byLoss={};
 for(const {reason} of reasonDistribution(allReasons)){
@@ -390,6 +417,56 @@ for(const {reason} of reasonDistribution(allReasons)){
     rank:row.rank,surface:row.surface,zipf:row.zipf,
   }));
 }
+
+
+const reviewSeed='phase12b6-stratified-v1';
+const rankBands=[
+  {label:'1-10k',min:1,max:10000},
+  {label:'10k-25k',min:10001,max:25000},
+  {label:'25k-50k',min:25001,max:50000},
+  {label:'50k-100k',min:50001,max:100000},
+  {label:'100k-150k',min:100001,max:150000},
+  {label:'150k-250k',min:150001,max:250000},
+  {label:'250k-tail',min:250001,max:Number.MAX_SAFE_INTEGER},
+];
+const reviewStatuses=[
+  'not_wiktionary_lexical_candidate',
+  'no_source_backed_pronunciation',
+  'published_no_analyzed_en_us_pronunciation',
+  'regular_inflection_shape_with_analyzed_en_us_lemma',
+  'orthographic_variant_with_analyzed_en_us_lemma',
+  'possessive_with_cmudict_and_analyzed_en_us_base',
+  'non_wiktionary_esdb_current_plus_cmudict',
+  'non_wiktionary_cmudict_only',
+  'form_of_with_analyzed_en_us_lemma',
+  'form_of_without_analyzed_en_us_lemma',
+  'published_explicit_proper_name_only',
+];
+const stratifiedCells=[];
+for(const band of rankBands){
+  for(const status of reviewStatuses){
+    const rows=classified
+      .filter((row)=>row.rank>=band.min&&row.rank<=band.max&&row.status===status)
+      .map((row)=>({row,score:deterministicScore(`${reviewSeed}|${band.label}|${status}`,row)}))
+      .sort((a,b)=>a.score.localeCompare(b.score))
+      .slice(0,8)
+      .map(({row})=>reviewRow(row));
+    if(rows.length) stratifiedCells.push({
+      rank_band:band.label,
+      status,
+      population:classified.filter((row)=>row.rank>=band.min&&row.rank<=band.max&&row.status===status).length,
+      sample:rows,
+    });
+  }
+}
+const stratifiedSample={
+  schema:'rhymelab-en-coverage-stratified-sample-v1',
+  seed:reviewSeed,
+  source_publish_fingerprint:manifest.semantic_fingerprint,
+  sample_per_status_band:8,
+  rank_bands,
+  cells:stratifiedCells,
+};
 
 async function sqliteSummary(path,kind){
   try{await access(path);}catch{return {available:false,path};}
@@ -523,6 +600,11 @@ const report={
     warning:'German v5 contains mature Writer anchor/morphology materializations; English v1 is still a lean candidate DB. File size is not an apples-to-apples lexical coverage metric.',
   },
   comparison_to_previous_audit:previousComparison(),
+  review_artifacts:{
+    candidates_jsonl:candidatesOutPath,
+    stratified_sample_json:stratifiedOutPath,
+    stratified_sample_schema:stratifiedSample.schema,
+  },
   diagnosis_hints:{
     pronunciation_bottleneck:
       'If top-N Wiktionary lexical coverage is high but source-backed pronunciation/publish coverage drops sharply, pronunciation acquisition/composition is the primary bottleneck.',
@@ -530,6 +612,10 @@ const report={
       'Treat regular_inflection_shape_with_analyzed_en_us_lemma as a bounded composition candidate only; arbitrary form_of relations are not pronunciation inheritance because semantic/form relations can be non-phonological.',
     lexical_rescue_bottleneck:
       'non_wiktionary_esdb_current_plus_cmudict is strong independent lexical+pronunciation evidence that can potentially expand publish coverage without G2P.',
+    possessive_rescue:
+      'Possessive forms with exact CMUdict pronunciation plus an analyzed en-US base are a separate high-confidence surface-recovery class, not generic lexical invention.',
+    orthographic_variant_priority:
+      'Punctuation-only alt_of recovery must be classified before generic form_of morphology so dont/thats-like surfaces are not mislabeled as ordinary inflection.',
     locale_bottleneck:
       'A large published_no_analyzed_en_us bucket means source pronunciation exists but cannot enter the default en-US profile under current provenance/analyzer rules.',
     lexical_bottleneck:
@@ -538,6 +624,10 @@ const report={
 };
 
 await mkdir(dirname(outPath),{recursive:true});
+await mkdir(dirname(candidatesOutPath),{recursive:true});
+await mkdir(dirname(stratifiedOutPath),{recursive:true});
+await writeFile(candidatesOutPath,classified.map((row)=>JSON.stringify(reviewRow(row))).join('\n')+'\n');
+await writeFile(stratifiedOutPath,JSON.stringify(stratifiedSample,null,2)+'\n');
 await writeFile(outPath,JSON.stringify(report,null,2)+'\n');
 
 console.log('\nPHASE 12B6 ENGLISH COVERAGE AUDIT COMPLETE');
@@ -558,5 +648,6 @@ console.log(JSON.stringify({
   english_runtime:enDb,
   highest_ranked_missing_examples:missingHighFrequency.slice(0,25),
   comparison_to_previous_audit:report.comparison_to_previous_audit,
+  review_artifacts:report.review_artifacts,
   report:outPath,
 },null,2));
