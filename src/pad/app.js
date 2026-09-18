@@ -30,6 +30,44 @@ const TYPE_LABELS = {
   consonance: 'consonance',
 };
 
+const ENTITY_CATEGORY_LABELS = {
+  'person.rapper': 'Rapper',
+  'person.musician': 'Musician',
+  'person.actor': 'Actor',
+  'person.director': 'Director',
+  'group.music_group': 'Band / group',
+  'organization.car_brand': 'Car brand',
+  'organization.fashion_house': 'Fashion house',
+  'organization.company': 'Company',
+  'work.film': 'Film',
+  'work.video_game': 'Game',
+  'work.album': 'Album',
+  'work.song': 'Song',
+  'fictional.character': 'Character',
+};
+
+const ENTITY_CATEGORY_OPTIONS = `
+  <option value="all">All entities</option>
+  <optgroup label="People">
+    <option value="person.rapper">Rapper</option>
+    <option value="person.musician">Musicians</option>
+    <option value="person.actor">Actors</option>
+    <option value="person.director">Directors</option>
+  </optgroup>
+  <optgroup label="Music / culture">
+    <option value="group.music_group">Bands / groups</option>
+    <option value="work.song">Songs</option>
+    <option value="work.album">Albums</option>
+    <option value="work.film">Films</option>
+    <option value="work.video_game">Games</option>
+    <option value="fictional.character">Characters</option>
+  </optgroup>
+  <optgroup label="Brands / organizations">
+    <option value="organization.car_brand">Car brands</option>
+    <option value="organization.fashion_house">Fashion houses</option>
+    <option value="organization.company">Companies</option>
+  </optgroup>`;
+
 const state = {
   abortController: null,
   timer: null,
@@ -70,7 +108,7 @@ function lyricWords() {
 function isAlreadyUsed(row) {
   const candidate = normalize(row.word);
   if (!candidate) return true;
-  if (row.resultKind === 'phrase') {
+  if (row.resultKind === 'phrase' || row.resultKind === 'entity') {
     return normalize(editor.value).includes(candidate);
   }
   return lyricWords().has(candidate);
@@ -108,6 +146,7 @@ function writeRequest() {
   const preset = $('#rhymeLabPreset')?.value || 'best';
   if (preset === 'words') return { scope: 'words', type: 'all' };
   if (preset === 'phrases') return { scope: 'phrases', type: 'all' };
+  if (preset === 'entities') return { scope: 'entities', type: 'all' };
   if (RHYME_TYPES.includes(preset)) return { scope: 'all', type: preset };
   return { scope: 'all', type: 'all' };
 }
@@ -148,10 +187,32 @@ function rowScore(row) {
   return relationScore(row, primaryType(row));
 }
 
+function activeEntityCategory() {
+  const id = appMode() === 'rhyme' ? '#rhymeLabDeepEntityCategory' : '#rhymeLabEntityCategory';
+  return $(id)?.value || 'all';
+}
+
+function entityCategoryLabel(category) {
+  return ENTITY_CATEGORY_LABELS[category]
+    || String(category || 'Entity').replaceAll('.', ' / ');
+}
+
+function entityCategoryBadges(row) {
+  if (row.resultKind !== 'entity') return '';
+  const categories = (row.entityCategories || [])
+    .filter((entry) => entry.retained !== false)
+    .slice(0, 3);
+  return categories
+    .map((entry) => `<span class="entityCategoryBadge">${esc(entityCategoryLabel(entry.category))}</span>`)
+    .join('');
+}
+
 function resultMeta(row) {
-  const usage = row.resultKind === 'phrase'
-    ? (row.usageCount ? `${Number(row.usageCount).toLocaleString()} uses` : 'phrase')
-    : (row.usageRank ? `usage #${Number(row.usageRank).toLocaleString()}` : 'usage —');
+  const usage = row.resultKind === 'entity'
+    ? (row.popularityTier ? `Tier ${row.popularityTier}` : 'entity')
+    : row.resultKind === 'phrase'
+      ? (row.usageCount ? `${Number(row.usageCount).toLocaleString()} uses` : 'phrase')
+      : (row.usageRank ? `usage #${Number(row.usageRank).toLocaleString()}` : 'usage —');
   const ipa = row.ipa ? `/${row.ipa}/` : '';
   return [
     `${row.syllableCount ?? '—'} syl`,
@@ -171,7 +232,8 @@ function candidateHtml(row) {
       <div>
         <div class="suggestionWord">${esc(row.word)}</div>
         <div class="suggestionMeta">
-          <span class="resultKind">${row.resultKind === 'phrase' ? 'PHRASE / MOSAIC' : 'WORD'}</span>
+          <span class="resultKind ${row.resultKind === 'entity' ? 'entity' : ''}">${row.resultKind === 'entity' ? 'ENTITY' : row.resultKind === 'phrase' ? 'PHRASE / MOSAIC' : 'WORD'}</span>
+          ${entityCategoryBadges(row)}
           ${badges}
           ${resultMeta(row).map((item) => `<span class="small">${esc(item)}</span>`).join('')}
         </div>
@@ -227,6 +289,7 @@ function installRhymeLabControls() {
       <option value="best">Best of everything</option>
       <option value="words">Words only</option>
       <option value="phrases">Phrases / Mosaic only</option>
+      <option value="entities">Entities only</option>
       <option value="multisyllabic_perfect">Multisyllabic perfect</option>
       <option value="perfect">Perfect rhyme</option>
       <option value="multisyllabic_slant">Multisyllabic slant</option>
@@ -239,6 +302,16 @@ function installRhymeLabControls() {
   if (relationWrap) head.insertBefore(presetWrap, relationWrap);
   else head.appendChild(presetWrap);
 
+  const entityWrap = document.createElement('span');
+  entityWrap.id = 'rhymeLabEntityCategoryWrap';
+  entityWrap.className = 'selectWrap rhymeLabEntityCategoryWrap';
+  entityWrap.innerHTML = `
+    <select id="rhymeLabEntityCategory" aria-label="Entity category">
+      ${ENTITY_CATEGORY_OPTIONS}
+    </select>`;
+  if (relationWrap) head.insertBefore(entityWrap, relationWrap);
+  else head.appendChild(entityWrap);
+
   const meta = document.createElement('div');
   meta.id = 'rhymeLabAssistMeta';
   meta.className = 'rhymeLabAssistMeta';
@@ -246,6 +319,10 @@ function installRhymeLabControls() {
   suggestions.insertAdjacentElement('beforebegin', meta);
 
   $('#rhymeLabPreset')?.addEventListener('change', () => {
+    state.writePage = 1;
+    scheduleSearch(0, true);
+  });
+  $('#rhymeLabEntityCategory')?.addEventListener('change', () => {
     state.writePage = 1;
     scheduleSearch(0, true);
   });
@@ -263,9 +340,10 @@ function installDeepResults() {
       <span id="rhymeLabDeepCount" class="small">—</span>
       <label class="small">Results
         <select id="rhymeLabDeepScope">
-          <option value="all">Words + Phrases</option>
+          <option value="all">Words + Phrases + Entities</option>
           <option value="words">Words</option>
           <option value="phrases">Phrases / Mosaic</option>
+          <option value="entities">Entities</option>
         </select>
       </label>
       <label class="small">Relation
@@ -280,6 +358,11 @@ function installDeepResults() {
           <option value="consonance">Consonance</option>
         </select>
       </label>
+      <label class="small">Entity
+        <select id="rhymeLabDeepEntityCategory">
+          ${ENTITY_CATEGORY_OPTIONS}
+        </select>
+      </label>
     </div>
     <div id="rhymeLabDeepBody" class="rhymeLabDeepBody">
       <div class="rhymeLabNoResults">Move the cursor to a word to load RhymeLab results.</div>
@@ -288,6 +371,7 @@ function installDeepResults() {
 
   $('#rhymeLabDeepScope')?.addEventListener('change', () => scheduleSearch(0, true));
   $('#rhymeLabDeepType')?.addEventListener('change', () => scheduleSearch(0, true));
+  $('#rhymeLabDeepEntityCategory')?.addEventListener('change', () => scheduleSearch(0, true));
 }
 
 function setAssistMeta(message, { error = false } = {}) {
@@ -299,22 +383,25 @@ function setAssistMeta(message, { error = false } = {}) {
 
 function renderWriteResults() {
   const rows = state.filteredRows;
-  const words = rows.filter((row) => row.resultKind !== 'phrase');
+  const words = rows.filter((row) => row.resultKind === 'word');
   const phrases = rows.filter((row) => row.resultKind === 'phrase');
+  const entities = rows.filter((row) => row.resultKind === 'entity');
   const request = writeRequest();
   const perChannel = state.writePageSize * state.writePage;
 
   let html = '';
-  if (request.scope !== 'phrases') html += groupHtml('Words', words, perChannel);
-  if (request.scope !== 'words') html += groupHtml('Phrases / Mosaic', phrases, perChannel);
+  if (request.scope === 'all' || request.scope === 'words') html += groupHtml('Words', words, perChannel);
+  if (request.scope === 'all' || request.scope === 'phrases') html += groupHtml('Phrases / Mosaic', phrases, perChannel);
+  if (request.scope === 'all' || request.scope === 'entities') html += groupHtml('Entities', entities, perChannel);
 
-  const visibleWords = request.scope === 'phrases' ? 0 : Math.min(words.length, perChannel);
-  const visiblePhrases = request.scope === 'words' ? 0 : Math.min(phrases.length, perChannel);
-  const hasMore = visibleWords < words.length || visiblePhrases < phrases.length;
+  const visibleWords = request.scope === 'all' || request.scope === 'words' ? Math.min(words.length, perChannel) : 0;
+  const visiblePhrases = request.scope === 'all' || request.scope === 'phrases' ? Math.min(phrases.length, perChannel) : 0;
+  const visibleEntities = request.scope === 'all' || request.scope === 'entities' ? Math.min(entities.length, perChannel) : 0;
+  const hasMore = visibleWords < words.length || visiblePhrases < phrases.length || visibleEntities < entities.length;
 
   if (!html) html = '<div class="small">No unused RhymeLab candidates for this filter.</div>';
   if (hasMore) {
-    html += `<button id="rhymeLabLoadMore" class="rhymeLabLoadMore" type="button">Show more · ${visibleWords + visiblePhrases} of ${words.length + phrases.length}</button>`;
+    html += `<button id="rhymeLabLoadMore" class="rhymeLabLoadMore" type="button">Show more · ${visibleWords + visiblePhrases + visibleEntities} of ${words.length + phrases.length + entities.length}</button>`;
   }
 
   suggestions.innerHTML = html;
@@ -329,8 +416,9 @@ function renderDeepResults() {
   const count = $('#rhymeLabDeepCount');
   if (!body || !count) return;
 
-  const words = state.filteredRows.filter((row) => row.resultKind !== 'phrase');
+  const words = state.filteredRows.filter((row) => row.resultKind === 'word');
   const phrases = state.filteredRows.filter((row) => row.resultKind === 'phrase');
+  const entities = state.filteredRows.filter((row) => row.resultKind === 'entity');
   count.textContent = `${state.filteredRows.length} unused · ${state.hiddenUsed} used hidden`;
 
   const sections = [];
@@ -339,6 +427,9 @@ function renderDeepResults() {
   }
   if (phrases.length) {
     sections.push(`<section class="rhymeLabDeepSection"><div class="rhymeLabDeepSectionHead"><strong>Phrases / Mosaic</strong><span>${phrases.length}</span></div>${phrases.map(candidateHtml).join('')}</section>`);
+  }
+  if (entities.length) {
+    sections.push(`<section class="rhymeLabDeepSection entitySection"><div class="rhymeLabDeepSectionHead"><strong>Entities</strong><span>${entities.length}</span></div>${entities.map(candidateHtml).join('')}</section>`);
   }
 
   body.innerHTML = sections.length
@@ -409,7 +500,8 @@ async function runSearch(force = false) {
     return;
   }
 
-  const queryKey = JSON.stringify([query, basis, request.scope, request.type, editor.value]);
+  const entityCategory = activeEntityCategory();
+  const queryKey = JSON.stringify([query, basis, request.scope, request.type, entityCategory, editor.value]);
   if (!force && queryKey === state.lastQueryKey) return;
   state.lastQueryKey = queryKey;
 
@@ -430,6 +522,9 @@ async function runSearch(force = false) {
     phrase_limit: '250',
     phrase_pool: '1024',
     phrase_per_channel: '256',
+    entity_limit: '250',
+    entity_pool: '512',
+    entity_category: entityCategory,
     variants: 'preferred',
     historical: 'current',
   });
