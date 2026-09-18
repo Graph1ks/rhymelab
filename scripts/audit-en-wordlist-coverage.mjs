@@ -25,31 +25,41 @@ const out=resolve(argValue('--out','data/local/en-wordlist-coverage-v1-report.js
 const tsvOut=resolve(argValue('--tsv-out','data/local/en-wordlist-coverage-v1.tsv'));
 
 function parseWordList(text){
+  const sourceLines=text.split(/\r?\n/u).map((rawLine,index)=>({
+    line:index+1,
+    value:rawLine.trim(),
+  }));
+  const meaningful=sourceLines.filter((item)=>item.value&&!item.value.startsWith('#'));
+  const rarityPattern=/^(\d+)(?:\t|\s+)(.+)$/u;
+  const rarityRows=meaningful.filter((item)=>rarityPattern.test(item.value));
+  const structuredRarityInput=rarityRows.length>=2;
   const rows=[];
-  let lineNumber=0;
-  for(const rawLine of text.split(/\r?\n/u)){
-    lineNumber+=1;
-    const line=rawLine.trim();
-    if(!line||line.startsWith('#')) continue;
+  let ignoredMetadataLines=0;
+
+  for(const item of meaningful){
+    const line=item.value;
     if(/^rarity\s+word$/iu.test(line)) continue;
     if(/^\d+\s+RANDOM ENGLISH WORDS/iu.test(line)) continue;
+    const match=line.match(rarityPattern);
+    if(structuredRarityInput&&!match){
+      ignoredMetadataLines+=1;
+      continue;
+    }
     let rarity=null;
     let surface=line;
-    const tabMatch=line.match(/^(\d+)\t(.+)$/u);
-    const spacedMatch=line.match(/^(\d+)\s+(.+)$/u);
-    const match=tabMatch||spacedMatch;
     if(match){
       rarity=Number.parseInt(match[1],10);
       surface=match[2].trim();
     }
     const normalized=normalizeEnglishSurface(surface);
     if(!normalized) continue;
-    rows.push({line:lineNumber,rarity:Number.isInteger(rarity)?rarity:null,surface,normalized});
+    rows.push({line:item.line,rarity:Number.isInteger(rarity)?rarity:null,surface,normalized});
   }
-  return rows;
+  return {rows,structuredRarityInput,ignoredMetadataLines};
 }
 
-const list=parseWordList(await readFile(input,'utf8'));
+const parsedInput=parseWordList(await readFile(input,'utf8'));
+const list=parsedInput.rows;
 if(!list.length) throw new Error('Wordlist contained no usable rows.');
 const uniqueTargets=new Set(list.map((row)=>row.normalized));
 const duplicateRows=list.length-uniqueTargets.size;
@@ -220,6 +230,8 @@ const report={
   coverage_candidates:candidatesAvailable?candidatesPath:null,
   coverage_candidates_available:candidatesAvailable,
   rows:list.length,
+  structured_rarity_input:parsedInput.structuredRarityInput,
+  ignored_metadata_lines:parsedInput.ignoredMetadataLines,
   unique_normalized_surfaces:uniqueTargets.size,
   duplicate_normalized_rows:duplicateRows,
   summary:summarize(results),
@@ -269,6 +281,8 @@ console.log('\nPHASE 12B6 ENGLISH WORDLIST COVERAGE');
 console.log(JSON.stringify({
   schema:report.schema,
   rows:report.rows,
+  structured_rarity_input:report.structured_rarity_input,
+  ignored_metadata_lines:report.ignored_metadata_lines,
   unique_normalized_surfaces:report.unique_normalized_surfaces,
   coverage_candidates_available:report.coverage_candidates_available,
   summary:report.summary,
