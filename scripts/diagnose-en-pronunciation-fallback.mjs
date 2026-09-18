@@ -29,9 +29,29 @@ function isUnprofiled(pronunciation){
   return analyzed(pronunciation)&&(!Array.isArray(pronunciation.locales)||pronunciation.locales.length===0);
 }
 
+function boundaryInsensitiveTail(analysis){
+  return String(analysis?.rt||'')
+    .split(/\\s+/u)
+    .filter((token)=>token&&token!=='.')
+    .join(' ');
+}
+
+function rhymeStressPattern(analysis){
+  const pattern=String(analysis?.st||'');
+  const start=Math.max(0,Number(analysis?.ps||1)-1);
+  return pattern.slice(start);
+}
+
 function matches(a,b){
+  const flatA=boundaryInsensitiveTail(a);
+  const flatB=boundaryInsensitiveTail(b);
+  const stressA=rhymeStressPattern(a);
+  const stressB=rhymeStressPattern(b);
   return {
     exact_tail:a.e===b.e,
+    boundary_insensitive_tail:flatA===flatB,
+    boundary_insensitive_tail_plus_stress:flatA===flatB&&stressA===stressB,
+    phoneme_sequence:a.ph===b.ph,
     final_tail:a.ft===b.ft,
     vowel_family:a.vf===b.vf,
     vowel_key:a.vk===b.vk,
@@ -59,12 +79,16 @@ function newBucket(){
   return {
     surfaces:0,
     exact_tail_match:0,
+    boundary_insensitive_tail_match:0,
+    boundary_insensitive_tail_plus_stress_match:0,
+    phoneme_sequence_match:0,
     final_tail_match:0,
     vowel_family_match:0,
     vowel_key_match:0,
     syllable_count_match:0,
     stress_pattern_match:0,
     primary_stress_match:0,
+    exact_tail_mismatch_but_boundary_insensitive_tail_match:0,
     exact_tail_mismatches:[],
   };
 }
@@ -79,10 +103,13 @@ function addBucket(bucket,row,references,candidates,label){
   if(!best) return;
   bucket.surfaces+=1;
   for(const key of [
-    'exact_tail','final_tail','vowel_family','vowel_key',
-    'syllable_count','stress_pattern','primary_stress',
+    'exact_tail','boundary_insensitive_tail','boundary_insensitive_tail_plus_stress','phoneme_sequence',
+    'final_tail','vowel_family','vowel_key','syllable_count','stress_pattern','primary_stress',
   ]){
     if(best.match[key]) bucket[`${key}_match`]+=1;
+  }
+  if(!best.match.exact_tail&&best.match.boundary_insensitive_tail){
+    bucket.exact_tail_mismatch_but_boundary_insensitive_tail_match+=1;
   }
   if(!best.match.exact_tail&&bucket.exact_tail_mismatches.length<exampleLimit){
     bucket.exact_tail_mismatches.push({
@@ -134,9 +161,15 @@ function pct(value,total){
   return total?Number((value*100/total).toFixed(2)):0;
 }
 function finalize(bucket){
+  const exactMismatches=bucket.surfaces-bucket.exact_tail_match;
   return {
     ...bucket,
     exact_tail_match_pct:pct(bucket.exact_tail_match,bucket.surfaces),
+    boundary_insensitive_tail_match_pct:pct(bucket.boundary_insensitive_tail_match,bucket.surfaces),
+    boundary_insensitive_tail_plus_stress_match_pct:pct(bucket.boundary_insensitive_tail_plus_stress_match,bucket.surfaces),
+    phoneme_sequence_match_pct:pct(bucket.phoneme_sequence_match,bucket.surfaces),
+    exact_tail_mismatch_but_boundary_insensitive_tail_match_pct_of_exact_mismatches:
+      pct(bucket.exact_tail_mismatch_but_boundary_insensitive_tail_match,exactMismatches),
     final_tail_match_pct:pct(bucket.final_tail_match,bucket.surfaces),
     vowel_family_match_pct:pct(bucket.vowel_family_match,bucket.surfaces),
     vowel_key_match_pct:pct(bucket.vowel_key_match,bucket.surfaces),
@@ -163,11 +196,15 @@ const report={
   },
   interpretation_contract:{
     exact_tail_match:
-      'Strongest direct evidence that a fallback pronunciation preserves the same indexed exact rhyme domain as at least one source-backed en-US variant.',
+      'Current production exact-key agreement. This key includes analyzer syllable boundaries and can therefore disagree even when the rhyme-tail segment sequence is identical.',
+    boundary_insensitive_tail_match:
+      'Diagnostic-only agreement after removing syllable-boundary markers from the stressed rhyme tail. This isolates possible analyzer/source syllabification artifacts.',
+    boundary_insensitive_tail_plus_stress_match:
+      'Diagnostic-only flat rhyme-tail agreement that also requires the rhyme-region stress pattern to agree.',
     mismatch:
-      'A mismatch is review evidence, not proof that either source is wrong; dialect and genuine pronunciation variants can differ.',
+      'A mismatch is review evidence, not proof that either source is wrong; dialect, source transcription, stress and genuine pronunciation variants can differ.',
     acceptance:
-      'Do not relabel unprofiled or en-GB pronunciation as en-US. A future fallback profile must preserve provenance and remain distinguishable from explicit en-US.',
+      'Do not relabel unprofiled or en-GB pronunciation as en-US. Do not change the production exact key until the boundary-insensitive diagnostic quantifies the impact and protected rhyme fixtures are updated intentionally.',
   },
 };
 
@@ -183,6 +220,10 @@ console.log(JSON.stringify({
   unprofiled_vs_en_us:{
     surfaces:report.comparisons.unprofiled_vs_en_us.surfaces,
     exact_tail_match_pct:report.comparisons.unprofiled_vs_en_us.exact_tail_match_pct,
+    boundary_insensitive_tail_match_pct:report.comparisons.unprofiled_vs_en_us.boundary_insensitive_tail_match_pct,
+    boundary_insensitive_tail_plus_stress_match_pct:report.comparisons.unprofiled_vs_en_us.boundary_insensitive_tail_plus_stress_match_pct,
+    exact_tail_mismatch_but_boundary_insensitive_tail_match_pct_of_exact_mismatches:
+      report.comparisons.unprofiled_vs_en_us.exact_tail_mismatch_but_boundary_insensitive_tail_match_pct_of_exact_mismatches,
     syllable_count_match_pct:report.comparisons.unprofiled_vs_en_us.syllable_count_match_pct,
     stress_pattern_match_pct:report.comparisons.unprofiled_vs_en_us.stress_pattern_match_pct,
     vowel_family_match_pct:report.comparisons.unprofiled_vs_en_us.vowel_family_match_pct,
@@ -190,6 +231,10 @@ console.log(JSON.stringify({
   en_gb_vs_en_us:{
     surfaces:report.comparisons.en_gb_vs_en_us.surfaces,
     exact_tail_match_pct:report.comparisons.en_gb_vs_en_us.exact_tail_match_pct,
+    boundary_insensitive_tail_match_pct:report.comparisons.en_gb_vs_en_us.boundary_insensitive_tail_match_pct,
+    boundary_insensitive_tail_plus_stress_match_pct:report.comparisons.en_gb_vs_en_us.boundary_insensitive_tail_plus_stress_match_pct,
+    exact_tail_mismatch_but_boundary_insensitive_tail_match_pct_of_exact_mismatches:
+      report.comparisons.en_gb_vs_en_us.exact_tail_mismatch_but_boundary_insensitive_tail_match_pct_of_exact_mismatches,
     syllable_count_match_pct:report.comparisons.en_gb_vs_en_us.syllable_count_match_pct,
     stress_pattern_match_pct:report.comparisons.en_gb_vs_en_us.stress_pattern_match_pct,
     vowel_family_match_pct:report.comparisons.en_gb_vs_en_us.vowel_family_match_pct,
