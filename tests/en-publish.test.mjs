@@ -95,6 +95,19 @@ test('publish lexical evidence keeps mixed current+historical senses current',()
   assert.equal(oldOnly.history.historical_only,true);
 });
 
+
+test('publish lexical evidence does not turn a common record proper-only from one sense tag',()=>{
+  const evidence=lexicalEvidenceForHeadword({
+    word:'college',
+    pos:'noun',
+    senses:[
+      {glosses:['an institution']},
+      {glosses:['a named college'],tags:['proper-noun']},
+    ],
+  });
+  assert.equal(evidence.proper_name,false);
+});
+
 test('ESDB evidence merges independent lexical guard signals',()=>{
   let value=null;
   value=mergeEsdbEvidence(value,{size:60,region:'US',posClass:'v',archaic:false,uncommon:false,invalid:false});
