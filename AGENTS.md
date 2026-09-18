@@ -132,7 +132,7 @@ modern_entity_relative_commonness_1decade_0_05
 
 ## Current project direction — Phase 11
 
-Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_SOURCE_SURVEY.md`, and `docs/PHRASE_CATALOG_V1.md`.
+Phase 11 German phrase/mosaic/phraseology is current. Read `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_SOURCE_SURVEY.md`, `docs/PHRASE_CATALOG_V1.md`, and `docs/PHRASE_PRONUNCIATION_V1.md`.
 
 The owner-local Phase 11B1 full build is complete:
 
@@ -151,12 +151,27 @@ RUEG is selected via DAKODA's slim open German subcorpora (RUEG-Lx/L1/HL), not t
 
 Phase 11B2 diagnostics are complete: 15,449 modern-eligible phrases have Leipzig evidence (15.86%); the raw 98,504-row catalog is intentionally dominated by two-token multiword lexemes and contains abbreviation/surface-alias noise. Do not equate all catalog rows with songwriting phrases.
 
-Current Phase 11B3 owner gate after merge:
+Phase 11C1 deterministic phrase pronunciation is now implemented at fixture/code level.
+
+```text
+schema                  rhymelab-phrase-pronunciation-v1
+policy                  de-phrase-pronunciation-v1
+token resolver          writer-v5-preferred-normalized-exact-v1
+composition             preferred-token-citation-composition-v1
+boundary policy         explicit-word-boundary-v1
+IPA analyzer            de-ipa-v2
+G2P fallback            none
+alternate phrase IPA    none in 11C1
+connected speech        none in 11C1
+```
+
+11C1 resolves exact normalized phrase tokens against the accepted Writer-v5 preferred eligible pronunciation inventory. Unknown tokens remain unresolved. It stores phrase IPA, all citation stress markers, phoneme/syllable word-boundary coordinates and per-token spans without mutating the Phase 11B1 base tables/fingerprint.
+
+Current owner gate after merge:
 
 ```powershell
-npm run phrase:register:rueg:bootstrap
-npm run phrase:catalog:diagnose
+npm run phrase:pronunciation
 npm run dev
 ```
 
-Browse `http://127.0.0.1:3030/phrases`. The Phrase Explorer is read-only and the phrase DB is optional for normal Writer startup. Do not start Phase 11C until the real RUEG build is inspected and a repeat base-catalog build reproduces the Phase 11B1 semantic fingerprint. The accepted single-word Writer baseline remains frozen.
+Inspect `data/local/phrase-pronunciation-v1-report.json` and `http://127.0.0.1:3030/phrases`. Require stable pronunciation fingerprint on repeat and unchanged Phase 11B1 base fingerprint before Phase 11D mosaic retrieval. RUEG real-data import can continue independently as additive register evidence. The accepted single-word Writer baseline remains frozen.
