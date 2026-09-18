@@ -201,7 +201,19 @@ The unified product path is now implemented at code/fixture level:
 
 ## Immediate next action
 
-Run the owner full-data integrated 11E4/11F acceptance command over the actual local Writer + phrase databases. The final suite must verify frozen single-word equivalence, protected Phrase/Mosaic cases, provenance, scope behavior, multi-word queries, latency and repeatability on the integrated `searchUnifiedWriter()` product path.
+Run the owner full-data integrated 11E4/11F acceptance command over the actual local Writer + phrase databases:
+
+```powershell
+npm run writer:unified:acceptance
+```
+
+It performs three independent database-open runs over the 12-query Writer suite, verifies direct frozen Word Writer equivalence, reproduces the accepted 11E2-v2 and 11E3 suite fingerprints from the integrated product path, checks protected Phrase/Mosaic cases, result-scope behavior, multi-word query resolution, provenance, boundary/stress coverage, default lexical safety, same-process combined-path overhead and deterministic repeatability.
+
+Default report:
+
+```text
+data/local/unified-writer-acceptance-v1-report.json
+```
 
 Do not mark Phase 11 complete until that owner report passes.
 
