@@ -51,22 +51,41 @@ function normalizeMetaValue(value) {
 export function parseRuegMeta(text) {
   const raw = String(text ?? '');
   const values = new Map();
+
   const put = (key, value) => {
     const normalizedKey = normalizeMetaKey(key);
-    const normalizedValue = normalizeMetaValue(value);
-    if (normalizedKey && normalizedValue && !values.has(normalizedKey)) {
-      values.set(normalizedKey, normalizedValue);
+    if (!normalizedKey || value == null) return;
+    const flattenedValue = Array.isArray(value)
+      ? value.filter((item) => item != null && typeof item !== 'object').join(';')
+      : value;
+    if (flattenedValue != null && typeof flattenedValue !== 'object') {
+      const normalizedValue = normalizeMetaValue(flattenedValue);
+      if (normalizedValue && !values.has(normalizedKey)) values.set(normalizedKey, normalizedValue);
     }
+  };
+
+  const flattenJson = (value, path = '') => {
+    if (value == null) return;
+    if (Array.isArray(value)) {
+      if (value.every((item) => item == null || typeof item !== 'object')) {
+        put(path, value);
+      } else {
+        for (const item of value) flattenJson(item, path);
+      }
+      return;
+    }
+    if (typeof value === 'object') {
+      for (const [key, child] of Object.entries(value)) {
+        flattenJson(child, path ? path + '.' + key : key);
+      }
+      return;
+    }
+    put(path, value);
   };
 
   const trimmed = raw.trim();
   if (trimmed.startsWith('{')) {
-    try {
-      const parsed = JSON.parse(trimmed);
-      for (const [key, value] of Object.entries(parsed || {})) {
-        if (value != null && typeof value !== 'object') put(key, value);
-      }
-    } catch {}
+    try { flattenJson(JSON.parse(trimmed)); } catch {}
   }
 
   for (const match of raw.matchAll(/<(?:meta-value|meta|entry|property)\b([^>]*)>([\s\S]*?)<\/(?:meta-value|meta|entry|property)>/giu)) {
@@ -94,37 +113,62 @@ export function parseRuegMeta(text) {
   const get = (...keys) => {
     for (const key of keys) {
       const value = values.get(normalizeMetaKey(key));
-      if (value) return value;
+      if (value && value !== 'notAvailable' && value !== 'notApplicable') return value;
     }
     return null;
   };
 
   return {
-    speakerId: get('speaker-id'),
-    formality: get('formality'),
-    mode: get('mode'),
+    speakerId: get(
+      'speaker-id',
+      'learner.learner_id_orig',
+      'learner.learner_id',
+    ),
+    formality: get(
+      'formality',
+      'task.interaction.task_interaction_formality',
+    ),
+    mode: get(
+      'mode',
+      'task.interaction.task_interaction_mode',
+    ),
     speakerBilingual: get('speaker-bilingual'),
     ageGroup: get('speaker-age-group'),
-    speakerAge: get('speaker-age'),
-    elicitationLanguage: get('elicitation-language'),
+    speakerAge: get(
+      'speaker-age',
+      'learner.sociodemographic.learner_socio_ageProduction',
+    ),
+    elicitationLanguage: get(
+      'elicitation-language',
+      'text.text_language.iso_code_639_3',
+      'corpus.subcorpus.corpus_subcorpus_targetLanguage',
+    ),
     elicitationCountry: get('elicitation-country'),
-    elicitationDate: get('elicitation-date'),
+    elicitationDate: get(
+      'elicitation-date',
+      'text.text_timeOfCreation',
+    ),
     raw: Object.fromEntries([...values.entries()].sort(([a], [b]) => a.localeCompare(b))),
   };
 }
 
 function parseTierEvents(body) {
   const events = [];
-  const eventRegex = /<event\b([^>]*)>([\s\S]*?)<\/event>/giu;
-  for (const match of body.matchAll(eventRegex)) {
+  const paired = /<event\b([^>]*?)>([\s\S]*?)<\/event>/giu;
+  for (const match of body.matchAll(paired)) {
     const attrs = attributes(match[1]);
     if (!attrs.start || !attrs.end) continue;
-    events.push({
-      start: attrs.start,
-      end: attrs.end,
-      text: stripXml(match[2]),
-    });
+    events.push({ start: attrs.start, end: attrs.end, text: stripXml(match[2]) });
   }
+
+  const selfClosing = /<event\b([^>]*?)\/>/giu;
+  for (const match of body.matchAll(selfClosing)) {
+    const attrs = attributes(match[1]);
+    if (!attrs.start || !attrs.end) continue;
+    events.push({ start: attrs.start, end: attrs.end, text: '' });
+  }
+
+  events.sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
   return events;
 }
 
@@ -206,31 +250,60 @@ export function parseRuegExb(xml) {
   const timelineIndex = new Map(timeline.map((id, index) => [id, index]));
 
   const tiers = new Map();
-  const tierRegex = /<tier\b([^>]*)>([\s\S]*?)<\/tier>/giu;
+  const tierRegex = /<tier\b([^>]*?)(?:\/>|>([\s\S]*?)<\/tier>)/giu;
   for (const match of input.matchAll(tierRegex)) {
     const attrs = attributes(match[1]);
     const category = tierCategory(attrs);
     if (!category) continue;
-    const record = { attrs, events: parseTierEvents(match[2]) };
+    const record = { attrs, events: parseTierEvents(match[2] || '') };
     const list = tiers.get(category) || [];
     list.push(record);
     tiers.set(category, list);
   }
 
+  const categoryEvents = (category) => {
+    const events = [];
+    for (const tier of tiers.get(category) || []) events.push(...tier.events);
+    events.sort((a, b) => {
+      const ai = timelineIndex.get(a.start) ?? Number.MAX_SAFE_INTEGER;
+      const bi = timelineIndex.get(b.start) ?? Number.MAX_SAFE_INTEGER;
+      return ai - bi || a.end.localeCompare(b.end);
+    });
+    return events;
+  };
+
   const chooseBoundaries = () => {
     for (const category of ['cu', 'message', 'line']) {
-      const events = [];
-      for (const tier of tiers.get(category) || []) events.push(...tier.events);
-      if (events.length) return { type: category, events };
+      const events = categoryEvents(category);
+      if (events.length) return { type: category, sourceCategory: category, events };
     }
+
+    // DAKODA's real RUEG EXB export stores sentence/clause spans as empty
+    // events on this tier and lexical surface tokens on category="text".
+    const dakodaClauses = categoryEvents('spacy_mixtral_th1_merged');
+    if (dakodaClauses.length) {
+      return {
+        type: 'dakoda_clause',
+        sourceCategory: 'spacy_mixtral_th1_merged',
+        events: dakodaClauses,
+      };
+    }
+
     if (timeline.length >= 2) {
       return {
         type: 'document_fallback',
+        sourceCategory: null,
         events: [{ start: timeline[0], end: timeline[timeline.length - 1], text: '' }],
       };
     }
-    return { type: 'none', events: [] };
+    return { type: 'none', sourceCategory: null, events: [] };
   };
+
+  const hasDipl = (tiers.get('dipl') || []).some((tier) => tier.events.length);
+  const hasNorm = (tiers.get('norm') || []).some((tier) => tier.events.length);
+  const hasDakodaText = (tiers.get('text') || []).some((tier) => tier.events.length);
+  const diplCategory = hasDipl ? 'dipl' : (hasDakodaText ? 'text' : null);
+  const normCategory = hasNorm ? 'norm' : null;
 
   const boundary = chooseBoundaries();
   const units = [];
@@ -240,8 +313,16 @@ export function parseRuegExb(xml) {
     const endIndex = timelineIndex.get(event.end);
     if (!Number.isInteger(startIndex) || !Number.isInteger(endIndex) || endIndex <= startIndex) continue;
 
-    const dipl = collectText(tiers, 'dipl', startIndex, endIndex, timelineIndex);
-    const norm = collectText(tiers, 'norm', startIndex, endIndex, timelineIndex);
+    // DAKODA EXB "text" is the attested participant/source surface. It is
+    // deliberately mapped to our existing dipl slot. We do not duplicate it
+    // into norm because the supplied DAKODA EXB archives contain no separate
+    // norm tier.
+    const dipl = diplCategory
+      ? collectText(tiers, diplCategory, startIndex, endIndex, timelineIndex)
+      : '';
+    const norm = normCategory
+      ? collectText(tiers, normCategory, startIndex, endIndex, timelineIndex)
+      : '';
     if (!dipl && !norm) continue;
 
     const languages = collectLanguages(tiers, startIndex, endIndex, timelineIndex);
@@ -263,6 +344,10 @@ export function parseRuegExb(xml) {
     timelinePoints: timeline.length,
     tierCategories: [...tiers.keys()].sort(),
     unitType: boundary.type,
+    boundarySourceCategory: boundary.sourceCategory,
+    surfaceSourceCategory: diplCategory,
+    normSourceCategory: normCategory,
+    normAvailable: Boolean(normCategory),
     units,
   };
 }
