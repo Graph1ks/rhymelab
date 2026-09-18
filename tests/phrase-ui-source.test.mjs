@@ -10,7 +10,7 @@ test('Phrase Explorer exposes phrase catalog browsing without replacing Writer U
     readFile('src/server.mjs','utf8'),
     readFile('src/ui/index.html','utf8'),
   ]);
-  assert.match(html,/Phrase Catalog/);
+  assert.match(html,/Phraseology & corpus evidence/);
   assert.match(html,/value="pronunciation"/);
   assert.doesNotMatch(html,/RUEG/);
   assert.doesNotMatch(app,/RUEG/);
