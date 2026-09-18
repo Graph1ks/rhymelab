@@ -12,7 +12,7 @@
       "canonical_latest_bz2_url": "https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.bz2",
       "canonical_latest_gz_url": "https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.gz",
       "production_requirement": "use_selected_dated_snapshot_and_verify_official_sha1_then_record_local_sha256",
-      "local_raw_policy": "gitignored",
+      "local_raw_policy": "gitignored_retain_until_phase12_complete",
       "importer_policy": "stream_line_by_line_no_full_graph_import",
       "runtime_network_required": false,
       "selected_owner_snapshot": {
@@ -41,7 +41,8 @@
             "url": "https://dumps.wikimedia.org/wikidatawiki/entities/20260914/wikidata-20260914-all.json.bz2"
           }
         ],
-        "transport_policy": "mirrors_may_supply_identical_pinned_bytes_but_acceptance_is_only_by_exact_size_official_wikimedia_sha1_and_local_sha256"
+        "transport_policy": "mirrors_may_supply_identical_pinned_bytes_but_acceptance_is_only_by_exact_size_official_wikimedia_sha1_and_local_sha256",
+        "retention_policy": "retain_raw_compressed_snapshot_until_phase12_complete"
       }
     },
     {
@@ -53,14 +54,18 @@
       "canonical_download_url": "https://qrank.toolforge.org/download/qrank.csv.gz",
       "format": "gzip_csv_Entity_QRank",
       "production_requirement": "bootstrap_once_keep_pinned_local_artifact_and_sha256_before_acceptance",
-      "local_raw_policy": "gitignored",
+      "local_raw_policy": "gitignored_retain_until_phase12_complete",
       "runtime_network_required": false,
       "selected_owner_snapshot_policy": {
         "retrieval_date": "2026-09-18",
         "filename": "qrank-20260918.csv.gz",
         "source_url": "https://qrank.toolforge.org/download/qrank.csv.gz",
         "pinning": "download_once_keep_local_raw_and_record_sha256_size_and_http_headers",
-        "historical_retrieval_guaranteed": false
+        "historical_retrieval_guaranteed": false,
+        "observed_http_last_modified": "2024-03-16T11:36:47Z",
+        "observed_http_etag": "\"79e65d73b0795eacb6e366964099ce77-7\"",
+        "freshness_semantics": "retrieval_date_is_not_data_vintage; provider_served_artifact_last_modified_2024-03-16; effective_data_freshness_unknown",
+        "retention_policy": "retain_raw_artifact_until_phase12_complete"
       }
     }
   ]
