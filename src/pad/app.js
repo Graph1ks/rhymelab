@@ -394,6 +394,21 @@ async function runSearch(force = false) {
 
   const request = activeRequest();
   const basis = languageBasis();
+
+  if (basis === 'en') {
+    state.abortController?.abort();
+    state.lastQueryKey = JSON.stringify([query, basis, 'original-rhymepad-fallback', editor.value]);
+    state.data = null;
+    state.filteredRows = [];
+    state.hiddenUsed = 0;
+    setAssistMeta('English · original RhymePad phonetic fallback stays active until the accepted RhymeLab EN runtime ships.');
+    const body = $('#rhymeLabDeepBody');
+    if (body) body.innerHTML = '<div class="rhymeLabNoResults">RhymeLab deep results currently use the accepted German runtime. Original RhymePad EN analysis remains active.</div>';
+    const count = $('#rhymeLabDeepCount');
+    if (count) count.textContent = 'EN runtime pending';
+    return;
+  }
+
   const queryKey = JSON.stringify([query, basis, request.scope, request.type, editor.value]);
   if (!force && queryKey === state.lastQueryKey) return;
   state.lastQueryKey = queryKey;
