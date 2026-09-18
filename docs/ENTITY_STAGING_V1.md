@@ -194,6 +194,57 @@ data/work/entity/wikidata-cultural-stage-v1.sqlite
 data/local/entity-wikidata-stage-v1-report.json
 ```
 
+## QLever selective fast path
+
+The preferred Phase 12A2 acquisition path is now the build-time QLever selective exporter. It queries only the reviewed cultural taxonomy and the fields required by the existing stage schema.
+
+Owner command:
+
+```powershell
+npm run entity:owner:stage:qlever -- --retrieval-label 20260918
+```
+
+Equivalent individual steps:
+
+```powershell
+npm run entity:sources:qlever -- --retrieval-label 20260918
+npm run entity:stage:qlever
+npm run entity:stage:qrank -- --input <pinned qrank.csv.gz> --snapshot <label>
+npm run entity:cut:diagnose
+```
+
+Default QLever raw artifacts:
+
+```text
+data/raw/entity/qlever-<retrieval-label>/
+  membership.tsv.gz
+  core.tsv.gz
+  aliases.tsv.gz
+  external_ids.tsv.gz
+  wikipedia_sitelinks.tsv.gz
+```
+
+Default reports:
+
+```text
+data/local/entity-qlever-source-v1-report.json
+data/local/entity-qlever-stage-v1-report.json
+data/local/entity-qrank-stage-v1-report.json
+data/local/entity-cut-diagnostics-v1-report.json
+```
+
+The exporter freezes exact query text, query SHA-256, source endpoint, retrieval timestamps, row counts, raw result SHA-256 and compressed artifact SHA-256. HTTP 429 responses are retried with bounded backoff. These network calls are build-time acquisition only; runtime remains offline.
+
+Semantic requirements:
+
+- P31/P106 membership uses `p:/ps:` valued statements so it matches the current JSON importer rather than only truthy `wdt:` claims;
+- whitelisted P434/P345/P1953/P1902 values likewise use all valued statement ranks;
+- DE/EN labels, aliases and descriptions are materialized separately;
+- statement count comes from `wikibase:statements`;
+- exact Wikipedia sitelink count plus DE/EN presence are reconstructed from `schema:isPartOf / wikibase:wikiGroup "wikipedia"` site pairs.
+
+The classic 20260914 JSON dump remains a retained dated control/recovery source. It is no longer required as a blocking full-scan step for Phase 12A2.
+
 ## QRank staging
 
 Schema:

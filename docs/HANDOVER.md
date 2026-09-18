@@ -153,7 +153,14 @@ Decision:
 - the owner does **not** need to wait for the current multi-hour full-dump stage before implementing/using the QLever fast path;
 - if the full-dump stage is stopped, no source data is lost and it can be rerun later without redownloading.
 
-Next milestone: implement the real local QLever acquisition + staging path and feed it into the existing QRank/cut diagnostics.
+The real local QLever acquisition + staging path is now implemented on the current Phase 12A2 branch. After merge, use:
+
+```powershell
+git pull
+npm run entity:owner:stage:qlever -- --retrieval-label 20260918
+```
+
+This writes five pinned QLever artifacts, rebuilds the existing entity-stage contract, stages the already-downloaded QRank file and runs cut diagnostics. Final exact live-probe payload including Wikipedia site pairs was 94,050,660 gzip bytes (~89.7 MiB; 753,947,040 bytes raw) across the five artifacts, with ~114.2 seconds summed export wall time on GitHub Actions. The classic 20260914 full-dump stage is optional and may be stopped.
 
 The Phase 12 sequence is:
 
