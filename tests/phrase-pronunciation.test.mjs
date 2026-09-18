@@ -12,6 +12,7 @@ import {
   materializePhrasePronunciations,
   computePhrasePronunciationFingerprint,
 } from '../scripts/phrase-pronunciation-core.mjs';
+import { getPhraseBrowserStats, getPhraseDetail, searchPhrases } from '../src/phrase-browser-store.mjs';
 
 function insertPhrase(db, canonical) {
   const normalized = canonical.normalize('NFKC').trim().replace(/\s+/gu, ' ').toLocaleLowerCase('de-DE');
@@ -107,6 +108,18 @@ test('11C1 materializes one citation pronunciation with explicit boundaries', ()
       { lexical_state: 'unresolved', lexical_form_id: null },
       { lexical_state: 'unresolved', lexical_form_id: null },
     ]);
+
+    const browserRows = searchPhrases(phraseDb, { q: 'keine Ahnung', evidence: 'pronunciation' });
+    assert.equal(browserRows.length, 1);
+    assert.equal(browserRows[0].pronunciationReady, true);
+    assert.equal(browserRows[0].ipa, 'ˈkaɪ̯nə‿ˈaːnʊŋ');
+    const detail = getPhraseDetail(phraseDb, readyId);
+    assert.equal(detail.pronunciationReady, true);
+    assert.equal(detail.pronunciation.tokens.length, 2);
+    assert.deepEqual(detail.pronunciation.wordBoundarySyllablePositions, [2]);
+    const browserStats = getPhraseBrowserStats(phraseDb);
+    assert.equal(browserStats.pronunciation.readyPhrases, 1);
+    assert.equal(browserStats.pronunciation.resolvedTokens, 3);
   } finally {
     writerDb.close();
     phraseDb.close();
