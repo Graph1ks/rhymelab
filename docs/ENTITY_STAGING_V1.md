@@ -355,6 +355,51 @@ npm run entity:cut:diagnose:hybrid
 
 The command is read-only against the existing stage database. It does not fetch QLever, rejoin QRank, change category floors or materialize the final Entity Lexicon.
 
+### Hybrid-v1 owner A/B — rejected for freeze
+
+Owner full-data Hybrid-v1 fingerprint:
+
+```text
+e770c1cfc655764e9e0f26e033c53fba0f1e1af4e2ca3b7ac82adf4eabde1e04
+```
+
+The candidate remains globally conservative (1.89% membership churn; distinct retained 1,077,927 -> 1,077,669) and Bud Spencer remains KEEP / Tier A. It successfully admits missing-QRank rows in five of the seven categories that were completely gated under the original control.
+
+It still retains zero missing-QRank rows in:
+
+```text
+organization.car_brand
+organization.company
+```
+
+The company case rejects Hybrid-v1 for freeze: QRank coverage is only 45.68%, 123,357 candidates have missing QRank, yet none are retained.
+
+The remaining defect is mathematical rather than lexicographic. With QRank weighted at 55%, setting a missing QRank component to zero caps all missing-QRank rows at 45% total score.
+
+### Hybrid-v2 candidate
+
+Read:
+
+```text
+docs/ENTITY_CUT_HYBRID_V2.md
+```
+
+Policy:
+
+```text
+category-relative-popularity-hybrid-v2-geometric-missing-evidence-candidate
+```
+
+V2 preserves every QRank-present Hybrid-v1 score exactly. Only QRank-missing rows change: their v2 score is the geometric mean of the v1 zero-filled score and the score normalized over the 45% evidence weight that is actually available. The theoretical missing-QRank ceiling therefore becomes 670,820 ppm rather than 450,000 ppm, without inventing a neutral QRank prior or fully renormalizing confidence away.
+
+Owner command after v2 merge:
+
+```powershell
+npm run entity:cut:diagnose:hybrid-v2
+```
+
+The v2 diagnostic requires the accepted Hybrid-v1 report fingerprint above and compares v1/v2 against the same staged DB. No acquisition, restaging, floor change or materialization is performed.
+
 Protected sentinels are never silently removed by the cut.
 
 ## Current protected sentinel
