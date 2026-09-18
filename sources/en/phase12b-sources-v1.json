@@ -47,7 +47,6 @@
       "name": "CMU Pronouncing Dictionary",
       "role": "primary_exact_en_us_pronunciation_overlay_control",
       "repository": "https://github.com/cmusphinx/cmudict",
-      "commit": "74790861f652b15e4ac49015a90074ad62a27690",
       "path": "cmudict.dict",
       "upstream_url": "https://raw.githubusercontent.com/cmusphinx/cmudict/74790861f652b15e4ac49015a90074ad62a27690/cmudict.dict",
       "local_filename": "cmudict-74790861.dict",
@@ -62,14 +61,13 @@
         "ARPAbet is pronunciation evidence and must not be relabeled as IPA.",
         "Phase 12B2 uses this source for exact normalized-surface coverage only; English phone normalization belongs to 12B3."
       ],
-      "commit_hash_algorithm": "SHA-1"
+      "commit_sha1": "74790861f652b15e4ac49015a90074ad62a27690"
     },
     {
       "source_id": "esdb-scowl-v2-20260624",
       "name": "English Speller Database / SCOWL v2 source master",
       "role": "secondary_dialect_spelling_variant_inflection_lexical_quality_evidence",
       "repository": "https://github.com/en-wl/wordlist",
-      "commit": "1e5b7d3a72f47a71da5d28686c1dd4b397178485",
       "path": "data/scowl-pre.txt",
       "upstream_url": "https://raw.githubusercontent.com/en-wl/wordlist/1e5b7d3a72f47a71da5d28686c1dd4b397178485/data/scowl-pre.txt",
       "local_filename": "esdb-scowl-pre-20260624.txt",
@@ -84,14 +82,13 @@
         "12B2 parses the source master directly for independent overlap/dialect/variant diagnostics and does not treat it as pronunciation or frequency truth.",
         "The full ESDB combine/database materialization remains a later publish-layer concern; this precombine diagnostic scope is reported explicitly rather than silently treated as a final SCOWL export."
       ],
-      "commit_hash_algorithm": "SHA-1"
+      "commit_sha1": "1e5b7d3a72f47a71da5d28686c1dd4b397178485"
     },
     {
       "source_id": "wordfreq-en-3.2",
       "name": "wordfreq English large frequency list",
       "role": "initial_usage_commonness_candidate_only",
       "repository": "https://github.com/rspeer/wordfreq",
-      "commit": "912caf64b657478d1dff1138efdc078947d54bb1",
       "path": "wordfreq/data/large_en.msgpack.gz",
       "upstream_url": "https://raw.githubusercontent.com/rspeer/wordfreq/912caf64b657478d1dff1138efdc078947d54bb1/wordfreq/data/large_en.msgpack.gz",
       "local_filename": "wordfreq-large-en-3.2.msgpack.gz",
@@ -106,7 +103,7 @@
         "The source data is stale for some modern vocabulary; Phase 12B acceptance must benchmark songwriting/rap modernity separately.",
         "RhymeLab decodes the pinned cBpack artifact locally for diagnostics and does not add wordfreq as a runtime dependency."
       ],
-      "commit_hash_algorithm": "SHA-1"
+      "commit_sha1": "912caf64b657478d1dff1138efdc078947d54bb1"
     }
   ],
   "diagnostic_contract": {
