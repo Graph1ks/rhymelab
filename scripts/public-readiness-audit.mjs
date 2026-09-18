@@ -71,7 +71,7 @@ const textPatterns = [
       const start = Math.max(0, context.index - 240);
       const end = Math.min(context.text.length, context.index + 240);
       const nearby = context.text.slice(start, end);
-      return /\b(?:sha-?1|official[_ -]?checksum)\b/iu.test(nearby);
+      return /(?:sha-?1|official[_ -]?checksum)/iu.test(nearby);
     },
   },
 ];
