@@ -239,7 +239,17 @@
       "connected_speech_variants_generated": false,
       "g2p_fallback": false,
       "base_catalog_mutated": false,
-      "owner_full_build_completed": false
+      "owner_full_build_completed": false,
+      "coverage_analyzer": {
+        "schema": "rhymelab-phrase-pronunciation-coverage-report-v1",
+        "ranking_policy": "single-blocker-modern-first-v1",
+        "command": "npm run phrase:pronunciation:coverage",
+        "default_report": "data/local/phrase-pronunciation-coverage-v1-report.json",
+        "read_only": true,
+        "purpose": "measure_targeted_11c2_unlock_leverage_before_11d",
+        "automatic_pronunciation_approval": false,
+        "g2p_fallback": false
+      }
     },
     "rueg_evaluation": {
       "decision": "REJECTED_REMOVED",
@@ -289,10 +299,12 @@
     "phrase_catalog_report_v1": "data/local/phrase-catalog-v1-report.json",
     "cologne_register_report": "data/local/cologne-kiezdeutsch-register-report.json",
     "phrase_catalog_diagnostics": "data/local/phrase-catalog-v1-diagnostics.json",
-    "phrase_pronunciation_report": "data/local/phrase-pronunciation-v1-report.json"
+    "phrase_pronunciation_report": "data/local/phrase-pronunciation-v1-report.json",
+    "phrase_pronunciation_coverage_report": "data/local/phrase-pronunciation-coverage-v1-report.json"
   },
   "next_actions": [
     "run_npm_phrase_pronunciation",
+    "run_npm_phrase_pronunciation_coverage_and_measure_top_n_unlock_impact",
     "inspect_phrase_token_and_phrase_pronunciation_coverage",
     "inspect_top_unresolved_tokens_and_phrase_blockers",
     "inspect_phrase_ipa_stress_and_word_boundary_spans_in_phrase_explorer",
