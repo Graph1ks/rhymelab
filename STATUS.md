@@ -358,7 +358,7 @@ Positive retrieval evidence exists: `Arbeitsweise` surfaces family candidates, `
 But the gate does **not** authorize 11E. `Leben`, `Feuer`, and `Gedanken` are saturated by the broad final-nucleus/coda-class channel with weak top rows; `Musik` has no mosaic anchor despite being multisyllabic because the reused single-word stressed rhyme domain is only one syllable.
 
 Decision: preserve 11D1/11D2 and open **11D4** as an additive retrieval revision before phrase ranking.
-### Phase 11D4 — mosaic query-domain + candidate-quality revision — FIXTURE GATE PASS / OWNER A/B PENDING
+### Phase 11D4 — mosaic query-domain + candidate-quality revision — OWNER A/B QUALITY PASS / REPEATABILITY PENDING
 
 11D4 is a candidate layer over frozen 11D1/11D2 controls.
 
@@ -373,6 +373,26 @@ Implemented:
 No phrase ranking, commonness weighting, diversity or Writer runtime integration is included.
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md`.
+Owner full-data 11D4 A/B quality gate: **PASS**.
+
+```text
+baseline semantic fp        294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c
+candidate semantic fp       4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd
+candidate anchor fp         9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059
+queries with anchors        9 -> 10
+weak share                 55.84% -> 3.40%
+final fallback share       65.98% -> 31.01%
+vowel-family assignments  375
+mean elapsed               31.0 -> 35.9 ms
+```
+
+`Musik` now participates through `full_surface`; `Zeit` and `Nacht` remain intentionally outside the current 2+-syllable mosaic model. Known strong tops for `Arbeitsweise`, `Liebe`, `Freiheit`, and `hitzefrei` remain intact.
+
+The vowel-family bridge is not merely duplicating strict vowel retrieval: `Arbeitsweise -> nahm beiseite` is a family-class candidate retrieved through `vowel_family_coda_class` alone.
+
+Remaining awkward lexical surfaces such as `Musik -> K.-o.-Siegen` and useful-but-not-necessarily-songwriting phrases such as `Gedanken -> notleidende Banken` are now **11E ranking/product-quality problems**, not evidence for another retrieval rewrite.
+
+One deterministic repeat is still required before 11D4 is accepted/frozen.
 ### Immediate owner gate
 
 After merge:
