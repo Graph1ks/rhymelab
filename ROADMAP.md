@@ -338,6 +338,8 @@ repeat  55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
 
 #### 11D3. Representative full-data query diagnostics — CURRENT
 
+Fixture CI gate: **PASS** (`validate`, run 253).
+
 Run the accepted retrieval stack against the existing Writer Page v2 query suite before defining phrase ranking.
 
 Measure query-anchor coverage, bounded candidate volume, exact/slant/family mix, retrieval-channel contribution, duplicates/window multiplicity, representative top candidates and owner-machine latency. Explicitly expose queries whose accepted stressed rhyme domain falls below the current two-syllable mosaic minimum.
