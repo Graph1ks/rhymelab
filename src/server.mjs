@@ -15,6 +15,7 @@ const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYME
 const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
 const phraseDbPath = resolve(process.env.RHYMELAB_PHRASE_DB || 'data/local/rhymelab-phrases-v1.sqlite');
 const uiDir = resolve('src/ui');
+const padUiDir = resolve('src/pad');
 const benchmarkUiDir = resolve('src/benchmark-ui');
 
 let writerDb;
@@ -48,9 +49,14 @@ try {
 }
 
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
+const padHtml = readFileSync(resolve(padUiDir, 'index.html'));
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const assets = {
   '/': { type: 'text/html; charset=utf-8', body: writerHtml },
+  '/pad': { type: 'text/html; charset=utf-8', body: padHtml },
+  '/pad/': { type: 'text/html; charset=utf-8', body: padHtml },
+  '/pad/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(padUiDir, 'styles.css')) },
+  '/pad/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(padUiDir, 'app.js')) },
   '/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'styles.css')) },
   '/assets/mobile.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'mobile.css')) },
   '/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'app.js')) },
@@ -247,6 +253,7 @@ const server = createServer(async (req, res) => {
 
 server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
+  console.log(`RhymePad workspace: http://${host}:${port}/pad`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
   console.log(`Writer v5 SQLite: ${writerDbPath}`);
   console.log(`Writer runtime: ${WRITER_RUNTIME_ID}`);
