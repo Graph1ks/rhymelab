@@ -410,7 +410,16 @@ Create a separate benchmarked phrase-ranking policy. Do not mutate the frozen si
 
 **11E3 is CURRENT: phrase-channel diversity only.** Do not reserve slots for phrases in the default result list and do not boost phrases over better single-word results for visibility. Diversity work is restricted to the explicit Phrase/Mosaic channel: duplicate collapse, deterministic template/inflection cluster control and phrase-family concentration. v1 remains the deterministic control. v2 applies Writer-page eligibility, surface-safety and primary relation guards before a 0.02 phonetic near-tie band; product/commonness evidence only reorders inside that band. `weak`/restricted rows remain diagnostic-only by default.
 
-Next gate: owner raw-v1-v2 A/B after green CI. Require zero non-exempt phonetic-guard violations before considering 11E2 acceptance.
+11E2 acceptance is complete. The next gate belongs to 11E3: first measure phrase-channel duplicate/template/family concentration, then test a deterministic diversification candidate against the frozen 11E2-v2 ordering. Require owner A/B plus repeatability before acceptance.
+
+### Phase 11 closure sequence
+
+1. **11E3** — phrase-channel-local diversity; owner A/B + repeatability;
+2. **11E4** — local runtime/API/UI integration with explicit Phrase/Mosaic filter and no default phrase quota;
+3. **11F** — dedicated structural, provenance, lexical-safety, performance and repeatability benchmark;
+4. **Phase 11 complete** — freeze the German phrase/mosaic surface.
+
+Human Writer NDCG may remain `pending_reference` while independent reviewers are unavailable.
 
 ### 11F. Phrase/mosaic benchmark
 
