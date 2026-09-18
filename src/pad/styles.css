@@ -169,3 +169,10 @@ html[data-mode="rhyme"] .railViewport{height:360px}
   .rhymePadMetricTile.primary{flex-basis:120px}
   .rhymeLabAutoScrollSurface{max-height:42vh}
 }
+
+.rhymePadRailCounter{
+  font-size:var(--rhymePadRailMetricFontPx,10px)!important;
+  line-height:1.05!important;
+  min-width:1.65em;
+  font-variant-numeric:tabular-nums;
+}
