@@ -352,8 +352,31 @@ try {
     generated_g2p_used: false,
     database_bytes: (await stat(entityDbPath)).size,
   };
+  const semanticPayload = {
+    policy: reportBase.policy,
+    source_artifact_sha256: artifactSha256,
+    source_query_sha256: sourceReport.query_sha256,
+    source_taxonomy_sha256: sourceReport.taxonomy_sha256,
+    source_rows: reportBase.source_rows,
+    retained_entity_rows: reportBase.retained_entity_rows,
+    inserted_pronunciations: reportBase.inserted_pronunciations,
+    duplicate_rows: reportBase.duplicate_rows,
+    invalid_ipa_rows: reportBase.invalid_ipa_rows,
+    unmapped_rows: reportBase.unmapped_rows,
+    names_with_source_evidence: reportBase.names_with_source_evidence,
+    preferred_names_with_source_evidence: reportBase.preferred_names_with_source_evidence,
+    mapping_strategy_counts: reportBase.mapping_strategy_counts,
+    locale_counts: reportBase.locale_counts,
+    language_qid_counts: reportBase.language_qid_counts,
+    preferred_name_evidence_by_category_tier:
+      reportBase.preferred_name_evidence_by_category_tier,
+    review_state: reportBase.review_state,
+    runtime_eligible_rows: reportBase.runtime_eligible_rows,
+    runtime_changed: reportBase.runtime_changed,
+    generated_g2p_used: reportBase.generated_g2p_used,
+  };
   const semanticFingerprint = createHash('sha256')
-    .update(JSON.stringify(reportBase))
+    .update(JSON.stringify(semanticPayload))
     .digest('hex');
   const report = { ...reportBase, semantic_fingerprint: semanticFingerprint };
   await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
