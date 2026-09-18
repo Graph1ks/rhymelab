@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11E2_V2_PHONETIC_GUARD_CANDIDATE",
+  "phase": "GERMAN_PHASE_11E3_PHRASE_CHANNEL_DIVERSIFICATION",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11e2_v2_candidate_implemented_fixture_ci_pending",
+    "status": "phase_11e2_v2_accepted_phase_11e3_current",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11E2_V2_FIXTURE_GATE_THEN_OWNER_AB",
+    "next_milestone": "PHASE_11E3_PHRASE_CHANNEL_DIVERSIFICATION",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -817,7 +817,7 @@
       }
     },
     "phase_11e_ranking": {
-      "status": "11E2_V2_FIXTURE_GATE_PASS_OWNER_AB_PENDING",
+      "status": "11E2_V2_ACCEPTED_11E3_CURRENT",
       "contract": "docs/PHRASE_MOSAIC_RANKING_V1.md",
       "accepted_retrieval_input_schema": "rhymelab-phrase-mosaic-retrieval-v2-candidate",
       "accepted_retrieval_policy": "de-bounded-indexed-mosaic-retrieval-v2-candidate",
@@ -907,7 +907,7 @@
           "phrase_type_prior_must_be_small_and_capped"
         ]
       },
-      "phrase_utility_ranking_accepted": false,
+      "phrase_utility_ranking_accepted": true,
       "ranking_candidate_schema": "rhymelab-phrase-mosaic-ranking-candidate-v1",
       "ranking_candidate_policy": "de-phrase-writer-utility-v1-candidate",
       "ranking_candidate_command": "npm run phrase:mosaic:rank:v1",
@@ -1005,6 +1005,65 @@
         "fixture_gate_passed": true,
         "ci_run": 277,
         "ci_conclusion": "success"
+      },
+      "accepted_policy": "de-phrase-writer-utility-v2-phonetic-guard-candidate",
+      "accepted_schema": "rhymelab-phrase-mosaic-ranking-candidate-v2",
+      "accepted_suite_ranking_fingerprint": "1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0",
+      "acceptance_evidence": {
+        "built_at": "2026-09-18T03:25:51.207Z",
+        "frozen_11d4_anchor_fingerprint_matches": true,
+        "frozen_11e1_evidence_fingerprint_matches": true,
+        "v1_control_fingerprint_matches": true,
+        "query_count": 12,
+        "total_diagnostic_candidates": 1237,
+        "writer_page_candidates": 1182,
+        "diagnostic_only_candidates": 55,
+        "weak_excluded": 42,
+        "restricted_excluded": 14,
+        "raw_vs_v2_top_changed": 5,
+        "v1_vs_v2_top_changed": 4,
+        "guard_violation_count": 0,
+        "raw_top20_with_leipzig": 48,
+        "v1_top20_with_leipzig": 100,
+        "v2_top20_with_leipzig": 68,
+        "raw_top20_marked": 4,
+        "v1_top20_marked": 0,
+        "v2_top20_marked": 0,
+        "protected_cases": {
+          "Liebe": "multisyllabic_perfect_rank_1_preserved",
+          "Freiheit": "dabei_seid_rank_1_preserved",
+          "Leben": "single_weak_candidate_diagnostic_only_writer_page_empty",
+          "Musik": "marked_abbreviation_surface_demoted_by_explicit_safety_exemption",
+          "Gedanken": "raw_best_0_912747_restored_to_writer_rank_1",
+          "verloren": "top_phonetic_score_0_700_preserved_commonness_only_breaks_equal_score_ties"
+        }
+      },
+      "product_surface_policy": {
+        "force_phrase_quota_in_default_results": false,
+        "force_phrase_visibility_over_better_single_words": false,
+        "default_global_ordering": "quality_first_no_type_quota",
+        "phrase_mosaic_filter_required": true,
+        "phrase_mosaic_results_may_be_absent_from_default_top_results": true,
+        "empty_phrase_channel_allowed": true,
+        "diagnostic_only_rows_available_via_explicit_filters_or_diagnostics": true,
+        "phrase_diversification_scope": "within_phrase_mosaic_channel_only",
+        "cross_channel_score_calibration": "deferred_until_shared_human_reference_exists"
+      },
+      "phase_11e3": {
+        "status": "CURRENT",
+        "scope": [
+          "canonical_duplicate_collapse",
+          "inflectional_or_obvious_template_cluster_reduction_when_deterministic_key_exists",
+          "top_page_phrase_family_concentration_diagnostics",
+          "deterministic_phrase_channel_diversification_only"
+        ],
+        "non_goals": [
+          "phrase_quota_in_default_results",
+          "promotion_over_better_single_word_results",
+          "randomized_diversity",
+          "cross_channel_score_calibration",
+          "ui_runtime_rewire_before_diversity_acceptance"
+        ]
       }
     }
   },
@@ -1027,14 +1086,11 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_11e2_v2_after_green_validate",
-    "owner_run_npm_phrase_mosaic_rank_v2",
-    "require_v1_control_fingerprint_exact",
-    "require_guard_violation_count_zero",
-    "require_Leben_writer_page_empty",
-    "require_Liebe_and_Freiheit_rank_1",
-    "require_Musik_marked_abbreviation_demoted",
-    "review_top20_leipzig_shift_is_material_but_not_dominant",
-    "accept_or_iterate_11e2_before_11e3_diversification"
+    "merge_11e2_v2_acceptance",
+    "implement_11e3_phrase_channel_diversification_without_cross_channel_quota",
+    "owner_ab_and_repeatability_for_11e3",
+    "integrate_accepted_phrase_channel_into_runtime_api_ui_with_explicit_filter",
+    "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
+    "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
   ]
 }
