@@ -31,16 +31,20 @@ test('CMUdict publish parser preserves alternate pronunciations and en-US proven
   });
 });
 
-test('Wiktionary pronunciation locale stays qualified or explicitly unprofiled',()=>{
+test('Wiktionary pronunciation locale distinguishes mapped, tagless, profiled and tagged-unmapped evidence',()=>{
   const us=wiktionaryPronunciationEvidence({ipa:'/kɑɹ/',tags:['General-American']});
   const uk=wiktionaryPronunciationEvidence({ipa:'/kɑː/',tags:['Received-Pronunciation']});
   const bare=wiktionaryPronunciationEvidence({ipa:'/lʌv/'});
   const australian=wiktionaryPronunciationEvidence({ipa:'/lɐv/',tags:['Australia']});
+  const newZealand=wiktionaryPronunciationEvidence({ipa:'/lɐv/',tags:['new-zealand']});
+  const merger=wiktionaryPronunciationEvidence({ipa:'/lɑv/',tags:['cot-caught-merger']});
   assert.deepEqual(us.locales,['en-US']);
   assert.deepEqual(uk.locales,['en-GB']);
   assert.equal(bare.locale_status,'source_attested_unprofiled');
   assert.deepEqual(bare.locales,[]);
   assert.equal(australian.locale_status,'source_attested_other_profiled');
+  assert.equal(newZealand.locale_status,'source_attested_other_profiled');
+  assert.equal(merger.locale_status,'source_attested_tagged_unmapped');
   assert.deepEqual(australian.locales,[]);
 });
 
