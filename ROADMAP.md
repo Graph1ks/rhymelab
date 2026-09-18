@@ -239,6 +239,21 @@ Create a separate benchmarked phrase-ranking policy. Do not mutate the frozen si
 
 Build dedicated structural, regression, lexical-safety, provenance, performance, and repeatability gates. Human usefulness NDCG comes only when the combined German Writer system is mature and independent reviewers exist.
 
+### 11G. Retrieval-first natural-language generation research — deferred
+
+Preserve the design in `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`.
+
+Only after phrase pronunciation, deterministic mosaic retrieval and phrase ranking are stable, evaluate:
+
+- corpus-derived attested 2–6-token chunks;
+- cross-word phonetic windows as retrieval substrate;
+- explicit naturalness/register/context features;
+- feature-aware slant-rhyme distance;
+- deterministic Markov/template/phrase-splice recombination over retrieved natural chunks;
+- optional/non-core semantic/vector experiments only after an explicit architecture decision.
+
+The intended direction is retrieval first, generation second. Do not replace deterministic rhyme truth with a generator.
+
 ## Phase 12 — English profile + benchmark
 
 Only after the German Writer path, including phrase/mosaic work, is stable enough to freeze.
