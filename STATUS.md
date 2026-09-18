@@ -186,6 +186,26 @@ blocked by unresolved token           8,415
 ```
 
 This confirms the full-data build and base-catalog preservation. The complete 11C1 owner gate is still pending because deterministic repeat fingerprint equality has not yet been recorded and the unresolved-token impact triage still needs the dedicated coverage report.
+### Coverage triage — COMPLETE / DIRECT 11D SELECTED
+
+The dedicated read-only coverage report confirms that phrase pronunciation is already broad enough to stop treating lexical-gap cleanup as a prerequisite for mosaic retrieval:
+
+```text
+modern phrase coverage                 92.26%
+unresolved token occurrences          10,467
+distinct unresolved normalized forms   5,894
+blocked modern phrases                 7,535
+one-distinct-blocker modern phrases    5,663
+
+Top-1  unlock upper bound                317 modern phrases / 92.59% projected coverage
+Top-20 unlock upper bound                624 modern phrases / 92.90% projected coverage
+Top-100 unlock upper bound             1,036 modern phrases / 93.33% projected coverage
+Top-250 unlock upper bound             1,532 modern phrases / 93.84% projected coverage
+```
+
+`zurecht` is an unusually high-leverage ordinary-German gap (317 single-blocker modern phrases), followed by much smaller useful candidates such as `inne` (40) and `überein` (28). The ranking then mixes quickly with abbreviations/numbers (`St`, `1`, `2`), names/foreign material (`East`, `River`, `New`, `Street`) and specialist/historical forms.
+
+Decision: **do not create a blocking 11C2 pronunciation campaign**. Preserve a small source-backed lexical-gap backlog for later quality work, but proceed directly to Phase 11D once deterministic 11C1 repeatability is confirmed. No broad G2P fallback and no Writer-v5 mutation are authorized.
 ### Immediate owner gate
 
 After merge:
