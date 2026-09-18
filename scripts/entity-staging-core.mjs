@@ -121,6 +121,26 @@ export function extractStageEntity(item, taxonomy) {
   };
 }
 
+export function createTaxonomyRawPrefilter(taxonomy) {
+  const qids = [...new Set(
+    (taxonomy?.categories || [])
+      .flatMap((category) => category.match_any || [])
+      .flatMap((rule) => rule.qids || [])
+      .map((qid) => String(qid))
+      .filter((qid) => /^Q\d+$/u.test(qid)),
+  )].sort((a, b) => a.localeCompare(b, 'en'));
+
+  if (!qids.length) {
+    return { qids, test: () => true };
+  }
+
+  const regex = new RegExp('"(?:' + qids.join('|') + ')"', 'u');
+  return {
+    qids,
+    test: (line) => regex.test(String(line ?? '')),
+  };
+}
+
 export function parseWikidataDumpLine(line) {
   let raw = String(line ?? '').trim();
   if (!raw || raw === '[' || raw === ']') return null;
