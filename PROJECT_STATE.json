@@ -817,7 +817,7 @@
       }
     },
     "phase_11e_ranking": {
-      "status": "11E2_V2_IMPLEMENTED_FIXTURE_CI_PENDING",
+      "status": "11E2_V2_FIXTURE_GATE_PASS_OWNER_AB_PENDING",
       "contract": "docs/PHRASE_MOSAIC_RANKING_V1.md",
       "accepted_retrieval_input_schema": "rhymelab-phrase-mosaic-retrieval-v2-candidate",
       "accepted_retrieval_policy": "de-bounded-indexed-mosaic-retrieval-v2-candidate",
@@ -1000,8 +1000,11 @@
         "accepted_11e1_suite_evidence_fingerprint": "04ecde26f0a59b7615d6b2a192e7cffed26aefe86ebac07e388e546210d58845",
         "phrase_utility_ranking_accepted": false,
         "page_diversification": false,
-        "fixture_gate_pending_ci": true,
-        "owner_ab_completed": false
+        "fixture_gate_pending_ci": false,
+        "owner_ab_completed": false,
+        "fixture_gate_passed": true,
+        "ci_run": 277,
+        "ci_conclusion": "success"
       }
     }
   },
