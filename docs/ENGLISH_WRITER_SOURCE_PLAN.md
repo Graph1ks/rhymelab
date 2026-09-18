@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-18
 
-Status: **ACTIVE / 12B6 HISTORY FIX A/B PASS / PROPER-NAME FIX + RESCUE AUDIT PENDING**
+Status: **ACTIVE / 12B6 V3 COVERAGE REVIEW COMPLETE / STRATIFIED LONG-TAIL REVIEW CURRENT**
 
 
 ## Implementation checkpoint — 2026-09-18
@@ -640,3 +640,29 @@ Primary references:
 - wordfreq: https://github.com/rspeer/wordfreq
 
 The source architecture above is the project decision. Exact artifact versions/checksums are pinned during 12B1 rather than invented in this planning document.
+
+
+## 12B6 long-tail review requirement
+
+The v3 owner report confirms that 147,904 published surfaces are still a narrow pronunciation-backed cut rather than a final Writer inventory.
+
+The improved audit writes a full local classification sidecar for all 311,685 ranked strict wordfreq candidates plus a deterministic stratified sample across the ranking range. Use that evidence before changing admission policy.
+
+Do not treat the highest-ranked 30 examples as representative of the entire tail.
+
+The next lexical review should distinguish at least:
+
+- genuinely noisy/non-English surfaces;
+- Writer-relevant slang/CMC/eye-dialect spellings;
+- punctuation-normalized contractions;
+- productive inflections;
+- possessives;
+- current lexical rows with only unprofiled/en-GB pronunciation;
+- independently corroborated ESDB + CMUdict surfaces;
+- proper names that belong in a separate searchable Writer/Entity channel rather than being deleted from phonetic access.
+
+## Unknown input
+
+Product/runtime contract: `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md`.
+
+Query-time generated pronunciation is conceptually distinct from bulk G2P. It may be used as an ephemeral query anchor after a language choice, but it must not become persistent lexical evidence without a separate source/admission decision.
