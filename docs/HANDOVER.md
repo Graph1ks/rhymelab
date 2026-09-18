@@ -296,6 +296,8 @@ Anchor count, all distinct-key counts, source fingerprints and 720,117,760-byte 
 
 Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
 
+Fixture gate passed in required `validate` CI (run 253): source check, full tests including semantic-repeatability/no-anchor cases, and public-readiness audit all passed.
+
 The diagnostic runner uses the existing `benchmarks/de-writer-v2/plan.json` 12-query suite and Writer-v5 preferred pronunciations through `getWord()`. It records structural retrieval behavior only; there is still no phrase usefulness ranking.
 
 Important diagnostic distinction:
