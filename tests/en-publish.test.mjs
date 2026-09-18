@@ -1,0 +1,102 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  cmudictPronunciationEvidence,
+  determineEnglishPublishEligibility,
+  lexicalEvidenceForHeadword,
+  lexicalEvidenceForListedForms,
+  mergeEsdbEvidence,
+  finalizeEsdbEvidence,
+  parseCmudictPronunciationLine,
+  wiktionaryPronunciationEvidence,
+} from '../scripts/en-publish-core.mjs';
+
+test('CMUdict publish parser preserves alternate pronunciations and en-US provenance',()=>{
+  const parsed=parseCmudictPronunciationLine("ROUTE(2)  R AW1 T");
+  assert.deepEqual(parsed,{
+    normalized:'route',
+    source_surface:'ROUTE(2)',
+    phones:'R AW1 T',
+    alternate_index:2,
+  });
+  assert.deepEqual(cmudictPronunciationEvidence(parsed),{
+    source:'cmudict',
+    notation:'arpabet',
+    raw:'R AW1 T',
+    locales:['en-US'],
+    locale_status:'qualified',
+    tags:[],
+    alternate_index:2,
+  });
+});
+
+test('Wiktionary pronunciation locale stays qualified or explicitly unprofiled',()=>{
+  const us=wiktionaryPronunciationEvidence({ipa:'/kɑɹ/',tags:['General-American']});
+  const uk=wiktionaryPronunciationEvidence({ipa:'/kɑː/',tags:['Received-Pronunciation']});
+  const bare=wiktionaryPronunciationEvidence({ipa:'/lʌv/'});
+  assert.deepEqual(us.locales,['en-US']);
+  assert.deepEqual(uk.locales,['en-GB']);
+  assert.equal(bare.locale_status,'source_attested_unprofiled');
+  assert.deepEqual(bare.locales,[]);
+});
+
+test('headword and listed-form evidence preserve lexical relationship instead of inventing lemma truth',()=>{
+  const entry={
+    word:'walk',
+    lang_code:'en',
+    pos:'verb',
+    senses:[{}],
+    forms:[
+      {form:'walked',tags:['past']},
+      {form:'walks',tags:['third-person','singular']},
+      {form:'walk',tags:['canonical']},
+    ],
+  };
+  const head=lexicalEvidenceForHeadword(entry);
+  assert.equal(head.normalized,'walk');
+  const forms=lexicalEvidenceForListedForms(entry);
+  assert.deepEqual(forms.map((row)=>row.normalized),['walked','walks']);
+  assert.deepEqual(forms[0].lemma_candidates,['walk']);
+  assert.deepEqual(forms[0].relation_kinds,['listed_form_of']);
+});
+
+test('form-of headword records retain source lemma target',()=>{
+  const evidence=lexicalEvidenceForHeadword({
+    word:'went',
+    pos:'verb',
+    senses:[{form_of:[{word:'go'}]}],
+  });
+  assert.deepEqual(evidence.lemma_candidates,['go']);
+  assert.deepEqual(evidence.relation_kinds,['form_of']);
+});
+
+test('ESDB evidence merges independent lexical guard signals',()=>{
+  let value=null;
+  value=mergeEsdbEvidence(value,{size:60,region:'US',posClass:'v',archaic:false,uncommon:false,invalid:false});
+  value=mergeEsdbEvidence(value,{size:80,region:'GB',posClass:'v',archaic:true,uncommon:false,invalid:false});
+  assert.deepEqual(finalizeEsdbEvidence(value),{
+    min_size:60,
+    regions:['GB','US'],
+    pos_classes:['v'],
+    archaic:true,
+    uncommon:false,
+    invalid:false,
+  });
+});
+
+test('default eligibility is en-US analyzed, current, non-proper-only and ESDB-valid',()=>{
+  const base={
+    pronunciations:[{analysis:{e:'AYM'},locales:['en-US']}],
+    lexical_current_evidence:1,
+    lexical_historical_evidence:0,
+    proper_name_evidence:0,
+    common_lexical_evidence:1,
+    esdb:null,
+  };
+  assert.equal(determineEnglishPublishEligibility(base).default_eligible,true);
+  assert.equal(determineEnglishPublishEligibility({...base,lexical_current_evidence:0,lexical_historical_evidence:1}).default_eligible,false);
+  assert.equal(determineEnglishPublishEligibility({...base,proper_name_evidence:1,common_lexical_evidence:0}).default_eligible,false);
+  assert.equal(determineEnglishPublishEligibility({...base,proper_name_evidence:1,common_lexical_evidence:1}).default_eligible,true);
+  assert.equal(determineEnglishPublishEligibility({...base,esdb:{invalid:true}}).default_eligible,false);
+  assert.equal(determineEnglishPublishEligibility({...base,pronunciations:[{analysis:{},locales:['en-GB']}]}).default_eligible,false);
+});
