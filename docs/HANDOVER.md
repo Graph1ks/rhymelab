@@ -168,12 +168,29 @@ RUEG is now selected through DAKODA's slim German subcorpora: RUEG-Lx (103,779 t
 
 Phase 11B2 diagnostics completed successfully. Key result: 15,449 modern-eligible phrases have Leipzig evidence (15.86%); 4,683 occur in all three frozen Leipzig corpora. The raw catalog is lexeme-heavy (92,967 `multiword_lexeme`; 93,863 two-token rows), so abbreviation aliases and generic lexical combinations must remain visible as lower-quality/noise classes rather than being mistaken for phraseology.
 
-Current Phase 11B3 owner commands after merge:
+Phase 11C1 implementation is now present. It reuses the accepted Writer-v5 pronunciation inventory instead of introducing a second G2P source.
+
+```text
+schema                    rhymelab-phrase-pronunciation-v1
+policy                    de-phrase-pronunciation-v1
+resolver                  writer-v5-preferred-normalized-exact-v1
+composition               preferred-token-citation-composition-v1
+boundaries                explicit-word-boundary-v1
+analyzer                  de-ipa-v2
+connected speech          attested-or-explicit-rule-only-v1
+```
+
+11C1 materializes exactly one preferred citation pronunciation per fully resolved phrase. Token alternatives are counted but not cross-product-expanded. Unknown tokens remain unresolved; no G2P guessing occurs. Phrase IPA retains word boundaries plus per-token phoneme/syllable spans and all citation stress positions.
+
+The Phase 11B1 catalog fingerprint is explicitly checked before/after materialization and must remain unchanged.
+
+Owner commands after merge:
 
 ```powershell
-npm run phrase:register:rueg:bootstrap
-npm run phrase:catalog:diagnose
+npm run phrase:pronunciation
 npm run dev
 ```
 
-Then open `http://127.0.0.1:3030/phrases`. Inspect RUEG metadata matching, `dipl` vs `norm` differences, token totals, exact phrase matches and context search. Cologne is optional/nonblocking if Zenodo automation returns 403; its PDFs may be supplied locally. Only after the real RUEG gate and repeat base fingerprint confirmation should Phase 11C begin. Single-word Writer remains frozen; Human Writer NDCG remains pending.
+Review `data/local/phrase-pronunciation-v1-report.json` and the IPA section in `http://127.0.0.1:3030/phrases`. Then run the pronunciation materializer again and require an identical pronunciation fingerprint. Phase 11D mosaic retrieval remains blocked until this full-data gate is accepted. RUEG remains independent additive register/context evidence; it is not required to construct citation IPA.
+
+Single-word Writer remains frozen; Human Writer NDCG remains pending.
