@@ -12,6 +12,7 @@ test('Phrase Explorer exposes catalog and RUEG browse modes without replacing Wr
   ]);
   assert.match(html,/Phrase Catalog/);
   assert.match(html,/RUEG Contexts/);
+  assert.match(html,/value="pronunciation"/);
   assert.match(html,/id="layerFilter"/);
   assert.match(html,/id="formalityFilter"/);
   assert.match(html,/id="modeFilter"/);
@@ -21,7 +22,11 @@ test('Phrase Explorer exposes catalog and RUEG browse modes without replacing Wr
   assert.match(app,/\/api\/register\/search/);
   assert.match(app,/dipl/);
   assert.match(app,/norm/);
+  assert.match(app,/IPA ready/);
+  assert.match(app,/pronunciationReady/);
+  assert.match(app,/wordBoundarySyllablePositions/);
   assert.match(css,/\.context-text/);
+  assert.match(css,/\.pron-card/);
   assert.match(server,/RHYMELAB_PHRASE_DB/);
   assert.match(server,/\/phrases/);
   assert.match(server,/phraseDbError/);
