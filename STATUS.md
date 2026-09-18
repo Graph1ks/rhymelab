@@ -846,3 +846,6 @@ Only after this gate should Phase 11D mosaic/cross-word retrieval begin. The acc
 
 
 Current 12B6 focus: stratified English long-tail coverage review. See docs/ENGLISH_COVERAGE_AUDIT_V1.md and docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md.
+
+
+Phase 12B6 stratified long-tail review is complete. Current gate is two cheap local diagnostics over existing artifacts: exact rescue-tier counts from the 311k classified sidecar and unprofiled/en-GB vs en-US rhyme-domain agreement from the current publish shards. No Kaikki restream is required. Publish v4 must be based on those results, with exact-CMUdict possessives and punctuation-only aliases as the strongest immediate candidates.
