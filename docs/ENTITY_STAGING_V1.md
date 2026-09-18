@@ -134,6 +134,51 @@ RHYMELAB_BZIP2_CMD
 
 The bzip2 file is decompressed to stdout and parsed incrementally. The importer does **not** create an uncompressed Wikidata copy.
 
+## Windows fast decompression
+
+The Wikidata JSON dump must be fully decompressed even when only a small subset of entities is retained.
+
+Wikidata recommends `lbzip2` for parallel decompression of these BZip2 dumps on Unix-like systems. RhymeLab therefore prefers the following order on Windows:
+
+```text
+1. WSL + lbzip2
+2. native 7-Zip
+3. native bzip2
+```
+
+When WSL and `lbzip2` are available, the staging process automatically converts the Windows input path with `wslpath` and streams:
+
+```text
+wsl.exe --exec lbzip2 -dc -n <threads> /mnt/<drive>/...
+```
+
+Default thread count is the smaller of 8 and the available CPU parallelism, with a minimum of 2. Override it with:
+
+```powershell
+$env:RHYMELAB_LBZIP2_THREADS = "12"
+npm run entity:owner:stage
+```
+
+Recommended Windows setup when WSL is already installed:
+
+```powershell
+wsl --exec sh -lc "sudo apt-get update && sudo apt-get install -y lbzip2"
+```
+
+Verify before the full run:
+
+```powershell
+wsl --exec sh -lc "lbzip2 --version"
+```
+
+At startup the stager prints the selected decompressor, e.g.:
+
+```text
+[wikidata-stage] decompressor=wsl:lbzip2:8t ...
+```
+
+If WSL or `lbzip2` is unavailable, staging remains correct and falls back to 7-Zip; only throughput changes.
+
 ## Wikidata staging command
 
 After a dated source snapshot has been pinned:
