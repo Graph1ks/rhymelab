@@ -156,7 +156,24 @@ Protected fixture behavior:
 - Kendrick source aliases such as `K.Dot` are retained, but arbitrary token aliases such as `Kendrick` are not invented;
 - two independent prototype materializations must produce the same semantic fingerprint.
 
-The current gate is fixture CI + owner-local fixture build/review. Do not start the full Wikidata dump download until this gate is accepted.
+The Phase 12A1 fixture owner gate is now **ACCEPTED**.
+
+Owner evidence:
+
+```text
+status                  ok
+database bytes          122,880
+semantic fingerprint
+23e668d7a327982ba7367c875749d17d19697466cfa438a67df7a2d7ed9f4bba
+10 input -> 9 structural -> 7 retained
+Bud Spencer             person.actor / Tier A / PASS
+```
+
+Current milestone is **12A2 — Wikidata + QRank staging and category-cut diagnostics**.
+
+Contract: `docs/ENTITY_STAGING_V1.md`.
+
+The implementation streams the compressed Wikidata dump without creating an uncompressed copy, stores only structurally relevant cultural candidates in `data/work/entity/`, stages QRank separately, joins QRank locally, and reports category-relative cut distributions before any final 500k+ Entity Lexicon is materialized.
 
 Plan: `docs/ENTITY_LEXICON_PLAN.md`.
 
