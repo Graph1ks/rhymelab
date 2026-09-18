@@ -404,7 +404,9 @@ Create a separate benchmarked phrase-ranking policy. Do not mutate the frozen si
 
 **11E1 owner evidence is complete.** Across 1,237 candidates, only 312 (25.22%) have Leipzig evidence, 1,219 (98.54%) are surface-safe, 4 (0.32%) are marked, and query-token overlap is zero. This makes commonness a bounded bonus and surface safety a sparse demotion signal.
 
-**11E2 phrase-utility candidate is implemented; fixture CI pending.** It keeps phonetic quality dominant, caps Leipzig commonness at +0.10 and phrase-type prior at +0.025, applies strong transparent penalties to marked/restricted surfaces, and deliberately excludes page diversification until owner A/B evidence exists.
+**11E2-v1 owner A/B is complete and v1 is rejected for promotion.** Surface-safety behavior works, but commonness over-pulls lower-phonetic rows: 48 Leipzig-backed raw Top-20 rows become 100 after ranking, and multiple queries change to materially weaker phonetic tops.
+
+**11E2-v2 is current.** Keep v1 as a deterministic control. Add a conservative 0.02 phonetic near-tie band inside the same safety/relation class, and separate Writer-page eligibility so `weak` and restricted rows remain inspectable without filling the default page.
 
 ### 11F. Phrase/mosaic benchmark
 
