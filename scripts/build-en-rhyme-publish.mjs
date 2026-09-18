@@ -134,7 +134,8 @@ function ensureRecord(evidence){
       evidence_kinds:new Set(),
       lexical_current_evidence:0,
       lexical_historical_evidence:0,
-      proper_name:false,
+      proper_name_evidence:0,
+      common_lexical_evidence:0,
       pronunciations:new Map(),
       cmudict_added:false,
       esdb:null,
@@ -152,7 +153,8 @@ function addLexicalEvidence(record,evidence){
   for(const value of evidence.lemma_candidates||[]) record.lemmas.add(value);
   for(const value of evidence.relation_kinds||[]) record.relation_kinds.add(value);
   record.evidence_kinds.add(evidence.evidence_kind);
-  record.proper_name ||= Boolean(evidence.proper_name);
+  if(evidence.proper_name) record.proper_name_evidence+=1;
+  else record.common_lexical_evidence+=1;
   if(historicalEvidence(evidence)) record.lexical_historical_evidence+=1;
   else record.lexical_current_evidence+=1;
 }
@@ -289,7 +291,7 @@ for(const record of records.values()){
   if(eligibility.default_eligible) defaultEligible+=1;
   if(eligibility.analyzed_en_us) analyzedEnUs+=1;
   if(eligibility.historical_only) historicalOnly+=1;
-  if(eligibility.proper_name) properNames+=1;
+  if(eligibility.proper_name_only) properNames+=1;
   if(record.esdb) esdbMatched+=1;
   if(record.usage) wordfreqMatched+=1;
 
@@ -305,7 +307,9 @@ for(const record of records.values()){
       evidence_kinds:stringSet(record.evidence_kinds),
       current_evidence_count:record.lexical_current_evidence,
       historical_evidence_count:record.lexical_historical_evidence,
-      proper_name:record.proper_name,
+      proper_name_evidence_count:record.proper_name_evidence,
+      common_lexical_evidence_count:record.common_lexical_evidence,
+      proper_name_only:eligibility.proper_name_only,
     },
     pronunciations,
     esdb:record.esdb,
@@ -378,7 +382,7 @@ const manifest={
     default_eligible_surfaces:defaultEligible,
     analyzed_en_us_surfaces:analyzedEnUs,
     historical_only_surfaces:historicalOnly,
-    explicit_proper_name_surfaces:properNames,
+    explicit_proper_name_only_surfaces:properNames,
     esdb_matched_surfaces:esdbMatched,
     wordfreq_matched_surfaces:wordfreqMatched,
     pronunciation_variants:pronunciationVariants,
@@ -404,7 +408,7 @@ const manifest={
     default_profile:'en-US',
     requires_analyzed_en_us_pronunciation:true,
     excludes_historical_only:true,
-    excludes_explicit_proper_names:true,
+    excludes_explicit_proper_name_only_surfaces:true,
     excludes_esdb_invalid_variant:true,
     uncommon_or_esdb_archaic_alone_is_evidence_not_automatic_exclusion:true,
   },
