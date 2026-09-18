@@ -282,7 +282,7 @@ distributions equal        true
 
 Phase 11D1 is accepted and frozen as the mosaic-window substrate.
 
-### Phase 11D2 — bounded indexed candidate retrieval — FIXTURE GATE PASS / OWNER FULL-DATA GATE PENDING
+### Phase 11D2 — bounded indexed candidate retrieval — OWNER FULL-DATA BUILD COMPLETE / REPEATABILITY PENDING
 
 11D2 keeps 11D1 immutable and adds a separate retrieval-anchor table because the raw 11D1 phoneme key includes the first-syllable onset while accepted German rhyme truth does not.
 
@@ -300,6 +300,22 @@ phrase ranking      no
 Indexed channels: exact rhyme tail; full vowel sequence + exact final coda; full vowel sequence; final nucleus + coarse coda class with ±1 syllable.
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`.
+Confirmed owner full-data 11D2 evidence:
+
+```text
+source window fp                    24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+source pronunciation fp             fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+base catalog fp                     f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d
+phrase DB after retrieval anchors    686.76 MiB
+anchor rows                         356,693
+distinct exact-tail keys            181,548
+distinct vowel keys                  52,174
+distinct final nucleus/coda classes     772
+anchor fingerprint                  55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+window fingerprint unchanged        yes
+```
+
+The first full 11D2 build therefore covers every accepted 11D1 window one-to-one and preserves the frozen substrate. 11D2 is not accepted yet; one identical repeat anchor fingerprint is still required.
 ### Immediate owner gate
 
 After merge:
