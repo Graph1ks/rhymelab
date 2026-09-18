@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B6_PROPER_NAME_FIX_AND_RESCUE_AUDIT_PENDING",
+    "status": "ACTIVE_12B6_STRATIFIED_LONG_TAIL_REVIEW",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B6_REBUILD_WITH_PROPER_NAME_FIX_THEN_QUANTIFY_ESDB_CMUDICT_MORPHOLOGY_AND_LOCALE_RESCUE_CHANNELS",
+    "next_gate": "PHASE_12B6_RUN_IMPROVED_COVERAGE_AUDIT_REVIEW_STRATIFIED_RANK_BANDS_THEN_SELECT_CONTROLLED_LEXICAL_PRONUNCIATION_RESCUE",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1526,7 +1526,7 @@
       }
     },
     "coverage_audit_v1": {
-      "status": "OWNER_HISTORY_FIX_AB_COMPLETE_PROPER_NAME_RESCUE_AUDIT_PENDING",
+      "status": "V3_OWNER_RERUN_COMPLETE_STRATIFIED_REVIEW_IMPLEMENTED_OWNER_RERUN_PENDING",
       "contract": "docs/ENGLISH_COVERAGE_AUDIT_V1.md",
       "command": "npm run en:coverage:audit",
       "report": "data/local/en-coverage-audit-v1-report.json",
@@ -1653,7 +1653,68 @@
         "orthographic_variant_probe": true,
         "no_en_us_locale_breakdown": true,
         "owner_run_pending": true
+      },
+      "owner_v3_result": {
+        "publish_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
+        "published_surfaces": 147904,
+        "default_eligible_surfaces": 75697,
+        "ranked_published_surfaces": 106779,
+        "ranked_default_surfaces": 65163,
+        "v2_to_v3_default_delta": 2,
+        "wordfreq_strict_candidates": 311685,
+        "ranked_publish_pct": 34.26,
+        "ranked_default_pct": 20.91,
+        "top_100000": {
+          "default_eligible": 52522,
+          "default_pct": 52.52,
+          "esdb_plus_cmudict_non_wiktionary": 1981,
+          "regular_inflection_shape_with_analyzed_en_us_lemma": 3317,
+          "orthographic_variant_with_analyzed_en_us_lemma": 41,
+          "analyzed_unprofiled_no_en_us": 3748,
+          "analyzed_en_gb_no_en_us": 556,
+          "analyzed_en_gb_and_unprofiled_no_en_us": 89,
+          "unresolved_or_unparseable": 700
+        },
+        "full_ranked_universe": {
+          "not_wiktionary_lexical_candidate": 97144,
+          "no_source_backed_pronunciation": 52918,
+          "published_explicit_proper_name_only": 26264,
+          "form_of_without_analyzed_en_us_lemma": 14976,
+          "published_no_analyzed_en_us_pronunciation": 14821,
+          "regular_inflection_shape_with_analyzed_en_us_lemma": 13459,
+          "non_wiktionary_cmudict_only": 10463,
+          "non_wiktionary_esdb_current_only": 7077,
+          "form_of_with_analyzed_en_us_lemma": 5505,
+          "non_wiktionary_esdb_current_plus_cmudict": 3255,
+          "published_historical_only": 531,
+          "orthographic_variant_with_analyzed_en_us_lemma": 109
+        },
+        "interpretation": "proper_name_classifier_bug_was_real_but_small;major_gap_is_still_long_tail_lexical_and_pronunciation_admission"
+      },
+      "diagnostic_corrections": {
+        "punctuation_alt_of_before_generic_morphology": true,
+        "possessive_cmudict_plus_analyzed_base_bucket": true,
+        "no_runtime_policy_change": true
+      },
+      "review_artifacts": {
+        "candidates": "data/local/en-coverage-candidates-v1.jsonl",
+        "stratified_sample": "data/local/en-coverage-stratified-sample-v1.json",
+        "sample_command": "npm run en:coverage:sample",
+        "deterministic_seed": "phase12b6-stratified-v1",
+        "owner_generation_pending": true
       }
+    },
+    "unknown_query_pronunciation_fallback": {
+      "status": "CONTRACT_ACCEPTED_IMPLEMENTATION_PENDING_LANGUAGE_G2P_BENCHMARK",
+      "contract": "docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md",
+      "source_backed_lookup_first": true,
+      "generated_pronunciation_ephemeral": true,
+      "persist_to_lexicon": false,
+      "de_en_language_choice_in_combined_mode": true,
+      "existing_de_module_role": "ipa_analysis_not_orthographic_g2p",
+      "existing_en_module_role": "ipa_arpabet_analysis_not_orthographic_g2p",
+      "broad_bulk_g2p_remains_disabled": true,
+      "deterministic_local_offline_required": true
     }
   },
   "phase_12_entity_lexicon": {

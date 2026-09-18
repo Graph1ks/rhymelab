@@ -24,6 +24,7 @@ Before changing the project in a fresh thread/session, read:
 16. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the deferred Phase 12A3 Entity IPA/runtime checkpoint
 17. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the frozen Entity boundary
 18. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for the active Phase 12B English Writer work
+19. `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md` for the unknown user-query pronunciation fallback contract
 
 ## Public-repository guardrails
 

@@ -843,3 +843,6 @@ f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d
 ```
 
 Only after this gate should Phase 11D mosaic/cross-word retrieval begin. The accepted single-word Writer remains frozen and unchanged. Human Writer NDCG remains pending.
+
+
+Current 12B6 focus: stratified English long-tail coverage review. See docs/ENGLISH_COVERAGE_AUDIT_V1.md and docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md.

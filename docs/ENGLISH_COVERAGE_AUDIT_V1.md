@@ -1,6 +1,6 @@
 # English Coverage Funnel Audit v1
 
-Status: **owner baseline complete / publish-history classification fix implemented / A/B rerun pending**
+Status: **history-fix A/B passed / proper-name v3 owner rerun reviewed / stratified coverage review implemented**
 
 ## Question
 
@@ -265,3 +265,87 @@ Before any broad G2P or ranking work, the next owner run quantifies:
 4. **locale gap** — published rows with analyzed en-GB and/or unprofiled pronunciation but no analyzed en-US row.
 
 Arbitrary `form_of` pronunciation inheritance is explicitly forbidden. The owner result `ii -> second` demonstrates why source lexical relations must not be treated as phonological derivation rules without a narrower morphology contract.
+
+
+## Owner proper-name v3 rerun — interpretation
+
+The v3 proper-name classifier fix is correct but small in population impact:
+
+```text
+published surfaces               147,904
+default eligible                  75,697
+delta vs v2                           +2
+ranked default delta                  +2
+```
+
+The earlier `college` false-positive was real, but the remaining proper-name block is overwhelmingly genuine names/places/month-name records under the current policy. Whether those surfaces should be searchable in the Writer is therefore a product/channel decision rather than another broad classifier bug.
+
+The v3 owner report also confirms that only 106,779 of 311,685 ranked strict wordfreq surfaces are currently published (34.26%), while 65,163 are default eligible (20.91%).
+
+## Rescue findings from v3
+
+Top-100k diagnostic opportunities:
+
+```text
+ESDB + CMUdict non-Wiktionary lexical rescue      1,981
+regular inflection shape + analyzed lemma          3,317
+orthographic punctuation variant                      41
+published analyzed-unprofiled / no en-US           3,748
+published analyzed en-GB / no en-US                  556
+published en-GB + unprofiled / no en-US               89
+unresolved/unparseable published                     700
+```
+
+Across the complete 311,685 ranked strict universe:
+
+```text
+ESDB + CMUdict non-Wiktionary                      3,255
+regular inflection shape                          13,459
+non-Wiktionary CMUdict-only                       10,463
+non-Wiktionary ESDB-current-only                   7,077
+orthographic punctuation variants                    109
+```
+
+The highest-frequency miss examples show that the loss set contains substantial Writer-relevant material: contractions without apostrophes, slang/CMC forms, clipped `-in` spellings, possessives, brands, artists, athletes and fictional/cultural names.
+
+## Diagnostic corrections after v3
+
+Two audit classifications are corrected before using random review samples as policy evidence:
+
+1. punctuation-only `alt_of` recovery is now checked independently and before generic morphology, so `dont -> don't` and `thats -> that's` are not mislabeled as generic no-pronunciation or ordinary `-s` inflection cases;
+2. exact-CMUdict possessive surfaces with an analyzed en-US base are now a separate high-confidence rescue class, e.g. `world's`, `children's`, `mother's`.
+
+These changes affect diagnostics only; they do not publish new lexical rows.
+
+## Stratified review artifacts
+
+Each full coverage audit now additionally writes:
+
+```text
+data/local/en-coverage-candidates-v1.jsonl
+data/local/en-coverage-stratified-sample-v1.json
+```
+
+The JSONL contains every ranked strict candidate with its classification/evidence. The stratified sample uses a fixed SHA-256 seed and samples across these rank bands:
+
+```text
+1-10k
+10k-25k
+25k-50k
+50k-100k
+100k-150k
+150k-250k
+250k-tail
+```
+
+Samples are stratified by the material loss/rescue classes rather than only taking the highest-ranked examples.
+
+After one full audit, arbitrary reproducible review samples can be drawn without restreaming Wiktionary:
+
+```powershell
+npm run en:coverage:sample -- --status no_source_backed_pronunciation --min-rank 50000 --max-rank 100000 --n 50
+npm run en:coverage:sample -- --status not_wiktionary_lexical_candidate --min-rank 100000 --max-rank 250000 --n 50
+npm run en:coverage:sample -- --min-rank 250000 --n 100 --seed tail-review-1
+```
+
+This is the preferred basis for the next lexical-admission decision.

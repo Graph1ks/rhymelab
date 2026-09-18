@@ -6,7 +6,7 @@ Repository state is authoritative. Do not reconstruct project state from prior c
 
 ## Active milestone
 
-**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. History-fix A/B passed; proper-name evidence fix + rescue-channel audit is current.**
+**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. v3 coverage rerun reviewed; stratified long-tail sampling + rescue classification is current.**
 
 Read first:
 
@@ -118,7 +118,7 @@ The history-fix rebuild is complete and repeatable: default eligible 75,695 (+2,
 
 A second confirmed classifier defect remains: sense-level proper-name tags can poison a common record. `college` is the protected example. Candidate policy `en-source-backed-publish-v3-candidate` fixes this.
 
-The current gate is **not ranking yet**. Rebuild publish + DB with v3, then rerun coverage to quantify proper-name corrections plus ESDB+CMUdict lexical rescue, regular-inflection-shape recovery, and non-US locale gaps.
+The v3 owner rerun is complete. Proper-name classifier impact was only +2 default rows; the remaining proper-name block is mostly real name/place material. The current gate is **not ranking yet**: rerun the improved coverage audit once to materialize the full 311,685-row review sidecar and stratified random sample, then review representative losses across rank bands before changing lexical admission or pronunciation policy.
 
 English remains candidate-gated; no product EN runtime and no broad G2P is accepted yet.
 
@@ -355,3 +355,16 @@ Runtime remains local-only. Bulk source data, generated DBs and generated report
 In the new thread, run/review the implemented **Phase 12B1 owner source bootstrap and Phase 12B2 full source diagnostics** from `docs/ENGLISH_WRITER_SOURCE_PLAN.md` before starting 12B3.
 
 Do not ask the owner to execute the deferred Entity P898 workflow first.
+
+
+### Unknown-query product requirement
+
+Read `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md`.
+
+Unknown user input must not terminate as "word not found". After source-backed lookup fails, the eventual runtime must support a deterministic, local, language-specific **ephemeral query pronunciation** path:
+
+```text
+surface -> DE/EN resolution -> query G2P -> IPA/pronunciation analyzer -> syllables/stress/rhyme keys -> normal indexed retrieval
+```
+
+Generated query pronunciation is never silently persisted as lexical truth. In `DE+EN`, if the language cannot be resolved from a source-backed match, ask the user whether the intended reading is German or English.
