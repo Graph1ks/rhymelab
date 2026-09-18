@@ -275,39 +275,65 @@ try {
     }
   }
 
-  const priorityUnresolved = db.prepare(`
-    WITH unresolved AS (
-      SELECT
-        c.category,c.category_rank,c.category_tier,
-        e.qid,e.primary_category,e.popularity_tier,e.popularity_score,
-        n.surface,n.name_kind,n.preferred,
-        ROW_NUMBER() OVER (
-          PARTITION BY c.category
-          ORDER BY c.category_rank ASC,e.qid ASC,n.preferred DESC,n.name_id ASC
-        ) AS within_category
-      FROM entity_category c
-      JOIN entity e USING(entity_id)
-      JOIN entity_name n USING(entity_id)
-      WHERE n.searchable=1 AND n.language='de' AND n.preferred=1
-        AND NOT EXISTS (
-          SELECT 1 FROM entity_pronunciation p
-          WHERE p.name_id=n.name_id AND ${ELIGIBLE}
-        )
-    )
-    SELECT *
-    FROM unresolved
-    WHERE within_category <= ?
-    ORDER BY category,within_category
-  `).all(priorityLimit).map((row) => ({
-    category: row.category,
-    category_rank: Number(row.category_rank),
-    category_tier: row.category_tier,
-    qid: row.qid,
-    surface: row.surface,
-    primary_category: row.primary_category,
-    popularity_tier: row.popularity_tier,
-    popularity_score: Number(row.popularity_score || 0),
-  }));
+  const priorityStatement = db.prepare(`
+    SELECT
+      c.category,c.category_rank,c.category_tier,
+      e.qid,e.primary_category,e.popularity_tier,e.popularity_score,
+      n.surface,n.name_kind,n.preferred
+    FROM entity_category c
+    JOIN entity e USING(entity_id)
+    JOIN entity_name n USING(entity_id)
+    WHERE c.category=?
+      AND n.searchable=1 AND n.language='de' AND n.preferred=1
+      AND NOT EXISTS (
+        SELECT 1 FROM entity_pronunciation p
+        WHERE p.name_id=n.name_id AND ${ELIGIBLE}
+      )
+    ORDER BY c.category_rank ASC,e.qid ASC,n.name_id ASC
+    LIMIT ?
+  `);
+  const priorityUnresolved = [];
+  for (const { category } of db.prepare(
+    'SELECT DISTINCT category FROM entity_category ORDER BY category',
+  ).all()) {
+    for (const row of priorityStatement.all(category, priorityLimit)) {
+      priorityUnresolved.push({
+        category: row.category,
+        category_rank: Number(row.category_rank),
+        category_tier: row.category_tier,
+        qid: row.qid,
+        surface: row.surface,
+        primary_category: row.primary_category,
+        popularity_tier: row.popularity_tier,
+        popularity_score: Number(row.popularity_score || 0),
+        cmudict_probe_status: cmudictCoverageForSurface(row.surface, cmudict.entries).status,
+      });
+    }
+  }
+
+  const cmudictCategoryCandidateMap = new Map();
+  for (const row of db.prepare(
+    'SELECT entity_id,category,category_tier FROM entity_category ORDER BY category,category_tier',
+  ).iterate()) {
+    const key = row.category + '\u001f' + row.category_tier;
+    const bucket = cmudictCategoryCandidateMap.get(key) || {
+      category: row.category,
+      tier: row.category_tier,
+      full_match_entity_candidates: 0,
+      preferred_full_match_entity_candidates: 0,
+    };
+    if (cmuFullEntities.has(Number(row.entity_id))) bucket.full_match_entity_candidates += 1;
+    if (cmuFullPreferredEntities.has(Number(row.entity_id))) {
+      bucket.preferred_full_match_entity_candidates += 1;
+    }
+    cmudictCategoryCandidateMap.set(key, bucket);
+  }
+  const cmudictCandidatesByCategoryTier = [...cmudictCategoryCandidateMap.values()]
+    .filter((row) => row.full_match_entity_candidates || row.preferred_full_match_entity_candidates)
+    .sort((a, b) =>
+      a.category.localeCompare(b.category, 'en')
+      || ['A','B','C'].indexOf(a.tier) - ['A','B','C'].indexOf(b.tier)
+    );
 
   const topMissingTokens = [...missingTokens.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'en'))
@@ -356,6 +382,7 @@ try {
       unresolved_preferred_partial_token_match: cmuPartialPreferred,
       distinct_entities_with_full_token_match_candidate: cmuFullEntities.size,
       distinct_entities_with_preferred_full_token_match_candidate: cmuFullPreferredEntities.size,
+      candidates_by_category_tier: cmudictCandidatesByCategoryTier,
       projected_name_coverage_if_all_full_matches_became_eligible: pct(
         readyNames + cmuFull,
         namesTotal,
