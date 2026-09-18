@@ -282,7 +282,7 @@ Policy identifiers:
 ```text
 schema                  rhymelab-phrase-pronunciation-v1
 policy                  de-phrase-pronunciation-v1
-resolver                writer-v5-preferred-normalized-exact-v1
+resolver                writer-v5-preferred-surface-aware-v2
 composition             preferred-token-citation-composition-v1
 boundary policy         explicit-word-boundary-v1
 connected speech        attested-or-explicit-rule-only-v1
