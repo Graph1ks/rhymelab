@@ -154,7 +154,7 @@ export function parseRuegMeta(text) {
 
 function parseTierEvents(body) {
   const events = [];
-  const paired = /<event\b([^>]*?)>([\s\S]*?)<\/event>/giu;
+  const paired = /<event\b([^>]*?)(?<!\/)>([\s\S]*?)<\/event>/giu;
   for (const match of body.matchAll(paired)) {
     const attrs = attributes(match[1]);
     if (!attrs.start || !attrs.end) continue;
