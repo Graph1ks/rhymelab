@@ -467,18 +467,24 @@ Key decisions:
 
 12A1 schema/taxonomy/source/popularity/pronunciation fixture gate is **ACCEPTED**.
 
-Current submilestone: **12A2 Wikidata + QRank staging**.
+Phase 12A2 Wikidata/QRank staging and Hybrid-v2 category-relative cut are **ACCEPTED / FROZEN**.
 
-- stream the compressed Wikidata JSON dump without an uncompressed copy;
-- persist only structurally relevant cultural candidates;
-- stage QRank in a disposable build-time SQLite;
-- join QRank locally by QID;
-- produce category-relative cut diagnostics;
-- review category counts, QRank coverage, staging size and protected sentinels before final materialization.
+Current submilestone: **12A3 retained Entity pronunciation/source-evidence runtime**.
 
-Contract: `docs/ENTITY_STAGING_V1.md`.
+- retained Entity catalog: 1,077,644 entities;
+- conservative German runtime: 90,224 / 716,940 DE names (12.58%);
+- accepted German Entity runtime fingerprint is pinned;
+- measured source coverage shows CMUdict fully covers 41.78% of currently unresolved names at token level and raises the probe-only preferred-name ceiling to 52.18%;
+- do not mass-G2P the remaining proper names;
+- add source-backed pronunciation evidence first;
+- selectively materialize qualified Wikidata `P898` evidence without silently assigning regional runtime locales;
+- preserve P898 `P407` language, `P5237` pronunciation variety and `P5168` applies-to-name qualifiers;
+- require the existing German runtime fingerprint to remain unchanged while source-only evidence is added;
+- use the measured P898/CMUdict gap profile to feed the real English phonology/runtime work in 12B.
 
-Full 500k+ Entity Lexicon materialization follows only after the owner full-source staging/cut diagnostic is accepted.
+Contract: `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`.
+
+The normal owner path remains one command: `npm run entity:pronunciation:owner`. No entity or QRank restage is required.
 
 ### 12B. English phonology + single-word profile + benchmark
 
