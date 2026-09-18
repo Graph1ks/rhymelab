@@ -30,7 +30,6 @@ import { analyzeEnglishPronunciation } from './english-phonology.mjs';
 import {
   composeEnglishInflectionIpaVariants,
   englishPossessiveBase,
-  isStrictEnglishInflectionRecovery,
   punctuationOnlyAliasTargets,
   strictEnglishInflectionPairs,
 } from './en-pronunciation-recovery.mjs';
