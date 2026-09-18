@@ -4,7 +4,7 @@ Last updated: 2026-09-18
 
 ## Status
 
-**11E2-v1 OWNER A/B COMPLETE — v1 REJECTED FOR PROMOTION / v2 CURRENT**
+**11E2-v2 IMPLEMENTED / FIXTURE CI PENDING — v1 RETAINED AS CONTROL**
 
 Phase 11D retrieval is accepted and frozen. Phase 11E consumes its output; it does not retune retrieval or phonetic relation truth.
 
@@ -311,6 +311,21 @@ Implemented candidate policy `de-phrase-writer-utility-v1-candidate`:
 - same-process raw-vs-ranked owner diagnostic via `npm run phrase:mosaic:rank:v1`;
 - explicit protected-result reporting for `Liebe`, `Freiheit`, `Musik`, and `Leben`;
 - no page diversification yet.
+
+v2 implementation:
+
+```text
+schema        rhymelab-phrase-mosaic-ranking-candidate-v2
+policy        de-phrase-writer-utility-v2-phonetic-guard-candidate
+band width    0.02
+command       npm run phrase:mosaic:rank:v2
+```
+
+Ordering guards are lexicographic: default Writer-page eligibility -> safety class -> primary relation type -> phonetic near-tie band -> v1 control utility -> phonetic/stable tie-breakers.
+
+The 0.02 band is intentionally conservative: v1 owner evidence showed unacceptable top-score drops of 0.078 (`verloren`), 0.058 (`Spotify`) and 0.040 (`hitzefrei`). Product evidence must not cross such gaps. Safety demotion remains exempt because it addresses known malformed/abbreviation surfaces.
+
+`weak`, restricted and non-modern candidates are retained in diagnostics but excluded from the default Writer page; this makes `Leben` capable of correctly returning an empty phrase page without deleting provenance.
 
 Owner A/B result for v1:
 
