@@ -60,9 +60,11 @@ try{await access(dbPath);}catch{
 
 const db=new DatabaseSync(dbPath,{readOnly:true});
 const meta=(key)=>db.prepare('SELECT value FROM meta WHERE key=?').get(key)?.value??null;
-if(meta('schema')!==ENGLISH_WRITER_DB_SCHEMA){
+const databaseSchema=meta('schema');
+const databasePublishFingerprint=meta('publish_fingerprint');
+if(databaseSchema!==ENGLISH_WRITER_DB_SCHEMA){
   db.close();
-  throw new Error(`Unexpected English DB schema: ${meta('schema')}`);
+  throw new Error(`Unexpected English DB schema: ${databaseSchema}`);
 }
 
 const formStmt=db.prepare(`
@@ -213,8 +215,8 @@ const report={
   schema:'rhymelab-en-wordlist-coverage-v1',
   input,
   database:dbPath,
-  database_schema:ENGLISH_WRITER_DB_SCHEMA,
-  database_publish_fingerprint:meta('publish_fingerprint'),
+  database_schema:databaseSchema,
+  database_publish_fingerprint:databasePublishFingerprint,
   coverage_candidates:candidatesAvailable?candidatesPath:null,
   coverage_candidates_available:candidatesAvailable,
   rows:list.length,
