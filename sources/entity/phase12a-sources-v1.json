@@ -1,0 +1,32 @@
+{
+  "schema": "rhymelab-entity-source-registry-v1",
+  "id": "phase12a-entity-sources-v1",
+  "updated": "2026-09-18",
+  "sources": [
+    {
+      "source_id": "wikidata-json-entities",
+      "name": "Wikidata JSON entity dump",
+      "role": "primary_structured_entity_source",
+      "license_id": "CC0-1.0",
+      "homepage_url": "https://www.wikidata.org/wiki/Wikidata:Database_download",
+      "canonical_latest_bz2_url": "https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.bz2",
+      "canonical_latest_gz_url": "https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.gz",
+      "production_requirement": "resolve_and_pin_dated_snapshot_before_full_owner_build",
+      "local_raw_policy": "gitignored",
+      "importer_policy": "stream_line_by_line_no_full_graph_import",
+      "runtime_network_required": false
+    },
+    {
+      "source_id": "wikidata-qrank",
+      "name": "Wikidata QRank",
+      "role": "primary_global_popularity_signal",
+      "license_id": "CC0-1.0",
+      "homepage_url": "https://qrank.toolforge.org/",
+      "canonical_download_url": "https://qrank.toolforge.org/download/qrank.csv.gz",
+      "format": "gzip_csv_Entity_QRank",
+      "production_requirement": "pin_snapshot_label_and_checksum_before_acceptance",
+      "local_raw_policy": "gitignored",
+      "runtime_network_required": false
+    }
+  ]
+}
