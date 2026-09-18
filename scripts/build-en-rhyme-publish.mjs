@@ -68,6 +68,7 @@ const wordfreqPath=sourcePath(wordfreqSource);
 function sha256(text){return createHash('sha256').update(text).digest('hex');}
 function historicalEvidence(evidence){
   const h=evidence?.history||{};
+  if(typeof h.historical_only==='boolean') return h.historical_only;
   return Boolean(h.archaic||h.obsolete||h.historical||h.dated);
 }
 function stringSet(value){return [...value].sort((a,b)=>String(a).localeCompare(String(b),'en'));}
