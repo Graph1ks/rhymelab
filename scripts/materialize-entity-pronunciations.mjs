@@ -85,34 +85,78 @@ function upsertMeta(db, key, value) {
   `).run(key, String(value));
 }
 
-function runtimeFingerprint(db) {
+async function runtimeFingerprint(db) {
   const hash = createHash('sha256');
   const feeds = [
-    db.prepare(`
-      SELECT n.entity_id,n.name_id,n.surface,n.language,
-        p.pronunciation_id,p.locale,p.pronunciation_role,p.ipa,p.preferred,
-        p.source_kind,p.source_record,p.generated,p.model_id,p.review_state
-      FROM entity_pronunciation p
-      JOIN entity_name n USING(name_id)
-      WHERE p.review_state IN ('accepted','reviewed','accepted_source_composition')
-      ORDER BY n.entity_id,n.name_id,p.pronunciation_id
-    `).all(),
-    db.prepare(`
-      SELECT pronunciation_id,analyzer_id,phonemes,syllables,syllable_count,
-        primary_stress,secondary_stress,stress_pattern,vowel_sequence,
-        consonant_sequence,rhyme_tail,rhyme_signature
-      FROM entity_phonetic_analysis
-      WHERE analyzer_id=?
-      ORDER BY pronunciation_id
-    `).all(ENTITY_RUNTIME_ANALYZER),
-    db.prepare(`
-      SELECT analyzer_id,channel,anchor_key,pronunciation_id
-      FROM entity_rhyme_anchor
-      WHERE analyzer_id=?
-      ORDER BY channel,anchor_key,pronunciation_id
-    `).all(ENTITY_RUNTIME_ANALYZER),
+    {
+      label: 'pronunciations',
+      count: Number(db.prepare(`
+        SELECT COUNT(*) AS c
+        FROM entity_pronunciation p
+        JOIN entity_name n USING(name_id)
+        WHERE p.review_state IN ('accepted','reviewed','accepted_source_composition')
+      `).get().c || 0),
+      statement: db.prepare(`
+        SELECT n.entity_id,n.name_id,n.surface,n.language,
+          p.pronunciation_id,p.locale,p.pronunciation_role,p.ipa,p.preferred,
+          p.source_kind,p.source_record,p.generated,p.model_id,p.review_state
+        FROM entity_pronunciation p
+        JOIN entity_name n USING(name_id)
+        WHERE p.review_state IN ('accepted','reviewed','accepted_source_composition')
+        ORDER BY n.entity_id,n.name_id,p.pronunciation_id
+      `),
+      args: [],
+    },
+    {
+      label: 'analyses',
+      count: Number(db.prepare(`
+        SELECT COUNT(*) AS c FROM entity_phonetic_analysis WHERE analyzer_id=?
+      `).get(ENTITY_RUNTIME_ANALYZER).c || 0),
+      statement: db.prepare(`
+        SELECT pronunciation_id,analyzer_id,phonemes,syllables,syllable_count,
+          primary_stress,secondary_stress,stress_pattern,vowel_sequence,
+          consonant_sequence,rhyme_tail,rhyme_signature
+        FROM entity_phonetic_analysis
+        WHERE analyzer_id=?
+        ORDER BY pronunciation_id
+      `),
+      args: [ENTITY_RUNTIME_ANALYZER],
+    },
+    {
+      label: 'anchors',
+      count: Number(db.prepare(`
+        SELECT COUNT(*) AS c FROM entity_rhyme_anchor WHERE analyzer_id=?
+      `).get(ENTITY_RUNTIME_ANALYZER).c || 0),
+      statement: db.prepare(`
+        SELECT analyzer_id,channel,anchor_key,pronunciation_id
+        FROM entity_rhyme_anchor
+        WHERE analyzer_id=?
+        ORDER BY channel,anchor_key,pronunciation_id
+      `),
+      args: [ENTITY_RUNTIME_ANALYZER],
+    },
   ];
-  for (const rows of feeds) hash.update(JSON.stringify(rows));
+
+  for (const feed of feeds) {
+    const startedAt = Date.now();
+    let current = 0;
+    let first = true;
+    hash.update('[');
+    for (const row of feed.statement.iterate(...feed.args)) {
+      if (!first) hash.update(',');
+      hash.update(JSON.stringify(row));
+      first = false;
+      current += 1;
+      if (current % 100000 === 0) {
+        progressLine(`fingerprint:${feed.label}`, current, feed.count, startedAt);
+        await yieldToSignals();
+      }
+    }
+    hash.update(']');
+    if (feed.count) {
+      progressLine(`fingerprint:${feed.label}`, current, feed.count, startedAt, ['done']);
+    }
+  }
   return hash.digest('hex');
 }
 
@@ -436,7 +480,7 @@ try {
   upsertMeta(entityDb, 'entity_pronunciation_build_state', 'fingerprint_in_progress');
 
   console.error('[entity-pronunciation] phase 3/3 · computing deterministic runtime fingerprint');
-  const fingerprint = runtimeFingerprint(entityDb);
+  const fingerprint = await runtimeFingerprint(entityDb);
     upsertMeta(entityDb, 'entity_phonetic_runtime_fingerprint', fingerprint);
     upsertMeta(entityDb, 'entity_pronunciation_build_state', 'complete');
     entityDb.exec('ANALYZE; PRAGMA optimize; PRAGMA wal_checkpoint(TRUNCATE);');
