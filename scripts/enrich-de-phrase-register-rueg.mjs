@@ -132,7 +132,7 @@ try {
     const allFiles = await walk(input.root);
     const exbFiles = allFiles.filter((path) => extname(path).toLocaleLowerCase() === '.exb');
     if (!exbFiles.length) throw new Error('No .exb files found under ' + input.root);
-    const metaFiles = allFiles.filter((path) => ['.meta','.xml','.json','.txt'].includes(extname(path).toLocaleLowerCase()) && extname(path).toLocaleLowerCase() !== '.exb');
+    const metaFiles = allFiles.filter((path) => ['.meta','.xml','.json','.txt'].includes(extname(path).toLocaleLowerCase()) && extname(path).toLocaleLowerCase() !== '.exb' && !basename(path).startsWith('.rhymelab-'));
     const metaByStem = new Map();
     for (const path of metaFiles) {
       const stem = sourceRecordStem(path);
@@ -168,8 +168,8 @@ try {
       dipl: { occurrences: new Map(), units: new Map(), tokens: 0, unitCount: 0 },
       norm: { occurrences: new Map(), units: new Map(), tokens: 0, unitCount: 0 },
     };
-    const observed = { formality: new Map(), mode: new Map(), ageGroup: new Map(), language: new Map() };
-    let documents = 0, metadataMatched = 0, missingMeta = 0, skippedNonGerman = 0, units = 0, different = 0;
+    const observed = { formality: new Map(), mode: new Map(), ageGroup: new Map(), language: new Map(), boundaryType: new Map(), surfaceCategory: new Map(), normCategory: new Map() };
+    let documents = 0, metadataMatched = 0, missingMeta = 0, skippedNonGerman = 0, units = 0, different = 0, documentsWithNorm = 0;
     let detailedOccurrenceRows = 0;
     const insertDocument = db.prepare('INSERT INTO register_document(document_id,source_id,subcorpus,source_record_id,speaker_id,formality,mode,age_group,speaker_age,speaker_bilingual,elicitation_language,elicitation_country,elicitation_date,metadata_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
     const insertUnit = db.prepare('INSERT INTO register_unit(unit_id,document_id,unit_index,unit_type,dipl_text,norm_text,languages_json,dipl_token_count,norm_token_count) VALUES(?,?,?,?,?,?,?,?,?)');
@@ -190,6 +190,10 @@ try {
           continue;
         }
         const parsed = parseRuegExb(await readFile(exbPath, 'utf8'));
+        observe(observed.boundaryType, parsed.unitType);
+        observe(observed.surfaceCategory, parsed.surfaceSourceCategory);
+        observe(observed.normCategory, parsed.normSourceCategory);
+        if (parsed.normAvailable) documentsWithNorm += 1;
         const sourceRecordId = relative(input.root, exbPath).replaceAll('\\', '/');
         const documentId = documentIdFor({ sourceId: manifest.source_id, subcorpus: input.id, sourceRecordId });
         insertDocument.run(documentId, manifest.source_id, input.id, sourceRecordId, meta.speakerId ?? null, meta.formality ?? null, meta.mode ?? null, meta.ageGroup ?? null, meta.speakerAge ?? null, meta.speakerBilingual ?? null, meta.elicitationLanguage ?? null, meta.elicitationCountry ?? null, meta.elicitationDate ?? null, JSON.stringify(meta.raw || {}));
@@ -197,7 +201,8 @@ try {
         observe(observed.formality, meta.formality); observe(observed.mode, meta.mode); observe(observed.ageGroup, meta.ageGroup); observe(observed.language, meta.elicitationLanguage);
         for (const unit of parsed.units) {
           const unitId = unitIdFor(documentId, unit.index);
-          insertUnit.run(unitId, documentId, unit.index, unit.unitType, unit.dipl || null, unit.norm || null, JSON.stringify(unit.languages || []), unit.diplTokenCount, unit.normTokenCount);
+          const unitLanguages = unit.languages?.length ? unit.languages : (meta.elicitationLanguage ? [meta.elicitationLanguage] : []);
+          insertUnit.run(unitId, documentId, unit.index, unit.unitType, unit.dipl || null, unit.norm || null, JSON.stringify(unitLanguages), unit.diplTokenCount, unit.normTokenCount);
           units += 1;
           if (unit.dipl && unit.norm && unit.dipl !== unit.norm) different += 1;
           for (const layer of ['dipl', 'norm']) {
@@ -214,6 +219,9 @@ try {
             for (const phraseId of match.seenInSentence) layerAgg[layer].units.set(phraseId, (layerAgg[layer].units.get(phraseId) || 0) + 1);
           }
         }
+      }
+      if (documents > 0 && units === 0) {
+        throw new Error('Parsed ' + documents + ' RUEG documents for ' + input.id + ' but produced zero register units. Refusing a false-success import.');
       }
       db.exec('COMMIT');
     } catch (error) {
@@ -239,8 +247,13 @@ try {
     reports.push({
       subcorpus: input.id, root: input.root, artifactSha256, exbFiles: exbFiles.length, metaFiles: metaFiles.length,
       documents, metadataMatched, missingMeta, skippedNonGerman, units, diplDifferentFromNorm: different,
+      documentsWithNorm, normLayerAvailableInExb: documentsWithNorm > 0,
       detailedOccurrenceRows, reportedTokens: config.reported_tokens, layers,
-      observed: { formality: mapRows(observed.formality), mode: mapRows(observed.mode), ageGroup: mapRows(observed.ageGroup), elicitationLanguage: mapRows(observed.language) },
+      observed: {
+        formality: mapRows(observed.formality), mode: mapRows(observed.mode), ageGroup: mapRows(observed.ageGroup),
+        elicitationLanguage: mapRows(observed.language), boundaryType: mapRows(observed.boundaryType),
+        surfaceCategory: mapRows(observed.surfaceCategory), normCategory: mapRows(observed.normCategory),
+      },
     });
   }
 
