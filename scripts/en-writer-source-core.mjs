@@ -99,8 +99,14 @@ const REGION_PATTERNS = [
   /rhotic/u, /non-rhotic/u,
 ];
 
+function tagMatchForms(tag) {
+  const raw = String(tag || '').trim();
+  const canonical = raw.replace(/[_-]+/gu, ' ').replace(/\s+/gu, ' ').trim();
+  return canonical && canonical !== raw ? [raw, canonical] : [raw];
+}
+
 function matchesAny(tag, patterns) {
-  return patterns.some((pattern) => pattern.test(tag));
+  return tagMatchForms(tag).some((value) => patterns.some((pattern) => pattern.test(value)));
 }
 
 export function classifyWiktionaryIpaLocale(sound) {
@@ -109,10 +115,12 @@ export function classifyWiktionaryIpaLocale(sound) {
   const uk = tags.some((tag) => matchesAny(tag, UK_PATTERNS));
   const hasRegionalQualifier = tags.some((tag) => matchesAny(tag, REGION_PATTERNS));
   const otherProfiled = hasRegionalQualifier && !us && !uk;
+  const taggedUnmapped = tags.length > 0 && !us && !uk && !otherProfiled;
   return {
     us,
     uk,
-    unqualified: !hasRegionalQualifier,
+    unqualified: tags.length === 0,
+    tagged_unmapped: taggedUnmapped,
     has_regional_qualifier: hasRegionalQualifier,
     other_profiled: otherProfiled,
     tags,
