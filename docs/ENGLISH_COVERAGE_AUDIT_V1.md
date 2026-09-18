@@ -403,3 +403,113 @@ data/local/en-pronunciation-fallback-diagnostic-v1-report.json
 ```
 
 Neither diagnostic mutates publish data or the English runtime.
+
+
+## Exact rescue-policy owner counts
+
+Owner execution of `npm run en:coverage:rescue` read all 311,685 ranked coverage-sidecar rows without malformed input.
+
+```text
+Tier A immediate candidates                         4,204
+Tier A + Tier B candidates                        27,435
+
+exact CMUdict possessives                          4,036
+punctuation-only aliases                             168
+strict source-backed inflection                   12,406
+analyzed unprofiled IPA                           10,662
+en-GB + unprofiled analyzed IPA                      163
+en-GB-only analyzed IPA                            1,889
+ESDB-current + exact CMUdict                         918
+CMUdict without lexical guard                      8,764
+deterministic initialism composition review        6,077
+proper-name channel review                        26,264
+unresolved pronunciation                           2,107
+```
+
+Interpretation:
+
+- the strict morphology gate retains 12,406 / 13,454 previously shape-matched rows, so bounded inflection composition is large enough to justify implementation;
+- exact-CMUdict possessives and punctuation-only aliases remain the strongest immediate additions;
+- unprofiled IPA is also large, but must not be relabeled en-US without stronger evidence.
+
+## Pronunciation fallback agreement owner run
+
+Current production exact-key agreement is not high enough to promote unprofiled or en-GB pronunciation to the en-US default profile:
+
+```text
+unprofiled vs en-US:
+  compared surfaces              21,306
+  exact-tail match               62.86%
+  final-tail match               82.79%
+  vowel-family match             69.35%
+  syllable-count match           94.92%
+  stress-pattern match           82.36%
+  primary-stress match           96.98%
+
+en-GB vs en-US:
+  compared surfaces              27,648
+  exact-tail match               48.64%
+  final-tail match               74.62%
+  vowel-family match             58.11%
+  syllable-count match           95.31%
+  stress-pattern match           87.67%
+  primary-stress match           98.08%
+```
+
+However, mismatch examples expose a second issue: the current `exactTailKey` includes syllable-boundary placement. Identical phone sequences can therefore disagree when CMUdict deterministic syllabification and source IPA explicit boundaries differ. Protected example:
+
+```text
+abacus
+CMUdict-derived exact key    æ.bə.kəs
+Wiktionary IPA exact key     æb.ə.kəs
+canonical phoneme sequence   æ b ə k ə s  (same)
+```
+
+Before changing the production key, rerun the enhanced diagnostic:
+
+```powershell
+npm run en:pronunciation:fallback:diagnose
+```
+
+It now also reports:
+
+- boundary-insensitive stressed-tail agreement;
+- boundary-insensitive stressed-tail + rhyme-region stress agreement;
+- full canonical phoneme-sequence agreement;
+- the share of current exact-key mismatches explained only by syllable-boundary placement.
+
+No production rhyme key changes are accepted yet.
+
+## Arbitrary wordlist coverage audit
+
+A new local diagnostic checks external stress-test wordlists directly against the actual English SQLite plus the 311k coverage sidecar:
+
+```powershell
+npm run en:coverage:wordlist -- --input <path-to-wordlist>
+```
+
+Accepted input formats:
+
+```text
+rarity<TAB>word
+rarity word
+word
+```
+
+Outputs:
+
+```text
+data/local/en-wordlist-coverage-v1-report.json
+data/local/en-wordlist-coverage-v1.tsv
+```
+
+For each word it records:
+
+- present in English SQLite;
+- present in the default selection;
+- pronunciation inventory and analyzed en-US/unprofiled/GB counts;
+- wordfreq coverage-sidecar presence/status;
+- exclusion reasons and recovery evidence;
+- coverage summaries per rarity tier when a rarity column is present.
+
+This is specifically intended for the owner's 1,000-word rarity-stratified stress list. The list is an engineering coverage probe, not lexical gold.

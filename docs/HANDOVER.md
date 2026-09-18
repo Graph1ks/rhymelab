@@ -392,3 +392,34 @@ npm run en:pronunciation:fallback:diagnose
 ```
 
 Use their exact counts/agreement rates to define publish v4. Do not broad-G2P the tail.
+
+
+### 12B6 exact rescue + fallback owner results
+
+The cheap owner diagnostics are now complete:
+
+```text
+Tier A immediate candidates                  4,204
+Tier A + Tier B candidates                 27,435
+strict morphology                          12,406
+analyzed unprofiled IPA                    10,662
+proper-name review                         26,264
+```
+
+Current locale fallback is not safe to relabel as en-US:
+
+```text
+unprofiled vs en-US exact tail              62.86%
+en-GB vs en-US exact tail                   48.64%
+```
+
+But the diagnostic uncovered a likely exact-key/syllabification artifact. Identical canonical phone sequences can have different exact keys solely because explicit IPA and deterministic CMUdict syllabification place an intervocalic consonant on different sides of a boundary. The enhanced fallback diagnostic now measures a boundary-insensitive rhyme-tail control before any production phonology change.
+
+The owner's 1,000-word rarity-stratified stress list should be evaluated with:
+
+```powershell
+npm run en:coverage:wordlist -- --input <path-to-list>
+npm run en:pronunciation:fallback:diagnose
+```
+
+Do not implement publish v4 until both outputs are reviewed. The wordlist audit distinguishes DB presence, default selection, pronunciation availability, wordfreq-sidecar status and exclusion/recovery reason per word and per rarity tier.

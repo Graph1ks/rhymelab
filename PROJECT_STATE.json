@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B6_RESCUE_POLICY_EXACT_COUNTS_AND_LOCALE_FALLBACK_DIAGNOSTIC",
+    "status": "ACTIVE_12B6_WORDLIST_COVERAGE_AND_BOUNDARY_INSENSITIVE_RHYME_KEY_DIAGNOSTIC",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B6_RUN_CHEAP_RESCUE_AND_PRONUNCIATION_FALLBACK_DIAGNOSTICS_THEN_DEFINE_PUBLISH_V4",
+    "next_gate": "PHASE_12B6_REVIEW_1000_WORD_DB_SELECTION_COVERAGE_AND_BOUNDARY_INSENSITIVE_FALLBACK_METRICS_BEFORE_PUBLISH_V4",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1762,6 +1762,64 @@
         ],
         "relabels_fallback_as_en_us": false,
         "mutates_runtime": false
+      },
+      "rescue_policy_owner_result": {
+        "status": "COMPLETE",
+        "rows_read": 311685,
+        "malformed_lines": 0,
+        "tier_a_immediate_candidates": 4204,
+        "tier_a_plus_tier_b_candidates": 27435,
+        "classes": {
+          "exact_cmudict_possessive": 4036,
+          "punctuation_only_alias": 168,
+          "strict_source_backed_inflection": 12406,
+          "analyzed_unprofiled_ipa": 10662,
+          "analyzed_en_gb_plus_unprofiled": 163,
+          "analyzed_en_gb_only": 1889,
+          "esdb_current_plus_exact_cmudict": 918,
+          "exact_cmudict_without_lexical_guard": 8764,
+          "deterministic_initialism_composition_review": 6077,
+          "proper_name_channel_review": 26264,
+          "unresolved_pronunciation": 2107
+        }
+      },
+      "pronunciation_fallback_owner_result": {
+        "status": "COMPLETE_PRODUCTION_PROMOTION_BLOCKED_PENDING_BOUNDARY_CONTROL",
+        "publish_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
+        "unprofiled_vs_en_us": {
+          "surfaces": 21306,
+          "exact_tail_match_pct": 62.86,
+          "final_tail_match_pct": 82.79,
+          "vowel_family_match_pct": 69.35,
+          "syllable_count_match_pct": 94.92,
+          "stress_pattern_match_pct": 82.36,
+          "primary_stress_match_pct": 96.98
+        },
+        "en_gb_vs_en_us": {
+          "surfaces": 27648,
+          "exact_tail_match_pct": 48.64,
+          "final_tail_match_pct": 74.62,
+          "vowel_family_match_pct": 58.11,
+          "syllable_count_match_pct": 95.31,
+          "stress_pattern_match_pct": 87.67,
+          "primary_stress_match_pct": 98.08
+        },
+        "discovered_issue": "production exactTailKey is sensitive to source/analyzer syllable-boundary placement even for identical canonical phone sequences",
+        "enhanced_diagnostic_command": "npm run en:pronunciation:fallback:diagnose"
+      },
+      "arbitrary_wordlist_audit": {
+        "status": "IMPLEMENTED_OWNER_1000_WORD_RUN_PENDING",
+        "command": "npm run en:coverage:wordlist -- --input <path-to-wordlist>",
+        "report": "data/local/en-wordlist-coverage-v1-report.json",
+        "tsv": "data/local/en-wordlist-coverage-v1.tsv",
+        "dimensions": [
+          "database_presence",
+          "default_selection",
+          "pronunciation_inventory",
+          "coverage_sidecar_status",
+          "exclusion_reason",
+          "rarity_tier"
+        ]
       }
     },
     "unknown_query_pronunciation_fallback": {
