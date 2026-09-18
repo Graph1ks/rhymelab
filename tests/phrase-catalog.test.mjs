@@ -7,8 +7,11 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import {
+  computePhraseCatalogFingerprint,
   extractWiktextractPhrase,
   normalizePhraseText,
+  registerPhraseSnapshot,
+  registerPhraseSource,
   tokenizePhrase,
 } from '../scripts/phrase-catalog-core.mjs';
 
@@ -132,7 +135,7 @@ test('Phase 11B1 builder creates deterministic provenance catalog and Leipzig co
     assert.equal(report.stats.usageEvidenceRows, 9);
     assert.equal(report.leipzig.length, 3);
 
-    const db = new DatabaseSync(dbPath, { readOnly: true });
+    const db = new DatabaseSync(dbPath);
     try {
       const meta = Object.fromEntries(
         db.prepare('SELECT key,value FROM meta').all().map((row) => [row.key, row.value]),
@@ -200,6 +203,33 @@ test('Phase 11B1 builder creates deterministic provenance catalog and Leipzig co
       `).get();
       assert.equal(unresolved.lexical_state, 'unresolved');
       assert.equal(Number(unresolved.c), 20);
+
+      const frozenBeforeRegister = computePhraseCatalogFingerprint(db);
+      registerPhraseSource(db, {
+        source_id: 'fixture-register-only',
+        name: 'Fixture register-only source',
+        role: 'register_context_evidence',
+        homepage_url: null,
+        license_id: 'CC0-1.0',
+        license_url: null,
+        attribution: null,
+        redistribution_policy: 'fixture',
+      });
+      registerPhraseSnapshot(db, {
+        snapshot_id: 'snapshot:fixture-register-only',
+        source_id: 'fixture-register-only',
+        snapshot_label: 'fixture-register-only:dipl',
+        artifact_path: null,
+        artifact_sha256: 'fixture-register-sha',
+        upstream_url: null,
+        evidence_year: 2026,
+        genre: 'register_fixture',
+        country: 'DE',
+        metadata: { layer: 'dipl' },
+      });
+      const frozenAfterRegister = computePhraseCatalogFingerprint(db);
+      assert.equal(frozenAfterRegister, frozenBeforeRegister);
+      assert.equal(frozenAfterRegister, report.catalog_fingerprint);
     } finally {
       db.close();
     }
