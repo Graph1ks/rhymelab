@@ -524,12 +524,8 @@ try {
       runtime_network_dependency: false,
     };
 
-    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-    console.log(JSON.stringify(report, null, 2));
-  } catch (error) {
-    try { entityDb.exec('ROLLBACK'); } catch {}
-    throw error;
-  }
+  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  console.log(JSON.stringify(report, null, 2));
 } finally {
   writerDb.close();
   entityDb.close();
