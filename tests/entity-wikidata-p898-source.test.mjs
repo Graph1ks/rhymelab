@@ -87,10 +87,12 @@ test('P898 language evidence stays generic until a runtime locale policy accepts
 });
 
 test('one-command owner workflow imports P898 evidence without changing DE runtime fingerprint', async () => {
-  const [owner, diagnostic, manifest] = await Promise.all([
+  const [owner, diagnostic, materializer, manifest, packageJson] = await Promise.all([
     readFile('scripts/run-entity-pronunciation-owner.mjs', 'utf8'),
     readFile('scripts/diagnose-entity-pronunciation-coverage.mjs', 'utf8'),
+    readFile('scripts/materialize-wikidata-p898-pronunciations.mjs', 'utf8'),
     readFile('sources/entity/wikidata-p898-pronunciation-v1.json', 'utf8').then(JSON.parse),
+    readFile('package.json', 'utf8').then(JSON.parse),
   ]);
 
   assert.equal(manifest.property, 'P898');
@@ -102,4 +104,16 @@ test('one-command owner workflow imports P898 evidence without changing DE runti
   assert.match(owner, /changed the accepted DE runtime fingerprint/);
   assert.match(diagnostic, /source_attested_unprofiled_not_runtime_eligible/);
   assert.match(diagnostic, /wikidata_p898_source_evidence/);
+  assert.match(diagnostic, /projected_preferred_name_ready_pct_if_accepted/);
+  assert.match(materializer, /runtime_eligible_rows: 0/);
+  assert.match(materializer, /source_attested_unprofiled/);
+  assert.match(materializer, /Refusing to replace/);
+  assert.equal(
+    packageJson.scripts['entity:pronunciation:wikidata:p898:fetch'],
+    'node --no-warnings scripts/fetch-qlever-entity-pronunciations.mjs',
+  );
+  assert.equal(
+    packageJson.scripts['entity:pronunciation:wikidata:p898'],
+    'node --no-warnings scripts/materialize-wikidata-p898-pronunciations.mjs',
+  );
 });
