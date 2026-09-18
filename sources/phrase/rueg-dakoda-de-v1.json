@@ -13,26 +13,28 @@
   "collection_period": "2018-2023",
   "language": "deu",
   "ingestion_policy": {
-    "policy_id": "rueg-dakoda-dual-layer-register-v1",
+    "policy_id": "rueg-dakoda-exb-source-surface-register-v2",
     "primary_layers": [
-      "dipl",
-      "norm"
+      "source_surface",
+      "norm_if_present"
     ],
-    "purpose": "Detailed local register evidence and browseable diplomatic/normalized utterance pairs.",
+    "purpose": "Detailed local register evidence from the attested DAKODA EXB text surface, with a separate normalized layer only when an upstream export actually provides one.",
     "candidate_generation": false,
     "general_commonness": false,
     "preserve_code_switching": true,
-    "matching": "Exact normalized lexical-token sequence against existing modern-eligible RhymeLab phrases, independently on dipl and norm layers.",
+    "matching": "Exact normalized lexical-token sequence against existing modern-eligible RhymeLab phrases on each actually available text layer.",
     "unit_preference": [
       "cu",
       "message",
       "line",
+      "spacy_mixtral_th1_merged",
       "document_fallback"
     ],
     "notes": [
-      "dipl preserves participant/transcriber-near surface forms and is required for colloquial/reduction evidence.",
-      "norm is retained in parallel as the standard-form/search bridge; it must not overwrite dipl.",
-      "Per-document metadata such as formality, mode and speaker-age-group are preserved when available.",
+      "The real DAKODA RUEG EXB archives use category=text for the attested participant/source surface and spacy_mixtral_th1_merged empty span events for clause/sentence boundaries.",
+      "RhymeLab stores that category=text surface in the existing dipl_text compatibility slot; this is a storage-field mapping, not a claim that DAKODA labels the tier dipl.",
+      "The supplied DAKODA EXB archives do not contain a separate norm tier. RhymeLab leaves norm_text empty rather than duplicating or inventing normalization.",
+      "Nested DAKODA JSON metadata supplies document formality, mode, speaker age/id, document language and creation date where available.",
       "RUEG is a register sensor, not a population-representative German frequency corpus."
     ]
   },
