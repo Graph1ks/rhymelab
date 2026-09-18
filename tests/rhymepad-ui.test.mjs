@@ -31,3 +31,15 @@ test('WRITE exposes compact presets while RHYME exposes deep scope and relation 
   assert.match(padApp, /compactResults\(data\)/);
   assert.match(padApp, /deepResults\(data\)/);
 });
+
+
+test('RhymePad exposes Entity scope, categories and IPA-aware result rendering', () => {
+  assert.match(padHtml, />Entities only<\/option>/);
+  assert.match(padHtml, /id="entityCategory"/);
+  assert.match(padHtml, /value="person\.rapper">Rapper<\/option>/);
+  assert.match(padHtml, /value="person\.musician">Musicians<\/option>/);
+  assert.match(padApp, /entity_category:/);
+  assert.match(padApp, /row\.resultKind==='entity'/);
+  assert.match(padApp, /entity-category-chip/);
+  assert.match(padApp, /entity-ipa/);
+});
