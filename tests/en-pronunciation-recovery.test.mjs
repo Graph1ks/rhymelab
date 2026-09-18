@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { analyzeEnglishPronunciation } from '../scripts/english-phonology.mjs';
 import {
   composeEnglishInflectionIpa,
+  composeEnglishInflectionIpaVariants,
   englishPossessiveBase,
   isStrictEnglishInflectionRecovery,
   punctuationOnlyAliasTargets,
@@ -57,12 +58,18 @@ test('English inflection composer applies deterministic plural allomorphs',()=>{
   assert.equal(compose('K AE1 T','s_suffix').analysis.canonicalPhonemes,'k æ t s');
   assert.equal(compose('D AO1 G','s_suffix').analysis.canonicalPhonemes,'d ɔ g z');
   assert.equal(compose('B AH1 S','es_suffix').analysis.canonicalPhonemes,'b ʌ s ɪ z');
+  const base=analyzeEnglishPronunciation('B AH1 S',{notation:'arpabet',locale:'en-US',source:'cmudict'});
+  const variants=composeEnglishInflectionIpaVariants(base,'es_suffix');
+  assert.deepEqual(variants.map((item)=>item.suffix_ipa),['ɪz','əz']);
 });
 
 test('English inflection composer applies deterministic past allomorphs',()=>{
   assert.equal(compose('W AO1 K','ed_suffix').analysis.canonicalPhonemes,'w ɔ k t');
   assert.equal(compose('P L EY1','ed_suffix').analysis.canonicalPhonemes,'p l eɪ d');
   assert.equal(compose('W AA1 N T','ed_suffix').analysis.canonicalPhonemes,'w ɑ n t ɪ d');
+  const base=analyzeEnglishPronunciation('W AA1 N T',{notation:'arpabet',locale:'en-US',source:'cmudict'});
+  const variants=composeEnglishInflectionIpaVariants(base,'ed_suffix');
+  assert.deepEqual(variants.map((item)=>item.suffix_ipa),['ɪd','əd']);
 });
 
 test('English inflection composer appends unstressed progressive ing',()=>{
