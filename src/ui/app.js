@@ -8,11 +8,11 @@ const RHYME_TYPES = [...PRIMARY_RHYME_TYPES, ...SOUND_RELATION_TYPES];
 const I18N = {
   en: {
     title:'RhymeLab Local',eyebrow:'GERMAN RHYME ENGINE',headline:'Find rhymes by sound, not spelling.',
-    intro:'Local phonetic search across German dictionary data, usage frequency and a curated modern vocabulary layer.',
-    noteLocal:'Runs locally',notePhonetic:'IPA-based',noteUsage:'Usage-ranked',browse:'Browse results',rhymeType:'Rhyme / sound relation',
+    intro:'One local phonetic workspace for single-word rhymes and cross-word Phrase/Mosaic matches.',
+    noteLocal:'Runs locally',notePhonetic:'IPA-based',noteUsage:'Deterministic',browse:'Browse results',resultScope:'Results',scopeAll:'Words + phrases',scopeWords:'Words',scopePhrases:'Phrases / Mosaic',words:'Words',phrases:'Phrases / Mosaic',word:'Word',phrase:'Phrase',rhymeType:'Rhyme / sound relation',
     syllables:'Syllables',sort:'Sort',pronunciation:'Pronunciation',vocabulary:'Vocabulary',all:'All',same:'Same count',plusMinus:'±1 syllable',
     recommended:'Recommended',mostCommon:'Most common',closest:'Closest rhyme',alphabetical:'A–Z',standard:'Standard',allVariants:'All variants',
-    searching:'Searching…',includeHistorical:'Include historical / obsolete',scrollMore:'Scroll for more results…',searchPlaceholder:'Search a word…',search:'Search',
+    searching:'Searching…',includeHistorical:'Include historical / obsolete words',scrollMore:'',searchPlaceholder:'Search a word or phrase…',search:'Search',
     noResults:'No matching rhymes for these filters.',result:'result',results:'results',syllableCount:'Syllables',primaryStress:'Primary stress',
     partOfSpeech:'Part of speech',lemma:'Lemma',usageRank:'Usage rank',corpusCount:'Corpus count',source:'Source',lexicalTags:'Lexical tags',
     variants:'Pronunciations',standardLabel:'Standard',alternate:'Alternate',unknown:'Unknown',unranked:'No usage rank',dictionary:'Dictionary',
@@ -22,15 +22,15 @@ const I18N = {
     consonanceFit:'Consonant fit',onsetFit:'Onset fit',relationStrong:'strong',relationPartial:'partial',
     type_multisyllabic_perfect:'Multisyllabic perfect',type_perfect:'Perfect rhyme',type_multisyllabic_slant:'Multisyllabic slant',
     type_family:'Rhyme family',type_slant:'Slant rhyme',type_assonance:'Assonance',type_consonance:'Consonance',type_weak:'No primary rhyme',
-    notFound:'Word not found in the local rhyme database.',
+    notFound:'Word or phrase not found / not fully pronounceable from the local inventories.',englishUnavailable:'English runtime is not installed yet. The unified EN contract is ready, but no accepted English phonology/database exists yet.',bothPartial:'DE+EN selected: German is active; English will join this same Writer UI when its local runtime is installed.',
   },
   de: {
-    title:'RhymeLab Lokal',eyebrow:'DEUTSCHE REIM-ENGINE',headline:'Reime nach Klang, nicht nach Schreibweise.',
-    intro:'Lokale phonetische Suche über deutsche Wörterbuchdaten, Gebrauchshäufigkeit und ein kuratiertes modernes Vokabular.',
-    noteLocal:'Läuft lokal',notePhonetic:'IPA-basiert',noteUsage:'Nach Gebrauch sortiert',browse:'Ergebnisse durchsuchen',rhymeType:'Reim / Klangbeziehung',
+    title:'RhymeLab Lokal',eyebrow:'VEREINHEITLICHTER REIM-WRITER',headline:'Wörter und Wortgruppen nach Klang suchen.',
+    intro:'Eine lokale phonetische Oberfläche für Einzelwort-Reime und wortübergreifende Phrase/Mosaic-Treffer.',
+    noteLocal:'Läuft lokal',notePhonetic:'IPA-basiert',noteUsage:'Deterministisch',browse:'Ergebnisse',resultScope:'Ergebnisse',scopeAll:'Wörter + Wortgruppen',scopeWords:'Wörter',scopePhrases:'Wortgruppen / Mosaic',words:'Wörter',phrases:'Wortgruppen / Mosaic',word:'Wort',phrase:'Wortgruppe',rhymeType:'Reim / Klangbeziehung',
     syllables:'Silben',sort:'Sortierung',pronunciation:'Aussprache',vocabulary:'Wortschatz',all:'Alle',same:'Gleiche Anzahl',plusMinus:'±1 Silbe',
     recommended:'Empfohlen',mostCommon:'Am häufigsten',closest:'Ähnlichster Reim',alphabetical:'A–Z',standard:'Standard',allVariants:'Alle Varianten',
-    searching:'Suche…',includeHistorical:'Historische / veraltete einbeziehen',scrollMore:'Weiter scrollen für mehr Ergebnisse…',searchPlaceholder:'Wort suchen…',search:'Suchen',
+    searching:'Suche…',includeHistorical:'Historische / veraltete Wörter einbeziehen',scrollMore:'',searchPlaceholder:'Wort oder Wortgruppe suchen…',search:'Suchen',
     noResults:'Keine passenden Reime für diese Filter.',result:'Ergebnis',results:'Ergebnisse',syllableCount:'Silben',primaryStress:'Hauptbetonung',
     partOfSpeech:'Wortart',lemma:'Lemma',usageRank:'Gebrauchsrang',corpusCount:'Korpus-Treffer',source:'Quelle',lexicalTags:'Lexikalische Tags',
     variants:'Aussprachen',standardLabel:'Standard',alternate:'Variante',unknown:'Unbekannt',unranked:'Kein Gebrauchsrang',dictionary:'Wörterbuch',
@@ -40,7 +40,7 @@ const I18N = {
     syllableFit:'Silben-Übereinstimmung',consonanceFit:'Konsonanten-Übereinstimmung',onsetFit:'Anlaut-Übereinstimmung',relationStrong:'stark',relationPartial:'partiell',
     type_multisyllabic_perfect:'Mehrsilbiger Vollreim',type_perfect:'Vollreim',type_multisyllabic_slant:'Mehrsilbiger Slant-Reim',
     type_family:'Reimfamilie',type_slant:'Slant-Reim',type_assonance:'Assonanz',type_consonance:'Konsonanz',type_weak:'Kein Primärreim',
-    notFound:'Wort nicht in der lokalen Reimdatenbank gefunden.',
+    notFound:'Wort oder Wortgruppe nicht gefunden bzw. nicht vollständig aus den lokalen Aussprachebeständen auflösbar.',englishUnavailable:'Die englische Runtime ist noch nicht installiert. Der gemeinsame EN-Contract ist vorbereitet, aber es gibt noch keine akzeptierte englische Phonologie/Datenbank.',bothPartial:'DE+EN ist gewählt: Deutsch ist aktiv; Englisch wird in dieselbe Writer-UI eingehängt, sobald die lokale EN-Runtime vorhanden ist.',
   },
 };
 
@@ -54,7 +54,7 @@ const POS_LABELS = {
 };
 const ENTITY_LABELS={en:{platform:'Platform',company:'Company',product:'Product',internet:'Internet term',entity:'Entity'},de:{platform:'Plattform',company:'Unternehmen',product:'Produkt',internet:'Internetbegriff',entity:'Entität'}};
 
-const state={lang:localStorage.getItem('rhymelab.language')==='de'?'de':'en',data:null,visibleCount:30,pageSize:30,query:'',scrollObserver:null,wordCache:new Map(),detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null};
+const savedBasis=localStorage.getItem('rhymelab.searchBasis');const state={lang:localStorage.getItem('rhymelab.language')==='de'?'de':'en',basis:['de','en','both'].includes(savedBasis)?savedBasis:'de',capabilities:null,data:null,visibleCount:500,pageSize:500,query:'',scrollObserver:null,wordCache:new Map(),detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null};
 const esc=(value)=>String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const t=(key)=>I18N[state.lang][key]??I18N.en[key]??key;
 const number=(value)=>Number(value).toLocaleString(state.lang==='de'?'de-DE':'en-US');
@@ -74,7 +74,7 @@ function rowTypes(row){const types=new Set();if(row.primaryType&&PRIMARY_RHYME_T
 function matchesType(row,type){return rowTypes(row).includes(type);}
 function displayScore(row,type){return SOUND_RELATION_TYPES.includes(type)?Number(relationFor(row,type)?.score||0):Number(row.score||0);}
 
-function applyLanguage(){document.documentElement.lang=state.lang;document.title=t('title');$('#searchInput').placeholder=t('searchPlaceholder');$('#searchInput').setAttribute('aria-label',t('searchPlaceholder'));$('#searchButton').textContent=t('search');$$('[data-i18n]').forEach((node)=>{node.textContent=t(node.dataset.i18n);});$$('[data-i18n-option]').forEach((node)=>{node.textContent=t(node.dataset.i18nOption);});$$('.lang-option').forEach((button)=>button.classList.toggle('active',button.dataset.lang===state.lang));if(state.data)render();}
+function applyLanguage(){document.documentElement.lang=state.lang;document.title=t('title');$('#searchInput').placeholder=t('searchPlaceholder');$('#searchInput').setAttribute('aria-label',t('searchPlaceholder'));$('#searchButton').textContent=t('search');$('[data-i18n]').forEach((node)=>{node.textContent=t(node.dataset.i18n);});$('[data-i18n-option]').forEach((node)=>{node.textContent=t(node.dataset.i18nOption);});$('.basis-option').forEach((button)=>button.classList.toggle('active',button.dataset.basis===state.basis));if(state.data)render();}
 function compareRecommended(a,b){if(Number.isFinite(a.writerRank)&&Number.isFinite(b.writerRank))return a.writerRank-b.writerRank;return a.rhymeTier-b.rhymeTier||a.syllableDistance-b.syllableDistance||(a.usageRank==null)-(b.usageRank==null)||(a.usageRank??Number.MAX_SAFE_INTEGER)-(b.usageRank??Number.MAX_SAFE_INTEGER)||b.score-a.score||a.word.localeCompare(b.word,state.data?.language==='en'?'en':'de');}
 function compareForDisplayType(a,b,type){if(SOUND_RELATION_TYPES.includes(type)){const ar=relationFor(a,type),br=relationFor(b,type);return(Number(ar?.strength!=='strong')-Number(br?.strength!=='strong'))||displayScore(b,type)-displayScore(a,type)||a.syllableDistance-b.syllableDistance||(a.usageRank==null)-(b.usageRank==null)||(a.usageRank??Number.MAX_SAFE_INTEGER)-(b.usageRank??Number.MAX_SAFE_INTEGER)||b.score-a.score;}return compareRecommended(a,b);}
 function filteredResults(){if(!state.data)return[];const querySyllables=Number(state.data.query?.syllableCount||0),type=$('#typeFilter').value,syllable=$('#syllableFilter').value;let rows=state.data.results.filter((row)=>{if(type!=='all'&&!matchesType(row,type))return false;const distance=Math.abs(Number(row.syllableCount||0)-querySyllables);if(syllable==='same'&&distance!==0)return false;if(syllable==='near'&&distance>1)return false;return true;});const mode=$('#sortMode').value;rows=[...rows].sort((a,b)=>{if(type!=='all'&&mode==='recommended')return compareForDisplayType(a,b,type);if(mode==='common')return(a.usageRank==null)-(b.usageRank==null)||(a.usageRank??Number.MAX_SAFE_INTEGER)-(b.usageRank??Number.MAX_SAFE_INTEGER)||a.rhymeTier-b.rhymeTier||a.syllableDistance-b.syllableDistance||b.score-a.score;if(mode==='closest')return(type!=='all'?displayScore(b,type)-displayScore(a,type):b.score-a.score)||a.rhymeTier-b.rhymeTier||a.syllableDistance-b.syllableDistance||(a.usageRank==null)-(b.usageRank==null)||(a.usageRank??Number.MAX_SAFE_INTEGER)-(b.usageRank??Number.MAX_SAFE_INTEGER);if(mode==='alpha')return a.word.localeCompare(b.word,state.data?.language==='en'?'en':'de',{sensitivity:'base'});return compareRecommended(a,b);});return rows;}
