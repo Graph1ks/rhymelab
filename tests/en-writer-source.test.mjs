@@ -31,7 +31,9 @@ test('Wiktionary history and pronunciation tags stay source-driven', () => {
   });
   assert.deepEqual(classifyWiktionaryIpaLocale({ ipa: '/tɛst/', tags: ['General-American'] }).us, true);
   assert.deepEqual(classifyWiktionaryIpaLocale({ ipa: '/tɛst/', tags: ['Received-Pronunciation'] }).uk, true);
-  assert.deepEqual(classifyWiktionaryIpaLocale({ ipa: '/tɛst/', tags: ['phonemic'] }).unqualified, true);
+  const tagged=classifyWiktionaryIpaLocale({ ipa: '/tɛst/', tags: ['phonemic'] });
+  assert.deepEqual(tagged.unqualified, false);
+  assert.deepEqual(tagged.tagged_unmapped, true);
 });
 
 
