@@ -221,3 +221,65 @@ npm run en:pronunciation:inflection:diagnose
 ```
 
 The v2 report must be reviewed before any derived inflection pronunciation becomes default-profile eligible.
+
+## Publish-v4 owner full build result — HEALTHY, FREEZE PENDING REPEATABILITY
+
+The first full owner build with bounded strict morphology enabled produced:
+
+```text
+policy                               en-source-backed-publish-v4-candidate
+semantic fingerprint                 b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+
+published surfaces                   224,478
+default eligible                     123,533
+analyzed en-US                       188,148
+pronunciation variants               375,321
+analyzed pronunciation variants      339,987
+unresolved pronunciation variants     35,334
+
+punctuation aliases recovered          2,104
+exact-CMUdict possessives recovered     5,127
+strict inflections recovered           69,343
+derived_inflection variants             99,727
+ambiguous inflection surfaces              176
+unresolved inflection bases            278,099
+```
+
+Relative to the accepted v3 coverage baseline:
+
+```text
+published surfaces       +76,574
+default eligible         +47,836
+analyzed en-US           +76,574
+ranked published         +17,506
+ranked default           +15,416
+```
+
+This shape is consistent with the intended bounded recovery policy: the common lexical core is stable, while productive forms are recovered increasingly in lower-frequency bands. The direct-source pronunciation checkpoint does not rise because generated `derived_inflection` rows remain provenance-distinct rather than being reclassified as direct source evidence.
+
+The following safety rules remain unchanged:
+
+- historical-only is excluded from the default profile;
+- explicit proper-name-only is excluded from the default profile;
+- ESDB-invalid variants are excluded from the default profile;
+- tagless/unprofiled IPA is not silently relabeled en-US;
+- morphology remains one-hop and may not derive from another `derived_inflection`;
+- ambiguous and unresolved bases are rejected;
+- broad G2P remains disabled.
+
+This result advances the candidate to the repeatability gate; it does **not** freeze v4 by itself.
+
+Required next command:
+
+```powershell
+npm run en:publish:repeatability
+```
+
+Both unchanged-source runs must reproduce:
+
+```text
+b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+```
+
+After repeatability passes, rebuild and verify the separate English SQLite. Do not enable product EN or start English ranking before the rebuilt DB/runtime gate is reviewed.
+
