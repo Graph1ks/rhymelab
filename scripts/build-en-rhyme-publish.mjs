@@ -298,6 +298,10 @@ function analyzedEnUsPronunciations(record){
     .filter((item)=>item.analysis_status==='ok'&&item.analysis&&item.locales instanceof Set&&item.locales.has('en-US'));
 }
 
+function sourceBackedEnUsPronunciations(record){
+  return analyzedEnUsPronunciations(record).filter((item)=>item.source!=='derived_inflection');
+}
+
 for(const record of records.values()) addCmudict(record);
 
 for(const normalized of [...pendingPunctuationAliases.keys()].sort((a,b)=>a.localeCompare(b,'en'))){
@@ -359,7 +363,7 @@ for(const normalized of [...pendingInflections.keys()].sort((a,b)=>a.localeCompa
     ...new Map(
       evidences
         .flatMap((evidence)=>strictInflectionPairs(evidence))
-        .filter(({lemma})=>analyzedEnUsPronunciations(records.get(lemma)).length>0)
+        .filter(({lemma})=>sourceBackedEnUsPronunciations(records.get(lemma)).length>0)
         .map((item)=>[`${item.lemma}\u0000${item.shape}`,item])
     ).values()
   ].sort((a,b)=>a.lemma.localeCompare(b.lemma,'en')||a.shape.localeCompare(b.shape,'en'));
@@ -375,7 +379,7 @@ for(const normalized of [...pendingInflections.keys()].sort((a,b)=>a.localeCompa
 
   const [{lemma,shape}]=candidatePairs;
   const baseRecord=records.get(lemma);
-  const basePronunciations=analyzedEnUsPronunciations(baseRecord);
+  const basePronunciations=sourceBackedEnUsPronunciations(baseRecord);
   if(!basePronunciations.length){
     unresolvedInflectionBaseSurfaces+=1;
     continue;
