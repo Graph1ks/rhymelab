@@ -1188,16 +1188,15 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "run_npm_en_publish_repeatability_on_owner_machine_for_publish_v4",
-    "require_repeatability_fingerprint_b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9_on_both_runs",
-    "after_repeatability_pass_run_npm_en_db_rebuild",
-    "verify_english_sqlite_counts_source_publish_fingerprint_and_multi_channel_retrieval_equivalence",
-    "record_new_english_db_semantic_fingerprint_and_repeatability_runtime_evidence",
-    "only_then_start_english_ranking_quality_plus_diversity_calibration"
+    "run_npm_en_db_repeatability_on_owner_machine_for_publish_v4",
+    "require_two_identical_english_db_semantic_fingerprints_counts_and_database_bytes",
+    "require_zero_general_and_multi_result_retrieval_equivalence_mismatches_for_exact_vowel_family_coda_and_coda_channels",
+    "review_new_v4_english_db_counts_size_fingerprint_and_default_profile_pronunciation_scale",
+    "after_db_acceptance_start_english_retrieval_runtime_and_ranking_quality_plus_diversity_calibration"
   ],
-  "next_milestone": "PHASE_12B7_PUBLISH_V4_REPEATABILITY_THEN_ENGLISH_DB_REBUILD_VERIFY",
+  "next_milestone": "PHASE_12B7_ENGLISH_DB_V4_REPEATABILITY_AND_RETRIEVAL_EQUIVALENCE_GATE",
   "phase_12_english": {
-    "status": "ACTIVE_12B7_PUBLISH_V4_REPEATABILITY_GATE",
+    "status": "ACTIVE_12B7_ENGLISH_DB_V4_REPEATABILITY_GATE",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1278,7 +1277,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B7_RUN_PUBLISH_V4_REPEATABILITY_THEN_REBUILD_VERIFY_EN_DB",
+    "next_gate": "PHASE_12B7_RUN_EN_DB_REPEATABILITY_AND_REVIEW_MULTI_RESULT_RETRIEVAL_EQUIVALENCE",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1383,7 +1382,7 @@
       }
     },
     "publish_layer_v1": {
-      "status": "PUBLISH_V4_OWNER_FULL_BUILD_COVERAGE_REVIEW_PASS_REPEATABILITY_PENDING",
+      "status": "PUBLISH_V4_ACCEPTED_REPEATABLE_FOR_DB_MATERIALIZATION",
       "contract": "docs/ENGLISH_PUBLISH_V1.md",
       "schema": "rhymelab-en-publish-v1",
       "policy": "en-source-backed-publish-v4-candidate",
@@ -1418,7 +1417,7 @@
       "english_runtime_materialized": false,
       "product_en_enabled": false,
       "owner_full_build": {
-        "status": "PASS_ARTIFACT_REVIEW_REPEATABILITY_PENDING",
+        "status": "PASS_REPEATABLE_ACCEPTED_FOR_DB_MATERIALIZATION",
         "policy": "en-source-backed-publish-v4-candidate",
         "published_surfaces": 224478,
         "default_eligible_surfaces": 123533,
@@ -1437,15 +1436,20 @@
         "owner_manifest_generated_at": "2026-09-18T20:53:47.063Z",
         "verify_command": "npm run en:publish:rebuild",
         "verify_stdout_attached": false,
-        "interpretation": "full v4 manifest and coverage A/B are internally coherent; unchanged-source repeatability remains required before freeze"
+        "interpretation": "full v4 manifest and coverage A/B are internally coherent and unchanged-source repeatability passed; snapshot is accepted as the source for the next English DB materialization gate"
       },
       "repeatability": {
         "required": true,
         "command": "npm run en:publish:repeatability",
         "report": "data/local/en-publish-repeatability-v1-report.json",
-        "status": "PENDING_FOR_PUBLISH_V4",
-        "expected_fingerprint": "b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
-        "acceptance": "both unchanged-source runs must equal the expected v4 fingerprint"
+        "status": "PASS",
+        "first_fingerprint": "b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
+        "second_fingerprint": "b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
+        "fingerprints_equal": true,
+        "published_surfaces_before": 224478,
+        "published_surfaces_after": 224478,
+        "default_eligible_before": 123533,
+        "default_eligible_after": 123533
       },
       "previous_accepted_owner_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
       "candidate_history_fix_owner_build_pending": false,
@@ -1478,7 +1482,7 @@
         "g2p": false
       },
       "regular_inflection_composition": {
-        "status": "OWNER_FULL_BUILD_RESULT_AVAILABLE_REPEATABILITY_PENDING",
+        "status": "OWNER_FULL_BUILD_REPEATABILITY_ACCEPTED",
         "command": "npm run en:pronunciation:inflection:diagnose",
         "report": "data/local/en-inflection-composition-diagnostic-v2-report.json",
         "shapes": [
@@ -1596,10 +1600,11 @@
           "ambiguous_inflection_surfaces": 176,
           "unresolved_inflection_base_surfaces": 278099
         }
-      }
+      },
+      "publish_snapshot_frozen": true
     },
     "writer_db_v1": {
-      "status": "PUBLISH_V4_REPEATABILITY_REQUIRED_BEFORE_EN_DB_REBUILD",
+      "status": "V4_SOURCE_ACCEPTED_OWNER_DB_REPEATABILITY_PENDING",
       "contract": "docs/ENGLISH_WRITER_DB_V1.md",
       "schema": "rhymelab-en-writer-db-v1-candidate",
       "database": "data/local/rhymelab-en-v1.sqlite",
@@ -1674,7 +1679,27 @@
         "retrieval_equivalence_mismatches": 0,
         "verify_pass": true
       },
-      "pending_owner_action": "after publish-v4 repeatability PASS run npm run en:db:rebuild"
+      "pending_owner_action": "run npm run en:db:repeatability after pulling the merged DB-gate PR; upload data/local/en-writer-db-v1-report.json and data/local/en-writer-db-repeatability-v1-report.json",
+      "repeatability_command": "npm run en:db:repeatability",
+      "repeatability_report": "data/local/en-writer-db-repeatability-v1-report.json",
+      "repeatability_status": "IMPLEMENTED_OWNER_RUN_PENDING",
+      "verifier_multi_result_equivalence": "IMPLEMENTED_OWNER_RUN_PENDING",
+      "verifier_multi_result_channels": [
+        "exact",
+        "vowel",
+        "family_coda",
+        "coda"
+      ],
+      "acceptance_requires": [
+        "two_identical_semantic_fingerprints",
+        "identical_forms_default_eligible_pronunciation_counts",
+        "identical_database_bytes",
+        "source_publish_fingerprint_matches_b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
+        "zero_general_retrieval_equivalence_mismatches",
+        "zero_multi_result_retrieval_equivalence_mismatches",
+        "required_indexes_used",
+        "foreign_key_check_clean"
+      ]
     },
     "coverage_audit_v1": {
       "status": "PUBLISH_V4_OWNER_AB_REVIEW_PASS_REPEATABILITY_PENDING",
