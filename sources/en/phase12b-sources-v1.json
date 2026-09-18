@@ -20,7 +20,10 @@
       "snapshot": {
         "enwiktionary_dump_date": "2026-09-02",
         "kaikki_extraction_date": "2026-09-16",
-        "wiktextract_revisions": ["d6fca27", "65e1673"],
+        "wiktextract_revisions": [
+          "d6fca27",
+          "65e1673"
+        ],
         "metadata_markers": [
           "dated 2026-09-02",
           "structured data extracted on 2026-09-16",
@@ -58,7 +61,8 @@
         "This intentionally reuses the exact CMUdict pin already recorded for the Phase 12A entity pronunciation probe.",
         "ARPAbet is pronunciation evidence and must not be relabeled as IPA.",
         "Phase 12B2 uses this source for exact normalized-surface coverage only; English phone normalization belongs to 12B3."
-      ]
+      ],
+      "commit_hash_algorithm": "SHA-1"
     },
     {
       "source_id": "esdb-scowl-v2-20260624",
@@ -79,7 +83,8 @@
         "The pinned v2 commit records the current variant-level semantics: @=archaic (7), -=uncommon (8), x=invalid (9).",
         "12B2 parses the source master directly for independent overlap/dialect/variant diagnostics and does not treat it as pronunciation or frequency truth.",
         "The full ESDB combine/database materialization remains a later publish-layer concern; this precombine diagnostic scope is reported explicitly rather than silently treated as a final SCOWL export."
-      ]
+      ],
+      "commit_hash_algorithm": "SHA-1"
     },
     {
       "source_id": "wordfreq-en-3.2",
@@ -100,7 +105,8 @@
         "wordfreq is ordering/commonness evidence, never lexical truth.",
         "The source data is stale for some modern vocabulary; Phase 12B acceptance must benchmark songwriting/rap modernity separately.",
         "RhymeLab decodes the pinned cBpack artifact locally for diagnostics and does not add wordfreq as a runtime dependency."
-      ]
+      ],
+      "commit_hash_algorithm": "SHA-1"
     }
   ],
   "diagnostic_contract": {
