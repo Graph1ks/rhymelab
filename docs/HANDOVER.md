@@ -228,16 +228,28 @@ Current milestone: **12A3 Entity catalog + DE pronunciation/phonetic runtime + R
 
 Read `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`.
 
-Implemented owner path after merge:
+Owner baseline pronunciation build is complete:
+
+```text
+716,940 DE names considered
+90,224 runtime-ready / 12.58%
+626,716 unresolved
+90,224 phonetic analyses / 0 rejected
+569,995 rhyme anchors
+1,267,650,560 database bytes
+fingerprint 38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3
+```
+
+Normal owner path after merge is now one command:
 
 ```powershell
 git pull
-npm run entity:runtime:build
+npm run entity:pronunciation:owner
 ```
 
-This first materializes `data/local/rhymelab-entities-v1.sqlite` by independently reproducing the accepted Hybrid-v2 cut, then adds conservative `de-DE` pronunciations and `de-ipa-v2` analyses/anchors.
+The owner runner preserves an existing complete Entity runtime instead of rebuilding it, resumes pronunciation only when incomplete, fetches/verifies a pinned CMUdict artifact, and produces category/tier/preferred-vs-alias coverage plus high-priority unresolved preferred entities.
 
-Pronunciation v1 rules:
+Pronunciation v1 rules remain unchanged:
 
 - preserve eligible existing source-backed `de-DE` pronunciations;
 - otherwise use Writer-v5 exact-token composition only when every name token resolves;
@@ -246,11 +258,19 @@ Pronunciation v1 rules:
 - no guessed IPA;
 - no runtime network.
 
+CMUdict is currently a **source-coverage probe only**. It is pinned to commit `74790861f652b15e4ac49015a90074ad62a27690` / blob `2c0411740cce3e2026a80b90b650d5f6a7258164`. Its North American English evidence must not be relabeled `de-DE` or analyzed as accepted German runtime pronunciation.
+
+Generated local reports:
+
+```text
+data/local/entity-pronunciation-source-report.json
+data/local/entity-pronunciation-coverage-report.json
+data/local/entity-pronunciation-owner-report.json
+```
+
 RhymePad v14 remains the checksum-verified authoritative surface. Its integration layer gains an optional Entity channel with semantic category filters (Rapper, Musician, Actor, Band, Song, Album, Film, Game, Character, brands/companies), multi-category badges and IPA. Missing Entity DB/runtime must not break Word or Phrase/Mosaic behavior.
 
-Owner must inspect `data/local/entity-catalog-v1-report.json` and `data/local/entity-pronunciation-v1-report.json`, then rerun pronunciation materialization and require the same phonetic runtime fingerprint before acceptance.
-
-No QLever fetch, entity restage or QRank restage is required.
+Next decision: use the measured category/tier/preferred-name gaps and CMUdict recovery ceiling to design source-backed enrichment. Repeatability of the Entity runtime fingerprint remains required before acceptance. No QLever fetch, entity restage or QRank restage is required.
 
 
 ```powershell
