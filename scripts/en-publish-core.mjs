@@ -7,7 +7,7 @@ import {
 } from './en-writer-source-core.mjs';
 
 export const EN_PUBLISH_SCHEMA = 'rhymelab-en-publish-v1';
-export const EN_PUBLISH_POLICY = 'en-source-backed-publish-v3-candidate';
+export const EN_PUBLISH_POLICY = 'en-source-backed-publish-v3.1-candidate';
 
 export function isEnglishPublishSurface(value) {
   const normalized = normalizeEnglishSurface(value);
@@ -115,7 +115,11 @@ export function wiktionaryPronunciationEvidence(sound) {
     notation: 'ipa',
     raw: String(sound.ipa).trim(),
     locales,
-    locale_status: locales.length ? 'qualified' : 'source_attested_unprofiled',
+    locale_status: locales.length
+      ? 'qualified'
+      : locale.other_profiled
+        ? 'source_attested_other_profiled'
+        : 'source_attested_unprofiled',
     tags: locale.tags,
   };
 }

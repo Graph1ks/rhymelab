@@ -108,7 +108,15 @@ export function classifyWiktionaryIpaLocale(sound) {
   const us = tags.some((tag) => matchesAny(tag, US_PATTERNS));
   const uk = tags.some((tag) => matchesAny(tag, UK_PATTERNS));
   const hasRegionalQualifier = tags.some((tag) => matchesAny(tag, REGION_PATTERNS));
-  return { us, uk, unqualified: !hasRegionalQualifier, tags };
+  const otherProfiled = hasRegionalQualifier && !us && !uk;
+  return {
+    us,
+    uk,
+    unqualified: !hasRegionalQualifier,
+    has_regional_qualifier: hasRegionalQualifier,
+    other_profiled: otherProfiled,
+    tags,
+  };
 }
 
 export function isExplicitProperNameRecord(record) {

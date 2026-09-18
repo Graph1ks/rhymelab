@@ -852,3 +852,6 @@ Phase 12B6 stratified long-tail review is complete. Current gate is two cheap lo
 
 
 Phase 12B6 exact rescue counts are complete: 4,204 Tier-A immediate candidates and 27,435 Tier-A+B candidates, including 12,406 strict morphology rows. Locale fallback cannot yet be promoted to en-US (62.86% unprofiled exact-tail agreement; 48.64% en-GB), and mismatch review exposed exact-key sensitivity to syllable-boundary placement. Current gate: enhanced boundary-insensitive fallback diagnostic plus the owner's 1,000-word rarity-stratified DB/default-selection audit.
+
+
+Phase 12B6 1,000-word stress probe reviewed. Corrected actual-word coverage is 882/1000 in DB and 676/1000 default; coverage is perfect through rarity 4 and drops materially only in the rare tail. A provenance bug was found in the previous no-locale IPA bucket: other regional/profile-tagged and partial IPA were mixed with true unqualified full-word IPA. Current gate is the segmented fallback rerun before any General-English fallback or publish-v4 eligibility expansion.

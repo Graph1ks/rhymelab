@@ -261,6 +261,7 @@ let unresolvedPronunciationVariants=0;
 let enUsVariants=0;
 let enGbVariants=0;
 let unprofiledVariants=0;
+let otherProfiledVariants=0;
 
 for(const record of records.values()){
   const pronunciations=[...record.pronunciations.values()].map((item)=>{
@@ -269,13 +270,16 @@ for(const record of records.values()){
     if(item.analysis){analyzedVariants+=1;}else{unresolvedPronunciationVariants+=1;}
     if(locales.includes('en-US')) enUsVariants+=1;
     if(locales.includes('en-GB')) enGbVariants+=1;
-    if(!locales.length) unprofiledVariants+=1;
+    if(!locales.length){
+      if(item.locale_status==='source_attested_other_profiled') otherProfiledVariants+=1;
+      else unprofiledVariants+=1;
+    }
     return {
       source:item.source,
       notation:item.notation,
       raw:item.raw,
       locales,
-      locale_status:locales.length?'qualified':'source_attested_unprofiled',
+      locale_status:item.locale_status || (locales.length?'qualified':'source_attested_unprofiled'),
       tags:stringSet(item.tags),
       evidence_count:item.evidence_count,
       analysis_status:item.analysis_status,
@@ -371,7 +375,7 @@ const manifest={
     scorer:'en-phon-v1-candidate',
     default_locale:'en-US',
     preserve_en_gb:true,
-    unqualified_ipa_policy:'preserve_as_source_attested_unprofiled_not_silently_en_US',
+    unqualified_ipa_policy:'preserve_true_unqualified_separately_from_other_regional_not_silently_en_US',
   },
   counts:{
     english_entries_scanned:englishEntries,
@@ -396,6 +400,7 @@ const manifest={
     en_us_variants:enUsVariants,
     en_gb_variants:enGbVariants,
     source_attested_unprofiled_variants:unprofiledVariants,
+    source_attested_other_profiled_variants:otherProfiledVariants,
     cmudict_rows_loaded:cmudictRows,
     esdb_rows_parsed:esdbParsedRows,
     wordfreq_distinct_surfaces:wordfreq.size,

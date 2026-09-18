@@ -35,10 +35,13 @@ test('Wiktionary pronunciation locale stays qualified or explicitly unprofiled',
   const us=wiktionaryPronunciationEvidence({ipa:'/kɑɹ/',tags:['General-American']});
   const uk=wiktionaryPronunciationEvidence({ipa:'/kɑː/',tags:['Received-Pronunciation']});
   const bare=wiktionaryPronunciationEvidence({ipa:'/lʌv/'});
+  const australian=wiktionaryPronunciationEvidence({ipa:'/lɐv/',tags:['Australia']});
   assert.deepEqual(us.locales,['en-US']);
   assert.deepEqual(uk.locales,['en-GB']);
   assert.equal(bare.locale_status,'source_attested_unprofiled');
   assert.deepEqual(bare.locales,[]);
+  assert.equal(australian.locale_status,'source_attested_other_profiled');
+  assert.deepEqual(australian.locales,[]);
 });
 
 test('headword and listed-form evidence preserve lexical relationship instead of inventing lemma truth',()=>{

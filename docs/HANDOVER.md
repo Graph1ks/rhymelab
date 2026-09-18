@@ -423,3 +423,42 @@ npm run en:pronunciation:fallback:diagnose
 ```
 
 Do not implement publish v4 until both outputs are reviewed. The wordlist audit distinguishes DB presence, default selection, pronunciation availability, wordfreq-sidecar status and exclusion/recovery reason per word and per rarity tier.
+
+
+### 12B6 1,000-word stress probe + IPA provenance follow-up
+
+Corrected stress-list totals after removing three prose metadata lines accidentally parsed as words:
+
+```text
+1,000 actual words
+882 in DB
+676 default-selected
+206 published non-default
+118 missing from DB
+756 present in ranked wordfreq sidecar
+859 with any analyzed pronunciation
+682 with analyzed en-US pronunciation
+```
+
+Coverage is perfect through rarity 4, >91% default through rarity 7, then drops sharply at rarity 8-10. The stress list is not lexical gold; its own metadata says it was not selected from an external dictionary/corpus/list.
+
+The 206 non-default words are dominated by pronunciation-profile gating:
+- 189 no-en-US only;
+- 11 historical + no-en-US;
+- 6 historical-only with en-US.
+
+The corrected 118 missing rows split into:
+- 98 absent from both DB and ranked sidecar;
+- 18 no-source-backed-pronunciation;
+- 1 strict morphology candidate;
+- 1 form-of without analyzed lemma.
+
+A separate provenance defect was found in the fallback benchmark: all no-US/GB IPA had been grouped as `unprofiled`, including other regional/profile-tagged IPA and visibly partial IPA such as `/-vʊlf/`.
+
+Current branch work separates:
+- true unqualified full-word IPA;
+- other-profiled IPA;
+- partial IPA;
+- en-GB.
+
+No eligibility expansion is accepted yet. Run the corrected wordlist audit and segmented fallback diagnostic after merge; no Kaikki restream is needed.

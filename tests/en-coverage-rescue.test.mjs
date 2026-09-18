@@ -92,9 +92,9 @@ test('English pronunciation fallback diagnostic compares rhyme-domain preservati
   const out=join(dir,'fallback-report.json');
   execFileSync(process.execPath,[fallbackScript,'--publish',publish,'--out',out],{stdio:'pipe'});
   const report=JSON.parse(await readFile(out,'utf8'));
-  assert.equal(report.comparisons.unprofiled_vs_en_us.surfaces,1);
-  assert.equal(report.comparisons.unprofiled_vs_en_us.exact_tail_match_pct,100);
-  assert.equal(report.comparisons.unprofiled_vs_en_us.boundary_insensitive_tail_match_pct,100);
+  assert.equal(report.comparisons.unprofiled_all_vs_en_us.surfaces,1);
+  assert.equal(report.comparisons.unprofiled_all_vs_en_us.exact_tail_match_pct,100);
+  assert.equal(report.comparisons.unprofiled_all_vs_en_us.boundary_insensitive_tail_match_pct,100);
   assert.equal(report.comparisons.en_gb_vs_en_us.surfaces,1);
   assert.equal(report.comparisons.en_gb_vs_en_us.exact_tail_match_pct,0);
 });
@@ -126,7 +126,7 @@ test('English pronunciation fallback diagnostic detects boundary-only exact-key 
   const out=join(dir,'fallback-report.json');
   execFileSync(process.execPath,[fallbackScript,'--publish',publish,'--out',out],{stdio:'pipe'});
   const report=JSON.parse(await readFile(out,'utf8'));
-  const comparison=report.comparisons.unprofiled_vs_en_us;
+  const comparison=report.comparisons.unprofiled_all_vs_en_us;
   assert.equal(comparison.exact_tail_match_pct,0);
   assert.equal(comparison.boundary_insensitive_tail_match_pct,100);
   assert.equal(comparison.boundary_insensitive_tail_plus_stress_match_pct,100);
@@ -171,13 +171,15 @@ test('English wordlist coverage audit separates DB presence, default selection a
     relation_kinds:[],lemma_candidates:[],morphology_recovery_candidates:[],orthographic_variant_recovery_candidates:[],
     possessive_recovery_candidates:[],published_locale_gap:null,publish_exclusion_reasons:[],
   })+'\n');
-  await writeFile(input,'rarity\tword\n1\tsteady\n9\tyclept\n10\tzarf\n');
+  await writeFile(input,'No web source was used.\nrarity\tword\nTier counts are descriptive metadata.\n1\tsteady\n9\tyclept\n10\tzarf\n');
 
   execFileSync(process.execPath,[
     wordlistScript,'--input',input,'--db',dbPath,'--candidates',candidates,'--out',out,'--tsv-out',tsv,
   ],{stdio:'pipe'});
   const report=JSON.parse(await readFile(out,'utf8'));
   assert.equal(report.rows,3);
+  assert.equal(report.structured_rarity_input,true);
+  assert.equal(report.ignored_metadata_lines,2);
   assert.equal(report.summary.in_database.count,2);
   assert.equal(report.summary.default_selected.count,1);
   assert.equal(report.summary.published_non_default.count,1);
@@ -187,4 +189,39 @@ test('English wordlist coverage audit separates DB presence, default selection a
   assert.equal(report.by_rarity['1'].default_selected.count,1);
   assert.equal(report.by_rarity['9'].published_non_default.count,1);
   assert.equal(report.by_rarity['10'].missing_from_database.count,1);
+});
+
+
+test('English fallback diagnostic separates true unqualified, other-profiled and partial IPA',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'rhymelab-en-provenance-'));
+  const publish=join(dir,'publish');
+  await mkdir(publish,{recursive:true});
+  const shard='shard-000001.jsonl';
+  const analysis={e:'tail',ft:'tail',vf:'V',vk:'v',sc:1,st:'2',ps:1,rt:'t a i l',ph:'t a i l'};
+  const rows=[{
+    surface:'probe',normalized:'probe',
+    pronunciations:[
+      {source:'cmudict',raw:'P R OW1 B',locales:['en-US'],tags:[],analysis_status:'ok',analysis},
+      {source:'wiktionary',raw:'/tail/',locales:[],tags:[],analysis_status:'ok',analysis},
+      {source:'wiktionary',raw:'/teil/',locales:[],tags:['Australia'],analysis_status:'ok',analysis},
+      {source:'wiktionary',raw:'/-tail/',locales:[],tags:[],analysis_status:'ok',analysis},
+    ],
+  }];
+  await writeFile(join(publish,shard),rows.map((row)=>JSON.stringify(row)).join('\n')+'\n');
+  await writeFile(join(publish,'manifest.json'),JSON.stringify({
+    schema:'rhymelab-en-publish-v1',policy:'fixture',semantic_fingerprint:'provenance-fixture',files:[{file:shard}],
+  })+'\n');
+  const out=join(dir,'fallback-report.json');
+  execFileSync(process.execPath,[fallbackScript,'--publish',publish,'--out',out],{stdio:'pipe'});
+  const report=JSON.parse(await readFile(out,'utf8'));
+  assert.equal(report.schema,'rhymelab-en-pronunciation-fallback-diagnostic-v2');
+  assert.equal(report.surface_inventory.analyzed_unqualified_fullword,1);
+  assert.equal(report.surface_inventory.analyzed_other_profiled,1);
+  assert.equal(report.surface_inventory.analyzed_unqualified_partial,1);
+  assert.equal(report.variant_inventory.analyzed_unqualified_fullword,1);
+  assert.equal(report.variant_inventory.analyzed_other_profiled,1);
+  assert.equal(report.variant_inventory.analyzed_unqualified_partial,1);
+  assert.equal(report.comparisons.unqualified_fullword_vs_en_us.surfaces,1);
+  assert.equal(report.comparisons.other_profiled_vs_en_us.surfaces,1);
+  assert.equal(report.comparisons.unqualified_partial_vs_en_us.surfaces,1);
 });

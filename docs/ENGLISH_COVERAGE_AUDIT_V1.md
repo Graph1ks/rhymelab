@@ -513,3 +513,104 @@ For each word it records:
 - coverage summaries per rarity tier when a rarity column is present.
 
 This is specifically intended for the owner's 1,000-word rarity-stratified stress list. The list is an engineering coverage probe, not lexical gold.
+
+
+## 1,000-word rarity stress-list result
+
+The owner ran the external rarity-stratified 1,000-word stress list against the current English SQLite and 311k coverage sidecar.
+
+The first run reported 1,003 rows because three prose metadata lines were parsed as words. Those three rows had no rarity and were all absent. Corrected actual-word totals are therefore:
+
+```text
+actual words                         1,000
+in English SQLite                      882  88.2%
+default-selected                       676  67.6%
+published but non-default              206  20.6%
+missing from English SQLite            118  11.8%
+present in ranked wordfreq sidecar     756  75.6%
+with any analyzed pronunciation        859  85.9%
+with analyzed en-US pronunciation      682  68.2%
+```
+
+Rarity curve:
+
+```text
+rarity   DB presence   default-selected
+1        100.00%       100.00%
+2        100.00%       100.00%
+3        100.00%       100.00%
+4        100.00%       100.00%
+5         98.57%        92.86%
+6         98.89%        95.56%
+7        100.00%        91.82%
+8         96.43%        77.14%
+9         89.47%        53.16%
+10        65.00%        28.85%
+```
+
+The stress list is not lexical gold: its own metadata states that no web/corpus/dictionary/package/external word list was used to select the words. Use it as a coverage-stress probe, not as evidence that every tail item must be admitted.
+
+Among the 206 published non-default words:
+
+```text
+no analyzed en-US only                 189
+historical + no analyzed en-US          11
+historical only with analyzed en-US      6
+
+pronunciation state:
+true current DB row with unprofiled     138
+en-GB only                               38
+en-GB + unprofiled                        1
+stored but no analyzed pronunciation     23
+analyzed en-US but historical-only         6
+```
+
+Among the corrected 118 missing words:
+
+```text
+absent from DB and ranked sidecar         98
+sidecar: no source-backed pronunciation   18
+sidecar: strict morphology candidate       1
+sidecar: form-of without analyzed lemma    1
+```
+
+Examples of clearly real mid-tail lexical misses with source lexical evidence but no source-backed pronunciation include `waggish`, `floridly`, `desiderative`, `stenotic`, `sapid`, `caparison`, `fossorial`, `conspectus`, `uncinate`, `dendroid`, `yulan`, `imbricate`, `lambdoid`, `tonsorial`, `georgic` and `famulus`.
+
+The wordlist parser now detects structured rarity inputs and ignores unmatched prose metadata rows.
+
+## Unprofiled pronunciation provenance defect
+
+The first fallback benchmark grouped every analyzed Wiktionary IPA without an en-US/en-GB mapping into one `unprofiled` bucket. That bucket is semantically mixed.
+
+Two concrete problems are now separated:
+
+1. sounds tagged for another regional/profile class (Canadian, Australian, New Zealand, Indian, rhotic/non-rhotic, etc.) were treated as if they were genuinely unqualified;
+2. visibly partial IPA such as `/-vʊlf/` for `aardwolf` was treated as a full-word fallback candidate.
+
+Publish provenance policy is therefore bumped to:
+
+```text
+en-source-backed-publish-v3.1-candidate
+```
+
+without changing default eligibility.
+
+The enhanced fallback diagnostic now separates:
+
+```text
+unqualified_fullword
+other_profiled
+unqualified_partial
+en-GB
+```
+
+and reports each class against explicit en-US truth independently. Only `unqualified_fullword` is eligible for future General-English fallback consideration; none is silently relabeled en-US.
+
+Owner rerun:
+
+```powershell
+npm run en:coverage:wordlist -- --input ".\1000_random_english_words_rarity.txt"
+npm run en:pronunciation:fallback:diagnose
+```
+
+The wordlist rerun is cheap and should report exactly 1,000 rows. The fallback rerun is also publish-shard-only; no Kaikki restream is required.
