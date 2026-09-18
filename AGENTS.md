@@ -20,7 +20,7 @@ Before changing the project in a fresh thread/session, read:
 12. `docs/API.md` for local API work
 13. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition work
 14. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity work
-15. `docs/ENTITY_CUT_HYBRID_V1.md` while the Phase 12A2 hybrid popularity candidate is active
+15. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` while the Phase 12A2 popularity-cut candidate review is active
 
 ## Public-repository guardrails
 
