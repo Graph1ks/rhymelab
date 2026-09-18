@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-18
 
-Status: **ACTIVE / 12B4 OWNER BUILD+VERIFY PASS / REPEATABILITY GATE PENDING / 12B5 ENGLISH WRITER DB IMPLEMENTED**
+Status: **ACTIVE / 12B4 REPEATABILITY PASS / 12B5 OWNER DB BUILD+VERIFY PASS / 12B6 COVERAGE AUDIT IMPLEMENTED**
 
 
 ## Implementation checkpoint — 2026-09-18
@@ -524,7 +524,7 @@ npm run en:publish:repeatability
 
 No final English Writer row count or broad G2P policy is accepted in 12B4.
 
-### 12B5 — English Writer DB — IMPLEMENTED / OWNER MATERIALIZATION PENDING
+### 12B5 — English Writer DB — OWNER BUILD + VERIFY PASS
 
 Contract: `docs/ENGLISH_WRITER_DB_V1.md`.
 
@@ -546,21 +546,34 @@ English-specific indexed channels:
 
 The coarse coda bridge is English place/manner based and deliberately voicing-neutral so consonant-family slants such as /t/ ~ /d/ are not split before scoring. Exact coda remains a separate index.
 
-12B5 refuses to build without a passing 12B4 repeatability report.
+12B5 refuses to build without a passing 12B4 repeatability report. The owner gate has now passed.
 
-Owner gate:
-
-```powershell
-npm run en:publish:repeatability
-npm run en:db
-npm run en:db:verify
+```text
+forms                            147,904
+default eligible                  72,946
+pronunciations                   274,819
+analyzed pronunciations          239,819
+unresolved pronunciations         35,000
+default-profile pronunciations   101,330
+SQLite                            115.57 MiB
+semantic fingerprint
+fa078705ff6f4ae157b88301f6dea84933008590ff3f8c376832c684a1baca0b
+retrieval equivalence            80 / 80 exact
 ```
-
-The verifier requires correct schema/source fingerprints, default en-US invariants, intended index query plans, indexed-vs-full-scan retrieval equivalence, foreign-key integrity and an exact semantic DB fingerprint.
 
 No UI/API rewiring occurs in 12B5.
 
-### 12B6 — benchmark + acceptance
+### 12B6 — coverage audit + benchmark + acceptance
+
+Before ranking work, run the lexical/pronunciation funnel audit:
+
+```powershell
+npm run en:coverage:audit
+```
+
+Contract: `docs/ENGLISH_COVERAGE_AUDIT_V1.md`.
+
+This is a blocking diagnostic gate because the 115.57 MiB English candidate DB is much smaller than the mature German Writer DB. The audit must determine whether that difference is explained by healthy source compaction/materialization differences or by excessive loss of common English lexical surfaces.
 
 Require:
 
@@ -599,7 +612,7 @@ A new thread should begin by reading:
 6. `ROADMAP.md`
 7. `PROJECT_STATE.json`
 
-Then continue the **12B4 repeatability + 12B5 owner DB materialization/verification gate** before starting 12B6 benchmark work.
+Then continue with the **12B6 coverage-funnel audit** before English ranking/benchmark acceptance.
 
 Do not reopen Entity work first.
 
