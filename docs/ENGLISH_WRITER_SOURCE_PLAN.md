@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-18
 
-Status: **ACTIVE / 12B6 OWNER COVERAGE BASELINE COMPLETE / SENSE-AWARE HISTORY FIX A/B PENDING**
+Status: **ACTIVE / 12B6 HISTORY FIX A/B PASS / PROPER-NAME FIX + RESCUE AUDIT PENDING**
 
 
 ## Implementation checkpoint — 2026-09-18
@@ -579,7 +579,11 @@ The owner baseline confirms excessive long-tail pruning: English contains 106,77
 
 The baseline also exposed a source-policy defect: history tags from all senses were flattened, so one old sense could make an otherwise current entry count as historical evidence. Candidate publish policy `en-source-backed-publish-v2-candidate` changes historical-only to require record-wide historical status or zero current senses.
 
-Before ranking, rebuild publish/DB with this candidate and rerun the audit A/B. The audit now also identifies source-backed `form_of` rows whose lemma already has analyzed en-US pronunciation, measuring deterministic morphology-composition opportunity without broad G2P.
+The history-fix owner A/B passed and is repeatable: default eligibility rose by 2,749 overall and historical-only Top-100k losses fell from 2,670 to 208.
+
+That rerun exposed a second analogous defect: sense-level proper-name tags were flattened into record-level evidence, producing false proper-only exclusions such as `college`. Candidate policy `en-source-backed-publish-v3-candidate` fixes that classification.
+
+Before ranking, rebuild publish/DB with v3 and rerun the audit. The audit now also measures independent ESDB+CMUdict lexical rescue, regular-inflection-shape recovery, punctuation-only orthographic variants, and en-GB/unprofiled/no-en-US locale gaps. Arbitrary `form_of` pronunciation inheritance remains forbidden.
 
 Require:
 
@@ -618,7 +622,7 @@ A new thread should begin by reading:
 6. `ROADMAP.md`
 7. `PROJECT_STATE.json`
 
-Then continue with the **12B6 sense-aware history-fix A/B coverage rerun** before English ranking/benchmark acceptance.
+Then continue with the **12B6 proper-name evidence fix + rescue-channel coverage rerun** before English ranking/benchmark acceptance.
 
 Do not reopen Entity work first.
 

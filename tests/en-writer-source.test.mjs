@@ -5,6 +5,7 @@ import {
   classifyWiktionaryRecordHistory,
   classifyWiktionaryIpaLocale,
   decodeMsgpack,
+  isExplicitProperNameRecord,
   isSingleTokenSurface,
   isWriterCandidateSurface,
   normalizeEnglishSurface,
@@ -66,6 +67,31 @@ test('Wiktionary historical-only requires no current lexical sense', () => {
     senses: [{ glosses: ['only sense'] }],
   });
   assert.equal(recordWide.historical_only, true);
+});
+
+
+test('sense-level proper-name tags do not poison a common lexical record', () => {
+  assert.equal(isExplicitProperNameRecord({
+    word:'college',
+    pos:'noun',
+    senses:[
+      { glosses:['an institution of higher education'] },
+      { glosses:['a named college'], tags:['proper-noun'] },
+    ],
+  }), false);
+
+  assert.equal(isExplicitProperNameRecord({
+    word:'London',
+    pos:'name',
+    senses:[{ glosses:['a city'] }],
+  }), true);
+
+  assert.equal(isExplicitProperNameRecord({
+    word:'Example',
+    pos:'noun',
+    tags:['proper-name'],
+    senses:[{ glosses:['a named entity'] }],
+  }), true);
 });
 
 test('CMUdict alternate pronunciations normalize to the base surface', () => {

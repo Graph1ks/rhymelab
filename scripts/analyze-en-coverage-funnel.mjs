@@ -12,6 +12,7 @@ import {
   isWriterCandidateSurface,
   normalizeEnglishSurface,
   parseCmudictSurface,
+  parseEsdbLine,
   parseWordfreqCBpack,
   readJson,
 } from './en-writer-source-core.mjs';
@@ -43,8 +44,9 @@ const sourceList=Array.isArray(registry.sources)?registry.sources:Object.values(
 const byPrefix=(prefix)=>sourceList.find((source)=>String(source.source_id||'').startsWith(prefix));
 const kaikki=byPrefix('enwiktionary-kaikki');
 const cmu=byPrefix('cmudict-en-us');
+const esdbSource=byPrefix('esdb-scowl');
 const wordfreqSource=byPrefix('wordfreq-en');
-if(!kaikki||!cmu||!wordfreqSource) throw new Error('English source registry missing Kaikki, CMUdict or wordfreq.');
+if(!kaikki||!cmu||!esdbSource||!wordfreqSource) throw new Error('English source registry missing Kaikki, CMUdict, ESDB or wordfreq.');
 const sourcePath=(source)=>resolve(rawDir,source.local_filename);
 
 function pct(n,d){return d?Number((100*n/d).toFixed(2)):0;}
@@ -96,12 +98,16 @@ const tracked=new Map(ranked.map((row)=>[row.normalized,{
   wikt_gb_ipa:false,
   wikt_unqualified_ipa:false,
   cmudict:false,
+  esdb:false,
+  esdb_current:false,
+  esdb_invalid:false,
   current_lexical_evidence:false,
   historical_lexical_evidence:false,
   proper_name_evidence:false,
   common_lexical_evidence:false,
   relation_kinds:new Set(),
   lemma_candidates:new Set(),
+  lexical_tags:new Set(),
   publish:null,
 }]));
 
@@ -154,6 +160,21 @@ for await(const line of cmuLines){
   if(meta) meta.cmudict=true;
 }
 
+console.log('12B6 coverage audit: scan ESDB/SCOWL rescue evidence…');
+const esdbLines=createInterface({input:createReadStream(sourcePath(esdbSource)),crlfDelay:Infinity});
+for await(const line of esdbLines){
+  const parsed=parseEsdbLine(line);
+  if(!parsed) continue;
+  for(const form of parsed.forms||[]){
+    const normalized=normalizeEnglishSurface(form);
+    const meta=tracked.get(normalized);
+    if(!meta) continue;
+    meta.esdb=true;
+    if(parsed.invalid) meta.esdb_invalid=true;
+    if(!parsed.invalid&&!parsed.archaic) meta.esdb_current=true;
+  }
+}
+
 console.log('12B6 coverage audit: stream Wiktionary once for ranked-word funnel classification…');
 let englishEntries=0;
 const kaikkiLines=createInterface({input:createReadStream(sourcePath(kaikki)).pipe(createGunzip()),crlfDelay:Infinity});
@@ -176,6 +197,7 @@ for await(const line of kaikkiLines){
       else meta.common_lexical_evidence=true;
       for(const kind of head.relation_kinds||[]) meta.relation_kinds.add(kind);
       for(const lemma of head.lemma_candidates||[]) meta.lemma_candidates.add(lemma);
+      for(const tag of head.tags||[]) meta.lexical_tags.add(String(tag).toLocaleLowerCase('en-US'));
       for(const sound of entry.sounds||[]){
         const evidence=wiktionaryPronunciationEvidence(sound);
         if(!evidence) continue;
@@ -196,6 +218,7 @@ for await(const line of kaikkiLines){
     else meta.common_lexical_evidence=true;
     for(const kind of evidence.relation_kinds||[]) meta.relation_kinds.add(kind);
     for(const lemma of evidence.lemma_candidates||[]) meta.lemma_candidates.add(lemma);
+    for(const tag of evidence.tags||[]) meta.lexical_tags.add(String(tag).toLocaleLowerCase('en-US'));
   }
 
   if(englishEntries%500000===0) console.log(`  English entries ${englishEntries.toLocaleString('en-US')}`);
@@ -203,6 +226,49 @@ for await(const line of kaikkiLines){
 
 function analyzedLemmaCandidates(meta){
   return [...meta.lemma_candidates].filter((lemma)=>publishByNormalized.get(lemma)?.eligibility?.analyzed_en_us);
+}
+
+function regularInflectionShape(surface,lemma){
+  if(!surface||!lemma||surface===lemma) return null;
+  if(surface===`${lemma}s`||surface===`${lemma}'s`) return 's_suffix';
+  if(surface===`${lemma}es`) return 'es_suffix';
+  if(lemma.endsWith('y')&&surface===`${lemma.slice(0,-1)}ies`) return 'y_to_ies';
+  if(surface===`${lemma}ed`) return 'ed_suffix';
+  if(lemma.endsWith('e')&&surface===`${lemma}d`) return 'e_to_ed';
+  if(lemma.endsWith('y')&&surface===`${lemma.slice(0,-1)}ied`) return 'y_to_ied';
+  if(surface===`${lemma}ing`) return 'ing_suffix';
+  if(lemma.endsWith('e')&&!lemma.endsWith('ee')&&surface===`${lemma.slice(0,-1)}ing`) return 'drop_e_ing';
+  if(lemma.endsWith('ie')&&surface===`${lemma.slice(0,-2)}ying`) return 'ie_to_ying';
+  return null;
+}
+
+function morphologyRecovery(meta){
+  const candidates=[];
+  for(const lemma of analyzedLemmaCandidates(meta)){
+    const shape=regularInflectionShape(meta.normalized,lemma);
+    if(shape) candidates.push({lemma,shape});
+  }
+  return candidates;
+}
+
+function orthographicVariantRecovery(meta){
+  if(!meta.relation_kinds.has('alt_of')) return [];
+  const surfaceKey=meta.normalized.replace(/[-']/gu,'');
+  return analyzedLemmaCandidates(meta)
+    .filter((lemma)=>lemma.replace(/[-']/gu,'')===surfaceKey)
+    .map((lemma)=>({lemma,kind:'punctuation_only_variant'}));
+}
+
+function publishedLocaleGap(row){
+  const pronunciations=row?.pronunciations||[];
+  const analyzed=pronunciations.filter((p)=>p.analysis_status==='ok'&&p.analysis);
+  if(!analyzed.length) return 'only_unresolved_or_unparseable';
+  const hasGb=analyzed.some((p)=>Array.isArray(p.locales)&&p.locales.includes('en-GB'));
+  const hasUnprofiled=analyzed.some((p)=>!Array.isArray(p.locales)||p.locales.length===0);
+  if(hasGb&&hasUnprofiled) return 'analyzed_en_gb_and_unprofiled_no_en_us';
+  if(hasGb) return 'analyzed_en_gb_no_en_us';
+  if(hasUnprofiled) return 'analyzed_unprofiled_no_en_us';
+  return 'analyzed_other_non_us';
 }
 
 function classify(meta){
@@ -216,9 +282,18 @@ function classify(meta){
     return reasons.length?`published_${reasons.join('+')}`:'published_non_default_other';
   }
   if(!meta.strict_publish_surface) return 'not_strict_publish_surface';
-  if(!meta.lexical_headword&&!meta.lexical_listed_form) return 'not_wiktionary_lexical_candidate';
+  if(!meta.lexical_headword&&!meta.lexical_listed_form){
+    if(meta.esdb_current&&meta.cmudict) return 'non_wiktionary_esdb_current_plus_cmudict';
+    if(meta.esdb&&meta.cmudict) return 'non_wiktionary_esdb_plus_cmudict';
+    if(meta.cmudict) return 'non_wiktionary_cmudict_only';
+    if(meta.esdb_current) return 'non_wiktionary_esdb_current_only';
+    if(meta.esdb) return 'non_wiktionary_esdb_only';
+    return 'not_wiktionary_lexical_candidate';
+  }
   if(!meta.wikt_ipa&&!meta.cmudict){
     const formRelation=meta.relation_kinds.has('form_of')||meta.relation_kinds.has('listed_form_of');
+    if(formRelation&&morphologyRecovery(meta).length) return 'regular_inflection_shape_with_analyzed_en_us_lemma';
+    if(formRelation&&orthographicVariantRecovery(meta).length) return 'orthographic_variant_with_analyzed_en_us_lemma';
     if(formRelation&&analyzedLemmaCandidates(meta).length) return 'form_of_with_analyzed_en_us_lemma';
     if(formRelation) return 'form_of_without_analyzed_en_us_lemma';
     return 'no_source_backed_pronunciation';
@@ -240,6 +315,10 @@ const checkpointReport=checkpoints.map((topN)=>{
   let publishedCount=0;
   let analyzedUs=0;
   let defaultCount=0;
+  const localeGaps=new Map();
+  let esdbCmuLexicalRescue=0;
+  let morphologyShapeRescue=0;
+  let orthographicVariantRescue=0;
   for(const row of slice){
     addReason(reasons,row.status);
     if(row.lexical_headword||row.lexical_listed_form) wiktLexical+=1;
@@ -248,6 +327,10 @@ const checkpointReport=checkpoints.map((topN)=>{
     if(row.publish) publishedCount+=1;
     if(row.publish?.eligibility?.analyzed_en_us) analyzedUs+=1;
     if(row.publish?.eligibility?.default_eligible) defaultCount+=1;
+    if(row.status==='published_no_analyzed_en_us_pronunciation') addReason(localeGaps,publishedLocaleGap(row.publish));
+    if(row.status==='non_wiktionary_esdb_current_plus_cmudict'||row.status==='non_wiktionary_esdb_plus_cmudict') esdbCmuLexicalRescue+=1;
+    if(row.status==='regular_inflection_shape_with_analyzed_en_us_lemma') morphologyShapeRescue+=1;
+    if(row.status==='orthographic_variant_with_analyzed_en_us_lemma') orthographicVariantRescue+=1;
   }
   return {
     top_n_requested:topN,
@@ -258,6 +341,12 @@ const checkpointReport=checkpoints.map((topN)=>{
     published:{count:publishedCount,pct:pct(publishedCount,slice.length)},
     analyzed_en_us:{count:analyzedUs,pct:pct(analyzedUs,slice.length)},
     default_eligible:{count:defaultCount,pct:pct(defaultCount,slice.length)},
+    rescue_opportunities:{
+      esdb_plus_cmudict_non_wiktionary:esdbCmuLexicalRescue,
+      regular_inflection_shape_with_analyzed_en_us_lemma:morphologyShapeRescue,
+      orthographic_variant_with_analyzed_en_us_lemma:orthographicVariantRescue,
+      published_no_en_us_locale_breakdown:reasonDistribution(localeGaps),
+    },
     losses:reasonDistribution(reasons).filter((item)=>item.reason!=='default_eligible'),
   };
 });
@@ -281,9 +370,16 @@ const missingHighFrequency=classified
     wiktionary_gb_ipa:row.wikt_gb_ipa,
     wiktionary_unqualified_ipa:row.wikt_unqualified_ipa,
     cmudict:row.cmudict,
+    esdb:row.esdb,
+    esdb_current:row.esdb_current,
+    esdb_invalid:row.esdb_invalid,
     relation_kinds:[...row.relation_kinds].sort(),
     lemma_candidates:[...row.lemma_candidates].sort(),
     analyzed_en_us_lemma_candidates:analyzedLemmaCandidates(row),
+    morphology_recovery_candidates:morphologyRecovery(row),
+    orthographic_variant_recovery_candidates:orthographicVariantRecovery(row),
+    lexical_tags:[...row.lexical_tags].sort(),
+    published_locale_gap:row.status==='published_no_analyzed_en_us_pronunciation'?publishedLocaleGap(row.publish):null,
     publish_exclusion_reasons:row.publish?.eligibility?.exclusion_reasons||[],
   }));
 
@@ -431,7 +527,9 @@ const report={
     pronunciation_bottleneck:
       'If top-N Wiktionary lexical coverage is high but source-backed pronunciation/publish coverage drops sharply, pronunciation acquisition/composition is the primary bottleneck.',
     form_composition_bottleneck:
-      'A large form_of_with_analyzed_en_us_lemma bucket is a direct opportunity for deterministic source-backed inflection pronunciation composition without broad G2P.',
+      'Treat regular_inflection_shape_with_analyzed_en_us_lemma as a bounded composition candidate only; arbitrary form_of relations are not pronunciation inheritance because semantic/form relations can be non-phonological.',
+    lexical_rescue_bottleneck:
+      'non_wiktionary_esdb_current_plus_cmudict is strong independent lexical+pronunciation evidence that can potentially expand publish coverage without G2P.',
     locale_bottleneck:
       'A large published_no_analyzed_en_us bucket means source pronunciation exists but cannot enter the default en-US profile under current provenance/analyzer rules.',
     lexical_bottleneck:

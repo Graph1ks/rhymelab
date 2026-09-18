@@ -114,8 +114,8 @@ export function classifyWiktionaryIpaLocale(sound) {
 export function isExplicitProperNameRecord(record) {
   const pos = String(record?.pos || '').toLocaleLowerCase('en-US').replace(/[_-]+/gu, ' ');
   if (/(?:^|\s)(?:proper noun|name)(?:$|\s)/u.test(pos)) return true;
-  const tags = collectWiktionaryTags(record);
-  return tags.some((tag) => /proper(?: |-)?(?:noun|name)/u.test(tag));
+  const recordTags = normalizedTags([record?.tags || [], record?.raw_tags || []]);
+  return recordTags.some((tag) => /proper(?: |-)?(?:noun|name)/u.test(tag));
 }
 
 export function parseCmudictSurface(line) {
