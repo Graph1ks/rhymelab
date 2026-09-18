@@ -66,21 +66,26 @@ function safeJson(path){
 console.log('12B6 coverage audit: decode wordfreq universe…');
 const wordfreqDecoded=decodeMsgpack(gunzipSync(await readFile(sourcePath(wordfreqSource))));
 const wordfreqRows=parseWordfreqCBpack(wordfreqDecoded);
+const broadRanked=[];
+const broadSeen=new Set();
 const ranked=[];
 const seen=new Set();
 for(const row of wordfreqRows){
   const normalized=normalizeEnglishSurface(row.word);
-  if(!isWriterCandidateSurface(normalized)||seen.has(normalized)) continue;
+  if(isWriterCandidateSurface(normalized)&&!broadSeen.has(normalized)){
+    broadSeen.add(normalized);
+    broadRanked.push({surface:row.word,normalized,zipf:Number.isFinite(row.zipf)?row.zipf:null});
+  }
+  if(!isEnglishPublishSurface(normalized)||seen.has(normalized)) continue;
   seen.add(normalized);
   ranked.push({
     rank:ranked.length+1,
     surface:row.word,
     normalized,
     zipf:Number.isFinite(row.zipf)?row.zipf:null,
-    strict_publish_surface:isEnglishPublishSurface(normalized),
+    strict_publish_surface:true,
   });
 }
-const rankByWord=new Map(ranked.map((row)=>[row.normalized,row]));
 const tracked=new Map(ranked.map((row)=>[row.normalized,{
   ...row,
   lexical_headword:false,
@@ -358,7 +363,9 @@ const report={
   wordfreq_universe:{
     decoded_rows:wordfreqRows.length,
     distinct_single_token_candidate_surfaces:ranked.length,
-    strict_publish_surface_candidates:classified.filter((row)=>row.strict_publish_surface).length,
+    broad_distinct_single_token_candidate_surfaces:broadRanked.length,
+    strict_publish_surface_candidates:ranked.length,
+    excluded_by_strict_surface_policy:broadRanked.length-ranked.length,
     checkpoints:checkpointReport,
     overall_status_distribution:reasonDistribution(allReasons),
     highest_ranked_non_default_or_missing:missingHighFrequency,
