@@ -408,22 +408,21 @@ Create a separate benchmarked phrase-ranking policy. Do not mutate the frozen si
 
 **11E2-v2 is ACCEPTED.** Owner A/B produced ranking fingerprint `1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0` with zero guard violations. The conservative phonetic guard and Writer-page eligibility policy are frozen for the next stage.
 
-**11E3 is CURRENT: phrase-channel diversity only.** Do not reserve slots for phrases in the default result list and do not boost phrases over better single-word results for visibility. Diversity work is restricted to the explicit Phrase/Mosaic channel: duplicate collapse, deterministic template/inflection cluster control and phrase-family concentration. v1 remains the deterministic control. v2 applies Writer-page eligibility, surface-safety and primary relation guards before a 0.02 phonetic near-tie band; product/commonness evidence only reorders inside that band. `weak`/restricted rows remain diagnostic-only by default.
+**11E3 is ACCEPTED / FROZEN.** The accepted phrase-channel diversification policy collapses exact/normalized/phrase-family duplicates deterministically, caps identical lexical edge frames at three retained rows, applies no lexical-head cap, preserves 11E2-v2 order among retained rows, and preserves suppression provenance. Owner A/B and three-run repeatability passed with diversity fingerprint `ca7e04e91226cd5a3855dbe302a54bffaccce8c6d3a9defff8be049ca6153ef1`; all protected checks pass.
 
-11E2 acceptance is complete. The next gate belongs to 11E3: first measure phrase-channel duplicate/template/family concentration, then test a deterministic diversification candidate against the frozen 11E2-v2 ordering. Require owner A/B plus repeatability before acceptance.
+### Phase 11 current combined milestone — 11E4/F
 
-### Phase 11 closure sequence
+11E4 and 11F are managed as one continuous engineering workstream while preserving their dependency order:
 
-1. **11E3** — phrase-channel-local diversity; owner A/B + repeatability;
-2. **11E4** — local runtime/API/UI integration with explicit Phrase/Mosaic filter and no default phrase quota;
-3. **11F** — dedicated structural, provenance, lexical-safety, performance and repeatability benchmark;
-4. **Phase 11 complete** — freeze the German phrase/mosaic surface.
+1. **11E4 integration gate** — local runtime/API/UI integration with explicit Phrase/Mosaic filter, no default phrase quota, zero-result safety, provenance preservation, frozen single-word regression, and combined-path performance measurement;
+2. **11F final acceptance gate** — dedicated structural, provenance, lexical-safety, performance and repeatability benchmark over the integrated surface;
+3. **Phase 11 complete** — freeze the German phrase/mosaic surface.
 
 Human Writer NDCG may remain `pending_reference` while independent reviewers are unavailable.
 
 ### 11F. Phrase/mosaic benchmark
 
-Build dedicated structural, regression, lexical-safety, provenance, performance, and repeatability gates. Human usefulness NDCG comes only when the combined German Writer system is mature and independent reviewers exist.
+Run the final benchmark directly on the 11E4 integrated runtime/API/UI surface. Cover structural rhyme cases, provenance, lexical safety, historical filtering, empty-result behavior, marked-surface handling, duplicate/template diversity, pronunciation ambiguity, owner-local performance, deterministic repeatability, and unchanged frozen single-word Writer regressions. Human usefulness NDCG comes only when independent reviewers exist.
 
 ### 11G. Retrieval-first natural-language generation research — deferred
 
