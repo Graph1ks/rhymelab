@@ -1,0 +1,127 @@
+{
+  "schema": "rhymelab-en-writer-source-registry-v1",
+  "id": "phase12b-en-writer-sources-v1",
+  "updated": "2026-09-18",
+  "purpose": "Phase 12B1/12B2 English Writer source bootstrap and pre-materialization diagnostics",
+  "local_raw_directory": "data/raw/en/phase12b-20260918",
+  "bootstrap_report": "data/local/en-source-bootstrap-v1-report.json",
+  "diagnostics_report": "data/local/en-source-diagnostics-v1.json",
+  "sources": [
+    {
+      "source_id": "enwiktionary-kaikki-raw-20260916",
+      "name": "English Wiktionary via Kaikki/Wiktextract raw extraction",
+      "role": "primary_lexical_forms_pos_register_history_ipa",
+      "homepage_url": "https://kaikki.org/dictionary/rawdata.html",
+      "upstream_url": "https://kaikki.org/dictionary/raw-wiktextract-data.jsonl.gz",
+      "local_filename": "enwiktionary-kaikki-20260916.jsonl.gz",
+      "format": "gzip_jsonl",
+      "language_filter": "lang_code === en",
+      "expected_minimum_bytes": 2500000000,
+      "snapshot": {
+        "enwiktionary_dump_date": "2026-09-02",
+        "kaikki_extraction_date": "2026-09-16",
+        "wiktextract_revisions": ["d6fca27", "65e1673"],
+        "metadata_markers": [
+          "dated 2026-09-02",
+          "structured data extracted on 2026-09-16",
+          "d6fca27",
+          "65e1673"
+        ]
+      },
+      "pinning": "moving_upstream_url_guarded_by_snapshot_metadata_then_local_sha256",
+      "license_id": "Wiktionary-CC-BY-SA+GFDL",
+      "license_url": "https://en.wiktionary.org/wiki/Wiktionary:Copyrights",
+      "attribution": "English Wiktionary contributors; structured extraction via Kaikki/Wiktextract",
+      "redistribution_policy": "Keep raw and derived third-party data provenance-bearing and separate from Graph1ks Material; preserve applicable attribution/share-alike/GFDL obligations.",
+      "notes": [
+        "The upstream raw URL is moving rather than content-addressed.",
+        "A fresh download is accepted only while the landing page still contains all pinned snapshot markers.",
+        "After download the local byte size, SHA-256 and HTTP metadata are recorded and the artifact is reused unless refresh is explicit."
+      ]
+    },
+    {
+      "source_id": "cmudict-en-us-74790861",
+      "name": "CMU Pronouncing Dictionary",
+      "role": "primary_exact_en_us_pronunciation_overlay_control",
+      "repository": "https://github.com/cmusphinx/cmudict",
+      "commit": "74790861f652b15e4ac49015a90074ad62a27690",
+      "path": "cmudict.dict",
+      "upstream_url": "https://raw.githubusercontent.com/cmusphinx/cmudict/74790861f652b15e4ac49015a90074ad62a27690/cmudict.dict",
+      "local_filename": "cmudict-74790861.dict",
+      "format": "cmudict_arpabet_text",
+      "git_blob_sha1": "2c0411740cce3e2026a80b90b650d5f6a7258164",
+      "expected_minimum_bytes": 3000000,
+      "license_id": "CMUdict-BSD-style",
+      "license_url": "https://github.com/cmusphinx/cmudict/blob/74790861f652b15e4ac49015a90074ad62a27690/LICENSE",
+      "commercial_use": true,
+      "notes": [
+        "This intentionally reuses the exact CMUdict pin already recorded for the Phase 12A entity pronunciation probe.",
+        "ARPAbet is pronunciation evidence and must not be relabeled as IPA.",
+        "Phase 12B2 uses this source for exact normalized-surface coverage only; English phone normalization belongs to 12B3."
+      ]
+    },
+    {
+      "source_id": "esdb-scowl-v2-20260624",
+      "name": "English Speller Database / SCOWL v2 source master",
+      "role": "secondary_dialect_spelling_variant_inflection_lexical_quality_evidence",
+      "repository": "https://github.com/en-wl/wordlist",
+      "commit": "1e5b7d3a72f47a71da5d28686c1dd4b397178485",
+      "path": "data/scowl-pre.txt",
+      "upstream_url": "https://raw.githubusercontent.com/en-wl/wordlist/1e5b7d3a72f47a71da5d28686c1dd4b397178485/data/scowl-pre.txt",
+      "local_filename": "esdb-scowl-pre-20260624.txt",
+      "format": "esdb_scowl_v2_text_precombine",
+      "git_blob_sha1": "283adaed583303d52dab741d0710093758e00e64",
+      "expected_bytes": 14394793,
+      "license_id": "ESDB-SCOWL-permissive-with-notices",
+      "license_url": "https://github.com/en-wl/wordlist/blob/1e5b7d3a72f47a71da5d28686c1dd4b397178485/Copyright",
+      "diagnostic_scope": "source_master_precombine",
+      "notes": [
+        "The pinned v2 commit records the current variant-level semantics: @=archaic (7), -=uncommon (8), x=invalid (9).",
+        "12B2 parses the source master directly for independent overlap/dialect/variant diagnostics and does not treat it as pronunciation or frequency truth.",
+        "The full ESDB combine/database materialization remains a later publish-layer concern; this precombine diagnostic scope is reported explicitly rather than silently treated as a final SCOWL export."
+      ]
+    },
+    {
+      "source_id": "wordfreq-en-3.2",
+      "name": "wordfreq English large frequency list",
+      "role": "initial_usage_commonness_candidate_only",
+      "repository": "https://github.com/rspeer/wordfreq",
+      "commit": "912caf64b657478d1dff1138efdc078947d54bb1",
+      "path": "wordfreq/data/large_en.msgpack.gz",
+      "upstream_url": "https://raw.githubusercontent.com/rspeer/wordfreq/912caf64b657478d1dff1138efdc078947d54bb1/wordfreq/data/large_en.msgpack.gz",
+      "local_filename": "wordfreq-large-en-3.2.msgpack.gz",
+      "format": "gzip_msgpack_cbpack_v1",
+      "git_blob_sha1": "c754e8ecf6ae76ad2f7c9a47c69be26a26fa8c29",
+      "expected_bytes": 1494836,
+      "code_license_id": "Apache-2.0",
+      "data_license_id": "CC-BY-SA-4.0-with-source-attribution",
+      "data_snapshot_through_approx": "2021",
+      "notes": [
+        "wordfreq is ordering/commonness evidence, never lexical truth.",
+        "The source data is stale for some modern vocabulary; Phase 12B acceptance must benchmark songwriting/rap modernity separately.",
+        "RhymeLab decodes the pinned cBpack artifact locally for diagnostics and does not add wordfreq as a runtime dependency."
+      ]
+    }
+  ],
+  "diagnostic_contract": {
+    "do_not_freeze_final_writer_row_count": true,
+    "no_g2p": true,
+    "no_runtime_materialization": true,
+    "required_measurements": [
+      "raw_english_wiktionary_entries",
+      "distinct_headwords",
+      "distinct_listed_inflected_forms",
+      "single_token_surfaces",
+      "multi_word_surfaces",
+      "proper_name_share",
+      "historical_obsolete_archaic_share",
+      "pronunciation_coverage",
+      "us_uk_unqualified_ipa_coverage",
+      "cmudict_exact_match_coverage",
+      "wiktionary_plus_cmudict_combined_pronunciation_coverage",
+      "esdb_overlap_disagreements",
+      "wordfreq_overlap_ranked_coverage",
+      "source_sizes_and_hashes"
+    ]
+  }
+}
