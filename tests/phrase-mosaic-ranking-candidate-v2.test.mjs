@@ -223,6 +223,6 @@ test('11E2-v2 is deterministic including page eligibility and guard bands', () =
   assert.equal(first.rankingFingerprint, second.rankingFingerprint);
   assert.deepEqual(
     first.writerPageCandidates.map((row) => row.windowId),
-    ['a', 'b'],
+    ['b', 'a'],
   );
 });
