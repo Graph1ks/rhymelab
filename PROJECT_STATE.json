@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B5_ENGLISH_WRITER_DB_IMPLEMENTED_OWNER_GATE_PENDING",
+    "status": "ACTIVE_12B6_ENGLISH_COVERAGE_AUDIT_BEFORE_RANKING",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B4_REPEATABILITY_THEN_12B5_DB_BUILD_VERIFY_BEFORE_12B6_BENCHMARK",
+    "next_gate": "PHASE_12B6_OWNER_COVERAGE_FUNNEL_AUDIT_BEFORE_ENGLISH_RANKING_ACCEPTANCE",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1384,7 +1384,7 @@
       }
     },
     "publish_layer_v1": {
-      "status": "OWNER_BUILD_VERIFY_PASS_REPEATABILITY_PENDING",
+      "status": "OWNER_BUILD_VERIFY_REPEATABILITY_PASS",
       "contract": "docs/ENGLISH_PUBLISH_V1.md",
       "schema": "rhymelab-en-publish-v1",
       "policy": "en-source-backed-publish-v1",
@@ -1430,11 +1430,14 @@
         "required": true,
         "command": "npm run en:publish:repeatability",
         "report": "data/local/en-publish-repeatability-v1-report.json",
-        "status": "OWNER_REPEAT_PENDING"
+        "status": "PASS",
+        "first_fingerprint": "4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124",
+        "second_fingerprint": "4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124",
+        "fingerprints_equal": true
       }
     },
     "writer_db_v1": {
-      "status": "IMPLEMENTED_OWNER_BUILD_PENDING",
+      "status": "OWNER_BUILD_VERIFY_PASS_CANDIDATE_NOT_PRODUCT_ACCEPTED",
       "contract": "docs/ENGLISH_WRITER_DB_V1.md",
       "schema": "rhymelab-en-writer-db-v1-candidate",
       "database": "data/local/rhymelab-en-v1.sqlite",
@@ -1459,7 +1462,63 @@
       "product_en_enabled": false,
       "runtime_api_rewired": false,
       "broad_g2p": false,
-      "german_database_mutated": false
+      "german_database_mutated": false,
+      "owner_full_build": {
+        "status": "ok",
+        "forms": 147904,
+        "default_eligible_forms": 72946,
+        "pronunciations": 274819,
+        "analyzed_pronunciations": 239819,
+        "unresolved_pronunciations": 35000,
+        "default_profile_pronunciations": 101330,
+        "database_bytes": 121180160,
+        "database_mib": 115.57,
+        "semantic_fingerprint": "fa078705ff6f4ae157b88301f6dea84933008590ff3f8c376832c684a1baca0b",
+        "retrieval_equivalence": [
+          {
+            "kind": "exact",
+            "samples": 20,
+            "mismatches": 0
+          },
+          {
+            "kind": "vowel",
+            "samples": 20,
+            "mismatches": 0
+          },
+          {
+            "kind": "family_coda",
+            "samples": 20,
+            "mismatches": 0
+          },
+          {
+            "kind": "coda",
+            "samples": 20,
+            "mismatches": 0
+          }
+        ],
+        "verify_pass": true
+      }
+    },
+    "coverage_audit_v1": {
+      "status": "IMPLEMENTED_OWNER_RUN_PENDING",
+      "contract": "docs/ENGLISH_COVERAGE_AUDIT_V1.md",
+      "command": "npm run en:coverage:audit",
+      "report": "data/local/en-coverage-audit-v1-report.json",
+      "purpose": "explain_en_vs_de_runtime_scale_and_measure_frequency_qualified_lexical_pronunciation_coverage_before_ranking",
+      "checkpoints": [
+        1000,
+        5000,
+        10000,
+        25000,
+        50000,
+        100000,
+        150000,
+        250000,
+        500000
+      ],
+      "compares_local_german_writer_db": true,
+      "classifies_high_frequency_losses": true,
+      "broad_g2p": false
     }
   },
   "phase_12_entity_lexicon": {
