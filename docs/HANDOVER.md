@@ -192,22 +192,38 @@ work.song
 
 The strongest evidence is `organization.company` (45.68% QRank coverage, zero missing-QRank retention) and `organization.fashion_house` (41.01%, zero). This means source coverage, rather than only cultural relevance, is acting as an admission gate. `work.video_game` provides the opposite control case: only 22.24% QRank coverage, but 67.85% of QRank-missing rows are retained through the structural fallback ordering.
 
-Decision:
+Hybrid-v1 owner A/B is complete.
 
-- keep `qrank-category-relative-cut-v1` as A/B control;
-- do not freeze the final popularity/cut policy;
+```text
+semantic fingerprint        e770c1cfc655764e9e0f26e033c53fba0f1e1af4e2ca3b7ac82adf4eabde1e04
+all sentinels pass          true
+Bud Spencer                 KEEP / Tier A
+control distinct retained   1,077,927
+v1 distinct retained        1,077,669
+membership churn                 1.89%
+```
+
+Hybrid-v1 is **rejected for freeze** and retained as control. It opens five of the seven previously fully QRank-gated categories, but `organization.car_brand` and `organization.company` still retain zero QRank-missing rows. The company result is decisive: only 45.68% QRank coverage, 123,357 missing-QRank candidates, zero retained.
+
+The defect is now understood as a score-ceiling problem. Hybrid-v1 reserves 55% of the score for QRank, so a missing-QRank row can never exceed 45%, no matter how strong its sitelink/DE+EN/authority evidence is.
+
+Current decision:
+
+- keep `qrank-category-relative-cut-v1` as original control;
+- keep `category-relative-popularity-hybrid-v1-candidate` + fingerprint above as v2 control evidence;
+- do not freeze final popularity/cut policy;
 - do not change category floors yet;
-- evaluate `category-relative-popularity-hybrid-v1-candidate`;
-- read `docs/ENTITY_CUT_HYBRID_V1.md`.
+- evaluate `category-relative-popularity-hybrid-v2-geometric-missing-evidence-candidate`;
+- read `docs/ENTITY_CUT_HYBRID_V2.md`.
 
-After the hybrid candidate PR lands, the only owner command is:
+After the v2 PR lands, the only owner command is:
 
 ```powershell
 git pull
-npm run entity:cut:diagnose:hybrid
+npm run entity:cut:diagnose:hybrid-v2
 ```
 
-This uses the existing stage DB with already-joined QRank. Do not fetch QLever, restage entities, restage QRank, or materialize the final Entity Lexicon.
+This requires the existing Hybrid-v1 owner report and existing stage DB. Do not fetch QLever, restage entities, restage QRank, change floors, or materialize the final Entity Lexicon.
 
 
 ```powershell
