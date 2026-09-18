@@ -46,7 +46,7 @@ html[data-mode="rhyme"] .rhymeLabDeepResults{display:block}
 .rhymeLabDeepSection .rhymeLabSuggestion:last-child{border-bottom:0}
 html[data-mode="rhyme"] .editorWrap{height:360px}
 html[data-mode="rhyme"] .railViewport{height:360px}
-html[data-mode="write"] #relationFilterWrap{display:none!important}
+#relationFilterWrap{display:none!important}
 #rhymeLabPresetWrap{display:inline-flex}\nhtml[data-mode="rhyme"] #rhymeLabPresetWrap,html[data-mode="perform"] #rhymeLabPresetWrap{display:none}
 .rhymeLabDeepNote{color:var(--muted)}
 .rhymeLabNoResults{padding:12px;color:var(--muted);font-size:10px}
