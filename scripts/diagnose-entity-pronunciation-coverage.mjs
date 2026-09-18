@@ -217,6 +217,84 @@ try {
     ),
   }));
 
+  const p898Rows = count(db, `
+    SELECT COUNT(*) AS c
+    FROM entity_pronunciation
+    WHERE source_kind='wikidata_p898'
+      AND review_state='source_attested_unprofiled'
+  `);
+  const p898Names = count(db, `
+    SELECT COUNT(DISTINCT name_id) AS c
+    FROM entity_pronunciation
+    WHERE source_kind='wikidata_p898'
+      AND review_state='source_attested_unprofiled'
+  `);
+  const p898PreferredNames = count(db, `
+    SELECT COUNT(DISTINCT p.name_id) AS c
+    FROM entity_pronunciation p
+    JOIN entity_name n USING(name_id)
+    WHERE p.source_kind='wikidata_p898'
+      AND p.review_state='source_attested_unprofiled'
+      AND n.preferred=1
+  `);
+  const p898UnresolvedDeNames = count(db, `
+    SELECT COUNT(DISTINCT p.name_id) AS c
+    FROM entity_pronunciation p
+    JOIN entity_name n USING(name_id)
+    WHERE p.source_kind='wikidata_p898'
+      AND p.review_state='source_attested_unprofiled'
+      AND n.language='de'
+      AND n.searchable=1
+      AND NOT EXISTS (
+        SELECT 1 FROM entity_pronunciation runtime
+        WHERE runtime.name_id=n.name_id AND ${ELIGIBLE.replaceAll('p.', 'runtime.')}
+      )
+  `);
+  const p898UnresolvedDePreferredNames = count(db, `
+    SELECT COUNT(DISTINCT p.name_id) AS c
+    FROM entity_pronunciation p
+    JOIN entity_name n USING(name_id)
+    WHERE p.source_kind='wikidata_p898'
+      AND p.review_state='source_attested_unprofiled'
+      AND n.language='de'
+      AND n.searchable=1
+      AND n.preferred=1
+      AND NOT EXISTS (
+        SELECT 1 FROM entity_pronunciation runtime
+        WHERE runtime.name_id=n.name_id AND ${ELIGIBLE.replaceAll('p.', 'runtime.')}
+      )
+  `);
+  const p898ByLocale = db.prepare(`
+    SELECT COALESCE(locale,'unprofiled') AS locale,COUNT(*) AS rows,
+      COUNT(DISTINCT name_id) AS names
+    FROM entity_pronunciation
+    WHERE source_kind='wikidata_p898'
+      AND review_state='source_attested_unprofiled'
+    GROUP BY COALESCE(locale,'unprofiled')
+    ORDER BY locale
+  `).all().map((row) => ({
+    locale: row.locale,
+    rows: Number(row.rows || 0),
+    names: Number(row.names || 0),
+  }));
+  const p898ByCategoryTier = db.prepare(`
+    SELECT c.category,c.category_tier AS tier,
+      COUNT(DISTINCT p.name_id) AS preferred_names_with_evidence
+    FROM entity_pronunciation p
+    JOIN entity_name n USING(name_id)
+    JOIN entity_category c USING(entity_id)
+    WHERE p.source_kind='wikidata_p898'
+      AND p.review_state='source_attested_unprofiled'
+      AND n.preferred=1
+    GROUP BY c.category,c.category_tier
+    ORDER BY c.category,
+      CASE c.category_tier WHEN 'A' THEN 1 WHEN 'B' THEN 2 ELSE 3 END
+  `).all().map((row) => ({
+    category: row.category,
+    tier: row.tier,
+    preferred_names_with_evidence: Number(row.preferred_names_with_evidence || 0),
+  }));
+
   console.error(
     `[entity-pronunciation:coverage] probing ${(namesTotal - readyNames).toLocaleString()} unresolved DE names against pinned CMUdict`,
   );
@@ -307,6 +385,17 @@ try {
         popularity_tier: row.popularity_tier,
         popularity_score: Number(row.popularity_score || 0),
         cmudict_probe_status: cmudictCoverageForSurface(row.surface, cmudict.entries).status,
+        wikidata_p898_source_evidence: Boolean(db.prepare(`
+          SELECT 1 AS yes
+          FROM entity_pronunciation p
+          JOIN entity_name n USING(name_id)
+          JOIN entity e USING(entity_id)
+          WHERE e.qid=?
+            AND n.surface=?
+            AND p.source_kind='wikidata_p898'
+            AND p.review_state='source_attested_unprofiled'
+          LIMIT 1
+        `).get(row.qid, row.surface)),
       });
     }
   }
@@ -363,6 +452,18 @@ try {
     coverage_by_name_kind: byNameKind,
     coverage_by_category: categorySummary,
     coverage_by_category_tier: categoryRows,
+    wikidata_p898_source_evidence: {
+      interpretation: 'source_attested_unprofiled_not_runtime_eligible',
+      pronunciation_rows: p898Rows,
+      distinct_names: p898Names,
+      preferred_names: p898PreferredNames,
+      unresolved_de_names_with_evidence: p898UnresolvedDeNames,
+      unresolved_de_preferred_names_with_evidence: p898UnresolvedDePreferredNames,
+      by_locale: p898ByLocale,
+      preferred_names_by_category_tier: p898ByCategoryTier,
+      runtime_eligible_rows: 0,
+      warning: 'Generic Wikidata P898 language evidence is preserved as source evidence and is not silently promoted to de-DE/en-US runtime pronunciation.',
+    },
     source_probe: {
       source_id: sourceReport.source_id,
       source_commit: sourceReport.source_commit,
@@ -417,6 +518,9 @@ try {
   );
   console.error(
     `  entities with any ready name  ${entitiesAnyReady.toLocaleString()} / ${entityTotal.toLocaleString()} (${pct(entitiesAnyReady, entityTotal)}%)`,
+  );
+  console.error(
+    `  Wikidata P898 source evidence ${p898Rows.toLocaleString()} rows / ${p898Names.toLocaleString()} names`,
   );
   console.error(
     `  CMUdict full-match candidates ${cmuFull.toLocaleString()} unresolved names`,
