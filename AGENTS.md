@@ -197,7 +197,7 @@ English implementation rules:
 - core runtime remains deterministic/local/offline;
 - do not start Phase 13 cross-language rhyme during Phase 12B.
 
-The next implementation action is **12B1 source manifests/bootstrap + 12B2 source diagnostics**. Do not start with UI polish or Entity P898 owner work.
+The current implementation gate is **12B4 publish repeatability + 12B5 separate English Writer SQLite materialization/verification**. Run `npm run en:publish:repeatability`, then `npm run en:db` and `npm run en:db:verify`. Do not start with UI polish, product EN enablement, broad G2P, or Entity P898 owner work.
 
 The classic 20260914 full-dump path is retired. The owner explicitly rejected further staging/comparison against the 103 GB dump and may delete it. Do not redownload it, require it, benchmark against it, or spend more time on BZip2/WSL/full-dump throughput. The only active Phase 12A2 acquisition path is the implemented build-time QLever selective exporter/stager.
 

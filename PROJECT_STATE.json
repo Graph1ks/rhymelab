@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B4_ENGLISH_PUBLISH_LAYER_IMPLEMENTED_OWNER_BUILD_PENDING",
+    "status": "ACTIVE_12B5_ENGLISH_WRITER_DB_IMPLEMENTED_OWNER_GATE_PENDING",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B4_OWNER_FULL_PUBLISH_BUILD_VERIFY_AND_REVIEW_BEFORE_12B5",
+    "next_gate": "PHASE_12B4_REPEATABILITY_THEN_12B5_DB_BUILD_VERIFY_BEFORE_12B6_BENCHMARK",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1384,7 +1384,7 @@
       }
     },
     "publish_layer_v1": {
-      "status": "IMPLEMENTED_OWNER_FULL_BUILD_PENDING",
+      "status": "OWNER_BUILD_VERIFY_PASS_REPEATABILITY_PENDING",
       "contract": "docs/ENGLISH_PUBLISH_V1.md",
       "schema": "rhymelab-en-publish-v1",
       "policy": "en-source-backed-publish-v1",
@@ -1415,7 +1415,51 @@
       "final_writer_row_count_frozen": false,
       "broad_g2p": false,
       "english_runtime_materialized": false,
-      "product_en_enabled": false
+      "product_en_enabled": false,
+      "owner_full_build": {
+        "status": "ok",
+        "published_surfaces": 147904,
+        "default_eligible_surfaces": 72946,
+        "analyzed_en_us_surfaces": 111574,
+        "pronunciation_variants": 274819,
+        "unresolved_pronunciation_variants": 35000,
+        "semantic_fingerprint": "4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124",
+        "verify_pass": true
+      },
+      "repeatability": {
+        "required": true,
+        "command": "npm run en:publish:repeatability",
+        "report": "data/local/en-publish-repeatability-v1-report.json",
+        "status": "OWNER_REPEAT_PENDING"
+      }
+    },
+    "writer_db_v1": {
+      "status": "IMPLEMENTED_OWNER_BUILD_PENDING",
+      "contract": "docs/ENGLISH_WRITER_DB_V1.md",
+      "schema": "rhymelab-en-writer-db-v1-candidate",
+      "database": "data/local/rhymelab-en-v1.sqlite",
+      "build_command": "npm run en:db",
+      "verify_command": "npm run en:db:verify",
+      "rebuild_command": "npm run en:db:rebuild",
+      "report": "data/local/en-writer-db-v1-report.json",
+      "source_publish_repeatability_required": true,
+      "source_publish_fingerprint": "4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124",
+      "retrieval_policy": "en-indexed-rhyme-retrieval-v1-candidate",
+      "retrieval_channels": [
+        "exact_stressed_tail",
+        "multisyllabic_stressed_tail",
+        "vowel_sequence",
+        "english_vowel_family_plus_coarse_coda",
+        "exact_final_coda"
+      ],
+      "coarse_coda_policy": "english_place_manner_voicing_neutral_v1",
+      "stores_all_source_pronunciation_variants": true,
+      "unresolved_variants_stored_but_not_phonology_indexed": true,
+      "default_profile": "en-US",
+      "product_en_enabled": false,
+      "runtime_api_rewired": false,
+      "broad_g2p": false,
+      "german_database_mutated": false
     }
   },
   "phase_12_entity_lexicon": {

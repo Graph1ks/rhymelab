@@ -6,7 +6,7 @@ Repository state is authoritative. Do not reconstruct project state from prior c
 
 ## Active milestone
 
-**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. 12B4 publish owner gate is current.**
+**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. 12B4 repeatability + 12B5 DB owner gate is current.**
 
 Read first:
 
@@ -81,9 +81,23 @@ wordfreq candidate coverage                17.92%
 
 12B3 now has an owner-confirmed fixture PASS: 22 entries / 19 checks / 0 failures. It provides deterministic CMUdict ARPAbet + Wiktionary IPA normalization, English-specific rhyme features/scoring, and US/UK plus rhotic/non-rhotic coverage.
 
-12B4 source-backed publish is implemented. Contract: `docs/ENGLISH_PUBLISH_V1.md`. Commands: `npm run en:publish` then `npm run en:publish:verify`. Output stays local under `data/local/en-publish-v1/`.
+12B4 full-data build + verify passed:
 
-English remains candidate-gated; no English runtime DB or broad G2P is accepted yet. The current gate is the full-data 12B4 owner build/verify review before 12B5 SQLite materialization.
+```text
+published surfaces                 147,904
+default eligible                    72,946
+analyzed en-US                     111,574
+pronunciation variants             274,819
+unresolved variants                 35,000
+publish semantic fingerprint
+4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124
+```
+
+One independent rebuild is still required before freezing 12B4. Run `npm run en:publish:repeatability`.
+
+12B5 is implemented behind that gate. Contract: `docs/ENGLISH_WRITER_DB_V1.md`. Target DB: `data/local/rhymelab-en-v1.sqlite`. Commands after repeatability: `npm run en:db`, then `npm run en:db:verify`.
+
+English remains candidate-gated; no product EN runtime and no broad G2P is accepted yet.
 
 ## Product contract
 
@@ -273,14 +287,14 @@ The owner bootstrap and 12B2 diagnostics are complete. The 12B3 owner fixture al
 
 ## Next-thread execution order
 
-Continue with the **12B4 owner publish gate**, not UI work and not Entity work.
+Continue with the **12B4 repeatability + 12B5 owner DB gate**, not UI work and not Entity work.
 
-1. run `npm run en:publish`;
-2. run `npm run en:publish:verify`;
-3. inspect published surfaces, default-eligible surfaces, analyzed/unresolved pronunciation variants and locale distribution;
-4. inspect historical/proper-name-only/ESDB-invalid filtering plus wordfreq/ESDB coverage;
-5. require a stable semantic fingerprint on an unchanged-source repeat before treating the publish layer as frozen;
-6. only then implement 12B5 `data/local/rhymelab-en-v1.sqlite` retrieval/index materialization.
+1. run `npm run en:publish:repeatability` and require fingerprint `4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124`;
+2. run `npm run en:db`;
+3. run `npm run en:db:verify`;
+4. inspect DB forms/pronunciations, default-profile pronunciation count, SQLite size and semantic fingerprint;
+5. require indexed-vs-full-scan retrieval equivalence with zero mismatches;
+6. only then start Phase 12B6 benchmark + ranking/acceptance work.
 
 Required diagnostics are specified in `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
 

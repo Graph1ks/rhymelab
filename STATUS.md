@@ -206,26 +206,43 @@ diagnostic report      data/local/en-source-diagnostics-v1.json
 
 The owner-local source bootstrap and 12B2 diagnostic are complete, and the 12B3 owner phonology fixture is **PASS** (22 entries / 19 checks / 0 failures).
 
-Phase 12B4 is now implemented as a source-backed publish layer, not a runtime DB:
+Phase 12B4 owner full build + verification is **PASS**:
 
 ```text
-contract              docs/ENGLISH_PUBLISH_V1.md
-build                 npm run en:publish
-verify                npm run en:publish:verify
-output                data/local/en-publish-v1/
-schema                rhymelab-en-publish-v1
+schema                         rhymelab-en-publish-v1
+published surfaces             147,904
+default eligible                72,946
+analyzed en-US                 111,574
+pronunciation variants         274,819
+unresolved variants             35,000
+semantic fingerprint
+4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124
+verify                         PASS
+```
+
+The publish cut still requires one independent unchanged-source rebuild before freeze. The repository now provides `npm run en:publish:repeatability`.
+
+Phase 12B5 English Writer DB materialization is implemented but not yet owner-built:
+
+```text
+contract              docs/ENGLISH_WRITER_DB_V1.md
+database              data/local/rhymelab-en-v1.sqlite
+schema                rhymelab-en-writer-db-v1-candidate
+retrieval             en-indexed-rhyme-retrieval-v1-candidate
+build                 npm run en:db
+verify                npm run en:db:verify
 G2P                   disabled
 EN product runtime    disabled
 ```
 
-The publish cut requires Wiktionary lexical evidence plus at least one source-backed Wiktionary IPA or exact CMUdict pronunciation. Default eligibility is stricter: analyzed en-US pronunciation, not historical-only, not proper-name-only, and not ESDB-invalid. Proper-name/common-word homographs are retained when ordinary lexical evidence exists.
+12B5 preserves all pronunciation variants while only successfully analyzed pronunciations enter phonological indexes. The default profile remains explicit en-US; unqualified source IPA is not promoted.
 
 Immediate next engineering gate:
 
-1. run `npm run en:publish`;
-2. run `npm run en:publish:verify`;
-3. review full-data publish/default-eligible counts, pronunciation analysis failures, locale mix, ESDB/wordfreq evidence and semantic fingerprint;
-4. only after that owner gate design 12B5 indexed English SQLite materialization.
+1. run `npm run en:publish:repeatability` and require the same `4087cc…6124` fingerprint;
+2. run `npm run en:db`;
+3. run `npm run en:db:verify`;
+4. review DB size/counts, default-profile pronunciation count, retrieval equivalence and DB semantic fingerprint before 12B6 benchmark work.
 
 Proposed English DB target:
 

@@ -98,6 +98,10 @@
     "en:phonology:fixture": "node --no-warnings scripts/verify-en-phonology-fixture.mjs",
     "en:publish": "node --no-warnings scripts/build-en-rhyme-publish.mjs",
     "en:publish:verify": "node --no-warnings scripts/verify-en-rhyme-publish.mjs",
-    "en:publish:rebuild": "npm run en:publish && npm run en:publish:verify"
+    "en:publish:rebuild": "npm run en:publish && npm run en:publish:verify",
+    "en:publish:repeatability": "node --no-warnings scripts/repeat-en-rhyme-publish.mjs",
+    "en:db": "node --no-warnings scripts/build-en-writer-db.mjs",
+    "en:db:verify": "node --no-warnings scripts/verify-en-writer-db.mjs",
+    "en:db:rebuild": "npm run en:db && npm run en:db:verify"
   }
 }
