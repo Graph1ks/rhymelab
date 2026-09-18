@@ -323,6 +323,38 @@ The cut diagnostic computes category-relative percentiles and reports:
 
 The QRank split is decision evidence only. It does not change the current ordering. The v1 diagnostic still places every QRank-present row before every QRank-missing row, then applies Wikipedia sitelinks, DE/EN presence, external IDs, statement count and stable QID ordering. Categories whose retained share is smaller than QRank coverage can therefore cut entirely inside the QRank-present block; those categories require explicit review before the final popularity policy is frozen.
 
+### Owner fallback review — v1 control rejected for freeze
+
+The full owner diagnostic confirmed zero retained QRank-missing rows in seven categories:
+
+```text
+group.music_group
+organization.car_brand
+organization.company
+organization.fashion_house
+work.album
+work.film
+work.song
+```
+
+The most material cases are `organization.company` at 45.68% QRank coverage and `organization.fashion_house` at 41.01%: the current ordering makes QRank presence an effective hard admission gate. `work.video_game` demonstrates that the existing structural signals can carry useful retention when QRank is sparse: 22.24% QRank coverage and 67.85% retention among QRank-missing candidates.
+
+Therefore `qrank-category-relative-cut-v1` remains control only and is not frozen as the final popularity policy.
+
+The isolated A/B candidate is documented in:
+
+```text
+docs/ENTITY_CUT_HYBRID_V1.md
+```
+
+Owner command after that candidate lands:
+
+```powershell
+npm run entity:cut:diagnose:hybrid
+```
+
+The command is read-only against the existing stage database. It does not fetch QLever, rejoin QRank, change category floors or materialize the final Entity Lexicon.
+
 Protected sentinels are never silently removed by the cut.
 
 ## Current protected sentinel

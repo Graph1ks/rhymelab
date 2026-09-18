@@ -19,6 +19,8 @@ Before changing the project in a fresh thread/session, read:
 11. `docs/BENCHMARK.md` for rhyme-quality/ranking work
 12. `docs/API.md` for local API work
 13. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition work
+14. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity work
+15. `docs/ENTITY_CUT_HYBRID_V1.md` while the Phase 12A2 hybrid popularity candidate is active
 
 ## Public-repository guardrails
 
@@ -166,7 +168,7 @@ Phase 12A1 fixture CI and the owner-local report gate are accepted. Accepted sem
 23e668d7a327982ba7367c875749d17d19697466cfa438a67df7a2d7ed9f4bba
 ```
 
-Current work is **12A2 Wikidata + QRank staging**. Read `docs/ENTITY_STAGING_V1.md`.
+Current work is **12A2 Wikidata + QRank staging / final popularity-cut review**. Read `docs/ENTITY_STAGING_V1.md` and `docs/ENTITY_CUT_HYBRID_V1.md`. The QRank-present-first v1 cut is retained as control but is not freeze-ready after the owner fallback review.
 
 The classic 20260914 full-dump path is retired. The owner explicitly rejected further staging/comparison against the 103 GB dump and may delete it. Do not redownload it, require it, benchmark against it, or spend more time on BZip2/WSL/full-dump throughput. The only active Phase 12A2 acquisition path is the implemented build-time QLever selective exporter/stager.
 

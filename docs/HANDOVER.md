@@ -176,16 +176,38 @@ retained memberships/entity        1.029107
 
 Interpretation: the distinct population is inside the allowed 500k–1.2M range, but above the preferred 600k–900k working range. Multi-category overlap is small and is not the reason for the high retained population.
 
-The remaining pre-freeze gate is QRank-missing fallback behavior. The current v1 ordering places every QRank-present row before every QRank-missing row. In categories where the retained share is lower than QRank coverage, the cut can therefore occur entirely inside the QRank-present block. That must be measured explicitly before the final popularity policy is frozen.
+The QRank-missing fallback review is now complete and rejects the v1 control for freeze.
 
-After the fallback-diagnostic change lands, the only owner command is:
+Seven of thirteen categories retain zero QRank-missing rows under the current QRank-present-first ordering:
+
+```text
+group.music_group
+organization.car_brand
+organization.company
+organization.fashion_house
+work.album
+work.film
+work.song
+```
+
+The strongest evidence is `organization.company` (45.68% QRank coverage, zero missing-QRank retention) and `organization.fashion_house` (41.01%, zero). This means source coverage, rather than only cultural relevance, is acting as an admission gate. `work.video_game` provides the opposite control case: only 22.24% QRank coverage, but 67.85% of QRank-missing rows are retained through the structural fallback ordering.
+
+Decision:
+
+- keep `qrank-category-relative-cut-v1` as A/B control;
+- do not freeze the final popularity/cut policy;
+- do not change category floors yet;
+- evaluate `category-relative-popularity-hybrid-v1-candidate`;
+- read `docs/ENTITY_CUT_HYBRID_V1.md`.
+
+After the hybrid candidate PR lands, the only owner command is:
 
 ```powershell
 git pull
-npm run entity:cut:diagnose -- --skip-qrank-join
+npm run entity:cut:diagnose:hybrid
 ```
 
-Review the compact `category_cut_summary`, especially `kept_without_qrank`, `qrank_missing_retention_pct`, `cut_within_qrank_present_block`, the known low-QRank-coverage categories, and the Bud Spencer sentinel. Do not fetch QLever, restage entities, or restage QRank.
+This uses the existing stage DB with already-joined QRank. Do not fetch QLever, restage entities, restage QRank, or materialize the final Entity Lexicon.
 
 
 ```powershell

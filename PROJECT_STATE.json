@@ -1195,7 +1195,7 @@
     "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
     "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
   ],
-  "next_milestone": "PHASE_12A2_QRANK_FALLBACK_USAGE_AND_FINAL_CUT_POLICY_REVIEW",
+  "next_milestone": "PHASE_12A2_HYBRID_POPULARITY_CANDIDATE_OWNER_AB",
   "phase_12_english": {
     "status": "PLANNED_AFTER_12A",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -1320,14 +1320,15 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "review_owner_distinct_retained_count_complete_1077927_inside_allowed_range_above_preferred_range",
-      "rerun_cut_diagnostic_with_qrank_present_missing_retention_split_only",
-      "review_categories_whose_cut_falls_entirely_inside_qrank_present_block",
-      "review_low_qrank_coverage_categories_and_fallback_ordering",
-      "freeze_source_acquisition_and_final_cut_policy_only_if_category_behavior_is_plausible"
+      "qrank_present_first_v1_control_rejected_for_freeze_after_owner_fallback_review",
+      "run_category_relative_popularity_hybrid_v1_candidate_ab_on_existing_stage_db",
+      "review_bud_spencer_keep_tier_a_candidate_gate",
+      "review_candidate_missing_qrank_retention_and_boundary_churn_samples",
+      "only_after_candidate_ranking_acceptance_review_category_floors_toward_preferred_600k_900k_range",
+      "freeze_source_acquisition_and_final_cut_policy_only_after_owner_ab_acceptance"
     ],
     "staging_v1": {
-      "status": "OWNER_DISTINCT_RECOUNT_PASSED_QRANK_FALLBACK_REVIEW_PENDING",
+      "status": "OWNER_QRANK_FALLBACK_REVIEW_COMPLETE_HYBRID_CANDIDATE_AB_PENDING",
       "contract": "docs/ENTITY_STAGING_V1.md",
       "source_registry": "sources/entity/phase12a-sources-v1.json",
       "wikidata_stage_schema": "rhymelab-entity-stage-v1",
@@ -1548,7 +1549,7 @@
         "cut_diagnostic_completed": true,
         "all_sentinels_pass": true,
         "cut_policy_frozen": false,
-        "note": "Owner command returned cleanly to PowerShell prompt after full cut diagnostic. Distinct retained recount is now 1,077,927; final cut freeze waits for category-level QRank-missing fallback review."
+        "note": "Owner QLever stage/join remains accepted. The v1 QRank-present-first cut is now rejected for freeze after the owner fallback review; hybrid popularity candidate A/B is the active gate."
       },
       "owner_distinct_retained_recount": {
         "status": "PASSED_WITHIN_ALLOWED_RANGE_ABOVE_PREFERRED_RANGE",
@@ -1571,18 +1572,64 @@
         "final_cut_policy_frozen": false
       },
       "qrank_fallback_review": {
-        "status": "PENDING_OWNER_RERUN_AFTER_DIAGNOSTIC_CI",
+        "status": "COMPLETE_CONTROL_REJECTED_FOR_FREEZE",
+        "completed_at": "2026-09-18",
+        "command": "npm run entity:cut:diagnose -- --skip-qrank-join",
         "ordering_contract": "qrank_present_first_then_qrank_desc_then_wikipedia_sitelinks_de_en_presence_external_ids_statement_count_qid",
-        "diagnostic_fields": [
-          "keptWithQRank",
-          "keptWithoutQRank",
-          "qrankMissingRetentionPct",
-          "cutWithinQRankPresentBlock"
+        "hard_gated_categories": [
+          "group.music_group",
+          "organization.car_brand",
+          "organization.company",
+          "organization.fashion_house",
+          "work.album",
+          "work.film",
+          "work.song"
         ],
-        "owner_command": "npm run entity:cut:diagnose -- --skip-qrank-join",
+        "hard_gated_category_count": 7,
+        "category_count": 13,
+        "critical_examples": {
+          "organization.company": {
+            "qrank_coverage_pct": 45.68,
+            "kept_without_qrank": 0,
+            "qrank_missing_retention_pct": 0
+          },
+          "organization.fashion_house": {
+            "qrank_coverage_pct": 41.01,
+            "kept_without_qrank": 0,
+            "qrank_missing_retention_pct": 0
+          },
+          "work.video_game": {
+            "qrank_coverage_pct": 22.24,
+            "kept_without_qrank": 90861,
+            "qrank_missing_retention_pct": 67.85
+          }
+        },
+        "bud_spencer_sentinel_pass": true,
+        "decision": "do_not_freeze_qrank_category_relative_cut_v1_keep_as_control",
         "fetch_required": false,
         "entity_restage_required": false,
         "qrank_restage_required": false
+      },
+      "hybrid_popularity_candidate": {
+        "status": "IMPLEMENTED_CI_PENDING_OWNER_AB_PENDING",
+        "contract": "docs/ENTITY_CUT_HYBRID_V1.md",
+        "policy": "category-relative-popularity-hybrid-v1-candidate",
+        "command": "npm run entity:cut:diagnose:hybrid",
+        "report": "data/local/entity-cut-hybrid-v1-candidate-report.json",
+        "control_policy": "qrank-category-relative-cut-v1",
+        "weights_pct": {
+          "qrank_percentile": 55,
+          "wikipedia_sitelink_percentile": 25,
+          "de_en_wikipedia_presence": 10,
+          "external_id_capped": 7,
+          "statement_count_percentile": 3
+        },
+        "missing_qrank_rule": "qrank_component_zero_no_binary_presence_penalty",
+        "category_floors_changed": false,
+        "source_artifacts_changed": false,
+        "runtime_rewired": false,
+        "owner_ab_required": true,
+        "final_policy_frozen": false
       }
     }
   }
