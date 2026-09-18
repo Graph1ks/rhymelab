@@ -325,8 +325,8 @@ CREATE TABLE entity(
   description_en TEXT,
   fixture_only INTEGER NOT NULL DEFAULT 0 CHECK(fixture_only IN (0,1)),
   popularity_score REAL NOT NULL,
-  popularity_de REAL NOT NULL,
-  popularity_en REAL NOT NULL,
+  popularity_de REAL,
+  popularity_en REAL,
   popularity_percentile REAL NOT NULL,
   popularity_tier TEXT NOT NULL CHECK(popularity_tier IN ('A','B','C')),
   source_snapshot_id TEXT NOT NULL REFERENCES entity_source_snapshot(snapshot_id)
@@ -362,7 +362,9 @@ CREATE TABLE entity_name(
 CREATE TABLE entity_popularity_evidence(
   entity_id INTEGER PRIMARY KEY REFERENCES entity(entity_id),
   policy TEXT NOT NULL,
-  qrank_score REAL NOT NULL,
+  qrank_score REAL,
+  qrank_raw INTEGER,
+  candidate_score_ppm INTEGER,
   wikipedia_sitelink_count INTEGER NOT NULL,
   has_dewiki INTEGER NOT NULL CHECK(has_dewiki IN (0,1)),
   has_enwiki INTEGER NOT NULL CHECK(has_enwiki IN (0,1)),
@@ -424,6 +426,17 @@ CREATE INDEX idx_entity_category_tier ON entity_category(category, category_tier
 CREATE INDEX idx_entity_name_normalized ON entity_name(normalized, language);
 CREATE INDEX idx_entity_external_id ON entity_external_id(system, value);
 CREATE INDEX idx_entity_pronunciation_locale ON entity_pronunciation(locale, pronunciation_role);
+
+CREATE TABLE entity_rhyme_anchor(
+  analyzer_id TEXT NOT NULL,
+  channel TEXT NOT NULL,
+  anchor_key TEXT NOT NULL,
+  pronunciation_id INTEGER NOT NULL REFERENCES entity_pronunciation(pronunciation_id),
+  PRIMARY KEY(analyzer_id,channel,anchor_key,pronunciation_id)
+) WITHOUT ROWID;
+
+CREATE INDEX idx_entity_rhyme_anchor_pronunciation
+  ON entity_rhyme_anchor(pronunciation_id,analyzer_id,channel);
 `;
 
 export function createEntityStorage(db) {
