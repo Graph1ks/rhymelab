@@ -7,7 +7,7 @@ const RHYME_TYPES = [...PRIMARY_RHYME_TYPES, ...SOUND_RELATION_TYPES];
 
 const I18N = {
   en: {
-    title:'RhymeLab Local',eyebrow:'GERMAN RHYME ENGINE',headline:'Find rhymes by sound, not spelling.',
+    title:'RhymeLab Local',eyebrow:'UNIFIED RHYME WRITER',headline:'Search words and phrases by sound.',
     intro:'One local phonetic workspace for single-word rhymes and cross-word Phrase/Mosaic matches.',
     noteLocal:'Runs locally',notePhonetic:'IPA-based',noteUsage:'Deterministic',browse:'Browse results',resultScope:'Results',scopeAll:'Words + phrases',scopeWords:'Words',scopePhrases:'Phrases / Mosaic',words:'Words',phrases:'Phrases / Mosaic',word:'Word',phrase:'Phrase',rhymeType:'Rhyme / sound relation',
     syllables:'Syllables',sort:'Sort',pronunciation:'Pronunciation',vocabulary:'Vocabulary',all:'All',same:'Same count',plusMinus:'±1 syllable',
