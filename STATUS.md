@@ -861,3 +861,6 @@ Phase 12B6 segmented fallback v2 rerun completed. Corrected 1,000-word probe is 
 
 
 Phase 12B7: strict tagless IPA owner benchmark closed the locale shortcut (76.52% boundary-insensitive tail / 71.46% full-phone agreement vs en-US), so no General-English -> en-US promotion. Publish-v4 Tier-A candidate now implements exact-CMUdict possessives and explicit punctuation-only aliases. Regular inflection composition remains production-disabled behind `npm run en:pronunciation:inflection:diagnose`.
+
+
+Phase 12B7 inflection control v1 complete: 19,993 controls, 94.42% full-phone and 94.97% boundary-insensitive rhyme-tail agreement. Weakness is concentrated in epenthetic `-es/-ed` reduced-vowel transcription. Diagnostic v2 now preserves `/ɪ~ə/` suffix variants; production morphology remains disabled pending owner rerun.
