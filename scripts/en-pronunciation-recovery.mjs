@@ -50,6 +50,25 @@ export function isStrictEnglishInflectionRecovery({surface,lemma,tags=[]}={}){
   return false;
 }
 
+export function strictEnglishInflectionPairs(evidence){
+  if(!evidence) return [];
+  const relationKinds=new Set(evidence.relation_kinds||[]);
+  if(!relationKinds.has('form_of')&&!relationKinds.has('listed_form_of')) return [];
+  const pairs=[];
+  for(const lemma of evidence.lemma_candidates||[]){
+    const shape=regularEnglishInflectionShape(evidence.normalized,lemma);
+    if(!shape) continue;
+    if(!isStrictEnglishInflectionRecovery({
+      surface:evidence.normalized,
+      lemma,
+      tags:evidence.tags||[],
+    })) continue;
+    pairs.push({lemma,shape});
+  }
+  return [...new Map(pairs.map((item)=>[`${item.lemma}\u0000${item.shape}`,item])).values()]
+    .sort((a,b)=>a.lemma.localeCompare(b.lemma,'en')||a.shape.localeCompare(b.shape,'en'));
+}
+
 export function punctuationOnlyAliasTargets(evidence){
   const relationKinds=new Set(evidence?.relation_kinds||[]);
   if(!relationKinds.has('alt_of')) return [];
