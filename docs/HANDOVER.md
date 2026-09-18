@@ -713,7 +713,7 @@ Performance optimization must preserve accepted Top-N/result fingerprints. Elimi
 PR #90 is merged at:
 
 ```text
-7607e89fd065a7f1988ab51d304ab915fd2fe4bc
+7607e89
 ```
 
 Current publish candidate:
