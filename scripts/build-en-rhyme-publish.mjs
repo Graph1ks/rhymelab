@@ -27,7 +27,12 @@ import {
   wiktionaryPronunciationEvidence,
 } from './en-publish-core.mjs';
 import { analyzeEnglishPronunciation } from './english-phonology.mjs';
-import { englishPossessiveBase, punctuationOnlyAliasTargets } from './en-pronunciation-recovery.mjs';
+import {
+  composeEnglishInflectionIpaVariants,
+  englishPossessiveBase,
+  punctuationOnlyAliasTargets,
+  strictEnglishInflectionPairs,
+} from './en-pronunciation-recovery.mjs';
 
 const args=process.argv.slice(2);
 let registryPath='sources/en/phase12b-sources-v1.json';
@@ -122,9 +127,22 @@ let wiktionaryPronunciationEvidenceRows=0;
 let wiktionaryPronunciationAnalyses=0;
 let wiktionaryPronunciationAnalysisFailures=0;
 const pendingPunctuationAliases=new Map();
+const pendingInflections=new Map();
 let recoveredPunctuationAliases=0;
 let recoveredCmudictPossessives=0;
 let derivedAliasPronunciationVariants=0;
+let recoveredInflectionSurfaces=0;
+let derivedInflectionPronunciationVariants=0;
+let ambiguousInflectionSurfaces=0;
+let unresolvedInflectionBaseSurfaces=0;
+
+function addPendingInflection(evidence){
+  if(!strictEnglishInflectionPairs(evidence).length) return false;
+  let values=pendingInflections.get(evidence.normalized);
+  if(!values){values=[];pendingInflections.set(evidence.normalized,values);}
+  values.push(evidence);
+  return true;
+}
 
 function ensureRecord(evidence){
   let record=records.get(evidence.normalized);
@@ -229,16 +247,22 @@ for await(const line of kaikkiLines){
         wiktionaryPronunciationEvidenceRows+=1;
         addPronunciationEvidence(record,sound);
       }
-    }else if(punctuationOnlyAliasTargets(headEvidence).length){
-      let values=pendingPunctuationAliases.get(headEvidence.normalized);
-      if(!values){values=[];pendingPunctuationAliases.set(headEvidence.normalized,values);}
-      values.push(headEvidence);
+    }else{
+      if(punctuationOnlyAliasTargets(headEvidence).length){
+        let values=pendingPunctuationAliases.get(headEvidence.normalized);
+        if(!values){values=[];pendingPunctuationAliases.set(headEvidence.normalized,values);}
+        values.push(headEvidence);
+      }
+      addPendingInflection(headEvidence);
     }
   }
 
   for(const formEvidence of lexicalEvidenceForListedForms(entry)){
     listedFormsConsidered+=1;
-    if(!cmudict.has(formEvidence.normalized)&&!records.has(formEvidence.normalized)) continue;
+    if(!cmudict.has(formEvidence.normalized)&&!records.has(formEvidence.normalized)){
+      addPendingInflection(formEvidence);
+      continue;
+    }
     const record=ensureRecord(formEvidence);
     addLexicalEvidence(record,formEvidence);
     listedFormsRetained+=1;
@@ -252,6 +276,10 @@ for await(const line of kaikkiLines){
 function analyzedEnUsPronunciations(record){
   return [...(record?.pronunciations?.values?.()||[])]
     .filter((item)=>item.analysis_status==='ok'&&item.analysis&&item.locales instanceof Set&&item.locales.has('en-US'));
+}
+
+function sourceBackedEnUsPronunciations(record){
+  return analyzedEnUsPronunciations(record).filter((item)=>item.source!=='derived_inflection');
 }
 
 for(const record of records.values()) addCmudict(record);
@@ -306,6 +334,76 @@ for(const normalized of [...cmudict.keys()].sort((a,b)=>a.localeCompare(b,'en'))
   addLexicalEvidence(record,evidence);
   addCmudict(record);
   if(analyzedEnUsPronunciations(record).length) recoveredCmudictPossessives+=1;
+}
+
+for(const normalized of [...pendingInflections.keys()].sort((a,b)=>a.localeCompare(b,'en'))){
+  if(records.has(normalized)) continue;
+  const evidences=pendingInflections.get(normalized)||[];
+  const candidatePairs=[
+    ...new Map(
+      evidences
+        .flatMap((evidence)=>strictEnglishInflectionPairs(evidence))
+        .filter(({lemma})=>sourceBackedEnUsPronunciations(records.get(lemma)).length>0)
+        .map((item)=>[`${item.lemma}\u0000${item.shape}`,item])
+    ).values()
+  ].sort((a,b)=>a.lemma.localeCompare(b.lemma,'en')||a.shape.localeCompare(b.shape,'en'));
+
+  if(candidatePairs.length===0){
+    unresolvedInflectionBaseSurfaces+=1;
+    continue;
+  }
+  if(candidatePairs.length!==1){
+    ambiguousInflectionSurfaces+=1;
+    continue;
+  }
+
+  const [{lemma,shape}]=candidatePairs;
+  const baseRecord=records.get(lemma);
+  const basePronunciations=sourceBackedEnUsPronunciations(baseRecord);
+  if(!basePronunciations.length){
+    unresolvedInflectionBaseSurfaces+=1;
+    continue;
+  }
+
+  const matching=evidences.filter((evidence)=>
+    strictEnglishInflectionPairs(evidence).some((item)=>item.lemma===lemma&&item.shape===shape));
+  if(!matching.length) continue;
+
+  const record=ensureRecord(matching[0]);
+  for(const evidence of evidences) addLexicalEvidence(record,evidence);
+
+  for(const basePronunciation of basePronunciations){
+    let baseAnalysis;
+    try{
+      baseAnalysis=analyzeEnglishPronunciation(basePronunciation.raw,{
+        notation:basePronunciation.notation,
+        locale:'en-US',
+        source:basePronunciation.source,
+      });
+    }catch{
+      continue;
+    }
+    for(const derived of composeEnglishInflectionIpaVariants(baseAnalysis,shape)){
+      addPronunciationEvidence(record,{
+        source:'derived_inflection',
+        notation:'ipa',
+        raw:derived.raw,
+        locales:['en-US'],
+        locale_status:'qualified',
+        tags:[
+          'derived-inflection',
+          `lemma:${lemma}`,
+          `shape:${shape}`,
+          `suffix-rule:${derived.suffix_rule}`,
+          `suffix-variant:${derived.suffix_variant}`,
+        ],
+      });
+      derivedInflectionPronunciationVariants+=1;
+    }
+  }
+
+  if(analyzedEnUsPronunciations(record).length) recoveredInflectionSurfaces+=1;
+  else records.delete(normalized);
 }
 
 let cmudictPronunciationVariants=0;
@@ -475,15 +573,21 @@ const manifest={
     recovered_punctuation_alias_surfaces:recoveredPunctuationAliases,
     recovered_cmudict_possessive_surfaces:recoveredCmudictPossessives,
     derived_alias_pronunciation_variants:derivedAliasPronunciationVariants,
+    recovered_inflection_surfaces:recoveredInflectionSurfaces,
+    derived_inflection_pronunciation_variants:derivedInflectionPronunciationVariants,
+    ambiguous_inflection_surfaces:ambiguousInflectionSurfaces,
+    unresolved_inflection_base_surfaces:unresolvedInflectionBaseSurfaces,
     cmudict_rows_loaded:cmudictRows,
     esdb_rows_parsed:esdbParsedRows,
     wordfreq_distinct_surfaces:wordfreq.size,
   },
   lexical_cut:{
-    requirement:'Wiktionary lexical evidence plus source-backed pronunciation, with two bounded Tier-A recovery channels: punctuation-only alt_of aliases to an analyzed en-US lemma, and exact-CMUdict possessives whose base is already source-backed with analyzed en-US pronunciation',
+    requirement:'Wiktionary lexical evidence plus source-backed or bounded source-composed pronunciation: Tier-A punctuation aliases, exact-CMUdict possessives, or strict regular inflections with exactly one source-backed analyzed en-US lemma',
     listed_form_requirement:'listed Wiktionary form retained only when exact CMUdict pronunciation exists or the same normalized surface is already pronunciation-backed as a headword',
     punctuation_alias_requirement:'explicit Wiktionary alt_of relation + punctuation-only normalized identity + exactly one analyzed en-US lemma target',
     possessive_requirement:'exact CMUdict surface + deterministic apostrophe possessive parse + source-backed analyzed en-US base',
+    inflection_requirement:'explicit form_of/listed_form_of + exactly one regular spelling shape + allowed morphology tags + source-backed analyzed en-US lemma; ambiguous or unresolved bases are rejected',
+    inflection_suffix_variants:'plural /s,z,ɪz,əz/; past /t,d,ɪd,əd/; progressive /ɪŋ/; all derived pronunciations retain explicit derived_inflection provenance',
     final_writer_row_count_frozen:false,
   },
   eligibility_policy:{
@@ -496,7 +600,8 @@ const manifest={
   },
   safeguards:{
     g2p_used:false,
-    morphology_pronunciation_composition_enabled:false,
+    morphology_pronunciation_composition_enabled:true,
+    morphology_composition_scope:'strict_source_relation_only',
     english_runtime_materialized:false,
     product_en_enabled:false,
     german_runtime_mutated:false,

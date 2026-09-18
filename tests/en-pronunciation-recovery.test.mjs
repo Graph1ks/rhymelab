@@ -8,6 +8,7 @@ import {
   isStrictEnglishInflectionRecovery,
   punctuationOnlyAliasTargets,
   regularEnglishInflectionShape,
+  strictEnglishInflectionPairs,
 } from '../scripts/en-pronunciation-recovery.mjs';
 
 function compose(arpabet,shape){
@@ -52,6 +53,27 @@ test('English strict inflection gate blocks contraction and requires source morp
   assert.equal(isStrictEnglishInflectionRecovery({surface:'making',lemma:'make',tags:['gerund']}),true);
   assert.equal(isStrictEnglishInflectionRecovery({surface:'thats',lemma:'that',tags:['plural','contraction']}),false);
   assert.equal(isStrictEnglishInflectionRecovery({surface:'cats',lemma:'cat',tags:[]}),false);
+});
+
+test('English strict inflection relation gate requires one explicit source relation shape',()=>{
+  assert.deepEqual(strictEnglishInflectionPairs({
+    normalized:'walked',
+    relation_kinds:['form_of'],
+    lemma_candidates:['walk'],
+    tags:['past'],
+  }),[{lemma:'walk',shape:'ed_suffix'}]);
+  assert.deepEqual(strictEnglishInflectionPairs({
+    normalized:'walked',
+    relation_kinds:[],
+    lemma_candidates:['walk'],
+    tags:['past'],
+  }),[]);
+  assert.deepEqual(strictEnglishInflectionPairs({
+    normalized:'thats',
+    relation_kinds:['form_of'],
+    lemma_candidates:['that'],
+    tags:['plural','contraction'],
+  }),[]);
 });
 
 test('English inflection composer applies deterministic plural allomorphs',()=>{
