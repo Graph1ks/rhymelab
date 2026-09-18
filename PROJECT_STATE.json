@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11E_PHRASE_WRITER_RANKING_DESIGN",
+  "phase": "GERMAN_PHASE_11E1_RANKING_EVIDENCE_FIXTURE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11d4_accepted_frozen_phase_11e_current",
+    "status": "phase_11e1_ranking_evidence_implemented_fixture_ci_pending",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11E_DETERMINISTIC_PHRASE_RANKING_CANDIDATE",
+    "next_milestone": "PHASE_11E1_FIXTURE_GATE_THEN_OWNER_EVIDENCE_DIAGNOSTIC",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -817,7 +817,7 @@
       }
     },
     "phase_11e_ranking": {
-      "status": "DESIGN_CURRENT",
+      "status": "11E1_IMPLEMENTED_FIXTURE_CI_PENDING",
       "contract": "docs/PHRASE_MOSAIC_RANKING_V1.md",
       "accepted_retrieval_input_schema": "rhymelab-phrase-mosaic-retrieval-v2-candidate",
       "accepted_retrieval_policy": "de-bounded-indexed-mosaic-retrieval-v2-candidate",
@@ -847,7 +847,31 @@
         "retuning_de_phon_v3",
         "mutating_deterministic_writer_utility_v6",
         "human_ndcg_before_independent_reviewers"
-      ]
+      ],
+      "evidence_schema": "rhymelab-phrase-mosaic-ranking-evidence-v1",
+      "evidence_policy": "de-phrase-ranking-evidence-v1",
+      "command": "npm run phrase:mosaic:rank:evidence",
+      "default_report": "data/local/phrase-mosaic-ranking-evidence-v1-report.json",
+      "evidence_enrichment_implemented": true,
+      "phrase_utility_ranking_implemented": false,
+      "page_diversification_implemented": false,
+      "writer_runtime_rewired": false,
+      "fixture_gate_pending_ci": true,
+      "owner_full_diagnostic_completed": false,
+      "surface_safety_signals": [
+        "historical_only",
+        "digit_bearing",
+        "dotted_single_letter_sequence",
+        "multiple_single_letter_tokens",
+        "punctuation_heavy"
+      ],
+      "commonness_policy": "leipzig-equal-weight-log1p-per-million-sentences-v1",
+      "commonness_corpora": [
+        "deu_news_2024_1M",
+        "deu_wikipedia_2021_1M",
+        "deu-de_web_2021_1M"
+      ],
+      "frozen_11d4_semantic_fingerprint_required": "4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd"
     }
   },
   "owner_measurement_outputs": {
@@ -869,10 +893,10 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_11d4_repeatability_acceptance",
-    "design_11e_deterministic_phrase_ranking_candidate",
-    "build_fixture_gate_for_phrase_commonness_surface_safety_and_diversity",
-    "run_owner_11e_ab_diagnostics_against_frozen_11d4_input",
-    "keep_single_word_writer_and_11d_retrieval_frozen"
+    "merge_11e1_fixture_implementation_after_green_validate",
+    "owner_run_npm_phrase_mosaic_rank_evidence",
+    "inspect_commonness_surface_safety_phrase_type_and_overlap_distributions",
+    "only_then_design_11e2_phrase_utility_weights_or_lexicographic_policy",
+    "keep_11d_and_single_word_writer_frozen"
   ]
 }

@@ -237,6 +237,8 @@ Interpretation: remaining lexical/commonness/diversity quality is Phase 11E terr
 
 Phase 11D is now accepted/frozen. Phase 11E phrase Writer ranking is current. Read `docs/PHRASE_MOSAIC_RANKING_V1.md`. Do not reopen 11D retrieval to solve lexical/commonness/diversity issues without new retrieval-specific evidence.
 
+11E1 evidence enrichment now exists behind `npm run phrase:mosaic:rank:evidence`. It must remain order-neutral until owner full-data evidence distributions are reviewed. Do not invent or tune phrase-utility weights from fixture intuition. Allowed first-pass evidence is the frozen three-corpus Leipzig commonness layer, source-backed phrase/style tags, transparent deterministic surface safety, and normalized query-token overlap.
+
 Phrase ranking remains deferred to 11E. 
 The accepted single-word Writer baseline remains frozen.
 

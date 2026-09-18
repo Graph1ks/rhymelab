@@ -353,6 +353,23 @@ vowel-family assignments       375
 ```
 
 Phase 11D is accepted/frozen. Phase 11E is current. Read `docs/PHRASE_MOSAIC_RANKING_V1.md` before changing phrase result ordering.
+
+### Phase 11E1 implementation
+
+Evidence enrichment is implemented at fixture/code level, without reordering the 11D4 candidate pool:
+
+```text
+schema      rhymelab-phrase-mosaic-ranking-evidence-v1
+policy      de-phrase-ranking-evidence-v1
+command     npm run phrase:mosaic:rank:evidence
+ranking     false
+diversity   false
+runtime UI  unchanged
+```
+
+It adds frozen-Leipzig commonness, corpus breadth, source phrase/style evidence, transparent surface safety and normalized query-token overlap. The owner diagnostic refuses to run if the frozen 11D4 semantic fingerprint changes.
+
+Next gate: green fixture CI, then owner full-data evidence diagnostic. Do not select 11E2 weights before seeing those real distributions.
 ## Phase 11D4 — candidate implementation
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md`.
