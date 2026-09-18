@@ -126,9 +126,25 @@ semantic fingerprint
 
 The product surface is now only the main Writer UI at `/`. There is no separate Phrase Explorer route requirement. Phrase catalog/detail APIs remain internal read-only support for unified result inspection and diagnostics.
 
-Search-language basis remains `DE / EN / DE+EN`. German is active and frozen; English is the next roadmap phase and remains capability-gated until an accepted English runtime exists.
+Search-language basis remains `DE / EN / DE+EN`. German is active and frozen; English remains capability-gated until an accepted English runtime exists.
 
-Current next milestone: **Phase 12 — English profile + benchmark**. It is not started yet.
+Current milestone: **Phase 12A — multilingual cultural Entity Lexicon**.
+
+Plan: `docs/ENTITY_LEXICON_PLAN.md`.
+
+The new entity layer is separate from the frozen Writer/Phrase databases and is designed around:
+
+- Wikidata CC0 structured entity snapshots;
+- category-relative popularity cuts;
+- QRank as global popularity evidence;
+- selected DE/EN Wikimedia relevance signals;
+- source-backed labels/aliases;
+- provenance-bearing native / de-DE / en-US pronunciation variants;
+- versioned analyzer-specific phonetic features;
+- optional MusicBrainz Core enrichment;
+- Bud Spencer / Q221074 as a protected cultural-relevance sentinel.
+
+Phase 12B is the actual English phonology/single-word Writer benchmark. Phase 12C materializes the full retained entity set and adds the entity channel.
 
 UI polish, ergonomic refinement and database/query micro-optimization are intentionally deferred until the broader databases and search/display algorithms are complete.
 ## Current phase — Phase 11 German phrase / mosaic / phraseology

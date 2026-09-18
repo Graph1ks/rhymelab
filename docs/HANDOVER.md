@@ -30,7 +30,20 @@ semantic fingerprint
 9c5ea5fcd67d74c58393cb25da854c3ed7a7ef2d6ea658d26614a194dd745694
 ```
 
-Current next milestone is **Phase 12 — English profile + benchmark**, not yet started. The existing `DE / EN / DE+EN` product contract is reused; English must remain capability-gated until a real accepted English phonology/runtime exists.
+Current milestone is **Phase 12A — multilingual cultural Entity Lexicon**. Architecture: `docs/ENTITY_LEXICON_PLAN.md`.
+
+The Phase 12 sequence is:
+
+```text
+12A multilingual cultural Entity Lexicon architecture + fixture/prototype
+12B English phonology + single-word profile + benchmark
+12C full entity pronunciation materialization + unified Writer entity channel
+12D English phrase/mosaic expansion when justified
+```
+
+The entity layer is deliberately multilingual before the English engine: entity identity is language-neutral, while names/pronunciations are separate provenance-bearing variants (`native`, `de-DE`, `en-US`, optional attested alternates). Wikidata JSON is the primary CC0 entity source and QRank the selected global popularity signal. Popularity cuts are category-relative, not one global threshold. Bud Spencer / Q221074 is a protected KEEP/Tier-A sentinel.
+
+The existing `DE / EN / DE+EN` product contract is reused; English remains capability-gated until a real accepted English phonology/runtime exists.
 
 UI visual polish, ergonomic refinement, final responsive/product interaction work, SQLite layout/size optimization, caching and latency micro-tuning are explicitly deferred until the broader databases and search/display algorithms are complete.
 
@@ -46,14 +59,15 @@ Read in order:
 4. `PROJECT_STATE.json`
 5. `ROADMAP.md`
 6. `DATA_SOURCES.md`
-7. `docs/WRITER_SEARCH_ACCEPTANCE.md`
-8. `docs/PHRASE_MOSAIC_PLAN.md`
-9. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
-10. `docs/BENCHMARK.md`
-11. `docs/API.md`
-12. `docs/WRITER_RANKING.md`
-13. `docs/WRITER_LEXICAL_MODEL.md`
-14. `docs/EXTERNAL_COMPARISON_D_RHYME.md`
+7. `docs/ENTITY_LEXICON_PLAN.md`
+8. `docs/WRITER_SEARCH_ACCEPTANCE.md`
+9. `docs/PHRASE_MOSAIC_PLAN.md`
+10. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
+11. `docs/BENCHMARK.md`
+12. `docs/API.md`
+13. `docs/WRITER_RANKING.md`
+14. `docs/WRITER_LEXICAL_MODEL.md`
+15. `docs/EXTERNAL_COMPARISON_D_RHYME.md`
 
 ## Hard boundary
 

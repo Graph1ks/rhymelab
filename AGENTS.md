@@ -149,7 +149,16 @@ Frozen product rules:
 - `DE / EN / DE+EN` remains the unified language-basis contract;
 - English stays capability-gated until Phase 12 supplies a real accepted English runtime.
 
-Current next milestone: **Phase 12 — English profile + benchmark**, not yet started.
+Current milestone: **Phase 12A — multilingual cultural Entity Lexicon**. Read `docs/ENTITY_LEXICON_PLAN.md` before entity/popularity/pronunciation work.
+
+Phase 12 sequence is now:
+
+1. 12A multilingual cultural Entity Lexicon architecture + fixture/prototype;
+2. 12B English phonology + single-word Writer profile + benchmark;
+3. 12C full entity pronunciation materialization + unified Writer entity channel;
+4. 12D English phrase/mosaic expansion when justified.
+
+Entity identity is language-neutral. Pronunciations are provenance-bearing variant rows such as native / de-DE / en-US, never one flattened IPA field. QRank is the selected global popularity signal; all retention cuts are category-relative. Bud Spencer / Q221074 is a protected cultural-relevance sentinel. Never invent standalone aliases by splitting arbitrary name tokens.
 
 Do not spend the current data/algorithm phase on cosmetic UI polish or database micro-optimization. Visual/UX refinement, SQLite size/layout optimization, caching and final latency tuning are deferred until the broader databases and search/display algorithms are complete. Human NDCG remains nonblocking `pending_reference` until independent reviewers exist.
 

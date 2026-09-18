@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "ENGLISH_PHASE_12_PROFILE_BENCHMARK_NOT_STARTED",
+  "phase": "PHASE_12A_MULTILINGUAL_ENTITY_LEXICON",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -1195,10 +1195,10 @@
     "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
     "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
   ],
-  "next_milestone": "PHASE_12_ENGLISH_PROFILE_BENCHMARK",
+  "next_milestone": "PHASE_12A_MULTILINGUAL_ENTITY_LEXICON",
   "phase_12_english": {
-    "status": "NOT_STARTED",
-    "roadmap": "Phase 12 — English profile + benchmark",
+    "status": "PLANNED_AFTER_12A",
+    "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "reuse_unified_ui_api_contract": true,
     "language_basis_contract": [
       "de",
@@ -1209,5 +1209,66 @@
       "de"
     ],
     "must_not_emulate_english_with_german_phonology": true
+  },
+  "phase_12_entity_lexicon": {
+    "status": "CURRENT_ARCHITECTURE_GATE",
+    "plan": "docs/ENTITY_LEXICON_PLAN.md",
+    "database": "data/local/rhymelab-entities-v1.sqlite",
+    "runtime_local_only": true,
+    "separate_from_writer_db": true,
+    "separate_from_phrase_db": true,
+    "primary_entity_source": "wikidata_json_dump_CC0",
+    "global_popularity_source": "wikidata_qrank_CC0",
+    "local_popularity_sources": [
+      "wikimedia_dewiki_pageviews_optional",
+      "wikimedia_enwiki_pageviews_optional",
+      "wikimedia_german_audience_pageviews_optional"
+    ],
+    "optional_enrichment": [
+      "musicbrainz_core_CC0",
+      "gleif_CC0_legal_name_only"
+    ],
+    "entity_target_range": [
+      500000,
+      1200000
+    ],
+    "preferred_v1_working_range": [
+      600000,
+      900000
+    ],
+    "popularity_category_relative": true,
+    "protected_sentinels": [
+      {
+        "qid": "Q221074",
+        "name": "Bud Spencer",
+        "expected": "KEEP_TIER_A_person.actor"
+      }
+    ],
+    "pronunciation_architecture": {
+      "entity_identity_language_neutral": true,
+      "variant_rows": true,
+      "initial_roles": [
+        "native",
+        "de-DE",
+        "en-US",
+        "en-GB_optional_attested"
+      ],
+      "mass_generate_all_languages": false,
+      "g2p_is_generated_evidence_not_truth": true,
+      "analyzer_specific_derived_features": true
+    },
+    "source_rules": {
+      "full_wikidata_graph_import": false,
+      "stream_and_filter_snapshot": true,
+      "no_runtime_network": true,
+      "external_identifier_metadata_requires_separate_license_audit": true,
+      "no_automatic_token_to_alias_invention": true
+    },
+    "phase_sequence": [
+      "12A_multilingual_entity_lexicon_schema_taxonomy_popularity_pronunciation_contract_fixture",
+      "12B_english_phonology_single_word_profile_benchmark",
+      "12C_full_entity_pronunciation_materialization_writer_entity_channel",
+      "12D_english_phrase_mosaic_expansion"
+    ]
   }
 }
