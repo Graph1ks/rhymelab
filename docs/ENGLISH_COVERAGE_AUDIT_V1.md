@@ -760,3 +760,85 @@ npm run en:pronunciation:inflection:diagnose
 This diagnostic uses already-published source-backed inflected forms that also have exact CMUdict surface pronunciations as the control set. It compares deterministic composition from the analyzed lemma against CMUdict phoneme sequence, rhyme tail, syllable count and stress. It does not change publish eligibility.
 
 Do not enable morphology composition in production until the owner benchmark and mismatch classes are reviewed.
+
+
+## Inflection composition owner benchmark v1
+
+The owner control benchmark completed against the existing publish fingerprint
+`6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba`.
+
+The diagnostic is read-only and kept morphology production-disabled.
+
+Overall source-backed en-US base control:
+
+```text
+surfaces                              19,993
+full phoneme-sequence match            94.42%
+exact-tail match                       70.46%
+boundary-insensitive tail              94.97%
+syllable-count match                   99.36%
+stress-pattern match                   96.93%
+vowel-family match                     95.62%
+```
+
+CMUdict-base-only control:
+
+```text
+surfaces                              19,650
+full phoneme-sequence match            94.69%
+boundary-insensitive tail              95.12%
+syllable-count match                   99.38%
+stress-pattern match                   97.31%
+vowel-family match                     95.74%
+```
+
+The current boundary-sensitive exact key is not a suitable standalone gate for morphology composition. For example, progressive `-ing` reaches 95.73% boundary-insensitive stressed-tail agreement but only 14.60% exact-key agreement because analyzer/source syllable boundaries differ.
+
+Strong non-epenthetic suffix controls:
+
+```text
+past voiced /d/       boundary-insensitive tail 97.86%
+past voiceless /t/    boundary-insensitive tail 97.28%
+plural voiceless /s/  boundary-insensitive tail 96.66%
+plural voiced /z/     boundary-insensitive tail 95.24%
+progressive /ɪŋ/      boundary-insensitive tail 95.73%
+```
+
+The two weak controls are reduced-vowel epenthetic suffixes:
+
+```text
+past after /t,d/      87.98%
+plural after sibilant 84.44%
+```
+
+Mismatch review shows the dominant systematic issue is not the consonantal allomorph. The composer emitted only `/ɪd/` and `/ɪz/`, while CMUdict frequently represents the unstressed reduced vowel as `/ə/` (`AH0`), e.g. `abridges`, `accomplices`, `afforded`.
+
+The production gate therefore remains closed, but diagnostic v2 now preserves both common reduced-vowel variants:
+
+```text
+/ɪz/ + /əz/
+/ɪd/ + /əd/
+```
+
+The control benchmark selects the best supported deterministic variant against exact CMUdict target evidence. This avoids overfitting the production representation to CMUdict while measuring whether the linguistically valid variant set covers the source target.
+
+Owner rerun:
+
+```powershell
+git pull
+npm run en:pronunciation:inflection:diagnose
+```
+
+Expected schema:
+
+```text
+rhymelab-en-inflection-composition-diagnostic-v2
+```
+
+Expected report:
+
+```text
+data/local/en-inflection-composition-diagnostic-v2-report.json
+```
+
+Do not enable production morphology until v2 is reviewed.
