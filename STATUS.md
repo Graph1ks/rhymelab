@@ -132,7 +132,7 @@ The read-only Phrase Explorer is available at:
 http://127.0.0.1:3030/phrases
 ```
 
-### Phase 11C1 — deterministic phrase pronunciation — OWNER FULL-DATA BUILD COMPLETE / GATE PENDING
+### Phase 11C1 — deterministic phrase pronunciation — ACCEPTED / COMPLETE
 
 11C1 now reuses the accepted Writer-v5 pronunciation inventory and creates a separate additive pronunciation layer.
 
@@ -206,6 +206,37 @@ Top-250 unlock upper bound             1,532 modern phrases / 93.84% projected c
 `zurecht` is an unusually high-leverage ordinary-German gap (317 single-blocker modern phrases), followed by much smaller useful candidates such as `inne` (40) and `überein` (28). The ranking then mixes quickly with abbreviations/numbers (`St`, `1`, `2`), names/foreign material (`East`, `River`, `New`, `Street`) and specialist/historical forms.
 
 Decision: **do not create a blocking 11C2 pronunciation campaign**. Preserve a small source-backed lexical-gap backlog for later quality work, but proceed directly to Phase 11D once deterministic 11C1 repeatability is confirmed. No broad G2P fallback and no Writer-v5 mutation are authorized.
+### 11C1 deterministic repeatability — PASS
+
+A second independent owner-local pronunciation materialization produced the identical semantic fingerprint:
+
+```text
+first fingerprint    fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+repeat fingerprint   fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+fingerprints equal   true
+base catalog match   true
+coverage equal       true
+```
+
+Phase 11C1 is therefore accepted and closed. The nonblocking lexical-gap backlog remains separate.
+
+### Phase 11D1 — cross-word mosaic window substrate — IMPLEMENTED / OWNER FULL-DATA GATE PENDING
+
+11D1 materializes deterministic syllable-aligned windows only when the span strictly crosses at least one stored word boundary.
+
+```text
+schema                 rhymelab-phrase-mosaic-v1
+window policy          de-cross-word-syllable-windows-v1
+default window length  2–6 syllables
+coordinate system      zero-based [start,end)
+exact phoneme index    yes
+exact vowel index      yes
+fuzzy retrieval        not yet
+phrase ranking         not yet
+Writer runtime rewired no
+```
+
+Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`.
 ### Immediate owner gate
 
 After merge:
@@ -213,16 +244,13 @@ After merge:
 ```powershell
 git switch main
 git pull --ff-only
-npm run phrase:pronunciation
-npm run phrase:pronunciation:coverage
-npm run dev
+npm run phrase:mosaic:windows
 ```
 
 Generated report:
 
 ```text
-data/local/phrase-pronunciation-v1-report.json
-data/local/phrase-pronunciation-coverage-v1-report.json
+data/local/phrase-mosaic-windows-v1-report.json
 ```
 
 Review token coverage, phrase coverage, unresolved surfaces, syllable distribution, pronunciation-alternative counts and representative IPA/boundary samples. Run `npm run phrase:pronunciation` a second time and require the same pronunciation fingerprint.
