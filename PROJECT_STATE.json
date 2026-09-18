@@ -246,6 +246,37 @@
       "reason": "real DAKODA RUEG archives are learner/register utterance data with insufficient direct phraseology_metaphor_idiom value for current RhymeLab goals",
       "production_source": false,
       "runtime_surface": false
+    },
+    "latest_owner_observation": {
+      "phrase_explorer_working_after_rueg_removal": true,
+      "sample_phrase": "auf Hochtouren",
+      "sample_resolution": [
+        {
+          "surface": "auf",
+          "status": "resolved_preferred"
+        },
+        {
+          "surface": "hochtouren",
+          "status": "unresolved_no_writer_form"
+        }
+      ],
+      "interpretation": "complete phrase pronunciation blocked by missing Writer-v5 lexical pronunciation for hochtouren, not by phrase parser"
+    },
+    "future_natural_language_rhyme_retrieval": {
+      "design_note": "docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md",
+      "status": "DEFERRED_PRESERVE_AFTER_11C_11D_11E",
+      "retrieval_first": true,
+      "markov_interest": "high",
+      "production_dependencies_selected": false,
+      "research_leads": [
+        "RhymePad_architecture_reference",
+        "PanPhon_style_feature_distance",
+        "gruut_pronunciation_fallback_benchmark",
+        "SQLite_FTS5",
+        "sqlite_vec_optional_non_core_semantics"
+      ],
+      "current_core_ml_inference_allowed": false,
+      "current_core_llm_inference_allowed": false
     }
   },
   "owner_measurement_outputs": {
