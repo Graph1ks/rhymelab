@@ -1195,7 +1195,7 @@
     "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
     "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
   ],
-  "next_milestone": "PHASE_12A2_COMPLETE_CONTROL_STAGE_REVIEW_REPORTS_THEN_QLEVER_DIAGNOSTIC",
+  "next_milestone": "PHASE_12A2_IMPLEMENT_QLEVER_FAST_ACQUISITION_AND_EXISTING_QRANK_CUT_PIPELINE",
   "phase_12_english": {
     "status": "PLANNED_AFTER_12A",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -1318,14 +1318,16 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "complete_running_20260914_owner_full_stage",
-      "review_owner_wikidata_qrank_cut_reports",
-      "implement_qlever_selective_export_diagnostic",
-      "compare_qlever_against_dated_control",
-      "then_freeze_final_cut_popularity_and_source_acquisition_policy"
+      "implement_build_time_qlever_selective_acquisition",
+      "freeze_local_qlever_artifacts_with_provenance",
+      "stage_qlever_bundle_into_existing_entity_stage_contract",
+      "join_pinned_qrank_locally",
+      "run_cut_diagnostics_and_sentinel_checks",
+      "optionally_compare_against_20260914_full_dump_control_when_convenient",
+      "then_freeze_source_acquisition_and_final_cut_policy"
     ],
     "staging_v1": {
-      "status": "OWNER_FULL_STAGE_RUNNING_CONTROL_BUILD",
+      "status": "QLEVER_FAST_ACQUISITION_LIVE_VERIFIED_IMPLEMENTATION_NEXT",
       "contract": "docs/ENTITY_STAGING_V1.md",
       "source_registry": "sources/entity/phase12a-sources-v1.json",
       "wikidata_stage_schema": "rhymelab-entity-stage-v1",
@@ -1389,7 +1391,7 @@
           "entity:stage:qrank",
           "entity:cut:diagnose"
         ],
-        "status": "RUNNING",
+        "status": "OPTIONAL_CONTROL_RUNNING_OR_MAY_BE_STOPPED",
         "control_snapshot": "wikidata_20260914",
         "decompressor": "wsl:lbzip2:8t",
         "taxonomy_prefilter_qids": 13,
@@ -1403,14 +1405,16 @@
           "elapsed_hours": 0.23
         },
         "machine_note": "owner_i7_7700K_4c8t_cpu_saturated",
-        "do_not_abort_for_source_experiment": true
+        "do_not_abort_for_source_experiment": false,
+        "blocking": false,
+        "source_note": "QLever live feasibility gate passed; stopping the multi-hour full-dump stage is allowed because the validated raw snapshot remains retained locally."
       },
       "source_alternatives": {
         "research_document": "docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md",
         "researched_at": "2026-09-18",
         "official_exact_taxonomy_subset_download_found": false,
         "preferred_future_experiment": "qlever_selective_export",
-        "qlever_status": "DIAGNOSTIC_NOT_PROMOTED",
+        "qlever_status": "LIVE_FEASIBILITY_VERIFIED_IMPLEMENTATION_NEXT",
         "qlever_promotion_gate": [
           "finish_20260914_control_stage",
           "export_category_memberships",
@@ -1421,7 +1425,69 @@
         ],
         "wikimedia_enterprise_snapshot_role": "future_chunked_full_source_transport_candidate_not_semantic_subset",
         "wdumper_role": "experiment_only",
-        "derived_prebuilt_subsets_role": "diagnostic_or_acceleration_benchmark_not_canonical"
+        "derived_prebuilt_subsets_role": "diagnostic_or_acceleration_benchmark_not_canonical",
+        "preferred_fast_acquisition": "qlever_selective_export",
+        "endpoint": "https://qlever.dev/api/wikidata",
+        "membership_semantics": "all_valued_statements_via_p_ps_to_match_current_json_importer",
+        "truthy_distinct_candidates": 1836982,
+        "all_statement_distinct_candidates": 1838292,
+        "all_statement_minus_truthy": 1309,
+        "all_statement_delta_pct": 0.0713,
+        "measured_exports": {
+          "membership": {
+            "rows": 1873657,
+            "raw_bytes": 110808092,
+            "gzip_bytes": 6461848,
+            "wall_seconds": 5.712,
+            "semantics": "truthy_probe"
+          },
+          "core": {
+            "rows": 1837356,
+            "raw_bytes": 231402225,
+            "gzip_bytes": 52748272,
+            "wall_seconds": 20.253
+          },
+          "aliases": {
+            "rows": 629114,
+            "raw_bytes": 45199372,
+            "gzip_bytes": 8247092,
+            "wall_seconds": 5.572
+          },
+          "external_ids": {
+            "rows": 986509,
+            "raw_bytes": 101222416,
+            "gzip_bytes": 13366879,
+            "wall_seconds": 6.749
+          },
+          "selective_gzip_bytes_truthy_probe": 80824091,
+          "pinned_qrank_bytes": 105533721,
+          "combined_selective_plus_qrank_bytes": 186357812
+        },
+        "field_coverage_truthy_probe": {
+          "de_label": 753117,
+          "en_label": 1589808,
+          "de_alias": 106646,
+          "en_alias": 312332,
+          "de_description": 777755,
+          "en_description": 1560028,
+          "dewiki": 217047,
+          "enwiki": 645901,
+          "whitelisted_external_id": 750408
+        },
+        "bud_spencer_live_probe": {
+          "qid": "Q221074",
+          "labels_de_en": true,
+          "descriptions_de_en": true,
+          "sitelinks": 74,
+          "de_alias": "Carlo Pedersoli",
+          "imdb": "nm0817881",
+          "discogs": "448484",
+          "musicbrainz": "bc013c43-e442-4e06-a9fb-30991954d66d"
+        },
+        "exact_endpoint_snapshot_retrieval_guaranteed": false,
+        "build_policy": "freeze_qlever_response_artifacts_locally_with_exact_queries_timestamps_taxonomy_hash_row_counts_sha256_and_semantic_fingerprint",
+        "full_dump_role": "optional_dated_validation_control_retained_locally",
+        "full_dump_stage_blocking": false
       }
     }
   }
