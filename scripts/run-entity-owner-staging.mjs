@@ -38,7 +38,7 @@ async function runNode(script, scriptArgs) {
 await runNode('scripts/stage-wikidata-entities.mjs', [
   '--input', bootstrap.wikidata.path,
   '--snapshot', bootstrap.wikidata.snapshot_label,
-  '--source-url', bootstrap.wikidata.url,
+  '--source-url', bootstrap.wikidata.canonical_url || bootstrap.wikidata.url,
   '--input-sha256', bootstrap.wikidata.local_sha256,
 ]);
 

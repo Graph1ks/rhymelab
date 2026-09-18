@@ -23,7 +23,25 @@
         "official_checksum_algorithm": "sha1",
         "official_checksum": "0a985a65262a665fa33808c7d40a1d42ad28d62c",
         "checksum_source_url": "https://dumps.wikimedia.org/wikidatawiki/entities/20260914/wikidata-20260914-sha1sums.txt",
-        "observed_published_at": "2026-09-15T23:15:00Z"
+        "observed_published_at": "2026-09-15T23:15:00Z",
+        "transport_urls": [
+          {
+            "id": "acc-umu-se",
+            "role": "primary_mirror",
+            "url": "https://ftp.acc.umu.se/mirror/wikimedia.org/other/wikibase/wikidatawiki/20260914/wikidata-20260914-all.json.bz2"
+          },
+          {
+            "id": "your-org",
+            "role": "secondary_mirror",
+            "url": "https://dumps.wikimedia.your.org/wikidatawiki/entities/20260914/wikidata-20260914-all.json.bz2"
+          },
+          {
+            "id": "wikimedia-origin",
+            "role": "origin_fallback",
+            "url": "https://dumps.wikimedia.org/wikidatawiki/entities/20260914/wikidata-20260914-all.json.bz2"
+          }
+        ],
+        "transport_policy": "mirrors_may_supply_identical_pinned_bytes_but_acceptance_is_only_by_exact_size_official_wikimedia_sha1_and_local_sha256"
       }
     },
     {

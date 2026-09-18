@@ -166,6 +166,18 @@ test('owner source registry pins dated Wikidata snapshot and local-pinned QRank 
     '0a985a65262a665fa33808c7d40a1d42ad28d62c',
   );
   assert.equal(wikidata.selected_owner_snapshot.official_checksum_algorithm, 'sha1');
+  assert.deepEqual(
+    wikidata.selected_owner_snapshot.transport_urls.map((row) => [row.id, row.role]),
+    [
+      ['acc-umu-se', 'primary_mirror'],
+      ['your-org', 'secondary_mirror'],
+      ['wikimedia-origin', 'origin_fallback'],
+    ],
+  );
+  assert.equal(
+    wikidata.selected_owner_snapshot.transport_urls[2].url,
+    wikidata.selected_owner_snapshot.url,
+  );
 
   assert.equal(qrank.selected_owner_snapshot_policy.retrieval_date, '2026-09-18');
   assert.equal(qrank.selected_owner_snapshot_policy.filename, 'qrank-20260918.csv.gz');
