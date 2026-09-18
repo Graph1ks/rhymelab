@@ -180,13 +180,24 @@ coverage diagnostic fingerprint
 
 PR #70 implemented selective qualified Wikidata P898 source evidence, but the owner explicitly did **not** run the new P898 owner workflow. No full-data P898 result is accepted or claimed. Do not execute that deferred Entity gate before Phase 12B.
 
+Phase 12B1/12B2 tooling checkpoint:
+
+```text
+source registry        sources/en/phase12b-sources-v1.json
+bootstrap              npm run en:sources:bootstrap
+diagnostics            npm run en:sources:diagnose
+bootstrap report       data/local/en-source-bootstrap-v1-report.json
+diagnostic report      data/local/en-source-diagnostics-v1.json
+```
+
+The source tooling is implemented, but the owner-local ~2.7 GB Kaikki bootstrap/full diagnostic has **not** been run yet. No 12B2 coverage result, final English Writer row count, G2P decision, or English runtime database is accepted or frozen at this checkpoint.
+
 Immediate next engineering gate:
 
-1. versioned English source manifests;
-2. owner-local source bootstrap/checksums;
-3. source diagnostic over Kaikki + CMUdict + ESDB + wordfreq;
-4. only then English phonology fixture/analyzer/scorer;
-5. then materialize the first separate English Writer DB candidate.
+1. run the owner-local English source bootstrap and capture verified SHA-256/source metadata;
+2. run and review the full Kaikki + CMUdict + ESDB + wordfreq source diagnostic;
+3. only then design the English phonology fixture/analyzer/scorer;
+4. then materialize the first separate English Writer DB candidate.
 
 Proposed English DB target:
 

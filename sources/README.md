@@ -59,6 +59,39 @@ data/work/de-phrase-catalog-v1/
 
 The bootstrap reuses the existing Kaikki source cache when available and verifies the frozen Leipzig archive SHA-256 values before extracting sentence files.
 
+
+## English Writer Phase 12B source bootstrap and diagnostics
+
+Phase 12B1/12B2 uses the versioned source registry:
+
+```text
+sources/en/phase12b-sources-v1.json
+```
+
+Owner-local bootstrap:
+
+```bash
+npm run en:sources:bootstrap
+```
+
+The bootstrap keeps raw artifacts under the gitignored `data/raw/en/...` tree, verifies content-addressed GitHub artifacts against pinned Git blob IDs, computes local SHA-256 values for every source, and guards the moving Kaikki raw URL with the pinned Wiktionary dump/extraction metadata before a fresh download.
+
+Source diagnostics:
+
+```bash
+npm run en:sources:diagnose
+```
+
+The diagnostic streams the raw English Wiktextract gzip and measures lexical/form, proper-name, history/register, pronunciation, CMUdict exact-match, ESDB disagreement/overlap, and wordfreq ranked-coverage evidence. It does **not** freeze the final English Writer row count, run G2P, or materialize the English runtime database.
+
+Generated owner outputs remain gitignored:
+
+```text
+data/local/en-source-bootstrap-v1-report.json
+data/local/en-source-diagnostics-v1.json
+```
+
+
 ## Local build
 
 The standard local source bootstrap is:

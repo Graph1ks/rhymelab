@@ -44,6 +44,8 @@
     "de:core": "node scripts/build-de-rhyme-core.mjs",
     "de:core:verify": "node scripts/verify-de-rhyme-core.mjs data/de/core",
     "de:core:bootstrap": "node scripts/bootstrap-de-rhyme-core-local.mjs",
+    "en:sources:bootstrap": "node --no-warnings scripts/bootstrap-en-writer-sources-local.mjs",
+    "en:sources:diagnose": "node --no-warnings scripts/diagnose-en-writer-sources.mjs",
     "de:publish": "node scripts/build-de-rhyme-publish.mjs",
     "de:publish:v3": "node scripts/build-de-rhyme-publish.mjs --writer-lexical-v3",
     "de:publish:verify": "node scripts/verify-de-rhyme-publish.mjs data/de/publish",

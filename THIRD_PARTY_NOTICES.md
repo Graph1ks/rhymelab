@@ -78,6 +78,38 @@ Copyright: Carnegie Mellon University. The upstream license permits redistributi
 
 Phase 12A3 uses this artifact only to measure source-backed North American English token coverage over unresolved Entity names. It is not silently converted into German pronunciation evidence or enabled in the German runtime.
 
+
+## Phase 12B English Writer source stack
+
+The Phase 12B English Writer source registry is:
+
+`sources/en/phase12b-sources-v1.json`
+
+Raw source artifacts and generated diagnostics are owner-local and are not committed to this repository.
+
+### English Wiktionary via Kaikki / Wiktextract
+
+RhymeLab may locally download the raw English-Wiktionary Wiktextract JSONL artifact distributed through Kaikki and stream-filter records with `lang_code === "en"`.
+
+The project records the extracted Wiktionary data licensing as **CC BY-SA + GFDL**. Wiktextract software is separate from the extracted Wiktionary content. Redistribution of source-derived data must satisfy the applicable Wiktionary attribution/share-alike/GFDL obligations.
+
+### CMU Pronouncing Dictionary
+
+Phase 12B deliberately reuses the already documented pinned CMUdict revision above as an exact en-US pronunciation overlay/control. The Phase 12B registry carries the same commit and Git blob identifiers; it does not silently move the source.
+
+### English Speller Database / SCOWL v2
+
+RhymeLab may locally use the English Speller Database / SCOWL v2 source master from `en-wl/wordlist` as secondary spelling, dialect, variant, inflection and lexical-quality evidence.
+
+The Phase 12B registry pins a specific upstream commit and records the upstream `Copyright` notice location. The combined ESDB work is distributed under permissive terms with source/component notices that must be preserved as required. RhymeLab does not treat this source as pronunciation or fine-grained frequency truth.
+
+### wordfreq English data
+
+RhymeLab may locally use the pinned English large wordfreq data artifact as commonness/ranking evidence only.
+
+The wordfreq project code is Apache-2.0; its bundled frequency data carries separate attribution/share-alike obligations documented upstream, including **CC BY-SA 4.0** for redistributed data. RhymeLab does not relicense that data under the repository's root license and does not add wordfreq as a runtime dependency.
+
+
 ## Trademarks and named entities
 
 `data/supplemental/modern-entities.json` contains names of third-party brands, platforms, companies, products, and services for linguistic/pronunciation purposes. Their inclusion does not claim ownership of those names or marks and does not imply affiliation, sponsorship, or endorsement.
