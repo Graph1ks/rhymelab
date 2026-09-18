@@ -171,7 +171,7 @@ test('11C1 resolver keeps lowercase lexical tu separate from uppercase TU entity
     phraseDb.exec('PRAGMA foreign_keys=ON;');
     createPhraseCatalogStorage(phraseDb);
     const lowerId = insertPhrase(phraseDb, 'tu das');
-    const upperId = insertPhrase(phraseDb, 'TU das');
+    const upperId = insertPhrase(phraseDb, 'TU keine');
 
     const result = materializePhrasePronunciations(phraseDb, writerDb);
     assert.equal(result.readyPhrases, 2);
@@ -183,7 +183,7 @@ test('11C1 resolver keeps lowercase lexical tu separate from uppercase TU entity
       'SELECT ipa FROM phrase_pronunciation WHERE phrase_id=? AND variant_rank=1',
     ).get(upperId);
     assert.equal(lower.ipa, 'tuː‿das');
-    assert.equal(upper.ipa, 'teːˈʔuː‿das');
+    assert.equal(upper.ipa, 'teːˈʔuː‿ˈkaɪ̯nə');
 
     const lowerResolution = phraseDb.prepare(
       'SELECT writer_surface,evidence_json FROM phrase_token_pronunciation_resolution WHERE phrase_id=? AND token_index=0',
