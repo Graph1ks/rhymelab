@@ -1,6 +1,6 @@
 # English Coverage Funnel Audit v1
 
-Status: **implemented / owner full-data run pending**
+Status: **owner baseline complete / publish-history classification fix implemented / A/B rerun pending**
 
 ## Question
 
@@ -118,3 +118,99 @@ Before Phase 12B6 ranking work proceeds, inspect at least:
 7. the direct German-vs-English runtime population comparison.
 
 Broad G2P remains disabled. A coverage gap is evidence for source/composition/policy work, not automatic permission to guess pronunciation.
+
+
+## Owner baseline — 2026-09-18
+
+The first full-data audit confirms that the small English DB is primarily a **population-cut issue**, not a SQLite compression anomaly.
+
+```text
+broad Writer candidates             1,084,050
+published surfaces                    147,904
+default eligible                       72,946
+
+English ranked published              106,779
+English unranked published             41,125
+English ranked share                    72.19%
+
+German ranked forms                   260,450
+German unranked forms                 577,759
+German ranked share                     31.07%
+```
+
+The accepted German Writer therefore contains roughly fourteen times as many unranked long-tail forms as the current English candidate.
+
+Frequency-qualified English baseline:
+
+```text
+                         Top 10k    Top 50k    Top 100k
+Wiktionary lexical        99.46%      95.43%       87.53%
+source pronunciation      99.09%      91.42%       74.43%
+published                 98.56%      88.34%       69.75%
+analyzed en-US            98.25%      85.82%       64.66%
+default eligible          89.03%      72.00%       50.46%
+```
+
+This separates three problems:
+
+1. the core Top-10k pronunciation inventory is already strong;
+2. default eligibility suppresses too many otherwise published high-frequency words;
+3. source-backed pronunciation and lexical coverage collapse materially through the Top-50k/Top-100k tail.
+
+The initial hypothesis that listed forms are the dominant problem is **not supported**: only 111 Top-100k losses were in the old listed-form-without-independent-pronunciation bucket.
+
+The dominant Top-100k baseline losses were:
+
+```text
+no source-backed pronunciation       17,667
+not Wiktionary lexical candidate     12,469
+explicit proper-name only            11,772
+published without analyzed en-US      3,705
+historical-only                       2,670
+```
+
+## Confirmed historical-only classification defect
+
+The baseline publish policy classified a complete Wiktionary POS entry as historical whenever any collected sense tag was `archaic`, `obsolete`, `historical` or `dated`.
+
+Because the implementation flattened record tags and every sense tag into one set before classifying the entry, a normal current word with one old sense could become historical evidence.
+
+The symptom is large enough to require correction before ranking:
+
+```text
+Top-10k historical-only exclusions      567
+Top-50k historical-only exclusions    1,829
+Top-100k historical-only exclusions   2,670
+```
+
+The candidate fix changes this rule to:
+
+> historical-only only when the record is explicitly historical at record level, or when it has historical senses and **no current sense**.
+
+Historical/archaic/dated flags remain preserved as provenance even when a current sense exists.
+
+The candidate publish policy is versioned separately as:
+
+```text
+en-source-backed-publish-v2-candidate
+```
+
+## Form-of recovery diagnostic
+
+The rerun also distinguishes missing source pronunciations that are source-backed morphological forms whose lemma already has an analyzed en-US pronunciation.
+
+This bucket is intentionally diagnostic only. It measures how much deterministic inflection-pronunciation composition could recover **without broad G2P**.
+
+## A/B rerun behavior
+
+If an older `data/local/en-coverage-audit-v1-report.json` exists, the next audit automatically compares the new result to it and reports deltas for:
+
+- published surfaces;
+- default-eligible surfaces;
+- ranked published/default surfaces;
+- Top-N published coverage;
+- Top-N analyzed en-US coverage;
+- Top-N default eligibility;
+- source-backed pronunciation coverage.
+
+The terminal summary also prints the 25 highest-ranked remaining missing/non-default examples.

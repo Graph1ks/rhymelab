@@ -71,6 +71,30 @@ test('form-of headword records retain source lemma target',()=>{
   assert.deepEqual(evidence.relation_kinds,['form_of']);
 });
 
+
+test('publish lexical evidence keeps mixed current+historical senses current',()=>{
+  const mixed=lexicalEvidenceForHeadword({
+    word:'charge',
+    pos:'noun',
+    senses:[
+      {glosses:['current meaning']},
+      {glosses:['obsolete meaning'],tags:['obsolete']},
+    ],
+  });
+  assert.equal(mixed.history.obsolete,true);
+  assert.equal(mixed.history.historical_only,false);
+
+  const oldOnly=lexicalEvidenceForHeadword({
+    word:'yclept',
+    pos:'verb',
+    senses:[
+      {tags:['archaic']},
+      {tags:['obsolete']},
+    ],
+  });
+  assert.equal(oldOnly.history.historical_only,true);
+});
+
 test('ESDB evidence merges independent lexical guard signals',()=>{
   let value=null;
   value=mergeEsdbEvidence(value,{size:60,region:'US',posClass:'v',archaic:false,uncommon:false,invalid:false});

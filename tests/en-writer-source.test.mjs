@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   classifyWiktionaryHistory,
+  classifyWiktionaryRecordHistory,
   classifyWiktionaryIpaLocale,
   decodeMsgpack,
   isSingleTokenSurface,
@@ -30,6 +31,41 @@ test('Wiktionary history and pronunciation tags stay source-driven', () => {
   assert.deepEqual(classifyWiktionaryIpaLocale({ ipa: '/tɛst/', tags: ['General-American'] }).us, true);
   assert.deepEqual(classifyWiktionaryIpaLocale({ ipa: '/tɛst/', tags: ['Received-Pronunciation'] }).uk, true);
   assert.deepEqual(classifyWiktionaryIpaLocale({ ipa: '/tɛst/', tags: ['phonemic'] }).unqualified, true);
+});
+
+
+test('Wiktionary historical-only requires no current lexical sense', () => {
+  const mixed = classifyWiktionaryRecordHistory({
+    word: 'test',
+    pos: 'noun',
+    senses: [
+      { glosses: ['current sense'] },
+      { glosses: ['older sense'], tags: ['archaic'] },
+    ],
+  });
+  assert.equal(mixed.archaic, true);
+  assert.equal(mixed.historical_only, false);
+  assert.equal(mixed.current_sense_count, 1);
+  assert.equal(mixed.historical_sense_count, 1);
+
+  const oldOnly = classifyWiktionaryRecordHistory({
+    word: 'olde',
+    pos: 'adjective',
+    senses: [
+      { tags: ['archaic'] },
+      { tags: ['obsolete'] },
+    ],
+  });
+  assert.equal(oldOnly.historical_only, true);
+  assert.equal(oldOnly.current_sense_count, 0);
+  assert.equal(oldOnly.historical_sense_count, 2);
+
+  const recordWide = classifyWiktionaryRecordHistory({
+    word: 'historic-form',
+    tags: ['obsolete'],
+    senses: [{ glosses: ['only sense'] }],
+  });
+  assert.equal(recordWide.historical_only, true);
 });
 
 test('CMUdict alternate pronunciations normalize to the base surface', () => {

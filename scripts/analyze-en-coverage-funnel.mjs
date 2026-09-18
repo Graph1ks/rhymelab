@@ -6,9 +6,8 @@ import { createGunzip, gunzipSync } from 'node:zlib';
 import { createInterface } from 'node:readline';
 import { dirname, join, resolve } from 'node:path';
 import {
-  classifyWiktionaryHistory,
+  classifyWiktionaryRecordHistory,
   classifyWiktionaryIpaLocale,
-  collectWiktionaryTags,
   decodeMsgpack,
   isWriterCandidateSurface,
   normalizeEnglishSurface,
@@ -36,6 +35,7 @@ const enDbPath=resolve(argValue('--en-db','data/local/rhymelab-en-v1.sqlite'));
 const deDbPath=resolve(argValue('--de-db','data/local/rhymelab-v5.sqlite'));
 const sourceDiagnosticsPath=resolve(argValue('--source-diagnostics',registry.diagnostics_report||'data/local/en-source-diagnostics-v1.json'));
 const outPath=resolve(argValue('--out','data/local/en-coverage-audit-v1-report.json'));
+const previousAudit=await safeJson(outPath);
 const sampleLimit=Math.max(10,Math.min(500,Number.parseInt(argValue('--sample-limit','100'),10)||100));
 const checkpoints=[1000,5000,10000,25000,50000,100000,150000,250000,500000];
 
@@ -100,6 +100,8 @@ const tracked=new Map(ranked.map((row)=>[row.normalized,{
   historical_lexical_evidence:false,
   proper_name_evidence:false,
   common_lexical_evidence:false,
+  relation_kinds:new Set(),
+  lemma_candidates:new Set(),
   publish:null,
 }]));
 
@@ -117,6 +119,7 @@ let rankedPronunciationVariants=0;
 const publishRanks=[];
 const defaultRanks=[];
 const publishEligibilityReasons=new Map();
+const publishByNormalized=new Map();
 
 for(const fileInfo of manifest.files||[]){
   const text=await readFile(join(publishDir,fileInfo.file),'utf8');
@@ -124,6 +127,7 @@ for(const fileInfo of manifest.files||[]){
     if(!line) continue;
     const row=JSON.parse(line);
     published+=1;
+    publishByNormalized.set(row.normalized,row);
     const rank=Number.isInteger(row.usage?.rank)?row.usage.rank:null;
     if(rank!==null){publishedRanked+=1;publishRanks.push(rank);}
     if(row.eligibility?.default_eligible){
@@ -165,11 +169,13 @@ for await(const line of kaikkiLines){
     const meta=tracked.get(head.normalized);
     if(meta){
       meta.lexical_headword=true;
-      const history=classifyWiktionaryHistory(collectWiktionaryTags(entry));
-      if(history.archaic||history.obsolete||history.historical||history.dated) meta.historical_lexical_evidence=true;
+      const history=classifyWiktionaryRecordHistory(entry);
+      if(history.historical_only) meta.historical_lexical_evidence=true;
       else meta.current_lexical_evidence=true;
       if(head.proper_name) meta.proper_name_evidence=true;
       else meta.common_lexical_evidence=true;
+      for(const kind of head.relation_kinds||[]) meta.relation_kinds.add(kind);
+      for(const lemma of head.lemma_candidates||[]) meta.lemma_candidates.add(lemma);
       for(const sound of entry.sounds||[]){
         const evidence=wiktionaryPronunciationEvidence(sound);
         if(!evidence) continue;
@@ -188,25 +194,35 @@ for await(const line of kaikkiLines){
     meta.lexical_listed_form=true;
     if(evidence.proper_name) meta.proper_name_evidence=true;
     else meta.common_lexical_evidence=true;
+    for(const kind of evidence.relation_kinds||[]) meta.relation_kinds.add(kind);
+    for(const lemma of evidence.lemma_candidates||[]) meta.lemma_candidates.add(lemma);
   }
 
   if(englishEntries%500000===0) console.log(`  English entries ${englishEntries.toLocaleString('en-US')}`);
+}
+
+function analyzedLemmaCandidates(meta){
+  return [...meta.lemma_candidates].filter((lemma)=>publishByNormalized.get(lemma)?.eligibility?.analyzed_en_us);
 }
 
 function classify(meta){
   if(meta.publish){
     if(meta.publish.eligibility?.default_eligible) return 'default_eligible';
     const reasons=meta.publish.eligibility?.exclusion_reasons||[];
-    if(reasons.includes('missing_analyzed_en_us_pronunciation')) return 'published_no_analyzed_en_us';
+    if(reasons.includes('no_analyzed_en_us_pronunciation')) return 'published_no_analyzed_en_us_pronunciation';
     if(reasons.includes('historical_only')) return 'published_historical_only';
-    if(reasons.includes('proper_name_only')) return 'published_proper_name_only';
+    if(reasons.includes('explicit_proper_name_only')) return 'published_explicit_proper_name_only';
     if(reasons.includes('esdb_invalid_variant')) return 'published_esdb_invalid';
     return reasons.length?`published_${reasons.join('+')}`:'published_non_default_other';
   }
   if(!meta.strict_publish_surface) return 'not_strict_publish_surface';
   if(!meta.lexical_headword&&!meta.lexical_listed_form) return 'not_wiktionary_lexical_candidate';
-  if(meta.lexical_listed_form&&!meta.lexical_headword&&!meta.cmudict) return 'listed_form_without_independent_pronunciation';
-  if(!meta.wikt_ipa&&!meta.cmudict) return 'no_source_backed_pronunciation';
+  if(!meta.wikt_ipa&&!meta.cmudict){
+    const formRelation=meta.relation_kinds.has('form_of')||meta.relation_kinds.has('listed_form_of');
+    if(formRelation&&analyzedLemmaCandidates(meta).length) return 'form_of_with_analyzed_en_us_lemma';
+    if(formRelation) return 'form_of_without_analyzed_en_us_lemma';
+    return 'no_source_backed_pronunciation';
+  }
   return 'unexpected_source_backed_publish_gap';
 }
 
@@ -265,6 +281,9 @@ const missingHighFrequency=classified
     wiktionary_gb_ipa:row.wikt_gb_ipa,
     wiktionary_unqualified_ipa:row.wikt_unqualified_ipa,
     cmudict:row.cmudict,
+    relation_kinds:[...row.relation_kinds].sort(),
+    lemma_candidates:[...row.lemma_candidates].sort(),
+    analyzed_en_us_lemma_candidates:analyzedLemmaCandidates(row),
     publish_exclusion_reasons:row.publish?.eligibility?.exclusion_reasons||[],
   }));
 
@@ -313,6 +332,35 @@ const [deDb,enDb,sourceDiagnostics]=await Promise.all([
   sqliteSummary(enDbPath,'en'),
   safeJson(sourceDiagnosticsPath),
 ]);
+
+function checkpointMap(report){
+  return new Map((report?.wordfreq_universe?.checkpoints||[]).map((row)=>[row.top_n_requested,row]));
+}
+function previousComparison(){
+  if(!previousAudit||previousAudit.schema!=='rhymelab-en-coverage-audit-v1') return null;
+  const previous=checkpointMap(previousAudit);
+  const checkpoint_deltas=checkpointReport.map((row)=>{
+    const old=previous.get(row.top_n_requested);
+    if(!old) return {top_n:row.top_n_requested,previous_available:false};
+    return {
+      top_n:row.top_n_requested,
+      published_delta:row.published.count-old.published.count,
+      analyzed_en_us_delta:row.analyzed_en_us.count-old.analyzed_en_us.count,
+      default_eligible_delta:row.default_eligible.count-old.default_eligible.count,
+      source_backed_pronunciation_delta:row.source_backed_pronunciation.count-old.source_backed_pronunciation.count,
+    };
+  });
+  return {
+    previous_publish_fingerprint:previousAudit.sources?.publish_fingerprint??null,
+    current_publish_fingerprint:manifest.semantic_fingerprint,
+    fingerprints_changed:(previousAudit.sources?.publish_fingerprint??null)!==manifest.semantic_fingerprint,
+    published_surfaces_delta:published-(previousAudit.publish_funnel?.published_surfaces??published),
+    default_eligible_surfaces_delta:defaultEligible-(previousAudit.publish_funnel?.default_eligible_surfaces??defaultEligible),
+    ranked_published_surfaces_delta:publishedRanked-(previousAudit.publish_funnel?.ranked_published_surfaces??publishedRanked),
+    ranked_default_surfaces_delta:defaultRanked-(previousAudit.publish_funnel?.ranked_default_surfaces??defaultRanked),
+    checkpoint_deltas,
+  };
+}
 
 publishRanks.sort((a,b)=>a-b);
 defaultRanks.sort((a,b)=>a-b);
@@ -378,11 +426,12 @@ const report={
     english:enDb,
     warning:'German v5 contains mature Writer anchor/morphology materializations; English v1 is still a lean candidate DB. File size is not an apples-to-apples lexical coverage metric.',
   },
+  comparison_to_previous_audit:previousComparison(),
   diagnosis_hints:{
     pronunciation_bottleneck:
       'If top-N Wiktionary lexical coverage is high but source-backed pronunciation/publish coverage drops sharply, pronunciation acquisition/composition is the primary bottleneck.',
-    listed_form_bottleneck:
-      'A large listed_form_without_independent_pronunciation bucket means valid inflections are being discarded because Phase 12B4 does not compose pronunciation from lemmas/forms.',
+    form_composition_bottleneck:
+      'A large form_of_with_analyzed_en_us_lemma bucket is a direct opportunity for deterministic source-backed inflection pronunciation composition without broad G2P.',
     locale_bottleneck:
       'A large published_no_analyzed_en_us bucket means source pronunciation exists but cannot enter the default en-US profile under current provenance/analyzer rules.',
     lexical_bottleneck:
@@ -409,5 +458,7 @@ console.log(JSON.stringify({
   top_100000:checkpointReport.find((x)=>x.top_n_requested===100000),
   german_runtime:deDb,
   english_runtime:enDb,
+  highest_ranked_missing_examples:missingHighFrequency.slice(0,25),
+  comparison_to_previous_audit:report.comparison_to_previous_audit,
   report:outPath,
 },null,2));

@@ -240,15 +240,27 @@ indexed-vs-scan mismatches              0 / 80
 
 12B4 publish repeatability also passed with the unchanged `4087cc…6124` fingerprint.
 
-The small English SQLite size must **not** be interpreted as adequate lexical coverage by itself. A dedicated Phase 12B6 coverage-funnel audit is now the next gate before ranking acceptance:
+The Phase 12B6 coverage-funnel owner baseline is now complete and confirms that the small English DB is primarily a population-cut issue, not a compression anomaly.
 
-```powershell
-npm run en:coverage:audit
+```text
+English published forms             147,904
+English ranked / unranked     106,779 / 41,125
+English ranked share                 72.19%
+
+German forms                        838,209
+German ranked / unranked      260,450 / 577,759
+German ranked share                  31.07%
+
+Top-10k  publish / default      98.56% / 89.03%
+Top-50k  publish / default      88.34% / 72.00%
+Top-100k publish / default      69.75% / 50.46%
 ```
 
-Contract: `docs/ENGLISH_COVERAGE_AUDIT_V1.md`.
+Top-100k dominant losses are 17,667 without source-backed pronunciation, 12,469 without an eligible Wiktionary lexical candidate, 11,772 explicit-proper-name-only rows, 3,705 published without analyzed en-US pronunciation, and 2,670 historical-only rows.
 
-It measures Top-N wordfreq coverage, ranked vs unranked English forms, loss reasons between lexical source -> pronunciation -> publish -> en-US default eligibility, highest-frequency missing words, and a direct local comparison against the accepted German Writer DB.
+A concrete history-classification defect was identified: record tags and all sense tags were flattened before history classification, so one archaic/obsolete/dated sense could classify an otherwise current entry as historical evidence. The candidate fix uses sense-aware `historical_only` semantics and versions the publish policy as `en-source-backed-publish-v2-candidate`.
+
+The current gate is an owner A/B rebuild of publish -> DB -> coverage audit before any ranking work.
 
 Proposed English DB target:
 
