@@ -169,7 +169,42 @@ semantic fingerprint
 Bud Spencer             person.actor / Tier A / PASS
 ```
 
-Current milestone is **12A2 — Wikidata + QRank staging and category-cut diagnostics**.
+Phase 12A2 popularity/cut selection is now **ACCEPTED / FROZEN as the materialization baseline**.
+
+Owner Hybrid-v2 evidence:
+
+```text
+status                         ok
+semantic fingerprint           337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201
+v1 anchor matches              true
+all sentinels pass             true
+Bud Spencer                    KEEP / Tier A
+v2 distinct retained           1,077,644
+v1 -> v2 membership churn           0.41%
+hard-gate categories v2        none
+```
+
+The accepted set remains inside the hard 500k–1.2M range and above the preferred 600k–900k working range. The preferred range is now a separate, nonblocking product-budget concern; do not silently retune the accepted popularity policy while pronunciation coverage is being measured.
+
+Current milestone is **12A3 — retained Entity catalog + conservative DE pronunciation/phonetic runtime + RhymePad Entity channel**.
+
+Contract: `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`.
+
+Implemented candidate commands:
+
+```text
+npm run entity:catalog:materialize
+npm run entity:pronunciation
+npm run entity:runtime:build
+```
+
+The catalog materializer independently reproduces the accepted Hybrid-v2 category cuts from the existing stage DB and refuses a fingerprint/count mismatch. Pronunciation v1 preserves eligible existing `de-DE` rows and otherwise composes only names whose every token resolves exactly against Writer-v5. Unknown tokens remain unresolved; there is no broad G2P, guessed IPA or runtime network access.
+
+The phonetic layer uses `de-ipa-v2`, materializes bounded `entity_rhyme_anchor` lookup keys, and exposes an optional third Writer/RhymePad channel. RhymePad v14 remains checksum-verified; the integration layer adds Entity-only scope, Rapper/Musician/Actor/etc. category filters, multi-category badges and IPA display. If the Entity DB/runtime is absent, Word + Phrase/Mosaic remain available unchanged.
+
+Owner full-data pronunciation coverage and repeatability are the next gate. No QLever fetch, entity restage or QRank restage is required.
+
+
 
 Owner source bootstrap is now **ACCEPTED**:
 
