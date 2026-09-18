@@ -32,9 +32,14 @@ for(const file of manifest.files||[]){
     }
     previousNormalized=row.normalized;
     for(const pronunciation of row.pronunciations){
-      if(!['wiktionary','cmudict','derived_punctuation_alias'].includes(pronunciation.source)) throw new Error(`Unsupported pronunciation source: ${pronunciation.source}`);
+      if(!['wiktionary','cmudict','derived_punctuation_alias','derived_inflection'].includes(pronunciation.source)) throw new Error(`Unsupported pronunciation source: ${pronunciation.source}`);
       if(pronunciation.source==='cmudict'&&!pronunciation.locales.includes('en-US')) throw new Error(`CMUdict pronunciation without en-US locale: ${row.normalized}`);
       if(pronunciation.source==='derived_punctuation_alias'&&!pronunciation.locales.includes('en-US')) throw new Error(`Derived punctuation alias without en-US locale: ${row.normalized}`);
+      if(pronunciation.source==='derived_inflection'){
+        if(!pronunciation.locales.includes('en-US')) throw new Error(`Derived inflection without en-US locale: ${row.normalized}`);
+        if(pronunciation.notation!=='ipa') throw new Error(`Derived inflection must use IPA notation: ${row.normalized}`);
+        if(!pronunciation.tags?.includes('derived-inflection')) throw new Error(`Derived inflection missing provenance tag: ${row.normalized}`);
+      }
     }
     if(row.eligibility?.default_eligible){
       defaultEligible+=1;
