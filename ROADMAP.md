@@ -360,6 +360,8 @@ Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
 
 #### 11D4. Mosaic query-domain + candidate-quality revision — CURRENT
 
+Fixture CI gate: **PASS** (`validate`, run 261).
+
 Candidate implementation now exists at fixture level:
 
 - additive full-surface query domain;
