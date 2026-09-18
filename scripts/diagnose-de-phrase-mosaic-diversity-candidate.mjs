@@ -98,18 +98,23 @@ function findByWindow(result, windowId) {
   return candidateSummary(row);
 }
 
-function top20Change(before, after) {
+function top20Change(before, after, annotated) {
   const beforeIds = before.slice(0, 20).map((candidate) => candidate.windowId);
   const afterIds = after.slice(0, 20).map((candidate) => candidate.windowId);
   const afterSet = new Set(afterIds);
   const beforeSet = new Set(beforeIds);
+  const annotatedByWindow = new Map(
+    (annotated || []).map((candidate) => [candidate.windowId, candidate]),
+  );
 
   return {
     changed: JSON.stringify(beforeIds) !== JSON.stringify(afterIds),
     suppressedFromOriginalTop20: before
       .slice(0, 20)
       .filter((candidate) => !afterSet.has(candidate.windowId))
-      .map(candidateSummary),
+      .map((candidate) =>
+        candidateSummary(annotatedByWindow.get(candidate.windowId) || candidate)
+      ),
     promotedFromBelowOriginalTop20: after
       .slice(0, 20)
       .filter((candidate) => !beforeSet.has(candidate.windowId))
@@ -206,6 +211,7 @@ try {
     const change = top20Change(
       v2.writerPageCandidates,
       diversity.diversifiedWriterPageCandidates,
+      diversity.candidates,
     );
 
     queryReports.push({
