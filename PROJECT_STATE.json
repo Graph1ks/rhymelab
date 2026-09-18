@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11D4_RETRIEVAL_CANDIDATE_FIXTURE",
+  "phase": "GERMAN_PHASE_11D4_OWNER_AB_QUALITY_PASS_REPEATABILITY_PENDING",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11d4_retrieval_candidate_implemented_fixture_ci_pending",
+    "status": "phase_11d4_owner_ab_quality_pass_repeatability_pending",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11D4_FIXTURE_GATE_THEN_OWNER_AB_COMPARISON",
+    "next_milestone": "PHASE_11D4_REPEATABILITY_GATE",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -628,7 +628,7 @@
       ]
     },
     "phase_11d4_revision": {
-      "status": "IMPLEMENTED_FIXTURE_CI_PENDING",
+      "status": "OWNER_AB_QUALITY_PASS_REPEATABILITY_PENDING",
       "preserve_11d1_window_fingerprint": "24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac",
       "preserve_11d2_anchor_fingerprint": "55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae",
       "goals": [
@@ -667,11 +667,120 @@
       "ab_diagnostic_command": "npm run phrase:mosaic:diagnose:v2",
       "ab_diagnostic_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json",
       "fixture_gate_pending_ci": false,
-      "owner_full_build_completed": false,
-      "owner_ab_diagnostic_completed": false,
+      "owner_full_build_completed": true,
+      "owner_ab_diagnostic_completed": true,
       "fixture_gate_passed": true,
       "ci_run": 261,
-      "ci_conclusion": "success"
+      "ci_conclusion": "success",
+      "quality_gate_passed": true,
+      "repeatability_confirmed": false,
+      "owner_full_gate_accepted": false,
+      "full_data_build_evidence": {
+        "built_at": "2026-09-18T02:20:42.602Z",
+        "database_bytes": 837390336,
+        "database_mib": 798.6,
+        "database_growth_from_11d2_mib": 111.84,
+        "accepted_source_v1_fingerprint": "55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae",
+        "accepted_source_window_fingerprint": "24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac",
+        "source_v1_fingerprint_unchanged": true,
+        "anchor_count": 356693,
+        "distinct_vowel_family_coda_keys": 66904,
+        "candidate_fingerprint": "9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059"
+      },
+      "owner_ab_evidence": {
+        "built_at": "2026-09-18T02:20:45.568Z",
+        "baseline_semantic_fingerprint": "294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c",
+        "baseline_fingerprint_matches_accepted": true,
+        "candidate_semantic_fingerprint": "4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd",
+        "baseline_queries_with_anchors": 9,
+        "candidate_queries_with_anchors": 10,
+        "baseline_no_anchor_words": [
+          "Zeit",
+          "Nacht",
+          "Musik"
+        ],
+        "candidate_no_anchor_words": [
+          "Zeit",
+          "Nacht"
+        ],
+        "candidate_full_surface_words": [
+          "verloren",
+          "Gedanken",
+          "Musik"
+        ],
+        "baseline_returned_candidates": 1771,
+        "candidate_returned_candidates": 1237,
+        "baseline_weak_candidates": 989,
+        "candidate_weak_candidates": 42,
+        "baseline_weak_share_pct": 55.84,
+        "candidate_weak_share_pct": 3.4,
+        "weak_unrelated_filtered": 833,
+        "baseline_final_fallback_assignments": 1280,
+        "candidate_final_fallback_assignments": 575,
+        "baseline_final_fallback_assignment_share_pct": 65.98,
+        "candidate_final_fallback_assignment_share_pct": 31.01,
+        "candidate_vowel_family_assignments": 375,
+        "baseline_mean_elapsed_ms": 31,
+        "candidate_mean_elapsed_ms": 35.9,
+        "latency_delta_ms": 4.9,
+        "latency_delta_pct": 15.81,
+        "preserved_top_examples": {
+          "Arbeitsweise": {
+            "canonical": "wie aus dem Ei gepellt sein",
+            "type": "family",
+            "score": 0.8391
+          },
+          "Liebe": {
+            "canonical": "dastehen wie bestellt und nicht abgeholt",
+            "type": "multisyllabic_perfect",
+            "score": 1
+          },
+          "Freiheit": {
+            "canonical": "dabei seid",
+            "type": "multisyllabic_slant",
+            "score": 0.9196
+          },
+          "hitzefrei": {
+            "canonical": "sitzest beieinander",
+            "type": "family",
+            "score": 0.8477
+          }
+        },
+        "new_full_surface_examples": {
+          "Gedanken": {
+            "canonical": "notleidende Banken",
+            "type": "multisyllabic_slant",
+            "score": 0.9127
+          },
+          "Musik": {
+            "canonical": "K.-o.-Siegen",
+            "type": "multisyllabic_slant",
+            "score": 0.8606
+          }
+        },
+        "family_bridge_unique_example": {
+          "query": "Arbeitsweise",
+          "canonical": "nahm beiseite",
+          "type": "family",
+          "score": 0.8039,
+          "channel": "vowel_family_coda_class_only"
+        }
+      },
+      "quality_gate_rationale": [
+        "Musik gains full_surface mosaic retrieval while Zeit and Nacht remain outside the 2_plus_syllable mosaic model",
+        "weak share drops from 55.84 to 3.40 percent without losing established strong top examples",
+        "vowel_family_coda_class contributes 375 assignments and produces nonduplicate retrieval such as Arbeitsweise to nahm beiseite",
+        "final fallback assignment share drops from 65.98 to 31.01 percent",
+        "mean latency rises by 4.9 ms and remains acceptable for this diagnostic layer",
+        "accepted 11D3 baseline semantic fingerprint reproduces exactly"
+      ],
+      "remaining_product_quality_observations": [
+        "Musik top lexical surface K.-o.-Siegen is phonetically plausible but product-poor",
+        "Gedanken top notleidende Banken is phonologically strong but not automatically a strong songwriting suggestion",
+        "Leben leaves one weak consonance candidate after gating",
+        "Feuer correctly returns zero rather than forwarding 128 unrelated weak candidates"
+      ],
+      "interpretation": "retrieval_structure_passes;remaining_lexical_commonness_phrase_usefulness_and_diversity_problems_belong_to_11e_not_11d"
     }
   },
   "owner_measurement_outputs": {
@@ -693,13 +802,13 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_11d4_candidate_only_after_validate_green",
-    "run_npm_phrase_mosaic_retrieval_v2",
-    "run_npm_phrase_mosaic_diagnose_v2",
-    "require_11d3_baseline_fingerprint_294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c_inside_ab_run",
-    "review_Musik_full_surface_coverage_weak_share_family_channel_final_fallback_share_latency_and_known_strong_queries",
-    "accept_or_reject_11d4_before_11e",
-    "keep_phrase_ranking_deferred",
+    "merge_11d4_owner_ab_quality_evidence",
+    "repeat_npm_phrase_mosaic_retrieval_v2",
+    "repeat_npm_phrase_mosaic_diagnose_v2",
+    "require_candidate_fingerprint_9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059",
+    "require_candidate_semantic_fingerprint_4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd",
+    "require_accepted_11d3_baseline_fingerprint_294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c",
+    "if_repeatability_passes_accept_and_freeze_11d4_then_open_11e_phrase_writer_ranking",
     "keep_single_word_writer_frozen"
   ]
 }
