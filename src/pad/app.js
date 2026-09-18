@@ -7,6 +7,12 @@ const TYPE_LABELS = {
   multisyllabic_perfect:'Multisyllabic perfect',perfect:'Perfect rhyme',multisyllabic_slant:'Multisyllabic slant',
   family:'Rhyme family',slant:'Slant rhyme',assonance:'Assonance',consonance:'Consonance',weak:'No primary rhyme',
 };
+const ENTITY_CATEGORY_LABELS = {
+  'person.rapper':'Rapper','person.musician':'Musician','person.actor':'Actor','person.director':'Director',
+  'group.music_group':'Band / group','work.song':'Song','work.album':'Album','work.film':'Film',
+  'work.video_game':'Game','fictional.character':'Character','organization.car_brand':'Car brand',
+  'organization.fashion_house':'Fashion house','organization.company':'Company',
+};
 
 let uidCounter=0;
 function uid(){uidCounter+=1;return `song-${Date.now().toString(36)}-${uidCounter.toString(36)}`;}
@@ -129,34 +135,41 @@ function relationTypes(row){const out=[];if(row.primaryType&&RHYME_TYPES.include
 function mainType(row){return relationTypes(row)[0]||row.type||'weak';}
 function typeLabel(type){return TYPE_LABELS[type]||type.replaceAll('_',' ');}
 function resultScore(row,type=mainType(row)){if(type==='assonance'||type==='consonance'){const rel=(row.relations||[]).find((item)=>item.type===type);return Number(rel?.score||0);}return Number(row.score||0);}
+function entityCategoryLabel(category){return ENTITY_CATEGORY_LABELS[category]||String(category||'Entity').replaceAll('.',' / ');}
 function candidateHtml(row,type=mainType(row)){
-  const kind=row.resultKind==='phrase'?'PHRASE':'WORD',usage=row.resultKind==='phrase'?(row.usageCount?number(row.usageCount):'—'):(row.usageRank?`#${number(row.usageRank)}`:'—');
-  return `<div class="rhyme-candidate"><div class="candidate-main"><div class="candidate-title"><strong>${esc(row.word)}</strong><span class="candidate-kind">${kind}</span></div><div class="candidate-meta"><span class="badge ${esc(type)}">${esc(typeLabel(type))}</span><span>${Math.round(resultScore(row,type)*100)}%</span><span>${esc(row.syllableCount??'—')} syll.</span><span>${usage}</span></div></div><button class="use-candidate" type="button" data-candidate="${esc(row.word)}">Use</button></div>`;
+  const isPhrase=row.resultKind==='phrase',isEntity=row.resultKind==='entity';
+  const kind=isEntity?'ENTITY':isPhrase?'PHRASE':'WORD';
+  const usage=isEntity?(row.popularityTier?`Tier ${row.popularityTier}`:'—'):isPhrase?(row.usageCount?number(row.usageCount):'—'):(row.usageRank?`#${number(row.usageRank)}`:'—');
+  const entityCategories=isEntity?(row.entityCategories||[]).filter((item)=>item.retained!==false).slice(0,3).map((item)=>`<span class="entity-category-chip">${esc(entityCategoryLabel(item.category))}</span>`).join(''):'';
+  const ipa=isEntity&&row.ipa?`<span class="entity-ipa">/${esc(row.ipa)}/</span>`:'';
+  return `<div class="rhyme-candidate ${isEntity?'entity-candidate':''}"><div class="candidate-main"><div class="candidate-title"><strong>${esc(row.word)}</strong><span class="candidate-kind ${isEntity?'entity':''}">${kind}</span>${entityCategories}</div><div class="candidate-meta"><span class="badge ${esc(type)}">${esc(typeLabel(type))}</span><span>${Math.round(resultScore(row,type)*100)}%</span><span>${esc(row.syllableCount??'—')} syll.</span><span>${usage}</span>${ipa}</div></div><button class="use-candidate" type="button" data-candidate="${esc(row.word)}">Use</button></div>`;
 }
 function compactResults(data){
-  const rows=data.results||[],wordRows=rows.filter((row)=>row.resultKind!=='phrase').slice(0,10),phraseRows=rows.filter((row)=>row.resultKind==='phrase').slice(0,8);
+  const rows=data.results||[],wordRows=rows.filter((row)=>row.resultKind==='word').slice(0,10),phraseRows=rows.filter((row)=>row.resultKind==='phrase').slice(0,8),entityRows=rows.filter((row)=>row.resultKind==='entity').slice(0,10);
   const block=(label,items)=>items.length?`<section class="compact-channel"><div class="compact-channel-heading"><strong>${label}</strong><span>${items.length}</span></div>${items.map((row)=>candidateHtml(row)).join('')}</section>`:'';
-  return block('Words',wordRows)+block('Phrases / Mosaic',phraseRows)||'<div class="assist-status">No matching rhymes.</div>';
+  return block('Words',wordRows)+block('Phrases / Mosaic',phraseRows)+block('Entities',entityRows)||'<div class="assist-status">No matching rhymes.</div>';
 }
 function deepResults(data){
-  const rows=data.results||[],scope=$('#rhymeScope').value;const visible=rows.filter((row)=>scope!=='words'||row.resultKind!=='phrase').filter((row)=>scope!=='phrases'||row.resultKind==='phrase');
-  const chunks=[];for(const kind of ['word','phrase']){const kindRows=visible.filter((row)=>(row.resultKind==='phrase'?'phrase':'word')===kind);if(!kindRows.length)continue;for(const type of RHYME_TYPES){const typed=kindRows.filter((row)=>relationTypes(row).includes(type));if(!typed.length)continue;chunks.push(`<section class="rhyme-group"><div class="rhyme-group-heading"><strong>${kind==='word'?'Words':'Phrases / Mosaic'} · ${esc(typeLabel(type))}</strong><span>${typed.length}</span></div>${typed.map((row)=>candidateHtml(row,type)).join('')}</section>`);}}
+  const rows=data.results||[],scope=$('#rhymeScope').value;
+  const visible=rows.filter((row)=>scope==='all'||row.resultKind===scope.slice(0,-1));
+  const labels={word:'Words',phrase:'Phrases / Mosaic',entity:'Entities'};
+  const chunks=[];for(const kind of ['word','phrase','entity']){const kindRows=visible.filter((row)=>row.resultKind===kind);if(!kindRows.length)continue;for(const type of RHYME_TYPES){const typed=kindRows.filter((row)=>relationTypes(row).includes(type));if(!typed.length)continue;chunks.push(`<section class="rhyme-group ${kind}"><div class="rhyme-group-heading"><strong>${labels[kind]} · ${esc(typeLabel(type))}</strong><span>${typed.length}</span></div>${typed.map((row)=>candidateHtml(row,type)).join('')}</section>`);}}
   return chunks.join('')||'<div class="assist-status">No matching rhymes.</div>';
 }
 function presetToRequest(){
   if(store.mode==='rhyme')return {scope:$('#rhymeScope').value,type:$('#rhymeType').value};
-  const preset=$('#assistPreset').value;if(preset==='words'||preset==='phrases')return {scope:preset,type:'all'};if(RHYME_TYPES.includes(preset))return {scope:'all',type:preset};return {scope:'all',type:'all'};
+  const preset=$('#assistPreset').value;if(['words','phrases','entities'].includes(preset))return {scope:preset,type:'all'};if(RHYME_TYPES.includes(preset))return {scope:'all',type:preset};return {scope:'all',type:'all'};
 }
 function scheduleSearch(delay=320){clearTimeout(state.searchTimer);state.searchTimer=setTimeout(runSearch,delay);}
 async function runSearch(){
   const query=$('#rhymeQuery').value.trim();if(query.length<2){$('#assistStatus').textContent='Type in the editor to start local rhyme search.';$('#rhymeResults').innerHTML='';return;}
   state.searchAbort?.abort();state.searchAbort=new AbortController();const {scope,type}=presetToRequest();const deep=store.mode==='rhyme';
-  const params=new URLSearchParams({q:query,language:store.basis||'de',scope,type,word_limit:deep?'250':'36',word_pool:deep?'800':'220',phrase_limit:deep?'250':'36',phrase_pool:deep?'512':'128',phrase_per_channel:deep?'128':'32'});
+  const params=new URLSearchParams({q:query,language:store.basis||'de',scope,type,word_limit:deep?'250':'36',word_pool:deep?'800':'220',phrase_limit:deep?'250':'36',phrase_pool:deep?'512':'128',phrase_per_channel:deep?'128':'32',entity_limit:deep?'250':'36',entity_pool:deep?'256':'96',entity_category:$('#entityCategory').value||'all'});
   $('#assistStatus').classList.remove('error');$('#assistStatus').textContent=`Searching ${query} locally…`;
   try{
     const response=await fetch(`/api/writer?${params}`,{signal:state.searchAbort.signal});const data=await response.json();
     if(!response.ok)throw new Error((data.warnings||[]).map((item)=>item.message).filter(Boolean).join(' ')||data.error||data.status||'Search failed');
-    state.capabilities=data.capabilities||state.capabilities;const count=data.results?.length||0;$('#assistStatus').textContent=`${count} results · ${data.elapsedMs?`${Math.round(data.elapsedMs)} ms · `:''}RhymeLab local`;
+    state.capabilities=data.capabilities||state.capabilities;const count=data.results?.length||0;const counts=data.counts||{};const parts=[counts.words!=null?`${counts.words} words`:null,counts.phrases!=null?`${counts.phrases} phrases`:null,counts.entities!=null?`${counts.entities} entities`:null].filter(Boolean);$('#assistStatus').textContent=`${count} results${parts.length?` · ${parts.join(' · ')}`:''} · ${data.elapsedMs?`${Math.round(data.elapsedMs)} ms · `:''}RhymeLab local`;
     $('#rhymeResults').innerHTML=deep?deepResults(data):compactResults(data);
   }catch(error){if(error.name==='AbortError')return;$('#assistStatus').textContent=error.message;$('#assistStatus').classList.add('error');$('#rhymeResults').innerHTML='';}
 }
@@ -182,7 +195,7 @@ $('#libraryList').addEventListener('click',(event)=>{const item=event.target.clo
 $$('.library-tab').forEach((button)=>button.addEventListener('click',()=>{store.libraryView=button.dataset.libraryView;persist();renderLibrary();}));
 $('#followCursor').addEventListener('change',()=>{if($('#followCursor').checked)syncCursorQuery(true);});
 $('#rhymeQuery').addEventListener('input',()=>{if($('#followCursor').checked)$('#followCursor').checked=false;scheduleSearch();});
-$('#assistPreset').addEventListener('change',()=>scheduleSearch(0));$('#rhymeScope').addEventListener('change',()=>scheduleSearch(0));$('#rhymeType').addEventListener('change',()=>scheduleSearch(0));
+$('#assistPreset').addEventListener('change',()=>scheduleSearch(0));$('#rhymeScope').addEventListener('change',()=>scheduleSearch(0));$('#rhymeType').addEventListener('change',()=>scheduleSearch(0));$('#entityCategory').addEventListener('change',()=>scheduleSearch(0));
 $('#rhymeResults').addEventListener('click',(event)=>{const button=event.target.closest('[data-candidate]');if(button)replaceCurrent(button.dataset.candidate);});
 $$('.cue-button').forEach((button)=>button.addEventListener('click',()=>{state.activeCue=button.dataset.cue;$$('.cue-button').forEach((node)=>node.classList.toggle('active',node===button));}));
 $('#performScore').addEventListener('click',(event)=>{const move=event.target.closest('[data-move]');if(move){moveSelected(move.dataset.move);return;}const word=event.target.closest('[data-perform-key]');if(word)applyCue(word.dataset.performKey);});
