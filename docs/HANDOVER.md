@@ -395,6 +395,8 @@ The safety behavior is correct and protected `Liebe`/`Freiheit` results survive,
 
 11E2-v2 requirements: commonness/type evidence may reorder only within the same safety class, relation type and a conservative phonetic near-tie band (initially 0.02); weak and restricted candidates remain diagnostic but are not default Writer-page eligible; no diversification yet.
 
+Fixture gate passed in required `validate` CI (run 277): source check, full tests and public-readiness audit all passed. The first CI attempt exposed only a deterministic tie-fixture expectation; production logic was unchanged.
+
 11E2-v2 is now implemented at fixture/code level.
 
 ```text
