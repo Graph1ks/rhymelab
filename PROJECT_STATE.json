@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B6_WORDLIST_COVERAGE_AND_BOUNDARY_INSENSITIVE_RHYME_KEY_DIAGNOSTIC",
+    "status": "ACTIVE_12B6_SEGMENTED_UNPROFILED_IPA_PROVENANCE_AUDIT",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B6_REVIEW_1000_WORD_DB_SELECTION_COVERAGE_AND_BOUNDARY_INSENSITIVE_FALLBACK_METRICS_BEFORE_PUBLISH_V4",
+    "next_gate": "PHASE_12B6_RERUN_CORRECTED_1000_WORD_AUDIT_AND_SEGMENTED_FALLBACK_DIAGNOSTIC_THEN_DEFINE_PUBLISH_V4",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1820,6 +1820,56 @@
           "exclusion_reason",
           "rarity_tier"
         ]
+      },
+      "random_1000_word_stress_probe": {
+        "status": "COMPLETE_WITH_PARSER_METADATA_FIX",
+        "actual_words": 1000,
+        "first_run_rows": 1003,
+        "ignored_prose_metadata_rows": 3,
+        "in_database": 882,
+        "default_selected": 676,
+        "published_non_default": 206,
+        "missing_from_database": 118,
+        "in_wordfreq_coverage_sidecar": 756,
+        "with_any_analyzed_pronunciation": 859,
+        "with_analyzed_en_us_pronunciation": 682,
+        "by_rarity_default_pct": {
+          "1": 100,
+          "2": 100,
+          "3": 100,
+          "4": 100,
+          "5": 92.86,
+          "6": 95.56,
+          "7": 91.82,
+          "8": 77.14,
+          "9": 53.16,
+          "10": 28.85
+        },
+        "non_default_reasons": {
+          "no_analyzed_en_us_only": 189,
+          "historical_plus_no_analyzed_en_us": 11,
+          "historical_only_with_en_us": 6
+        },
+        "missing_status": {
+          "absent_from_db_and_ranked_sidecar": 98,
+          "no_source_backed_pronunciation": 18,
+          "strict_morphology_candidate": 1,
+          "form_of_without_analyzed_lemma": 1
+        },
+        "interpretation": "stress probe only; input metadata explicitly says words were not selected from an external lexical authority"
+      },
+      "pronunciation_provenance_fix": {
+        "status": "IMPLEMENTED_OWNER_RERUN_PENDING",
+        "publish_policy": "en-source-backed-publish-v3.1-candidate",
+        "classes": [
+          "unqualified_fullword",
+          "other_profiled",
+          "unqualified_partial",
+          "en-GB"
+        ],
+        "default_eligibility_changed": false,
+        "motivation": "old no-US/GB bucket mixed true unqualified IPA with other regional/profile-tagged IPA and partial IPA",
+        "command": "npm run en:pronunciation:fallback:diagnose"
       }
     },
     "unknown_query_pronunciation_fallback": {
