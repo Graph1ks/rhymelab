@@ -111,11 +111,17 @@ test('raw taxonomy prefilter is lossless for relevant categories and conservativ
   const conservativeFalsePositive = JSON.stringify({
     id: 'Q900000103',
     type: 'item',
-    labels: { en: { language: 'en', value: 'Text Mention Only' } },
+    labels: { en: { language: 'en', value: 'Wrong Property Only' } },
     aliases: {},
-    descriptions: { en: { language: 'en', value: 'mentions Q33999 only as text' } },
+    descriptions: {},
     sitelinks: {},
-    claims: {},
+    claims: {
+      P999: [{
+        mainsnak: {
+          datavalue: { value: { id: 'Q33999' } },
+        },
+      }],
+    },
   });
   assert.equal(prefilter.test(conservativeFalsePositive), true);
   assert.equal(extractStageEntity(JSON.parse(conservativeFalsePositive), taxonomy), null);
