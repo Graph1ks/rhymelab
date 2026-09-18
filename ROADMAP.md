@@ -264,7 +264,7 @@ repeat fingerprint  fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e
 Phase 11C1 is closed.
 ### 11D. Mosaic retrieval architecture — current
 
-#### 11D1. Deterministic cross-word window substrate — owner full-data build complete / repeatability pending
+#### 11D1. Deterministic cross-word window substrate — COMPLETE / PASS
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`.
 
@@ -289,11 +289,31 @@ window fingerprint
 
 Window lengths are concentrated at 2–4 syllables; 327,828 windows cross one boundary and the remainder provide bounded multi-boundary coverage up to five boundaries.
 
-Require one stable repeat window fingerprint before 11D2.
+Repeatability: **PASS**.
 
-#### 11D2. Bounded indexed candidate retrieval — next
+```text
+first   24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+repeat  24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+```
 
-Design deterministic query-side candidate generation over the materialized substrate without scanning the full phrase corpus at request time. Exact/index-backed retrieval comes first; broader slant candidate anchors require a separate benchmarked policy.
+11D1 is accepted/frozen.
+
+#### 11D2. Bounded indexed candidate retrieval — CURRENT
+
+Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`.
+
+Implemented at fixture level:
+
+- additive rhyme-domain anchor rows over immutable 11D1 windows;
+- exact-tail index consistent with `de-phon-v3` first-onset exclusion;
+- full-vowel + exact-coda index;
+- full-vowel index;
+- final-nucleus + coarse-coda-class index with ±1-syllable candidate length;
+- hard per-channel and final candidate limits;
+- existing German scorer reused after bounded retrieval;
+- `EXPLAIN QUERY PLAN` tests reject full-table scans.
+
+Owner full-data anchor materialization/repeatability is the next gate. Phrase usefulness ranking remains 11E.
 
 ### 11E. Phrase Writer ranking
 
