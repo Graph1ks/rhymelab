@@ -255,7 +255,6 @@ Not part of the current roadmap. Core search remains locally executable for desk
 
 - expose phrase/source/Leipzig/pronunciation and optional generic register evidence through a local read-only `/phrases` explorer;
 - keep the phrase DB optional for Writer startup and keep Writer v6/v5 frozen;
-- RUEG was evaluated and removed because its learner/register utterances do not provide enough direct phraseology/metaphor/idiom value for this project.
 
 Owner gate:
 
