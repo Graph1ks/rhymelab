@@ -1195,7 +1195,7 @@
     "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
     "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
   ],
-  "next_milestone": "PHASE_12A2_OWNER_FULL_SOURCE_STAGING_AND_CUT_DIAGNOSTICS",
+  "next_milestone": "PHASE_12A2_COMPLETE_CONTROL_STAGE_REVIEW_REPORTS_THEN_QLEVER_DIAGNOSTIC",
   "phase_12_english": {
     "status": "PLANNED_AFTER_12A",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -1318,14 +1318,14 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "owner_full_wikidata_stage",
-      "owner_full_qrank_stage",
-      "owner_cut_diagnostics",
-      "review_category_counts_qrank_coverage_size_and_sentinels",
-      "then_freeze_final_cut_popularity_policy"
+      "complete_running_20260914_owner_full_stage",
+      "review_owner_wikidata_qrank_cut_reports",
+      "implement_qlever_selective_export_diagnostic",
+      "compare_qlever_against_dated_control",
+      "then_freeze_final_cut_popularity_and_source_acquisition_policy"
     ],
     "staging_v1": {
-      "status": "OWNER_SOURCE_BOOTSTRAP_ACCEPTED_FULL_STAGING_NEXT",
+      "status": "OWNER_FULL_STAGE_RUNNING_CONTROL_BUILD",
       "contract": "docs/ENTITY_STAGING_V1.md",
       "source_registry": "sources/entity/phase12a-sources-v1.json",
       "wikidata_stage_schema": "rhymelab-entity-stage-v1",
@@ -1343,6 +1343,7 @@
       "bz2_streaming": true,
       "uncompressed_wikidata_copy_required": false,
       "windows_decompressor_autodetect": [
+        "wsl_lbzip2",
         "7z",
         "7zz",
         "bzip2"
@@ -1387,7 +1388,40 @@
           "entity:stage:wikidata",
           "entity:stage:qrank",
           "entity:cut:diagnose"
-        ]
+        ],
+        "status": "RUNNING",
+        "control_snapshot": "wikidata_20260914",
+        "decompressor": "wsl:lbzip2:8t",
+        "taxonomy_prefilter_qids": 13,
+        "transaction_size": 50000,
+        "latest_observed": {
+          "lines_read": 4750000,
+          "json_parsed": 150620,
+          "json_parse_share_pct": 3.17,
+          "staged_entities": 115358,
+          "average_lines_per_second": 5842,
+          "elapsed_hours": 0.23
+        },
+        "machine_note": "owner_i7_7700K_4c8t_cpu_saturated",
+        "do_not_abort_for_source_experiment": true
+      },
+      "source_alternatives": {
+        "research_document": "docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md",
+        "researched_at": "2026-09-18",
+        "official_exact_taxonomy_subset_download_found": false,
+        "preferred_future_experiment": "qlever_selective_export",
+        "qlever_status": "DIAGNOSTIC_NOT_PROMOTED",
+        "qlever_promotion_gate": [
+          "finish_20260914_control_stage",
+          "export_category_memberships",
+          "compare_exact_per_category_qid_sets",
+          "compare_core_fields_aliases_external_ids",
+          "classify_freshness_deltas_vs_extraction_bugs",
+          "promote_only_if_semantically_equivalent_or_explicitly_bounded"
+        ],
+        "wikimedia_enterprise_snapshot_role": "future_chunked_full_source_transport_candidate_not_semantic_subset",
+        "wdumper_role": "experiment_only",
+        "derived_prebuilt_subsets_role": "diagnostic_or_acceleration_benchmark_not_canonical"
       }
     }
   }
