@@ -180,7 +180,19 @@ Review:
 - anchor fingerprint;
 - unchanged source window fingerprint.
 
-Then repeat once and require the identical anchor fingerprint before moving from substrate/retrieval engineering into representative query evaluation.
+First owner full-data materialization:
+
+```text
+anchor rows                 356,693
+distinct exact-tail keys    181,548
+distinct vowel keys          52,174
+distinct final keys              772
+database size               686.76 MiB
+anchor fingerprint
+55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+```
+
+The source 11D1 window fingerprint remained unchanged. Repeat once and require the identical anchor fingerprint before moving from substrate/retrieval engineering into representative query evaluation.
 
 ## Explicitly deferred
 
