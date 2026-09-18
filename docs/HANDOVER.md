@@ -6,15 +6,15 @@ Repository state is authoritative. Do not reconstruct project state from prior c
 
 ## Authoritative current checkpoint
 
-Fresh-thread compact checkpoint: `docs/THREAD_HANDOVER_PHASE_11E3.md`.
+Fresh-thread compact checkpoint: `docs/THREAD_HANDOVER_PHASE_11E4F.md`.
 
-Current milestone: **Phase 11E3 phrase-channel diversification**.
+Current milestone: **Phase 11E4/F runtime integration + final acceptance**.
 
-Phase 11E2-v2 is accepted with suite ranking fingerprint `1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0`. Product rule: Phrase/Mosaic is an optional channel, never a quota in the default single-word result list. Better single-word results may legitimately outrank or fully displace phrase results; an empty phrase channel is valid.
+Phase 11E3 phrase-channel diversification is accepted/frozen. Accepted diversity fingerprint: `ca7e04e91226cd5a3855dbe302a54bffaccce8c6d3a9defff8be049ca6153ef1`; three owner repeatability runs matched exactly and all protected checks passed. Product rule remains unchanged: Phrase/Mosaic is an optional channel, never a quota in the default single-word result list. Better single-word results may legitimately outrank or fully displace phrase results; an empty phrase channel is valid.
 
-Remaining Phase 11 work is: **11E3 diversity -> 11E4 local runtime/API/UI integration -> 11F dedicated structural/performance benchmark -> Phase 11 close**. Human NDCG may remain `pending_reference` if independent reviewers are unavailable.
+Remaining Phase 11 work is managed as one continuous milestone: **11E4 local runtime/API/UI integration -> 11F structural/provenance/performance/repeatability acceptance -> Phase 11 close**. The two gates remain ordered even though the workstream is combined. Human NDCG may remain `pending_reference` if independent reviewers are unavailable.
 
-**Continuity note:** older sections below are retained as engineering chronology and may contain then-current phrases such as “pending” or “blocked”. For fresh work, the authoritative current checkpoint above plus `docs/THREAD_HANDOVER_PHASE_11E3.md`, `PROJECT_STATE.json`, and `STATUS.md` override historical pending-language.
+**Continuity note:** older sections below are retained as engineering chronology and may contain then-current phrases such as “pending” or “blocked”. For fresh work, the authoritative current checkpoint above plus `docs/THREAD_HANDOVER_PHASE_11E4F.md`, `PROJECT_STATE.json`, and `STATUS.md` override historical pending-language.
 ## Start here
 
 Read in order:
