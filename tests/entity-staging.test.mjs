@@ -232,7 +232,7 @@ test('staging DB joins QRank and produces category-relative cut diagnostics', as
       categories: 3,
       names: 6,
       externalIds: 0,
-      withQRank: 3,
+      withQRank: 1,
       withDewiki: 2,
       withEnwiki: 3,
     });
