@@ -77,7 +77,19 @@ const state = {
   hiddenUsed: 0,
   writePage: 1,
   writePageSize: 30,
+  autoScrollEnabled: false,
+  autoScrollFrame: null,
+  autoScrollLastTs: 0,
+  autoScrollPauseUntil: 0,
 };
+
+const AUTO_SCROLL_STORAGE_KEY = 'rhymepad:suggestions:auto-scroll:v1';
+
+try {
+  state.autoScrollEnabled = localStorage.getItem(AUTO_SCROLL_STORAGE_KEY) === '1';
+} catch {
+  state.autoScrollEnabled = false;
+}
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -253,6 +265,60 @@ function groupHtml(label, rows, limit) {
     </div>`;
 }
 
+function stopSuggestionAutoScroll() {
+  if (state.autoScrollFrame != null) cancelAnimationFrame(state.autoScrollFrame);
+  state.autoScrollFrame = null;
+  state.autoScrollLastTs = 0;
+}
+
+function suggestionAutoScrollFrame(timestamp) {
+  if (!state.autoScrollEnabled) {
+    stopSuggestionAutoScroll();
+    return;
+  }
+
+  const maxScroll = Math.max(0, suggestions.scrollHeight - suggestions.clientHeight);
+  const previous = state.autoScrollLastTs || timestamp;
+  const elapsed = Math.min(64, Math.max(0, timestamp - previous));
+  state.autoScrollLastTs = timestamp;
+
+  if (!document.hidden && timestamp >= state.autoScrollPauseUntil && maxScroll > 2) {
+    if (suggestions.scrollTop >= maxScroll - 1) {
+      suggestions.scrollTop = 0;
+      state.autoScrollPauseUntil = timestamp + 900;
+    } else {
+      suggestions.scrollTop = Math.min(maxScroll, suggestions.scrollTop + elapsed * 0.022);
+    }
+  }
+
+  state.autoScrollFrame = requestAnimationFrame(suggestionAutoScrollFrame);
+}
+
+function restartSuggestionAutoScroll({ reset = false } = {}) {
+  stopSuggestionAutoScroll();
+  if (reset) suggestions.scrollTop = 0;
+  if (!state.autoScrollEnabled) return;
+  state.autoScrollFrame = requestAnimationFrame(suggestionAutoScrollFrame);
+}
+
+function setSuggestionAutoScroll(enabled, { persist = true } = {}) {
+  state.autoScrollEnabled = Boolean(enabled);
+  suggestions.classList.toggle('rhymeLabAutoScrollActive', state.autoScrollEnabled);
+
+  const checkbox = $('#rhymeLabAutoScroll');
+  if (checkbox) checkbox.checked = state.autoScrollEnabled;
+
+  if (persist) {
+    try {
+      localStorage.setItem(AUTO_SCROLL_STORAGE_KEY, state.autoScrollEnabled ? '1' : '0');
+    } catch {
+      // localStorage is optional; keep the current-session value regardless.
+    }
+  }
+
+  restartSuggestionAutoScroll();
+}
+
 function installSuiteNavigation() {
   const toolbar = $('.toolbar');
   const brand = $('.brand');
@@ -312,11 +378,36 @@ function installRhymeLabControls() {
   if (relationWrap) head.insertBefore(entityWrap, relationWrap);
   else head.appendChild(entityWrap);
 
+  const autoScroll = document.createElement('label');
+  autoScroll.className = 'rhymeLabAutoScrollToggle';
+  autoScroll.innerHTML = '<input id="rhymeLabAutoScroll" type="checkbox"><span>Auto-scroll</span>';
+  const autoScrollInput = $('input', autoScroll);
+  autoScrollInput.checked = state.autoScrollEnabled;
+  if (relationWrap) head.insertBefore(autoScroll, relationWrap);
+  else head.appendChild(autoScroll);
+
   const meta = document.createElement('div');
   meta.id = 'rhymeLabAssistMeta';
   meta.className = 'rhymeLabAssistMeta';
   meta.textContent = 'RhymeLab follows the active word or selected phrase.';
   suggestions.insertAdjacentElement('beforebegin', meta);
+  suggestions.classList.add('rhymeLabAutoScrollSurface');
+
+  autoScrollInput.addEventListener('change', () => {
+    setSuggestionAutoScroll(autoScrollInput.checked);
+  });
+
+  for (const eventName of ['pointerenter', 'focusin', 'wheel', 'touchstart']) {
+    suggestions.addEventListener(eventName, () => {
+      state.autoScrollPauseUntil = performance.now() + 2200;
+    }, { passive: true });
+  }
+
+  const suggestionObserver = new MutationObserver(() => {
+    restartSuggestionAutoScroll({ reset: true });
+  });
+  suggestionObserver.observe(suggestions, { childList: true, subtree: false });
+  setSuggestionAutoScroll(state.autoScrollEnabled, { persist: false });
 
   $('#rhymeLabPreset')?.addEventListener('change', () => {
     state.writePage = 1;
@@ -590,9 +681,19 @@ function installListeners() {
   });
 }
 
-installSuiteNavigation();
-installRhymeLabControls();
-installDeepResults();
-installListeners();
-document.title = `${$('#songTitle')?.value || 'RhymePad'} — RhymeLab`;
-scheduleSearch(0, true);
+function initializeRhymeLabPad() {
+  installSuiteNavigation();
+  installRhymeLabControls();
+  installDeepResults();
+  installListeners();
+  document.title = `${$('#songTitle')?.value || 'RhymePad'} — RhymeLab`;
+  scheduleSearch(0, true);
+}
+
+try {
+  initializeRhymeLabPad();
+} catch (error) {
+  root.dataset.rhymeLabIntegration = 'failed';
+  suggestions.innerHTML = '<div class="rhymeLabIntegrationFailure"><strong>RhymeLab integration failed.</strong><span>Live database results are unavailable. Check the browser console.</span></div>';
+  console.error('RhymePad / RhymeLab integration failed', error);
+}
