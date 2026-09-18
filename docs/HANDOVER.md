@@ -607,3 +607,134 @@ Upload:
 - `data/local/en-coverage-audit-v1-report.json`
 
 Do not rebuild the English SQLite until publish-v4 counts/coverage are reviewed.
+
+
+## Post-English roadmap — ranking diversity, Entity, performance
+
+Authoritative roadmap:
+
+`docs/POST_ENGLISH_ROADMAP.md`
+
+Important correction: the German Writer behavior that must be conceptually carried into English is **not just phonetic/commonness score tuning**. The accepted single-word Writer uses two distinct page-quality dimensions.
+
+### German Writer quality layer
+
+Policy:
+
+```text
+deterministic_writer_utility_v6
+```
+
+Current utility:
+
+```text
+soundUtility
+  = 0.72 * phonetic score
+  + 0.16 * syllable utility
+  + 0.12 * commonness utility
+
+utility
+  = soundUtility
+  - 0.16 * lexical overlap
+  - rare/historical penalty
+```
+
+Lexical/morphology overlap and low-confidence usage also affect effective Writer tier.
+
+### German Writer diversity / novelty layer
+
+Current diversity constant:
+
+```text
+DEFAULT_DIVERSITY_WEIGHT = 0.18
+```
+
+Greedy page selection tracks maximum redundancy against already-selected rows:
+
+```text
+diversifiedScore
+  = writer.utility
+  - 0.18 * maxRedundancy
+```
+
+Redundancy includes same lemma, same Writer morphology family and strong near-duplicate/initial-construction similarity.
+
+It also affects effective tier:
+
+```text
+maxRedundancy >= 0.58 -> +1 diversity tier
+maxRedundancy >= 0.88 -> +2 diversity tiers
+```
+
+This is the mechanism that prevents the Writer page from filling with many versions of effectively the same answer.
+
+English must reuse this **quality + diversity** architecture, but English-specific weights/thresholds must be benchmarked rather than copied blindly.
+
+Phrase/Mosaic provides a second concentration-control precedent with exact/family caps and lexical-frame cap 3.
+
+### Required sequence after current English coverage gate
+
+```text
+1. English publish-v4 full build + coverage A/B
+2. English SQLite rebuild + verify
+3. English retrieval/runtime acceptance
+4. English ranking calibration:
+   - phonetic relation/scorer thresholds
+   - commonness behavior
+   - Writer utility / quality
+   - diversity / redundancy / novelty
+5. Product EN acceptance
+6. Resume Entity:
+   - owner P898 gate
+   - DE/EN source-backed pronunciation
+   - exact CMUdict through accepted EN analyzer
+   - bounded token composition
+   - proper-name G2P benchmark only if still required
+   - Entity phonetic + prominence + diversity ranking
+7. Integrated DE + EN + Entity acceptance
+8. Dedicated DB/runtime performance phase
+```
+
+Entity prominence must reorder only within sufficiently close phonetic quality. Fame/popularity must not override materially worse rhyme quality.
+
+Final local performance target:
+
+```text
+warm p50 < 50 ms
+warm p95 < 100 ms
+warm p99 < 150-200 ms
+cold start measured separately
+```
+
+Performance optimization must preserve accepted Top-N/result fingerprints. Eliminate full scans and N+1s before low-level SQLite PRAGMA tuning.
+
+### Current immediate owner gate remains unchanged
+
+PR #90 is merged at:
+
+```text
+7607e89fd065a7f1988ab51d304ab915fd2fe4bc
+```
+
+Current publish candidate:
+
+```text
+en-source-backed-publish-v4-candidate
+```
+
+Owner is currently running/providing results from:
+
+```powershell
+git pull
+npm run en:publish:rebuild
+npm run en:coverage:audit
+```
+
+Expected artifacts for next thread:
+
+```text
+data/local/en-publish-v1/manifest.json
+data/local/en-coverage-audit-v1-report.json
+```
+
+Do not rebuild the English SQLite until these publish-v4 counts/coverage are reviewed.
