@@ -8,6 +8,7 @@ import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
 import { getPhraseBrowserStats, getPhraseDetail, openPhraseBrowserDb, searchPhrases } from './phrase-browser-store.mjs';
 import { searchUnifiedWriter, unifiedWriterCapabilities } from './unified-writer-search.mjs';
+import { materializeRhymePadV14 } from './rhymepad-v14.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
@@ -49,7 +50,7 @@ try {
 }
 
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
-const padHtml = readFileSync(resolve(padUiDir, 'index.html'));
+const padHtml = Buffer.from(materializeRhymePadV14().html);
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const assets = {
   '/': { type: 'text/html; charset=utf-8', body: writerHtml },

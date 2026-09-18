@@ -1,191 +1,488 @@
-const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => [...document.querySelectorAll(selector)];
+const $ = (selector, root = document) => root.querySelector(selector);
+const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
-const STORAGE_KEY = 'rhymelab.rhymepad.v1';
-const RHYME_TYPES = ['multisyllabic_perfect','perfect','multisyllabic_slant','family','slant','assonance','consonance'];
+const editor = $('#editor');
+const suggestions = $('#suggestions');
+const focusWord = $('#focusWord');
+const root = document.documentElement;
+
+if (!editor || !suggestions || !focusWord) {
+  throw new Error('RhymePad v14 integration target is incomplete');
+}
+
+const RHYME_TYPES = [
+  'multisyllabic_perfect',
+  'perfect',
+  'multisyllabic_slant',
+  'family',
+  'slant',
+  'assonance',
+  'consonance',
+];
+
 const TYPE_LABELS = {
-  multisyllabic_perfect:'Multisyllabic perfect',perfect:'Perfect rhyme',multisyllabic_slant:'Multisyllabic slant',
-  family:'Rhyme family',slant:'Slant rhyme',assonance:'Assonance',consonance:'Consonance',weak:'No primary rhyme',
+  multisyllabic_perfect: 'multi perfect',
+  perfect: 'perfect',
+  multisyllabic_slant: 'multi slant',
+  family: 'family',
+  slant: 'slant',
+  assonance: 'assonance',
+  consonance: 'consonance',
 };
 
-let uidCounter=0;
-function uid(){uidCounter+=1;return `song-${Date.now().toString(36)}-${uidCounter.toString(36)}`;}
-function freshSong(){return {id:uid(),title:'Untitled',folder:'Unfiled',text:'',trash:false,updatedAt:Date.now(),history:[{at:Date.now(),text:''}],performance:{bpm:92,cues:{},offsets:{}}};}
-function loadStore(){
-  try{
-    const parsed=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
-    if(parsed&&Array.isArray(parsed.songs)&&parsed.songs.length)return parsed;
-  }catch{}
-  const song=freshSong();
-  return {songs:[song],activeSongId:song.id,mode:'write',basis:'de',fontSize:18,libraryView:'active',libraryOpen:true};
-}
-const store=loadStore();
-const state={searchAbort:null,searchTimer:null,saveTimer:null,activeCue:'move',selectedPerformKey:null,lastAutoQuery:'',capabilities:null};
+const state = {
+  abortController: null,
+  timer: null,
+  lastQueryKey: '',
+  data: null,
+  filteredRows: [],
+  hiddenUsed: 0,
+  writePage: 1,
+  writePageSize: 30,
+};
 
-function persist(){localStorage.setItem(STORAGE_KEY,JSON.stringify(store));}
-function activeSong(){return store.songs.find((song)=>song.id===store.activeSongId)||store.songs[0];}
-function esc(value){return String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function number(value){return Number(value||0).toLocaleString('en-US');}
-function lines(text){return String(text??'').split('\n');}
-function words(text){return String(text??'').trim().match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[];}
-function saveStateLabel(value){$('#saveState').textContent=value;}
-function ensurePerformance(song){song.performance ||= {bpm:92,cues:{},offsets:{}};song.performance.cues ||= {};song.performance.offsets ||= {};return song.performance;}
-
-function renderShell(){
-  const song=activeSong();
-  if(!song)return;
-  $('#songTitle').value=song.title||'Untitled';
-  $('#songFolder').value=song.folder||'Unfiled';
-  $('#lyricsEditor').value=song.text||'';
-  $('#fontSize').value=String(store.fontSize||18);
-  $('#lyricsEditor').style.fontSize=`${store.fontSize||18}px`;
-  $('#workbench').dataset.mode=store.mode||'write';
-  $$('.mode-tab').forEach((button)=>button.classList.toggle('active',button.dataset.mode===store.mode));
-  $$('.basis-option').forEach((button)=>button.classList.toggle('active',button.dataset.basis===store.basis));
-  $('#libraryPanel').classList.toggle('collapsed',store.libraryOpen===false);
-  $('#bpmInput').value=String(ensurePerformance(song).bpm||92);
-  updateModeCopy();
-  updateStats();
-  renderBarRail();
-  renderLibrary();
-  renderPerform();
-  syncCursorQuery(true);
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[char]);
 }
 
-function updateModeCopy(){
-  const copy={write:['WRITE','Stay in the lyric.'],rhyme:['RHYME','Open the full RhymeLab surface.'],perform:['PERFORM','Shape delivery directly on the bars.']}[store.mode]||['WRITE','Stay in the lyric.'];
-  $('#editorEyebrow').textContent=copy[0];$('#editorHeading').textContent=copy[1];
-  $('#assistHeading').textContent=store.mode==='rhyme'?'Deep RhymeLab results':'Best of RhymeLab';
-  if(store.mode==='rhyme')scheduleSearch(0);
-  if(store.mode==='perform')renderPerform();
+function normalize(value) {
+  return String(value ?? '')
+    .normalize('NFKC')
+    .toLocaleLowerCase('de-DE')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-function updateStats(){
-  const text=$('#lyricsEditor').value;const barCount=Math.max(1,lines(text).length);const wordCount=words(text).length;
-  $('#songStats').textContent=`${barCount} bars · ${wordCount} words · ${text.length} chars`;
-}
-function renderBarRail(){
-  const count=Math.max(1,lines($('#lyricsEditor').value).length);const lineHeight=Number.parseFloat(getComputedStyle($('#lyricsEditor')).lineHeight)||29.7;
-  $('#barRail').innerHTML=Array.from({length:count},(_,i)=>`<div class="bar-number" style="height:${lineHeight}px">${i+1}</div>`).join('');
-}
-function cursorBar(){return $('#lyricsEditor').value.slice(0,$('#lyricsEditor').selectionStart).split('\n').length;}
-function updateCursorReadout(){$('#cursorReadout').textContent=`Bar ${cursorBar()}`;}
-
-function stableVersion(song,text){
-  const last=song.history?.at(-1)?.text??'';
-  if(last===text)return;
-  song.history ||= [];
-  song.history.push({at:Date.now(),text});
-  if(song.history.length>100)song.history.splice(0,song.history.length-100);
-}
-function scheduleSongSave(){
-  saveStateLabel('Saving…');clearTimeout(state.saveTimer);
-  state.saveTimer=setTimeout(()=>{
-    const song=activeSong();if(!song)return;
-    song.text=$('#lyricsEditor').value;song.updatedAt=Date.now();stableVersion(song,song.text);persist();renderLibrary();saveStateLabel('Saved locally');
-  },650);
-}
-function saveMetadata(){const song=activeSong();song.title=$('#songTitle').value.trim()||'Untitled';song.folder=$('#songFolder').value.trim()||'Unfiled';song.updatedAt=Date.now();persist();renderLibrary();saveStateLabel('Saved locally');}
-
-function renderLibrary(){
-  const q=$('#librarySearch').value.trim().toLocaleLowerCase('de-DE');const view=store.libraryView||'active';
-  $$('.library-tab').forEach((button)=>button.classList.toggle('active',button.dataset.libraryView===view));
-  const list=store.songs.filter((song)=>(view==='trash')===Boolean(song.trash)).filter((song)=>!q||`${song.title} ${song.folder}`.toLocaleLowerCase('de-DE').includes(q)).sort((a,b)=>b.updatedAt-a.updatedAt);
-  $('#libraryList').innerHTML=list.length?list.map((song)=>`<button class="library-item ${song.id===store.activeSongId?'active':''}" type="button" data-song-id="${esc(song.id)}"><strong>${esc(song.title||'Untitled')}</strong><span>${esc(song.folder||'Unfiled')} · ${new Date(song.updatedAt).toLocaleDateString()}</span></button>`).join(''):'<div class="assist-status">Nothing here.</div>';
-  $('#deleteSong').classList.toggle('hidden',view==='trash');$('#restoreSong').classList.toggle('hidden',view!=='trash');
-}
-function switchSong(id){
-  const target=store.songs.find((song)=>song.id===id);if(!target)return;
-  const current=activeSong();if(current){current.text=$('#lyricsEditor').value;current.title=$('#songTitle').value.trim()||current.title;current.folder=$('#songFolder').value.trim()||current.folder;}
-  store.activeSongId=id;persist();renderShell();
-}
-function newSong(){const song=freshSong();store.songs.push(song);store.activeSongId=song.id;store.libraryView='active';persist();renderShell();$('#songTitle').select();}
-function trashSong(){const song=activeSong();if(!song)return;song.trash=true;song.updatedAt=Date.now();const next=store.songs.find((item)=>!item.trash&&item.id!==song.id)||freshSong();if(!store.songs.includes(next))store.songs.push(next);store.activeSongId=next.id;persist();renderShell();}
-function restoreSong(){const song=activeSong();if(!song)return;song.trash=false;song.updatedAt=Date.now();store.libraryView='active';persist();renderShell();}
-
-function selectionQuery(){
-  const editor=$('#lyricsEditor');const start=editor.selectionStart,end=editor.selectionEnd,text=editor.value;
-  if(end>start){const selected=text.slice(start,end).replace(/\s+/g,' ').trim();if(selected.length>=2&&selected.length<=120)return selected;}
-  const left=text.slice(0,start),right=text.slice(start);const leftMatch=left.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*$/u);const rightMatch=right.match(/^[\p{L}\p{N}]*(?:['’\-][\p{L}\p{N}]+)*/u);return `${leftMatch?.[0]||''}${rightMatch?.[0]||''}`.trim();
-}
-function currentTokenBounds(){
-  const editor=$('#lyricsEditor'),text=editor.value,start=editor.selectionStart,end=editor.selectionEnd;
-  if(end>start)return {start,end};
-  const left=text.slice(0,start),right=text.slice(start);const lm=left.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*$/u),rm=right.match(/^[\p{L}\p{N}]*(?:['’\-][\p{L}\p{N}]+)*/u);
-  return {start:start-(lm?.[0].length||0),end:start+(rm?.[0].length||0)};
-}
-function syncCursorQuery(force=false){
-  updateCursorReadout();if(!$('#followCursor').checked&&!force)return;
-  const query=selectionQuery();if(!query||query.length<2){if(force)$('#rhymeQuery').value='';$('#liveQueryReadout').textContent='Rhyme assist follows the word at your cursor.';return;}
-  if($('#rhymeQuery').value!==query)$('#rhymeQuery').value=query;
-  $('#liveQueryReadout').textContent=`Live rhyme: ${query}`;
-  if(query!==state.lastAutoQuery||force){state.lastAutoQuery=query;scheduleSearch();}
-}
-function replaceCurrent(text){
-  const editor=$('#lyricsEditor'),bounds=currentTokenBounds(),before=editor.value.slice(0,bounds.start),after=editor.value.slice(bounds.end);editor.value=`${before}${text}${after}`;const caret=bounds.start+text.length;editor.setSelectionRange(caret,caret);editor.focus();updateStats();renderBarRail();scheduleSongSave();syncCursorQuery(true);
+function lyricWords() {
+  return new Set(
+    (editor.value.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) || [])
+      .map(normalize)
+      .filter(Boolean),
+  );
 }
 
-function relationTypes(row){const out=[];if(row.primaryType&&RHYME_TYPES.includes(row.primaryType))out.push(row.primaryType);else if(RHYME_TYPES.includes(row.type))out.push(row.type);for(const type of row.relationTypes||[])if(RHYME_TYPES.includes(type)&&!out.includes(type))out.push(type);return out;}
-function mainType(row){return relationTypes(row)[0]||row.type||'weak';}
-function typeLabel(type){return TYPE_LABELS[type]||type.replaceAll('_',' ');}
-function resultScore(row,type=mainType(row)){if(type==='assonance'||type==='consonance'){const rel=(row.relations||[]).find((item)=>item.type===type);return Number(rel?.score||0);}return Number(row.score||0);}
-function candidateHtml(row,type=mainType(row)){
-  const kind=row.resultKind==='phrase'?'PHRASE':'WORD',usage=row.resultKind==='phrase'?(row.usageCount?number(row.usageCount):'—'):(row.usageRank?`#${number(row.usageRank)}`:'—');
-  return `<div class="rhyme-candidate"><div class="candidate-main"><div class="candidate-title"><strong>${esc(row.word)}</strong><span class="candidate-kind">${kind}</span></div><div class="candidate-meta"><span class="badge ${esc(type)}">${esc(typeLabel(type))}</span><span>${Math.round(resultScore(row,type)*100)}%</span><span>${esc(row.syllableCount??'—')} syll.</span><span>${usage}</span></div></div><button class="use-candidate" type="button" data-candidate="${esc(row.word)}">Use</button></div>`;
-}
-function compactResults(data){
-  const rows=data.results||[],wordRows=rows.filter((row)=>row.resultKind!=='phrase').slice(0,10),phraseRows=rows.filter((row)=>row.resultKind==='phrase').slice(0,8);
-  const block=(label,items)=>items.length?`<section class="compact-channel"><div class="compact-channel-heading"><strong>${label}</strong><span>${items.length}</span></div>${items.map((row)=>candidateHtml(row)).join('')}</section>`:'';
-  return block('Words',wordRows)+block('Phrases / Mosaic',phraseRows)||'<div class="assist-status">No matching rhymes.</div>';
-}
-function deepResults(data){
-  const rows=data.results||[],scope=$('#rhymeScope').value;const visible=rows.filter((row)=>scope!=='words'||row.resultKind!=='phrase').filter((row)=>scope!=='phrases'||row.resultKind==='phrase');
-  const chunks=[];for(const kind of ['word','phrase']){const kindRows=visible.filter((row)=>(row.resultKind==='phrase'?'phrase':'word')===kind);if(!kindRows.length)continue;for(const type of RHYME_TYPES){const typed=kindRows.filter((row)=>relationTypes(row).includes(type));if(!typed.length)continue;chunks.push(`<section class="rhyme-group"><div class="rhyme-group-heading"><strong>${kind==='word'?'Words':'Phrases / Mosaic'} · ${esc(typeLabel(type))}</strong><span>${typed.length}</span></div>${typed.map((row)=>candidateHtml(row,type)).join('')}</section>`);}}
-  return chunks.join('')||'<div class="assist-status">No matching rhymes.</div>';
-}
-function presetToRequest(){
-  if(store.mode==='rhyme')return {scope:$('#rhymeScope').value,type:$('#rhymeType').value};
-  const preset=$('#assistPreset').value;if(preset==='words'||preset==='phrases')return {scope:preset,type:'all'};if(RHYME_TYPES.includes(preset))return {scope:'all',type:preset};return {scope:'all',type:'all'};
-}
-function scheduleSearch(delay=320){clearTimeout(state.searchTimer);state.searchTimer=setTimeout(runSearch,delay);}
-async function runSearch(){
-  const query=$('#rhymeQuery').value.trim();if(query.length<2){$('#assistStatus').textContent='Type in the editor to start local rhyme search.';$('#rhymeResults').innerHTML='';return;}
-  state.searchAbort?.abort();state.searchAbort=new AbortController();const {scope,type}=presetToRequest();const deep=store.mode==='rhyme';
-  const params=new URLSearchParams({q:query,language:store.basis||'de',scope,type,word_limit:deep?'250':'36',word_pool:deep?'800':'220',phrase_limit:deep?'250':'36',phrase_pool:deep?'512':'128',phrase_per_channel:deep?'128':'32'});
-  $('#assistStatus').classList.remove('error');$('#assistStatus').textContent=`Searching ${query} locally…`;
-  try{
-    const response=await fetch(`/api/writer?${params}`,{signal:state.searchAbort.signal});const data=await response.json();
-    if(!response.ok)throw new Error((data.warnings||[]).map((item)=>item.message).filter(Boolean).join(' ')||data.error||data.status||'Search failed');
-    state.capabilities=data.capabilities||state.capabilities;const count=data.results?.length||0;$('#assistStatus').textContent=`${count} results · ${data.elapsedMs?`${Math.round(data.elapsedMs)} ms · `:''}RhymeLab local`;
-    $('#rhymeResults').innerHTML=deep?deepResults(data):compactResults(data);
-  }catch(error){if(error.name==='AbortError')return;$('#assistStatus').textContent=error.message;$('#assistStatus').classList.add('error');$('#rhymeResults').innerHTML='';}
+function isAlreadyUsed(row) {
+  const candidate = normalize(row.word);
+  if (!candidate) return true;
+  if (row.resultKind === 'phrase') {
+    return normalize(editor.value).includes(candidate);
+  }
+  return lyricWords().has(candidate);
 }
 
-function tokenKey(lineIndex,wordIndex){return `${lineIndex}:${wordIndex}`;}
-function renderPerform(){
-  const song=activeSong();if(!song)return;const performance=ensurePerformance(song);$('#bpmInput').value=performance.bpm||92;
-  const rows=lines($('#lyricsEditor').value);$('#performScore').innerHTML=rows.map((line,lineIndex)=>{const lineWords=words(line);const body=lineWords.length?lineWords.map((word,wordIndex)=>{const key=tokenKey(lineIndex,wordIndex),cue=performance.cues[key]||'',offset=Number(performance.offsets[key]||0);return `<button type="button" class="perform-word ${cue?`cue-${esc(cue)}`:''} ${state.selectedPerformKey===key?'selected':''}" data-perform-key="${key}" style="--offset:${offset}px">${esc(word)}</button>`;}).join(''):'<span class="candidate-meta">Empty bar</span>';return `<div class="perform-line"><div class="perform-bar-no">${lineIndex+1}</div><div class="perform-track ${state.selectedPerformKey?.startsWith(`${lineIndex}:`)?'has-selected':''}"><div class="perform-words">${body}<span class="move-controls"><button type="button" data-move="-8">−</button><button type="button" data-move="8">+</button></span></div></div></div>`;}).join('');
+function currentQuery() {
+  const start = editor.selectionStart ?? 0;
+  const end = editor.selectionEnd ?? start;
+  if (end > start) {
+    const selected = editor.value.slice(start, end).replace(/\s+/g, ' ').trim();
+    if (selected.length >= 2 && selected.length <= 140) return selected;
+  }
+  const focused = focusWord.textContent?.trim() || '';
+  return focused === '—' ? '' : focused.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}'’\-]+$/gu, '');
 }
-function applyCue(key){const song=activeSong(),performance=ensurePerformance(song);if(state.activeCue==='move'){state.selectedPerformKey=key;renderPerform();return;}if(state.activeCue==='erase')delete performance.cues[key];else performance.cues[key]=state.activeCue;state.selectedPerformKey=key;persist();renderPerform();}
-function moveSelected(delta){const song=activeSong(),performance=ensurePerformance(song);if(!state.selectedPerformKey)return;performance.offsets[state.selectedPerformKey]=Math.max(-24,Math.min(120,Number(performance.offsets[state.selectedPerformKey]||0)+Number(delta)));persist();renderPerform();}
 
-$$('.mode-tab').forEach((button)=>button.addEventListener('click',()=>{store.mode=button.dataset.mode;persist();renderShell();}));
-$$('.basis-option').forEach((button)=>button.addEventListener('click',()=>{store.basis=['de','en','both'].includes(button.dataset.basis)?button.dataset.basis:'de';persist();renderShell();scheduleSearch(0);}));
-$('#lyricsEditor').addEventListener('input',()=>{updateStats();renderBarRail();scheduleSongSave();syncCursorQuery();if(store.mode==='perform')renderPerform();});
-['click','keyup','select'].forEach((eventName)=>$('#lyricsEditor').addEventListener(eventName,()=>syncCursorQuery()));
-$('#lyricsEditor').addEventListener('scroll',()=>{$('#barRail').scrollTop=$('#lyricsEditor').scrollTop;});
-$('#fontSize').addEventListener('change',()=>{store.fontSize=Math.max(13,Math.min(64,Number($('#fontSize').value)||18));$('#lyricsEditor').style.fontSize=`${store.fontSize}px`;persist();renderBarRail();});
-$('#songTitle').addEventListener('change',saveMetadata);$('#songFolder').addEventListener('change',saveMetadata);
-$('#toggleLibrary').addEventListener('click',()=>{store.libraryOpen=!store.libraryOpen;persist();$('#libraryPanel').classList.toggle('collapsed',store.libraryOpen===false);});
-$('#librarySearch').addEventListener('input',renderLibrary);$('#newSong').addEventListener('click',newSong);$('#deleteSong').addEventListener('click',trashSong);$('#restoreSong').addEventListener('click',restoreSong);
-$('#libraryList').addEventListener('click',(event)=>{const item=event.target.closest('[data-song-id]');if(item)switchSong(item.dataset.songId);});
-$$('.library-tab').forEach((button)=>button.addEventListener('click',()=>{store.libraryView=button.dataset.libraryView;persist();renderLibrary();}));
-$('#followCursor').addEventListener('change',()=>{if($('#followCursor').checked)syncCursorQuery(true);});
-$('#rhymeQuery').addEventListener('input',()=>{if($('#followCursor').checked)$('#followCursor').checked=false;scheduleSearch();});
-$('#assistPreset').addEventListener('change',()=>scheduleSearch(0));$('#rhymeScope').addEventListener('change',()=>scheduleSearch(0));$('#rhymeType').addEventListener('change',()=>scheduleSearch(0));
-$('#rhymeResults').addEventListener('click',(event)=>{const button=event.target.closest('[data-candidate]');if(button)replaceCurrent(button.dataset.candidate);});
-$$('.cue-button').forEach((button)=>button.addEventListener('click',()=>{state.activeCue=button.dataset.cue;$$('.cue-button').forEach((node)=>node.classList.toggle('active',node===button));}));
-$('#performScore').addEventListener('click',(event)=>{const move=event.target.closest('[data-move]');if(move){moveSelected(move.dataset.move);return;}const word=event.target.closest('[data-perform-key]');if(word)applyCue(word.dataset.performKey);});
-$('#bpmInput').addEventListener('change',()=>{const song=activeSong();ensurePerformance(song).bpm=Math.max(40,Math.min(240,Number($('#bpmInput').value)||92));persist();});
+function languageBasis() {
+  const language = $('#lang')?.value || 'auto';
+  if (language === 'de' || language === 'en') return language;
+  const focused = ($('#focusLang')?.textContent || '').trim().toLocaleLowerCase('en-US');
+  return focused === 'en' ? 'en' : 'de';
+}
 
-renderShell();
+function appMode() {
+  return root.dataset.mode || 'write';
+}
+
+function relationTypeFromOriginalFilter() {
+  const value = $('#relationFilter')?.value || 'all';
+  if (value === 'multisyllabic') return 'multisyllabic_perfect';
+  return RHYME_TYPES.includes(value) ? value : 'all';
+}
+
+function writeRequest() {
+  const preset = $('#rhymeLabPreset')?.value || 'best';
+  if (preset === 'words') return { scope: 'words', type: 'all' };
+  if (preset === 'phrases') return { scope: 'phrases', type: 'all' };
+  if (RHYME_TYPES.includes(preset)) return { scope: 'all', type: preset };
+  return { scope: 'all', type: 'all' };
+}
+
+function rhymeRequest() {
+  return {
+    scope: $('#rhymeLabDeepScope')?.value || 'all',
+    type: $('#rhymeLabDeepType')?.value || relationTypeFromOriginalFilter(),
+  };
+}
+
+function activeRequest() {
+  return appMode() === 'rhyme' ? rhymeRequest() : writeRequest();
+}
+
+function rowTypes(row) {
+  const types = [];
+  const primary = row.primaryType || (RHYME_TYPES.includes(row.type) ? row.type : null);
+  if (primary) types.push(primary);
+  for (const type of row.relationTypes || []) {
+    if (RHYME_TYPES.includes(type) && !types.includes(type)) types.push(type);
+  }
+  return types;
+}
+
+function primaryType(row) {
+  return rowTypes(row)[0] || 'slant';
+}
+
+function relationScore(row, type) {
+  if (type === 'assonance' || type === 'consonance') {
+    return Number((row.relations || []).find((relation) => relation.type === type)?.score || 0);
+  }
+  return Number(row.score || 0);
+}
+
+function rowScore(row) {
+  return relationScore(row, primaryType(row));
+}
+
+function resultMeta(row) {
+  const usage = row.resultKind === 'phrase'
+    ? (row.usageCount ? `${Number(row.usageCount).toLocaleString()} uses` : 'phrase')
+    : (row.usageRank ? `usage #${Number(row.usageRank).toLocaleString()}` : 'usage —');
+  const ipa = row.ipa ? `/${row.ipa}/` : '';
+  return [
+    `${row.syllableCount ?? '—'} syl`,
+    usage,
+    ipa,
+  ].filter(Boolean);
+}
+
+function candidateHtml(row) {
+  const types = rowTypes(row);
+  const badges = types.slice(0, 3)
+    .map((type) => `<span class="typeBadge">${esc(TYPE_LABELS[type] || type)}</span>`)
+    .join('');
+  const score = Math.round(rowScore(row) * 100);
+  return `
+    <button class="suggestion rhymeLabSuggestion rhymeLabCandidateButton" type="button" data-rhymelab-candidate="${esc(row.word)}">
+      <div>
+        <div class="suggestionWord">${esc(row.word)}</div>
+        <div class="suggestionMeta">
+          <span class="resultKind">${row.resultKind === 'phrase' ? 'PHRASE / MOSAIC' : 'WORD'}</span>
+          ${badges}
+          ${resultMeta(row).map((item) => `<span class="small">${esc(item)}</span>`).join('')}
+        </div>
+        <div class="score"><span style="width:${score}%"></span></div>
+      </div>
+      <div class="suggestionScore">${score}%</div>
+    </button>`;
+}
+
+function groupHtml(label, rows, limit) {
+  if (!rows.length) return '';
+  const visible = rows.slice(0, limit);
+  return `
+    <div class="rhymeLabResultGroup">
+      <div class="rhymeLabResultGroupHead"><strong>${esc(label)}</strong><span>${rows.length}</span></div>
+      ${visible.map(candidateHtml).join('')}
+    </div>`;
+}
+
+function installSuiteNavigation() {
+  const toolbar = $('.toolbar');
+  const brand = $('.brand');
+  if (!toolbar || !brand || $('.rhymeLabProductNav')) return;
+
+  const brandText = $('.brandText', brand);
+  if (brandText) brandText.innerHTML = 'RhymePad<small>RhymeLab · local</small>';
+
+  const nav = document.createElement('nav');
+  nav.className = 'rhymeLabProductNav';
+  nav.setAttribute('aria-label', 'RhymeLab workspace');
+  nav.innerHTML = '<a href="/">SEARCH</a><a href="/pad" class="active" aria-current="page">WRITE</a>';
+  brand.insertAdjacentElement('afterend', nav);
+}
+
+function installRhymeLabControls() {
+  const section = suggestions.closest('.section');
+  const title = section?.querySelector('.sectionTitle');
+  const head = title?.parentElement;
+  if (!section || !title || !head) return;
+
+  title.textContent = 'RhymeLab live suggestions';
+  const badge = document.createElement('span');
+  badge.className = 'rhymeLabSourceBadge';
+  badge.textContent = 'LOCAL / API';
+  title.appendChild(document.createTextNode(' · '));
+  title.appendChild(badge);
+
+  const presetWrap = document.createElement('span');
+  presetWrap.id = 'rhymeLabPresetWrap';
+  presetWrap.className = 'selectWrap';
+  presetWrap.innerHTML = `
+    <select id="rhymeLabPreset" aria-label="RhymeLab result preset">
+      <option value="best">Best of everything</option>
+      <option value="words">Words only</option>
+      <option value="phrases">Phrases / Mosaic only</option>
+      <option value="multisyllabic_perfect">Multisyllabic perfect</option>
+      <option value="perfect">Perfect rhyme</option>
+      <option value="multisyllabic_slant">Multisyllabic slant</option>
+      <option value="family">Rhyme family</option>
+      <option value="slant">Slant rhyme</option>
+      <option value="assonance">Assonance</option>
+      <option value="consonance">Consonance</option>
+    </select>`;
+  const relationWrap = $('#relationFilterWrap');
+  if (relationWrap) head.insertBefore(presetWrap, relationWrap);
+  else head.appendChild(presetWrap);
+
+  const meta = document.createElement('div');
+  meta.id = 'rhymeLabAssistMeta';
+  meta.className = 'rhymeLabAssistMeta';
+  meta.textContent = 'RhymeLab follows the active word or selected phrase.';
+  suggestions.insertAdjacentElement('beforebegin', meta);
+
+  $('#rhymeLabPreset')?.addEventListener('change', () => {
+    state.writePage = 1;
+    scheduleSearch(0, true);
+  });
+}
+
+function installDeepResults() {
+  const center = $('.centerPanel');
+  if (!center || $('.rhymeLabDeepResults')) return;
+
+  const deep = document.createElement('section');
+  deep.className = 'rhymeLabDeepResults';
+  deep.innerHTML = `
+    <div class="rhymeLabDeepHead">
+      <strong>RhymeLab results</strong>
+      <span id="rhymeLabDeepCount" class="small">—</span>
+      <label class="small">Results
+        <select id="rhymeLabDeepScope">
+          <option value="all">Words + Phrases</option>
+          <option value="words">Words</option>
+          <option value="phrases">Phrases / Mosaic</option>
+        </select>
+      </label>
+      <label class="small">Relation
+        <select id="rhymeLabDeepType">
+          <option value="all">All relations</option>
+          <option value="multisyllabic_perfect">Multisyllabic perfect</option>
+          <option value="perfect">Perfect rhyme</option>
+          <option value="multisyllabic_slant">Multisyllabic slant</option>
+          <option value="family">Rhyme family</option>
+          <option value="slant">Slant rhyme</option>
+          <option value="assonance">Assonance</option>
+          <option value="consonance">Consonance</option>
+        </select>
+      </label>
+    </div>
+    <div id="rhymeLabDeepBody" class="rhymeLabDeepBody">
+      <div class="rhymeLabNoResults">Move the cursor to a word to load RhymeLab results.</div>
+    </div>`;
+  center.appendChild(deep);
+
+  $('#rhymeLabDeepScope')?.addEventListener('change', () => scheduleSearch(0, true));
+  $('#rhymeLabDeepType')?.addEventListener('change', () => scheduleSearch(0, true));
+}
+
+function setAssistMeta(message, { error = false } = {}) {
+  const meta = $('#rhymeLabAssistMeta');
+  if (!meta) return;
+  meta.textContent = message;
+  meta.classList.toggle('error', error);
+}
+
+function renderWriteResults() {
+  const rows = state.filteredRows;
+  const words = rows.filter((row) => row.resultKind !== 'phrase');
+  const phrases = rows.filter((row) => row.resultKind === 'phrase');
+  const request = writeRequest();
+  const perChannel = state.writePageSize * state.writePage;
+
+  let html = '';
+  if (request.scope !== 'phrases') html += groupHtml('Words', words, perChannel);
+  if (request.scope !== 'words') html += groupHtml('Phrases / Mosaic', phrases, perChannel);
+
+  const visibleWords = request.scope === 'phrases' ? 0 : Math.min(words.length, perChannel);
+  const visiblePhrases = request.scope === 'words' ? 0 : Math.min(phrases.length, perChannel);
+  const hasMore = visibleWords < words.length || visiblePhrases < phrases.length;
+
+  if (!html) html = '<div class="small">No unused RhymeLab candidates for this filter.</div>';
+  if (hasMore) {
+    html += `<button id="rhymeLabLoadMore" class="rhymeLabLoadMore" type="button">Show more · ${visibleWords + visiblePhrases} of ${words.length + phrases.length}</button>`;
+  }
+
+  suggestions.innerHTML = html;
+  $('#rhymeLabLoadMore')?.addEventListener('click', () => {
+    state.writePage += 1;
+    renderWriteResults();
+  });
+}
+
+function renderDeepResults() {
+  const body = $('#rhymeLabDeepBody');
+  const count = $('#rhymeLabDeepCount');
+  if (!body || !count) return;
+
+  const words = state.filteredRows.filter((row) => row.resultKind !== 'phrase');
+  const phrases = state.filteredRows.filter((row) => row.resultKind === 'phrase');
+  count.textContent = `${state.filteredRows.length} unused · ${state.hiddenUsed} used hidden`;
+
+  const sections = [];
+  if (words.length) {
+    sections.push(`<section class="rhymeLabDeepSection"><div class="rhymeLabDeepSectionHead"><strong>Words</strong><span>${words.length}</span></div>${words.map(candidateHtml).join('')}</section>`);
+  }
+  if (phrases.length) {
+    sections.push(`<section class="rhymeLabDeepSection"><div class="rhymeLabDeepSectionHead"><strong>Phrases / Mosaic</strong><span>${phrases.length}</span></div>${phrases.map(candidateHtml).join('')}</section>`);
+  }
+
+  body.innerHTML = sections.length
+    ? `<div class="rhymeLabDeepGrid">${sections.join('')}</div>`
+    : '<div class="rhymeLabNoResults">No unused RhymeLab candidates for this filter.</div>';
+}
+
+function renderResults() {
+  if (!state.data) return;
+  renderWriteResults();
+  renderDeepResults();
+  const total = state.data.results?.length || 0;
+  setAssistMeta(
+    `${state.filteredRows.length} unused candidates from ${total} returned · ${state.hiddenUsed} already used in this lyric hidden`,
+  );
+}
+
+function replaceCandidate(value) {
+  if (typeof window.replaceCurrentWord === 'function') {
+    window.replaceCurrentWord(value);
+    scheduleSearch(0, true);
+    return;
+  }
+
+  const start = editor.selectionStart ?? 0;
+  const end = editor.selectionEnd ?? start;
+  const before = editor.value.slice(0, start);
+  const after = editor.value.slice(end);
+  const left = before.match(/\S+$/)?.[0] || '';
+  const right = after.match(/^\S+/)?.[0] || '';
+  const replaceStart = end > start ? start : start - left.length;
+  const replaceEnd = end > start ? end : end + right.length;
+  editor.value = editor.value.slice(0, replaceStart) + value + editor.value.slice(replaceEnd);
+  const caret = replaceStart + value.length;
+  editor.setSelectionRange(caret, caret);
+  editor.dispatchEvent(new Event('input', { bubbles: true }));
+  editor.focus();
+}
+
+async function runSearch(force = false) {
+  const query = currentQuery();
+  if (!query || query.length < 2) {
+    state.lastQueryKey = '';
+    state.data = null;
+    state.filteredRows = [];
+    state.hiddenUsed = 0;
+    suggestions.innerHTML = '<div class="small">No active word yet.</div>';
+    const body = $('#rhymeLabDeepBody');
+    if (body) body.innerHTML = '<div class="rhymeLabNoResults">Move the cursor to a word to load RhymeLab results.</div>';
+    setAssistMeta('RhymeLab follows the active word or selected phrase.');
+    return;
+  }
+
+  const request = activeRequest();
+  const basis = languageBasis();
+  const queryKey = JSON.stringify([query, basis, request.scope, request.type, editor.value]);
+  if (!force && queryKey === state.lastQueryKey) return;
+  state.lastQueryKey = queryKey;
+
+  state.abortController?.abort();
+  const controller = new AbortController();
+  state.abortController = controller;
+
+  suggestions.innerHTML = '<div class="small">Searching RhymeLab…</div>';
+  setAssistMeta(`Searching “${query}” locally…`);
+
+  const params = new URLSearchParams({
+    q: query,
+    language: basis,
+    scope: request.scope,
+    type: request.type,
+    word_limit: '250',
+    word_pool: '1200',
+    phrase_limit: '250',
+    phrase_pool: '1024',
+    phrase_per_channel: '256',
+    variants: 'preferred',
+    historical: 'current',
+  });
+
+  try {
+    const response = await fetch(`/api/writer?${params}`, { signal: controller.signal });
+    const data = await response.json();
+    if (!response.ok) {
+      const warning = (data.warnings || []).map((item) => item.message).filter(Boolean).join(' ');
+      throw new Error(warning || data.error || data.status || 'RhymeLab search failed');
+    }
+
+    const returned = Array.isArray(data.results) ? data.results : [];
+    const unused = returned.filter((row) => !isAlreadyUsed(row));
+    const filtered = request.type === 'all'
+      ? unused
+      : unused.filter((row) => rowTypes(row).includes(request.type));
+    state.data = data;
+    state.filteredRows = filtered;
+    state.hiddenUsed = returned.length - unused.length;
+    state.writePage = 1;
+    renderResults();
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+    state.data = null;
+    state.filteredRows = [];
+    suggestions.innerHTML = '<div class="small">RhymeLab results unavailable.</div>';
+    const body = $('#rhymeLabDeepBody');
+    if (body) body.innerHTML = `<div class="rhymeLabNoResults">${esc(error?.message || error)}</div>`;
+    setAssistMeta(error?.message || String(error), { error: true });
+  }
+}
+
+function scheduleSearch(delay = 180, force = false) {
+  clearTimeout(state.timer);
+  const query = currentQuery();
+  if (query) {
+    suggestions.innerHTML = '<div class="small">Searching RhymeLab…</div>';
+  }
+  state.timer = setTimeout(() => runSearch(force), delay);
+}
+
+function installListeners() {
+  for (const eventName of ['input', 'click', 'keyup', 'select']) {
+    editor.addEventListener(eventName, () => scheduleSearch());
+  }
+
+  $('#lang')?.addEventListener('change', () => scheduleSearch(0, true));
+  $('#relationFilter')?.addEventListener('change', () => scheduleSearch(0, true));
+
+  $$('.modeTab').forEach((button) => button.addEventListener('click', () => {
+    setTimeout(() => scheduleSearch(0, true), 0);
+  }));
+
+  const observer = new MutationObserver(() => scheduleSearch());
+  observer.observe(focusWord, { childList: true, characterData: true, subtree: true });
+
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-rhymelab-candidate]');
+    if (!button) return;
+    event.preventDefault();
+    replaceCandidate(button.dataset.rhymelabCandidate);
+  });
+}
+
+installSuiteNavigation();
+installRhymeLabControls();
+installDeepResults();
+installListeners();
+document.title = `${$('#songTitle')?.value || 'RhymePad'} — RhymeLab`;
+scheduleSearch(0, true);

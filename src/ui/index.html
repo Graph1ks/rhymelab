@@ -21,13 +21,16 @@
         <span>RhymeLab</span>
         <small>LOCAL</small>
       </a>
+      <nav class="primary-nav" aria-label="RhymeLab workspace">
+        <a class="primary-nav-link active" href="/" aria-current="page">SEARCH</a>
+        <a class="primary-nav-link" href="/pad">RHYMEPAD</a>
+      </nav>
       <form id="searchForm" class="search" role="search">
         <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
         <input id="searchInput" type="search" autocomplete="off" spellcheck="false" placeholder="Search a word or phrase…" aria-label="Search a word or phrase">
         <button class="search-button" type="submit" id="searchButton">Search</button>
       </form>
       <div class="language-switch" aria-label="Search language basis">
-        <a class="pad-entry-link" href="/pad">RhymePad</a>
         <span class="material-symbols-outlined" aria-hidden="true">language</span>
         <button type="button" data-basis="de" class="basis-option">DE</button>
         <button type="button" data-basis="en" class="basis-option">EN</button>
