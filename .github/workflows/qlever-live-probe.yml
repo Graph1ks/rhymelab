@@ -1,4 +1,4 @@
-name: QLever Remaining Exact Fields Probe
+name: QLever Final Sitelink Probe
 
 on:
   push:
@@ -12,11 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Measure exact Wikipedia sitelinks and name eligibility
+      - name: Export Wikipedia sitelinks with backoff
         shell: bash
         run: |
-          cat > /tmp/qlever_remaining.py <<'PY'
-          import gzip, hashlib, json, os, time, urllib.parse, urllib.request
+          cat > /tmp/qlever_sitelinks.py <<'PY'
+          import gzip, hashlib, json, os, time, urllib.error, urllib.parse, urllib.request
           ENDPOINT="https://qlever.dev/api/wikidata"
           TAXONOMY=[
             ("P106","Q2252262"),("P106","Q639669"),("P106","Q33999"),("P106","Q2526255"),
@@ -26,8 +26,6 @@ jobs:
           PREFIX="""PREFIX wd: <http://www.wikidata.org/entity/>
           PREFIX p: <http://www.wikidata.org/prop/>
           PREFIX ps: <http://www.wikidata.org/prop/statement/>
-          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-          PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
           PREFIX schema: <http://schema.org/>
           PREFIX wikibase: <http://wikiba.se/ontology#>
           """
@@ -36,60 +34,43 @@ jobs:
             v=f"?s_{prop}_{qid}"
             branches.append("{ ?item p:"+prop+" "+v+" . "+v+" ps:"+prop+" wd:"+qid+" . }")
           union=" UNION ".join(branches)
-
-          def json_query(q):
-            url=ENDPOINT+"?"+urllib.parse.urlencode({"query":q})
-            req=urllib.request.Request(url,headers={"Accept":"application/sparql-results+json","User-Agent":"Graph1ks-RhymeLab-QLever-Probe/1.0"})
-            t=time.time()
-            with urllib.request.urlopen(req,timeout=900) as r: data=json.load(r)
-            return data["results"]["bindings"],time.time()-t
-
-          eligible_q=PREFIX+f"""
-          SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{
-            {union}
-            {{ ?item rdfs:label ?name . }} UNION {{ ?item skos:altLabel ?name . }}
-            FILTER(LANG(?name) IN ("de","en"))
-          }}
-          """
-          rows,elapsed=json_query(eligible_q)
-          print("NAME_ELIGIBLE",rows[0]["count"]["value"],"elapsed_s",round(elapsed,3),flush=True)
-
-          missing_statement_q=PREFIX+f"""
-          SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{
-            {union}
-            FILTER NOT EXISTS {{ ?item wikibase:statements ?statementCount }}
-          }}
-          """
-          rows,elapsed=json_query(missing_statement_q)
-          print("MISSING_WIKIBASE_STATEMENT_COUNT",rows[0]["count"]["value"],"elapsed_s",round(elapsed,3),flush=True)
-
           q=PREFIX+f"""
           SELECT DISTINCT ?item ?site WHERE {{
             {union}
-            ?article schema:about ?item ; schema:isPartOf ?site .
-            FILTER(REGEX(STR(?site), "^https://[^/]+\\.wikipedia\\.org/$"))
+            ?article schema:about ?item ;
+                     schema:isPartOf ?site .
+            ?site wikibase:wikiGroup "wikipedia" .
           }}
           """
           url=ENDPOINT+"?"+urllib.parse.urlencode({"query":q})
-          req=urllib.request.Request(url,headers={"Accept":"text/tab-separated-values","User-Agent":"Graph1ks-RhymeLab-QLever-Probe/1.0"})
-          t=time.time(); rows_n=0; raw=0; sha=hashlib.sha256()
+          headers={"Accept":"text/tab-separated-values","User-Agent":"Graph1ks-RhymeLab-QLever-Probe/1.0"}
           path="/tmp/wiki_pairs.tsv"
-          with urllib.request.urlopen(req,timeout=900) as r, open(path,"wb") as out:
-            ctype=r.headers.get("Content-Type")
-            while True:
-              chunk=r.read(1024*1024)
-              if not chunk: break
-              out.write(chunk); sha.update(chunk); raw+=len(chunk); rows_n+=chunk.count(b"\n")
-          rows_n=max(0,rows_n-1)
-          gz=path+".gz"
-          with open(path,"rb") as src,gzip.open(gz,"wb",compresslevel=6) as dst:
-            while True:
-              chunk=src.read(1024*1024)
-              if not chunk: break
-              dst.write(chunk)
-          print("WIKIPEDIA_PAIRS",json.dumps({
-            "rows":rows_n,"raw_bytes":raw,"gzip_bytes":os.path.getsize(gz),
-            "sha256":sha.hexdigest(),"elapsed_s":round(time.time()-t,3),"content_type":ctype
-          },sort_keys=True),flush=True)
+          for attempt in range(1,6):
+            try:
+              req=urllib.request.Request(url,headers=headers)
+              t=time.time(); rows=0; raw=0; sha=hashlib.sha256()
+              with urllib.request.urlopen(req,timeout=900) as r, open(path,"wb") as out:
+                ctype=r.headers.get("Content-Type")
+                while True:
+                  chunk=r.read(1024*1024)
+                  if not chunk: break
+                  out.write(chunk); sha.update(chunk); raw+=len(chunk); rows+=chunk.count(b"\n")
+              rows=max(0,rows-1)
+              gz=path+".gz"
+              with open(path,"rb") as src,gzip.open(gz,"wb",compresslevel=6) as dst:
+                while True:
+                  chunk=src.read(1024*1024)
+                  if not chunk: break
+                  dst.write(chunk)
+              print("WIKIPEDIA_PAIRS",json.dumps({
+                "rows":rows,"raw_bytes":raw,"gzip_bytes":os.path.getsize(gz),
+                "sha256":sha.hexdigest(),"elapsed_s":round(time.time()-t,3),"content_type":ctype
+              },sort_keys=True),flush=True)
+              break
+            except urllib.error.HTTPError as e:
+              if e.code != 429 or attempt == 5: raise
+              delay=int(e.headers.get("Retry-After") or (15*attempt))
+              print("RATE_LIMIT",attempt,"sleep_s",delay,flush=True)
+              time.sleep(delay)
           PY
-          python /tmp/qlever_remaining.py
+          python /tmp/qlever_sitelinks.py
