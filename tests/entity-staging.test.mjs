@@ -146,3 +146,28 @@ test('staging DB joins QRank and produces category-relative cut diagnostics', as
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+
+test('owner source registry pins dated Wikidata snapshot and local-pinned QRank policy', async () => {
+  const registry = JSON.parse(
+    await readFile('sources/entity/phase12a-sources-v1.json', 'utf8'),
+  );
+  const wikidata = registry.sources.find((row) => row.source_id === 'wikidata-json-entities');
+  const qrank = registry.sources.find((row) => row.source_id === 'wikidata-qrank');
+
+  assert.equal(wikidata.selected_owner_snapshot.snapshot_label, '20260914');
+  assert.equal(
+    wikidata.selected_owner_snapshot.url,
+    'https://dumps.wikimedia.org/wikidatawiki/entities/20260914/wikidata-20260914-all.json.bz2',
+  );
+  assert.equal(wikidata.selected_owner_snapshot.bytes, 103137817948);
+  assert.equal(
+    wikidata.selected_owner_snapshot.official_checksum,
+    '0a985a65262a665fa33808c7d40a1d42ad28d62c',
+  );
+  assert.equal(wikidata.selected_owner_snapshot.official_checksum_algorithm, 'sha1');
+
+  assert.equal(qrank.selected_owner_snapshot_policy.retrieval_date, '2026-09-18');
+  assert.equal(qrank.selected_owner_snapshot_policy.filename, 'qrank-20260918.csv.gz');
+  assert.equal(qrank.selected_owner_snapshot_policy.historical_retrieval_guaranteed, false);
+});

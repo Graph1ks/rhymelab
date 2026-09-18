@@ -285,3 +285,90 @@ After CI passes, the next owner gate is:
 5. run cut diagnostics;
 6. review counts, QRank coverage, size, category tails and Bud Spencer;
 7. only then freeze final cut/popularity policy and materialize the large Entity Lexicon.
+
+
+## Owner source bootstrap — pinned 2026-09-18 gate
+
+The selected Wikidata item snapshot is:
+
+```text
+snapshot    20260914
+file        wikidata-20260914-all.json.bz2
+bytes       103137817948
+SHA-1       0a985a65262a665fa33808c7d40a1d42ad28d62c
+```
+
+The official dated Wikimedia URL and checksum are recorded in:
+
+```text
+sources/entity/phase12a-sources-v1.json
+```
+
+QRank exposes a periodically updated latest artifact rather than a stable dated historical URL. The owner bootstrap therefore downloads it once to a dated local filename, preserves the raw artifact, captures response headers and records a local SHA-256. Do not pretend that the provider guarantees historical retrieval of that exact artifact.
+
+### Preflight
+
+The bootstrap requires:
+
+- `curl`;
+- one streaming bzip2 decompressor (`7z`, `7zz`, `bzip2`, or `lbzip2`);
+- approximately the Wikidata compressed size plus 40 GiB safety headroom before the initial source download.
+
+The default owner raw directory is:
+
+```text
+data/raw/entity/phase12a-20260918/
+```
+
+On the owner's moved repository this resolves under `D:\rhymelab\data\raw\...`.
+
+### Download + pin sources
+
+```powershell
+npm run entity:sources:bootstrap
+```
+
+Default report:
+
+```text
+data/local/entity-source-bootstrap-v1-report.json
+```
+
+The command:
+
+1. refuses to start if no bzip2 streaming decompressor is available;
+2. checks free space;
+3. downloads/resumes the static Wikidata dated snapshot;
+4. validates the exact expected byte count;
+5. validates Wikimedia's published SHA-1;
+6. records a local SHA-256;
+7. downloads QRank atomically to `qrank-20260918.csv.gz`;
+8. records QRank SHA-256, size and HTTP headers.
+
+The large Wikidata SHA-1/SHA-256 validation requires sequential reads of the compressed artifact. This costs time but avoids accepting a corrupt 96 GiB input.
+
+### Run complete owner staging
+
+After the bootstrap report has status `ok`:
+
+```powershell
+npm run entity:owner:stage
+```
+
+This executes in order:
+
+```text
+stage-wikidata-entities
+stage-qrank
+diagnose-entity-cut
+```
+
+Expected reports:
+
+```text
+data/local/entity-wikidata-stage-v1-report.json
+data/local/entity-qrank-stage-v1-report.json
+data/local/entity-cut-diagnostics-v1-report.json
+```
+
+Upload/review those three reports before final cut thresholds or final Entity Lexicon materialization are accepted.

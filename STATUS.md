@@ -171,6 +171,20 @@ Bud Spencer             person.actor / Tier A / PASS
 
 Current milestone is **12A2 — Wikidata + QRank staging and category-cut diagnostics**.
 
+The pinned owner-source bootstrap is implemented:
+
+```text
+command             npm run entity:sources:bootstrap
+raw dir             data/raw/entity/phase12a-20260918
+Wikidata snapshot   20260914
+Wikidata .bz2       103,137,817,948 bytes
+official SHA-1      0a985a65262a665fa33808c7d40a1d42ad28d62c
+QRank policy        local 2026-09-18 artifact + SHA-256 + HTTP headers
+full staging        npm run entity:owner:stage
+```
+
+The bootstrap is resumable for the static Wikidata URL, requires a streaming bzip2 decompressor, checks free space, verifies Wikimedia's published SHA-1 and records local SHA-256 fingerprints.
+
 Contract: `docs/ENTITY_STAGING_V1.md`.
 
 The implementation streams the compressed Wikidata dump without creating an uncompressed copy, stores only structurally relevant cultural candidates in `data/work/entity/`, stages QRank separately, joins QRank locally, and reports category-relative cut distributions before any final 500k+ Entity Lexicon is materialized.

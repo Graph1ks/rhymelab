@@ -67,6 +67,12 @@ const textPatterns = [
   {
     label: 'legacy 40-hex Git/SHA-1-like identifier',
     regex: /\b[a-f0-9]{40}\b/gi,
+    allow: (_match, context) => {
+      const start = Math.max(0, context.index - 240);
+      const end = Math.min(context.text.length, context.index + 240);
+      const nearby = context.text.slice(start, end);
+      return /(?:sha-?1|official[_ -]?checksum)/iu.test(nearby);
+    },
   },
 ];
 
@@ -96,7 +102,7 @@ for (const path of tracked) {
     rule.regex.lastIndex = 0;
     let match;
     while ((match = rule.regex.exec(text)) !== null) {
-      if (rule.allow?.(match[0])) continue;
+      if (rule.allow?.(match[0], { path, text, index: match.index })) continue;
       const line = text.slice(0, match.index).split('\n').length;
       const preview = rule.label === 'email address' ? '[redacted email]' : match[0].slice(0, 80);
       findings.push(`${path}:${line}: ${rule.label}: ${preview}`);

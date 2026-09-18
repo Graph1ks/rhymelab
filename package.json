@@ -77,6 +77,8 @@
     "entity:fixture": "node --no-warnings scripts/build-entity-fixture.mjs",
     "entity:stage:wikidata": "node --no-warnings scripts/stage-wikidata-entities.mjs",
     "entity:stage:qrank": "node --no-warnings scripts/stage-qrank.mjs",
-    "entity:cut:diagnose": "node --no-warnings scripts/diagnose-entity-cut.mjs"
+    "entity:cut:diagnose": "node --no-warnings scripts/diagnose-entity-cut.mjs",
+    "entity:sources:bootstrap": "node --no-warnings scripts/bootstrap-entity-sources-local.mjs",
+    "entity:owner:stage": "node --no-warnings scripts/run-entity-owner-staging.mjs"
   }
 }
