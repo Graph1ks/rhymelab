@@ -220,17 +220,21 @@ Implemented:
 No accepted single-word runtime code is rewired.
 
 
-Phase 11C1 and Phase 11D are complete and accepted. 11E2 ranking is accepted; **11E3 phrase-channel diversification is the active milestone**.
+Phase 11C1 and Phase 11D are complete and accepted. 11E2 ranking and **11E3 phrase-channel diversification are accepted/frozen**.
 
-Fresh-thread checkpoint: `docs/THREAD_HANDOVER_PHASE_11E3.md`.
+11E3 acceptance report: `docs/PHRASE_MOSAIC_DIVERSITY_ACCEPTANCE.md`.
 
-Remaining order: 11E3 diversity -> 11E4 local runtime/API/UI integration -> 11F dedicated phrase/mosaic benchmark -> Phase 11 close.
+Fresh-thread checkpoint: `docs/THREAD_HANDOVER_PHASE_11E4F.md`.
+
+Current combined milestone: **11E4/F runtime integration + final acceptance**.
+
+Remaining order inside that milestone: 11E4 local runtime/API/UI integration -> 11F dedicated integrated phrase/mosaic benchmark -> Phase 11 close.
 
 Still explicitly out of scope after 11C1:
 
 - alternate/connected-speech phrase pronunciation generation;
 - alternate retrieval revisions without new retrieval-specific evidence;
-- phrase Writer runtime promotion before 11E gates pass;
+- phrase Writer runtime promotion outside the accepted 11E4 integration contract;
 - Markov/generative recombination;
 - semantic/vector reranking;
 - Human Writer NDCG.
