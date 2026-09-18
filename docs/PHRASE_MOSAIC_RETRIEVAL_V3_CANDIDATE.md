@@ -209,6 +209,37 @@ Review must answer:
 
 If the answer is no, reject/iterate 11D4. Do not compensate with phrase-ranking weights.
 
+## First owner full-data A/B evidence
+
+The quality gate passed on the first owner full-data run:
+
+```text
+candidate anchor fingerprint     9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059
+candidate semantic fingerprint   4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd
+accepted baseline reproduced     yes
+queries with anchors             9 -> 10
+returned candidates             1771 -> 1237
+weak candidates                 989 -> 42
+weak share                      55.84% -> 3.40%
+weak/unrelated rows filtered    833
+final fallback assignments      1280 -> 575
+final fallback share            65.98% -> 31.01%
+vowel-family assignments        375
+mean elapsed                    31.0 -> 35.9 ms
+```
+
+Acceptance-question review:
+
+1. **PASS** — `Musik` gains `full_surface`; `Zeit` and `Nacht` remain unsupported.
+2. **PASS** — weak share drops materially while the known strong tops remain intact.
+3. **PASS** — the family bridge contributes nonduplicate retrieval; e.g. `Arbeitsweise -> nahm beiseite` is retrieved through `vowel_family_coda_class` alone.
+4. **PASS** — final-fallback dependence in the returned pool is substantially lower.
+5. **PASS** — owner mean latency increases by only 4.9 ms.
+6. **PASS** — the accepted 11D3 baseline semantic fingerprint reproduces exactly.
+
+Product-quality observation: results such as `Musik -> K.-o.-Siegen` are evidence that phrase lexical/commonness/usefulness ranking is still necessary; they are not evidence that the cross-word phonetic retrieval layer failed.
+
+One deterministic repeat of the candidate anchor and candidate semantic fingerprints is still required before this phase is accepted/frozen.
 ## Explicitly deferred
 
 Still not part of 11D4:

@@ -313,6 +313,32 @@ semantic fingerprint
 `Arbeitsweise`, `Liebe`, `Freiheit`, and `hitzefrei` demonstrate that the accepted substrate can return useful multiword phonetic candidates. However, `Leben`, `Feuer`, and `Gedanken` are dominated by weak final-fallback candidates, while `Musik` receives no mosaic anchor because its accepted stressed rhyme domain is one syllable even though the full word is two syllables.
 
 Decision: **do not proceed to 11E yet**. Keep 11D1 and 11D2 frozen and introduce a separate 11D4 candidate-retrieval revision with a full-surface multi-syllable query domain, a vowel-family bridge channel, and default rejection of weak candidates with no matched sound relation.
+## Phase 11D4 owner A/B quality gate — PASS / REPEATABILITY PENDING
+
+First owner full-data candidate materialization:
+
+```text
+candidate anchor fingerprint  9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059
+anchors                       356,693
+distinct family+coda keys     66,904
+SQLite                       798.60 MiB
+11D2 source fp unchanged      yes
+```
+
+Same-process A/B:
+
+```text
+baseline semantic fp          294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c
+candidate semantic fp         4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd
+queries with anchors          9 -> 10
+weak share                   55.84% -> 3.40%
+final fallback share         65.98% -> 31.01%
+mean elapsed                 31.0 -> 35.9 ms
+```
+
+Quality interpretation: retrieval structure passes. `Musik` is unlocked by full-surface retrieval; `Arbeitsweise`, `Liebe`, `Freiheit`, and `hitzefrei` preserve their strong tops; the family bridge contributes nonduplicate candidates. Lexical/commonness/diversity problems now belong to 11E.
+
+Do not accept/freeze 11D4 until one repeat produces the identical candidate anchor fingerprint and candidate semantic fingerprint.
 ## Phase 11D4 — candidate implementation
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md`.

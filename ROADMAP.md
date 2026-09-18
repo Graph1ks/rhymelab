@@ -358,7 +358,7 @@ The diagnostic did reveal structural retrieval gaps. Do not compensate with 11E 
 
 Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
 
-#### 11D4. Mosaic query-domain + candidate-quality revision — CURRENT
+#### 11D4. Mosaic query-domain + candidate-quality revision — QUALITY PASS / REPEATABILITY PENDING
 
 Fixture CI gate: **PASS** (`validate`, run 261).
 
@@ -381,6 +381,20 @@ Additive goals:
 - rerun the same 12-query diagnostic suite and compare coverage, weak-share, channel dependence, latency and existing strong examples before 11E.
 
 No phrase usefulness/commonness/diversity ranking belongs in 11D4.
+
+Owner A/B quality gate passed:
+
+```text
+candidate anchor fp          9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059
+candidate semantic fp        4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd
+query coverage              9/12 -> 10/12
+weak share                 55.84% -> 3.40%
+final fallback share       65.98% -> 31.01%
+vowel-family assignments  375
+latency                     31.0 -> 35.9 ms
+```
+
+Require one identical repeat before accepting/finalizing 11D4 and opening 11E.
 
 ### 11E. Phrase Writer ranking
 

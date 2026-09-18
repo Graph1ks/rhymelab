@@ -223,6 +223,18 @@ npm run phrase:mosaic:diagnose:v2
 
 The A/B runner must reproduce accepted 11D3 semantic fingerprint `294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c` before candidate comparisons are trusted. The accepted 11D2 fingerprint must remain unchanged.
 
+First owner full-data 11D4 A/B quality gate passed:
+
+```text
+candidate anchor fingerprint  9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059
+candidate semantic fingerprint 4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd
+queries with anchors           9 -> 10
+weak share                    55.84% -> 3.40%
+final fallback share          65.98% -> 31.01%
+```
+
+Interpretation: remaining lexical/commonness/diversity quality is Phase 11E territory. Do not reopen 11D retrieval solely because product-poor lexical surfaces can still rank high. One identical owner repeat of both 11D4 fingerprints is required before freezing 11D4 and opening 11E.
+
 Phrase ranking remains deferred to 11E. 
 The accepted single-word Writer baseline remains frozen.
 
