@@ -14,6 +14,9 @@ test('Phrase Explorer exposes phrase catalog browsing without replacing Writer U
   assert.match(html,/value="pronunciation"/);
   assert.doesNotMatch(html,/RUEG/);
   assert.doesNotMatch(app,/RUEG/);
+  assert.doesNotMatch(css,/rueg/i);
+  assert.doesNotMatch(server,/\/api\/register\/search/);
+  assert.doesNotMatch(server,/\/api\/register\/facets/);
   assert.match(app,/\/api\/phrases\/search/);
   assert.match(app,/\/api\/phrases\/detail/);
   assert.match(app,/IPA ready/);
