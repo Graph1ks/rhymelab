@@ -66,6 +66,7 @@
     "phrase:mosaic:retrieval": "node --no-warnings scripts/materialize-de-phrase-mosaic-retrieval.mjs",
     "phrase:mosaic:diagnose": "node --no-warnings scripts/diagnose-de-phrase-mosaic-retrieval.mjs",
     "phrase:mosaic:retrieval:v2": "node --no-warnings scripts/materialize-de-phrase-mosaic-retrieval-v2.mjs",
-    "phrase:mosaic:diagnose:v2": "node --no-warnings scripts/diagnose-de-phrase-mosaic-retrieval-v2.mjs"
+    "phrase:mosaic:diagnose:v2": "node --no-warnings scripts/diagnose-de-phrase-mosaic-retrieval-v2.mjs",
+    "phrase:mosaic:rank:evidence": "node --no-warnings scripts/diagnose-de-phrase-mosaic-ranking-evidence.mjs"
   }
 }
