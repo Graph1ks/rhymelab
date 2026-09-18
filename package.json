@@ -105,6 +105,7 @@
     "en:db:rebuild": "npm run en:db && npm run en:db:verify",
     "en:coverage:audit": "node --no-warnings scripts/analyze-en-coverage-funnel.mjs",
     "en:coverage:sample": "node --no-warnings scripts/sample-en-coverage-candidates.mjs",
-    "en:coverage:rescue": "node --no-warnings scripts/analyze-en-coverage-rescue-policy.mjs"
+    "en:coverage:rescue": "node --no-warnings scripts/analyze-en-coverage-rescue-policy.mjs",
+    "en:pronunciation:fallback:diagnose": "node --no-warnings scripts/diagnose-en-pronunciation-fallback.mjs"
   }
 }
