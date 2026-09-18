@@ -282,7 +282,7 @@ distributions equal        true
 
 Phase 11D1 is accepted and frozen as the mosaic-window substrate.
 
-### Phase 11D2 — bounded indexed candidate retrieval — IMPLEMENTED AT FIXTURE LEVEL / CI + OWNER GATE PENDING
+### Phase 11D2 — bounded indexed candidate retrieval — FIXTURE GATE PASS / OWNER FULL-DATA GATE PENDING
 
 11D2 keeps 11D1 immutable and adds a separate retrieval-anchor table because the raw 11D1 phoneme key includes the first-syllable onset while accepted German rhyme truth does not.
 
