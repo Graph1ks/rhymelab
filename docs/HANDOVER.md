@@ -708,7 +708,7 @@ cold start measured separately
 
 Performance optimization must preserve accepted Top-N/result fingerprints. Eliminate full scans and N+1s before low-level SQLite PRAGMA tuning.
 
-### Current immediate owner gate remains unchanged
+### Current immediate owner gate — publish-v4 A/B reviewed, repeatability next
 
 PR #90 is merged at:
 
@@ -716,25 +716,44 @@ PR #90 is merged at:
 7607e89
 ```
 
-Current publish candidate:
+The first full `en-source-backed-publish-v4-candidate` owner build and coverage A/B have now been reviewed.
 
 ```text
-en-source-backed-publish-v4-candidate
+publish fingerprint                 b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+
+published surfaces                  224,478   (+76,574 vs v3)
+default eligible                    123,533   (+47,836)
+analyzed en-US                      188,148   (+76,574)
+ranked published                    124,285   (+17,506)
+ranked default                       80,579   (+15,416)
+
+punctuation aliases                   2,104
+exact-CMUdict possessives              5,127
+strict inflections                    69,343
+derived_inflection variants            99,727
+ambiguous inflection surfaces             176
+unresolved inflection bases           278,099
 ```
 
-Owner is currently running/providing results from:
+Coverage shape is healthy: Top-1k is unchanged; gains grow into the long tail. Direct source-backed pronunciation checkpoint counts do not change because `derived_inflection` remains explicit source-composed provenance rather than being relabeled as direct source pronunciation. Historical-only / proper-name-only / ESDB-invalid default blockers remain active. No General-English/unprofiled -> en-US promotion was introduced.
+
+The candidate is **not frozen yet**. Required next owner command:
 
 ```powershell
 git pull
-npm run en:publish:rebuild
-npm run en:coverage:audit
+npm run en:publish:repeatability
 ```
 
-Expected artifacts for next thread:
+Both unchanged-source runs must reproduce:
 
 ```text
-data/local/en-publish-v1/manifest.json
-data/local/en-coverage-audit-v1-report.json
+b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
 ```
 
-Do not rebuild the English SQLite until these publish-v4 counts/coverage are reviewed.
+Only after repeatability passes:
+
+```powershell
+npm run en:db:rebuild
+```
+
+Then review the rebuilt English DB fingerprint, counts and multi-channel retrieval equivalence before starting English ranking.
