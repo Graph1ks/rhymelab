@@ -349,3 +349,57 @@ npm run en:coverage:sample -- --min-rank 250000 --n 100 --seed tail-review-1
 ```
 
 This is the preferred basis for the next lexical-admission decision.
+
+
+## Stratified owner review — rescue policy direction
+
+The deterministic stratified owner sample is now complete across all seven rank bands. Summed cell populations for the material loss/recovery classes are:
+
+```text
+not_wiktionary_lexical_candidate                  97,144
+no_source_backed_pronunciation                    52,864
+published_explicit_proper_name_only               26,264
+form_of_without_analyzed_en_us_lemma              14,976
+published_no_analyzed_en_us_pronunciation         14,821
+regular_inflection_shape_with_analyzed_en_us_lemma 13,454
+non_wiktionary_cmudict_only                        8,764
+form_of_with_analyzed_en_us_lemma                  5,505
+possessive_with_cmudict_and_analyzed_en_us_base    4,036
+non_wiktionary_esdb_current_plus_cmudict             918
+orthographic_variant_with_analyzed_en_us_lemma       168
+```
+
+Review conclusions:
+
+1. exact-CMUdict possessives are a high-confidence lexical-surface rescue class;
+2. punctuation-only aliases to an analyzed lemma are a high-confidence pronunciation-identity class;
+3. regular inflection recovery is promising but must be tag-gated; abbreviation/initialism/contraction/misspelling/letter/number/symbol rows are blocked before composition;
+4. published rows with analyzed but unprofiled IPA are a major locale-policy candidate and require rhyme-domain agreement diagnostics before default promotion;
+5. ESDB+CMUdict and CMUdict-only non-Wiktionary rows are heavily name/brand/entity-shaped in review samples and must not be silently reclassified as ordinary common lexical vocabulary;
+6. proper-name-only remains a Writer channel/product-policy question, not a pronunciation-coverage defect.
+
+Quick exact-count command over the already-materialized 311k sidecar:
+
+```powershell
+npm run en:coverage:rescue
+```
+
+Output:
+
+```text
+data/local/en-coverage-rescue-policy-v1-report.json
+```
+
+Pronunciation fallback agreement diagnostic over the existing publish shards:
+
+```powershell
+npm run en:pronunciation:fallback:diagnose
+```
+
+Output:
+
+```text
+data/local/en-pronunciation-fallback-diagnostic-v1-report.json
+```
+
+Neither diagnostic mutates publish data or the English runtime.
