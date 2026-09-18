@@ -247,6 +247,25 @@ raw result bytes            753,947,040
 summed export wall time           114.2 s
 ```
 
+The first owner-local QLever fast-path run is now **PASS**. The source export, local entity stage, QRank join and category cut diagnostic all completed and returned cleanly to PowerShell; the sentinel gate therefore passed.
+
+Owner source evidence:
+
+```text
+membership rows              1,875,219
+core rows                    1,838,448
+aliases                        630,965
+external IDs                   993,926
+Wikipedia sitelinks          4,491,472
+total selective rows         9,830,030
+raw bytes                  783,845,729
+gzip bytes                  93,454,429
+```
+
+Visible cut evidence confirms that QRank coverage is category-dependent rather than uniformly high: examples include films 81.55%, albums 89.78%, actors 62.17%, companies 45.68% and video games 22.24%. Therefore QRank remains evidence, not the sole popularity truth; the existing deterministic fallback ordering by Wikipedia sitelinks, DE/EN presence, external IDs and statement count remains material.
+
+Before freezing the cut policy, rerun only `npm run entity:cut:diagnose` after the next code update. The diagnostic now reports **distinct retained entities** in addition to kept category memberships, so the actual retained population can be checked against the 500k–1.2M target and preferred 600k–900k working range without another QLever fetch or restage.
+
 The implementation streams the compressed Wikidata dump without creating an uncompressed copy, stores only structurally relevant cultural candidates in `data/work/entity/`, stages QRank separately, joins QRank locally, and reports category-relative cut distributions before any final 500k+ Entity Lexicon is materialized.
 
 Plan: `docs/ENTITY_LEXICON_PLAN.md`.
