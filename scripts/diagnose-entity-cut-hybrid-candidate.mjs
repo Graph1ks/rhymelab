@@ -40,10 +40,6 @@ function sha256Json(value) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 
-function pct(value, total) {
-  return total ? Math.round(value * 10000 / total) / 100 : 0;
-}
-
 const db = new DatabaseSync(entityStagePath, { readOnly: true });
 try {
   const categories = db.prepare(
@@ -77,6 +73,7 @@ try {
   const controlDistinct = new Set();
   const candidateDistinct = new Set();
   const categoryReports = [];
+  const sentinelReports = [];
   let totalControlKept = 0;
   let totalCandidateKept = 0;
   let totalPromoted = 0;
@@ -131,12 +128,12 @@ try {
     const promoted = candidate
       .filter((row) => row.keep && !controlByQid.get(row.qid).keep)
       .map((row) => sampleRow(row, controlByQid.get(row.qid)))
-      .sort((a, b) => a.candidate_rank_delta - b.candidate_rank_delta || a.qid.localeCompare(b.qid))
+      .sort((a, b) => a.candidate_rank_delta - b.candidate_rank_delta || a.qid < b.qid ? -1 : a.qid > b.qid ? 1 : 0)
       .slice(0, 5);
     const demoted = control
       .filter((row) => row.keep && !candidateByQid.get(row.qid).keep)
       .map((row) => sampleRow(candidateByQid.get(row.qid), row))
-      .sort((a, b) => b.candidate_rank_delta - a.candidate_rank_delta || a.qid.localeCompare(b.qid))
+      .sort((a, b) => b.candidate_rank_delta - a.candidate_rank_delta || a.qid < b.qid ? -1 : a.qid > b.qid ? 1 : 0)
       .slice(0, 5);
 
     const controlSummary = summarizeEvaluatedEntityCutRows(control);
@@ -175,46 +172,32 @@ try {
       },
       samples: { promoted, demoted },
     });
-  }
 
-  const sentinelReports = (taxonomy.protected_sentinels || []).map((sentinel) => {
-    const category = categoryReports.find((row) => row.category === sentinel.required_category);
-    const rows = evidenceStatement.all(sentinel.required_category).map((row) => ({
-      ...row,
-      qrank: row.qrank == null ? null : Number(row.qrank),
-      wikipedia_sitelink_count: Number(row.wikipedia_sitelink_count || 0),
-      has_dewiki: Number(row.has_dewiki || 0),
-      has_enwiki: Number(row.has_enwiki || 0),
-      external_id_count: Number(row.external_id_count || 0),
-      statement_count: Number(row.statement_count || 0),
-      retention_percentile_floor: Number(row.retention_percentile_floor),
-    }));
-    const floor = rows[0]?.retention_percentile_floor ?? 0;
-    const control = evaluateRankedEntityCutRows(rankControlEntityCutRows(rows), floor, protectedQids);
-    const candidate = evaluateRankedEntityCutRows(rankHybridEntityCutRows(rows), floor, protectedQids);
-    const controlRow = control.find((row) => row.qid === sentinel.qid);
-    const candidateRow = candidate.find((row) => row.qid === sentinel.qid);
-    const pass = Boolean(
-      category
-      && candidateRow?.keep
-      && (!sentinel.expected_tier || candidateRow?.tier === sentinel.expected_tier)
-    );
-    return {
-      qid: sentinel.qid,
-      name: sentinel.name,
-      required_category: sentinel.required_category,
-      expected_tier: sentinel.expected_tier || null,
-      control_rank: controlRow?.rank ?? null,
-      control_percentile: controlRow?.percentile ?? null,
-      control_tier: controlRow?.tier ?? null,
-      candidate_rank: candidateRow?.rank ?? null,
-      candidate_percentile: candidateRow?.percentile ?? null,
-      candidate_tier: candidateRow?.tier ?? null,
-      candidate_score_ppm: candidateRow?.candidate_score_ppm ?? null,
-      candidate_keep: Boolean(candidateRow?.keep),
-      pass,
-    };
-  });
+    for (const sentinel of (taxonomy.protected_sentinels || [])
+      .filter((entry) => entry.required_category === category)) {
+      const controlRow = controlByQid.get(sentinel.qid);
+      const candidateRow = candidateByQid.get(sentinel.qid);
+      const pass = Boolean(
+        candidateRow?.keep
+        && (!sentinel.expected_tier || candidateRow?.tier === sentinel.expected_tier)
+      );
+      sentinelReports.push({
+        qid: sentinel.qid,
+        name: sentinel.name,
+        required_category: sentinel.required_category,
+        expected_tier: sentinel.expected_tier || null,
+        control_rank: controlRow?.rank ?? null,
+        control_percentile: controlRow?.percentile ?? null,
+        control_tier: controlRow?.tier ?? null,
+        candidate_rank: candidateRow?.rank ?? null,
+        candidate_percentile: candidateRow?.percentile ?? null,
+        candidate_tier: candidateRow?.tier ?? null,
+        candidate_score_ppm: candidateRow?.candidate_score_ppm ?? null,
+        candidate_keep: Boolean(candidateRow?.keep),
+        pass,
+      });
+    }
+  }
 
   const allSentinelsPass = sentinelReports.every((row) => row.pass);
   const fingerprintPayload = {
