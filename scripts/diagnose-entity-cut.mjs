@@ -17,6 +17,7 @@ let qrankStagePath = 'data/work/entity/qrank-stage-v1.sqlite';
 let taxonomyPath = 'sources/entity/wikidata-entity-taxonomy-v1.json';
 let reportPath = 'data/local/entity-cut-diagnostics-v1-report.json';
 let joinQRank = true;
+let printJson = false;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
@@ -25,6 +26,7 @@ for (let i = 0; i < args.length; i += 1) {
   else if (arg === '--taxonomy') taxonomyPath = args[++i] || taxonomyPath;
   else if (arg === '--report') reportPath = args[++i] || reportPath;
   else if (arg === '--skip-qrank-join') joinQRank = false;
+  else if (arg === '--print-json') printJson = true;
 }
 
 entityStagePath = resolve(entityStagePath);
@@ -76,7 +78,24 @@ try {
   };
 
   await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  console.log(JSON.stringify(report, null, 2));
+
+  if (printJson) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    const compact = {
+      status: report.status,
+      all_sentinels_pass: report.all_sentinels_pass,
+      staged_entities: report.stats.entities,
+      total_category_memberships: report.total_category_memberships,
+      total_kept_category_memberships: report.total_kept_category_memberships,
+      distinct_retained_entities: report.distinct_retained_entities,
+      retained_membership_overlap: report.retained_membership_overlap,
+      retained_memberships_per_entity: report.retained_memberships_per_entity,
+      report: reportPath,
+    };
+    console.log(JSON.stringify(compact, null, 2));
+  }
+
   if (!report.all_sentinels_pass) process.exitCode = 1;
 } finally {
   db.close();
