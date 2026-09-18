@@ -412,6 +412,27 @@ vowel-family assigns     375 -> 375
 Owner latency moved from 35.9 ms to 37.6 ms; latency is observational and excluded from the semantic fingerprint. All deterministic semantic evidence is identical.
 
 Phase 11D retrieval is now frozen. Current milestone is **Phase 11E writer-oriented phrase ranking**. Retrieval/scorer changes require new evidence and must not be used to solve phrase commonness, lexical safety, or diversity problems.
+### Phase 11E1 — ranking evidence enrichment — IMPLEMENTED / CI PENDING
+
+The first 11E implementation is evidence-only. It does **not** reorder candidates yet.
+
+Implemented signals:
+
+- equal-weight Leipzig commonness over the three frozen corpora using `log1p(per_million_sentences)`;
+- Leipzig corpus breadth, occurrence and sentence totals kept separately;
+- source-backed phrase types and style tags;
+- deterministic surface-safety classification for abbreviation/digit/punctuation/historical patterns;
+- deterministic normalized query-token overlap;
+- stable per-query evidence fingerprints;
+- hard assertion that the frozen 11D4 diagnostic semantic fingerprint is unchanged.
+
+Command after fixture CI passes:
+
+```powershell
+npm run phrase:mosaic:rank:evidence
+```
+
+No phrase-utility weights or page diversification are accepted yet.
 ### Immediate owner gate
 
 After merge:
