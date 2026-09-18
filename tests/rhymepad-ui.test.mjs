@@ -53,7 +53,7 @@ test('RhymePad live suggestions use RhymeLab at full accepted result depth', () 
   assert.match(serverSource, /'\/pad': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/);
   assert.match(padApp, /fetch\(\`\/api\/writer\?\$\{params\}\`/);
   assert.match(padApp, /word_limit: '250'/);
-  assert.match(padApp, /word_pool: '1200'/);
+  assert.match(padApp, /word_pool: '800'/);
   assert.match(padApp, /phrase_limit: '250'/);
   assert.match(padApp, /phrase_pool: '1024'/);
   assert.match(padApp, /phrase_per_channel: '256'/);
