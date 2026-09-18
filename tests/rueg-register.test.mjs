@@ -27,6 +27,42 @@ const EXB = `<?xml version="1.0" encoding="UTF-8"?>
  </tier>
  <tier id="TIE3" category="language"><event start="T0" end="T4">deu</event></tier>
 </basic-transcription>`;
+const DAKODA_EXB = `<?xml version="1.0" encoding="UTF-8"?>
+<basic-transcription>
+ <common-timeline>
+  <tli id="TLI_w1"/><tli id="TLI_w2"/><tli id="TLI_w3"/>
+  <tli id="TLI_w4"/><tli id="TLI_w5"/><tli id="TLI_w6"/>
+ </common-timeline>
+ <tier id="TIE_TH_MERGED" category="spacy_mixtral_th1_merged" type="a" speaker="SPK0">
+  <event start="TLI_w1" end="TLI_w3"/>
+  <event start="TLI_w3" end="TLI_w6"/>
+ </tier>
+ <tier id="TIE1" category="text" type="t" speaker="SPK0">
+  <event start="TLI_w1" end="TLI_w2">ich</event>
+  <event start="TLI_w2" end="TLI_w3">hab</event>
+  <event start="TLI_w3" end="TLI_w4">keine</event>
+  <event start="TLI_w4" end="TLI_w5">Ahnung</event>
+  <event start="TLI_w5" end="TLI_w6">heute</event>
+ </tier>
+</basic-transcription>`;
+
+const DAKODA_META = JSON.stringify({
+  corpus: { subcorpus: { corpus_subcorpus_targetLanguage: 'deu' } },
+  task: { interaction: {
+    task_interaction_formality: 'formal',
+    task_interaction_mode: ['spoken'],
+  } },
+  learner: {
+    learner_id: 'notAvailable',
+    learner_id_orig: 'DEbi01FT',
+    sociodemographic: { learner_socio_ageProduction: 24 },
+  },
+  text: {
+    text_language: { iso_code_639_3: 'deu' },
+    text_timeOfCreation: '2018-11-27',
+  },
+});
+
 
 test('RUEG EXB parser preserves diplomatic and normalized layers separately', () => {
   const parsed = parseRuegExb(EXB);
@@ -37,6 +73,34 @@ test('RUEG EXB parser preserves diplomatic and normalized layers separately', ()
   assert.equal(parsed.units[0].diplTokenCount, 4);
   assert.equal(parsed.units[0].normTokenCount, 4);
   assert.deepEqual(parsed.units[0].languages, ['deu']);
+});
+
+
+test('RUEG parser handles the real DAKODA EXB shape without inventing a norm layer', () => {
+  const parsed = parseRuegExb(DAKODA_EXB);
+  assert.equal(parsed.unitType, 'dakoda_clause');
+  assert.equal(parsed.boundarySourceCategory, 'spacy_mixtral_th1_merged');
+  assert.equal(parsed.surfaceSourceCategory, 'text');
+  assert.equal(parsed.normSourceCategory, null);
+  assert.equal(parsed.normAvailable, false);
+  assert.equal(parsed.units.length, 2);
+  assert.equal(parsed.units[0].dipl, 'ich hab');
+  assert.equal(parsed.units[0].norm, '');
+  assert.equal(parsed.units[0].diplTokenCount, 2);
+  assert.equal(parsed.units[1].dipl, 'keine Ahnung heute');
+  assert.equal(parsed.units[1].norm, '');
+  assert.equal(parsed.units[1].diplTokenCount, 3);
+});
+
+test('RUEG metadata parser reads nested DAKODA JSON metadata', () => {
+  const meta = parseRuegMeta(DAKODA_META);
+  assert.equal(meta.speakerId, 'DEbi01FT');
+  assert.equal(meta.formality, 'formal');
+  assert.equal(meta.mode, 'spoken');
+  assert.equal(meta.speakerAge, '24');
+  assert.equal(meta.elicitationLanguage, 'deu');
+  assert.equal(meta.elicitationDate, '2018-11-27');
+  assert.equal(meta.raw['task.interaction.task-interaction-formality'], 'formal');
 });
 
 test('RUEG metadata parser preserves register dimensions needed for filtering', () => {
