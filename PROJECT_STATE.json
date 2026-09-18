@@ -1248,8 +1248,8 @@
           "lexical_stress"
         ],
         "status": "SELECTED",
-        "existing_pinned_commit": "74790861f652b15e4ac49015a90074ad62a27690",
-        "existing_pinned_git_blob": "2c0411740cce3e2026a80b90b650d5f6a7258164"
+        "existing_pin_manifest": "sources/entity/cmudict-entity-pronunciation-v1.json",
+        "pin_policy": "reuse_existing_pinned_artifact_initially_or_explicitly_pin_a_new_revision_during_12B1"
       },
       "secondary_lexical_guard": {
         "id": "esdb_scowl_v2",
