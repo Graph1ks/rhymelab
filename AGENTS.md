@@ -159,7 +159,15 @@ Current implementation gate is the deterministic fixture/prototype:
 - `scripts/build-entity-fixture.mjs`;
 - `npm run entity:fixture`.
 
-Do not start the full Wikidata dump streamer until the fixture CI + owner-local report gate passes. Fixture popularity values are synthetic test scales only, never live QRank/pageview facts.
+Phase 12A1 fixture CI and the owner-local report gate are accepted. Accepted semantic fingerprint:
+
+```text
+23e668d7a327982ba7367c875749d17d19697466cfa438a67df7a2d7ed9f4bba
+```
+
+Current work is **12A2 Wikidata + QRank staging**. Read `docs/ENTITY_STAGING_V1.md`.
+
+Do not materialize the final large Entity Lexicon yet. First pass CI, pin dated source snapshots/checksums, run the full owner staging/cut diagnostics on D:, then review category distributions and size. Fixture popularity values remain synthetic test scales only, never live QRank/pageview facts.
 
 Phase 12 sequence is now:
 
