@@ -20,6 +20,7 @@ test('unified Writer normalizes result scope deterministically', () => {
   assert.equal(normalizeUnifiedResultScope('all'), 'all');
   assert.equal(normalizeUnifiedResultScope('WORDS'), 'words');
   assert.equal(normalizeUnifiedResultScope('phrases'), 'phrases');
+  assert.equal(normalizeUnifiedResultScope('entities'), 'entities');
   assert.equal(normalizeUnifiedResultScope('other'), 'all');
 });
 
@@ -29,6 +30,7 @@ test('English capability is explicit and never silently emulated', () => {
   assert.equal(capabilities.languages.en.available, false);
   assert.equal(capabilities.languages.en.wordWriter, false);
   assert.equal(capabilities.languages.en.phraseMosaic, false);
+  assert.equal(capabilities.languages.en.entityRhymes, false);
   assert.equal(
     capabilities.languages.en.reason,
     'english_phonology_and_runtime_not_implemented',
