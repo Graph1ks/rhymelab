@@ -6,19 +6,36 @@ Repository state is authoritative. Do not reconstruct project state from prior c
 
 ## Authoritative current checkpoint
 
-Fresh-thread compact checkpoint: `docs/THREAD_HANDOVER_PHASE_11E4F.md`.
+Phase 11 German phrase/mosaic/phraseology is **COMPLETE / ACCEPTED / FROZEN**.
 
-Current milestone: **Phase 11E4/F runtime integration + final acceptance**.
+Final acceptance document: `docs/PHASE_11_ACCEPTANCE.md`.
 
-Phase 11E3 phrase-channel diversification is accepted/frozen. Accepted diversity fingerprint: `ca7e04e91226cd5a3855dbe302a54bffaccce8c6d3a9defff8be049ca6153ef1`; three owner repeatability runs matched exactly and all protected checks passed. Product rule remains unchanged: Phrase/Mosaic is an optional channel, never a quota in the default single-word result list. Better single-word results may legitimately outrank or fully displace phrase results; an empty phrase channel is valid.
+The accepted unified Writer product surface is the main local UI at `/` with `GET /api/writer`. Single words and Phrase/Mosaic results share one workspace with `All / Words / Phrases-Mosaic` filters. The standalone Phrase Explorer UI and `/phrases` route are retired; phrase detail/catalog APIs remain internal read-only support for inspection and diagnostics.
 
-11E4 code integration now exposes one unified Writer product surface and `GET /api/writer` for single words and Phrase/Mosaic. The old standalone Phrase Explorer UI is removed; `/phrases` is only a backward-compatible alias to the same Writer page. `All / Words / Phrases-Mosaic` are filters in that one workspace. Word and phrase channels retain their accepted internal ranking because their scores are not globally calibrated.
+Final owner gate:
 
-The product search-language basis contract is `DE / EN / DE+EN`. German is active. English remains explicitly unavailable/capability-gated until Phase 12 provides an accepted English analyzer/scorer/database; `DE+EN` currently runs German and surfaces that English is unavailable.
+```text
+schema                            rhymelab-unified-writer-acceptance-v1
+status                            ok
+runs                              3
+protected checks                  PASS
+structural checks                 PASS
+frozen single-word equivalence    PASS
+11E2-v2 fingerprint reproduced    PASS
+11E3 fingerprint reproduced       PASS
+performance gate                  PASS
+combined overhead ratio           1.0417
+repeatability                     PASS
+semantic fingerprint
+9c5ea5fcd67d74c58393cb25da854c3ed7a7ef2d6ea658d26614a194dd745694
+```
 
-Remaining Phase 11 work is: **11E4 owner full-data integrated smoke/performance -> 11F structural/provenance/performance/repeatability acceptance -> Phase 11 close**. Human NDCG may remain `pending_reference` if independent reviewers are unavailable.
+Current next milestone is **Phase 12 — English profile + benchmark**, not yet started. The existing `DE / EN / DE+EN` product contract is reused; English must remain capability-gated until a real accepted English phonology/runtime exists.
 
-**Continuity note:** older sections below are retained as engineering chronology and may contain then-current phrases such as “pending” or “blocked”. For fresh work, the authoritative current checkpoint above plus `docs/THREAD_HANDOVER_PHASE_11E4F.md`, `PROJECT_STATE.json`, and `STATUS.md` override historical pending-language.
+UI visual polish, ergonomic refinement, final responsive/product interaction work, SQLite layout/size optimization, caching and latency micro-tuning are explicitly deferred until the broader databases and search/display algorithms are complete.
+
+Human Writer NDCG remains `pending_reference` until independent reviewers exist.
+
 ## Start here
 
 Read in order:

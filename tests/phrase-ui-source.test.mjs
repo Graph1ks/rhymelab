@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { access, readFile } from 'node:fs/promises';
 
-test('standalone Phrase Explorer UI is retired into the unified Writer surface', async () => {
+test('standalone Phrase Explorer UI and route are retired', async () => {
   const [server, writerHtml, app] = await Promise.all([
     readFile('src/server.mjs', 'utf8'),
     readFile('src/ui/index.html', 'utf8'),
@@ -14,8 +14,8 @@ test('standalone Phrase Explorer UI is retired into the unified Writer surface',
   await assert.rejects(access('src/phrase-ui/styles.css'));
 
   assert.match(server, /RHYMELAB_PHRASE_DB/);
-  assert.match(server, /'\/phrases': \{ type: 'text\/html; charset=utf-8', body: writerHtml \}/);
-  assert.match(server, /'\/phrases\/': \{ type: 'text\/html; charset=utf-8', body: writerHtml \}/);
+  assert.doesNotMatch(server, /'\/phrases':/);
+  assert.doesNotMatch(server, /'\/phrases\/':/);
   assert.doesNotMatch(server, /phraseUiDir/);
   assert.doesNotMatch(server, /\/phrases\/assets\//);
 

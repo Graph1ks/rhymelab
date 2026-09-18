@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11E4F_RUNTIME_INTEGRATION_FINAL_ACCEPTANCE",
+  "phase": "ENGLISH_PHASE_12_PROFILE_BENCHMARK_NOT_STARTED",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11e3_accepted_11e4_integrated_11f_acceptance_pending",
+    "status": "COMPLETE_ACCEPTED_FROZEN",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11E4F_RUNTIME_INTEGRATION_FINAL_ACCEPTANCE",
+    "next_milestone": "PHASE_12_ENGLISH_PROFILE_BENCHMARK",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -213,16 +213,11 @@
       "diagnostic_observation": "raw_catalog_is_intentionally_lexeme_heavy_and_contains_abbreviation_surface_alias_noise;do_not_treat_all_rows_as_songwriting_phrases"
     },
     "phrase_explorer": {
-      "route": "/phrases",
-      "database": "data/local/rhymelab-phrases-v1.sqlite",
-      "optional_for_writer_startup": true,
-      "read_only": true,
-      "runtime_writer_rewired": false,
-      "surfaces": [
-        "phrase_catalog",
-        "leipzig_evidence",
-        "register_evidence"
-      ]
+      "status": "RETIRED",
+      "route": null,
+      "product_surface": false,
+      "phrase_detail_api_retained_for_unified_writer": true,
+      "phrase_search_api_retained_for_diagnostics": true
     },
     "phrase_pronunciation": {
       "contract": "docs/PHRASE_PRONUNCIATION_V1.md",
@@ -1087,23 +1082,23 @@
         }
       },
       "phase_11e4f": {
-        "status": "INTEGRATION_IMPLEMENTED_OWNER_ACCEPTANCE_PENDING",
+        "status": "ACCEPTED_COMPLETE_FROZEN",
         "combined_workstream": true,
         "integration_gate": "11E4",
         "final_acceptance_gate": "11F",
         "dependency_order_preserved": true,
         "runtime_api_ui_integration_complete": true,
-        "final_benchmark_complete": false,
+        "final_benchmark_complete": true,
         "runtime_integration_allowed": true,
         "single_word_writer_must_remain_unchanged": true,
         "local_only": true,
         "fixture_ci_gate_passed": true,
-        "owner_full_data_smoke_pending": true,
+        "owner_full_data_smoke_pending": false,
         "unified_writer_schema": "rhymelab-unified-writer-v1",
         "unified_writer_policy": "de-unified-word-phrase-writer-v1",
         "unified_api": "/api/writer",
         "standalone_phrase_ui_removed": true,
-        "phrase_bookmark_aliases_unified_writer": true,
+        "phrase_bookmark_aliases_unified_writer": false,
         "result_scopes": [
           "all",
           "words",
@@ -1125,15 +1120,30 @@
           "unresolved_without_g2p_or_guessing"
         ],
         "cross_channel_score_calibration": false,
-        "phrase_quota": false
+        "phrase_quota": false,
+        "owner_full_data_acceptance_passed": true,
+        "standalone_phrase_route_removed": true,
+        "acceptance_report_schema": "rhymelab-unified-writer-acceptance-v1",
+        "acceptance_runs": 3,
+        "accepted_ranking_suite_fingerprint": "1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0",
+        "accepted_diversity_suite_fingerprint": "ca7e04e91226cd5a3855dbe302a54bffaccce8c6d3a9defff8be049ca6153ef1",
+        "accepted_semantic_repeatability_fingerprint": "9c5ea5fcd67d74c58393cb25da854c3ed7a7ef2d6ea658d26614a194dd745694",
+        "all_protected_checks_pass": true,
+        "all_structural_checks_pass": true,
+        "frozen_word_writer_equivalent": true,
+        "performance_gate_pass": true,
+        "combined_overhead_ratio": 1.0417,
+        "combined_overhead_ratio_max": 1.5,
+        "repeatable": true,
+        "repeatability_mismatches": 0
       }
     },
-    "thread_handover": "docs/THREAD_HANDOVER_PHASE_11E3.md",
+    "thread_handover": "docs/THREAD_HANDOVER_PHASE_11E4F.md",
     "closure_sequence": [
-      "PHASE_11E3_PHRASE_CHANNEL_DIVERSIFICATION",
-      "PHASE_11E4_LOCAL_RUNTIME_API_UI_INTEGRATION",
-      "PHASE_11F_PHRASE_MOSAIC_FINAL_BENCHMARK",
-      "PHASE_11_COMPLETE"
+      "PHASE_11E3_PHRASE_CHANNEL_DIVERSIFICATION_COMPLETE",
+      "PHASE_11E4_LOCAL_RUNTIME_API_UI_INTEGRATION_COMPLETE",
+      "PHASE_11F_PHRASE_MOSAIC_FINAL_BENCHMARK_COMPLETE",
+      "PHASE_11_COMPLETE_ACCEPTED_FROZEN"
     ],
     "phase_11_closure_policy": {
       "human_ndcg_can_remain_pending_reference": true,
@@ -1142,6 +1152,21 @@
       "local_only_deterministic_core_required": true,
       "phrase_quota_forbidden": true,
       "phrase_filter_channel_required_at_integration": true
+    },
+    "acceptance_document": "docs/PHASE_11_ACCEPTANCE.md",
+    "final_hardening_policy": {
+      "status": "DEFERRED_UNTIL_DATABASES_AND_SEARCH_DISPLAY_ALGORITHMS_ARE_COMPLETE",
+      "current_priority": "data_and_algorithm_correctness",
+      "deferred": [
+        "visual_polish",
+        "ui_ux_ergonomics",
+        "responsive_interaction_refinement",
+        "sqlite_size_layout_optimization",
+        "query_path_micro_optimization",
+        "caching",
+        "final_latency_tuning",
+        "packaging_product_hardening"
+      ]
     }
   },
   "owner_measurement_outputs": {
@@ -1169,5 +1194,20 @@
     "integrate_accepted_phrase_channel_into_runtime_api_ui_with_explicit_filter",
     "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
     "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
-  ]
+  ],
+  "next_milestone": "PHASE_12_ENGLISH_PROFILE_BENCHMARK",
+  "phase_12_english": {
+    "status": "NOT_STARTED",
+    "roadmap": "Phase 12 — English profile + benchmark",
+    "reuse_unified_ui_api_contract": true,
+    "language_basis_contract": [
+      "de",
+      "en",
+      "both"
+    ],
+    "active_runtime_languages": [
+      "de"
+    ],
+    "must_not_emulate_english_with_german_phonology": true
+  }
 }

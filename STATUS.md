@@ -102,23 +102,35 @@ It will not be collected from the project owner alone. Independent human usefuln
 
 ## Current checkpoint
 
-Compact next-thread handover: `docs/THREAD_HANDOVER_PHASE_11E4F.md`.
+Phase 11 German phrase/mosaic/phraseology is **COMPLETE / ACCEPTED / FROZEN**.
 
-Current milestone: **11E4/F runtime integration + final acceptance**. 11E3 phrase-channel diversification is accepted/frozen with diversity fingerprint `ca7e04e91226cd5a3855dbe302a54bffaccce8c6d3a9defff8be049ca6153ef1`; three repeatability runs matched exactly and all protected checks passed.
+Acceptance: `docs/PHASE_11_ACCEPTANCE.md`.
 
-The 11E4 code integration now provides one Writer product surface and one `/api/writer` contract for single words and Phrase/Mosaic. `All / Words / Phrases-Mosaic` are filters inside the same workspace; the standalone Phrase Explorer product UI has been removed. `/phrases` remains only a backward-compatible alias to the same Writer HTML.
-
-Search-language basis is exposed as `DE / EN / DE+EN`. German is active. English is explicitly capability-gated because no accepted English phonology/runtime exists yet; `DE+EN` therefore runs German with an English-unavailable warning until Phase 12.
-
-Remaining to close Phase 11:
+Final integrated owner evidence:
 
 ```text
-11E4 owner full-data integrated smoke/performance gate
-11F integrated structural + provenance + performance + repeatability benchmark
-Phase 11 closure
+report schema                     rhymelab-unified-writer-acceptance-v1
+status                            ok
+runs                              3
+protected checks                  PASS
+structural checks                 PASS
+frozen Word Writer equivalent     PASS
+11E2-v2 fingerprint reproduced    PASS
+11E3 fingerprint reproduced       PASS
+combined overhead ratio           1.0417
+performance maximum               1.5000
+repeatability                     PASS
+semantic fingerprint
+9c5ea5fcd67d74c58393cb25da854c3ed7a7ef2d6ea658d26614a194dd745694
 ```
 
-11E4 and 11F remain one continuous engineering workstream.
+The product surface is now only the main Writer UI at `/`. There is no separate Phrase Explorer route requirement. Phrase catalog/detail APIs remain internal read-only support for unified result inspection and diagnostics.
+
+Search-language basis remains `DE / EN / DE+EN`. German is active and frozen; English is the next roadmap phase and remains capability-gated until an accepted English runtime exists.
+
+Current next milestone: **Phase 12 — English profile + benchmark**. It is not started yet.
+
+UI polish, ergonomic refinement and database/query micro-optimization are intentionally deferred until the broader databases and search/display algorithms are complete.
 ## Current phase — Phase 11 German phrase / mosaic / phraseology
 
 Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`. Phrase catalog contract: `docs/PHRASE_CATALOG_V1.md`. Pronunciation contract: `docs/PHRASE_PRONUNCIATION_V1.md`.
@@ -141,9 +153,7 @@ Phase 11B2 diagnostics found 15,449 modern-eligible phrases with Leipzig evidenc
 
 ### Phase 11B3 — phrase detail/catalog diagnostics
 
-The old standalone Phrase Explorer product UI is superseded by the unified Writer. Phrase catalog/detail APIs remain read-only diagnostic/provenance support for the unified result inspector.
-
-`http://127.0.0.1:3030/phrases` now serves the same Writer UI as `/` for backward-compatible bookmarks.
+The old standalone Phrase Explorer product UI and route are retired. Phrase catalog/detail APIs remain read-only diagnostic/provenance support for the unified result inspector.
 
 Cologne Kiezdeutsch remains optional additive register evidence; automated Zenodo PDF 403 behavior is nonblocking because owner-local files may be supplied directly.
 

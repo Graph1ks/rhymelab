@@ -4,18 +4,15 @@ Last updated: 2026-09-18
 
 Repository state is authoritative.
 
-## Current milestone
+## Final status
 
 ```text
-PHASE_11E4F_RUNTIME_INTEGRATION_FINAL_ACCEPTANCE
+PHASE_11_COMPLETE_ACCEPTED_FROZEN
 ```
 
-11E4 and 11F are one continuous engineering workstream with two ordered internal gates:
+11E4 integration and 11F final acceptance are complete. Final acceptance is authoritative in `docs/PHASE_11_ACCEPTANCE.md`.
 
-1. 11E4 local runtime/API/UI integration.
-2. 11F final structural/provenance/performance/repeatability acceptance benchmark over that integrated surface.
-
-Do not run the final 11F acceptance suite against a diagnostic-only path that is not the product integration.
+This file is now historical handover context for the completed Phase 11 workstream.
 
 ## Read first
 
@@ -187,7 +184,7 @@ Human Writer NDCG may remain `pending_reference`.
 The unified product path is now implemented at code/fixture level:
 
 - one Writer UI at `/`;
-- `/phrases` aliases the same Writer HTML for old bookmarks;
+- no separate `/phrases` product route;
 - standalone `src/phrase-ui` assets are removed;
 - `GET /api/writer` accepts words and multi-word queries;
 - `All / Words / Phrases-Mosaic` are filters in one result workspace;
@@ -199,22 +196,12 @@ The unified product path is now implemented at code/fixture level:
 - language-basis contract is `DE / EN / DE+EN`;
 - German is active; English is capability-gated until Phase 12 rather than being emulated.
 
-## Immediate next action
+## Next milestone
 
-Run the owner full-data integrated 11E4/11F acceptance command over the actual local Writer + phrase databases:
+Phase 12 — English profile + benchmark — is next and not yet started.
 
-```powershell
-npm run writer:unified:acceptance
-```
+Reuse the existing unified `DE / EN / DE+EN` UI/API contract. English must remain capability-gated until a real accepted English analyzer/scorer/database exists.
 
-It performs three independent database-open runs over the 12-query Writer suite, verifies direct frozen Word Writer equivalence, reproduces the accepted 11E2-v2 and 11E3 suite fingerprints from the integrated product path, checks protected Phrase/Mosaic cases, result-scope behavior, multi-word query resolution, provenance, boundary/stress coverage, default lexical safety, same-process combined-path overhead and deterministic repeatability.
-
-Default report:
-
-```text
-data/local/unified-writer-acceptance-v1-report.json
-```
-
-Do not mark Phase 11 complete until that owner report passes.
+UI visual polish, UI/UX ergonomics and DB/query micro-optimization are deferred to final hardening after the broader databases and search/display algorithms are complete.
 
 Use branch/PR + required `validate` CI for every accepted change.
