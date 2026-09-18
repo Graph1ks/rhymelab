@@ -167,6 +167,15 @@ Phase 12A1 fixture CI and the owner-local report gate are accepted. Accepted sem
 
 Current work is **12A2 Wikidata + QRank staging**. Read `docs/ENTITY_STAGING_V1.md`.
 
+Owner source acquisition is now a gated local workflow:
+
+```text
+npm run entity:sources:bootstrap
+npm run entity:owner:stage
+```
+
+The selected Wikidata item snapshot is 20260914 with official SHA-1 `0a985a65262a665fa33808c7d40a1d42ad28d62c`. QRank is pinned by retaining the downloaded 2026-09-18 raw artifact plus local SHA-256/headers. Do not replace this with an unversioned latest-only acceptance claim.
+
 Do not materialize the final large Entity Lexicon yet. First pass CI, pin dated source snapshots/checksums, run the full owner staging/cut diagnostics on D:, then review category distributions and size. Fixture popularity values remain synthetic test scales only, never live QRank/pageview facts.
 
 Phase 12 sequence is now:
