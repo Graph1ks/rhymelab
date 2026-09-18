@@ -53,12 +53,12 @@ RhymeLab's Phase 12A3 owner diagnostic may locally download the CMU Pronouncing 
 Pinned manifest:
 `sources/entity/cmudict-entity-pronunciation-v1.json`
 
-Pinned revision:
+Pinned revision (abbreviated here; exact values are retained in the source manifest):
 
 ```text
-commit    74790861f652b15e4ac49015a90074ad62a27690
+commit    74790861f652…
 file      cmudict.dict
-git blob  2c0411740cce3e2026a80b90b650d5f6a7258164
+git blob  2c0411740cce…
 ```
 
 Copyright: Carnegie Mellon University. The upstream license permits redistribution and use in source and binary forms, with or without modification, subject to its notice/disclaimer conditions. The raw dictionary is downloaded locally and is not committed to this repository.
