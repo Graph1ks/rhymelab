@@ -29,6 +29,7 @@ function rounded(value, digits = 4) {
 
 function candidateSummary(candidate) {
   return {
+    candidatePhonemes: candidate.candidatePhonemes || undefined,
     windowId: candidate.windowId,
     phraseId: candidate.phraseId,
     canonical: candidate.canonical,
@@ -78,6 +79,8 @@ export function diagnosePhraseMosaicQuery({
   perChannelLimit = 128,
   maxCandidates = 512,
   topCandidates = 20,
+  retrieveCandidates = retrievePhraseMosaicCandidates,
+  retrievalOptions = {},
 }) {
   const detail = getWord(writerDb, word);
   if (!detail?.preferredIpa) {
@@ -97,10 +100,10 @@ export function diagnosePhraseMosaicQuery({
   }
 
   const started = performance.now();
-  const result = retrievePhraseMosaicCandidates(
+  const result = retrieveCandidates(
     phraseDb,
     detail.preferredIpa,
-    { perChannelLimit, maxCandidates },
+    { perChannelLimit, maxCandidates, ...retrievalOptions },
   );
   const elapsedMs = rounded(performance.now() - started, 1);
 
@@ -209,6 +212,10 @@ export function runPhraseMosaicQueryDiagnostics({
   perChannelLimit = 128,
   maxCandidates = 512,
   topCandidates = 20,
+  retrieveCandidates = retrievePhraseMosaicCandidates,
+  retrievalOptions = {},
+  diagnosticSchema = PHRASE_MOSAIC_QUERY_DIAGNOSTICS_SCHEMA,
+  diagnosticPolicy = PHRASE_MOSAIC_QUERY_DIAGNOSTICS_POLICY,
 }) {
   const results = (queries || []).map((query) =>
     diagnosePhraseMosaicQuery({
@@ -219,6 +226,8 @@ export function runPhraseMosaicQueryDiagnostics({
       perChannelLimit,
       maxCandidates,
       topCandidates,
+      retrieveCandidates,
+      retrievalOptions,
     })
   );
 
@@ -228,6 +237,7 @@ export function runPhraseMosaicQueryDiagnostics({
   let elapsedTotal = 0;
   let elapsedCount = 0;
   let returnedCandidates = 0;
+  let weakUnrelatedFiltered = 0;
 
   for (const entry of results) {
     increment(statusCounts, entry.status);
@@ -236,6 +246,7 @@ export function runPhraseMosaicQueryDiagnostics({
       elapsedCount += 1;
     }
     returnedCandidates += Number(entry.candidateSummary?.returnedCandidates || 0);
+    weakUnrelatedFiltered += Number(entry.retrieval?.weakUnrelatedFiltered || 0);
     for (const [key, value] of Object.entries(entry.candidateSummary?.primaryTypes || {})) {
       primaryTypes.set(key, (primaryTypes.get(key) || 0) + Number(value));
     }
@@ -249,12 +260,13 @@ export function runPhraseMosaicQueryDiagnostics({
   ));
 
   return {
-    schema: PHRASE_MOSAIC_QUERY_DIAGNOSTICS_SCHEMA,
-    policy: PHRASE_MOSAIC_QUERY_DIAGNOSTICS_POLICY,
+    schema: diagnosticSchema,
+    policy: diagnosticPolicy,
     queryCount: results.length,
     statusCounts: objectFromMap(statusCounts),
     meanElapsedMs: elapsedCount ? rounded(elapsedTotal / elapsedCount, 1) : null,
     totalReturnedCandidates: returnedCandidates,
+    totalWeakUnrelatedFiltered: weakUnrelatedFiltered,
     aggregatePrimaryTypes: objectFromMap(primaryTypes),
     aggregateRetrievalChannels: objectFromMap(channels),
     semanticFingerprint,

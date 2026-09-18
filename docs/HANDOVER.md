@@ -313,6 +313,33 @@ semantic fingerprint
 `Arbeitsweise`, `Liebe`, `Freiheit`, and `hitzefrei` demonstrate that the accepted substrate can return useful multiword phonetic candidates. However, `Leben`, `Feuer`, and `Gedanken` are dominated by weak final-fallback candidates, while `Musik` receives no mosaic anchor because its accepted stressed rhyme domain is one syllable even though the full word is two syllables.
 
 Decision: **do not proceed to 11E yet**. Keep 11D1 and 11D2 frozen and introduce a separate 11D4 candidate-retrieval revision with a full-surface multi-syllable query domain, a vowel-family bridge channel, and default rejection of weak candidates with no matched sound relation.
+## Phase 11D4 — candidate implementation
+
+Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md`.
+
+Fixture gate passed in required `validate` CI (run 261): source check, full test suite and public-readiness audit all passed. The first CI attempt exposed only a test-fixture final-nucleus mismatch; production candidate logic was unchanged.
+
+The 11D4 candidate preserves accepted 11D1/11D2 tables as controls and adds:
+
+- distinct full-surface 2–6-syllable query domains;
+- one additive vowel-family/coda-class index per accepted window;
+- a default post-score phonetic gate that suppresses `weak` rows with no independent relation;
+- an A/B runner that executes the accepted 11D3 baseline and 11D4 candidate in the same process.
+
+The full default A/B run must reproduce baseline semantic fingerprint:
+
+```text
+294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c
+```
+
+Owner commands after merge:
+
+```powershell
+npm run phrase:mosaic:retrieval:v2
+npm run phrase:mosaic:diagnose:v2
+```
+
+Do not start 11E until the A/B report is reviewed.
 ## Phase 11D3 — current
 
 Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.

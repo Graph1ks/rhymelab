@@ -183,7 +183,7 @@ Decision: do **not** block Phase 11D on a manual 11C2 lexical-gap campaign. Keep
 
 The repeatability gate passed: two owner full-data runs produced the identical pronunciation fingerprint `fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548`. Phase 11C1 is accepted and closed.
 
-Phases 11D1 and 11D2 are accepted/frozen after exact owner repeatability. Phase 11D3 owner diagnostics are complete and require an evidence-driven Phase 11D4 retrieval revision before 11E. Read `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`, `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`, and `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md` before changing mosaic code.
+Phases 11D1 and 11D2 are accepted/frozen after exact owner repeatability. Phase 11D3 owner diagnostics are complete. Current milestone is the Phase 11D4 retrieval candidate; read `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`, `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`, `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`, and `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md` before changing mosaic code.
 Phase 11D1 owner repeatability is accepted:
 
 ```text
@@ -213,6 +213,15 @@ semantic fingerprint 294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a8
 ```
 
 Decision: do **not** start 11E yet. 11D4 must stay additive over the frozen 11D2 control and address three evidence-backed issues only: full-surface multi-syllable query domains, an intermediate vowel-family retrieval channel, and removal of weak/no-relation candidates from the default returned pool. Do not retune the single-word scorer or introduce phrase ranking to solve these retrieval problems.
+
+11D4 candidate commands:
+
+```powershell
+npm run phrase:mosaic:retrieval:v2
+npm run phrase:mosaic:diagnose:v2
+```
+
+The A/B runner must reproduce accepted 11D3 semantic fingerprint `294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c` before candidate comparisons are trusted. The accepted 11D2 fingerprint must remain unchanged.
 
 Phrase ranking remains deferred to 11E. 
 The accepted single-word Writer baseline remains frozen.

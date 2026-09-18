@@ -360,6 +360,17 @@ Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
 
 #### 11D4. Mosaic query-domain + candidate-quality revision — CURRENT
 
+Fixture CI gate: **PASS** (`validate`, run 261).
+
+Candidate implementation now exists at fixture level:
+
+- additive full-surface query domain;
+- additive indexed vowel-family/coda-class bridge;
+- default weak/no-relation phonetic gate;
+- same-process accepted-baseline vs candidate diagnostics.
+
+Required next gate: CI, then owner full-data A/B over the unchanged 12-query suite. The accepted 11D3 semantic fingerprint must reproduce exactly before candidate deltas are trusted.
+
 Preserve the accepted 11D1 window and 11D2 retrieval-anchor fingerprints as frozen controls.
 
 Additive goals:
