@@ -132,7 +132,7 @@ The read-only Phrase Explorer is available at:
 http://127.0.0.1:3030/phrases
 ```
 
-### Phase 11C1 — deterministic phrase pronunciation — IMPLEMENTED / OWNER FULL-DATA GATE PENDING
+### Phase 11C1 — deterministic phrase pronunciation — OWNER FULL-DATA BUILD COMPLETE / GATE PENDING
 
 11C1 now reuses the accepted Writer-v5 pronunciation inventory and creates a separate additive pronunciation layer.
 
@@ -165,6 +165,27 @@ For fully resolved phrases it stores:
 
 The Phrase Explorer now shows an `IPA ready` filter, phrase IPA, stress/syllable diagnostics, token IPA and token boundary spans.
 
+### Confirmed owner full-data build
+
+The owner-local 11C1 materialization completed successfully with the accepted Phase 11B1 catalog preserved:
+
+```text
+phrase DB after pronunciation       350.37 MiB
+base catalog fingerprint            f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d
+base fingerprint matches stored     true
+pronunciation fingerprint           fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+phrase tokens                       205,957
+resolved tokens                     195,490
+unresolved tokens                    10,467
+token coverage                        94.92%
+phrases                              98,504
+ready phrases                        90,089
+ready modern phrases                 89,865
+phrase coverage                       91.46%
+blocked by unresolved token           8,415
+```
+
+This confirms the full-data build and base-catalog preservation. The complete 11C1 owner gate is still pending because deterministic repeat fingerprint equality has not yet been recorded and the unresolved-token impact triage still needs the dedicated coverage report.
 ### Immediate owner gate
 
 After merge:
