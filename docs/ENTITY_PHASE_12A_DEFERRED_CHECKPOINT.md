@@ -14,13 +14,8 @@ This is a sequencing decision, not an Entity rejection.
 
 ## Frozen code checkpoint
 
-The last merged Entity change before this deferral is:
+The last merged Entity change before this deferral is PR #70, which added the qualified Wikidata P898 pronunciation evidence layer.
 
-```text
-commit  ad54d59b11538c73cf3a6d1f18c652310c3419b8
-PR      #70
-change  qualified Wikidata P898 pronunciation evidence layer
-```
 
 The P898 source layer exists in code, but the owner explicitly did **not** execute the new P898 owner workflow after PR #70.
 
