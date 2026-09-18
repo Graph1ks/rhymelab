@@ -182,19 +182,21 @@ export function determineEnglishPublishEligibility(record) {
     item.analysis && Array.isArray(item.locales) && item.locales.includes('en-US'));
   const historicalOnly = Number(record?.lexical_current_evidence || 0) === 0
     && Number(record?.lexical_historical_evidence || 0) > 0;
-  const properName = Boolean(record?.proper_name);
+  const properNameEvidence = Number(record?.proper_name_evidence || 0);
+  const commonLexicalEvidence = Number(record?.common_lexical_evidence || 0);
+  const properNameOnly = properNameEvidence > 0 && commonLexicalEvidence === 0;
   const esdbInvalid = Boolean(record?.esdb?.invalid);
-  const defaultEligible = hasAnalyzedEnUs && !historicalOnly && !properName && !esdbInvalid;
+  const defaultEligible = hasAnalyzedEnUs && !historicalOnly && !properNameOnly && !esdbInvalid;
   const reasons = [];
   if (!hasAnalyzedEnUs) reasons.push('no_analyzed_en_us_pronunciation');
   if (historicalOnly) reasons.push('historical_only');
-  if (properName) reasons.push('explicit_proper_name');
+  if (properNameOnly) reasons.push('explicit_proper_name_only');
   if (esdbInvalid) reasons.push('esdb_invalid_variant');
   return {
     source_backed_publishable: pronunciations.length > 0,
     analyzed_en_us: hasAnalyzedEnUs,
     historical_only: historicalOnly,
-    proper_name: properName,
+    proper_name_only: properNameOnly,
     default_eligible: defaultEligible,
     exclusion_reasons: reasons,
   };
