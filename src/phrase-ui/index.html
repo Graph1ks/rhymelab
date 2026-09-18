@@ -11,7 +11,7 @@
   <header class="topbar">
     <a class="brand" href="/"><span class="mark">R</span><span>RhymeLab</span><small>PHRASES</small></a>
     <form id="searchForm" class="search">
-      <input id="query" type="search" autocomplete="off" spellcheck="false" placeholder="Phrase oder RUEG-Text suchen…">
+      <input id="query" type="search" autocomplete="off" spellcheck="false" placeholder="Phrase suchen…">
       <button type="submit">Suchen</button>
     </form>
     <a class="writer-link" href="/">← Writer</a>
@@ -21,18 +21,13 @@
     <section class="intro">
       <div>
         <p class="eyebrow">LOCAL DATA EXPLORER</p>
-        <h1>Phraseology, corpus evidence & register.</h1>
+        <h1>Phraseology & corpus evidence.</h1>
         <p>Read-only browser for the local Phase 11 phrase database. This does not change Writer ranking.</p>
       </div>
       <div id="stats" class="stats"></div>
     </section>
 
-    <nav class="tabs" aria-label="Explorer mode">
-      <button class="tab active" data-mode="phrases">Phrase Catalog</button>
-      <button class="tab" data-mode="register">RUEG Contexts</button>
-    </nav>
-
-    <section id="phraseControls" class="controls">
+    <section class="controls">
       <label>Typ
         <select id="typeFilter">
           <option value="all">Alle</option>
@@ -48,7 +43,6 @@
           <option value="all">Alle</option>
           <option value="leipzig">Leipzig</option>
           <option value="register">Register corpus</option>
-          <option value="rueg">RUEG</option>
           <option value="pronunciation">IPA ready</option>
         </select>
       </label>
@@ -56,17 +50,6 @@
       <label>Limit
         <select id="phraseLimit"><option>50</option><option>100</option><option>200</option></select>
       </label>
-    </section>
-
-    <section id="registerControls" class="controls hidden">
-      <label>Layer
-        <select id="layerFilter"><option value="both">dipl + norm</option><option value="dipl">dipl</option><option value="norm">norm</option></select>
-      </label>
-      <label>Subcorpus<select id="subcorpusFilter"><option value="all">Alle</option></select></label>
-      <label>Formality<select id="formalityFilter"><option value="all">Alle</option></select></label>
-      <label>Mode<select id="modeFilter"><option value="all">Alle</option></select></label>
-      <label>Age<select id="ageFilter"><option value="all">Alle</option></select></label>
-      <label>Limit<select id="registerLimit"><option>50</option><option>100</option><option>200</option></select></label>
     </section>
 
     <div id="status" class="status hidden"></div>
