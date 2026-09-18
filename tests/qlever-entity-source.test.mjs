@@ -57,6 +57,14 @@ test('SPARQL TSV decoder handles URIs, typed literals, languages and escapes',()
     '74',
   );
   assert.equal(decodeSparqlTsvTerm('"a\\tb\\n\\u00DF"'),'a\tb\nß');
+  assert.equal(
+    decodeSparqlTsvTerm(String.raw`"Russian rap band\"@en`),
+    'Russian rap band\\',
+  );
+  assert.equal(
+    decodeSparqlTsvTerm(String.raw`"Band\""@en`),
+    'Band"',
+  );
   assert.equal(decodeSparqlTsvTerm(''),null);
 
   const row=parseSparqlTsvLine(
