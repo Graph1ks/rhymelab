@@ -426,6 +426,8 @@ CREATE INDEX idx_entity_category_tier ON entity_category(category, category_tier
 CREATE INDEX idx_entity_name_normalized ON entity_name(normalized, language);
 CREATE INDEX idx_entity_external_id ON entity_external_id(system, value);
 CREATE INDEX idx_entity_pronunciation_locale ON entity_pronunciation(locale, pronunciation_role);
+CREATE INDEX idx_entity_pronunciation_name_locale
+  ON entity_pronunciation(name_id,locale,preferred DESC,review_state,pronunciation_id);
 
 CREATE TABLE entity_rhyme_anchor(
   analyzer_id TEXT NOT NULL,

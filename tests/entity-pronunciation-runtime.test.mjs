@@ -160,3 +160,32 @@ test('entity pronunciation materializer exposes progress and resumable checkpoin
   assert.match(materializerSource, /statement\.iterate/);
   assert.match(materializerSource, /PRAGMA wal_checkpoint\(TRUNCATE\)/);
 });
+
+
+test('entity pronunciation lookups are indexed by name for full-data materialization', () => {
+  const db = new DatabaseSync(':memory:');
+  try {
+    createEntityStorage(db);
+    const indexes = db.prepare("PRAGMA index_list('entity_pronunciation')").all();
+    assert.ok(indexes.some((row) => row.name === 'idx_entity_pronunciation_name_locale'));
+
+    const plan = db.prepare(`
+      EXPLAIN QUERY PLAN
+      SELECT pronunciation_id,locale,review_state
+      FROM entity_pronunciation
+      WHERE name_id=?
+        AND locale='de-DE'
+        AND review_state IN ('accepted','reviewed','accepted_source_composition')
+      ORDER BY preferred DESC,pronunciation_id
+      LIMIT 1
+    `).all(1);
+    assert.match(
+      plan.map((row) => row.detail).join('\n'),
+      /idx_entity_pronunciation_name_locale/,
+    );
+  } finally {
+    db.close();
+  }
+
+  assert.match(materializerSource, /CREATE INDEX IF NOT EXISTS idx_entity_pronunciation_name_locale/);
+});
