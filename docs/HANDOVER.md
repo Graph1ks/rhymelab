@@ -6,7 +6,7 @@ Repository state is authoritative. Do not reconstruct project state from prior c
 
 ## Active milestone
 
-**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. 12B5 owner DB gate passed; 12B6 lexical/ranking coverage audit is current.**
+**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. 12B6 coverage baseline exposed a history-classification defect; sense-aware publish v2 A/B is current.**
 
 Read first:
 
@@ -110,7 +110,11 @@ fa078705ff6f4ae157b88301f6dea84933008590ff3f8c376832c684a1baca0b
 retrieval equivalence            80 samples / 0 mismatches
 ```
 
-The current gate is **not ranking yet**. First run the coverage-funnel audit from `docs/ENGLISH_COVERAGE_AUDIT_V1.md` to explain the large DE-vs-EN population/size difference and quantify high-frequency lexical loss.
+The first full coverage audit is complete. It confirms a heavily frequency-skewed English population: only 41,125 published EN forms are unranked versus 577,759 unranked DE forms. Top-100k coverage falls to 69.75% published / 50.46% default.
+
+A confirmed bug in the old publish policy marks a whole entry historical when any flattened sense tag is archaic/obsolete/historical/dated. Candidate policy `en-source-backed-publish-v2-candidate` fixes this by requiring no current sense before historical-only exclusion.
+
+The current gate is **not ranking yet**. Rebuild publish + DB with the sense-aware history fix, rerun the coverage audit, and inspect automatic deltas plus remaining top-loss examples.
 
 English remains candidate-gated; no product EN runtime and no broad G2P is accepted yet.
 
@@ -302,14 +306,15 @@ The owner bootstrap and 12B2 diagnostics are complete. The 12B3 owner fixture al
 
 ## Next-thread execution order
 
-Continue with the **12B6 English coverage-funnel audit**, not UI work and not Entity work.
+Continue with the **12B6 publish-v2 history-fix A/B**, not UI work and not Entity work.
 
-1. run `npm run en:coverage:audit`;
-2. inspect Top-10k / Top-50k / Top-100k publish + default coverage;
-3. compare English ranked/unranked forms directly with local German Writer v5;
-4. inspect dominant loss buckets and highest-ranked missing words;
-5. decide whether pronunciation acquisition/form-composition/default-locale policy must expand before ranking;
-6. only then proceed to English ranking/benchmark acceptance.
+1. run `npm run en:publish`;
+2. run `npm run en:publish:verify`;
+3. run `npm run en:publish:repeatability`;
+4. run `npm run en:db` and `npm run en:db:verify`;
+5. run `npm run en:coverage:audit`; it automatically compares to the existing baseline report;
+6. inspect Top-N deltas, remaining proper-name/no-pronunciation/lexical gaps, and the new form-of-with-analyzed-lemma recovery bucket;
+7. only then choose the next coverage expansion before ranking.
 
 Required diagnostics are specified in `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
 
