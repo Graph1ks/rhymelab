@@ -7,7 +7,6 @@ import { createGunzip, gunzipSync } from 'node:zlib';
 import { createInterface } from 'node:readline';
 import {
   decodeMsgpack,
-  isWriterCandidateSurface,
   normalizeEnglishSurface,
   parseEsdbLine,
   parseWordfreqCBpack,
@@ -20,6 +19,7 @@ import {
   compactEnglishAnalysis,
   determineEnglishPublishEligibility,
   finalizeEsdbEvidence,
+  isEnglishPublishSurface,
   lexicalEvidenceForHeadword,
   lexicalEvidenceForListedForms,
   mergeEsdbEvidence,
@@ -78,7 +78,7 @@ let cmudictRows=0;
 const cmuLines=createInterface({input:createReadStream(cmuPath),crlfDelay:Infinity});
 for await(const line of cmuLines){
   const parsed=parseCmudictPronunciationLine(line);
-  if(!parsed||!isWriterCandidateSurface(parsed.normalized)) continue;
+  if(!parsed||!isEnglishPublishSurface(parsed.normalized)) continue;
   cmudictRows+=1;
   let values=cmudict.get(parsed.normalized);
   if(!values){values=[];cmudict.set(parsed.normalized,values);}
@@ -95,7 +95,7 @@ for await(const line of esdbLines){
   esdbParsedRows+=1;
   for(const form of parsed.forms||[]){
     const normalized=normalizeEnglishSurface(form);
-    if(!isWriterCandidateSurface(normalized)) continue;
+    if(!isEnglishPublishSurface(normalized)) continue;
     esdb.set(normalized,mergeEsdbEvidence(esdb.get(normalized),parsed));
   }
 }
@@ -106,7 +106,7 @@ const wordfreqRows=parseWordfreqCBpack(wordfreqDecoded);
 const wordfreq=new Map();
 for(const item of wordfreqRows){
   const normalized=normalizeEnglishSurface(item.word);
-  if(!isWriterCandidateSurface(normalized)||wordfreq.has(normalized)) continue;
+  if(!isEnglishPublishSurface(normalized)||wordfreq.has(normalized)) continue;
   wordfreq.set(normalized,{rank:wordfreq.size+1,zipf:item.zipf});
 }
 
