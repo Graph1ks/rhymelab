@@ -258,7 +258,7 @@ Pronunciation v1 rules remain unchanged:
 - no guessed IPA;
 - no runtime network.
 
-CMUdict is currently a **source-coverage probe only**. It is pinned to commit `74790861f652b15e4ac49015a90074ad62a27690` / blob `2c0411740cce3e2026a80b90b650d5f6a7258164`. Its North American English evidence must not be relabeled `de-DE` or analyzed as accepted German runtime pronunciation.
+CMUdict is currently a **source-coverage probe only**. The exact source commit and blob checksum are pinned in `sources/entity/cmudict-entity-pronunciation-v1.json` (abbreviated in this handover as `74790861f652…` / `2c0411740cce…`). Its North American English evidence must not be relabeled `de-DE` or analyzed as accepted German runtime pronunciation.
 
 Generated local reports:
 
