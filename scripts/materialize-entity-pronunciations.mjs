@@ -75,6 +75,8 @@ function ensureRuntimeStorage(db) {
     ) WITHOUT ROWID;
     CREATE INDEX IF NOT EXISTS idx_entity_rhyme_anchor_pronunciation
       ON entity_rhyme_anchor(pronunciation_id,analyzer_id,channel);
+    CREATE INDEX IF NOT EXISTS idx_entity_pronunciation_name_locale
+      ON entity_pronunciation(name_id,locale,preferred DESC,review_state,pronunciation_id);
   `);
 }
 
