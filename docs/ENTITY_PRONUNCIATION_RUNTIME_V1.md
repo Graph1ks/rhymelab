@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-18
 
-Status: **implemented candidate / owner full-data build pending**
+Status: **owner baseline complete / source-coverage diagnostic implemented / acceptance pending repeatability**
 
 ## Scope
 
@@ -257,33 +257,61 @@ Company
 
 If `data/local/rhymelab-entities-v1.sqlite` is absent or its phonetic runtime has not been materialized, the normal Writer and Phrase/Mosaic channels still start and operate unchanged. The Entity channel reports itself unavailable.
 
-## Owner build
+## Owner baseline
 
-After merge:
+The first full owner pronunciation build completed successfully:
+
+```text
+names considered              716,940
+eligible/runtime-ready names   90,224
+Writer-v5 compositions         90,224
+unresolved names              626,716
+resolved name coverage          12.58%
+phonetic analyses              90,224
+rejected analyses                   0
+rhyme anchors                 569,995
+database bytes          1,267,650,560
+runtime fingerprint
+38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3
+```
+
+This proves the conservative pipeline is technically sound, but 12.58% name coverage is not sufficient to call the Entity channel complete. The dominant unresolved-token evidence contains large English/title/name components, so the next gate is source coverage measurement rather than blind G2P.
+
+## One-command owner workflow
+
+After merge, the normal owner command is:
 
 ```powershell
 cd D:\rhymelab
 git pull
-npm run entity:runtime:build
+npm run entity:pronunciation:owner
 ```
 
-This runs:
+The runner:
+
+1. preserves an existing accepted Entity DB;
+2. materializes the catalog only if the DB is absent;
+3. resumes/builds DE pronunciations only if the phonetic runtime is incomplete;
+4. fetches or verifies the pinned CMUdict probe artifact;
+5. computes preferred-vs-alias, category and category-tier runtime coverage;
+6. records the highest-priority unresolved preferred names per category;
+7. measures the source-backed CMUdict full/partial token-match ceiling;
+8. writes one owner summary plus the detailed coverage report.
+
+Outputs:
 
 ```text
-entity:catalog:materialize
--> entity:pronunciation
+data/local/entity-pronunciation-source-report.json
+data/local/entity-pronunciation-coverage-report.json
+data/local/entity-pronunciation-owner-report.json
 ```
+
+CMUdict is pinned by source commit and Git blob SHA-1 in
+`sources/entity/cmudict-entity-pronunciation-v1.json`.
+
+Important boundary: CMUdict supplies North American English pronunciation evidence. Phase 12A3 uses it only as a source-coverage probe. Its rows are **not** relabeled as `de-DE`, are **not** passed into `de-ipa-v2`, and are **not** runtime-eligible until an English phonology/runtime policy is accepted.
 
 No QLever fetch, Wikidata restage or QRank restage is required.
-
-Then inspect:
-
-```text
-data/local/entity-catalog-v1-report.json
-data/local/entity-pronunciation-v1-report.json
-```
-
-Only after pronunciation coverage and unresolved-name classes are reviewed should source-backed IPA enrichment or a G2P candidate be designed.
 
 ## Acceptance gate
 
