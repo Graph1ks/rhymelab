@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "PHASE_12A_MULTILINGUAL_ENTITY_LEXICON",
+  "phase": "PHASE_12A2_WIKIDATA_QRANK_STAGING",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -1195,7 +1195,7 @@
     "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
     "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
   ],
-  "next_milestone": "PHASE_12A_MULTILINGUAL_ENTITY_LEXICON",
+  "next_milestone": "PHASE_12A2_WIKIDATA_QRANK_STAGING_CI_THEN_OWNER_FULL_SOURCE_DIAGNOSTIC",
   "phase_12_english": {
     "status": "PLANNED_AFTER_12A",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -1211,7 +1211,7 @@
     "must_not_emulate_english_with_german_phonology": true
   },
   "phase_12_entity_lexicon": {
-    "status": "FIXTURE_PROTOTYPE_IMPLEMENTED_CI_PENDING",
+    "status": "12A1_FIXTURE_ACCEPTED_12A2_STAGING_IMPLEMENTED_CI_PENDING",
     "plan": "docs/ENTITY_LEXICON_PLAN.md",
     "database": "data/local/rhymelab-entities-v1.sqlite",
     "runtime_local_only": true,
@@ -1293,13 +1293,66 @@
       "bud_spencer_sentinel": "KEEP_person.actor_Tier_A",
       "fixture_popularity_values_live": false,
       "pronunciation_tables_present_but_unmaterialized": true,
-      "runtime_rewired": false
+      "runtime_rewired": false,
+      "owner_local_gate_accepted": true,
+      "owner_report_schema": "rhymelab-entity-lexicon-fixture-report-v1",
+      "owner_report_status": "ok",
+      "owner_database_bytes": 122880,
+      "semantic_fingerprint": "23e668d7a327982ba7367c875749d17d19697466cfa438a67df7a2d7ed9f4bba",
+      "input_items": 10,
+      "structural_candidates": 9,
+      "retained_entities": 7,
+      "structural_rejected": [
+        "Q900000004"
+      ],
+      "popularity_rejected": [
+        "Q900000002",
+        "Q900000003"
+      ],
+      "all_sentinels_pass": true,
+      "bud_spencer_category_tier": "person.actor_A",
+      "names": 26,
+      "category_memberships": 9,
+      "external_ids": 5,
+      "pronunciations": 0,
+      "phonetic_analyses": 0
     },
     "current_gate": [
-      "fixture_ci",
-      "owner_local_fixture_build",
-      "review_fixture_report",
-      "then_design_full_dump_streamer_and_real_qrank_join"
-    ]
+      "12A2_fixture_ci",
+      "pin_dated_wikidata_and_qrank_snapshots_and_checksums",
+      "owner_full_wikidata_stage",
+      "owner_full_qrank_stage",
+      "owner_cut_diagnostics",
+      "review_category_counts_qrank_coverage_size_and_sentinels",
+      "then_freeze_final_cut_popularity_policy"
+    ],
+    "staging_v1": {
+      "status": "IMPLEMENTED_CI_PENDING",
+      "contract": "docs/ENTITY_STAGING_V1.md",
+      "source_registry": "sources/entity/phase12a-sources-v1.json",
+      "wikidata_stage_schema": "rhymelab-entity-stage-v1",
+      "wikidata_stage_policy": "wikidata-cultural-stage-v1",
+      "wikidata_command": "npm run entity:stage:wikidata",
+      "wikidata_default_db": "data/work/entity/wikidata-cultural-stage-v1.sqlite",
+      "wikidata_default_report": "data/local/entity-wikidata-stage-v1-report.json",
+      "qrank_stage_schema": "rhymelab-qrank-stage-v1",
+      "qrank_command": "npm run entity:stage:qrank",
+      "qrank_default_db": "data/work/entity/qrank-stage-v1.sqlite",
+      "qrank_default_report": "data/local/entity-qrank-stage-v1-report.json",
+      "cut_policy": "qrank-category-relative-cut-v1",
+      "cut_command": "npm run entity:cut:diagnose",
+      "cut_default_report": "data/local/entity-cut-diagnostics-v1-report.json",
+      "bz2_streaming": true,
+      "uncompressed_wikidata_copy_required": false,
+      "windows_decompressor_autodetect": [
+        "7z",
+        "7zz",
+        "bzip2"
+      ],
+      "qrank_temp_db_disposable": true,
+      "runtime_rewired": false,
+      "final_popularity_policy_frozen": false,
+      "full_snapshot_download_allowed_after_fixture_ci": true
+    }
   }
 }
