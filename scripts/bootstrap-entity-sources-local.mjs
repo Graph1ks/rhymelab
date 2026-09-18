@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { createReadStream, existsSync } from 'node:fs';
+import { createReadStream, existsSync, readdirSync } from 'node:fs';
 import {
   mkdir, readFile, rm, stat, statfs, writeFile,
 } from 'node:fs/promises';
@@ -52,9 +52,55 @@ function chooseCurl() {
   return names.find(commandExists) || null;
 }
 
+function findFileRecursive(root, filename, maxDepth = 4) {
+  if (!root || !existsSync(root) || maxDepth < 0) return null;
+  let entries;
+  try {
+    entries = readdirSync(root, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+
+  for (const entry of entries) {
+    if (entry.isFile() && entry.name.toLowerCase() === filename.toLowerCase()) {
+      return resolve(root, entry.name);
+    }
+  }
+
+  if (maxDepth === 0) return null;
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const found = findFileRecursive(resolve(root, entry.name), filename, maxDepth - 1);
+    if (found) return found;
+  }
+  return null;
+}
+
 function windowsAria2Candidates() {
+  const wingetPackagesRoot = process.env.LOCALAPPDATA
+    ? resolve(process.env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Packages')
+    : null;
+  let wingetPackageExecutable = null;
+
+  if (wingetPackagesRoot && existsSync(wingetPackagesRoot)) {
+    let packageDirs = [];
+    try {
+      packageDirs = readdirSync(wingetPackagesRoot, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && /^aria2\.aria2_/iu.test(entry.name))
+        .map((entry) => resolve(wingetPackagesRoot, entry.name));
+    } catch {
+      packageDirs = [];
+    }
+
+    for (const packageDir of packageDirs) {
+      wingetPackageExecutable = findFileRecursive(packageDir, 'aria2c.exe', 4);
+      if (wingetPackageExecutable) break;
+    }
+  }
+
   const values = [
     process.env.LOCALAPPDATA && resolve(process.env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Links', 'aria2c.exe'),
+    wingetPackageExecutable,
     process.env.ProgramFiles && resolve(process.env.ProgramFiles, 'aria2', 'aria2c.exe'),
     'C:\\Program Files\\aria2\\aria2c.exe',
   ];
@@ -198,9 +244,16 @@ let wikidataDownloader = 'already-complete';
 let wikidataConnections = 0;
 if (!wikidataExisting || Number(wikidataExisting.size) !== Number(wd.bytes)) {
   if (!aria2) {
+    const wingetProbe = process.platform === 'win32'
+      ? spawnSync('winget', ['list', '--id', 'aria2.aria2', '-e'], { encoding: 'utf8' })
+      : null;
+    const installedHint = wingetProbe?.status === 0
+      ? ' WinGet reports aria2.aria2 as installed, but aria2c.exe could not be located.'
+      : '';
     throw new Error(
-      'aria2c is required for the 96 GiB Wikidata download to avoid single-stream throttling. '
-      + 'Install it with: winget install --id aria2.aria2 -e --accept-package-agreements '
+      'aria2c is required for the 96 GiB Wikidata download to avoid single-stream throttling.'
+      + installedHint
+      + ' Install/reinstall it with: winget install --id aria2.aria2 -e --accept-package-agreements '
       + '--accept-source-agreements. Then rerun this command; the existing curl partial file '
       + 'will be continued, not discarded. You can override detection with RHYMELAB_ARIA2_CMD.',
     );
