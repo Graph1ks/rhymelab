@@ -46,15 +46,19 @@ function createWriterFixture() {
     ' id INTEGER PRIMARY KEY,publish_order INTEGER NOT NULL,surface TEXT NOT NULL,normalized TEXT NOT NULL,',
     ' historical INTEGER NOT NULL,usage_rank INTEGER,ipa TEXT NOT NULL,pronunciation_source TEXT NOT NULL,',
     " pronunciation_flags TEXT NOT NULL DEFAULT '[]',pronunciation_preferred INTEGER NOT NULL,",
-    ' pronunciation_eligible INTEGER NOT NULL);',
+    ' pronunciation_eligible INTEGER NOT NULL,lexicon_layer TEXT NOT NULL,entity_kind TEXT,pos TEXT,lemma TEXT);',
   ].join('\n'));
   const insert = db.prepare([
     'INSERT INTO hot(id,publish_order,surface,normalized,historical,usage_rank,ipa,pronunciation_source,',
-    'pronunciation_flags,pronunciation_preferred,pronunciation_eligible) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+    'pronunciation_flags,pronunciation_preferred,pronunciation_eligible,lexicon_layer,entity_kind,pos,lemma)',
+    ' VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
   ].join(''));
-  insert.run(1, 10, 'keine', 'keine', 0, 100, 'ˈkaɪ̯nə', 'fixture', '[]', 1, 1);
-  insert.run(2, 10, 'keine', 'keine', 0, 100, 'ˈkaɪnə', 'fixture-alt', '[]', 0, 1);
-  insert.run(3, 20, 'Ahnung', 'ahnung', 0, 200, 'ˈaːnʊŋ', 'fixture', '[]', 1, 1);
+  insert.run(1, 10, 'keine', 'keine', 0, 100, 'ˈkaɪ̯nə', 'fixture', '[]', 1, 1, 'dictionary', null, 'det', 'kein');
+  insert.run(2, 10, 'keine', 'keine', 0, 100, 'ˈkaɪnə', 'fixture-alt', '[]', 0, 1, 'dictionary', null, 'det', 'kein');
+  insert.run(3, 20, 'Ahnung', 'ahnung', 0, 200, 'ˈaːnʊŋ', 'fixture', '[]', 1, 1, 'dictionary', null, 'noun', 'Ahnung');
+  insert.run(4, 30, 'tu', 'tu', 0, 300, 'tuː', 'fixture', '[]', 1, 1, 'dictionary', null, 'verb', 'tun');
+  insert.run(5, 40, 'TU', 'tu', 0, 10, 'teːˈʔuː', 'fixture-entity', '[]', 1, 1, 'modern', 'organization', 'name', 'TU');
+  insert.run(6, 50, 'das', 'das', 0, 20, 'das', 'fixture', '[]', 1, 1, 'dictionary', null, 'pron', 'das');
   return db;
 }
 
@@ -153,6 +157,44 @@ test('11C1 rebuild is deterministic and does not expand token alternates', () =>
     assert.equal(secondFingerprint, firstFingerprint);
     assert.equal(firstCount, 1);
     assert.equal(secondCount, 1);
+  } finally {
+    writerDb.close();
+    phraseDb.close();
+  }
+});
+
+
+test('11C1 resolver keeps lowercase lexical tu separate from uppercase TU entity', () => {
+  const phraseDb = new DatabaseSync(':memory:');
+  const writerDb = createWriterFixture();
+  try {
+    phraseDb.exec('PRAGMA foreign_keys=ON;');
+    createPhraseCatalogStorage(phraseDb);
+    const lowerId = insertPhrase(phraseDb, 'tu das');
+    const upperId = insertPhrase(phraseDb, 'TU keine');
+
+    const result = materializePhrasePronunciations(phraseDb, writerDb);
+    assert.equal(result.readyPhrases, 2);
+
+    const lower = phraseDb.prepare(
+      'SELECT ipa FROM phrase_pronunciation WHERE phrase_id=? AND variant_rank=1',
+    ).get(lowerId);
+    const upper = phraseDb.prepare(
+      'SELECT ipa FROM phrase_pronunciation WHERE phrase_id=? AND variant_rank=1',
+    ).get(upperId);
+    assert.equal(lower.ipa, 'tuː‿das');
+    assert.equal(upper.ipa, 'teːˈʔuː‿ˈkaɪ̯nə');
+
+    const lowerResolution = phraseDb.prepare(
+      'SELECT writer_surface,evidence_json FROM phrase_token_pronunciation_resolution WHERE phrase_id=? AND token_index=0',
+    ).get(lowerId);
+    const upperResolution = phraseDb.prepare(
+      'SELECT writer_surface,evidence_json FROM phrase_token_pronunciation_resolution WHERE phrase_id=? AND token_index=0',
+    ).get(upperId);
+    assert.equal(lowerResolution.writer_surface, 'tu');
+    assert.equal(upperResolution.writer_surface, 'TU');
+    assert.equal(JSON.parse(lowerResolution.evidence_json).matching, 'exact_surface');
+    assert.equal(JSON.parse(upperResolution.evidence_json).matching, 'exact_surface');
   } finally {
     writerDb.close();
     phraseDb.close();

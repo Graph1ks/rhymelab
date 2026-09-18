@@ -156,7 +156,7 @@ Phase 11C1 deterministic phrase pronunciation is now implemented at fixture/code
 ```text
 schema                  rhymelab-phrase-pronunciation-v1
 policy                  de-phrase-pronunciation-v1
-token resolver          writer-v5-preferred-normalized-exact-v1
+token resolver          writer-v5-preferred-surface-aware-v2
 composition             preferred-token-citation-composition-v1
 boundary policy         explicit-word-boundary-v1
 IPA analyzer            de-ipa-v2
@@ -165,7 +165,7 @@ alternate phrase IPA    none in 11C1
 connected speech        none in 11C1
 ```
 
-11C1 resolves exact normalized phrase tokens against the accepted Writer-v5 preferred eligible pronunciation inventory. Unknown tokens remain unresolved. It stores phrase IPA, all citation stress markers, phoneme/syllable word-boundary coordinates and per-token spans without mutating the Phase 11B1 base tables/fingerprint.
+11C1 retrieves phrase-token candidates by normalized form and resolves same-normalized collisions with deterministic surface-aware priority (exact surface/case, dictionary non-entity, non-entity, current, usage, stable ids) against the accepted Writer-v5 preferred eligible pronunciation inventory. Unknown tokens remain unresolved. It stores phrase IPA, all citation stress markers, phoneme/syllable word-boundary coordinates and per-token spans without mutating the Phase 11B1 base tables/fingerprint.
 
 Current owner gate after merge:
 

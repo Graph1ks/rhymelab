@@ -173,7 +173,7 @@ Phase 11C1 implementation is now present. It reuses the accepted Writer-v5 pronu
 ```text
 schema                    rhymelab-phrase-pronunciation-v1
 policy                    de-phrase-pronunciation-v1
-resolver                  writer-v5-preferred-normalized-exact-v1
+resolver                  writer-v5-preferred-surface-aware-v2
 composition               preferred-token-citation-composition-v1
 boundaries                explicit-word-boundary-v1
 analyzer                  de-ipa-v2

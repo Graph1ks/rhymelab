@@ -139,7 +139,7 @@ http://127.0.0.1:3030/phrases
 ```text
 schema                  rhymelab-phrase-pronunciation-v1
 policy                  de-phrase-pronunciation-v1
-token resolver          writer-v5-preferred-normalized-exact-v1
+token resolver          writer-v5-preferred-surface-aware-v2
 composition             preferred-token-citation-composition-v1
 boundary policy         explicit-word-boundary-v1
 connected speech        attested-or-explicit-rule-only-v1
@@ -148,7 +148,7 @@ G2P fallback            none
 phrase variants         preferred citation only
 ```
 
-For every phrase token, 11C1 performs exact normalized lookup against the preferred eligible Writer-v5 pronunciation. Unknown tokens remain explicitly unresolved.
+For every phrase token, 11C1 retrieves preferred eligible Writer-v5 candidates by normalized form and resolves collisions deterministically using exact surface/case first, then dictionary/non-entity, currentness, usage and stable ids. Unknown tokens remain explicitly unresolved.
 
 For fully resolved phrases it stores:
 
