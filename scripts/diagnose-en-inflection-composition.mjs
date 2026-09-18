@@ -17,7 +17,7 @@ function argValue(flag,fallback){
 }
 
 const publishDir=resolve(argValue('--publish','data/local/en-publish-v1'));
-const out=resolve(argValue('--out','data/local/en-inflection-composition-diagnostic-v1-report.json'));
+const out=resolve(argValue('--out','data/local/en-inflection-composition-diagnostic-v2-report.json'));
 const exampleLimit=Math.max(1,Math.min(100,Number.parseInt(argValue('--examples','25'),10)||25));
 
 const manifest=JSON.parse(await readFile(join(publishDir,'manifest.json'),'utf8'));
