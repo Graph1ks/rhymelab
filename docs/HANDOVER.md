@@ -79,6 +79,50 @@ The source bootstrap pins Wikidata snapshot 20260914, validates its published SH
 
 Read `docs/ENTITY_STAGING_V1.md`. The implementation stages only structurally relevant Wikidata candidates, keeps QRank in a disposable build-time SQLite, joins it locally, and produces category-relative cut diagnostics. The full final Entity Lexicon remains blocked until the owner full-source staging reports are reviewed.
 
+### Current owner full-stage run
+
+The first accepted-source full run is currently in progress on the owner machine:
+
+```text
+command                 npm run entity:owner:stage
+decompressor            wsl:lbzip2:8t
+taxonomy prefilter      13 reviewed QIDs
+transaction size        50,000
+latest observed lines   4,750,000
+latest JSON parsed      150,620 (3.17%)
+latest staged           115,358
+latest average rate     5,842 lines/s
+latest elapsed          0.23 h
+machine                 i7-7700K / 4C 8T, CPU saturated
+```
+
+The raw-line prefilter is lossless/conservative: it only decides whether a row can skip expensive JSON parsing; exact P31/P106 category validation still happens after parsing. External-ID duplicates are deduplicated deterministically before SQLite insertion. Secondary indexes are built after bulk ingestion and prepared statements are reused.
+
+Do **not** stop the current run just to switch source strategy. The 20260914 dump is the dated, checksum-verified control needed to validate any faster acquisition path.
+
+When the run finishes, review/upload:
+
+```text
+data/local/entity-wikidata-stage-v1-report.json
+data/local/entity-qrank-stage-v1-report.json
+data/local/entity-cut-diagnostics-v1-report.json
+```
+
+### Source-alternative research / next experiment
+
+Read `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md`.
+
+Decision as of 2026-09-18:
+
+- no official Wikimedia download is prefiltered to RhymeLab's exact cultural taxonomy;
+- **QLever selective export is the preferred experiment** for future source acquisition;
+- do not promote it until exact/diagnosed comparison against the dated 20260914 control is complete;
+- Wikimedia Enterprise's new Wikidata Snapshot API is an official chunked transport alternative but still roughly 105 GB compressed, so it does not solve semantic over-download;
+- WDumper is experimental only;
+- prebuilt derived subsets such as depesche-wd-index or truthy Parquet are useful diagnostics/benchmarks but are not canonical replacements because of relevance floors, field gaps, or older snapshots.
+
+After the current three owner reports are reviewed, the next acquisition experiment should be `entity:source:qlever:diagnose`: export category membership first, compare QID sets/counts with the control, then progressively compare core fields, aliases and external IDs.
+
 The Phase 12 sequence is:
 
 ```text
