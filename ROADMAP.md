@@ -414,11 +414,11 @@ Create a separate benchmarked phrase-ranking policy. Do not mutate the frozen si
 
 11E4 and 11F are managed as one continuous engineering workstream while preserving their dependency order:
 
-1. **11E4 integration gate** — local runtime/API/UI integration with explicit Phrase/Mosaic filter, no default phrase quota, zero-result safety, provenance preservation, frozen single-word regression, and combined-path performance measurement;
-2. **11F final acceptance gate** — dedicated structural, provenance, lexical-safety, performance and repeatability benchmark over the integrated surface;
-3. **Phase 11 complete** — freeze the German phrase/mosaic surface.
+1. **11E4 integration gate — COMPLETE** — unified local runtime/API/UI with explicit Phrase/Mosaic filter, no default phrase quota, zero-result safety, provenance preservation, frozen single-word regression, and combined-path performance measurement;
+2. **11F final acceptance gate — COMPLETE** — structural, provenance, lexical-safety, performance and repeatability benchmark passed on the integrated surface;
+3. **Phase 11 complete — ACCEPTED / FROZEN** — final acceptance is recorded in `docs/PHASE_11_ACCEPTANCE.md`.
 
-Human Writer NDCG may remain `pending_reference` while independent reviewers are unavailable.
+Human Writer NDCG remains `pending_reference` while independent reviewers are unavailable.
 
 ### 11F. Phrase/mosaic benchmark
 
@@ -441,7 +441,9 @@ The intended direction is retrieval first, generation second. Do not replace det
 
 ## Phase 12 — English profile + benchmark
 
-Only after the German Writer path, including phrase/mosaic work, is stable enough to freeze.
+**NEXT MILESTONE / NOT STARTED.**
+
+The German Writer path, including phrase/mosaic work, is now accepted/frozen. Reuse the existing unified `DE / EN / DE+EN` UI/API contract and add a real English analyzer/scorer/database behind it. Do not emulate English with German phonology.
 
 ## Phase 13 — Cross-language rhyme
 
@@ -451,12 +453,13 @@ Only after German and English are individually strong.
 
 Not part of the current roadmap. Core search remains locally executable for desktop, web packaging and later mobile use.
 
-### 11B3. Local Phrase Explorer — implemented
+### 11B3. Phrase diagnostics — implemented / product explorer retired
 
-- expose phrase/source/Leipzig/pronunciation and optional generic register evidence through a local read-only `/phrases` explorer;
-- keep the phrase DB optional for Writer startup and keep Writer v6/v5 frozen;
+- phrase/source/Leipzig/pronunciation and optional generic register evidence remain available through read-only diagnostic/detail APIs;
+- the standalone `/phrases` product route is retired;
+- keep the phrase DB optional for Writer startup and keep Writer v6/v5 frozen.
 
-Owner gate:
+Historical owner gate:
 
 ```powershell
 npm run phrase:catalog:diagnose
