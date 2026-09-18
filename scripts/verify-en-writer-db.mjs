@@ -94,6 +94,7 @@ try{
     {
       kind:'exact',
       sample:"SELECT DISTINCT exact_key AS a FROM en_pronunciation WHERE default_profile_eligible=1 AND exact_key IS NOT NULL ORDER BY a LIMIT 20",
+      multiSample:"SELECT exact_key AS a,COUNT(*) AS result_count FROM en_pronunciation WHERE default_profile_eligible=1 AND exact_key IS NOT NULL GROUP BY exact_key HAVING COUNT(*)>1 ORDER BY result_count DESC,a LIMIT 20",
       indexed:'SELECT id FROM en_pronunciation WHERE exact_key=? AND default_profile_eligible=1 ORDER BY id',
       scan:'SELECT id FROM en_pronunciation NOT INDEXED WHERE exact_key=? AND default_profile_eligible=1 ORDER BY id',
       args:(row)=>[row.a],
@@ -101,6 +102,7 @@ try{
     {
       kind:'vowel',
       sample:"SELECT DISTINCT vowel_key AS a FROM en_pronunciation WHERE default_profile_eligible=1 AND vowel_key IS NOT NULL ORDER BY a LIMIT 20",
+      multiSample:"SELECT vowel_key AS a,COUNT(*) AS result_count FROM en_pronunciation WHERE default_profile_eligible=1 AND vowel_key IS NOT NULL GROUP BY vowel_key HAVING COUNT(*)>1 ORDER BY result_count DESC,a LIMIT 20",
       indexed:'SELECT id FROM en_pronunciation WHERE vowel_key=? AND default_profile_eligible=1 ORDER BY id',
       scan:'SELECT id FROM en_pronunciation NOT INDEXED WHERE vowel_key=? AND default_profile_eligible=1 ORDER BY id',
       args:(row)=>[row.a],
@@ -108,6 +110,7 @@ try{
     {
       kind:'family_coda',
       sample:"SELECT DISTINCT vowel_family AS a,coda_class AS b FROM en_pronunciation WHERE default_profile_eligible=1 AND vowel_family IS NOT NULL AND coda_class IS NOT NULL ORDER BY a,b LIMIT 20",
+      multiSample:"SELECT vowel_family AS a,coda_class AS b,COUNT(*) AS result_count FROM en_pronunciation WHERE default_profile_eligible=1 AND vowel_family IS NOT NULL AND coda_class IS NOT NULL GROUP BY vowel_family,coda_class HAVING COUNT(*)>1 ORDER BY result_count DESC,a,b LIMIT 20",
       indexed:'SELECT id FROM en_pronunciation WHERE vowel_family=? AND coda_class=? AND default_profile_eligible=1 ORDER BY id',
       scan:'SELECT id FROM en_pronunciation NOT INDEXED WHERE vowel_family=? AND coda_class=? AND default_profile_eligible=1 ORDER BY id',
       args:(row)=>[row.a,row.b],
@@ -115,6 +118,7 @@ try{
     {
       kind:'coda',
       sample:"SELECT DISTINCT coda_key AS a FROM en_pronunciation WHERE default_profile_eligible=1 AND coda_key IS NOT NULL ORDER BY a LIMIT 20",
+      multiSample:"SELECT coda_key AS a,COUNT(*) AS result_count FROM en_pronunciation WHERE default_profile_eligible=1 AND coda_key IS NOT NULL GROUP BY coda_key HAVING COUNT(*)>1 ORDER BY result_count DESC,a LIMIT 20",
       indexed:'SELECT id FROM en_pronunciation WHERE coda_key=? AND default_profile_eligible=1 ORDER BY id',
       scan:'SELECT id FROM en_pronunciation NOT INDEXED WHERE coda_key=? AND default_profile_eligible=1 ORDER BY id',
       args:(row)=>[row.a],
@@ -124,13 +128,40 @@ try{
   const equivalence=[];
   for(const channel of channels){
     let mismatches=0;
+    let multiResultMismatches=0;
     const samples=db.prepare(channel.sample).all();
     for(const sample of samples){
       const args=channel.args(sample);
       if(!sameIds(ids(channel.indexed,...args),ids(channel.scan,...args))) mismatches+=1;
     }
-    equivalence.push({kind:channel.kind,samples:samples.length,mismatches});
-    if(mismatches) throw new Error(`Indexed retrieval equivalence failed for ${channel.kind}: ${mismatches}`);
+
+    const multiResultSamples=db.prepare(channel.multiSample).all();
+    if(multiResultSamples.length===0){
+      throw new Error(`English retrieval equivalence has no multi-result samples for ${channel.kind}`);
+    }
+    for(const sample of multiResultSamples){
+      const args=channel.args(sample);
+      const indexedIds=ids(channel.indexed,...args);
+      const scanIds=ids(channel.scan,...args);
+      if(indexedIds.length<2||scanIds.length<2){
+        throw new Error(`Expected multi-result retrieval sample for ${channel.kind} but got fewer than two rows.`);
+      }
+      if(!sameIds(indexedIds,scanIds)) multiResultMismatches+=1;
+    }
+
+    equivalence.push({
+      kind:channel.kind,
+      samples:samples.length,
+      mismatches,
+      multi_result_samples:multiResultSamples.length,
+      max_multi_result_size:Math.max(...multiResultSamples.map((row)=>Number(row.result_count)||0)),
+      multi_result_mismatches:multiResultMismatches,
+    });
+    if(mismatches||multiResultMismatches){
+      throw new Error(
+        `Indexed retrieval equivalence failed for ${channel.kind}: single/general=${mismatches}, multi-result=${multiResultMismatches}`
+      );
+    }
   }
 
   const semanticFingerprint=fingerprintEnglishWriterDb(db);
