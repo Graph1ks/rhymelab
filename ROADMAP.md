@@ -439,11 +439,45 @@ Only after phrase pronunciation, deterministic mosaic retrieval and phrase ranki
 
 The intended direction is retrieval first, generation second. Do not replace deterministic rhyme truth with a generator.
 
-## Phase 12 — English profile + benchmark
+## Phase 12 — Multilingual entity layer + English profile
 
-**NEXT MILESTONE / NOT STARTED.**
+**CURRENT / START WITH 12A.**
 
-The German Writer path, including phrase/mosaic work, is now accepted/frozen. Reuse the existing unified `DE / EN / DE+EN` UI/API contract and add a real English analyzer/scorer/database behind it. Do not emulate English with German phonology.
+The German Writer path, including phrase/mosaic work, is accepted/frozen.
+
+### 12A. Multilingual cultural Entity Lexicon — CURRENT
+
+Plan: `docs/ENTITY_LEXICON_PLAN.md`.
+
+Build a separate compact local SQLite layer for culturally relevant Wikidata entities with category-relative popularity, selected labels/aliases, source/license provenance and multilingual pronunciation rows.
+
+Key decisions:
+
+- entity identity is language-neutral;
+- pronunciations are variant rows (`native`, `de-DE`, `en-US`, optional attested alternates), not flat `ipa_native/ipa_de` columns;
+- Wikidata JSON is streamed and filtered; the full graph is never imported into product SQLite;
+- QRank is the primary global popularity signal;
+- DE/EN Wikimedia signals are additive;
+- category-relative cuts are mandatory;
+- Bud Spencer / Q221074 is a protected cultural-relevance sentinel;
+- MusicBrainz Core is optional CC0 music enrichment;
+- GLEIF is optional legal-name enrichment only, never a primary company generator;
+- generated G2P remains provenance-bearing fallback, not pronunciation truth;
+- the entity DB remains separate from frozen German Writer/Phrase databases.
+
+12A first gate is schema/taxonomy/source/popularity/pronunciation-contract + fixture/prototype. Full 500k+ materialization follows only after diagnostics.
+
+### 12B. English phonology + single-word profile + benchmark
+
+Reuse the existing unified `DE / EN / DE+EN` UI/API contract and add a real English analyzer/scorer/database behind it. Do not emulate English with German phonology.
+
+### 12C. Full entity pronunciation materialization + Writer entity channel
+
+Materialize accepted DE/EN/native entity pronunciations, versioned phonetic analyses and category/popularity retrieval on the retained entity set.
+
+### 12D. English phrase/mosaic expansion
+
+Proceed only after the English single-word profile and entity phonetics are stable enough to benchmark coherently.
 
 ## Phase 13 — Cross-language rhyme
 
