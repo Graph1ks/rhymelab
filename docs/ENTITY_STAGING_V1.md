@@ -329,12 +329,20 @@ The ~96 GiB Wikidata artifact is downloaded with `aria2c`, not single-stream cur
 Default:
 
 ```text
-8 parallel HTTP range connections
+8 requested parallel HTTP range connections
 continue/resume enabled
 no file pre-allocation
-same pinned dated URL
+transport order:
+  1. ACC/Umeå mirror
+  2. Your.org mirror
+  3. Wikimedia origin
+same pinned 20260914 bytes
 same byte-count/SHA-1/SHA-256 acceptance gates
 ```
+
+The mirrors are transport alternatives only. The canonical source remains the pinned Wikimedia snapshot, and a mirror-delivered file is accepted only if its exact byte count and Wikimedia-published SHA-1 match before the local SHA-256 is recorded.
+
+Owner benchmark on 2026-09-18 measured the ACC/Umeå mirror at 8,093,983 bytes/s (~64.8 Mbit/s), materially faster than the observed Wikimedia-origin path.
 
 Windows install:
 
@@ -385,7 +393,7 @@ The command:
 
 1. refuses to start if no bzip2 streaming decompressor is available;
 2. checks free space;
-3. downloads/resumes the static Wikidata dated snapshot;
+3. downloads/resumes the static Wikidata dated snapshot through ACC/Umeå -> Your.org -> Wikimedia-origin fallback order;
 4. validates the exact expected byte count;
 5. validates Wikimedia's published SHA-1;
 6. records a local SHA-256;
