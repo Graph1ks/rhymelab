@@ -550,10 +550,13 @@
       "phrase_ranking": false,
       "writer_runtime_rewired": false,
       "fixture_implemented": true,
-      "fixture_gate_pending_ci": true,
+      "fixture_gate_pending_ci": false,
       "owner_full_run_completed": false,
       "command": "npm run phrase:mosaic:diagnose",
-      "default_report": "data/local/phrase-mosaic-query-diagnostics-v1-report.json"
+      "default_report": "data/local/phrase-mosaic-query-diagnostics-v1-report.json",
+      "fixture_gate_passed": true,
+      "ci_run": 253,
+      "ci_conclusion": "success"
     }
   },
   "owner_measurement_outputs": {
