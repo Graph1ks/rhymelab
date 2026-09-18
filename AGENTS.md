@@ -145,9 +145,8 @@ SQLite                 153.74 MiB
 single-word rewired    no
 ```
 
-Current work is Phase 11B2 data-quality diagnostics plus small modern-register evidence. Cologne Kiezdeutsch is allowed as an additive CC BY 4.0 youth/urban/spoken signal; it must not be treated as representative German commonness or as automatic phrase/candidate generation. The bootstrap downloads transcript PDFs only, not audio.
+Current work is Phase 11C phrase-pronunciation quality plus phrase-data diagnostics. Cologne Kiezdeutsch is allowed as an additive CC BY 4.0 youth/urban/spoken signal; it must not be treated as representative German commonness or as automatic phrase/candidate generation. The bootstrap downloads transcript PDFs only, not audio.
 
-RUEG is selected via DAKODA's slim open German subcorpora (RUEG-Lx/L1/HL), not the 4.4 GB upstream bundle. Ingest EXB + metadata only, preserve both `dipl` and `norm`, keep code-switching evidence, and treat RUEG as register/context evidence rather than general German frequency.
 
 Phase 11B2 diagnostics are complete: 15,449 modern-eligible phrases have Leipzig evidence (15.86%); the raw 98,504-row catalog is intentionally dominated by two-token multiword lexemes and contains abbreviation/surface-alias noise. Do not equate all catalog rows with songwriting phrases.
 
@@ -174,4 +173,4 @@ npm run phrase:pronunciation
 npm run dev
 ```
 
-Inspect `data/local/phrase-pronunciation-v1-report.json` and `http://127.0.0.1:3030/phrases`. Require stable pronunciation fingerprint on repeat and unchanged Phase 11B1 base fingerprint before Phase 11D mosaic retrieval. RUEG real-data import can continue independently as additive register evidence. The accepted single-word Writer baseline remains frozen.
+Inspect `data/local/phrase-pronunciation-v1-report.json` and `http://127.0.0.1:3030/phrases`. Require stable pronunciation fingerprint on repeat and unchanged Phase 11B1 base fingerprint before Phase 11D mosaic retrieval. The accepted single-word Writer baseline remains frozen.
