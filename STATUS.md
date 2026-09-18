@@ -282,7 +282,7 @@ distributions equal        true
 
 Phase 11D1 is accepted and frozen as the mosaic-window substrate.
 
-### Phase 11D2 — bounded indexed candidate retrieval — OWNER FULL-DATA BUILD COMPLETE / REPEATABILITY PENDING
+### Phase 11D2 — bounded indexed candidate retrieval — ACCEPTED / COMPLETE
 
 11D2 keeps 11D1 immutable and adds a separate retrieval-anchor table because the raw 11D1 phoneme key includes the first-syllable onset while accepted German rhyme truth does not.
 
@@ -316,6 +316,25 @@ window fingerprint unchanged        yes
 ```
 
 The first full 11D2 build therefore covers every accepted 11D1 window one-to-one and preserves the frozen substrate. 11D2 is not accepted yet; one identical repeat anchor fingerprint is still required.
+11D2 repeatability gate: **PASS**.
+
+```text
+first anchor fingerprint   55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+repeat anchor fingerprint  55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+anchor rows                 356,693 / 356,693
+database bytes             720,117,760 / 720,117,760
+distinct key counts equal  true
+```
+
+Phase 11D2 is accepted/frozen as the bounded indexed candidate-retrieval substrate.
+
+### Phase 11D3 — representative query diagnostics — IMPLEMENTED / CI + OWNER RUN PENDING
+
+11D3 reuses the existing 12-query Writer Page v2 suite and Writer-v5 preferred IPA resolution. It records candidate volume, channel/type mix, latency, top candidate windows and deterministic semantic fingerprints without introducing phrase ranking.
+
+Queries with no eligible 2–6-syllable stressed rhyme domain are reported explicitly rather than silently treated as empty retrieval.
+
+Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
 ### Immediate owner gate
 
 After merge:
@@ -323,13 +342,13 @@ After merge:
 ```powershell
 git switch main
 git pull --ff-only
-npm run phrase:mosaic:retrieval
+npm run phrase:mosaic:diagnose
 ```
 
 Generated report:
 
 ```text
-data/local/phrase-mosaic-retrieval-v1-report.json
+data/local/phrase-mosaic-query-diagnostics-v1-report.json
 ```
 
 Review token coverage, phrase coverage, unresolved surfaces, syllable distribution, pronunciation-alternative counts and representative IPA/boundary samples. Run `npm run phrase:pronunciation` a second time and require the same pronunciation fingerprint.
