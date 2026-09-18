@@ -239,7 +239,26 @@ Measured remote export times were approximately 5.7 s membership, 20.3 s core, 5
 
 The current JSON importer reads all valued P31/P106 claim statements regardless of rank, so the QLever implementation must use `p:/ps:` all-statement membership semantics rather than only `wdt:` truthy relations.
 
-The multi-hour 20260914 full-dump stage is no longer a blocking source gate. It may be stopped and retained as optional dated control evidence; the raw 103 GB dump remains local and must not be deleted. Next work is the real build-time QLever acquisition/staging path with frozen local response artifacts, exact query provenance and local QRank join.
+The multi-hour 20260914 full-dump stage is no longer a blocking source gate. It may be stopped and retained as optional dated control evidence; the raw 103 GB dump remains local and must not be deleted.
+
+The real build-time QLever path is now implemented. After merge:
+
+```powershell
+npm run entity:owner:stage:qlever -- --retrieval-label 20260918
+```
+
+Final exact live-probe set including all-rank membership/external IDs and exact Wikipedia site pairs:
+
+```text
+membership.tsv.gz             7,012,309 bytes
+core.tsv.gz                  49,198,431 bytes
+aliases.tsv.gz                8,268,118 bytes
+external_ids.tsv.gz          12,860,016 bytes
+wikipedia_sitelinks.tsv.gz   16,711,786 bytes
+TOTAL                        94,050,660 bytes (~89.7 MiB)
+raw result bytes            753,947,040
+summed export wall time           114.2 s
+```
 
 The implementation streams the compressed Wikidata dump without creating an uncompressed copy, stores only structurally relevant cultural candidates in `data/work/entity/`, stages QRank separately, joins QRank locally, and reports category-relative cut distributions before any final 500k+ Entity Lexicon is materialized.
 
