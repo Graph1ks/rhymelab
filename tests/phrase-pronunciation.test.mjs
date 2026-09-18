@@ -104,10 +104,16 @@ test('11C1 materializes one citation pronunciation with explicit boundaries', ()
     const originalTokens = phraseDb.prepare(
       'SELECT lexical_state,lexical_form_id FROM phrase_token WHERE phrase_id=? ORDER BY token_index',
     ).all(readyId);
-    assert.deepEqual(originalTokens, [
-      { lexical_state: 'unresolved', lexical_form_id: null },
-      { lexical_state: 'unresolved', lexical_form_id: null },
-    ]);
+    assert.deepEqual(
+      originalTokens.map((row) => ({
+        lexical_state: row.lexical_state,
+        lexical_form_id: row.lexical_form_id,
+      })),
+      [
+        { lexical_state: 'unresolved', lexical_form_id: null },
+        { lexical_state: 'unresolved', lexical_form_id: null },
+      ],
+    );
 
     const browserRows = searchPhrases(phraseDb, { q: 'keine Ahnung', evidence: 'pronunciation' });
     assert.equal(browserRows.length, 1);
