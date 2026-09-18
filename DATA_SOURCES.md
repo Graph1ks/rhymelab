@@ -207,13 +207,35 @@ Use only for later corporate/legal-name enrichment or disambiguation of retained
 
 Do not use the multi-million-record LEI population as a primary company/brand generator: legal entities are not equivalent to culturally relevant brands and would undermine the popularity-cut objective.
 
-### Wikidata IPA transcription / pronunciation metadata — USE
+### Wikidata IPA transcription / pronunciation metadata — IMPLEMENTED SOURCE-EVIDENCE LAYER
 
 Wikidata IPA transcription (P898) is preferred source-backed entity pronunciation evidence where present.
 
-Preserve qualifying language/name and pronunciation-variety context. Do not flatten multiple pronunciations into one entity-level IPA field.
+Manifest:
 
-Pronunciation audio metadata may be retained for evidence/review, but audio media itself has file-specific licensing and is not redistributed by default.
+`sources/entity/wikidata-p898-pronunciation-v1.json`
+
+Phase 12A3 now implements a selective QLever export over the accepted cultural Entity taxonomy. The source layer retrieves only P898 statements and preserves supported qualifiers:
+
+```text
+P407   language of work or name
+P5237  pronunciation variety
+P5168  applies to name of subject
+```
+
+The raw selective response is pinned locally by exact query, taxonomy SHA-256, retrieval timestamps and artifact SHA-256. It is then materialized into provenance-bearing `entity_pronunciation` rows.
+
+Current runtime boundary is intentionally strict:
+
+- source kind `wikidata_p898`;
+- review state `source_attested_unprofiled`;
+- source statement/QID/qualifiers preserved;
+- generic German/English language evidence remains generic `de`/`en`;
+- no silent promotion to `de-DE` or `en-US`;
+- zero runtime analyses/anchors until a locale/profile policy is accepted;
+- owner runner asserts the accepted German runtime fingerprint remains unchanged.
+
+Pronunciation audio metadata may be retained for evidence/review later, but audio media itself has file-specific licensing and is not redistributed by default.
 
 ### CMU Pronouncing Dictionary — IMPLEMENTED PINNED SOURCE-COVERAGE PROBE
 
