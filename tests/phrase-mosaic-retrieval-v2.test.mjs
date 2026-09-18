@@ -199,7 +199,7 @@ test('11D4 filters weak candidates with no matched sound relation by default', (
     insertPhrase(db, {
       phraseId: 'weak',
       canonical: 'zu ko er',
-      ipa: 'ˈzuː‿koːɐ',
+      ipa: 'ˈzuː‿koːə',
       boundary: 1,
       tokenSyllableSpans: [[0, 1], [1, 3]],
     });
