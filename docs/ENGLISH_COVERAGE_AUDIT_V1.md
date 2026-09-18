@@ -214,3 +214,54 @@ If an older `data/local/en-coverage-audit-v1-report.json` exists, the next audit
 - source-backed pronunciation coverage.
 
 The terminal summary also prints the 25 highest-ranked remaining missing/non-default examples.
+
+
+## Owner history-fix A/B — PASS
+
+```text
+published surfaces                  147,904 -> 147,904
+default eligible                     72,946 -> 75,695   (+2,749)
+ranked default                       62,658 -> 65,161   (+2,503)
+
+Top-10k default                       89.03% -> 94.38%  (+535 rows)
+Top-50k default                       72.00% -> 75.21%  (+1,605 rows)
+Top-100k default                      50.46% -> 52.52%  (+2,064 rows)
+
+historical-only Top-10k                  567 -> 1
+historical-only Top-50k                1,829 -> 67
+historical-only Top-100k               2,670 -> 208
+```
+
+Publish and analyzed-en-US counts did not change; the fix correctly changed eligibility classification only.
+
+## Confirmed proper-name evidence defect
+
+The same flattening pattern existed in `isExplicitProperNameRecord()`: it inspected tags collected from every sense. A common-noun record could therefore become proper-name evidence because one sense carried a proper-name tag.
+
+Observed protected example from the owner audit:
+
+```text
+college
+wordfreq rank 528
+Wiktionary IPA present
+CMUdict present
+status: published_explicit_proper_name_only
+```
+
+Candidate policy `en-source-backed-publish-v3-candidate` changes proper-name record evidence to use:
+
+- explicit POS such as `name` / `proper noun`; or
+- record-level proper-name tags.
+
+Sense-level tags no longer poison the whole record.
+
+## Rescue-channel audit
+
+Before any broad G2P or ranking work, the next owner run quantifies:
+
+1. **ESDB + CMUdict lexical rescue** — high-frequency surfaces missing a Wiktionary lexical candidate but independently attested by ESDB and exact CMUdict;
+2. **regular inflection-shape recovery** — source-backed form relations whose analyzed en-US lemma and orthographic relation look like regular `-s/-es/-ed/-ing` morphology;
+3. **orthographic-variant recovery** — punctuation-only `alt_of` relations such as apostrophe variants;
+4. **locale gap** — published rows with analyzed en-GB and/or unprofiled pronunciation but no analyzed en-US row.
+
+Arbitrary `form_of` pronunciation inheritance is explicitly forbidden. The owner result `ii -> second` demonstrates why source lexical relations must not be treated as phonological derivation rules without a narrower morphology contract.
