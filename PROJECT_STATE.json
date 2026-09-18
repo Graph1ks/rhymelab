@@ -2702,5 +2702,95 @@
     "deferred_checkpoint": "docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md",
     "resume_after": "accepted_initial_english_single_word_writer_runtime_checkpoint",
     "owner_p898_workflow_executed": false
+  },
+  "post_english_roadmap": {
+    "status": "DOCUMENTED_DO_NOT_START_BEFORE_ACTIVE_ENGLISH_GATE",
+    "contract": "docs/POST_ENGLISH_ROADMAP.md",
+    "german_writer_reference": {
+      "policy": "deterministic_writer_utility_v6",
+      "quality": {
+        "sound_utility_weights": {
+          "phonetic": 0.72,
+          "syllable": 0.16,
+          "commonness": 0.12
+        },
+        "lexical_overlap_penalty_weight": 0.16,
+        "rare_historical_penalty": true,
+        "lexical_safety_tier_penalty": true
+      },
+      "diversity": {
+        "default_diversity_weight": 0.18,
+        "diversified_score": "writer.utility - diversityWeight * maxRedundancy",
+        "redundancy_signals": [
+          "same_surface",
+          "same_lemma",
+          "same_writer_morphology_family",
+          "shared_initial_construction",
+          "near_duplicate_edit_similarity"
+        ],
+        "tier_penalties": [
+          {
+            "min_max_redundancy": 0.58,
+            "penalty": 1
+          },
+          {
+            "min_max_redundancy": 0.88,
+            "penalty": 2
+          }
+        ],
+        "purpose": "prevent_many_near_duplicate_or_same_family_results_from_flooding_writer_page"
+      }
+    },
+    "english_ranking": {
+      "status": "DEFERRED_UNTIL_ENGLISH_DB_AND_RUNTIME_ACCEPTED",
+      "rule": "reuse_quality_plus_diversity_architecture_but_benchmark_english_specific_weights_and_thresholds",
+      "must_calibrate": [
+        "english_phonetic_relation_thresholds",
+        "english_scorer_weights",
+        "english_commonness_behavior",
+        "english_lexical_safety",
+        "english_morphology_family_redundancy",
+        "english_near_duplicate_thresholds",
+        "english_diversity_weight",
+        "english_runtime_commonness_horizon_or_score_band_if_used"
+      ]
+    },
+    "entity_resume": {
+      "status": "DEFERRED_UNTIL_INITIAL_ENGLISH_RUNTIME_ACCEPTANCE",
+      "sequence": [
+        "run_entity_pronunciation_owner_p898_gate",
+        "reuse_accepted_de_en_phonology",
+        "promote_source_backed_de_en_pronunciations",
+        "use_exact_cmudict_through_accepted_en_analyzer",
+        "bounded_token_composition",
+        "benchmark_proper_name_g2p_only_if_needed",
+        "calibrate_entity_phonetic_prominence_and_diversity_ranking"
+      ],
+      "prominence_rule": "prominence_may_reorder_phonetically_near_equivalent_entities_but_must_not_override_materially_worse_rhyme_quality"
+    },
+    "performance_phase": {
+      "status": "DEFERRED_UNTIL_DE_EN_ENTITY_QUERY_CONTRACTS_STABLE",
+      "warm_latency_targets_ms": {
+        "p50": 50,
+        "p95": 100,
+        "p99": "150-200"
+      },
+      "cold_start_measured_separately": true,
+      "result_equivalence_required": true,
+      "priorities": [
+        "stage_level_timing",
+        "explain_query_plan",
+        "remove_full_scans",
+        "remove_n_plus_one_queries",
+        "bounded_indexed_candidate_pools",
+        "batch_metadata_fetch",
+        "covering_composite_indexes",
+        "precompute_stable_ranking_features",
+        "reduce_hot_json_parsing",
+        "prepared_statement_reuse",
+        "bound_js_sorting_and_diversity_pool",
+        "sqlite_pragma_tuning_after_query_shape_fixes"
+      ]
+    }
   }
 }
