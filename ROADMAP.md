@@ -406,7 +406,7 @@ Create a separate benchmarked phrase-ranking policy. Do not mutate the frozen si
 
 **11E2-v1 owner A/B is complete and v1 is rejected for promotion.** Surface-safety behavior works, but commonness over-pulls lower-phonetic rows: 48 Leipzig-backed raw Top-20 rows become 100 after ranking, and multiple queries change to materially weaker phonetic tops.
 
-**11E2-v2 is current and implemented; fixture CI pending.** v1 remains the deterministic control. v2 applies Writer-page eligibility, surface-safety and primary relation guards before a 0.02 phonetic near-tie band; product/commonness evidence only reorders inside that band. `weak`/restricted rows remain diagnostic-only by default.
+**11E2-v2 is current; fixture CI gate PASS (`validate`, run 277).** v1 remains the deterministic control. v2 applies Writer-page eligibility, surface-safety and primary relation guards before a 0.02 phonetic near-tie band; product/commonness evidence only reorders inside that band. `weak`/restricted rows remain diagnostic-only by default.
 
 Next gate: owner raw-v1-v2 A/B after green CI. Require zero non-exempt phonetic-guard violations before considering 11E2 acceptance.
 
