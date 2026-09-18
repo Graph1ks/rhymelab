@@ -1,0 +1,22 @@
+name: QLever Full Stage Probe
+
+on:
+  push:
+    branches: [fix-qlever-stage-error-propagation]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Fetch exact QLever artifacts
+        run: node --no-warnings scripts/fetch-qlever-entity-source.mjs --retrieval-label ci-probe --out-dir data/raw/entity/qlever-ci-probe --report data/local/entity-qlever-source-v1-report.json --pace-ms 1000
+      - name: Stage exact QLever artifacts
+        run: node --no-warnings scripts/stage-qlever-entities.mjs --source-report data/local/entity-qlever-source-v1-report.json --out data/work/entity/qlever-ci-probe.sqlite --report data/local/entity-qlever-stage-v1-report.json
