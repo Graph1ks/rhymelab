@@ -88,15 +88,15 @@ html[data-mode="rhyme"] .railViewport{height:360px}
 
 /* Safe readability scaling: follow v14's own --editor-size without changing bar geometry. */
 .rail button b{
-  font-size:clamp(12px,calc(var(--editor-size,17px) * .72),30px)!important;
+  font-size:clamp(12px,var(--editor-size,17px),30px)!important;
   line-height:1.05!important;
 }
 .rail button span{
-  font-size:clamp(9px,calc(var(--editor-size,17px) * .48),18px)!important;
+  font-size:clamp(9px,calc(var(--editor-size,17px) - 6px),18px)!important;
   line-height:1.1!important;
 }
 #barNo,#syl{
-  font-size:clamp(18px,calc(var(--editor-size,17px) * 1.05),42px)!important;
+  font-size:clamp(18px,calc(var(--editor-size,17px) + 2px),42px)!important;
   line-height:1!important;
   font-variant-numeric:tabular-nums;
 }
