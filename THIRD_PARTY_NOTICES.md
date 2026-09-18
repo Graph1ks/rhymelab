@@ -46,6 +46,19 @@ License: Creative Commons Attribution 4.0 International (CC BY 4.0).
 
 The RhymeLab bootstrap downloads transcription PDFs only and does not bundle or commit the source transcripts or audio. Derived local register-attestation evidence retains source/snapshot/checksum provenance. Any redistribution of upstream material must preserve the required attribution and indicate transformations where applicable.
 
+## Wikidata entity pronunciation evidence
+
+RhymeLab's Phase 12A3 owner workflow may selectively retrieve Wikidata IPA transcription statements (`P898`) for the accepted cultural Entity taxonomy through the public QLever Wikidata endpoint.
+
+Manifest:
+`sources/entity/wikidata-p898-pronunciation-v1.json`
+
+Upstream structured data license recorded by the project: **CC0 1.0**.
+
+The local selective artifact preserves exact query/source provenance and checksums and is not committed to this repository. P898 qualifiers such as language of work or name, pronunciation variety, and applies-to-name are retained as provenance-bearing evidence.
+
+Phase 12A3 does not silently promote generic source language evidence into a regional runtime locale. These rows remain `source_attested_unprofiled` until a separate pronunciation-profile policy explicitly accepts them.
+
 ## CMU Pronouncing Dictionary
 
 RhymeLab's Phase 12A3 owner diagnostic may locally download the CMU Pronouncing Dictionary from the `cmusphinx/cmudict` repository.
