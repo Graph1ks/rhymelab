@@ -191,3 +191,33 @@ f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d
 ```
 
 Only after this gate should Phase 11D mosaic/cross-word retrieval begin. The accepted single-word Writer remains frozen and unchanged. Human Writer NDCG remains pending.
+
+
+### RUEG real-archive parser correction — owner rerun pending
+
+The first owner run over the real DAKODA EXB + metadata archives exposed a fixture mismatch: all 1,035 documents were discovered and paired with metadata, but the old parser produced zero units because it expected literal `dipl`/`norm` tiers.
+
+Inspection of the actual archived files established:
+
+```text
+EXB lexical/source surface       category=text
+EXB clause/sentence spans        category=spacy_mixtral_th1_merged
+separate norm tier               absent in supplied EXB archives
+metadata                         nested DAKODA JSON
+EXB files                        1,035
+clause span events               15,618
+text token events                159,148
+DAKODA reported tokens           159,145
+```
+
+The corrected policy is `rueg-dakoda-exb-source-surface-register-v2`.
+
+The parser now maps the real `text` tier into the existing `dipl_text` compatibility slot as attested/source surface, leaves `norm_text` empty when no upstream norm tier exists, parses nested metadata, recognizes self-closing DAKODA span events, and refuses a false-success import when documents are found but zero units are produced.
+
+Owner rerun gate:
+
+```powershell
+npm run phrase:register:rueg:bootstrap
+```
+
+Acceptance requires `RUEG units > 0`, nonzero source-surface token totals, populated formality/mode metadata, and browseable contexts in `/phrases`.
