@@ -31,7 +31,7 @@ function isUnprofiled(pronunciation){
 
 function boundaryInsensitiveTail(analysis){
   return String(analysis?.rt||'')
-    .split(/\\s+/u)
+    .split(/\s+/u)
     .filter((token)=>token&&token!=='.')
     .join(' ');
 }
