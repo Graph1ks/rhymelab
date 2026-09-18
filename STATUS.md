@@ -190,19 +190,34 @@ Current milestone is **12A3 — retained Entity catalog + conservative DE pronun
 
 Contract: `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`.
 
-Implemented candidate commands:
+Owner baseline is now complete:
 
 ```text
-npm run entity:catalog:materialize
-npm run entity:pronunciation
-npm run entity:runtime:build
+names considered              716,940
+runtime-ready names            90,224
+unresolved names              626,716
+resolved name coverage          12.58%
+phonetic analyses              90,224
+rejected analyses                   0
+rhyme anchors                 569,995
+database bytes          1,267,650,560
+runtime fingerprint
+38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3
 ```
 
-The catalog materializer independently reproduces the accepted Hybrid-v2 category cuts from the existing stage DB and refuses a fingerprint/count mismatch. Pronunciation v1 preserves eligible existing `de-DE` rows and otherwise composes only names whose every token resolves exactly against Writer-v5. Unknown tokens remain unresolved; there is no broad G2P, guessed IPA or runtime network access.
+The pipeline itself is sound, but global name coverage is insufficient. The current gate is therefore category/tier/preferred-name source coverage, not blind pronunciation generation.
+
+Normal owner command:
+
+```text
+npm run entity:pronunciation:owner
+```
+
+That one command preserves an already complete Entity runtime, fetches/verifies the pinned CMUdict source probe, computes preferred-vs-alias and category/tier coverage, surfaces high-priority unresolved preferred names, and writes the detailed owner/coverage reports. CMUdict is probe-only in 12A3: en-US evidence is not relabeled as de-DE and is not passed into de-ipa-v2.
 
 The phonetic layer uses `de-ipa-v2`, materializes bounded `entity_rhyme_anchor` lookup keys, and exposes an optional third Writer/RhymePad channel. RhymePad v14 remains checksum-verified; the integration layer adds Entity-only scope, Rapper/Musician/Actor/etc. category filters, multi-category badges and IPA display. If the Entity DB/runtime is absent, Word + Phrase/Mosaic remain available unchanged.
 
-Owner full-data pronunciation coverage and repeatability are the next gate. No QLever fetch, entity restage or QRank restage is required.
+Repeatability and evidence-driven source-backed enrichment are the next gates. No QLever fetch, entity restage or QRank restage is required.
 
 
 

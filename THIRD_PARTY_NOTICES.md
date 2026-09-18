@@ -46,6 +46,25 @@ License: Creative Commons Attribution 4.0 International (CC BY 4.0).
 
 The RhymeLab bootstrap downloads transcription PDFs only and does not bundle or commit the source transcripts or audio. Derived local register-attestation evidence retains source/snapshot/checksum provenance. Any redistribution of upstream material must preserve the required attribution and indicate transformations where applicable.
 
+## CMU Pronouncing Dictionary
+
+RhymeLab's Phase 12A3 owner diagnostic may locally download the CMU Pronouncing Dictionary from the `cmusphinx/cmudict` repository.
+
+Pinned manifest:
+`sources/entity/cmudict-entity-pronunciation-v1.json`
+
+Pinned revision (abbreviated here; exact values are retained in the source manifest):
+
+```text
+commit    74790861f652…
+file      cmudict.dict
+git blob  2c0411740cce…
+```
+
+Copyright: Carnegie Mellon University. The upstream license permits redistribution and use in source and binary forms, with or without modification, subject to its notice/disclaimer conditions. The raw dictionary is downloaded locally and is not committed to this repository.
+
+Phase 12A3 uses this artifact only to measure source-backed North American English token coverage over unresolved Entity names. It is not silently converted into German pronunciation evidence or enabled in the German runtime.
+
 ## Trademarks and named entities
 
 `data/supplemental/modern-entities.json` contains names of third-party brands, platforms, companies, products, and services for linguistic/pronunciation purposes. Their inclusion does not claim ownership of those names or marks and does not imply affiliation, sponsorship, or endorsement.

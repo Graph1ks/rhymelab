@@ -1,0 +1,20 @@
+{
+  "schema": "rhymelab-entity-pronunciation-source-v1",
+  "source_id": "cmudict-us-en-20260918",
+  "name": "CMU Pronouncing Dictionary",
+  "role": "source_backed_en_us_pronunciation_probe",
+  "repository": "https://github.com/cmusphinx/cmudict",
+  "commit": "74790861f652b15e4ac49015a90074ad62a27690",
+  "dictionary_path": "cmudict.dict",
+  "raw_url": "https://raw.githubusercontent.com/cmusphinx/cmudict/74790861f652b15e4ac49015a90074ad62a27690/cmudict.dict",
+  "git_blob_sha1": "2c0411740cce3e2026a80b90b650d5f6a7258164",
+  "license_id": "CMUdict-BSD-style",
+  "license_url": "https://github.com/cmusphinx/cmudict/blob/74790861f652b15e4ac49015a90074ad62a27690/LICENSE",
+  "commercial_use": true,
+  "runtime_use": false,
+  "notes": [
+    "Pinned source-backed North American English pronunciation data.",
+    "Used in Phase 12A3 only as a coverage/source probe until an English phonology runtime is accepted.",
+    "Do not relabel CMUdict pronunciations as de-DE and do not feed them into de-ipa-v2."
+  ]
+}

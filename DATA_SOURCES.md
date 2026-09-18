@@ -215,11 +215,28 @@ Preserve qualifying language/name and pronunciation-variety context. Do not flat
 
 Pronunciation audio metadata may be retained for evidence/review, but audio media itself has file-specific licensing and is not redistributed by default.
 
-### CMU Pronouncing Dictionary — USE CANDIDATE FOR ENGLISH
+### CMU Pronouncing Dictionary — IMPLEMENTED PINNED SOURCE-COVERAGE PROBE
 
-CMUdict is permissively available for commercial use under its BSD-style terms and is a strong English lexicon candidate.
+CMUdict is permissively available for commercial use under its BSD-style terms and is now pinned for the Phase 12A3 entity-pronunciation source-coverage diagnostic.
 
-It does not provide reliable coverage of arbitrary global proper names by itself.
+Manifest:
+
+`sources/entity/cmudict-entity-pronunciation-v1.json`
+
+Pinned source:
+
+```text
+repository  https://github.com/cmusphinx/cmudict
+commit      74790861f652b15e4ac49015a90074ad62a27690
+file        cmudict.dict
+git blob    2c0411740cce3e2026a80b90b650d5f6a7258164
+```
+
+The owner workflow downloads the raw dictionary locally, verifies the pinned Git blob SHA-1, and measures full/partial token coverage over unresolved Entity names.
+
+Current boundary: CMUdict supplies North American English pronunciation evidence. In Phase 12A3 it is **probe-only** and is not inserted as `de-DE`, not analyzed by `de-ipa-v2`, and not enabled in runtime retrieval. English pronunciation materialization waits for an accepted English phonology/runtime profile.
+
+CMUdict remains incomplete for arbitrary global proper names; its measured recovery ceiling is evidence for source planning, not a claim of universal name coverage.
 
 ### gruut — RESEARCH / FALLBACK CANDIDATE
 
