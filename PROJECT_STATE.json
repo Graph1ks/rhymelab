@@ -1289,11 +1289,12 @@
       "diagnostic_report": "data/local/en-source-diagnostics-v1.json",
       "local_raw_directory": "data/raw/en/phase12b-20260918",
       "pins": {
-        "cmudict_commit": "74790861f652b15e4ac49015a90074ad62a27690",
-        "esdb_scowl_v2_commit": "1e5b7d3a72f47a71da5d28686c1dd4b397178485",
-        "wordfreq_commit": "912caf64b657478d1dff1138efdc078947d54bb1",
         "kaikki_enwiktionary_dump": "2026-09-02",
-        "kaikki_extraction": "2026-09-16"
+        "kaikki_extraction": "2026-09-16",
+        "cmudict_commit_prefix": "74790861f652",
+        "esdb_scowl_v2_commit_prefix": "1e5b7d3a72f4",
+        "wordfreq_commit_prefix": "912caf64b657",
+        "canonical_exact_pins": "sources/en/phase12b-sources-v1.json"
       },
       "safeguards": [
         "kaikki_moving_url_requires_pinned_metadata_markers_before_fresh_download",
