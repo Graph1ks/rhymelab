@@ -128,112 +128,71 @@ The product surface is now only the main Writer UI at `/`. There is no separate 
 
 Search-language basis remains `DE / EN / DE+EN`. German is active and frozen; English remains capability-gated until an accepted English runtime exists.
 
-Current milestone: **Phase 12A — multilingual cultural Entity Lexicon**.
+Current active milestone: **Phase 12B — English single-word Writer database + real English phonology/profile/benchmark**.
 
-Fixture/prototype implementation now exists:
+Source/architecture contract: `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
+
+Selected Phase 12B source roles:
 
 ```text
-schema              rhymelab-entity-catalog-v1
-taxonomy            wikidata-cultural-entity-taxonomy-v1
-popularity          category-relative-popularity-v1
-fixture             fixtures/entity/wikidata-cultural-v1.json
-taxonomy file       sources/entity/wikidata-entity-taxonomy-v1.json
-builder             scripts/build-entity-fixture.mjs
-command             npm run entity:fixture
-fixture DB          data/local/rhymelab-entities-v1-fixture.sqlite
-fixture report      data/local/entity-lexicon-v1-fixture-report.json
-runtime rewired     no
-pronunciation       schema only / not materialized
+primary lexical/forms/POS/IPA     English Wiktionary via raw Kaikki/Wiktextract
+primary exact en-US pronunciation CMUdict
+dialect/spelling/inflection guard ESDB / SCOWL v2
+usage/commonness candidate         wordfreq
 ```
 
-The fixture mixes verified real cultural QIDs with explicitly synthetic long-tail/noise rows. Its popularity values are fixture-scale inputs, **not** live QRank/pageview claims.
-
-Protected fixture behavior:
-
-- Bud Spencer / Q221074 -> retained as `person.actor`, Tier A;
-- category-relative actor/company tails are actually rejected;
-- structurally irrelevant high-popularity noise is rejected before popularity;
-- Kendrick source aliases such as `K.Dot` are retained, but arbitrary token aliases such as `Kendrick` are not invented;
-- two independent prototype materializations must produce the same semantic fingerprint.
-
-The Phase 12A1 fixture owner gate is now **ACCEPTED**.
-
-Owner evidence:
+Current English-source research snapshot:
 
 ```text
-status                  ok
-database bytes          122,880
-semantic fingerprint
-23e668d7a327982ba7367c875749d17d19697466cfa438a67df7a2d7ed9f4bba
-10 input -> 9 structural -> 7 retained
-Bud Spencer             person.actor / Tier A / PASS
+Kaikki English distinct word forms    1,390,507
+Kaikki English senses                 1,787,236
+enwiktionary dump                     2026-09-02
+Kaikki extraction                     2026-09-16
+raw enwiktionary JSONL                23.5 GB
+raw gzip                               2.7 GB
 ```
 
-Phase 12A2 popularity/cut selection is now **ACCEPTED / FROZEN as the materialization baseline**.
+The >1M figure is a raw word-form universe, not a final default Writer count. Phase 12B diagnostics must measure current/historical, proper-name, multi-word, pronunciation and usage coverage before a final runtime population is selected.
 
-Owner Hybrid-v2 evidence:
+wordfreq is selected only as the initial commonness candidate. Its maintainer states that the underlying frequency snapshot runs through about 2021 and is unlikely to be updated again, so modern songwriting/rap vocabulary must be benchmarked before final acceptance.
 
-```text
-status                         ok
-semantic fingerprint           337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201
-v1 anchor matches              true
-all sentinels pass             true
-Bud Spencer                    KEEP / Tier A
-v2 distinct retained           1,077,644
-v1 -> v2 membership churn           0.41%
-hard-gate categories v2        none
-```
+Phase 12A Entity work is now **DEFERRED / FROZEN** while the English Writer is built.
 
-The accepted set remains inside the hard 500k–1.2M range and above the preferred 600k–900k working range. The preferred range is now a separate, nonblocking product-budget concern; do not silently retune the accepted popularity policy while pronunciation coverage is being measured.
+Entity deferred checkpoint: `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md`.
 
-Current milestone is **12A3 — retained Entity catalog + conservative DE runtime + source-backed multilingual pronunciation evidence + RhymePad Entity channel**.
-
-Contract: `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`.
-
-Owner baseline is now complete:
+Frozen Entity evidence:
 
 ```text
-names considered              716,940
-runtime-ready names            90,224
-unresolved names              626,716
-resolved name coverage          12.58%
-phonetic analyses              90,224
-rejected analyses                   0
-rhyme anchors                 569,995
-database bytes          1,267,650,560
-runtime fingerprint
+retained entities                       1,077,644
+Hybrid-v2 fingerprint
+337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201
+
+DE Entity names considered                716,940
+runtime-ready                              90,224 / 12.58%
+DE Entity runtime fingerprint
 38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3
-```
 
-The pipeline itself is sound, but global name coverage is insufficient. The completed source-coverage diagnostic shows:
-
-```text
-preferred runtime coverage                 12.78%
-CMUdict full-token unresolved matches     261,833 / 41.78%
-CMUdict partial-token unresolved matches  233,283 / 37.22%
-CMUdict no-token unresolved matches       131,600 / 21.00%
-preferred full-token matches              227,428
-projected preferred ceiling with an
-accepted English runtime                    52.18%
+CMUdict full unresolved matches           261,833 / 41.78%
+preferred probe-only ceiling               52.18%
 coverage diagnostic fingerprint
 69e6ec4d14091d22c5a76ca5869d38908f09f95fcac248b2e6791f329ad99bfa
 ```
 
-Decision: do not mass-G2P the remaining proper names. The next additive layer is selective Wikidata `P898` IPA evidence with `P407`, `P5237` and `P5168` qualifiers preserved. Those rows remain `source_attested_unprofiled` and create zero German runtime rows until a locale/profile policy explicitly accepts them.
+PR #70 implemented selective qualified Wikidata P898 source evidence, but the owner explicitly did **not** run the new P898 owner workflow. No full-data P898 result is accepted or claimed. Do not execute that deferred Entity gate before Phase 12B.
 
-Normal owner command remains:
+Immediate next engineering gate:
 
-```text
-npm run entity:pronunciation:owner
-```
+1. versioned English source manifests;
+2. owner-local source bootstrap/checksums;
+3. source diagnostic over Kaikki + CMUdict + ESDB + wordfreq;
+4. only then English phonology fixture/analyzer/scorer;
+5. then materialize the first separate English Writer DB candidate.
 
-It now preserves the complete Entity runtime, verifies CMUdict, fetches/verifies the small pronunciation-specific P898 export, materializes qualified P898 evidence, asserts that the accepted German runtime fingerprint did not change, then recomputes the full coverage/source report.
+Proposed English DB target:
 
-The phonetic layer uses `de-ipa-v2`, materializes bounded `entity_rhyme_anchor` lookup keys, and exposes an optional third Writer/RhymePad channel. RhymePad v14 remains checksum-verified; the integration layer adds Entity-only scope, Rapper/Musician/Actor/etc. category filters, multi-category badges and IPA display. If the Entity DB/runtime is absent, Word + Phrase/Mosaic remain available unchanged.
+`data/local/rhymelab-en-v1.sqlite`
 
-The next owner gate is P898 source-evidence measurement plus runtime-fingerprint invariance. No entity restage or QRank restage is required; only the pronunciation-specific selective P898 export uses build-time QLever access.
-
-
+German Word/Phrase behavior remains frozen throughout.
 
 Owner source bootstrap is now **ACCEPTED**:
 

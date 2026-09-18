@@ -21,7 +21,9 @@ Before changing the project in a fresh thread/session, read:
 13. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition work
 14. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity work
 15. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` for Phase 12A2 popularity-cut history
-16. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the active Phase 12A3 Entity IPA/runtime work
+16. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the deferred Phase 12A3 Entity IPA/runtime checkpoint
+17. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the frozen Entity boundary
+18. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for the active Phase 12B English Writer work
 
 ## Public-repository guardrails
 
@@ -153,33 +155,49 @@ Frozen product rules:
 - `DE / EN / DE+EN` remains the unified language-basis contract;
 - English stays capability-gated until Phase 12 supplies a real accepted English runtime.
 
-Current milestone: **Phase 12A — multilingual cultural Entity Lexicon**. Read `docs/ENTITY_LEXICON_PLAN.md` before entity/popularity/pronunciation work.
+Current active milestone: **Phase 12B — English single-word Writer source stack + real English phonology/profile/benchmark**.
 
-Current implementation gate is the deterministic fixture/prototype:
+Read `docs/ENGLISH_WRITER_SOURCE_PLAN.md` before English source, pronunciation, phonology, ranking or database work.
 
-- `sources/entity/wikidata-entity-taxonomy-v1.json`;
-- `fixtures/entity/wikidata-cultural-v1.json`;
-- `scripts/entity-lexicon-core.mjs`;
-- `scripts/build-entity-fixture.mjs`;
-- `npm run entity:fixture`.
+Phase 12A Entity work is **DEFERRED / FROZEN at the current checkpoint**. Read `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` before touching it.
 
-Phase 12A1 fixture CI and the owner-local report gate are accepted. Accepted semantic fingerprint:
+Frozen Entity facts:
 
-```text
-23e668d7a327982ba7367c875749d17d19697466cfa438a67df7a2d7ed9f4bba
-```
+- Hybrid-v2 retained population: 1,077,644;
+- Hybrid-v2 fingerprint: `337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201`;
+- conservative DE Entity runtime: 90,224 / 716,940 names (12.58%);
+- DE Entity runtime fingerprint: `38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3`;
+- completed CMUdict source-coverage diagnostic fingerprint: `69e6ec4d14091d22c5a76ca5869d38908f09f95fcac248b2e6791f329ad99bfa`;
+- PR #70 P898 source-evidence code exists, but the owner has **not run** its new full-data owner workflow;
+- do not claim P898 owner coverage;
+- do not run Entity enrichment as the first step of Phase 12B;
+- do not refetch/restage Entity/QRank inputs;
+- do not mass-G2P Entity names.
 
-Phase 12A2 popularity/cut selection is **accepted**. Hybrid-v2 policy `category-relative-popularity-hybrid-v2-geometric-missing-evidence-candidate` is the frozen materialization baseline with owner fingerprint `337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201`. It retains 1,077,644 distinct entities, has 0.41% v1->v2 membership churn, leaves no QRank hard-gate categories, and preserves Bud Spencer as KEEP / Tier A. Original QRank-first and Hybrid-v1 remain diagnostic controls.
+Phase 12B selected source roles:
 
-Current work is **12A3 retained Entity catalog + conservative DE runtime + multilingual source-backed pronunciation evidence + RhymePad Entity channel**. Read `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`. The first owner full-data pronunciation build completed at 90,224 / 716,940 DE names (12.58%), 90,224 analyses, 569,995 anchors, fingerprint `38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3`.
+- **English Wiktionary via raw Kaikki/Wiktextract**: primary lexical/form/POS/register/IPA source;
+- **CMUdict**: primary exact en-US pronunciation overlay/control;
+- **ESDB / SCOWL v2**: secondary spelling/dialect/variant/inflection/lexical-quality evidence;
+- **wordfreq**: initial usage/commonness candidate only, never lexical truth; data snapshot is only through about 2021 and must be benchmarked for modern songwriting vocabulary.
 
-The owner source-coverage diagnostic is complete: CMUdict fully matches 261,833 / 626,716 unresolved names (41.78%), partially matches 233,283 (37.22%), and has no token match for 131,600 (21.00%). Preferred full-token candidates are 227,428 and the probe-only preferred coverage ceiling is 52.18%. Diagnostic fingerprint: `69e6ec4d14091d22c5a76ca5869d38908f09f95fcac248b2e6791f329ad99bfa`. This evidence rejects blind mass-G2P as the next step.
+Current Kaikki English research snapshot reports 1,390,507 distinct English word forms and 1,787,236 English senses from the enwiktionary 2026-09-02 dump (Kaikki extraction 2026-09-16). This is a raw source universe, not the promised default Writer row count.
 
-Do not refetch/restage the Phase 12A2 entity/QRank sources. Do not invent IPA: preserve eligible source-backed pronunciations and otherwise compose only exact Writer-v5 token pronunciations when every token resolves. Unresolved names remain out of phonetic retrieval.
+English implementation rules:
 
-Use `npm run entity:pronunciation:owner` for the normal owner path. It preserves a complete local runtime, verifies/fetches CMUdict, performs only the small pronunciation-specific QLever P898 export, materializes qualified P898 rows as `source_attested_unprofiled`, asserts that the accepted DE runtime fingerprint did not change, and produces category/tier/preferred-name coverage plus priority unresolved entities. Preserve P898 qualifiers `P407`, `P5237` and `P5168`. Generic `de`/`en` source evidence must not be silently promoted to `de-DE`/`en-US`.
+- keep the English DB separate from frozen German Writer during development;
+- proposed target `data/local/rhymelab-en-v1.sqlite`;
+- build a real versioned English phonology/analyzer/scorer;
+- initial product pronunciation profile is en-US; preserve source-backed en-GB variants;
+- do not pass English through `de-ipa-v2`;
+- preserve pronunciation variants and source provenance;
+- usage/commonness affects ordering, not lexical truth;
+- historical/obsolete forms remain provenance-bearing and hidden by default;
+- no broad G2P before source-coverage diagnostics;
+- core runtime remains deterministic/local/offline;
+- do not start Phase 13 cross-language rhyme during Phase 12B.
 
-CMUdict remains North American English probe evidence until an English phonology/runtime contract is accepted. P898 remains source evidence until an explicit locale/profile promotion policy is accepted. Neither may be passed into `de-ipa-v2` merely to increase coverage.
+The next implementation action is **12B1 source manifests/bootstrap + 12B2 source diagnostics**. Do not start with UI polish or Entity P898 owner work.
 
 The classic 20260914 full-dump path is retired. The owner explicitly rejected further staging/comparison against the 103 GB dump and may delete it. Do not redownload it, require it, benchmark against it, or spend more time on BZip2/WSL/full-dump throughput. The only active Phase 12A2 acquisition path is the implemented build-time QLever selective exporter/stager.
 

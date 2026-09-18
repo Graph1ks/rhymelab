@@ -2,7 +2,9 @@
 
 Last updated: 2026-09-18
 
-Status: **Phase 12A current architecture gate**
+Status: **DEFERRED / FROZEN CHECKPOINT — active work moved to Phase 12B English Writer**
+
+Entity architecture remains authoritative, but further Entity enrichment is intentionally deferred. See `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md`. The current active milestone is `docs/ENGLISH_WRITER_SOURCE_PLAN.md` / Phase 12B. Do not run the pending P898 owner gate or retune Entity retention while Phase 12B is active.
 
 This phase creates a compact local cultural-entity SQLite layer for songwriting, lyrics, rap and creative-language retrieval. It is not a generic mirror of Wikidata and it must not turn RhymeLab into a hosted knowledge graph.
 

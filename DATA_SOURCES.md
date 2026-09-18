@@ -237,7 +237,7 @@ Current runtime boundary is intentionally strict:
 
 Pronunciation audio metadata may be retained for evidence/review later, but audio media itself has file-specific licensing and is not redistributed by default.
 
-### CMU Pronouncing Dictionary — IMPLEMENTED PINNED SOURCE-COVERAGE PROBE
+### CMU Pronouncing Dictionary — PINNED ENTITY PROBE / SELECTED PHASE 12B en-US OVERLAY
 
 CMUdict is permissively available for commercial use under its BSD-style terms and is now pinned for the Phase 12A3 entity-pronunciation source-coverage diagnostic.
 
@@ -256,7 +256,7 @@ git blob    2c0411740cce3e2026a80b90b650d5f6a7258164
 
 The owner workflow downloads the raw dictionary locally, verifies the pinned Git blob SHA-1, and measures full/partial token coverage over unresolved Entity names.
 
-Current boundary: CMUdict supplies North American English pronunciation evidence. In Phase 12A3 it is **probe-only** and is not inserted as `de-DE`, not analyzed by `de-ipa-v2`, and not enabled in runtime retrieval. English pronunciation materialization waits for an accepted English phonology/runtime profile.
+Current boundary: CMUdict supplies North American English pronunciation evidence. It remains **probe-only for the deferred Entity runtime** and is not inserted as `de-DE` or analyzed by `de-ipa-v2`. For active Phase 12B it is selected as the primary exact en-US pronunciation overlay/control behind a new English phonology profile; implementation/materialization has not started yet.
 
 CMUdict remains incomplete for arbitrary global proper names; its measured recovery ceiling is evidence for source planning, not a claim of universal name coverage.
 
@@ -278,16 +278,142 @@ Wikidata external IDs may be stored as Wikidata structured data.
 
 This does **not** authorize ingestion of the corresponding provider's metadata. IMDb/TMDB/Spotify/Discogs/etc. metadata needs a separate source/license/terms review before ingestion.
 
-## Future English sources
+## Phase 12B English Writer sources — SELECTED ARCHITECTURE
 
-English begins only after German is stable. Candidate source families include:
+Detailed contract: `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
 
-- English Wiktionary via Kaikki/Wiktextract for lexical/pronunciation provenance and qualifiers;
-- CMU Pronouncing Dictionary as an additional pronunciation source where licensing/provenance rules are satisfied;
-- reviewed English usage corpora for commonness ordering;
-- optional English morphology resources where they materially improve form handling.
+English source selection is now active rather than future/planned.
 
-Source selection is not implementation. English must get its own local source snapshot/provenance registry, pronunciation policy, IPA/canonicalization pipeline, phonology profile and benchmark before it is enabled in the runtime.
+### English Wiktionary via Kaikki/Wiktextract — PRIMARY LEXICAL SOURCE
+
+Role:
+
+- lexical inventory;
+- lemmas/POS;
+- inflected/listed forms;
+- form-of/alt-of relationships;
+- register/history/style evidence;
+- IPA pronunciations;
+- regional/dialect pronunciation tags.
+
+Current research snapshot:
+
+```text
+Kaikki English distinct word forms   1,390,507
+Kaikki English senses                1,787,236
+enwiktionary dump                    2026-09-02
+Kaikki extraction                    2026-09-16
+raw JSONL                            23.5 GB
+raw gzip                              2.7 GB
+```
+
+Use the raw Wiktextract stream and filter English records. Kaikki marks its postprocessed per-language downloads as deprecated.
+
+Source pages:
+
+- https://kaikki.org/dictionary/English/index.html
+- https://kaikki.org/dictionary/rawdata.html
+- https://github.com/tatuylonen/wiktextract
+
+License boundary:
+
+- Wiktextract software is MIT;
+- extracted Wiktionary data remains under Wiktionary CC BY-SA + GFDL terms;
+- preserve attribution/share-alike/redistribution boundaries separately from Graph1ks Material, as already required for the German Wiktionary-derived stack.
+
+### CMUdict — PRIMARY EXACT en-US PRONUNCIATION OVERLAY
+
+Use exact CMUdict entries as the strong en-US pronunciation/control source.
+
+Preserve:
+
+- lexical stress;
+- alternate pronunciations;
+- exact source revision;
+- raw ARPAbet pronunciation;
+- deterministic normalized English phone representation.
+
+Do not treat CMUdict as the English lexical universe.
+
+Do not treat ARPAbet strings as IPA.
+
+Commercial use is unrestricted by the upstream CMUdict statement; acknowledge origin.
+
+### English Speller Database / SCOWL v2 — SECONDARY QUALITY/DIALECT SOURCE
+
+Source:
+
+https://github.com/en-wl/wordlist
+
+Use as independent evidence for:
+
+- US/GB/CA/AU spelling distinctions;
+- spelling variants;
+- inflection;
+- basic POS;
+- commonness/size classes;
+- archaic/uncommon/invalid variant status;
+- spellchecker-quality lexical vetting.
+
+The combined ESDB work is distributed under an MIT-like permissive license, with source-specific notices documented in its `Copyright` file. Preserve all applicable notices when a pinned artifact is selected.
+
+Do not use ESDB as pronunciation truth or fine-grained usage truth.
+
+### wordfreq — INITIAL USAGE/COMMONNESS CANDIDATE
+
+Source:
+
+https://github.com/rspeer/wordfreq
+
+Use as ordering/commonness evidence only.
+
+Strengths:
+
+- multiple domains;
+- English large wordlist;
+- broad written/conversational mixture;
+- convenient Zipf-scale frequency.
+
+Known limitation:
+
+The maintainer states that the language-frequency data are a snapshot through about 2021 and are unlikely to be updated again.
+
+License boundary:
+
+- software Apache-licensed;
+- included data files may be CC BY-SA 4.0 and carry source attribution obligations.
+
+Therefore wordfreq is an initial benchmark/commonness candidate, not frozen final modern-English truth. Modern songwriting/rap vocabulary must be tested separately before final Writer acceptance.
+
+### WordNet — OPTIONAL SEMANTIC/POS SUPPORT
+
+WordNet may later provide semantic/POS/lemma cross-check evidence under its notice-bearing permissive license.
+
+It is not selected as a primary lexical, pronunciation or usage source.
+
+### Rejected as primary English core
+
+Do not use as the primary English Writer source:
+
+- arbitrary GitHub million-word lists with weak provenance;
+- CMUdict alone;
+- ESDB/SCOWL alone;
+- WordNet alone;
+- direct COCA bulk data as a redistribution-dependent core;
+- Google Books Ngrams alone.
+
+Raw count is not lexical/product quality.
+
+### Phase 12B source truth boundary
+
+```text
+lexical truth / forms / tags     Wiktionary/Wiktextract
+en-US pronunciation overlay       CMUdict
+dialect/variant/inflection guard  ESDB/SCOWL
+usage/commonness evidence          wordfreq candidate
+```
+
+These evidence layers must remain independently inspectable and provenance-bearing.
 
 ## Provenance policy
 

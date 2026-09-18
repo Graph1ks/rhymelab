@@ -2,7 +2,15 @@
 
 Last updated: 2026-09-18
 
-Status: **owner coverage measured / Wikidata P898 source-evidence layer implemented / owner P898 build pending**
+Status: **DEFERRED / FROZEN CHECKPOINT — owner coverage measured; P898 source layer implemented but owner P898 build NOT RUN**
+
+## Deferred sequencing notice
+
+Phase 12A3 is intentionally paused while **Phase 12B English single-word Writer** is the active engineering milestone.
+
+Authoritative deferred checkpoint: `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md`.
+
+The owner has **not** run the post-PR-#70 P898 owner workflow. Do not claim full-data P898 coverage. Do not execute this owner gate as the first step of Phase 12B. Resume this document's pending owner gate only after the English Writer has an accepted initial English phonology/runtime that can be reused for Entity `en-US` pronunciations.
 
 ## Scope
 
