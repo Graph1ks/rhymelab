@@ -439,64 +439,131 @@ Only after phrase pronunciation, deterministic mosaic retrieval and phrase ranki
 
 The intended direction is retrieval first, generation second. Do not replace deterministic rhyme truth with a generator.
 
-## Phase 12 — Multilingual entity layer + English profile
+## Phase 12 — English profile + deferred multilingual Entity layer
 
-**CURRENT / START WITH 12A.**
+**CURRENT: 12B ENGLISH SINGLE-WORD WRITER.**
 
 The German Writer path, including phrase/mosaic work, is accepted/frozen.
 
-### 12A. Multilingual cultural Entity Lexicon — CURRENT
+### 12A. Multilingual cultural Entity Lexicon — DEFERRED / FROZEN CHECKPOINT
 
-Plan: `docs/ENTITY_LEXICON_PLAN.md`.
+Plans/checkpoints:
 
-Build a separate compact local SQLite layer for culturally relevant Wikidata entities with category-relative popularity, selected labels/aliases, source/license provenance and multilingual pronunciation rows.
+- `docs/ENTITY_LEXICON_PLAN.md`
+- `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`
+- `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md`
 
-Key decisions:
+Accepted/frozen evidence:
 
-- entity identity is language-neutral;
-- pronunciations are variant rows (`native`, `de-DE`, `en-US`, optional attested alternates), not flat `ipa_native/ipa_de` columns;
-- Wikidata JSON is streamed and filtered; the full graph is never imported into product SQLite;
-- QRank is the primary global popularity signal;
-- DE/EN Wikimedia signals are additive;
-- category-relative cuts are mandatory;
-- Bud Spencer / Q221074 is a protected cultural-relevance sentinel;
-- MusicBrainz Core is optional CC0 music enrichment;
-- GLEIF is optional legal-name enrichment only, never a primary company generator;
-- generated G2P remains provenance-bearing fallback, not pronunciation truth;
-- the entity DB remains separate from frozen German Writer/Phrase databases.
+```text
+retained Entity population       1,077,644
+Hybrid-v2 fingerprint
+337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201
 
-12A1 schema/taxonomy/source/popularity/pronunciation fixture gate is **ACCEPTED**.
+conservative DE runtime            90,224 / 716,940 names
+DE Entity runtime fingerprint
+38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3
 
-Phase 12A2 Wikidata/QRank staging and Hybrid-v2 category-relative cut are **ACCEPTED / FROZEN**.
+CMUdict full unresolved matches   261,833 / 41.78%
+preferred probe-only ceiling        52.18%
+```
 
-Current submilestone: **12A3 retained Entity pronunciation/source-evidence runtime**.
+PR #70 implemented qualified Wikidata P898 source evidence, but the owner has not executed the new P898 owner workflow. Leave that gate deferred.
 
-- retained Entity catalog: 1,077,644 entities;
-- conservative German runtime: 90,224 / 716,940 DE names (12.58%);
-- accepted German Entity runtime fingerprint is pinned;
-- measured source coverage shows CMUdict fully covers 41.78% of currently unresolved names at token level and raises the probe-only preferred-name ceiling to 52.18%;
-- do not mass-G2P the remaining proper names;
-- add source-backed pronunciation evidence first;
-- selectively materialize qualified Wikidata `P898` evidence without silently assigning regional runtime locales;
-- preserve P898 `P407` language, `P5237` pronunciation variety and `P5168` applies-to-name qualifiers;
-- require the existing German runtime fingerprint to remain unchanged while source-only evidence is added;
-- use the measured P898/CMUdict gap profile to feed the real English phonology/runtime work in 12B.
+Resume Entity pronunciation work only after Phase 12B has a real accepted English pronunciation/phonology runtime that can be reused for Entity en-US materialization.
 
-Contract: `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`.
+### 12B. English phonology + single-word Writer profile + benchmark — CURRENT
 
-The normal owner path remains one command: `npm run entity:pronunciation:owner`. No entity or QRank restage is required.
+Contract:
 
-### 12B. English phonology + single-word profile + benchmark
+`docs/ENGLISH_WRITER_SOURCE_PLAN.md`
 
-Reuse the existing unified `DE / EN / DE+EN` UI/API contract and add a real English analyzer/scorer/database behind it. Do not emulate English with German phonology.
+Selected source stack:
 
-### 12C. Full entity pronunciation materialization + Writer entity channel
+```text
+primary lexical/form/POS/IPA source   English Wiktionary via raw Kaikki/Wiktextract
+primary exact en-US pronunciation      CMUdict
+secondary dialect/variant/inflection   ESDB / SCOWL v2
+initial usage/commonness candidate      wordfreq
+```
 
-Materialize accepted DE/EN/native entity pronunciations, versioned phonetic analyses and category/popularity retrieval on the retained entity set.
+Current source research indicates:
+
+```text
+English distinct word forms    1,390,507
+English senses                 1,787,236
+enwiktionary dump              2026-09-02
+Kaikki extraction              2026-09-16
+raw gzip                       ~2.7 GB
+```
+
+The 1.39M figure is a raw source universe, not a promised default Writer population.
+
+Phase 12B sequence:
+
+1. **12B1 source manifests + bootstrap**
+   - pin Kaikki/Wiktextract, CMUdict, ESDB and wordfreq candidate artifacts;
+   - preserve licenses/provenance/checksums;
+   - no runtime network dependency.
+
+2. **12B2 source diagnostics**
+   - lexical/form counts;
+   - current/historical/register split;
+   - single-token vs multi-word;
+   - proper-name share;
+   - Wiktionary IPA coverage and regional tags;
+   - CMUdict exact-match coverage;
+   - ESDB overlap/disagreement;
+   - wordfreq ranked coverage;
+   - source-size report.
+
+3. **12B3 real English phonology fixture/analyzer/scorer**
+   - en-US initial default;
+   - preserve source-backed en-GB variants;
+   - stress-aware exact/multisyllabic/slant/family/assonance/consonance behavior;
+   - do not emulate English with German phonology.
+
+4. **12B4 English publish layer**
+   - source-backed lexical forms/relations;
+   - pronunciation variants and source locale;
+   - lexical/register/history evidence;
+   - usage/commonness evidence;
+   - no broad G2P before diagnostics justify a candidate.
+
+5. **12B5 English local Writer DB**
+   - separate development target: `data/local/rhymelab-en-v1.sqlite`;
+   - bounded/indexed retrieval for the accepted English phone profile;
+   - German DB remains unchanged.
+
+6. **12B6 English benchmark/acceptance**
+   - rhyme truth;
+   - alternate pronunciation behavior;
+   - dialect behavior;
+   - lexical safety;
+   - commonness;
+   - deterministic repeatability;
+   - indexed retrieval/performance;
+   - zero German regressions.
+
+7. **12B7 product integration**
+   - enable `EN`;
+   - enable `DE+EN`;
+   - reuse the existing unified UI/API;
+   - no invented cross-language score calibration.
+
+### 12C. Resume full Entity pronunciation materialization
+
+After an accepted initial English runtime exists:
+
+- run the deferred Entity P898 owner gate;
+- preserve the frozen DE Entity fingerprint;
+- use the accepted English profile for CMUdict/P898 en-US promotion;
+- measure remaining multilingual proper-name gaps;
+- only then evaluate additional source-backed lexicons or audited G2P.
 
 ### 12D. English phrase/mosaic expansion
 
-Proceed only after the English single-word profile and entity phonetics are stable enough to benchmark coherently.
+Proceed only after the English single-word profile and resumed Entity phonetics are stable enough to benchmark coherently.
 
 ## Phase 13 — Cross-language rhyme
 
