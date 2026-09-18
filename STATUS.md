@@ -184,7 +184,7 @@ QRank SHA-256          daf93ed3eaeeb7d9d88237118db44e34880680921e5e8eb3353626e4e
 QRank Last-Modified    2024-03-16
 ```
 
-Both raw files are retained locally and gitignored until Phase 12 is complete. QRank's 2026-09-18 label is retrieval provenance only; server metadata reports a 2024 last-modified timestamp, so do not describe it as a 2026-generated popularity snapshot.
+The classic 103 GB Wikidata raw dump is retired from the active workflow and may be deleted. It must not be redownloaded or required for comparison. The QRank raw artifact remains retained locally/gitignored for the active Phase 12A2 path. QRank's 2026-09-18 label is retrieval provenance only; server metadata reports a 2024 last-modified timestamp, so do not describe it as a 2026-generated popularity snapshot.
 
 The pinned owner-source bootstrap is implemented:
 
@@ -202,20 +202,7 @@ The bootstrap is resumable for the static Wikidata URL, requires a streaming bzi
 
 Contract: `docs/ENTITY_STAGING_V1.md`.
 
-Owner full-stage is currently running against the accepted 20260914 control snapshot. The Windows path now prefers WSL + `lbzip2` for parallel BZip2 decompression and uses a lossless 13-QID raw-line taxonomy prefilter before JSON parsing. Latest observed owner evidence in the current run:
-
-```text
-decompressor            wsl:lbzip2:8t
-transaction size        50,000
-lines read              4,750,000
-JSON parsed               150,620 (3.17%)
-staged entities           115,358
-average rate              5,842 lines/s
-elapsed                    0.23 h
-CPU                        saturated on i7-7700K
-```
-
-Do not abort this run merely to try another acquisition path: it is the dated/checksum-verified control that future selective-source experiments must reproduce semantically.
+The classic 20260914 full-dump stage was stopped manually after QLever viability was proven. Its partial staging SQLite was deleted. This path is abandoned: no full-dump control comparison is required, and no further BZip2/WSL/full-dump tuning should be done.
 
 Source-acquisition alternatives are documented in `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md`.
 
@@ -239,7 +226,7 @@ Measured remote export times were approximately 5.7 s membership, 20.3 s core, 5
 
 The current JSON importer reads all valued P31/P106 claim statements regardless of rank, so the QLever implementation must use `p:/ps:` all-statement membership semantics rather than only `wdt:` truthy relations.
 
-The multi-hour 20260914 full-dump stage is no longer a blocking source gate. It may be stopped and retained as optional dated control evidence; the raw 103 GB dump remains local and must not be deleted.
+The multi-hour 20260914 full-dump stage is retired. The owner explicitly does not want to retain or compare against the 103 GB dump; it may be deleted and must not be redownloaded.
 
 The real build-time QLever path is now implemented. After merge:
 
