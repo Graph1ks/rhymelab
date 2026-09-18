@@ -221,14 +221,14 @@ Parameters:
 - `q=<text>` — normalized substring lookup;
 - `type=all|phrase|idiom|proverb|figurative_expression|multiword_lexeme`;
 - `historical=all` — include historical-only rows;
-- `evidence=all|leipzig|register|rueg`;
+- `evidence=all|leipzig|register|rueg|pronunciation`;
 - `limit=<n>` — maximum 250.
 
 This is a data-browser ordering, not the future Phrase Writer ranking policy.
 
 ### `GET /api/phrases/detail?id=<phrase-id-or-normalized-surface>`
 
-Returns phrase tokens, source attestations, Leipzig evidence, generic register evidence and up to 100 RUEG `dipl`/`norm` examples when available.
+Returns phrase tokens, source attestations, Leipzig evidence, generic register evidence and up to 100 RUEG `dipl`/`norm` examples when available. After Phase 11C1 materialization it also returns the preferred citation phrase IPA, syllable/stress data, explicit word-boundary positions, per-token IPA spans and token-resolution diagnostics.
 
 ### `GET /api/register/facets`
 
@@ -254,3 +254,39 @@ http://127.0.0.1:3030/phrases
 
 These endpoints do not alter or participate in the frozen single-word Writer search path.
 
+
+
+## Phrase pronunciation materialization — Phase 11C1
+
+Prerequisites:
+
+```text
+data/local/rhymelab-v5.sqlite
+data/local/rhymelab-phrases-v1.sqlite
+```
+
+Run:
+
+```powershell
+npm run phrase:pronunciation
+```
+
+This adds the read-only/explorer-facing pronunciation tables to the phrase SQLite file and writes:
+
+```text
+data/local/phrase-pronunciation-v1-report.json
+```
+
+Policy identifiers:
+
+```text
+schema                  rhymelab-phrase-pronunciation-v1
+policy                  de-phrase-pronunciation-v1
+resolver                writer-v5-preferred-normalized-exact-v1
+composition             preferred-token-citation-composition-v1
+boundary policy         explicit-word-boundary-v1
+connected speech        attested-or-explicit-rule-only-v1
+IPA analyzer            de-ipa-v2
+```
+
+11C1 uses no G2P fallback, creates no alternate phrase Cartesian products, and generates no connected-speech variants. Unknown tokens remain unresolved. The materializer asserts that the accepted Phase 11B1 base catalog fingerprint is unchanged.
