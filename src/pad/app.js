@@ -202,7 +202,7 @@ function installSuiteNavigation() {
   const nav = document.createElement('nav');
   nav.className = 'rhymeLabProductNav';
   nav.setAttribute('aria-label', 'RhymeLab workspace');
-  nav.innerHTML = '<a href="/">SEARCH</a><a href="/pad" class="active" aria-current="page">WRITE</a>';
+  nav.innerHTML = '<a href="/">SEARCH</a><a href="/pad" class="active" aria-current="page">RHYMEPAD</a>';
   brand.insertAdjacentElement('afterend', nav);
 }
 
@@ -411,7 +411,7 @@ async function runSearch(force = false) {
     scope: request.scope,
     type: request.type,
     word_limit: '250',
-    word_pool: '1200',
+    word_pool: '800',
     phrase_limit: '250',
     phrase_pool: '1024',
     phrase_per_channel: '256',
