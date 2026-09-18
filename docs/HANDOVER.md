@@ -708,52 +708,35 @@ cold start measured separately
 
 Performance optimization must preserve accepted Top-N/result fingerprints. Eliminate full scans and N+1s before low-level SQLite PRAGMA tuning.
 
-### Current immediate owner gate — publish-v4 A/B reviewed, repeatability next
+### Current immediate owner gate — publish-v4 repeatable, English DB repeatability next
 
-PR #90 is merged at:
-
-```text
-7607e89
-```
-
-The first full `en-source-backed-publish-v4-candidate` owner build and coverage A/B have now been reviewed.
+Publish-v4 unchanged-source repeatability passed:
 
 ```text
-publish fingerprint                 b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
-
-published surfaces                  224,478   (+76,574 vs v3)
-default eligible                    123,533   (+47,836)
-analyzed en-US                      188,148   (+76,574)
-ranked published                    124,285   (+17,506)
-ranked default                       80,579   (+15,416)
-
-punctuation aliases                   2,104
-exact-CMUdict possessives              5,127
-strict inflections                    69,343
-derived_inflection variants            99,727
-ambiguous inflection surfaces             176
-unresolved inflection bases           278,099
+first fingerprint   b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+second fingerprint  b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+equal               true
+published           224,478 -> 224,478
+default eligible    123,533 -> 123,533
 ```
 
-Coverage shape is healthy: Top-1k is unchanged; gains grow into the long tail. Direct source-backed pronunciation checkpoint counts do not change because `derived_inflection` remains explicit source-composed provenance rather than being relabeled as direct source pronunciation. Historical-only / proper-name-only / ESDB-invalid default blockers remain active. No General-English/unprofiled -> en-US promotion was introduced.
+Publish-v4 is accepted as the source snapshot for English SQLite materialization.
 
-The candidate is **not frozen yet**. Required next owner command:
+The DB verifier has now been strengthened to require explicit multi-result indexed-vs-full-scan equivalence in all four indexed retrieval channels. A new owner runner performs two full DB builds plus verification and compares semantic fingerprint, counts and database bytes.
+
+Next owner command after merge:
 
 ```powershell
 git pull
-npm run en:publish:repeatability
+npm run en:db:repeatability
 ```
 
-Both unchanged-source runs must reproduce:
+Upload:
 
 ```text
-b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+data/local/en-writer-db-v1-report.json
+data/local/en-writer-db-repeatability-v1-report.json
 ```
 
-Only after repeatability passes:
+Do not begin English ranking until that v4 DB gate is reviewed.
 
-```powershell
-npm run en:db:rebuild
-```
-
-Then review the rebuilt English DB fingerprint, counts and multi-channel retrieval equivalence before starting English ranking.
