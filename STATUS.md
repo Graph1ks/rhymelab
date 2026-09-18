@@ -412,7 +412,7 @@ vowel-family assigns     375 -> 375
 Owner latency moved from 35.9 ms to 37.6 ms; latency is observational and excluded from the semantic fingerprint. All deterministic semantic evidence is identical.
 
 Phase 11D retrieval is now frozen. Current milestone is **Phase 11E writer-oriented phrase ranking**. Retrieval/scorer changes require new evidence and must not be used to solve phrase commonness, lexical safety, or diversity problems.
-### Phase 11E1 — ranking evidence enrichment — IMPLEMENTED / CI PENDING
+### Phase 11E1 — ranking evidence enrichment — OWNER EVIDENCE COMPLETE
 
 The first 11E implementation is evidence-only. It does **not** reorder candidates yet.
 
@@ -433,6 +433,32 @@ npm run phrase:mosaic:rank:evidence
 ```
 
 No phrase-utility weights or page diversification are accepted yet.
+
+Owner evidence:
+
+```text
+suite evidence fp       04ecde26f0a59b7615d6b2a192e7cffed26aefe86ebac07e388e546210d58845
+candidates              1,237
+with Leipzig evidence     312 (25.22%)
+without Leipzig evidence  925 (74.78%)
+surface safe            1,219 (98.54%)
+surface restricted         14 (1.13%)
+surface marked              4 (0.32%)
+query-token overlap         0
+```
+
+Interpretation: Leipzig commonness is a bounded bonus, not an eligibility requirement; surface safety is a sparse high-precision demotion signal; query overlap remains diagnostic only; phrase-type prior must remain small/capped.
+
+### Phase 11E2 — phrase utility candidate — IMPLEMENTED / CI PENDING
+
+Candidate policy `de-phrase-writer-utility-v1-candidate` is explicit and inspectable. Phonetic type + score dominate, Leipzig commonness contributes at most +0.10, phrase type at most +0.025, marked surfaces receive -0.35 and restricted surfaces -0.50. No page diversification is included.
+
+Owner command after fixture CI:
+
+```powershell
+npm run phrase:mosaic:rank:v1
+```
+
 ### Immediate owner gate
 
 After merge:
