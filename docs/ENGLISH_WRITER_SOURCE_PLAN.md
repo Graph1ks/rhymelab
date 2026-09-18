@@ -497,7 +497,7 @@ Build a small, reviewable fixture containing:
 
 Define the English analyzer/scorer from this fixture and benchmark, not by transliterating German policy names.
 
-### 12B4 — English publish layer — V4 OWNER A/B REVIEW PASS / REPEATABILITY PENDING
+### 12B4 — English publish layer — V4 ACCEPTED / REPEATABLE
 
 Contract: `docs/ENGLISH_PUBLISH_V1.md`.
 
@@ -524,7 +524,7 @@ npm run en:publish:repeatability
 
 No final English Writer row count or broad G2P policy is accepted in 12B4.
 
-### 12B5 — English Writer DB — PRE-V4 OWNER CONTROL BUILD + VERIFY PASS
+### 12B5 — English Writer DB — V4 OWNER REPEATABILITY GATE ACTIVE
 
 Contract: `docs/ENGLISH_WRITER_DB_V1.md`.
 
@@ -600,58 +600,25 @@ Require:
 - repeated DB-open fingerprint stability;
 - unchanged frozen German Writer/Phrase behavior.
 
-### Current publish-v4 owner gate — A/B REVIEW PASS, REPEATABILITY PENDING
+### Current publish-v4 / DB owner gate — PUBLISH ACCEPTED, DB REPEATABILITY NEXT
 
-The first full owner build of `en-source-backed-publish-v4-candidate` with bounded strict morphology enabled has been reviewed.
-
-```text
-publish fingerprint                 b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
-
-published surfaces                  224,478   (+76,574 vs v3)
-default eligible                    123,533   (+47,836)
-analyzed en-US                      188,148   (+76,574)
-ranked published                    124,285   (+17,506)
-ranked default                       80,579   (+15,416)
-
-punctuation aliases                   2,104
-exact-CMUdict possessives              5,127
-strict inflections                    69,343
-derived_inflection variants            99,727
-ambiguous inflection surfaces             176
-unresolved inflection bases           278,099
-```
-
-The result shape is consistent with the bounded recovery design: Top-1k is unchanged and the gains increase progressively into lower-frequency bands. Direct source-backed pronunciation checkpoint counts stay unchanged because `derived_inflection` remains explicit source-composed provenance rather than being relabeled as direct source pronunciation.
-
-The default-profile safety contract remains intact:
-
-- historical-only excluded;
-- explicit proper-name-only excluded;
-- ESDB-invalid excluded;
-- tagless/unprofiled IPA not relabeled en-US;
-- no morphology-on-morphology chaining;
-- ambiguous and unresolved bases rejected;
-- no broad G2P.
-
-This is not yet a frozen publish-v4 snapshot. The blocking owner command is:
-
-```powershell
-npm run en:publish:repeatability
-```
-
-Both unchanged-source runs must reproduce:
+Publish-v4 repeatability passed exactly:
 
 ```text
-b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+fingerprint           b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+published             224,478 -> 224,478
+default eligible      123,533 -> 123,533
 ```
 
-Only after that passes should the English SQLite be rebuilt with:
+The source snapshot is accepted for DB materialization. The next blocking owner command is now:
 
 ```powershell
-npm run en:db:rebuild
+npm run en:db:repeatability
 ```
 
-The rebuilt v4 DB must then pass count/fingerprint review and multi-channel retrieval equivalence before English ranking calibration begins.
+This runs two full English DB builds and verification passes. Acceptance requires identical semantic fingerprints, identical materialized counts, identical database bytes, required index usage, clean foreign keys, zero ordinary indexed/full-scan mismatches, and zero explicit multi-result mismatches across exact, vowel, family+coda and coda retrieval channels.
+
+Do not start English ranking, UI/API enablement, broad G2P or Entity work before this DB gate is reviewed.
 
 ### 12B7 — product integration
 
@@ -675,7 +642,7 @@ A new thread should begin by reading:
 6. `ROADMAP.md`
 7. `PROJECT_STATE.json`
 
-Then continue with the **publish-v4 unchanged-source repeatability gate**. Require fingerprint `b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9` on both runs; only after that passes rebuild/verify the English SQLite before English ranking/benchmark acceptance.
+Then continue with the **English DB v4 repeatability + multi-result retrieval-equivalence gate** via `npm run en:db:repeatability`. Review the DB build report and DB repeatability report before English ranking/benchmark acceptance.
 
 Do not reopen Entity work first.
 
