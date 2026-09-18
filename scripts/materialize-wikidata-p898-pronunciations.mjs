@@ -130,6 +130,20 @@ try {
     FROM entity_pronunciation
     WHERE source_kind=? AND review_state=?
   `).get(WIKIDATA_P898_SOURCE_KIND, WIKIDATA_P898_REVIEW_STATE).c || 0);
+  const previousAnalyzedRows = Number(db.prepare(`
+    SELECT COUNT(*) AS c
+    FROM entity_pronunciation p
+    WHERE p.source_kind=? AND p.review_state=?
+      AND EXISTS (
+        SELECT 1 FROM entity_phonetic_analysis a
+        WHERE a.pronunciation_id=p.pronunciation_id
+      )
+  `).get(WIKIDATA_P898_SOURCE_KIND, WIKIDATA_P898_REVIEW_STATE).c || 0);
+  if (previousAnalyzedRows > 0) {
+    throw new Error(
+      `Refusing to replace ${previousAnalyzedRows} P898 evidence rows that already have phonetic analyses.`,
+    );
+  }
 
   db.exec('BEGIN');
   try {
