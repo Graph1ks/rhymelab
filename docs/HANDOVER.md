@@ -188,10 +188,13 @@ Owner commands after merge:
 
 ```powershell
 npm run phrase:pronunciation
+npm run phrase:pronunciation:coverage
 npm run dev
 ```
 
 Review `data/local/phrase-pronunciation-v1-report.json` and the IPA section in `http://127.0.0.1:3030/phrases`. Then run the pronunciation materializer again and require an identical pronunciation fingerprint. Phase 11D mosaic retrieval remains blocked until this full-data gate is accepted.
+
+Use `data/local/phrase-pronunciation-coverage-v1-report.json` to measure whether the unresolved coverage is concentrated enough for a small reviewed 11C2 lexical-gap pass. The coverage analyzer is diagnostic/read-only and reports phrase-blocker and cumulative Top-N unlock upper bounds; it does not authorize G2P or automatic lexical additions.
 
 Single-word Writer remains frozen; Human Writer NDCG remains pending.
 
