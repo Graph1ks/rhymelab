@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11D3_QUERY_DIAGNOSTICS_OWNER_RUN_PENDING",
+  "phase": "GERMAN_PHASE_11D3_DIAGNOSTIC_COMPLETE_11D4_RETRIEVAL_REVISION_REQUIRED",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11d2_accepted_phase_11d3_query_diagnostics_implemented_owner_run_pending",
+    "status": "phase_11d3_owner_diagnostic_complete_structural_11d4_revision_required_before_11e",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11D3_OWNER_QUERY_DIAGNOSTIC_GATE",
+    "next_milestone": "PHASE_11D4_MOSAIC_QUERY_DOMAIN_AND_CANDIDATE_QUALITY_REVISION",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -551,12 +551,93 @@
       "writer_runtime_rewired": false,
       "fixture_implemented": true,
       "fixture_gate_pending_ci": false,
-      "owner_full_run_completed": false,
+      "owner_full_run_completed": true,
       "command": "npm run phrase:mosaic:diagnose",
       "default_report": "data/local/phrase-mosaic-query-diagnostics-v1-report.json",
       "fixture_gate_passed": true,
       "ci_run": 253,
-      "ci_conclusion": "success"
+      "ci_conclusion": "success",
+      "owner_full_gate_accepted": true,
+      "owner_full_evidence": {
+        "built_at_local_run": "2026-09-18T02:06:24+02:00",
+        "status": "ok",
+        "query_count": 12,
+        "ok_queries": 9,
+        "no_mosaic_query_anchor": 3,
+        "anchor_coverage_pct": 75,
+        "mean_elapsed_ms": 33.6,
+        "total_returned_candidates": 1771,
+        "primary_types": {
+          "family": 60,
+          "multisyllabic_perfect": 1,
+          "multisyllabic_slant": 1,
+          "slant": 720,
+          "weak": 989
+        },
+        "weak_candidate_share_pct": 55.84,
+        "retrieval_channels": {
+          "exact_tail": 1,
+          "final_nucleus_coda_class": 1280,
+          "vowel": 418,
+          "vowel_coda": 241
+        },
+        "retrieval_channel_assignments": 1940,
+        "final_nucleus_coda_class_assignment_share_pct": 65.98,
+        "semantic_fingerprint": "294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c",
+        "no_anchor_queries": {
+          "Zeit": "query_below_2_syllable_mosaic_minimum",
+          "Nacht": "query_below_2_syllable_mosaic_minimum",
+          "Musik": "accepted_rhyme_domain_below_2_syllable_mosaic_minimum"
+        },
+        "positive_examples": {
+          "Arbeitsweise": {
+            "returned_candidates": 322,
+            "top_type": "family",
+            "top_score": 0.8391
+          },
+          "Liebe": {
+            "returned_candidates": 181,
+            "top_type": "multisyllabic_perfect",
+            "top_score": 1
+          },
+          "Freiheit": {
+            "returned_candidates": 255,
+            "top_type": "multisyllabic_slant",
+            "top_score": 0.9196
+          },
+          "hitzefrei": {
+            "returned_candidates": 347,
+            "top_type": "family",
+            "top_score": 0.8477
+          }
+        },
+        "structural_problem_examples": {
+          "Leben": "128 candidates; top rows weak and final_nucleus_coda_class-only",
+          "Feuer": "128 candidates; top rows weak and final_nucleus_coda_class-only",
+          "Gedanken": "128 candidates; top rows weak and final_nucleus_coda_class-only"
+        }
+      },
+      "decision": "DO_NOT_PROCEED_TO_11E_YET",
+      "rationale": [
+        "11d2 substrate works and yields strong representative matches",
+        "weak candidates are 55.84 percent of returned candidates",
+        "final_nucleus_coda_class accounts for 65.98 percent of channel assignments",
+        "three established queries have no accepted mosaic query anchor",
+        "Musik exposes a multi-syllable full-surface mosaic-domain gap caused by reusing stressed-tail-only query anchors",
+        "Leben Feuer Gedanken expose a specificity gap between exact full-vowel matching and the broad final fallback"
+      ]
+    },
+    "phase_11d4_revision": {
+      "status": "PLANNED_EVIDENCE_DRIVEN",
+      "preserve_11d1_window_fingerprint": "24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac",
+      "preserve_11d2_anchor_fingerprint": "55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae",
+      "goals": [
+        "add full_surface mosaic query domain for 2_to_6_syllable words when distinct from stressed rhyme tail",
+        "add deterministic vowel_family bridge channel between exact vowel and broad final fallback",
+        "do_not_forward weak candidates without matched sound relations by default",
+        "retain accepted scorer and frozen substrate as control"
+      ],
+      "phrase_ranking": false
     }
   },
   "owner_measurement_outputs": {
@@ -576,11 +657,12 @@
     "phrase_mosaic_query_diagnostics_report": "data/local/phrase-mosaic-query-diagnostics-v1-report.json"
   },
   "next_actions": [
-    "merge_11d3_fixture_only_after_validate_green",
-    "run_npm_phrase_mosaic_diagnose_owner_full_data",
-    "inspect_anchor_coverage_candidate_volume_channel_mix_latency_and_top_candidates",
-    "decide_if_structural_retrieval_revision_is_needed_before_11e",
-    "do_not_hide_retrieval_gaps_with_phrase_ranking",
+    "merge_11d3_owner_diagnostic_evidence",
+    "implement_11d4_as_additive_candidate_retrieval_revision_over_frozen_11d2",
+    "rerun_same_12_query_diagnostic_suite_and_compare_against_294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c",
+    "require_Musik_full_surface_mosaic_query_domain_without_regressing_existing_queries",
+    "measure_weak_candidate_share_and_final_fallback_dependence_before_11e",
+    "keep_phrase_ranking_deferred",
     "keep_single_word_writer_frozen"
   ]
 }

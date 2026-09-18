@@ -183,7 +183,7 @@ Decision: do **not** block Phase 11D on a manual 11C2 lexical-gap campaign. Keep
 
 The repeatability gate passed: two owner full-data runs produced the identical pronunciation fingerprint `fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548`. Phase 11C1 is accepted and closed.
 
-Phases 11D1 and 11D2 are accepted/frozen after exact owner repeatability. Current milestone is Phase 11D3 representative query diagnostics. Read `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`, `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`, and `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md` before changing mosaic code.
+Phases 11D1 and 11D2 are accepted/frozen after exact owner repeatability. Phase 11D3 owner diagnostics are complete and require an evidence-driven Phase 11D4 retrieval revision before 11E. Read `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`, `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`, and `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md` before changing mosaic code.
 Phase 11D1 owner repeatability is accepted:
 
 ```text
@@ -202,13 +202,18 @@ repeat equal         true
 anchors              356,693
 ```
 
-Current owner gate:
+11D3 owner diagnostic evidence:
 
-```powershell
-npm run phrase:mosaic:diagnose
+```text
+9/12 queries with mosaic anchors
+1,771 returned candidates
+989 weak candidates (55.84%)
+final_nucleus_coda_class assignments 1,280 / 1,940
+semantic fingerprint 294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c
 ```
 
-The default 11D3 suite is the existing 12-query Writer Page v2 plan. Treat no-anchor states as diagnostic evidence; do not widen the accepted substrate or add ranking weights solely to make the suite look better. Review the full-data report before 11E. 
+Decision: do **not** start 11E yet. 11D4 must stay additive over the frozen 11D2 control and address three evidence-backed issues only: full-surface multi-syllable query domains, an intermediate vowel-family retrieval channel, and removal of weak/no-relation candidates from the default returned pool. Do not retune the single-word scorer or introduce phrase ranking to solve these retrieval problems.
+
 Phrase ranking remains deferred to 11E. 
 The accepted single-word Writer baseline remains frozen.
 

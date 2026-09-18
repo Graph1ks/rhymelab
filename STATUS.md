@@ -328,13 +328,36 @@ distinct key counts equal  true
 
 Phase 11D2 is accepted/frozen as the bounded indexed candidate-retrieval substrate.
 
-### Phase 11D3 — representative query diagnostics — FIXTURE GATE PASS / OWNER RUN PENDING
+### Phase 11D3 — representative query diagnostics — OWNER RUN COMPLETE / STRUCTURAL REVISION REQUIRED
 
 11D3 reuses the existing 12-query Writer Page v2 suite and Writer-v5 preferred IPA resolution. It records candidate volume, channel/type mix, latency, top candidate windows and deterministic semantic fingerprints without introducing phrase ranking.
 
 Queries with no eligible 2–6-syllable stressed rhyme domain are reported explicitly rather than silently treated as empty retrieval.
 
 Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
+Owner 11D3 full-data diagnostic:
+
+```text
+queries                          12
+queries with mosaic anchors       9
+no-anchor queries                 3
+mean elapsed                    33.6 ms
+returned candidates            1,771
+weak candidates                  989 (55.84%)
+slant                            720
+family                            60
+multisyllabic slant                1
+multisyllabic perfect              1
+final fallback assignments      1,280 / 1,940 (65.98%)
+semantic fingerprint
+294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c
+```
+
+Positive retrieval evidence exists: `Arbeitsweise` surfaces family candidates, `Liebe` has a multisyllabic-perfect candidate, and `Freiheit` has a high-scoring multisyllabic-slant candidate.
+
+But the gate does **not** authorize 11E. `Leben`, `Feuer`, and `Gedanken` are saturated by the broad final-nucleus/coda-class channel with weak top rows; `Musik` has no mosaic anchor despite being multisyllabic because the reused single-word stressed rhyme domain is only one syllable.
+
+Decision: preserve 11D1/11D2 and open **11D4** as an additive retrieval revision before phrase ranking.
 ### Immediate owner gate
 
 After merge:
