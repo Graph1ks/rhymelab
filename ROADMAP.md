@@ -302,6 +302,8 @@ repeat  24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`.
 
+Fixture CI gate: **PASS** (`validate`, run 248).
+
 Implemented at fixture level:
 
 - additive rhyme-domain anchor rows over immutable 11D1 windows;
