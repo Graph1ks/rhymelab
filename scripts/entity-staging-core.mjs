@@ -3,6 +3,7 @@ import { createReadStream, existsSync } from 'node:fs';
 import { createGunzip } from 'node:zlib';
 import readline from 'node:readline';
 import { basename, resolve } from 'node:path';
+import { availableParallelism } from 'node:os';
 import { classifyEntity, normalizeEntityName } from './entity-lexicon-core.mjs';
 
 export const ENTITY_STAGE_SCHEMA = 'rhymelab-entity-stage-v1';
@@ -171,6 +172,45 @@ function is7ZipCommand(command) {
   return /^(?:7z|7zz)(?:\.exe)?$/iu.test(basename(String(command)));
 }
 
+function wslLbzip2Command(path) {
+  if (process.platform !== 'win32' || !commandExists('wsl.exe')) return null;
+
+  const probe = spawnSync(
+    'wsl.exe',
+    ['--exec', 'sh', '-lc', 'command -v lbzip2 >/dev/null 2>&1'],
+    { stdio: 'ignore', windowsHide: true },
+  );
+  if (probe.status !== 0) return null;
+
+  const pathProbe = spawnSync(
+    'wsl.exe',
+    ['--exec', 'wslpath', '-a', path],
+    { encoding: 'utf8', windowsHide: true },
+  );
+  if (pathProbe.status !== 0) return null;
+
+  const wslPath = String(pathProbe.stdout || '').trim();
+  if (!wslPath) return null;
+
+  const configuredThreads = Number.parseInt(
+    process.env.RHYMELAB_LBZIP2_THREADS || '',
+    10,
+  );
+  const defaultThreads = Math.max(2, Math.min(8, availableParallelism()));
+  const threads = Math.max(
+    2,
+    Math.min(32, Number.isFinite(configuredThreads) && configuredThreads > 0
+      ? configuredThreads
+      : defaultThreads),
+  );
+
+  return {
+    command: 'wsl.exe',
+    args: ['--exec', 'lbzip2', '-dc', '-n', String(threads), wslPath],
+    label: `wsl:lbzip2:${threads}t`,
+  };
+}
+
 function bz2Command(path) {
   const explicit = String(process.env.RHYMELAB_BZIP2_CMD || '').trim();
   if (explicit) {
@@ -183,6 +223,7 @@ function bz2Command(path) {
 
   const candidates = process.platform === 'win32'
     ? [
+      wslLbzip2Command(path),
       { command: '7z', args: ['x', '-so', '-mmt=on', '-bsp2', '-bb0', path] },
       { command: '7z.exe', args: ['x', '-so', '-mmt=on', '-bsp2', '-bb0', path] },
       { command: '7zz', args: ['x', '-so', '-mmt=on', '-bsp2', '-bb0', path] },
@@ -196,7 +237,7 @@ function bz2Command(path) {
       { command: '7z', args: ['x', '-so', '-mmt=on', '-bsp2', '-bb0', path] },
     ];
 
-  return candidates.find((candidate) => commandExists(candidate.command)) || null;
+  return candidates.find((candidate) => candidate && commandExists(candidate.command)) || null;
 }
 
 export function openTextLines(path) {
@@ -242,7 +283,7 @@ export function openTextLines(path) {
     return {
       lines: readline.createInterface({ input: child.stdout, crlfDelay: Infinity }),
       done,
-      decompressor: selected.command,
+      decompressor: selected.label || selected.command,
     };
   }
 
