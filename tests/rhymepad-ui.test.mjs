@@ -97,3 +97,51 @@ test('RhymePad v14 exposes Entity scope, semantic categories and IPA-bearing car
   assert.match(padCss, /\.entityCategoryBadge/);
   assert.match(padCss, /\.resultKind\.entity/);
 });
+
+
+test('RhymePad command deck reorganizes the pre-editor controls without duplicating v14 features', () => {
+  assert.match(padApp, /function installCommandDeck\(/);
+  assert.match(padApp, /id = 'rhymePadCommandDeck'/);
+  assert.match(padApp, /createDeckAction\('libraryOpen'/);
+  assert.match(padApp, /createDeckAction\('historyBack'/);
+  assert.match(padApp, /createDeckAction\('historyForward'/);
+  assert.match(padApp, /createDeckAction\('themeToggle'/);
+  assert.match(padApp, /const modeTabs = \$\('\.modeTabs'\)/);
+  assert.match(padApp, /createDeckField\('fontPicker'/);
+  assert.match(padApp, /createDeckField\('fontSize'/);
+  assert.match(padCss, /\.rhymePadCommandDeck/);
+  assert.match(padCss, /\.rhymePadLegacyTopHidden/);
+});
+
+test('RhymePad BAR and syllable counters scale with the editor font size', () => {
+  assert.match(padApp, /function syncEditorMetricScale\(/);
+  assert.match(padApp, /getComputedStyle\(editor\)\.fontSize/);
+  assert.match(padApp, /--rhymePadMetricFontPx/);
+  assert.match(padApp, /createMetricTile\('barNo', 'Bar', metrics, \{ primary: true \}\)/);
+  assert.match(padApp, /createMetricTile\('syl', 'Syllables', metrics, \{ primary: true \}\)/);
+  assert.match(padCss, /\.rhymePadCommandDeck #barNo/);
+  assert.match(padCss, /\.rhymePadCommandDeck #syl/);
+  assert.match(padCss, /font-size:var\(--rhymePadMetricFontPx/);
+});
+
+test('RhymePad suggestions expose persistent opt-in auto-scroll', () => {
+  assert.match(padApp, /AUTO_SCROLL_STORAGE_KEY = 'rhymepad:suggestions:auto-scroll'/);
+  assert.match(padApp, /id="rhymeLabAutoScroll"/);
+  assert.match(padApp, /function autoScrollSuggestionFrame\(/);
+  assert.match(padApp, /requestAnimationFrame\(autoScrollSuggestionFrame\)/);
+  assert.match(padApp, /localStorage\.setItem\(AUTO_SCROLL_STORAGE_KEY/);
+  assert.match(padApp, /pointerenter/);
+  assert.match(padApp, /pointerleave/);
+  assert.match(padCss, /\.rhymeLabAutoScrollSurface/);
+  assert.match(padCss, /\.rhymeLabAutoScrollToggle/);
+});
+
+
+test('RhymePad bar rail counters also scale with editor typography', () => {
+  assert.match(padApp, /--rhymePadRailMetricFontPx/);
+  assert.match(padApp, /const rail = \$\('#rail'\)/);
+  assert.match(padApp, /rhymePadRailCounter/);
+  assert.match(padApp, /railObserver\.observe\(rail/);
+  assert.match(padCss, /\.rhymePadRailCounter/);
+  assert.match(padCss, /font-size:var\(--rhymePadRailMetricFontPx/);
+});

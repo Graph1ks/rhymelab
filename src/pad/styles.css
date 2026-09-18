@@ -84,3 +84,95 @@ html[data-mode="rhyme"] .railViewport{height:360px}
   .rhymeLabEntityCategoryWrap{max-width:150px}
   #rhymeLabEntityCategory,#rhymeLabDeepEntityCategory{min-width:120px;max-width:150px}
 }
+
+
+/* RhymePad command deck: ergonomic control surface above the editor. */
+.rhymePadLegacyTopHidden{display:none!important}
+.rhymePadCommandDeck{
+  margin:0 0 12px;border:1px solid var(--border);border-radius:14px;background:var(--panel);
+  box-shadow:0 10px 30px rgba(0,0,0,.12);overflow:hidden
+}
+.rhymePadDeckPrimary,.rhymePadDeckWorkflow,.rhymePadDeckMetrics{display:flex;align-items:stretch;gap:10px;padding:10px 12px}
+.rhymePadDeckPrimary{background:linear-gradient(180deg,color-mix(in srgb,var(--paper) 88%,var(--accent-soft)),var(--panel));border-bottom:1px solid var(--border)}
+.rhymePadDeckWorkflow{align-items:center;border-bottom:1px solid var(--border);background:var(--panel)}
+.rhymePadDeckMetrics{align-items:center;padding-top:8px;padding-bottom:8px;background:color-mix(in srgb,var(--paper-2) 70%,var(--panel))}
+.rhymePadDeckSong{min-width:220px;flex:1 1 360px}
+.rhymePadDeckMetadata,.rhymePadDeckActions,.rhymePadDeckTypography,.rhymePadMetricStrip,.rhymePadDeckStatus{display:flex;align-items:center;gap:8px}
+.rhymePadDeckActions{margin-left:auto}
+.rhymePadDeckModes{flex:0 0 auto}
+.rhymePadDeckTypography{margin-left:auto;justify-content:flex-end;flex-wrap:wrap}
+.rhymePadDeckField{display:grid;grid-template-rows:auto 34px;gap:4px;min-width:150px}
+.rhymePadDeckField.compact{min-width:82px;max-width:110px}
+.rhymePadDeckLabel,.rhymePadMetricLabel{
+  font:800 8px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)
+}
+.rhymePadDeckField input:not([type="checkbox"]),.rhymePadDeckField select{
+  width:100%;min-width:0;height:34px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--control);color:var(--text)
+}
+.rhymePadDeckSong #songTitle{font-size:14px;font-weight:750;letter-spacing:-.01em}
+.rhymePadDeckAction{
+  min-height:34px;padding:0 10px!important;border:1px solid var(--border)!important;border-radius:8px!important;background:var(--control)!important;color:var(--text)!important
+}
+.rhymePadDeckAction:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--border))!important;background:var(--accent-soft)!important}
+.rhymePadHistoryActions{display:flex;gap:4px;padding:3px;border:1px solid var(--border);border-radius:10px;background:var(--paper-2)}
+.rhymePadHistoryActions .rhymePadDeckAction{border:0!important;background:transparent!important;padding:0 8px!important}
+.rhymePadCommandDeck .modeTabs{
+  display:flex!important;align-items:center;gap:3px;padding:3px;border:1px solid var(--border);border-radius:10px;background:var(--control)
+}
+.rhymePadCommandDeck .modeTab{min-height:32px;padding:0 13px;border-radius:7px}
+.rhymePadDeckToggle,.rhymeLabAutoScrollToggle{
+  display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 9px;border:1px solid var(--border);border-radius:8px;background:var(--control);
+  color:var(--muted);font:700 9px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.04em;white-space:nowrap;cursor:pointer
+}
+.rhymePadDeckToggle input,.rhymeLabAutoScrollToggle input{accent-color:var(--accent)}
+.rhymePadDeckToggle:has(input:checked),.rhymeLabAutoScrollToggle:has(input:checked){color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,var(--border));background:var(--accent-soft)}
+.rhymePadFontSizeReadout{position:absolute;pointer-events:none;opacity:0}
+.rhymePadMetricStrip{gap:6px;min-width:0;flex-wrap:wrap}
+.rhymePadMetricTile{
+  display:grid;grid-template-columns:auto auto;align-items:baseline;gap:6px;min-height:38px;padding:6px 9px;border:1px solid var(--border);border-radius:9px;background:var(--control)
+}
+.rhymePadMetricTile.primary{grid-template-columns:auto auto;padding:5px 10px;border-color:color-mix(in srgb,var(--accent) 32%,var(--border));background:color-mix(in srgb,var(--accent-soft) 55%,var(--control))}
+.rhymePadMetricValue{font:800 12px/1 "IBM Plex Mono",ui-monospace,monospace;color:var(--text);font-variant-numeric:tabular-nums}
+.rhymePadMetricTile.primary .rhymePadMetricValue,
+.rhymePadCommandDeck #barNo,
+.rhymePadCommandDeck #syl{
+  font-size:var(--rhymePadMetricFontPx,13px)!important;line-height:1!important;letter-spacing:-.035em!important
+}
+.rhymePadMetricTile.primary .rhymePadMetricLabel{color:var(--accent)}
+.rhymePadDeckStatus{margin-left:auto;justify-content:flex-end;min-width:0;color:var(--muted)}
+.rhymePadDeckStatus #songStats{font-size:9px}
+.rhymePadDeckStatus #autosave{white-space:nowrap}
+.rhymeLabAutoScrollSurface{
+  max-height:min(52vh,560px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:2px
+}
+.rhymeLabAutoScrollSurface.is-auto-scrolling{scroll-behavior:auto}
+.rhymeLabAutoScrollToggle{margin-left:4px}
+
+@media(max-width:1180px){
+  .rhymePadDeckPrimary,.rhymePadDeckWorkflow{flex-wrap:wrap}
+  .rhymePadDeckSong{flex-basis:100%}
+  .rhymePadDeckMetadata{flex:1 1 auto}
+  .rhymePadDeckTypography{margin-left:0;flex:1 1 100%;justify-content:flex-start}
+  .rhymePadDeckStatus{flex:1 1 100%;margin-left:0;justify-content:flex-start}
+}
+@media(max-width:760px){
+  .rhymePadCommandDeck{border-radius:10px}
+  .rhymePadDeckPrimary,.rhymePadDeckWorkflow,.rhymePadDeckMetrics{padding:9px;gap:8px}
+  .rhymePadDeckMetadata,.rhymePadDeckActions,.rhymePadDeckTypography{width:100%;flex-wrap:wrap}
+  .rhymePadDeckActions{margin-left:0}
+  .rhymePadDeckField{min-width:130px;flex:1 1 130px}
+  .rhymePadDeckField.compact{min-width:90px;flex:1 1 90px;max-width:none}
+  .rhymePadDeckModes{width:100%;overflow-x:auto}
+  .rhymePadCommandDeck .modeTabs{width:max-content;min-width:100%}
+  .rhymePadMetricStrip{width:100%}
+  .rhymePadMetricTile{flex:1 1 90px;justify-content:center}
+  .rhymePadMetricTile.primary{flex-basis:120px}
+  .rhymeLabAutoScrollSurface{max-height:42vh}
+}
+
+.rhymePadRailCounter{
+  font-size:var(--rhymePadRailMetricFontPx,10px)!important;
+  line-height:1.05!important;
+  min-width:1.65em;
+  font-variant-numeric:tabular-nums;
+}
