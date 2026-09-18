@@ -299,72 +299,93 @@ CREATE TABLE entity_stage_external_id(
   PRIMARY KEY(qid, system, value)
 ) WITHOUT ROWID;
 
-CREATE INDEX idx_entity_stage_category_category
-  ON entity_stage_category(category, qid);
-CREATE INDEX idx_entity_stage_name_normalized
-  ON entity_stage_name(normalized, language, qid);
 `;
 
 export function createEntityStageStorage(db) {
   db.exec(CREATE_ENTITY_STAGE_SQL);
 }
 
-export function writeStageEntity(db, record, sourceOrdinal) {
-  db.prepare(`
+export function finalizeEntityStageStorage(db) {
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_entity_stage_category_category
+      ON entity_stage_category(category, qid);
+    CREATE INDEX IF NOT EXISTS idx_entity_stage_name_normalized
+      ON entity_stage_name(normalized, language, qid);
+    ANALYZE;
+  `);
+}
+
+const stageWriterCache = new WeakMap();
+
+export function createStageEntityWriter(db) {
+  const insertEntity = db.prepare(`
     INSERT INTO entity_stage(
       qid,primary_category,description_de,description_en,wikipedia_sitelink_count,
       has_dewiki,has_enwiki,statement_count,external_id_count,qrank,source_ordinal
     ) VALUES(?,?,?,?,?,?,?,?,?,NULL,?)
-  `).run(
-    record.qid,
-    record.primaryCategory,
-    record.descriptionDe,
-    record.descriptionEn,
-    record.sitelinkCount,
-    record.hasDewiki,
-    record.hasEnwiki,
-    record.statementCount,
-    record.externalIdCount,
-    sourceOrdinal,
-  );
-
-  const categoryInsert = db.prepare(`
+  `);
+  const insertCategory = db.prepare(`
     INSERT INTO entity_stage_category(
       qid,category,priority,retention_percentile_floor
     ) VALUES(?,?,?,?)
   `);
-  for (const category of record.categories) {
-    categoryInsert.run(
-      record.qid,
-      category.category,
-      category.priority,
-      category.retentionPercentileFloor,
-    );
-  }
-
-  const nameInsert = db.prepare(`
+  const insertName = db.prepare(`
     INSERT INTO entity_stage_name(
       qid,language,surface,normalized,name_kind,preferred
     ) VALUES(?,?,?,?,?,?)
   `);
-  for (const name of record.names) {
-    nameInsert.run(
-      record.qid,
-      name.language,
-      name.surface,
-      name.normalized,
-      name.nameKind,
-      name.preferred,
-    );
-  }
-
-  const externalInsert = db.prepare(`
+  const insertExternal = db.prepare(`
     INSERT INTO entity_stage_external_id(qid,property_id,system,value)
     VALUES(?,?,?,?)
   `);
-  for (const external of record.externalIds) {
-    externalInsert.run(record.qid, external.propertyId, external.system, external.value);
+
+  return (record, sourceOrdinal) => {
+    insertEntity.run(
+      record.qid,
+      record.primaryCategory,
+      record.descriptionDe,
+      record.descriptionEn,
+      record.sitelinkCount,
+      record.hasDewiki,
+      record.hasEnwiki,
+      record.statementCount,
+      record.externalIdCount,
+      sourceOrdinal,
+    );
+
+    for (const category of record.categories) {
+      insertCategory.run(
+        record.qid,
+        category.category,
+        category.priority,
+        category.retentionPercentileFloor,
+      );
+    }
+
+    for (const name of record.names) {
+      insertName.run(
+        record.qid,
+        name.language,
+        name.surface,
+        name.normalized,
+        name.nameKind,
+        name.preferred,
+      );
+    }
+
+    for (const external of record.externalIds) {
+      insertExternal.run(record.qid, external.propertyId, external.system, external.value);
+    }
+  };
+}
+
+export function writeStageEntity(db, record, sourceOrdinal) {
+  let writer = stageWriterCache.get(db);
+  if (!writer) {
+    writer = createStageEntityWriter(db);
+    stageWriterCache.set(db, writer);
   }
+  writer(record, sourceOrdinal);
 }
 
 export function parseQRankLine(line, lineNumber = 0) {
