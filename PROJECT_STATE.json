@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11C1_OWNER_FULL_BUILD_COMPLETE_GATE_PENDING",
+  "phase": "GERMAN_PHASE_11C1_REPEATABILITY_PENDING_11D_SELECTED",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11c1_owner_full_data_build_complete_repeatability_and_coverage_triage_pending",
+    "status": "phase_11c1_full_build_and_coverage_triage_complete_repeatability_pending_then_11d",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11C1_REPEATABILITY_AND_COVERAGE_TRIAGE",
+    "next_milestone": "PHASE_11C1_REPEATABILITY_GATE_THEN_11D_MOSAIC_RETRIEVAL",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -252,7 +252,7 @@
       },
       "owner_full_gate_accepted": false,
       "repeatability_confirmed": false,
-      "coverage_triage_completed": false,
+      "coverage_triage_completed": true,
       "full_data_evidence": {
         "built_at": "2026-09-18T01:15:17.003Z",
         "database_bytes": 367386624,
@@ -272,6 +272,92 @@
         "unresolved_reason": "unresolved_no_writer_form",
         "unresolved_reason_count": 10467,
         "blocked_phrase_count": 8415
+      },
+      "coverage_triage_decision": "PROCEED_DIRECTLY_TO_11D_AFTER_REPEATABILITY",
+      "blocking_11c2_pass": false,
+      "coverage_triage_evidence": {
+        "generated_at": "2026-09-18T01:18:51.380Z",
+        "phrase_pronunciation_fingerprint": "fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548",
+        "catalog_fingerprint": "f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d",
+        "modern_phrase_coverage_pct": 92.26,
+        "unresolved_token_occurrences": 10467,
+        "distinct_unresolved_normalized_tokens": 5894,
+        "blocked_phrases": 8415,
+        "blocked_modern_phrases": 7535,
+        "one_distinct_blocker_phrases": 6505,
+        "one_distinct_blocker_modern_phrases": 5663,
+        "unlock_upper_bounds": [
+          {
+            "top_tokens": 1,
+            "unblocked_modern_phrases": 317,
+            "blocked_modern_share_pct": 4.21,
+            "projected_modern_coverage_pct": 92.59
+          },
+          {
+            "top_tokens": 20,
+            "unblocked_modern_phrases": 624,
+            "blocked_modern_share_pct": 8.28,
+            "projected_modern_coverage_pct": 92.9
+          },
+          {
+            "top_tokens": 100,
+            "unblocked_modern_phrases": 1036,
+            "blocked_modern_share_pct": 13.75,
+            "projected_modern_coverage_pct": 93.33
+          },
+          {
+            "top_tokens": 250,
+            "unblocked_modern_phrases": 1532,
+            "blocked_modern_share_pct": 20.33,
+            "projected_modern_coverage_pct": 93.84
+          }
+        ],
+        "highest_impact_clean_examples": [
+          {
+            "normalized": "zurecht",
+            "single_blocker_modern_phrases": 317
+          },
+          {
+            "normalized": "inne",
+            "single_blocker_modern_phrases": 40
+          },
+          {
+            "normalized": "überein",
+            "single_blocker_modern_phrases": 28
+          },
+          {
+            "normalized": "zuteil",
+            "single_blocker_modern_phrases": 14
+          },
+          {
+            "normalized": "ausfindig",
+            "single_blocker_modern_phrases": 14
+          }
+        ],
+        "observed_noise_examples": [
+          "st",
+          "1",
+          "2",
+          "de",
+          "east",
+          "river",
+          "new",
+          "street"
+        ],
+        "rationale": "one very high-impact ordinary German gap exists, but leverage drops quickly into a diffuse mixed tail containing abbreviations, numbers, entities, foreign material, specialist lexemes and historical forms; do not delay 11D for a blocking manual pronunciation campaign"
+      },
+      "optional_11c2_backlog": {
+        "status": "DEFERRED_NONBLOCKING_SOURCE_BACKED_ONLY",
+        "automatic_g2p": false,
+        "writer_v5_mutation_allowed": false,
+        "candidate_examples": [
+          "zurecht",
+          "inne",
+          "überein",
+          "zuteil",
+          "ausfindig"
+        ],
+        "note": "Any future additions require explicit pronunciation provenance and successful de-ipa-v2 analysis; coverage impact alone is not approval."
       }
     },
     "rueg_evaluation": {
@@ -326,14 +412,11 @@
     "phrase_pronunciation_coverage_report": "data/local/phrase-pronunciation-coverage-v1-report.json"
   },
   "next_actions": [
-    "compare_repeat_phrase_pronunciation_fingerprint_to_fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548",
-    "run_npm_phrase_pronunciation_coverage_and_measure_top_n_unlock_impact",
-    "inspect_phrase_token_and_phrase_pronunciation_coverage",
-    "inspect_top_unresolved_tokens_and_phrase_blockers",
-    "inspect_phrase_ipa_stress_and_word_boundary_spans_in_phrase_explorer",
     "repeat_phrase_pronunciation_build_and_require_equal_pronunciation_fingerprint",
+    "compare_repeat_phrase_pronunciation_fingerprint_to_fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548",
     "require_phase_11b1_base_catalog_fingerprint_to_remain_f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d",
-    "only_after_11c1_owner_gate_begin_phase_11d_mosaic_retrieval",
+    "after_repeatability_gate_begin_phase_11d_deterministic_cross_word_phonetic_windows",
+    "keep_optional_11c2_lexical_gap_work_nonblocking_and_source_backed_only",
     "keep_single_word_writer_frozen"
   ]
 }

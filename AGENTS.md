@@ -177,7 +177,11 @@ ready modern phrases        89,865
 base catalog unchanged      yes
 ```
 
-Do not mark the full 11C1 owner gate accepted yet: repeat fingerprint equality and coverage-impact triage remain pending.
+The coverage-impact triage is now complete. Modern phrase coverage is 92.26%; 5,894 distinct unresolved normalized forms block 7,535 modern phrases. `zurecht` is a high-impact outlier (317 single-blocker modern phrases), but the remaining ranked tail becomes diffuse and mixed/noisy quickly.
+
+Decision: do **not** block Phase 11D on a manual 11C2 lexical-gap campaign. Keep any future lexical-gap additions source-backed, optional and separate from the frozen Writer-v5 runtime. Broad G2P remains disallowed.
+
+Do not mark the full 11C1 owner gate accepted yet: only repeat fingerprint equality remains pending. After that passes, begin 11D deterministic cross-word phonetic windows / mosaic retrieval.
 Current owner gate after merge:
 
 ```powershell

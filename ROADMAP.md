@@ -238,7 +238,23 @@ unresolved tokens           10,467
 base catalog unchanged      yes
 ```
 
-Remaining gate: confirm identical pronunciation fingerprint on repeat and review `phrase:pronunciation:coverage` before choosing targeted 11C2 versus direct 11D.
+Coverage triage is now complete:
+
+```text
+modern phrase coverage       92.26%
+blocked modern phrases        7,535
+distinct unresolved forms     5,894
+Top-1 unlock                    317 modern phrases
+Top-20 unlock                   624
+Top-100 unlock                1,036
+Top-250 unlock                1,532
+```
+
+The tail is not concentrated enough to justify a blocking manual 11C2 pronunciation campaign. `zurecht` is a notable high-impact lexical gap, but the ranked tail quickly mixes useful German with abbreviations, numerals, names/foreign material, specialist vocabulary and historical forms.
+
+**Decision:** proceed directly to 11D after the remaining repeatability check. Any 11C2 lexical additions are optional background work, source-backed only, with no broad G2P fallback and no mutation of the frozen Writer-v5 runtime.
+
+Remaining 11C1 gate: confirm an identical pronunciation fingerprint on a repeat materialization.
 ### 11D. Mosaic retrieval architecture
 
 Add deterministic indexed phrase-span retrieval capable of matching rhyme spans across one or more word boundaries without scanning the full phrase corpus at query time.
