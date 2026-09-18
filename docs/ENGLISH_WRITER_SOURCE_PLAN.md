@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-18
 
-Status: **ACTIVE / 12B1+12B2 OWNER GATE COMPLETE / 12B3 ENGLISH PHONOLOGY CANDIDATE IMPLEMENTED**
+Status: **ACTIVE / 12B3 OWNER FIXTURE PASS / 12B4 ENGLISH PUBLISH LAYER IMPLEMENTED / OWNER FULL BUILD PENDING**
 
 
 ## Implementation checkpoint — 2026-09-18
@@ -39,8 +39,21 @@ This is enough to start 12B3, but not enough to freeze a final runtime populatio
 - `scripts/english-phonology.mjs` — deterministic CMUdict ARPAbet + Wiktionary IPA normalization into one English canonical phone representation;
 - `scripts/english-rhyme-features.mjs` — English-specific feature/scoring candidate;
 - `npm run en:phonology:fixture` — 19 deterministic fixture checks;
+- owner fixture result: 22 entries / 19 checks / 0 failures;
 - English remains candidate-gated and is not added to the accepted runtime language list;
 - G2P remains disabled.
+
+12B4 source-backed publish implementation now exists:
+
+- contract: `docs/ENGLISH_PUBLISH_V1.md`;
+- builder: `npm run en:publish`;
+- verifier: `npm run en:publish:verify`;
+- output: `data/local/en-publish-v1/`;
+- lexical cut requires Wiktionary lexical evidence plus a source-backed Wiktionary IPA or exact CMUdict pronunciation;
+- unqualified Wiktionary IPA is preserved as `source_attested_unprofiled`, never silently promoted to en-US;
+- default eligibility requires analyzed en-US pronunciation, current lexical evidence, non-proper-name-only status and no ESDB invalid marker;
+- proper-name/common-word homographs remain eligible through ordinary lexical evidence;
+- final Writer row count remains unfrozen and no runtime DB is created in 12B4.
 
 
 ## Decision
@@ -469,22 +482,35 @@ Build a small, reviewable fixture containing:
 
 Define the English analyzer/scorer from this fixture and benchmark, not by transliterating German policy names.
 
-### 12B4 — English publish layer
+### 12B4 — English publish layer — IMPLEMENTED / OWNER FULL BUILD PENDING
+
+Contract: `docs/ENGLISH_PUBLISH_V1.md`.
 
 Materialize source-backed lexical rows with:
 
-- surface;
-- normalized surface;
-- lemma;
-- POS;
-- form/lemma relationships;
-- register/style/history evidence;
-- pronunciation variants;
-- pronunciation source + locale tags;
-- usage evidence;
-- ESDB corroboration/variant evidence.
+- surface + strict publish normalization;
+- lemma/form relationships from Wiktionary source evidence;
+- POS and register/style/history evidence;
+- source-backed pronunciation variants;
+- CMUdict exact ARPAbet as en-US;
+- Wiktionary IPA with en-US/en-GB qualifiers preserved;
+- unqualified IPA preserved as source-attested/unprofiled;
+- wordfreq rank/Zipf evidence without using it as lexical truth;
+- ESDB size/region/POS/archaic/uncommon/invalid evidence;
+- explicit default-eligibility reasons.
 
-Unresolved pronunciations remain unresolved unless an explicitly accepted fallback policy exists.
+The source-backed publish cut requires Wiktionary lexical evidence plus at least one Wiktionary or exact-CMUdict pronunciation. Unsupported source IPA remains stored as unresolved source evidence; it is not guessed.
+
+Owner gate after merge:
+
+```powershell
+npm run en:publish
+npm run en:publish:verify
+```
+
+Review published/default-eligible counts, pronunciation analysis failure rate, locale mix, lexical-history/proper-name filters, source overlap and semantic fingerprint before starting 12B5.
+
+No final English Writer row count or broad G2P policy is accepted in 12B4.
 
 ### 12B5 — English Writer DB
 
