@@ -164,3 +164,29 @@ npm run en:pronunciation:inflection:diagnose
 The benchmark must be reviewed before morphology-derived pronunciations can become default-profile eligible.
 
 Strict tagless Wiktionary IPA also remains non-en-US provenance. The v3 owner benchmark reached 76.52% boundary-insensitive stressed-tail agreement against explicit en-US controls, which is insufficient for silent en-US promotion.
+
+
+### Morphology benchmark v1 result
+
+The first control benchmark covered 19,993 already source-backed inflected surfaces with exact CMUdict target pronunciations.
+
+Overall:
+
+```text
+phoneme sequence            94.42%
+boundary-insensitive tail   94.97%
+syllable count              99.36%
+stress pattern              96.93%
+```
+
+Non-epenthetic allomorphs are already around 95-98% boundary-insensitive rhyme-tail agreement. The weak classes are epenthetic `-es` after sibilants and `-ed` after /t,d/, where the original composer emitted only `/ɪz/` and `/ɪd/` but CMUdict often uses schwa-reduced `/əz/` and `/əd/`.
+
+The recovery layer now preserves both reduced-vowel variants. This remains diagnostic-only; the publisher still has morphology composition disabled.
+
+Next command:
+
+```powershell
+npm run en:pronunciation:inflection:diagnose
+```
+
+The v2 report must be reviewed before any derived inflection pronunciation becomes default-profile eligible.
