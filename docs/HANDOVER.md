@@ -491,3 +491,39 @@ npm run en:pronunciation:fallback:diagnose
 ```
 
 No Kaikki restream, publish rebuild or DB rebuild is required for this diagnostic.
+
+
+### 12B7 publish-v4 Tier-A + morphology benchmark gate
+
+Strict tagless pronunciation owner diagnostic v3 is complete.
+
+```text
+strict tagless vs en-US surfaces                 17,427
+exact tail                                        73.27%
+boundary-insensitive tail                         76.52%
+full phone sequence                               71.46%
+syllable count                                    97.34%
+stress pattern                                    82.94%
+```
+
+Decision: tagless Wiktionary IPA remains provenance-bearing General-English/unprofiled evidence and is **not** promoted or relabeled to en-US.
+
+Candidate publish policy is now:
+
+```text
+en-source-backed-publish-v4-tier-a-candidate
+```
+
+Implemented Tier-A channels:
+
+- exact CMUdict apostrophe possessive + analyzed en-US base;
+- explicit punctuation-only Wiktionary `alt_of` + exactly one analyzed en-US lemma.
+
+Regular morphology is still disabled in production. A deterministic allomorph composer and CMUdict control diagnostic are implemented, but owner evidence is required before admission:
+
+```powershell
+git pull
+npm run en:pronunciation:inflection:diagnose
+```
+
+This command only reads existing publish shards. Do not run the expensive Kaikki publish rebuild until this diagnostic is reviewed unless specifically needed to validate Tier-A counts.
