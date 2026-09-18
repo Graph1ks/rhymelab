@@ -1195,7 +1195,7 @@
     "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
     "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
   ],
-  "next_milestone": "PHASE_12A2_HYBRID_POPULARITY_CANDIDATE_OWNER_AB",
+  "next_milestone": "PHASE_12A2_HYBRID_POPULARITY_V2_OWNER_AB",
   "phase_12_english": {
     "status": "PLANNED_AFTER_12A",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -1320,15 +1320,16 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "qrank_present_first_v1_control_rejected_for_freeze_after_owner_fallback_review",
-      "run_category_relative_popularity_hybrid_v1_candidate_ab_on_existing_stage_db",
-      "review_bud_spencer_keep_tier_a_candidate_gate",
-      "review_candidate_missing_qrank_retention_and_boundary_churn_samples",
-      "only_after_candidate_ranking_acceptance_review_category_floors_toward_preferred_600k_900k_range",
-      "freeze_source_acquisition_and_final_cut_policy_only_after_owner_ab_acceptance"
+      "original_qrank_present_first_control_rejected_for_freeze",
+      "hybrid_v1_owner_ab_complete_rejected_for_freeze_fingerprint_e770c1cfc655764e9e0f26e033c53fba0f1e1af4e2ca3b7ac82adf4eabde1e04",
+      "run_hybrid_v2_geometric_missing_evidence_ab_on_existing_stage_db",
+      "require_bud_spencer_keep_tier_a",
+      "require_organization_company_missing_qrank_gate_to_open_without_implausible_churn",
+      "review_car_brand_diagnostically_not_by_quota",
+      "only_after_ranking_acceptance_review_category_floors_toward_preferred_600k_900k_range"
     ],
     "staging_v1": {
-      "status": "OWNER_QRANK_FALLBACK_REVIEW_COMPLETE_HYBRID_CANDIDATE_AB_PENDING",
+      "status": "HYBRID_V1_OWNER_AB_REJECTED_HYBRID_V2_OWNER_AB_PENDING",
       "contract": "docs/ENTITY_STAGING_V1.md",
       "source_registry": "sources/entity/phase12a-sources-v1.json",
       "wikidata_stage_schema": "rhymelab-entity-stage-v1",
@@ -1611,12 +1612,26 @@
         "qrank_restage_required": false
       },
       "hybrid_popularity_candidate": {
-        "status": "IMPLEMENTED_CI_PENDING_OWNER_AB_PENDING",
+        "status": "OWNER_AB_COMPLETE_REJECTED_FOR_FREEZE_RETAINED_AS_V2_CONTROL",
         "contract": "docs/ENTITY_CUT_HYBRID_V1.md",
         "policy": "category-relative-popularity-hybrid-v1-candidate",
         "command": "npm run entity:cut:diagnose:hybrid",
         "report": "data/local/entity-cut-hybrid-v1-candidate-report.json",
-        "control_policy": "qrank-category-relative-cut-v1",
+        "semantic_fingerprint": "e770c1cfc655764e9e0f26e033c53fba0f1e1af4e2ca3b7ac82adf4eabde1e04",
+        "all_sentinels_pass": true,
+        "bud_spencer_keep": true,
+        "bud_spencer_tier": "A",
+        "control_distinct_retained_entities": 1077927,
+        "candidate_distinct_retained_entities": 1077669,
+        "candidate_distinct_delta": -258,
+        "membership_churn_pct": 1.89,
+        "hard_gate_categories_remaining": [
+          "organization.car_brand",
+          "organization.company"
+        ],
+        "company_qrank_coverage_pct": 45.68,
+        "company_qrank_missing": 123357,
+        "company_kept_without_qrank": 0,
         "weights_pct": {
           "qrank_percentile": 55,
           "wikipedia_sitelink_percentile": 25,
@@ -1624,11 +1639,26 @@
           "external_id_capped": 7,
           "statement_count_percentile": 3
         },
-        "missing_qrank_rule": "qrank_component_zero_no_binary_presence_penalty",
+        "missing_qrank_rule": "qrank_component_zero_creates_450000_ppm_score_ceiling",
+        "decision": "reject_for_freeze_keep_as_v2_control",
+        "final_policy_frozen": false
+      },
+      "hybrid_popularity_v2_candidate": {
+        "status": "IMPLEMENTED_CI_PENDING_OWNER_AB_PENDING",
+        "contract": "docs/ENTITY_CUT_HYBRID_V2.md",
+        "policy": "category-relative-popularity-hybrid-v2-geometric-missing-evidence-candidate",
+        "command": "npm run entity:cut:diagnose:hybrid-v2",
+        "report": "data/local/entity-cut-hybrid-v2-candidate-report.json",
+        "required_v1_owner_fingerprint": "e770c1cfc655764e9e0f26e033c53fba0f1e1af4e2ca3b7ac82adf4eabde1e04",
+        "qrank_present_behavior": "identical_to_hybrid_v1",
+        "missing_qrank_rule": "geometric_mean_zero_fill_and_available_evidence_normalization",
+        "v1_missing_qrank_score_ceiling_ppm": 450000,
+        "v2_missing_qrank_score_ceiling_ppm": 670820,
         "category_floors_changed": false,
         "source_artifacts_changed": false,
+        "entity_restage_required": false,
+        "qrank_restage_required": false,
         "runtime_rewired": false,
-        "owner_ab_required": true,
         "final_policy_frozen": false
       }
     }
