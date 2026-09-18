@@ -27,6 +27,7 @@ import {
   wiktionaryPronunciationEvidence,
 } from './en-publish-core.mjs';
 import { analyzeEnglishPronunciation } from './english-phonology.mjs';
+import { englishPossessiveBase, punctuationOnlyAliasTargets } from './en-pronunciation-recovery.mjs';
 
 const args=process.argv.slice(2);
 let registryPath='sources/en/phase12b-sources-v1.json';
@@ -120,6 +121,10 @@ let listedFormsRetained=0;
 let wiktionaryPronunciationEvidenceRows=0;
 let wiktionaryPronunciationAnalyses=0;
 let wiktionaryPronunciationAnalysisFailures=0;
+const pendingPunctuationAliases=new Map();
+let recoveredPunctuationAliases=0;
+let recoveredCmudictPossessives=0;
+let derivedAliasPronunciationVariants=0;
 
 function ensureRecord(evidence){
   let record=records.get(evidence.normalized);
@@ -224,6 +229,10 @@ for await(const line of kaikkiLines){
         wiktionaryPronunciationEvidenceRows+=1;
         addPronunciationEvidence(record,sound);
       }
+    }else if(punctuationOnlyAliasTargets(headEvidence).length){
+      let values=pendingPunctuationAliases.get(headEvidence.normalized);
+      if(!values){values=[];pendingPunctuationAliases.set(headEvidence.normalized,values);}
+      values.push(headEvidence);
     }
   }
 
@@ -238,6 +247,65 @@ for await(const line of kaikkiLines){
   if(progressEvery>0&&englishEntries%progressEvery===0){
     console.log(`  English entries ${englishEntries.toLocaleString('en-US')} / publish candidates ${records.size.toLocaleString('en-US')}`);
   }
+}
+
+function analyzedEnUsPronunciations(record){
+  return [...(record?.pronunciations?.values?.()||[])]
+    .filter((item)=>item.analysis_status==='ok'&&item.analysis&&item.locales instanceof Set&&item.locales.has('en-US'));
+}
+
+for(const record of records.values()) addCmudict(record);
+
+for(const normalized of [...pendingPunctuationAliases.keys()].sort((a,b)=>a.localeCompare(b,'en'))){
+  if(records.has(normalized)) continue;
+  const evidences=pendingPunctuationAliases.get(normalized)||[];
+  const targets=[...new Set(evidences.flatMap((evidence)=>punctuationOnlyAliasTargets(evidence)))]
+    .filter((lemma)=>analyzedEnUsPronunciations(records.get(lemma)).length>0)
+    .sort((a,b)=>a.localeCompare(b,'en'));
+  if(targets.length!==1) continue;
+
+  const target=targets[0];
+  const matching=evidences.filter((evidence)=>punctuationOnlyAliasTargets(evidence).includes(target));
+  if(!matching.length) continue;
+  const record=ensureRecord(matching[0]);
+  for(const evidence of matching) addLexicalEvidence(record,evidence);
+
+  for(const basePronunciation of analyzedEnUsPronunciations(records.get(target))){
+    addPronunciationEvidence(record,{
+      source:'derived_punctuation_alias',
+      notation:basePronunciation.notation,
+      raw:basePronunciation.raw,
+      locales:['en-US'],
+      locale_status:'qualified',
+      tags:['punctuation-only-alias'],
+    });
+    derivedAliasPronunciationVariants+=1;
+  }
+  if(record.pronunciations.size) recoveredPunctuationAliases+=1;
+}
+
+for(const normalized of [...cmudict.keys()].sort((a,b)=>a.localeCompare(b,'en'))){
+  if(records.has(normalized)) continue;
+  const base=englishPossessiveBase(normalized);
+  if(!base) continue;
+  const baseRecord=records.get(base);
+  if(!baseRecord||!analyzedEnUsPronunciations(baseRecord).length) continue;
+
+  const evidence={
+    surface:normalized,
+    normalized,
+    pos:'unknown',
+    tags:['possessive','derived-from-source-backed-base'],
+    history:{historical_only:baseRecord.lexical_current_evidence===0&&baseRecord.lexical_historical_evidence>0},
+    proper_name:baseRecord.proper_name_evidence>0&&baseRecord.common_lexical_evidence===0,
+    lemma_candidates:[base],
+    relation_kinds:['possessive_of'],
+    evidence_kind:'cmudict_exact_possessive_from_source_backed_base',
+  };
+  const record=ensureRecord(evidence);
+  addLexicalEvidence(record,evidence);
+  addCmudict(record);
+  if(analyzedEnUsPronunciations(record).length) recoveredCmudictPossessives+=1;
 }
 
 let cmudictPronunciationVariants=0;
@@ -404,13 +472,18 @@ const manifest={
     source_attested_unprofiled_variants:unprofiledVariants,
     source_attested_other_profiled_variants:otherProfiledVariants,
     source_attested_tagged_unmapped_variants:taggedUnmappedVariants,
+    recovered_punctuation_alias_surfaces:recoveredPunctuationAliases,
+    recovered_cmudict_possessive_surfaces:recoveredCmudictPossessives,
+    derived_alias_pronunciation_variants:derivedAliasPronunciationVariants,
     cmudict_rows_loaded:cmudictRows,
     esdb_rows_parsed:esdbParsedRows,
     wordfreq_distinct_surfaces:wordfreq.size,
   },
   lexical_cut:{
-    requirement:'Wiktionary lexical evidence plus at least one source-backed pronunciation from Wiktionary or exact CMUdict match',
+    requirement:'Wiktionary lexical evidence plus source-backed pronunciation, with two bounded Tier-A recovery channels: punctuation-only alt_of aliases to an analyzed en-US lemma, and exact-CMUdict possessives whose base is already source-backed with analyzed en-US pronunciation',
     listed_form_requirement:'listed Wiktionary form retained only when exact CMUdict pronunciation exists or the same normalized surface is already pronunciation-backed as a headword',
+    punctuation_alias_requirement:'explicit Wiktionary alt_of relation + punctuation-only normalized identity + exactly one analyzed en-US lemma target',
+    possessive_requirement:'exact CMUdict surface + deterministic apostrophe possessive parse + source-backed analyzed en-US base',
     final_writer_row_count_frozen:false,
   },
   eligibility_policy:{
@@ -423,6 +496,7 @@ const manifest={
   },
   safeguards:{
     g2p_used:false,
+    morphology_pronunciation_composition_enabled:false,
     english_runtime_materialized:false,
     product_en_enabled:false,
     german_runtime_mutated:false,
