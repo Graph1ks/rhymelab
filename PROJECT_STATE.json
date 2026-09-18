@@ -666,9 +666,12 @@
       "materialize_report": "data/local/phrase-mosaic-retrieval-v2-candidate-report.json",
       "ab_diagnostic_command": "npm run phrase:mosaic:diagnose:v2",
       "ab_diagnostic_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json",
-      "fixture_gate_pending_ci": true,
+      "fixture_gate_pending_ci": false,
       "owner_full_build_completed": false,
-      "owner_ab_diagnostic_completed": false
+      "owner_ab_diagnostic_completed": false,
+      "fixture_gate_passed": true,
+      "ci_run": 261,
+      "ci_conclusion": "success"
     }
   },
   "owner_measurement_outputs": {
