@@ -7,6 +7,7 @@ import {
   lexicalEvidenceForListedForms,
   mergeEsdbEvidence,
   finalizeEsdbEvidence,
+  isEnglishPublishSurface,
   parseCmudictPronunciationLine,
   wiktionaryPronunciationEvidence,
 } from '../scripts/en-publish-core.mjs';
@@ -99,4 +100,13 @@ test('default eligibility is en-US analyzed, current, non-proper-only and ESDB-v
   assert.equal(determineEnglishPublishEligibility({...base,proper_name_evidence:1,common_lexical_evidence:1}).default_eligible,true);
   assert.equal(determineEnglishPublishEligibility({...base,esdb:{invalid:true}}).default_eligible,false);
   assert.equal(determineEnglishPublishEligibility({...base,pronunciations:[{analysis:{},locales:['en-GB']}]}).default_eligible,false);
+});
+
+test('publish surface policy is narrower than broad source diagnostics',()=>{
+  assert.equal(isEnglishPublishSurface("can't"),true);
+  assert.equal(isEnglishPublishSurface('ice-cream'),true);
+  assert.equal(isEnglishPublishSurface('naïve'),true);
+  assert.equal(isEnglishPublishSurface('hello!'),false);
+  assert.equal(isEnglishPublishSurface('and/or'),false);
+  assert.equal(isEnglishPublishSurface('two words'),false);
 });
