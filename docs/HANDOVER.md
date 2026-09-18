@@ -263,6 +263,23 @@ equal   true
 
 Counts, distributions, source pronunciation fingerprint, base catalog fingerprint and 534,872,064-byte DB size were unchanged. 11D1 is accepted/frozen.
 
+## Phase 11D2 owner full-data build — COMPLETE / REPEATABILITY PENDING
+
+The first full owner-local retrieval-anchor materialization succeeded:
+
+```text
+anchor rows                 356,693
+distinct exact-tail keys    181,548
+distinct vowel keys          52,174
+distinct final keys              772
+SQLite                     686.76 MiB
+anchor fingerprint
+55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+```
+
+The accepted 11D1 source window fingerprint remained exactly `24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac`, confirming that the 11D2 layer is additive and non-mutating.
+
+Remaining 11D2 gate: rerun `npm run phrase:mosaic:retrieval` and require the same anchor fingerprint before representative query diagnostics.
 ## Phase 11D2 — current
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`.
