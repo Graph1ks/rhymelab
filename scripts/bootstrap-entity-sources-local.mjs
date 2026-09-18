@@ -374,6 +374,7 @@ const report = {
   wikidata: {
     source_id: wikidata.source_id,
     snapshot_label: wd.snapshot_label,
+    url: wd.url,
     canonical_url: wd.url,
     transport_url: wikidataTransport?.url || null,
     transport_id: wikidataTransport?.id || null,
