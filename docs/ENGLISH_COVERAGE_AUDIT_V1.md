@@ -688,3 +688,75 @@ npm run en:pronunciation:fallback:diagnose
 ```
 
 The diagnostic schema should be `rhymelab-en-pronunciation-fallback-diagnostic-v3`. The publish-v4 decision remains blocked until the strict tagless `unqualified_fullword_vs_en_us` agreement is known.
+
+
+## Strict tagless fallback owner result — policy decision
+
+The v3 segmented owner diagnostic is complete against publish fingerprint
+`6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba`.
+
+Inventory:
+
+```text
+analyzed en-US surfaces                    111,574
+analyzed en-GB surfaces                     32,855
+no mapped locale surfaces                   46,840
+strict tagless fullword surfaces            42,442
+other-profiled fullword surfaces             3,768
+tagged-unmapped fullword surfaces            1,972
+unmapped partial surfaces                      769
+```
+
+The important control comparison is the strict tagless class only:
+
+```text
+strict tagless fullword vs en-US
+compared surfaces                           17,427
+exact-tail match                            73.27%
+boundary-insensitive tail                   76.52%
+tail + stress                               71.39%
+full phoneme-sequence match                 71.46%
+syllable-count match                        97.34%
+stress-pattern match                        82.94%
+vowel-family match                          78.03%
+```
+
+The negative controls remain dramatically worse:
+
+```text
+other-profiled boundary-insensitive tail    13.31%
+tagged-unmapped boundary-insensitive tail   18.52%
+partial boundary-insensitive tail            4.08%
+en-GB boundary-insensitive tail             49.29%
+```
+
+Decision:
+
+- do **not** relabel strict tagless Wiktionary IPA as `en-US`;
+- do **not** make it default-profile eligible merely because it lacks a source tag;
+- retain it as provenance-bearing General-English/unprofiled evidence;
+- keep other-profiled, tagged-unmapped and partial IPA separate;
+- no production rhyme-key change is justified by this diagnostic.
+
+The 76.52% rhyme-tail agreement is materially better than the old mixed bucket but still far below a safe pronunciation-identity rule.
+
+## Publish v4 Tier-A candidate
+
+The next controlled publish candidate admits only the previously reviewed Tier-A rescue channels:
+
+1. exact-CMUdict apostrophe possessive surface + already source-backed analyzed en-US base;
+2. explicit Wiktionary `alt_of` relation whose surface differs from exactly one analyzed en-US lemma only by apostrophe/hyphen punctuation.
+
+The second channel derives pronunciation identity from the explicit lexical alias relation. It is provenance-marked as `derived_punctuation_alias`; it is not presented as a direct Wiktionary pronunciation.
+
+No wordfreq row becomes lexical truth.
+
+Regular `-s/-es/-ed/-ing` morphology remains behind a separate implementation benchmark. The repository now contains:
+
+```powershell
+npm run en:pronunciation:inflection:diagnose
+```
+
+This diagnostic uses already-published source-backed inflected forms that also have exact CMUdict surface pronunciations as the control set. It compares deterministic composition from the analyzed lemma against CMUdict phoneme sequence, rhyme tail, syllable count and stress. It does not change publish eligibility.
+
+Do not enable morphology composition in production until the owner benchmark and mismatch classes are reviewed.
