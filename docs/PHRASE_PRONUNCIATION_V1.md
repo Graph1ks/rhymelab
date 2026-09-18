@@ -250,7 +250,37 @@ Use this report to choose between:
 - proceeding directly to 11D if the missing coverage is diffuse, noisy, historical, entity-heavy or foreign-language-heavy.
 
 Do not add broad G2P fallback as part of this triage.
-## Phrase Explorer
+
+### Owner coverage-triage result
+
+The full owner-local coverage report produced:
+
+```text
+modern phrase coverage                 92.26%
+unresolved token occurrences          10,467
+distinct unresolved normalized forms   5,894
+blocked modern phrases                 7,535
+one-distinct-blocker modern phrases    5,663
+```
+
+Resolution-only cumulative upper bounds:
+
+```text
+Top-1     +317 modern phrases -> 92.59%
+Top-20    +624                -> 92.90%
+Top-100 +1,036                -> 93.33%
+Top-250 +1,532                -> 93.84%
+```
+
+`zurecht` alone accounts for 317 single-blocker modern phrases. Other useful ordinary-German gaps exist (`inne`, `überein`, `zuteil`, `ausfindig`), but the ranked tail quickly mixes with abbreviations, numerals, entities, foreign material, specialist terms and historical spellings.
+
+The accepted triage decision is therefore:
+
+- no blocking Phase 11C2 pronunciation campaign before mosaic retrieval;
+- selected lexical gaps may be revisited later as source-backed background coverage work;
+- no automatic G2P approval from impact ranking;
+- no mutation of the frozen Writer-v5 runtime for this phrase-only coverage tail;
+- after deterministic repeatability is confirmed, Phase 11D may begin.## Phrase Explorer
 
 After materialization:
 
