@@ -20,6 +20,7 @@ import {
   isEnglishPublishSurface,
   lexicalEvidenceForHeadword,
   lexicalEvidenceForListedForms,
+  wiktionaryPronunciationEvidence,
 } from './en-publish-core.mjs';
 
 const args=process.argv.slice(2);
@@ -170,7 +171,8 @@ for await(const line of kaikkiLines){
       if(head.proper_name) meta.proper_name_evidence=true;
       else meta.common_lexical_evidence=true;
       for(const sound of entry.sounds||[]){
-        if(!sound?.ipa) continue;
+        const evidence=wiktionaryPronunciationEvidence(sound);
+        if(!evidence) continue;
         meta.wikt_ipa=true;
         const locale=classifyWiktionaryIpaLocale(sound);
         if(locale.us) meta.wikt_us_ipa=true;
