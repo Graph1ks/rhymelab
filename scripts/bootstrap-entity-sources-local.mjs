@@ -175,7 +175,7 @@ async function downloadWithAria2(aria2, url, output, connections) {
     '--min-split-size=4M',
     '--file-allocation=none',
     '--auto-file-renaming=false',
-    '--max-tries=0',
+    '--max-tries=5',
     '--retry-wait=5',
     '--timeout=60',
     '--connect-timeout=30',
@@ -187,6 +187,40 @@ async function downloadWithAria2(aria2, url, output, connections) {
   ];
   await run(aria2, ariaArgs);
   return boundedConnections;
+}
+
+async function downloadWithAria2Fallbacks(aria2, transports, output, connections) {
+  const attempts = [];
+  for (const transport of transports) {
+    console.log(`Trying Wikidata transport: ${transport.id} -> ${transport.url}`);
+    try {
+      const usedConnections = await downloadWithAria2(
+        aria2,
+        transport.url,
+        output,
+        connections,
+      );
+      attempts.push({ id: transport.id, url: transport.url, status: 'completed' });
+      return {
+        selected: transport,
+        connections: usedConnections,
+        attempts,
+      };
+    } catch (error) {
+      attempts.push({
+        id: transport.id,
+        url: transport.url,
+        status: 'failed',
+        error: String(error?.message || error),
+      });
+      console.warn(`Wikidata transport failed: ${transport.id}`);
+    }
+  }
+
+  throw new Error(
+    'All configured Wikidata transports failed. Existing partial data was kept for resume. '
+    + JSON.stringify(attempts),
+  );
 }
 
 function parseHeaders(raw) {
@@ -213,6 +247,9 @@ if (!qrank?.selected_owner_snapshot_policy) throw new Error('Registry has no sel
 
 const wd = wikidata.selected_owner_snapshot;
 const qr = qrank.selected_owner_snapshot_policy;
+const wikidataTransports = Array.isArray(wd.transport_urls) && wd.transport_urls.length
+  ? wd.transport_urls
+  : [{ id: 'wikimedia-origin', role: 'origin_fallback', url: wd.url }];
 const curl = chooseCurl();
 if (!curl) throw new Error('curl is required for QRank download and source metadata capture.');
 const aria2 = chooseAria2();
@@ -242,6 +279,8 @@ const wikidataHeadersPath = `${wikidataPath}.headers.txt`;
 const wikidataExisting = await stat(wikidataPath).catch(() => null);
 let wikidataDownloader = 'already-complete';
 let wikidataConnections = 0;
+let wikidataTransport = null;
+let wikidataTransportAttempts = [];
 if (!wikidataExisting || Number(wikidataExisting.size) !== Number(wd.bytes)) {
   if (!aria2) {
     const wingetProbe = process.platform === 'win32'
@@ -262,12 +301,15 @@ if (!wikidataExisting || Number(wikidataExisting.size) !== Number(wd.bytes)) {
     `Downloading pinned Wikidata snapshot with aria2 (${aria2Connections} requested connections) `
     + `to ${wikidataPath}`,
   );
-  wikidataConnections = await downloadWithAria2(
+  const transportResult = await downloadWithAria2Fallbacks(
     aria2,
-    wd.url,
+    wikidataTransports,
     wikidataPath,
     aria2Connections,
   );
+  wikidataConnections = transportResult.connections;
+  wikidataTransport = transportResult.selected;
+  wikidataTransportAttempts = transportResult.attempts;
   wikidataDownloader = 'aria2';
 }
 
@@ -332,7 +374,11 @@ const report = {
   wikidata: {
     source_id: wikidata.source_id,
     snapshot_label: wd.snapshot_label,
-    url: wd.url,
+    canonical_url: wd.url,
+    transport_url: wikidataTransport?.url || null,
+    transport_id: wikidataTransport?.id || null,
+    transport_role: wikidataTransport?.role || null,
+    transport_attempts: wikidataTransportAttempts,
     path: wikidataPath,
     filename: basename(wikidataPath),
     bytes: Number(wikidataStat.size),
