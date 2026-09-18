@@ -5,6 +5,7 @@ import { retrievePhraseMosaicCandidatesV2 } from '../scripts/phrase-mosaic-retri
 import { enrichPhraseMosaicCandidates } from '../scripts/phrase-mosaic-ranking-evidence-core.mjs';
 import { rankPhraseMosaicCandidatesV2 } from '../scripts/phrase-mosaic-ranking-candidate-v2-core.mjs';
 import { diversifyPhraseMosaicWriterPage } from '../scripts/phrase-mosaic-diversity-candidate-core.mjs';
+import { entityWriterCapabilities, searchEntityRhymes } from './entity-writer-runtime.mjs';
 
 export const UNIFIED_WRITER_SCHEMA = 'rhymelab-unified-writer-v1';
 export const UNIFIED_WRITER_POLICY = 'de-unified-word-phrase-writer-v1';
@@ -16,7 +17,7 @@ export const ACCEPTED_PHRASE_MOSAIC_DIVERSITY_POLICY =
   'de-phrase-channel-diversity-v1-candidate';
 
 const LANGUAGE_BASES = new Set(['de', 'en', 'both']);
-const RESULT_SCOPES = new Set(['all', 'words', 'phrases']);
+const RESULT_SCOPES = new Set(['all', 'words', 'phrases', 'entities']);
 const PRIMARY_TYPES = new Set([
   'multisyllabic_perfect',
   'perfect',
@@ -69,7 +70,7 @@ export function normalizeUnifiedResultScope(value) {
   return RESULT_SCOPES.has(normalized) ? normalized : 'all';
 }
 
-export function unifiedWriterCapabilities({ writerDb = null, phraseDb = null } = {}) {
+export function unifiedWriterCapabilities({ writerDb = null, phraseDb = null, entityDb = null } = {}) {
   const phraseAnchorFingerprint = metaValue(
     phraseDb,
     'phrase_mosaic_retrieval_v2_fingerprint',
@@ -84,6 +85,7 @@ export function unifiedWriterCapabilities({ writerDb = null, phraseDb = null } =
   const phraseAccepted =
     phraseTablesReady
     && phraseAnchorFingerprint === ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT;
+  const entityCapability = entityWriterCapabilities(entityDb);
 
   return {
     schema: 'rhymelab-unified-writer-capabilities-v1',
@@ -92,6 +94,8 @@ export function unifiedWriterCapabilities({ writerDb = null, phraseDb = null } =
         available: Boolean(writerDb),
         wordWriter: Boolean(writerDb),
         phraseMosaic: Boolean(writerDb && phraseDb && phraseAccepted),
+        entityRhymes: Boolean(writerDb && entityCapability.available),
+        entityReason: entityCapability.reason,
         phraseReason: !phraseDb
           ? 'phrase_database_unavailable'
           : !phraseTablesReady
@@ -104,6 +108,7 @@ export function unifiedWriterCapabilities({ writerDb = null, phraseDb = null } =
         available: false,
         wordWriter: false,
         phraseMosaic: false,
+        entityRhymes: false,
         reason: 'english_phonology_and_runtime_not_implemented',
       },
     },
@@ -117,6 +122,7 @@ export function unifiedWriterCapabilities({ writerDb = null, phraseDb = null } =
     },
     phraseAnchorFingerprint,
     acceptedPhraseAnchorFingerprint: ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT,
+    entities: entityCapability,
   };
 }
 
@@ -418,7 +424,7 @@ function languageWarning(code) {
 }
 
 export function searchUnifiedWriter(
-  { writerDb, phraseDb = null } = {},
+  { writerDb, phraseDb = null, entityDb = null } = {},
   input,
   options = {},
 ) {
@@ -426,7 +432,7 @@ export function searchUnifiedWriter(
 
   const languageBasis = normalizeUnifiedLanguageBasis(options.language);
   const scope = normalizeUnifiedResultScope(options.scope);
-  const capabilities = unifiedWriterCapabilities({ writerDb, phraseDb });
+  const capabilities = unifiedWriterCapabilities({ writerDb, phraseDb, entityDb });
   const requestedLanguages = languageBasis === 'both'
     ? ['de', 'en']
     : [languageBasis];
@@ -455,6 +461,7 @@ export function searchUnifiedWriter(
       channels: {
         words: { available: false, reason: 'language_unavailable', results: [] },
         phrases: { available: false, reason: 'language_unavailable', results: [] },
+        entities: { available: false, reason: 'language_unavailable', results: [] },
       },
       results: [],
     };
@@ -478,13 +485,15 @@ export function searchUnifiedWriter(
       channels: {
         words: { available: true, reason: 'query_not_found', results: [] },
         phrases: { available: Boolean(phraseDb), reason: 'query_not_found', results: [] },
+        entities: { available: Boolean(capabilities.entities?.available), reason: 'query_not_found', results: [] },
       },
       results: [],
     };
   }
 
-  const includeWords = scope !== 'phrases';
-  const includePhrases = scope !== 'words';
+  const includeWords = scope === 'all' || scope === 'words';
+  const includePhrases = scope === 'all' || scope === 'phrases';
+  const includeEntities = scope === 'all' || scope === 'entities';
   let wordChannel = {
     available: true,
     reason: query.kind === 'word' ? null : 'multiword_query_uses_phrase_mosaic_channel',
@@ -533,11 +542,28 @@ export function searchUnifiedWriter(
         };
   }
 
+  let entityChannel = {
+    available: false,
+    reason: includeEntities ? capabilities.entities?.reason || 'entity_runtime_unavailable' : 'scope_excludes_entities',
+    results: [],
+  };
+  if (includeEntities && capabilities.languages.de?.entityRhymes) {
+    entityChannel = searchEntityRhymes(entityDb, query, {
+      language: 'de',
+      category: options.entityCategory || 'all',
+      type: options.type || 'all',
+      limit: clampInteger(options.entityLimit, 100, 1, 250),
+      poolLimit: clampInteger(options.entityPoolLimit, 192, 16, 512),
+    });
+  }
+
   const wordResults = wordChannel.results || [];
   const phraseResults = phraseChannel.results || [];
+  const entityResults = entityChannel.results || [];
   const results = [
     ...wordResults,
     ...phraseResults,
+    ...entityResults,
   ];
 
   return {
@@ -556,16 +582,18 @@ export function searchUnifiedWriter(
     ordering: {
       crossChannelCalibration: false,
       default:
-        'channel_preserving: frozen single-word Writer order plus accepted Phrase/Mosaic order; UI groups channels instead of comparing uncalibrated numeric scores',
+        'channel_preserving: frozen single-word Writer order plus accepted Phrase/Mosaic order plus Entity-channel phonetic order; UI groups channels instead of comparing uncalibrated numeric scores',
       phraseQuota: false,
     },
     channels: {
       words: wordChannel,
       phrases: phraseChannel,
+      entities: entityChannel,
     },
     counts: {
       words: wordResults.length,
       phrases: phraseResults.length,
+      entities: entityResults.length,
       total: results.length,
     },
     results,
