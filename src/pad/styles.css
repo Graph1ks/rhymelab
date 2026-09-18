@@ -86,17 +86,20 @@ html[data-mode="rhyme"] .railViewport{height:360px}
 }
 
 
-/* Safe readability scaling: follow v14's own --editor-size without changing bar geometry. */
+/* Readability scaling stays inside the existing v14 rail geometry. */
+.rail button{
+  overflow:hidden;
+}
 .rail button b{
-  font-size:clamp(12px,var(--editor-size,17px),30px)!important;
-  line-height:1.05!important;
+  font-size:clamp(11px,calc(var(--editor-size,17px) - 6px),16px)!important;
+  line-height:1!important;
 }
 .rail button span{
-  font-size:clamp(9px,calc(var(--editor-size,17px) - 6px),18px)!important;
-  line-height:1.1!important;
+  font-size:clamp(8px,calc(var(--editor-size,17px) - 12px),10px)!important;
+  line-height:1!important;
 }
 #barNo,#syl{
-  font-size:clamp(18px,calc(var(--editor-size,17px) + 2px),42px)!important;
+  font-size:clamp(18px,calc(var(--editor-size,17px) - 2px),26px)!important;
   line-height:1!important;
   font-variant-numeric:tabular-nums;
 }
@@ -111,8 +114,19 @@ html[data-mode="rhyme"] .railViewport{height:360px}
 .rhymeLabAutoScrollToggle:has(input:checked){
   color:var(--accent);border-color:color-mix(in srgb,var(--accent) 48%,var(--border));background:var(--accent-soft)
 }
+
+/* One scrollbar only: the existing inspector owns vertical scrolling. */
+.inspector{
+  overflow-x:hidden!important;
+}
 .rhymeLabAutoScrollSurface{
-  max-height:min(55vh,620px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable
+  max-height:none!important;
+  overflow:visible!important;
+  min-width:0;
+}
+.rhymeLabAutoScrollSurface .rhymeLabSuggestion{
+  min-width:0;
+  max-width:100%;
 }
 .rhymeLabIntegrationFailure{
   display:grid;gap:5px;padding:12px;border:1px solid color-mix(in srgb,var(--danger) 58%,var(--border));
