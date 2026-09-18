@@ -370,8 +370,8 @@ CREATE TABLE entity_popularity_evidence(
   has_enwiki INTEGER NOT NULL CHECK(has_enwiki IN (0,1)),
   external_id_count INTEGER NOT NULL,
   statement_count INTEGER NOT NULL,
-  pageviews_de_score REAL NOT NULL,
-  pageviews_en_score REAL NOT NULL
+  pageviews_de_score REAL,
+  pageviews_en_score REAL
 );
 
 CREATE TABLE entity_external_id(
