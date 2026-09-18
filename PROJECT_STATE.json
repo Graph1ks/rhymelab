@@ -1188,17 +1188,17 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "create_versioned_english_source_manifests_for_kaikki_cmudict_esdb_wordfreq",
-    "implement_owner_local_english_source_bootstrap_with_checksums",
-    "stream_filter_raw_enwiktionary_wiktextract_for_lang_code_en",
-    "measure_english_lexical_form_pronunciation_dialect_history_source_coverage",
-    "measure_cmudict_exact_match_and_esdb_wordfreq_overlap",
+    "run_npm_en_sources_bootstrap_on_owner_machine",
+    "run_npm_en_sources_diagnose_after_bootstrap",
+    "review_english_lexical_form_pronunciation_dialect_history_source_coverage",
+    "review_cmudict_exact_match_esdb_disagreements_and_wordfreq_ranked_coverage",
+    "freeze_no_final_writer_row_count_until_diagnostics_are_reviewed",
     "design_real_english_phonology_fixture_analyzer_scorer_after_source_diagnostics",
     "materialize_separate_data_local_rhymelab_en_v1_sqlite_only_after_diagnostics"
   ],
-  "next_milestone": "PHASE_12B1_ENGLISH_SOURCE_MANIFESTS_BOOTSTRAP_AND_DIAGNOSTICS",
+  "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_SOURCE_STACK_SELECTED_IMPLEMENTATION_PENDING",
+    "status": "ACTIVE_12B1_12B2_TOOLING_IMPLEMENTED_OWNER_RUN_PENDING",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,33 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "12B1_source_manifests_bootstrap_plus_12B2_source_diagnostics"
+    "next_gate": "owner_source_bootstrap_then_full_12B2_diagnostic_review_before_12B3",
+    "source_workflow_v1": {
+      "status": "IMPLEMENTED_OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_RUN_PENDING",
+      "source_registry": "sources/en/phase12b-sources-v1.json",
+      "bootstrap_command": "npm run en:sources:bootstrap",
+      "diagnostic_command": "npm run en:sources:diagnose",
+      "bootstrap_report": "data/local/en-source-bootstrap-v1-report.json",
+      "diagnostic_report": "data/local/en-source-diagnostics-v1.json",
+      "local_raw_directory": "data/raw/en/phase12b-20260918",
+      "pins": {
+        "cmudict_commit": "74790861f652b15e4ac49015a90074ad62a27690",
+        "esdb_scowl_v2_commit": "1e5b7d3a72f47a71da5d28686c1dd4b397178485",
+        "wordfreq_commit": "912caf64b657478d1dff1138efdc078947d54bb1",
+        "kaikki_enwiktionary_dump": "2026-09-02",
+        "kaikki_extraction": "2026-09-16"
+      },
+      "safeguards": [
+        "kaikki_moving_url_requires_pinned_metadata_markers_before_fresh_download",
+        "all_local_artifacts_receive_sha256",
+        "content_addressed_github_artifacts_verify_git_blob_sha1",
+        "no_final_writer_row_count_frozen",
+        "no_g2p",
+        "no_english_runtime_materialization"
+      ],
+      "unit_tests": "5_passed_locally_for_source_parsing_normalization_and_wordfreq_cbpack_decoder",
+      "owner_full_source_metrics_available": false
+    }
   },
   "phase_12_entity_lexicon": {
     "status": "DEFERRED_FROZEN_CHECKPOINT_WHILE_PHASE_12B_ACTIVE",
