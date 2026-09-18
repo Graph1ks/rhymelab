@@ -234,22 +234,34 @@ Proposed English DB target:
 data/local/rhymelab-en-v1.sqlite
 ```
 
+## Phase 12B1/12B2 implementation checkpoint
+
+The source-workflow tooling is now implemented:
+
+```text
+registry              sources/en/phase12b-sources-v1.json
+bootstrap             npm run en:sources:bootstrap
+diagnostics           npm run en:sources:diagnose
+bootstrap report      data/local/en-source-bootstrap-v1-report.json
+diagnostic report     data/local/en-source-diagnostics-v1.json
+```
+
+Pinned static artifacts are CMUdict `74790861…`, ESDB/SCOWL v2 `1e5b7d3a…`, and wordfreq `912caf64…`. The moving Kaikki raw URL is guarded against the selected 2026-09-02 Wiktionary dump / 2026-09-16 extraction metadata before a fresh download, then locally pinned by SHA-256.
+
+The full owner-local bootstrap/diagnostic has **not** been executed at this checkpoint. Do not invent 12B2 coverage numbers and do not freeze the final Writer row count from the research-scale 1.39M figure.
+
 ## Next-thread execution order
 
-Start with **12B1 + 12B2**, not with UI work.
+Continue with the **owner 12B1 bootstrap + 12B2 diagnostic review**, not UI work.
 
-1. create versioned English source manifests;
-2. implement owner-local bootstrap with checksums for Kaikki, CMUdict, ESDB and wordfreq candidate data;
-3. stream/filter English Wiktionary raw data;
-4. produce source diagnostics before committing to a final row count;
-5. measure lexical/form/pronunciation/dialect/history coverage;
-6. measure CMUdict exact-match coverage;
-7. measure ESDB overlap/disagreements;
-8. measure wordfreq ranked coverage;
-9. then design the English phonology fixture/analyzer/scorer;
-10. materialize the first English Writer candidate DB only after the source diagnostic is understood.
+1. run `npm run en:sources:bootstrap`;
+2. run `npm run en:sources:diagnose`;
+3. inspect lexical/form/proper-name/history/pronunciation coverage;
+4. inspect CMUdict exact matches, ESDB disagreements and wordfreq ranked coverage;
+5. only after that evidence is understood, design the English phonology fixture/analyzer/scorer;
+6. materialize the first English Writer candidate DB only after the source diagnostic is accepted.
 
-Required initial diagnostics are specified in `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
+Required diagnostics are specified in `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
 
 ## Repository workflow
 
@@ -280,6 +292,6 @@ Runtime remains local-only. Bulk source data, generated DBs and generated report
 
 ## Immediate next action
 
-In the new thread, begin by implementing **Phase 12B1 English source manifests/bootstrap and 12B2 source diagnostics** from `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
+In the new thread, run/review the implemented **Phase 12B1 owner source bootstrap and Phase 12B2 full source diagnostics** from `docs/ENGLISH_WRITER_SOURCE_PLAN.md` before starting 12B3.
 
 Do not ask the owner to execute the deferred Entity P898 workflow first.
