@@ -13,6 +13,7 @@ let rawDir = 'data/raw/entity/phase12a-20260918';
 let reportPath = 'data/local/entity-source-bootstrap-v1-report.json';
 let allowLowSpace = false;
 let refreshQRank = false;
+let aria2Connections = Number.parseInt(process.env.RHYMELAB_ARIA2_CONNECTIONS || '8', 10) || 8;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
@@ -21,6 +22,7 @@ for (let i = 0; i < args.length; i += 1) {
   else if (arg === '--report') reportPath = args[++i] || reportPath;
   else if (arg === '--allow-low-space') allowLowSpace = true;
   else if (arg === '--refresh-qrank') refreshQRank = true;
+  else if (arg === '--aria2-connections') aria2Connections = Number.parseInt(args[++i] || '', 10) || aria2Connections;
 }
 
 registryPath = resolve(registryPath);
@@ -47,6 +49,24 @@ function windows7ZipCandidates() {
 
 function chooseCurl() {
   const names = process.platform === 'win32' ? ['curl.exe', 'curl'] : ['curl'];
+  return names.find(commandExists) || null;
+}
+
+function windowsAria2Candidates() {
+  const values = [
+    process.env.LOCALAPPDATA && resolve(process.env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Links', 'aria2c.exe'),
+    process.env.ProgramFiles && resolve(process.env.ProgramFiles, 'aria2', 'aria2c.exe'),
+    'C:\\Program Files\\aria2\\aria2c.exe',
+  ];
+  return [...new Set(values.filter(Boolean))];
+}
+
+function chooseAria2() {
+  const explicit = String(process.env.RHYMELAB_ARIA2_CMD || '').trim();
+  if (explicit) return commandExists(explicit) ? explicit : null;
+  const names = process.platform === 'win32'
+    ? ['aria2c', 'aria2c.exe', ...windowsAria2Candidates()]
+    : ['aria2c'];
   return names.find(commandExists) || null;
 }
 
@@ -99,6 +119,30 @@ async function downloadWithCurl(curl, url, output, headers, { resume = true } = 
   await run(curl, curlArgs);
 }
 
+async function downloadWithAria2(aria2, url, output, connections) {
+  await mkdir(dirname(output), { recursive: true });
+  const boundedConnections = Math.max(2, Math.min(16, Number(connections) || 8));
+  const ariaArgs = [
+    '--continue=true',
+    `--max-connection-per-server=${boundedConnections}`,
+    `--split=${boundedConnections}`,
+    '--min-split-size=4M',
+    '--file-allocation=none',
+    '--auto-file-renaming=false',
+    '--max-tries=0',
+    '--retry-wait=5',
+    '--timeout=60',
+    '--connect-timeout=30',
+    '--summary-interval=5',
+    '--console-log-level=notice',
+    '--dir', dirname(output),
+    '--out', basename(output),
+    url,
+  ];
+  await run(aria2, ariaArgs);
+  return boundedConnections;
+}
+
 function parseHeaders(raw) {
   const blocks = String(raw).split(/\r?\n\r?\n/u).map((x) => x.trim()).filter(Boolean);
   const final = blocks.at(-1) || '';
@@ -124,7 +168,8 @@ if (!qrank?.selected_owner_snapshot_policy) throw new Error('Registry has no sel
 const wd = wikidata.selected_owner_snapshot;
 const qr = qrank.selected_owner_snapshot_policy;
 const curl = chooseCurl();
-if (!curl) throw new Error('curl is required for resumable owner-source downloads.');
+if (!curl) throw new Error('curl is required for QRank download and source metadata capture.');
+const aria2 = chooseAria2();
 const bzip2 = chooseBzip2Decompressor();
 if (!bzip2) {
   throw new Error(
@@ -149,16 +194,35 @@ if (!allowLowSpace && freeBytes < recommendedFreeBytes) {
 const wikidataPath = resolve(rawDir, wd.filename);
 const wikidataHeadersPath = `${wikidataPath}.headers.txt`;
 const wikidataExisting = await stat(wikidataPath).catch(() => null);
+let wikidataDownloader = 'already-complete';
+let wikidataConnections = 0;
 if (!wikidataExisting || Number(wikidataExisting.size) !== Number(wd.bytes)) {
-  console.log(`Downloading pinned Wikidata snapshot to ${wikidataPath}`);
-  await downloadWithCurl(curl, wd.url, wikidataPath, wikidataHeadersPath, { resume: true });
+  if (!aria2) {
+    throw new Error(
+      'aria2c is required for the 96 GiB Wikidata download to avoid single-stream throttling. '
+      + 'Install it with: winget install --id aria2.aria2 -e --accept-package-agreements '
+      + '--accept-source-agreements. Then rerun this command; the existing curl partial file '
+      + 'will be continued, not discarded. You can override detection with RHYMELAB_ARIA2_CMD.',
+    );
+  }
+  console.log(
+    `Downloading pinned Wikidata snapshot with aria2 (${aria2Connections} requested connections) `
+    + `to ${wikidataPath}`,
+  );
+  wikidataConnections = await downloadWithAria2(
+    aria2,
+    wd.url,
+    wikidataPath,
+    aria2Connections,
+  );
+  wikidataDownloader = 'aria2';
 }
 
 const wikidataStat = await stat(wikidataPath);
 if (Number(wikidataStat.size) !== Number(wd.bytes)) {
   throw new Error(
     `Wikidata size mismatch: got ${wikidataStat.size}, expected ${wd.bytes}. `
-    + 'Keep the partial file and rerun; curl will resume.',
+    + 'Keep the partial file and rerun; aria2 will resume.',
   );
 }
 
@@ -208,6 +272,8 @@ const report = {
   recommended_free_bytes: recommendedFreeBytes.toString(),
   tools: {
     curl,
+    aria2: aria2 || null,
+    aria2_connections: wikidataConnections,
     bzip2_decompressor: bzip2,
   },
   wikidata: {
@@ -222,6 +288,8 @@ const report = {
     official_checksum_actual: wikidataSha1,
     official_checksum_match: true,
     local_sha256: wikidataSha256,
+    downloader: wikidataDownloader,
+    parallel_connections: wikidataConnections,
     http_headers: parseHeaders(wikidataHeadersRaw),
   },
   qrank: {

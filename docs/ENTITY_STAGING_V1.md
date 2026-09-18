@@ -322,6 +322,53 @@ data/raw/entity/phase12a-20260918/
 
 On the owner's moved repository this resolves under `D:\rhymelab\data\raw\...`.
 
+### Parallel Wikidata download
+
+The ~96 GiB Wikidata artifact is downloaded with `aria2c`, not single-stream curl.
+
+Default:
+
+```text
+8 parallel HTTP range connections
+continue/resume enabled
+no file pre-allocation
+same pinned dated URL
+same byte-count/SHA-1/SHA-256 acceptance gates
+```
+
+Windows install:
+
+```powershell
+winget install --id aria2.aria2 -e --accept-package-agreements --accept-source-agreements
+```
+
+The Microsoft WinGet repository exposes package identifier `aria2.aria2` with the `aria2c` command alias.
+
+The bootstrap also checks the normal WinGet command-link location, so a newly installed aria2 can be discovered even before a terminal PATH refresh.
+
+Existing partial Wikidata downloads created by curl are deliberately retained. aria2 is invoked with `--continue=true` and continues the same output file.
+
+Connection count can be changed without editing code:
+
+```powershell
+$env:RHYMELAB_ARIA2_CONNECTIONS = "12"
+npm run entity:sources:bootstrap
+```
+
+or:
+
+```powershell
+npm run entity:sources:bootstrap -- --aria2-connections 12
+```
+
+The bootstrap clamps the value to 2–16. Start with 8; increasing it beyond the point where the local 100 Mbit/s link is saturated has no benefit.
+
+To point at a non-standard aria2 executable:
+
+```powershell
+$env:RHYMELAB_ARIA2_CMD = "D:\\tools\\aria2c.exe"
+```
+
 ### Download + pin sources
 
 ```powershell
