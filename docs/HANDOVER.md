@@ -6,7 +6,7 @@ Repository state is authoritative. Do not reconstruct project state from prior c
 
 ## Active milestone
 
-**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. 12B4 repeatability + 12B5 DB owner gate is current.**
+**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. 12B5 owner DB gate passed; 12B6 lexical/ranking coverage audit is current.**
 
 Read first:
 
@@ -95,7 +95,22 @@ publish semantic fingerprint
 
 One independent rebuild is still required before freezing 12B4. Run `npm run en:publish:repeatability`.
 
-12B5 is implemented behind that gate. Contract: `docs/ENGLISH_WRITER_DB_V1.md`. Target DB: `data/local/rhymelab-en-v1.sqlite`. Commands after repeatability: `npm run en:db`, then `npm run en:db:verify`.
+12B5 owner build + verify passed. Contract: `docs/ENGLISH_WRITER_DB_V1.md`.
+
+```text
+forms                            147,904
+default eligible                  72,946
+pronunciations                   274,819
+analyzed pronunciations          239,819
+unresolved pronunciations         35,000
+default-profile pronunciations   101,330
+SQLite                            115.57 MiB
+DB semantic fingerprint
+fa078705ff6f4ae157b88301f6dea84933008590ff3f8c376832c684a1baca0b
+retrieval equivalence            80 samples / 0 mismatches
+```
+
+The current gate is **not ranking yet**. First run the coverage-funnel audit from `docs/ENGLISH_COVERAGE_AUDIT_V1.md` to explain the large DE-vs-EN population/size difference and quantify high-frequency lexical loss.
 
 English remains candidate-gated; no product EN runtime and no broad G2P is accepted yet.
 
@@ -287,14 +302,14 @@ The owner bootstrap and 12B2 diagnostics are complete. The 12B3 owner fixture al
 
 ## Next-thread execution order
 
-Continue with the **12B4 repeatability + 12B5 owner DB gate**, not UI work and not Entity work.
+Continue with the **12B6 English coverage-funnel audit**, not UI work and not Entity work.
 
-1. run `npm run en:publish:repeatability` and require fingerprint `4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124`;
-2. run `npm run en:db`;
-3. run `npm run en:db:verify`;
-4. inspect DB forms/pronunciations, default-profile pronunciation count, SQLite size and semantic fingerprint;
-5. require indexed-vs-full-scan retrieval equivalence with zero mismatches;
-6. only then start Phase 12B6 benchmark + ranking/acceptance work.
+1. run `npm run en:coverage:audit`;
+2. inspect Top-10k / Top-50k / Top-100k publish + default coverage;
+3. compare English ranked/unranked forms directly with local German Writer v5;
+4. inspect dominant loss buckets and highest-ranked missing words;
+5. decide whether pronunciation acquisition/form-composition/default-locale policy must expand before ranking;
+6. only then proceed to English ranking/benchmark acceptance.
 
 Required diagnostics are specified in `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
 
