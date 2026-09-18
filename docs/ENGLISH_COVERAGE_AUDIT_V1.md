@@ -842,3 +842,73 @@ data/local/en-inflection-composition-diagnostic-v2-report.json
 ```
 
 Do not enable production morphology until v2 is reviewed.
+
+
+## Inflection composition owner benchmark v2 — ACCEPTED FOR BOUNDED PUBLISH COMPOSITION
+
+Variant-set diagnostic v2 completed against the same frozen source publish fingerprint
+`6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba`.
+
+Overall control:
+
+```text
+surfaces                              19,993
+full phoneme-sequence match            95.46%
+exact-tail match                       70.46%
+boundary-insensitive tail              96.02%
+syllable-count match                   99.36%
+stress-pattern match                   96.92%
+vowel-family match                     96.69%
+```
+
+CMUdict-base-only control:
+
+```text
+surfaces                              19,652
+full phoneme-sequence match            95.73%
+boundary-insensitive tail              96.17%
+syllable-count match                   99.38%
+stress-pattern match                   97.31%
+vowel-family match                     96.80%
+```
+
+Previously weak reduced-vowel rules now pass the bounded control:
+
+```text
+past after /t,d/:
+  full phone sequence                  96.40%
+  boundary-insensitive tail            97.06%
+
+plural after sibilant:
+  full phone sequence                  95.25%
+  boundary-insensitive tail            95.47%
+```
+
+Other principal suffix rules remain in the same high range:
+
+```text
+past voiced /d/                        97.86% tail
+past voiceless /t/                     97.28% tail
+plural voiced /z/                      95.24% tail
+plural voiceless /s/                   96.66% tail
+progressive /ɪŋ/                       95.73% tail
+```
+
+Mismatch review indicates the residual error is dominated by stem/source pronunciation variation, homographs, lexicalized exceptions, and source transcription differences rather than a systematic failure of the suffix allomorph rules. Examples include stem-vowel differences for `accosted`, `afghanis`, `Agans`, and whole-word source-variant differences where the stressed rhyme tail is still preserved.
+
+Decision:
+
+- accept deterministic regular-inflection composition for the **strict source-backed relation class only**;
+- require explicit `form_of` or `listed_form_of`;
+- require exactly one regular lemma+shape candidate;
+- require morphology tags appropriate to plural/3sg, past/participle, or gerund/participle;
+- keep abbreviation/initialism/acronym/letter/number/symbol/contraction/misspelling blockers;
+- require an analyzed en-US base pronunciation that is not itself a `derived_inflection`;
+- reject ambiguous or unresolved bases;
+- preserve all generated pronunciation rows with source `derived_inflection`;
+- preserve `/ɪ~ə/` reduced-vowel variants for epenthetic plural/past suffixes;
+- no broad G2P.
+
+This acceptance is for the bounded publish-composition mechanism, not final English runtime acceptance.
+
+Next owner gate is a full publish-v4 build and coverage A/B.
