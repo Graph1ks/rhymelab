@@ -317,6 +317,8 @@ Decision: **do not proceed to 11E yet**. Keep 11D1 and 11D2 frozen and introduce
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V3_CANDIDATE.md`.
 
+Fixture gate passed in required `validate` CI (run 261): source check, full test suite and public-readiness audit all passed. The first CI attempt exposed only a test-fixture final-nucleus mismatch; production candidate logic was unchanged.
+
 The 11D4 candidate preserves accepted 11D1/11D2 tables as controls and adds:
 
 - distinct full-surface 2–6-syllable query domains;
