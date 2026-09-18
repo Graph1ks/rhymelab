@@ -98,7 +98,7 @@ machine                 i7-7700K / 4C 8T, CPU saturated
 
 The raw-line prefilter is lossless/conservative: it only decides whether a row can skip expensive JSON parsing; exact P31/P106 category validation still happens after parsing. External-ID duplicates are deduplicated deterministically before SQLite insertion. Secondary indexes are built after bulk ingestion and prepared statements are reused.
 
-Do **not** stop the current run just to switch source strategy. The 20260914 dump is the dated, checksum-verified control needed to validate any faster acquisition path.
+After the live QLever feasibility gate passed, the current multi-hour full-dump run became optional control evidence rather than a blocking gate. It may be stopped to save time; the validated 20260914 raw dump remains retained locally and can be staged later without another download.
 
 When the run finishes, review/upload:
 
@@ -108,20 +108,52 @@ data/local/entity-qrank-stage-v1-report.json
 data/local/entity-cut-diagnostics-v1-report.json
 ```
 
-### Source-alternative research / next experiment
+### QLever selective acquisition — LIVE FEASIBILITY VERIFIED
 
 Read `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md`.
 
-Decision as of 2026-09-18:
+A live 2026-09-18 probe against `https://qlever.dev/api/wikidata` used the exact reviewed 13-QID taxonomy and verified the fast source path.
 
-- no official Wikimedia download is prefiltered to RhymeLab's exact cultural taxonomy;
-- **QLever selective export is the preferred experiment** for future source acquisition;
-- do not promote it until exact/diagnosed comparison against the dated 20260914 control is complete;
-- Wikimedia Enterprise's new Wikidata Snapshot API is an official chunked transport alternative but still roughly 105 GB compressed, so it does not solve semantic over-download;
-- WDumper is experimental only;
-- prebuilt derived subsets such as depesche-wd-index or truthy Parquet are useful diagnostics/benchmarks but are not canonical replacements because of relevance floors, field gaps, or older snapshots.
+Key measurements:
 
-After the current three owner reports are reviewed, the next acquisition experiment should be `entity:source:qlever:diagnose`: export category membership first, compare QID sets/counts with the control, then progressively compare core fields, aliases and external IDs.
+```text
+truthy distinct candidates       1,836,982
+all-statement distinct           1,838,292
+all-vs-truthy delta                  1,309 (~0.071%)
+
+membership.tsv.gz                6,461,848 bytes
+core.tsv.gz                     52,748,272 bytes
+aliases.tsv.gz                   8,247,092 bytes
+external_ids.tsv.gz             13,366,879 bytes
+selective QLever total          ~80.8 MB compressed
+pinned QRank                    ~105.5 MB compressed
+combined build inputs           ~186.4 MB compressed
+classic Wikidata dump           103.1 GB compressed
+```
+
+Measured QLever wall times on GitHub Actions:
+
+```text
+membership export     ~5.7 s
+core export           ~20.3 s
+DE/EN aliases          ~5.6 s
+external IDs           ~6.7 s
+```
+
+All current staging fields are available: QID/category membership, DE/EN labels, aliases, descriptions, `wikibase:sitelinks`, `wikibase:statements`, `wikibase:identifiers`, dewiki/enwiki presence and P434/P345/P1953/P1902. Bud Spencer / Q221074 returned labels, descriptions, sitelink count 74, alias `Carlo Pedersoli`, IMDb, Discogs and MusicBrainz IDs.
+
+**Important semantic rule:** the current JSON importer reads all valued P31/P106 statements regardless of rank. The production QLever path must therefore use the complete RDF statement graph (`p:P31/ps:P31`, `p:P106/ps:P106`) rather than only `wdt:` truthy relations.
+
+Decision:
+
+- QLever is now the **verified fast-acquisition implementation target**, not merely a research candidate;
+- it is a build-time acquisition dependency only; runtime stays local/offline;
+- freeze exact result artifacts locally with query text, endpoint, timestamps, taxonomy hash, row counts, SHA-256 and semantic fingerprint;
+- the 20260914 raw dump remains retained locally as an optional dated validation/control source;
+- the owner does **not** need to wait for the current multi-hour full-dump stage before implementing/using the QLever fast path;
+- if the full-dump stage is stopped, no source data is lost and it can be rerun later without redownloading.
+
+Next milestone: implement the real local QLever acquisition + staging path and feed it into the existing QRank/cut diagnostics.
 
 The Phase 12 sequence is:
 

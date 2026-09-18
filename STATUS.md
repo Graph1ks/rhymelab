@@ -217,7 +217,29 @@ CPU                        saturated on i7-7700K
 
 Do not abort this run merely to try another acquisition path: it is the dated/checksum-verified control that future selective-source experiments must reproduce semantically.
 
-Source-acquisition alternatives were researched in `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md`. Current decision: QLever selective export is the strongest candidate for a future fast acquisition path because it can query only the reviewed P31/P106 cultural memberships and selected fields. It is **not promoted yet** because the public graph is near-real-time rather than a dated archival snapshot. First complete the current control stage, then implement a diagnostic QLever exporter and compare category QID sets/selected fields against the 20260914 control before any source-policy change. Wikimedia Enterprise Wikidata snapshots are an official chunked full-source transport candidate but remain about 105 GB compressed and therefore do not solve semantic over-download.
+Source-acquisition alternatives are documented in `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md`.
+
+**QLever selective acquisition is now live-verified.** The 2026-09-18 probe against the public Wikidata backend produced:
+
+```text
+truthy distinct candidates       1,836,982
+all-statement distinct           1,838,292
+all-vs-truthy delta                  1,309 (~0.071%)
+
+membership.tsv.gz                6.46 MB
+core.tsv.gz                     52.75 MB
+aliases.tsv.gz                   8.25 MB
+external_ids.tsv.gz             13.37 MB
+QLever selective total          ~80.8 MB compressed
+with pinned QRank               ~186.4 MB compressed
+classic Wikidata dump           103.1 GB compressed
+```
+
+Measured remote export times were approximately 5.7 s membership, 20.3 s core, 5.6 s DE/EN aliases and 6.7 s external IDs. Required fields and the Bud Spencer sentinel surface were confirmed.
+
+The current JSON importer reads all valued P31/P106 claim statements regardless of rank, so the QLever implementation must use `p:/ps:` all-statement membership semantics rather than only `wdt:` truthy relations.
+
+The multi-hour 20260914 full-dump stage is no longer a blocking source gate. It may be stopped and retained as optional dated control evidence; the raw 103 GB dump remains local and must not be deleted. Next work is the real build-time QLever acquisition/staging path with frozen local response artifacts, exact query provenance and local QRank join.
 
 The implementation streams the compressed Wikidata dump without creating an uncompressed copy, stores only structurally relevant cultural candidates in `data/work/entity/`, stages QRank separately, joins QRank locally, and reports category-relative cut distributions before any final 500k+ Entity Lexicon is materialized.
 

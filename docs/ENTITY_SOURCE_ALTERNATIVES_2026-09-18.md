@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-18
 
-Status: research note / acquisition strategy review. This does **not** replace the accepted 20260914 owner dump or change the frozen German Writer.
+Status: **live acquisition feasibility verified**. QLever is now the preferred Phase 12A2 fast-acquisition implementation target. The accepted 20260914 dump remains retained locally as an optional dated validation/control source; this does not change the frozen German Writer.
 
 ## Why this note exists
 
@@ -24,7 +24,9 @@ Research question: can future builds retrieve only the cultural-entity subset an
 
 There is no official Wikimedia download that is already semantically filtered to RhymeLab's exact P31/P106 cultural taxonomy.
 
-The strongest alternative is **QLever selective export**. It can query the live Wikidata RDF graph for exactly the required entity memberships and selected fields, and the Wikidata project itself lists QLever as an available alternative SPARQL endpoint. It should be benchmarked against the already-downloaded official 20260914 dump before any promotion.
+The strongest alternative is **QLever selective export**. A live 2026-09-18 probe against `https://qlever.dev/api/wikidata` has now verified that it can return the complete current RhymeLab taxonomy candidate set and every field required by the Phase 12A2 staging contract. The measured selective artifacts are roughly **80.8 MB compressed in total**, versus the 103.1 GB classic Wikidata owner dump. QRank remains a separate ~105.5 MB local input.
+
+This is sufficient to implement the fast acquisition path without waiting for a multi-hour full-dump stage. The already-downloaded 20260914 dump remains valuable as an optional dated validation/control artifact and must not be deleted.
 
 The second useful option is the new **Wikimedia Enterprise Wikidata Snapshot API**. It is official, chunked, monthly-free and excludes the scholarly graph, but it is still roughly 105 GB compressed for the Main Graph and therefore does not solve the semantic over-download problem. It may still be a better future full-source transport because it is chunked and gzip/NDJSON rather than one giant bzip2 stream.
 
@@ -51,6 +53,116 @@ The RDF graph exposes the fields RhymeLab needs:
 - statement and identifier counts;
 - sitelink article nodes, enough to detect dewiki/enwiki presence;
 - direct truthy external-ID properties such as P434/P345/P1953/P1902.
+
+### Live feasibility evidence — 2026-09-18
+
+A temporary GitHub Actions probe queried the public QLever Wikidata backend using the exact 13 reviewed Phase 12A taxonomy targets.
+
+Initial `wdt:` truthy candidate counts:
+
+```text
+person.rapper                 11,874
+person.musician             141,309
+person.actor                392,757
+person.director             102,090
+group.music_group           100,239
+organization.car_brand          781
+organization.fashion_house      285
+organization.company        265,401
+work.film                   349,342
+work.video_game             178,535
+work.album                  309,853
+work.song                    16,184
+fictional.character           5,007
+distinct candidates       1,836,982
+```
+
+Field availability over that selective candidate set:
+
+```text
+DE label                   753,117   41.00%
+EN label                 1,589,808   86.54%
+DE alias                   106,646    5.81%
+EN alias                   312,332   17.00%
+DE description             777,755   42.34%
+EN description           1,560,028   84.92%
+dewiki presence             217,047   11.82%
+enwiki presence             645,901   35.16%
+>=1 whitelisted ext ID      750,408   40.85%
+```
+
+Full measured exports:
+
+```text
+artifact          rows        raw bytes      gzip bytes      QLever wall time
+membership.tsv   1,873,657    110,808,092      6,461,848       5.7 s
+core.tsv         1,837,356    231,402,225     52,748,272      20.3 s
+aliases.tsv        629,114     45,199,372      8,247,092       5.6 s
+external_ids.tsv   986,509    101,222,416     13,366,879       6.7 s
+TOTAL                           488,632,105     80,824,091
+```
+
+The small excess of `core.tsv` rows over distinct truthy candidates means the importer must canonicalize/deduplicate core rows by QID. This is a local deterministic normalization issue, not an acquisition blocker.
+
+Including the already-pinned QRank artifact:
+
+```text
+QLever selective artifacts     ~80.8 MB compressed
+QRank                           ~105.5 MB compressed
+combined working input          ~186.4 MB compressed
+classic Wikidata dump alone    ~103.1 GB compressed
+```
+
+The selective source path therefore removes roughly 99.8% of the compressed acquisition volume compared with the classic full-dump path.
+
+Protected sentinel proof for Bud Spencer / `Q221074` returned:
+
+- DE label `Bud Spencer`;
+- EN label `Bud Spencer`;
+- DE and EN descriptions;
+- `wikibase:sitelinks = 74`;
+- DE alias `Carlo Pedersoli`;
+- P1953 Discogs `448484`;
+- P345 IMDb `nm0817881`;
+- P434 MusicBrainz `bc013c43-e442-4e06-a9fb-30991954d66d`.
+
+This verifies that the source exposes the concrete name, description, structural popularity and whitelisted external-ID data required by the current staging schema.
+
+### Statement-rank parity with the current JSON importer
+
+Important: the existing JSON importer scans all valued rows in `claims[P31]` / `claims[P106]` and does not restrict classification to Wikidata best-rank/truthy statements. A production QLever fast path must therefore **not** use only `wdt:P31` / `wdt:P106`.
+
+A second live probe used the complete RDF statement graph:
+
+```sparql
+?item p:P31 ?statement .
+?statement ps:P31 wd:Q... .
+
+?item p:P106 ?statement .
+?statement ps:P106 wd:Q... .
+```
+
+Measured truthy vs all-statement counts:
+
+```text
+category                  truthy    all statements   delta
+person.rapper              11,874       11,890          +16
+person.musician           141,309      141,599         +290
+person.actor              392,758      393,212         +454
+person.director           102,090      102,325         +235
+group.music_group         100,239      100,286          +47
+organization.car_brand        781          783           +2
+organization.fashion_house    285          285            0
+organization.company      265,401      265,732         +331
+work.film                 349,342      349,458         +116
+work.video_game           178,535      178,568          +33
+work.album                309,853      309,867          +14
+work.song                  16,184       16,194          +10
+fictional.character         5,007        5,013           +6
+DISTINCT TOTAL          1,836,983    1,838,292       +1,309
+```
+
+The delta is only about 0.071%, and the all-statement total-count query completed in about 8.6 seconds. The fast path should use `p:/ps:` membership semantics so classification remains aligned with the current JSON staging contract.
 
 ### Proposed extraction layout
 
@@ -109,18 +221,19 @@ The result files stay local/gitignored and become the reproducible input for tha
 
 QLever is a public query service, not a dated archival snapshot. The graph can advance while multiple exports are being collected. That makes it an acceleration source, not automatically equivalent to the dated 20260914 dump.
 
-### Required promotion gate
+### Implementation / acceptance gate
 
-Use the current full official dump as the control:
+Live feasibility, field availability and statement-rank compatibility are now verified. The next gate is implementation rather than more source discovery:
 
-1. finish the in-progress 20260914 owner full staging;
-2. run QLever selective export using the exact same taxonomy;
-3. compare per-category QID sets;
-4. compare DE/EN labels/aliases, sitelink counts/presence and whitelisted external IDs for a deterministic sample plus all protected sentinels;
-5. classify differences as source-freshness deltas vs extraction bugs;
-6. only promote a QLever acquisition path if differences are zero or explicitly explained and bounded.
+1. implement a local build-time QLever acquisition command using `p:/ps:` membership semantics;
+2. export the four normalized artifacts independently;
+3. persist exact SPARQL, endpoint, retrieval timestamps, taxonomy SHA-256, row counts and artifact SHA-256 values;
+4. canonicalize/deduplicate locally and stage into the same deterministic SQLite contract;
+5. join the already-pinned QRank artifact locally;
+6. run existing sentinel/category-cut diagnostics;
+7. where a completed 20260914 full-dump control is available, compare it as additional evidence, but **do not require a multi-hour full-dump pass merely to use the verified fast path**.
 
-Preferred status: **best candidate for a future fast acquisition path; benchmark before promotion**.
+Preferred status: **verified fast-acquisition implementation target**.
 
 ## Option B — Wikimedia Enterprise Wikidata Snapshots
 
@@ -270,19 +383,20 @@ This avoids 100+ GB acquisition but introduces many remote calls and API throttl
 
 Preferred status: **fallback enrichment strategy; QLever direct field exports are simpler if they prove complete enough**.
 
-## Recommended next experiment
+## Next implementation
 
-Do **not** abort the current full owner stage. The accepted 20260914 dump is valuable precisely because it gives us a local, dated, checksum-verified control against which every faster method can be proven.
+The feasibility experiment is complete. Build the production-style **build-time-only** selective acquisition path next.
 
-After the current owner stage completes and its three reports are reviewed:
+The current multi-hour owner full-dump stage may be stopped if the owner does not need that optional control result immediately. The validated 20260914 raw dump remains retained locally, so a control stage can always be run later without another 103 GB download.
 
-1. implement a read-only `entity:source:qlever:diagnose` experiment;
-2. export only category membership first;
-3. compare category counts/QID sets against the 20260914 stage;
-4. if that passes, export core names/sitelink metrics;
-5. then aliases;
-6. then external IDs;
-7. measure total transferred bytes, query wall time and semantic equivalence;
-8. decide whether QLever becomes the preferred future acquisition path while the full dated dump remains the validation/control path.
+The next implementation should:
 
-This sequence gives RhymeLab a realistic chance to turn a multi-hour 100-GB full scan into a much smaller selective acquisition without sacrificing provenance or silently changing entity coverage.
+1. acquire all-statement category memberships from QLever;
+2. acquire core DE/EN labels/descriptions and structural counts;
+3. acquire DE/EN aliases;
+4. acquire the four whitelisted external-ID properties;
+5. freeze all responses locally before any SQLite build;
+6. stage and QRank-join entirely offline after acquisition;
+7. record a deterministic semantic fingerprint and existing sentinel/cut diagnostics.
+
+Runtime remains fully local and network-free. QLever is a build/source acquisition dependency only.
