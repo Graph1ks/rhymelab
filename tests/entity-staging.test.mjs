@@ -9,6 +9,7 @@ import {
   categoryCutDiagnostics,
   createEntityStageStorage,
   createQRankStageStorage,
+  createTaxonomyRawPrefilter,
   extractStageEntity,
   finalizeQRankStage,
   parseQRankLine,
@@ -81,6 +82,79 @@ test('staging extractor handles real Wikibase mainsnak entity IDs', () => {
   assert.equal(row.categories.some((x) => x.category === 'person.actor'), true);
   assert.equal(row.hasDewiki, 1);
   assert.equal(row.hasEnwiki, 1);
+});
+
+test('raw taxonomy prefilter is lossless for relevant categories and conservative for false positives', () => {
+  const prefilter = createTaxonomyRawPrefilter(taxonomy);
+  assert.equal(prefilter.qids.length, 13);
+
+  const relevant = JSON.stringify(actor('Q900000101', 'Relevant Actor'));
+  assert.equal(prefilter.test(relevant), true);
+
+  const irrelevant = JSON.stringify({
+    id: 'Q900000102',
+    type: 'item',
+    labels: { en: { language: 'en', value: 'Irrelevant Human' } },
+    aliases: {},
+    descriptions: {},
+    sitelinks: {},
+    claims: {
+      P31: [{
+        mainsnak: {
+          datavalue: { value: { id: 'Q5' } },
+        },
+      }],
+    },
+  });
+  assert.equal(prefilter.test(irrelevant), false);
+
+  const conservativeFalsePositive = JSON.stringify({
+    id: 'Q900000103',
+    type: 'item',
+    labels: { en: { language: 'en', value: 'Text Mention Only' } },
+    aliases: {},
+    descriptions: { en: { language: 'en', value: 'mentions Q33999 only as text' } },
+    sitelinks: {},
+    claims: {},
+  });
+  assert.equal(prefilter.test(conservativeFalsePositive), true);
+  assert.equal(extractStageEntity(JSON.parse(conservativeFalsePositive), taxonomy), null);
+});
+
+test('duplicate source claims collapse to one staged external ID', () => {
+  const item = actor('Q900000104', 'Duplicate ID Actor');
+  const claim = (value) => ({
+    mainsnak: {
+      snaktype: 'value',
+      property: 'P345',
+      datatype: 'external-id',
+      datavalue: { value, type: 'string' },
+    },
+    type: 'statement',
+    rank: 'normal',
+  });
+  item.claims.P345 = [claim('nm1234567'), claim('nm1234567')];
+
+  const row = extractStageEntity(item, taxonomy);
+  assert.equal(row.externalIdCount, 1);
+  assert.deepEqual(row.externalIds, [{
+    propertyId: 'P345',
+    system: 'imdb',
+    value: 'nm1234567',
+  }]);
+
+  const db = new DatabaseSync(':memory:');
+  try {
+    db.exec('PRAGMA foreign_keys=ON;');
+    createEntityStageStorage(db);
+    assert.doesNotThrow(() => writeStageEntity(db, row, 1));
+    assert.equal(
+      Number(db.prepare('SELECT COUNT(*) AS c FROM entity_stage_external_id').get().c),
+      1,
+    );
+  } finally {
+    db.close();
+  }
 });
 
 test('QRank CSV parser accepts header and numeric rows', () => {
