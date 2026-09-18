@@ -215,6 +215,39 @@ Use `data/local/phrase-pronunciation-coverage-v1-report.json` to measure whether
 Single-word Writer remains frozen; Human Writer NDCG remains pending.
 
 
+## Phase 11C1 repeatability — PASS / PHASE CLOSED
+
+The second owner-local pronunciation materialization exactly reproduced the accepted fingerprint:
+
+```text
+first   fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+repeat  fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+equal   true
+```
+
+The base catalog fingerprint remained `f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d`, database size and coverage counts were unchanged. Phase 11C1 is accepted and closed.
+
+## Phase 11D1 — current
+
+Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`.
+
+Implemented fixture/code substrate:
+
+- deterministic 2–6-syllable windows over accepted phrase pronunciation;
+- only spans with at least one strict interior word boundary are retained;
+- syllable, phoneme and token coordinates are stored;
+- windows may start/end inside multi-syllable tokens;
+- exact phoneme and exact vowel indexes are materialized;
+- stable per-window and whole-index fingerprints;
+- no fuzzy retrieval, phrase ranking, generation or Writer runtime rewiring.
+
+Owner command after merge:
+
+```powershell
+npm run phrase:mosaic:windows
+```
+
+Review `data/local/phrase-mosaic-windows-v1-report.json`, then run the materializer again and require the same window fingerprint before 11D2 candidate retrieval.
 ## Phase 11C coverage triage — COMPLETE
 
 The owner-local coverage-impact report has been reviewed. Current modern phrase coverage is 92.26%; 7,535 modern phrases remain blocked by 5,894 distinct unresolved normalized forms.
@@ -296,6 +329,7 @@ Do not implement these before current phrase IPA and deterministic mosaic retrie
 3. RUEG is removed/rejected; do not revive it.
 4. Phrase Catalog + Leipzig + IPA Explorer are the active phrase foundation.
 5. Coverage triage is complete: a blocking 11C2 pass is rejected; selected lexical gaps remain nonblocking/source-backed backlog only.
-6. Confirm 11C1 pronunciation repeatability against fingerprint `fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548`.
-7. After repeatability passes, begin 11D deterministic cross-word phonetic windows / mosaic retrieval.
-8. Preserve the future Markov/retrieval-first design note for the later generation phase.
+6. 11C1 repeatability is confirmed and Phase 11C is closed.
+7. Current milestone is 11D1 owner full-data mosaic-window materialization and repeatability.
+8. Only after 11D1 passes, design bounded 11D2 candidate retrieval without full-corpus scans.
+9. Preserve the future Markov/retrieval-first design note for the later generation phase.
