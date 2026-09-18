@@ -59,6 +59,15 @@ Fixture popularity inputs are synthetic scales for deterministic tests only; the
 
 Current milestone: **12A2 Wikidata + QRank staging**.
 
+Owner commands after the bootstrap PR merges:
+
+```powershell
+npm run entity:sources:bootstrap
+npm run entity:owner:stage
+```
+
+The source bootstrap pins Wikidata snapshot 20260914, validates its published SHA-1, keeps the compressed input only, and freezes the retrieved QRank artifact locally by SHA-256.
+
 Read `docs/ENTITY_STAGING_V1.md`. The implementation stages only structurally relevant Wikidata candidates, keeps QRank in a disposable build-time SQLite, joins it locally, and produces category-relative cut diagnostics. The full final Entity Lexicon remains blocked until the owner full-source staging reports are reviewed.
 
 The Phase 12 sequence is:
