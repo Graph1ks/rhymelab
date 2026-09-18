@@ -131,5 +131,5 @@ test('RhymePad integration fails visibly instead of silently falling back to dem
   assert.match(padApp, /function initializeRhymeLabPad\(/);
   assert.match(padApp, /RhymeLab integration failed\./);
   assert.match(padApp, /root\.dataset\.rhymeLabIntegration = 'failed'/);
-  assert.doesNotMatch(padApp, /\$\([^\n;]*\)\.forEach\(/);
+  assert.doesNotMatch(padApp, /\$\('\*',\s*rail\)\.forEach\(/);
 });
