@@ -147,9 +147,30 @@ Review the owner full-data diagnostic report for:
 - query latency on the owner machine;
 - cases where the accepted stressed rhyme domain is too short for the current mosaic substrate.
 
-Only after this evidence is understood should Phase 11E define phrase usefulness/commonness/diversity ranking.
+Owner full-data evidence:
 
-If 11D3 exposes a structural retrieval gap, revise retrieval architecture explicitly before 11E instead of hiding the gap with ranking weights.
+```text
+queries with anchors              9 / 12
+mean elapsed                     33.6 ms
+returned candidates             1,771
+weak                              989 (55.84%)
+slant                             720
+family                             60
+multisyllabic slant                 1
+multisyllabic perfect               1
+final fallback assignments       1,280 / 1,940 (65.98%)
+semantic fingerprint
+294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c
+```
+
+Interpretation:
+
+- strong evidence that the substrate works exists (`Arbeitsweise`, `Liebe`, `Freiheit`, `hitzefrei`);
+- the broad final fallback dominates aggregate retrieval and produces weak-only top rows for `Leben`, `Feuer`, and `Gedanken`;
+- `Zeit` and `Nacht` are below the current two-syllable mosaic query minimum as expected;
+- `Musik` exposes a distinct architecture gap: the full word is multisyllabic, but its stressed rhyme domain is only one syllable and therefore never enters 11D2 retrieval.
+
+Decision: **11D3 is complete, but 11E is blocked.** Phase 11D4 must revise candidate retrieval explicitly before phrase usefulness ranking. Preserve the accepted 11D1/11D2 fingerprints as controls; do not hide the observed gaps with ranking weights.
 
 ## Explicitly deferred
 
