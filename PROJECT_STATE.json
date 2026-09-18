@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11D4_OWNER_AB_QUALITY_PASS_REPEATABILITY_PENDING",
+  "phase": "GERMAN_PHASE_11E_PHRASE_WRITER_RANKING_DESIGN",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11d4_owner_ab_quality_pass_repeatability_pending",
+    "status": "phase_11d4_accepted_frozen_phase_11e_current",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11D4_REPEATABILITY_GATE",
+    "next_milestone": "PHASE_11E_DETERMINISTIC_PHRASE_RANKING_CANDIDATE",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -628,7 +628,7 @@
       ]
     },
     "phase_11d4_revision": {
-      "status": "OWNER_AB_QUALITY_PASS_REPEATABILITY_PENDING",
+      "status": "ACCEPTED_FROZEN",
       "preserve_11d1_window_fingerprint": "24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac",
       "preserve_11d2_anchor_fingerprint": "55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae",
       "goals": [
@@ -673,8 +673,8 @@
       "ci_run": 261,
       "ci_conclusion": "success",
       "quality_gate_passed": true,
-      "repeatability_confirmed": false,
-      "owner_full_gate_accepted": false,
+      "repeatability_confirmed": true,
+      "owner_full_gate_accepted": true,
       "full_data_build_evidence": {
         "built_at": "2026-09-18T02:20:42.602Z",
         "database_bytes": 837390336,
@@ -780,7 +780,74 @@
         "Leben leaves one weak consonance candidate after gating",
         "Feuer correctly returns zero rather than forwarding 128 unrelated weak candidates"
       ],
-      "interpretation": "retrieval_structure_passes;remaining_lexical_commonness_phrase_usefulness_and_diversity_problems_belong_to_11e_not_11d"
+      "interpretation": "retrieval_structure_passes;remaining_lexical_commonness_phrase_usefulness_and_diversity_problems_belong_to_11e_not_11d",
+      "repeatability_evidence": {
+        "first_build_at": "2026-09-18T02:20:42.602Z",
+        "repeat_build_at": "2026-09-18T02:29:49.329Z",
+        "first_diagnostic_at": "2026-09-18T02:20:45.568Z",
+        "repeat_diagnostic_at": "2026-09-18T02:29:52.278Z",
+        "candidate_anchor_fingerprint_first": "9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059",
+        "candidate_anchor_fingerprint_repeat": "9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059",
+        "candidate_anchor_fingerprints_equal": true,
+        "candidate_semantic_fingerprint_first": "4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd",
+        "candidate_semantic_fingerprint_repeat": "4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd",
+        "candidate_semantic_fingerprints_equal": true,
+        "accepted_11d3_baseline_fingerprint_repeat": "294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c",
+        "database_bytes_first": 837390336,
+        "database_bytes_repeat": 837390336,
+        "database_bytes_equal": true,
+        "anchor_count_first": 356693,
+        "anchor_count_repeat": 356693,
+        "anchor_counts_equal": true,
+        "distinct_family_coda_keys_first": 66904,
+        "distinct_family_coda_keys_repeat": 66904,
+        "distinct_family_coda_keys_equal": true,
+        "candidate_returned_candidates_first": 1237,
+        "candidate_returned_candidates_repeat": 1237,
+        "candidate_weak_candidates_first": 42,
+        "candidate_weak_candidates_repeat": 42,
+        "final_fallback_assignments_first": 575,
+        "final_fallback_assignments_repeat": 575,
+        "vowel_family_assignments_first": 375,
+        "vowel_family_assignments_repeat": 375,
+        "semantic_aggregate_counts_equal": true,
+        "latency_not_part_of_semantic_fingerprint": true,
+        "first_candidate_mean_elapsed_ms": 35.9,
+        "repeat_candidate_mean_elapsed_ms": 37.6
+      }
+    },
+    "phase_11e_ranking": {
+      "status": "DESIGN_CURRENT",
+      "contract": "docs/PHRASE_MOSAIC_RANKING_V1.md",
+      "accepted_retrieval_input_schema": "rhymelab-phrase-mosaic-retrieval-v2-candidate",
+      "accepted_retrieval_policy": "de-bounded-indexed-mosaic-retrieval-v2-candidate",
+      "accepted_candidate_anchor_fingerprint": "9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059",
+      "accepted_candidate_semantic_fingerprint": "4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd",
+      "mutate_single_word_writer": false,
+      "mutate_phonetic_relation_truth": false,
+      "allowed_source_backed_signals": [
+        "phonetic_primary_type_and_score",
+        "matched_span_syllable_count",
+        "stress_alignment",
+        "crossed_word_boundaries",
+        "modern_eligibility",
+        "leipzig_usage_occurrence_sentence_and_per_million_evidence",
+        "leipzig_corpus_coverage_count",
+        "source_backed_phrase_types",
+        "source_style_tags",
+        "optional_register_evidence_as_separate_non_general_signal",
+        "deterministic_surface_safety",
+        "deterministic_duplicate_template_diversity"
+      ],
+      "explicit_non_goals": [
+        "semantic_vector_ranking",
+        "llm_or_ml_ranking",
+        "remote_runtime",
+        "invented_phrase_frequency",
+        "retuning_de_phon_v3",
+        "mutating_deterministic_writer_utility_v6",
+        "human_ndcg_before_independent_reviewers"
+      ]
     }
   },
   "owner_measurement_outputs": {
@@ -802,13 +869,10 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_11d4_owner_ab_quality_evidence",
-    "repeat_npm_phrase_mosaic_retrieval_v2",
-    "repeat_npm_phrase_mosaic_diagnose_v2",
-    "require_candidate_fingerprint_9e5aceb96b5f0be6344887f0c3f2b578544d109a083ac5b0c48a7239249b7059",
-    "require_candidate_semantic_fingerprint_4bd1733db4dd77d08c109423157034e38d571447416922cafa24f62fd13e28bd",
-    "require_accepted_11d3_baseline_fingerprint_294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c",
-    "if_repeatability_passes_accept_and_freeze_11d4_then_open_11e_phrase_writer_ranking",
-    "keep_single_word_writer_frozen"
+    "merge_11d4_repeatability_acceptance",
+    "design_11e_deterministic_phrase_ranking_candidate",
+    "build_fixture_gate_for_phrase_commonness_surface_safety_and_diversity",
+    "run_owner_11e_ab_diagnostics_against_frozen_11d4_input",
+    "keep_single_word_writer_and_11d_retrieval_frozen"
   ]
 }
