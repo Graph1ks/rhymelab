@@ -130,6 +130,34 @@ Search-language basis remains `DE / EN / DE+EN`. German is active and frozen; En
 
 Current milestone: **Phase 12A — multilingual cultural Entity Lexicon**.
 
+Fixture/prototype implementation now exists:
+
+```text
+schema              rhymelab-entity-catalog-v1
+taxonomy            wikidata-cultural-entity-taxonomy-v1
+popularity          category-relative-popularity-v1
+fixture             fixtures/entity/wikidata-cultural-v1.json
+taxonomy file       sources/entity/wikidata-entity-taxonomy-v1.json
+builder             scripts/build-entity-fixture.mjs
+command             npm run entity:fixture
+fixture DB          data/local/rhymelab-entities-v1-fixture.sqlite
+fixture report      data/local/entity-lexicon-v1-fixture-report.json
+runtime rewired     no
+pronunciation       schema only / not materialized
+```
+
+The fixture mixes verified real cultural QIDs with explicitly synthetic long-tail/noise rows. Its popularity values are fixture-scale inputs, **not** live QRank/pageview claims.
+
+Protected fixture behavior:
+
+- Bud Spencer / Q221074 -> retained as `person.actor`, Tier A;
+- category-relative actor/company tails are actually rejected;
+- structurally irrelevant high-popularity noise is rejected before popularity;
+- Kendrick source aliases such as `K.Dot` are retained, but arbitrary token aliases such as `Kendrick` are not invented;
+- two independent prototype materializations must produce the same semantic fingerprint.
+
+The current gate is fixture CI + owner-local fixture build/review. Do not start the full Wikidata dump download until this gate is accepted.
+
 Plan: `docs/ENTITY_LEXICON_PLAN.md`.
 
 The new entity layer is separate from the frozen Writer/Phrase databases and is designed around:
