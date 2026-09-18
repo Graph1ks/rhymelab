@@ -134,17 +134,9 @@ License statement:
 
 CMU explicitly permits use of the dictionary for research or commercial purposes without restriction and requests acknowledgment of origin.
 
-RhymeLab already pins one CMUdict revision for the Entity coverage probe:
+RhymeLab already pins one CMUdict revision for the Entity coverage probe in `sources/entity/cmudict-entity-pronunciation-v1.json`.
 
-```text
-commit
-74790861f652b15e4ac49015a90074ad62a27690
-
-cmudict.dict Git blob
-2c0411740cce3e2026a80b90b650d5f6a7258164
-```
-
-Phase 12B may reuse that artifact initially or intentionally pin a newer revision after an explicit source diff. Do not silently move the source.
+Phase 12B may reuse that pinned artifact initially or intentionally pin a newer revision after an explicit source diff. Do not silently move the source.
 
 Decision:
 
