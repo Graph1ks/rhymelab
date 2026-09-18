@@ -1,0 +1,26 @@
+{
+  "schema": "rhymelab-entity-pronunciation-source-v1",
+  "source_id": "wikidata-p898-qlever-v1",
+  "name": "Wikidata IPA transcription (P898)",
+  "role": "source_backed_entity_ipa",
+  "endpoint": "https://qlever.dev/api/wikidata",
+  "license_id": "CC0-1.0",
+  "commercial_use": true,
+  "runtime_use": false,
+  "property": "P898",
+  "qualifiers": {
+    "language_of_work_or_name": "P407",
+    "pronunciation_variety": "P5237",
+    "applies_to_name_of_subject": "P5168"
+  },
+  "language_qids": {
+    "Q188": "de",
+    "Q1860": "en"
+  },
+  "notes": [
+    "Selective build-time export over the accepted cultural Entity taxonomy.",
+    "P898 values are stored as source-attested IPA with qualifiers preserved.",
+    "Generic de/en evidence is not silently promoted to de-DE/en-US runtime pronunciation.",
+    "Rows remain source_attested_unprofiled until a locale/profile policy explicitly accepts them."
+  ]
+}

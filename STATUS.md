@@ -186,7 +186,7 @@ hard-gate categories v2        none
 
 The accepted set remains inside the hard 500k–1.2M range and above the preferred 600k–900k working range. The preferred range is now a separate, nonblocking product-budget concern; do not silently retune the accepted popularity policy while pronunciation coverage is being measured.
 
-Current milestone is **12A3 — retained Entity catalog + conservative DE pronunciation/phonetic runtime + RhymePad Entity channel**.
+Current milestone is **12A3 — retained Entity catalog + conservative DE runtime + source-backed multilingual pronunciation evidence + RhymePad Entity channel**.
 
 Contract: `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`.
 
@@ -205,19 +205,33 @@ runtime fingerprint
 38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3
 ```
 
-The pipeline itself is sound, but global name coverage is insufficient. The current gate is therefore category/tier/preferred-name source coverage, not blind pronunciation generation.
+The pipeline itself is sound, but global name coverage is insufficient. The completed source-coverage diagnostic shows:
 
-Normal owner command:
+```text
+preferred runtime coverage                 12.78%
+CMUdict full-token unresolved matches     261,833 / 41.78%
+CMUdict partial-token unresolved matches  233,283 / 37.22%
+CMUdict no-token unresolved matches       131,600 / 21.00%
+preferred full-token matches              227,428
+projected preferred ceiling with an
+accepted English runtime                    52.18%
+coverage diagnostic fingerprint
+69e6ec4d14091d22c5a76ca5869d38908f09f95fcac248b2e6791f329ad99bfa
+```
+
+Decision: do not mass-G2P the remaining proper names. The next additive layer is selective Wikidata `P898` IPA evidence with `P407`, `P5237` and `P5168` qualifiers preserved. Those rows remain `source_attested_unprofiled` and create zero German runtime rows until a locale/profile policy explicitly accepts them.
+
+Normal owner command remains:
 
 ```text
 npm run entity:pronunciation:owner
 ```
 
-That one command preserves an already complete Entity runtime, fetches/verifies the pinned CMUdict source probe, computes preferred-vs-alias and category/tier coverage, surfaces high-priority unresolved preferred names, and writes the detailed owner/coverage reports. CMUdict is probe-only in 12A3: en-US evidence is not relabeled as de-DE and is not passed into de-ipa-v2.
+It now preserves the complete Entity runtime, verifies CMUdict, fetches/verifies the small pronunciation-specific P898 export, materializes qualified P898 evidence, asserts that the accepted German runtime fingerprint did not change, then recomputes the full coverage/source report.
 
 The phonetic layer uses `de-ipa-v2`, materializes bounded `entity_rhyme_anchor` lookup keys, and exposes an optional third Writer/RhymePad channel. RhymePad v14 remains checksum-verified; the integration layer adds Entity-only scope, Rapper/Musician/Actor/etc. category filters, multi-category badges and IPA display. If the Entity DB/runtime is absent, Word + Phrase/Mosaic remain available unchanged.
 
-Repeatability and evidence-driven source-backed enrichment are the next gates. No QLever fetch, entity restage or QRank restage is required.
+The next owner gate is P898 source-evidence measurement plus runtime-fingerprint invariance. No entity restage or QRank restage is required; only the pronunciation-specific selective P898 export uses build-time QLever access.
 
 
 

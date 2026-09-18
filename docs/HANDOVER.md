@@ -224,7 +224,7 @@ hard-gate categories v2        none
 
 The preferred 600k–900k population remains a nonblocking product-budget target. Any future floor tightening is a separate candidate; do not silently mutate the accepted Hybrid-v2 fingerprint.
 
-Current milestone: **12A3 Entity catalog + DE pronunciation/phonetic runtime + RhymePad Entity channel**.
+Current milestone: **12A3 Entity catalog + conservative DE runtime + multilingual source-backed pronunciation evidence + RhymePad Entity channel**.
 
 Read `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`.
 
@@ -240,14 +240,39 @@ Owner baseline pronunciation build is complete:
 fingerprint 38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3
 ```
 
-Normal owner path after merge is now one command:
+The completed coverage diagnostic established:
+
+```text
+preferred DE name runtime coverage       12.78%
+CMUdict full unresolved matches         261,833 / 41.78%
+CMUdict partial unresolved matches      233,283 / 37.22%
+CMUdict no-token unresolved matches     131,600 / 21.00%
+preferred full-token matches            227,428
+projected preferred ceiling              52.18%
+diagnostic fingerprint
+69e6ec4d14091d22c5a76ca5869d38908f09f95fcac248b2e6791f329ad99bfa
+```
+
+This rejects a broad German proper-name G2P campaign as the next step. Source-backed English/multilingual evidence has materially higher leverage.
+
+Normal owner path after merge remains one command:
 
 ```powershell
 git pull
 npm run entity:pronunciation:owner
 ```
 
-The owner runner preserves an existing complete Entity runtime instead of rebuilding it, resumes pronunciation only when incomplete, fetches/verifies a pinned CMUdict artifact, and produces category/tier/preferred-vs-alias coverage plus high-priority unresolved preferred entities.
+The owner runner now preserves an existing complete Entity runtime, resumes pronunciation only when incomplete, verifies CMUdict, selectively fetches qualified Wikidata `P898` IPA evidence, materializes it as `source_attested_unprofiled`, asserts the German runtime fingerprint is unchanged, and produces category/tier/preferred-vs-alias coverage plus high-priority unresolved preferred entities.
+
+P898 qualifier contract:
+
+```text
+P407   language of work or name
+P5237  pronunciation variety
+P5168  applies to name of subject
+```
+
+Generic source language such as German or English is not silently converted into a regional runtime locale such as `de-DE` or `en-US`.
 
 Pronunciation v1 rules remain unchanged:
 
@@ -270,7 +295,7 @@ data/local/entity-pronunciation-owner-report.json
 
 RhymePad v14 remains the checksum-verified authoritative surface. Its integration layer gains an optional Entity channel with semantic category filters (Rapper, Musician, Actor, Band, Song, Album, Film, Game, Character, brands/companies), multi-category badges and IPA. Missing Entity DB/runtime must not break Word or Phrase/Mosaic behavior.
 
-Next decision: use the measured category/tier/preferred-name gaps and CMUdict recovery ceiling to design source-backed enrichment. Repeatability of the Entity runtime fingerprint remains required before acceptance. No QLever fetch, entity restage or QRank restage is required.
+Next decision: run the one-command owner workflow and inspect the actual retained-Entity P898 coverage. Then use P898 + CMUdict + remaining multilingual gap classes to define the accepted English/source promotion policy. Repeatability of the Entity runtime fingerprint remains required before acceptance. No entity or QRank restage is required; only the pronunciation-specific P898 selective query uses build-time QLever access.
 
 
 ```powershell

@@ -1188,13 +1188,13 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "run_one_command_entity_pronunciation_owner_workflow_on_existing_owner_database",
-    "inspect_category_tier_preferred_name_coverage_and_priority_unresolved_entities",
-    "measure_pinned_cmudict_full_token_source_recovery_ceiling_without_en_us_to_de_de_relabeling",
-    "design_next_source_backed_pronunciation_enrichment_from_measured_high_priority_gaps",
-    "require_repeatable_entity_phonetic_runtime_fingerprint_before_phase_12a3_acceptance"
+    "run_one_command_entity_pronunciation_owner_workflow_with_p898_source_layer",
+    "require_de_runtime_fingerprint_38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3_to_remain_unchanged",
+    "inspect_retained_entity_p898_coverage_by_language_category_and_tier",
+    "combine_p898_and_cmudict_evidence_to_define_english_pronunciation_promotion_policy",
+    "prioritize_remaining_multilingual_source_gaps_before_any_g2p_candidate"
   ],
-  "next_milestone": "PHASE_12A3_ENTITY_PRONUNCIATION_SOURCE_COVERAGE_DIAGNOSTIC",
+  "next_milestone": "PHASE_12A3_WIKIDATA_P898_SOURCE_EVIDENCE_OWNER_BUILD",
   "phase_12_english": {
     "status": "PLANNED_AFTER_12A",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -1210,7 +1210,7 @@
     "must_not_emulate_english_with_german_phonology": true
   },
   "phase_12_entity_lexicon": {
-    "status": "12A3_OWNER_BASELINE_COMPLETE_SOURCE_COVERAGE_DIAGNOSTIC_IMPLEMENTED",
+    "status": "12A3_COVERAGE_MEASURED_P898_SOURCE_EVIDENCE_IMPLEMENTED_OWNER_BUILD_PENDING",
     "plan": "docs/ENTITY_LEXICON_PLAN.md",
     "database": "data/local/rhymelab-entities-v1.sqlite",
     "runtime_local_only": true,
@@ -1319,12 +1319,12 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "owner_baseline_pronunciation_build_complete_fingerprint_38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3",
-      "run_category_tier_preferred_alias_coverage_diagnostic",
-      "probe_pinned_cmudict_source_recovery_without_runtime_relabeling",
-      "prioritize_source_backed_enrichment_by_category_tier_and_preferred_name_gaps",
-      "require_repeatable_entity_phonetic_runtime_fingerprint",
-      "do_not_mass_generate_de_de_ipa_for_remaining_proper_names"
+      "owner_de_runtime_baseline_fingerprint_38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3",
+      "owner_coverage_diagnostic_fingerprint_69e6ec4d14091d22c5a76ca5869d38908f09f95fcac248b2e6791f329ad99bfa",
+      "materialize_selective_wikidata_p898_as_source_attested_unprofiled",
+      "require_zero_p898_runtime_promotion_and_unchanged_de_runtime_fingerprint",
+      "measure_p898_preferred_name_coverage_by_category_tier",
+      "use_p898_plus_cmudict_evidence_before_any_g2p_candidate"
     ],
     "staging_v1": {
       "status": "HYBRID_V2_OWNER_AB_ACCEPTED_PHASE_12A2_CLOSED",
@@ -1680,7 +1680,7 @@
       }
     },
     "pronunciation_runtime_v1": {
-      "status": "OWNER_BASELINE_COMPLETE_COVERAGE_DIAGNOSTIC_IMPLEMENTED",
+      "status": "OWNER_COVERAGE_COMPLETE_P898_SOURCE_LAYER_IMPLEMENTED_OWNER_BUILD_PENDING",
       "contract": "docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md",
       "entity_schema": "rhymelab-entity-catalog-v1",
       "catalog_command": "npm run entity:catalog:materialize",
@@ -1736,6 +1736,64 @@
           "runtime_use": false,
           "policy": "probe_en_us_source_coverage_only_do_not_relabel_as_de_de"
         }
+      },
+      "coverage_diagnostic": {
+        "status": "ok",
+        "completed_at": "2026-09-18",
+        "report": "data/local/entity-pronunciation-coverage-report.json",
+        "semantic_fingerprint": "69e6ec4d14091d22c5a76ca5869d38908f09f95fcac248b2e6791f329ad99bfa",
+        "entities": 1077644,
+        "de_names": 716940,
+        "de_preferred_names": 577228,
+        "runtime_ready_names": 90224,
+        "runtime_ready_name_pct": 12.58,
+        "runtime_ready_preferred_names": 73755,
+        "runtime_ready_preferred_name_pct": 12.78,
+        "entities_with_any_runtime_name": 80138,
+        "entities_with_any_runtime_name_pct": 7.44,
+        "cmudict": {
+          "unresolved_names_probed": 626716,
+          "full_token_matches": 261833,
+          "full_token_match_pct": 41.78,
+          "partial_token_matches": 233283,
+          "partial_token_match_pct": 37.22,
+          "no_token_matches": 131600,
+          "no_token_match_pct": 21,
+          "preferred_full_token_matches": 227428,
+          "preferred_partial_token_matches": 178012,
+          "projected_all_name_coverage_pct": 49.11,
+          "projected_preferred_name_coverage_pct": 52.18,
+          "runtime_use": false
+        },
+        "decision": "do_not_mass_g2p_add_source_backed_multilingual_layers_and_real_english_profile_first"
+      },
+      "wikidata_p898_source_layer": {
+        "status": "IMPLEMENTED_OWNER_BUILD_PENDING",
+        "manifest": "sources/entity/wikidata-p898-pronunciation-v1.json",
+        "fetch_command": "npm run entity:pronunciation:wikidata:p898:fetch",
+        "materialize_command": "npm run entity:pronunciation:wikidata:p898",
+        "owner_command": "npm run entity:pronunciation:owner",
+        "source_schema": "rhymelab-wikidata-p898-source-v1",
+        "policy": "wikidata-p898-qualified-selective-v1",
+        "source_kind": "wikidata_p898",
+        "review_state": "source_attested_unprofiled",
+        "property": "P898",
+        "qualifiers": {
+          "language_of_work_or_name": "P407",
+          "pronunciation_variety": "P5237",
+          "applies_to_name_of_subject": "P5168"
+        },
+        "generic_language_mapping": {
+          "Q188": "de",
+          "Q1860": "en"
+        },
+        "promote_generic_language_to_regional_locale": false,
+        "runtime_eligible_rows_expected": 0,
+        "changes_de_runtime": false,
+        "de_runtime_fingerprint_invariance_required": true,
+        "generated_g2p": false,
+        "runtime_network": false,
+        "build_time_qlever_selective": true
       }
     }
   }

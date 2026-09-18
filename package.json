@@ -90,6 +90,8 @@
     "entity:owner:stage:qlever": "node --no-warnings scripts/run-entity-owner-staging-qlever.mjs",
     "entity:pronunciation:sources": "node --no-warnings scripts/fetch-entity-pronunciation-sources.mjs",
     "entity:pronunciation:coverage": "node --no-warnings scripts/diagnose-entity-pronunciation-coverage.mjs",
-    "entity:pronunciation:owner": "node --no-warnings scripts/run-entity-pronunciation-owner.mjs"
+    "entity:pronunciation:owner": "node --no-warnings scripts/run-entity-pronunciation-owner.mjs",
+    "entity:pronunciation:wikidata:p898:fetch": "node --no-warnings scripts/fetch-qlever-entity-pronunciations.mjs",
+    "entity:pronunciation:wikidata:p898": "node --no-warnings scripts/materialize-wikidata-p898-pronunciations.mjs"
   }
 }
