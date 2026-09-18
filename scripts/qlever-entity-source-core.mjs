@@ -54,6 +54,7 @@ export function buildAllRankCandidateUnion(taxonomy, options = {}) {
 export function buildQLeverEntityQueries(taxonomy) {
   const candidateUnion = buildAllRankCandidateUnion(taxonomy);
   const membershipUnion = buildAllRankCandidateUnion(taxonomy, { bindCategory: true });
+  const candidateGroup = `{\n${candidateUnion}\n}`;
 
   const externalBranches = Object.keys(taxonomy?.external_id_whitelist || {})
     .sort((a, b) => a.localeCompare(b, 'en'))
@@ -65,6 +66,7 @@ export function buildQLeverEntityQueries(taxonomy) {
       return `{ ?item p:${propertyId} ?external_${suffix} . ?external_${suffix} ps:${propertyId} ?value . BIND("${propertyId}" AS ?propertyId) }`;
     })
     .join('\nUNION\n');
+  const externalGroup = `{\n${externalBranches}\n}`;
 
   return [
     {
@@ -83,7 +85,7 @@ SELECT DISTINCT ?item ?category ?matchProperty ?matchTargetQid WHERE {
       columns: ['item', 'labelDe', 'labelEn', 'descriptionDe', 'descriptionEn', 'statementCount'],
       query: PREFIXES + `
 SELECT DISTINCT ?item ?labelDe ?labelEn ?descriptionDe ?descriptionEn ?statementCount WHERE {
-  ${candidateUnion}
+  ${candidateGroup}
   OPTIONAL { ?item rdfs:label ?labelDe . FILTER(LANG(?labelDe) = "de") }
   OPTIONAL { ?item rdfs:label ?labelEn . FILTER(LANG(?labelEn) = "en") }
   OPTIONAL { ?item schema:description ?descriptionDe . FILTER(LANG(?descriptionDe) = "de") }
@@ -98,7 +100,7 @@ SELECT DISTINCT ?item ?labelDe ?labelEn ?descriptionDe ?descriptionEn ?statement
       columns: ['item', 'language', 'alias'],
       query: PREFIXES + `
 SELECT DISTINCT ?item ?language ?alias WHERE {
-  ${candidateUnion}
+  ${candidateGroup}
   ?item skos:altLabel ?alias .
   FILTER(LANG(?alias) IN ("de", "en"))
   BIND(LANG(?alias) AS ?language)
@@ -111,8 +113,8 @@ SELECT DISTINCT ?item ?language ?alias WHERE {
       columns: ['item', 'propertyId', 'value'],
       query: PREFIXES + `
 SELECT DISTINCT ?item ?propertyId ?value WHERE {
-  ${candidateUnion}
-  ${externalBranches}
+  ${candidateGroup}
+  ${externalGroup}
 }
 `,
     },
@@ -122,7 +124,7 @@ SELECT DISTINCT ?item ?propertyId ?value WHERE {
       columns: ['item', 'site'],
       query: PREFIXES + `
 SELECT DISTINCT ?item ?site WHERE {
-  ${candidateUnion}
+  ${candidateGroup}
   ?article schema:about ?item ;
            schema:isPartOf ?site .
   ?site wikibase:wikiGroup "wikipedia" .

@@ -39,6 +39,10 @@ test('QLever selective export set covers every Phase 12A2 stage field family',()
     assert.match(byId.get('external_ids'),new RegExp(`p:${propertyId}\\b`,'u'));
     assert.match(byId.get('external_ids'),new RegExp(`ps:${propertyId}\\b`,'u'));
   }
+  assert.match(
+    byId.get('external_ids'),
+    /WHERE \{\s*\{\s*\{ \?item p:P106[\s\S]+?\}\s*\}\s*\{\s*\{ \?item p:P1902[\s\S]+?\}\s*\}\s*\}/u,
+  );
   assert.match(byId.get('wikipedia_sitelinks'),/wikibase:wikiGroup "wikipedia"/u);
 });
 

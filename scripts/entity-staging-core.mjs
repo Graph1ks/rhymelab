@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { createReadStream, existsSync } from 'node:fs';
 import { createGunzip } from 'node:zlib';
-import readline from 'node:readline';
+import { StringDecoder } from 'node:string_decoder';
 import { basename, resolve } from 'node:path';
 import { availableParallelism } from 'node:os';
 import { classifyEntity, normalizeEntityName } from './entity-lexicon-core.mjs';
@@ -240,19 +240,51 @@ function bz2Command(path) {
   return candidates.find((candidate) => candidate && commandExists(candidate.command)) || null;
 }
 
+async function* iterateUtf8Lines(input) {
+  const decoder = new StringDecoder('utf8');
+  let carry = '';
+
+  for await (const chunk of input) {
+    carry += decoder.write(chunk);
+    let start = 0;
+    while (true) {
+      const newline = carry.indexOf('\n', start);
+      if (newline < 0) break;
+      let line = carry.slice(start, newline);
+      if (line.endsWith('\r')) line = line.slice(0, -1);
+      yield line;
+      start = newline + 1;
+    }
+    carry = carry.slice(start);
+  }
+
+  carry += decoder.end();
+  if (carry.length) {
+    if (carry.endsWith('\r')) carry = carry.slice(0, -1);
+    yield carry;
+  }
+}
+
+function gzipInput(path) {
+  const source = createReadStream(path);
+  const gunzip = createGunzip();
+  source.once('error', (error) => gunzip.destroy(error));
+  source.pipe(gunzip);
+  return gunzip;
+}
+
 export function openTextLines(path) {
   if (path === '-') {
     return {
-      lines: readline.createInterface({ input: process.stdin, crlfDelay: Infinity }),
+      lines: iterateUtf8Lines(process.stdin),
       done: Promise.resolve(),
       decompressor: 'stdin',
     };
   }
 
   if (path.endsWith('.gz')) {
-    const input = createReadStream(path).pipe(createGunzip());
     return {
-      lines: readline.createInterface({ input, crlfDelay: Infinity }),
+      lines: iterateUtf8Lines(gzipInput(path)),
       done: Promise.resolve(),
       decompressor: 'node:gzip',
     };
@@ -281,14 +313,14 @@ export function openTextLines(path) {
       });
     });
     return {
-      lines: readline.createInterface({ input: child.stdout, crlfDelay: Infinity }),
+      lines: iterateUtf8Lines(child.stdout),
       done,
       decompressor: selected.label || selected.command,
     };
   }
 
   return {
-    lines: readline.createInterface({ input: createReadStream(path), crlfDelay: Infinity }),
+    lines: iterateUtf8Lines(createReadStream(path)),
     done: Promise.resolve(),
     decompressor: 'none',
   };

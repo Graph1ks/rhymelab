@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
+import { gzipSync } from 'node:zlib';
 import {
   attachAndJoinQRank,
   categoryCutDiagnostics,
@@ -12,6 +13,7 @@ import {
   createTaxonomyRawPrefilter,
   extractStageEntity,
   finalizeQRankStage,
+  openTextLines,
   parseQRankLine,
   parseWikidataDumpLine,
   sentinelCutChecks,
@@ -160,6 +162,35 @@ test('duplicate source claims collapse to one staged external ID', () => {
     );
   } finally {
     db.close();
+  }
+});
+
+test('gzip line streaming is lossless under a slow synchronous consumer', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'rhymelab-gzip-lines-'));
+  const path = join(dir, 'rows.tsv.gz');
+  const total = 120000;
+  const lines = ['?item\t?label'];
+  for (let i = 0; i < total; i += 1) {
+    lines.push(`<http://www.wikidata.org/entity/Q${i + 1}>\t"Zeile ${i} äöü"@de`);
+  }
+  await writeFile(path, gzipSync(`${lines.join('\n')}\n`));
+
+  try {
+    const stream = openTextLines(path);
+    let count = 0;
+    for await (const line of stream.lines) {
+      if (count > 0 && count % 10000 === 0) {
+        let checksum = 0;
+        for (let j = 0; j < 20000; j += 1) checksum += j;
+        assert.ok(checksum > 0);
+      }
+      count += 1;
+      if (count === 2) assert.match(line, /Zeile 0 äöü/u);
+    }
+    await stream.done;
+    assert.equal(count, total + 1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
   }
 });
 
