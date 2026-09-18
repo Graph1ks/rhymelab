@@ -127,6 +127,7 @@ try {
     ready_modern_phrases: result.readyModernPhrases,
     phrase_coverage_pct: report.phraseCoveragePct,
     unresolved_reasons: result.unresolvedReasonCounts,
+    selection_basis_counts: result.selectionBasisCounts,
     ineligible_phrase_reasons: result.ineligiblePhraseReasonCounts,
     report: reportPath,
   }, null, 2));
