@@ -1195,7 +1195,7 @@
     "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
     "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
   ],
-  "next_milestone": "PHASE_12A2_WIKIDATA_QRANK_STAGING_CI_THEN_OWNER_FULL_SOURCE_DIAGNOSTIC",
+  "next_milestone": "PHASE_12A2_OWNER_FULL_SOURCE_STAGING_AND_CUT_DIAGNOSTICS",
   "phase_12_english": {
     "status": "PLANNED_AFTER_12A",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -1318,8 +1318,6 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "12A2_bootstrap_ci",
-      "owner_source_bootstrap_on_D_drive",
       "owner_full_wikidata_stage",
       "owner_full_qrank_stage",
       "owner_cut_diagnostics",
@@ -1327,7 +1325,7 @@
       "then_freeze_final_cut_popularity_policy"
     ],
     "staging_v1": {
-      "status": "IMPLEMENTED_CI_PENDING",
+      "status": "OWNER_SOURCE_BOOTSTRAP_ACCEPTED_FULL_STAGING_NEXT",
       "contract": "docs/ENTITY_STAGING_V1.md",
       "source_registry": "sources/entity/phase12a-sources-v1.json",
       "wikidata_stage_schema": "rhymelab-entity-stage-v1",
@@ -1354,7 +1352,7 @@
       "final_popularity_policy_frozen": false,
       "full_snapshot_download_allowed_after_fixture_ci": true,
       "owner_source_bootstrap": {
-        "status": "IMPLEMENTED_CI_PENDING",
+        "status": "OWNER_BOOTSTRAP_ACCEPTED",
         "command": "npm run entity:sources:bootstrap",
         "report": "data/local/entity-source-bootstrap-v1-report.json",
         "raw_dir": "data/raw/entity/phase12a-20260918",
@@ -1367,7 +1365,20 @@
         "resumable_wikidata_download": true,
         "uncompressed_wikidata_copy_required": false,
         "free_space_preflight": true,
-        "bzip2_decompressor_preflight": true
+        "bzip2_decompressor_preflight": true,
+        "completed_at": "2026-09-18T09:19:15.887Z",
+        "wikidata_local_sha256": "63f20c9595fc81209c975a96ff5c0a2d6895d94541f258d4092fa0f0ad390888",
+        "wikidata_transport": "acc-umu-se",
+        "wikidata_transport_role": "primary_mirror",
+        "wikidata_raw_retention": "retain_until_phase12_complete",
+        "qrank_retrieved_at": "2026-09-18",
+        "qrank_bytes": 105533721,
+        "qrank_local_sha256": "daf93ed3eaeeb7d9d88237118db44e34880680921e5e8eb3353626e4e76ed4dd",
+        "qrank_http_last_modified": "2024-03-16T11:36:47Z",
+        "qrank_http_etag": "\"79e65d73b0795eacb6e366964099ce77-7\"",
+        "qrank_freshness": "retrieval_date_not_data_vintage_effective_freshness_unknown",
+        "qrank_raw_retention": "retain_until_phase12_complete",
+        "all_source_integrity_gates_passed": true
       },
       "owner_full_runner": {
         "command": "npm run entity:owner:stage",
