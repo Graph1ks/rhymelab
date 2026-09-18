@@ -192,7 +192,17 @@ anchor fingerprint
 55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
 ```
 
-The source 11D1 window fingerprint remained unchanged. Repeat once and require the identical anchor fingerprint before moving from substrate/retrieval engineering into representative query evaluation.
+The source 11D1 window fingerprint remained unchanged.
+
+Repeat owner materialization reproduced the identical anchor fingerprint:
+
+```text
+55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+```
+
+Anchor count, distinct-key counts and database size were also identical. **Phase 11D2 is accepted and frozen.**
+
+Representative query diagnostics continue in `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
 
 ## Explicitly deferred
 

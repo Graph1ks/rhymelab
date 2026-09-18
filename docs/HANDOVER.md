@@ -280,6 +280,38 @@ anchor fingerprint
 The accepted 11D1 source window fingerprint remained exactly `24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac`, confirming that the 11D2 layer is additive and non-mutating.
 
 Remaining 11D2 gate: rerun `npm run phrase:mosaic:retrieval` and require the same anchor fingerprint before representative query diagnostics.
+## Phase 11D2 repeatability — PASS / PHASE CLOSED
+
+Second owner-local retrieval-anchor materialization reproduced the accepted substrate exactly:
+
+```text
+first   55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+repeat  55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+equal   true
+```
+
+Anchor count, all distinct-key counts, source fingerprints and 720,117,760-byte DB size were unchanged. 11D2 is accepted/frozen.
+
+## Phase 11D3 — current
+
+Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
+
+Fixture gate passed in required `validate` CI (run 253): source check, full tests including semantic-repeatability/no-anchor cases, and public-readiness audit all passed.
+
+The diagnostic runner uses the existing `benchmarks/de-writer-v2/plan.json` 12-query suite and Writer-v5 preferred pronunciations through `getWord()`. It records structural retrieval behavior only; there is still no phrase usefulness ranking.
+
+Important diagnostic distinction:
+
+- one-syllable query -> `query_below_2_syllable_mosaic_minimum`;
+- multi-syllable word whose stressed rhyme domain is only one syllable -> `accepted_rhyme_domain_below_2_syllable_mosaic_minimum`.
+
+Owner command after merge:
+
+```powershell
+npm run phrase:mosaic:diagnose
+```
+
+Upload `data/local/phrase-mosaic-query-diagnostics-v1-report.json`. Review retrieval coverage, candidate volumes, channel dominance, representative top candidates and latency before any 11E ranking design.
 ## Phase 11D2 — current
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`.

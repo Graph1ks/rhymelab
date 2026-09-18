@@ -63,6 +63,7 @@
     "phrase:pronunciation": "node --no-warnings scripts/materialize-de-phrase-pronunciations.mjs",
     "phrase:pronunciation:coverage": "node --no-warnings scripts/analyze-de-phrase-pronunciation-coverage.mjs",
     "phrase:mosaic:windows": "node --no-warnings scripts/materialize-de-phrase-mosaic-windows.mjs",
-    "phrase:mosaic:retrieval": "node --no-warnings scripts/materialize-de-phrase-mosaic-retrieval.mjs"
+    "phrase:mosaic:retrieval": "node --no-warnings scripts/materialize-de-phrase-mosaic-retrieval.mjs",
+    "phrase:mosaic:diagnose": "node --no-warnings scripts/diagnose-de-phrase-mosaic-retrieval.mjs"
   }
 }
