@@ -478,7 +478,7 @@ PASS: `Liebe` perfect remains #1; `Freiheit -> dabei seid` remains #1; `Musik ->
 ITERATION REQUIRED: commonness can jump materially weaker phonetics (`verloren` 0.700 -> 0.622 at #1), `Gedanken` raw 0.912747 falls to rank 17, and `Leben` still exposes its lone `weak` candidate.
 
 Decision: keep v1 as a deterministic control; do not promote it. 11E2-v2 must add a conservative phonetic near-tie guard and default Writer-page eligibility that excludes `weak`/restricted rows without deleting them from diagnostics.
-### Phase 11E2 v2 — conservative phonetic-guard candidate — FIXTURE GATE PASS / OWNER A/B PENDING
+### Phase 11E2 v2 — conservative phonetic-guard ranking — ACCEPTED
 
 v2 keeps v1's evidence components but changes **where they are allowed to act**:
 
@@ -497,6 +497,23 @@ Command after fixture CI:
 ```powershell
 npm run phrase:mosaic:rank:v2
 ```
+11E2-v2 owner A/B: **PASS / ACCEPTED**.
+
+```text
+suite ranking fp          1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0
+diagnostic candidates     1,237
+Writer-page candidates   1,182
+diagnostic-only             55
+weak excluded               42
+restricted excluded         14
+guard violations             0
+Leipzig-backed Top-20   48 raw -> 100 v1 -> 68 v2
+marked Top-20            4 raw -> 0 v1 -> 0 v2
+```
+
+Protected behavior passes: `Liebe` perfect and `Freiheit -> dabei seid` remain #1; `Leben` correctly has an empty Writer phrase page; `Gedanken` restores the strongest phonetic top; `verloren` keeps the 0.700 phonetic top; `Musik` abbreviation noise is demoted only through the explicit marked-surface safety exemption.
+
+Product decision: phrase/mosaic results are **not quota-filled into the default result list** and do not outrank better single-word results merely to stay visible. Phrase/Mosaic gets an explicit filter/channel; empty phrase results are valid. 11E3 diversity operates only inside the phrase/mosaic channel.
 ### Immediate owner gate
 
 After merge:

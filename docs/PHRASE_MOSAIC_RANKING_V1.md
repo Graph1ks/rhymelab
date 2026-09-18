@@ -4,7 +4,7 @@ Last updated: 2026-09-18
 
 ## Status
 
-**11E2-v2 IMPLEMENTED / FIXTURE CI PENDING — v1 RETAINED AS CONTROL**
+**11E2-v2 ACCEPTED — 11E3 PHRASE-CHANNEL DIVERSITY CURRENT**
 
 Phase 11D retrieval is accepted and frozen. Phase 11E consumes its output; it does not retune retrieval or phonetic relation truth.
 
@@ -326,6 +326,36 @@ Ordering guards are lexicographic: default Writer-page eligibility -> safety cla
 The 0.02 band is intentionally conservative: v1 owner evidence showed unacceptable top-score drops of 0.078 (`verloren`), 0.058 (`Spotify`) and 0.040 (`hitzefrei`). Product evidence must not cross such gaps. Safety demotion remains exempt because it addresses known malformed/abbreviation surfaces.
 
 `weak`, restricted and non-modern candidates are retained in diagnostics but excluded from the default Writer page; this makes `Leben` capable of correctly returning an empty phrase page without deleting provenance.
+
+### 11E2-v2 owner acceptance
+
+```text
+suite ranking fingerprint  1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0
+guard violations            0
+diagnostic candidates       1,237
+Writer-page candidates     1,182
+diagnostic-only               55
+weak excluded                 42
+restricted excluded           14
+```
+
+Decision: v2 is the accepted phrase-utility ordering for the next phase.
+
+### Cross-channel product policy
+
+Phrase/Mosaic is an optional result channel, not a quota. The default Writer surface must not reserve slots for phrases, boost phrase scores merely for visibility, or force a phrase result when better single-word results exist. Phrase/Mosaic must be independently filterable. Empty Phrase/Mosaic output is valid.
+
+Until single-word and phrase outputs share defensible human-reference calibration, do not interpret their internal numeric scores as directly comparable global utility values.
+
+### 11E3 scope
+
+Diversification applies only inside the accepted Phrase/Mosaic Writer-page candidate set:
+
+- exact canonical duplicate collapse;
+- deterministic inflection/template cluster control where a reliable key exists;
+- phrase-family concentration diagnostics and bounded suppression;
+- stable deterministic ordering and repeatability;
+- no cross-channel quota or promotion.
 
 Owner A/B result for v1:
 

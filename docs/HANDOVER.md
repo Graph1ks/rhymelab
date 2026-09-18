@@ -397,6 +397,19 @@ The safety behavior is correct and protected `Liebe`/`Freiheit` results survive,
 
 Fixture gate passed in required `validate` CI (run 277): source check, full tests and public-readiness audit all passed. The first CI attempt exposed only a deterministic tie-fixture expectation; production logic was unchanged.
 
+11E2-v2 owner A/B is now **accepted**.
+
+```text
+suite ranking fingerprint  1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0
+guard violations            0
+Writer-page rows            1,182 / 1,237
+weak diagnostic-only       42
+restricted diagnostic-only 14
+```
+
+Product rule: never force a Phrase/Mosaic quota into the default single-word result page. Better single-word results may legitimately occupy the visible top ranks. Phrase/Mosaic must remain available through its own filter/channel; an empty phrase channel is valid. Cross-channel numeric score calibration stays deferred until shared human-reference evidence exists.
+
+11E3 is current and is limited to deterministic diversity **inside the phrase channel**: canonical duplicates, obvious inflection/template clusters and phrase-family concentration. No cross-channel promotion.
 11E2-v2 is now implemented at fixture/code level.
 
 ```text

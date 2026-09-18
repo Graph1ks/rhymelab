@@ -243,7 +243,9 @@ Phase 11D is now accepted/frozen. Phase 11E phrase Writer ranking is current. Re
 
 Reason: safety demotion works, but commonness may outrank materially stronger same-type phonetics and `Leben` still exposes a lone weak row. Current work is 11E2-v2: commonness/type may reorder only within same safety class + relation type + conservative 0.02 phonetic near-tie band. Weak/restricted rows remain diagnostic but default Writer-page ineligible. No page diversification yet.
 
-11E2-v2 is implemented behind `npm run phrase:mosaic:rank:v2`. Its owner runner must reproduce v1 suite ranking fingerprint `593142fc70cc1e7b760d6bca3d94ea233c0bcaaf295f6f47f7659ccc7e805de4` and 11E1 evidence fingerprint `04ecde26f0a59b7615d6b2a192e7cffed26aefe86ebac07e388e546210d58845`. Do not relax the 0.02 guard or restore weak rows to the Writer page without owner A/B evidence.
+11E2-v2 is accepted. Accepted suite ranking fingerprint: `1d07ad486bdff8b167a7a394dafa687a60178cb43bd5a48da19044715d33d3a0`; owner A/B had zero phonetic-guard violations. Keep the 0.02 guard, Writer-page eligibility and v1 control unchanged unless new evidence justifies a revision.
+
+Current milestone is 11E3 phrase-channel diversity. Product rule: no phrase quota and no forced Phrase/Mosaic visibility in the default single-word ranking. Better words may legitimately sit above all phrase results. Phrase/Mosaic must remain separately filterable; diagnostic-only/weak rows can be surfaced only through explicit filters or diagnostics. Diversification must not cross-promote phrases against the single-word Writer.
 
 Phrase ranking remains deferred to 11E. 
 The accepted single-word Writer baseline remains frozen.
