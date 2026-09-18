@@ -462,3 +462,32 @@ Current branch work separates:
 - en-GB.
 
 No eligibility expansion is accepted yet. Run the corrected wordlist audit and segmented fallback diagnostic after merge; no Kaikki restream is needed.
+
+
+### 12B6 strict tagless pronunciation gate
+
+The owner reran the corrected 1,000-word audit successfully: 1,000 rows exactly, 882 in DB, 676 default, 206 published non-default and 118 missing.
+
+Fallback diagnostic v2 showed:
+
+```text
+all no-locale boundary-insensitive tail      65.61%
+v2 unqualified_fullword                      70.38%
+other-profiled                               13.70%
+partial                                       3.78%
+```
+
+Do **not** accept 70.38% as General-English truth. The v2 `unqualified_fullword` mismatch sample still contains source-tagged variants including `new-zealand`, `general-south-african`, `new-york-city`, `philadelphia` and `cot-caught-merger`.
+
+Current code therefore defines unqualified much more strictly: **zero source tags + no mapped locale + full-word IPA**. Any tagged no-locale pronunciation is preserved separately as recognized `other_profiled_fullword` or conservative `tagged_unmapped_fullword`; partial IPA remains `unmapped_partial`.
+
+Candidate source-provenance policy: `en-source-backed-publish-v3.2-candidate`. Default eligibility is unchanged.
+
+Next owner command:
+
+```powershell
+git pull
+npm run en:pronunciation:fallback:diagnose
+```
+
+No Kaikki restream, publish rebuild or DB rebuild is required for this diagnostic.

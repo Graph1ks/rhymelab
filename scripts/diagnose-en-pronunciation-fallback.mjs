@@ -43,12 +43,15 @@ function isPartialMarkedPronunciation(pronunciation){
 }
 function mappedUnprofiledClass(pronunciation){
   if(!hasNoMappedLocale(pronunciation)) return null;
+  if(isPartialMarkedPronunciation(pronunciation)) return 'unmapped_partial';
   if(pronunciation.source==='wiktionary'){
     const sourceLocale=classifyWiktionaryIpaLocale({tags:pronunciation.tags||[]});
-    if(sourceLocale.other_profiled) return 'other_profiled';
-    if(isPartialMarkedPronunciation(pronunciation)) return 'unqualified_partial';
+    if(sourceLocale.other_profiled) return 'other_profiled_fullword';
+    if(sourceLocale.tagged_unmapped) return 'tagged_unmapped_fullword';
+    if(sourceLocale.unqualified) return 'unqualified_fullword';
   }
-  return 'unqualified_fullword';
+  const tags=Array.isArray(pronunciation.tags)?pronunciation.tags.filter(Boolean):[];
+  return tags.length?'tagged_unmapped_fullword':'unqualified_fullword';
 }
 
 function boundaryInsensitiveTail(analysis){
@@ -160,23 +163,26 @@ function addBucket(bucket,row,references,candidates,label){
 
 const unprofiledAllVsUs=newBucket();
 const unqualifiedFullwordVsUs=newBucket();
-const otherProfiledVsUs=newBucket();
-const unqualifiedPartialVsUs=newBucket();
+const otherProfiledFullwordVsUs=newBucket();
+const taggedUnmappedFullwordVsUs=newBucket();
+const unmappedPartialVsUs=newBucket();
 const gbVsUs=newBucket();
 
 let publishedRows=0;
 let analyzedUsSurfaces=0;
 let analyzedNoMappedLocaleSurfaces=0;
 let analyzedUnqualifiedFullwordSurfaces=0;
-let analyzedOtherProfiledSurfaces=0;
-let analyzedUnqualifiedPartialSurfaces=0;
+let analyzedOtherProfiledFullwordSurfaces=0;
+let analyzedTaggedUnmappedFullwordSurfaces=0;
+let analyzedUnmappedPartialSurfaces=0;
 let analyzedGbSurfaces=0;
 
 const variantInventory={
   analyzed_no_mapped_locale:0,
   analyzed_unqualified_fullword:0,
-  analyzed_other_profiled:0,
-  analyzed_unqualified_partial:0,
+  analyzed_other_profiled_fullword:0,
+  analyzed_tagged_unmapped_fullword:0,
+  analyzed_unmapped_partial:0,
 };
 
 for(const shard of manifest.files||[]){
@@ -189,26 +195,30 @@ for(const shard of manifest.files||[]){
     const us=pronunciations.filter(isUs);
     const gb=pronunciations.filter(isGb);
     const noMapped=pronunciations.filter(hasNoMappedLocale);
-    const fullword=noMapped.filter((item)=>mappedUnprofiledClass(item)==='unqualified_fullword');
-    const otherProfiled=noMapped.filter((item)=>mappedUnprofiledClass(item)==='other_profiled');
-    const partial=noMapped.filter((item)=>mappedUnprofiledClass(item)==='unqualified_partial');
+    const unqualifiedFullword=noMapped.filter((item)=>mappedUnprofiledClass(item)==='unqualified_fullword');
+    const otherProfiledFullword=noMapped.filter((item)=>mappedUnprofiledClass(item)==='other_profiled_fullword');
+    const taggedUnmappedFullword=noMapped.filter((item)=>mappedUnprofiledClass(item)==='tagged_unmapped_fullword');
+    const unmappedPartial=noMapped.filter((item)=>mappedUnprofiledClass(item)==='unmapped_partial');
 
     if(us.length) analyzedUsSurfaces+=1;
     if(gb.length) analyzedGbSurfaces+=1;
     if(noMapped.length) analyzedNoMappedLocaleSurfaces+=1;
-    if(fullword.length) analyzedUnqualifiedFullwordSurfaces+=1;
-    if(otherProfiled.length) analyzedOtherProfiledSurfaces+=1;
-    if(partial.length) analyzedUnqualifiedPartialSurfaces+=1;
+    if(unqualifiedFullword.length) analyzedUnqualifiedFullwordSurfaces+=1;
+    if(otherProfiledFullword.length) analyzedOtherProfiledFullwordSurfaces+=1;
+    if(taggedUnmappedFullword.length) analyzedTaggedUnmappedFullwordSurfaces+=1;
+    if(unmappedPartial.length) analyzedUnmappedPartialSurfaces+=1;
 
     variantInventory.analyzed_no_mapped_locale+=noMapped.length;
-    variantInventory.analyzed_unqualified_fullword+=fullword.length;
-    variantInventory.analyzed_other_profiled+=otherProfiled.length;
-    variantInventory.analyzed_unqualified_partial+=partial.length;
+    variantInventory.analyzed_unqualified_fullword+=unqualifiedFullword.length;
+    variantInventory.analyzed_other_profiled_fullword+=otherProfiledFullword.length;
+    variantInventory.analyzed_tagged_unmapped_fullword+=taggedUnmappedFullword.length;
+    variantInventory.analyzed_unmapped_partial+=unmappedPartial.length;
 
     addBucket(unprofiledAllVsUs,row,us,noMapped,'unprofiled_all_vs_en_us');
-    addBucket(unqualifiedFullwordVsUs,row,us,fullword,'unqualified_fullword_vs_en_us');
-    addBucket(otherProfiledVsUs,row,us,otherProfiled,'other_profiled_vs_en_us');
-    addBucket(unqualifiedPartialVsUs,row,us,partial,'unqualified_partial_vs_en_us');
+    addBucket(unqualifiedFullwordVsUs,row,us,unqualifiedFullword,'unqualified_fullword_vs_en_us');
+    addBucket(otherProfiledFullwordVsUs,row,us,otherProfiledFullword,'other_profiled_fullword_vs_en_us');
+    addBucket(taggedUnmappedFullwordVsUs,row,us,taggedUnmappedFullword,'tagged_unmapped_fullword_vs_en_us');
+    addBucket(unmappedPartialVsUs,row,us,unmappedPartial,'unmapped_partial_vs_en_us');
     addBucket(gbVsUs,row,us,gb,'en_gb_vs_en_us');
   }
 }
@@ -236,7 +246,7 @@ function finalize(bucket){
 }
 
 const report={
-  schema:'rhymelab-en-pronunciation-fallback-diagnostic-v2',
+  schema:'rhymelab-en-pronunciation-fallback-diagnostic-v3',
   publish_schema:manifest.schema,
   publish_policy:manifest.policy,
   publish_fingerprint:manifest.semantic_fingerprint,
@@ -246,30 +256,34 @@ const report={
     analyzed_en_gb:analyzedGbSurfaces,
     analyzed_no_mapped_locale:analyzedNoMappedLocaleSurfaces,
     analyzed_unqualified_fullword:analyzedUnqualifiedFullwordSurfaces,
-    analyzed_other_profiled:analyzedOtherProfiledSurfaces,
-    analyzed_unqualified_partial:analyzedUnqualifiedPartialSurfaces,
+    analyzed_other_profiled_fullword:analyzedOtherProfiledFullwordSurfaces,
+    analyzed_tagged_unmapped_fullword:analyzedTaggedUnmappedFullwordSurfaces,
+    analyzed_unmapped_partial:analyzedUnmappedPartialSurfaces,
   },
   variant_inventory:variantInventory,
   comparisons:{
     unprofiled_all_vs_en_us:finalize(unprofiledAllVsUs),
     unqualified_fullword_vs_en_us:finalize(unqualifiedFullwordVsUs),
-    other_profiled_vs_en_us:finalize(otherProfiledVsUs),
-    unqualified_partial_vs_en_us:finalize(unqualifiedPartialVsUs),
+    other_profiled_fullword_vs_en_us:finalize(otherProfiledFullwordVsUs),
+    tagged_unmapped_fullword_vs_en_us:finalize(taggedUnmappedFullwordVsUs),
+    unmapped_partial_vs_en_us:finalize(unmappedPartialVsUs),
     en_gb_vs_en_us:finalize(gbVsUs),
   },
   interpretation_contract:{
     unqualified_fullword:
-      'No mapped locale or other regional/profile qualifier is present, and the IPA is not visibly marked as a partial pronunciation. This is the only no-locale class eligible for future General-English fallback consideration.',
-    other_profiled:
-      'Wiktionary tags contain a non-US/GB regional or pronunciation-profile qualifier (for example Canadian, Australian, rhotic or non-rhotic). Preserve separately; do not call it unprofiled General English.',
-    unqualified_partial:
-      'The no-locale IPA is visibly prefix/suffix/partial marked with a leading or trailing dash. It is not a full-word fallback pronunciation.',
+      'Strict class: no mapped locale, no Wiktionary tags at all, and no visible partial-pronunciation marker. This is the only no-locale class eligible for future General-English fallback consideration.',
+    other_profiled_fullword:
+      'Full-word IPA with a recognized non-US/GB regional or pronunciation-profile tag. Preserve separately; do not call it General English.',
+    tagged_unmapped_fullword:
+      'Full-word IPA with one or more source tags that are not mapped to en-US/en-GB or a recognized profile. Conservatively preserve as tagged/unmapped rather than treating it as unqualified.',
+    unmapped_partial:
+      'No-locale IPA visibly marked as prefix/suffix/partial with a leading or trailing dash. It is never a full-word fallback pronunciation.',
     exact_tail_match:
       'Current production exact-key agreement. This key includes analyzer syllable boundaries and can therefore disagree even when the rhyme-tail segment sequence is identical.',
     boundary_insensitive_tail_match:
       'Diagnostic-only agreement after removing syllable-boundary markers from the stressed rhyme tail.',
     acceptance:
-      'Do not relabel any fallback as en-US. Consider only true unqualified full-word IPA for a future provenance-preserving General-English fallback, after this segmented agreement benchmark is reviewed.',
+      'Do not relabel any fallback as en-US. Only strict tagless full-word IPA may be considered for a future provenance-preserving General-English fallback, after the v3 segmented agreement benchmark is reviewed.',
   },
 };
 
@@ -296,8 +310,9 @@ console.log(JSON.stringify({
   variant_inventory:report.variant_inventory,
   unprofiled_all_vs_en_us:compact(report.comparisons.unprofiled_all_vs_en_us),
   unqualified_fullword_vs_en_us:compact(report.comparisons.unqualified_fullword_vs_en_us),
-  other_profiled_vs_en_us:compact(report.comparisons.other_profiled_vs_en_us),
-  unqualified_partial_vs_en_us:compact(report.comparisons.unqualified_partial_vs_en_us),
+  other_profiled_fullword_vs_en_us:compact(report.comparisons.other_profiled_fullword_vs_en_us),
+  tagged_unmapped_fullword_vs_en_us:compact(report.comparisons.tagged_unmapped_fullword_vs_en_us),
+  unmapped_partial_vs_en_us:compact(report.comparisons.unmapped_partial_vs_en_us),
   en_gb_vs_en_us:compact(report.comparisons.en_gb_vs_en_us),
   report:out,
 },null,2));

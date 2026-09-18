@@ -192,7 +192,7 @@ test('English wordlist coverage audit separates DB presence, default selection a
 });
 
 
-test('English fallback diagnostic separates true unqualified, other-profiled and partial IPA',async()=>{
+test('English fallback diagnostic separates tagless, profiled, tagged-unmapped and partial IPA',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'rhymelab-en-provenance-'));
   const publish=join(dir,'publish');
   await mkdir(publish,{recursive:true});
@@ -203,8 +203,9 @@ test('English fallback diagnostic separates true unqualified, other-profiled and
     pronunciations:[
       {source:'cmudict',raw:'P R OW1 B',locales:['en-US'],tags:[],analysis_status:'ok',analysis},
       {source:'wiktionary',raw:'/tail/',locales:[],tags:[],analysis_status:'ok',analysis},
-      {source:'wiktionary',raw:'/teil/',locales:[],tags:['Australia'],analysis_status:'ok',analysis},
-      {source:'wiktionary',raw:'/-tail/',locales:[],tags:[],analysis_status:'ok',analysis},
+      {source:'wiktionary',raw:'/teil/',locales:[],tags:['new-zealand'],analysis_status:'ok',analysis},
+      {source:'wiktionary',raw:'/tɑl/',locales:[],tags:['cot-caught-merger'],analysis_status:'ok',analysis},
+      {source:'wiktionary',raw:'/-tail/',locales:[],tags:['general-south-african'],analysis_status:'ok',analysis},
     ],
   }];
   await writeFile(join(publish,shard),rows.map((row)=>JSON.stringify(row)).join('\n')+'\n');
@@ -214,14 +215,17 @@ test('English fallback diagnostic separates true unqualified, other-profiled and
   const out=join(dir,'fallback-report.json');
   execFileSync(process.execPath,[fallbackScript,'--publish',publish,'--out',out],{stdio:'pipe'});
   const report=JSON.parse(await readFile(out,'utf8'));
-  assert.equal(report.schema,'rhymelab-en-pronunciation-fallback-diagnostic-v2');
+  assert.equal(report.schema,'rhymelab-en-pronunciation-fallback-diagnostic-v3');
   assert.equal(report.surface_inventory.analyzed_unqualified_fullword,1);
-  assert.equal(report.surface_inventory.analyzed_other_profiled,1);
-  assert.equal(report.surface_inventory.analyzed_unqualified_partial,1);
+  assert.equal(report.surface_inventory.analyzed_other_profiled_fullword,1);
+  assert.equal(report.surface_inventory.analyzed_tagged_unmapped_fullword,1);
+  assert.equal(report.surface_inventory.analyzed_unmapped_partial,1);
   assert.equal(report.variant_inventory.analyzed_unqualified_fullword,1);
-  assert.equal(report.variant_inventory.analyzed_other_profiled,1);
-  assert.equal(report.variant_inventory.analyzed_unqualified_partial,1);
+  assert.equal(report.variant_inventory.analyzed_other_profiled_fullword,1);
+  assert.equal(report.variant_inventory.analyzed_tagged_unmapped_fullword,1);
+  assert.equal(report.variant_inventory.analyzed_unmapped_partial,1);
   assert.equal(report.comparisons.unqualified_fullword_vs_en_us.surfaces,1);
-  assert.equal(report.comparisons.other_profiled_vs_en_us.surfaces,1);
-  assert.equal(report.comparisons.unqualified_partial_vs_en_us.surfaces,1);
+  assert.equal(report.comparisons.other_profiled_fullword_vs_en_us.surfaces,1);
+  assert.equal(report.comparisons.tagged_unmapped_fullword_vs_en_us.surfaces,1);
+  assert.equal(report.comparisons.unmapped_partial_vs_en_us.surfaces,1);
 });

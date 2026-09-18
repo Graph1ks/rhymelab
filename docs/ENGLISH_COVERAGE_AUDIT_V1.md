@@ -614,3 +614,77 @@ npm run en:pronunciation:fallback:diagnose
 ```
 
 The wordlist rerun is cheap and should report exactly 1,000 rows. The fallback rerun is also publish-shard-only; no Kaikki restream is required.
+
+
+## Segmented fallback owner rerun — v2 result and stricter v3 gate
+
+The corrected 1,000-word audit now reports exactly 1,000 rows and ignores three prose metadata lines. The corrected counts are unchanged:
+
+```text
+in English SQLite                  882 / 1000  88.2%
+default-selected                   676 / 1000  67.6%
+published non-default              206 / 1000  20.6%
+missing from DB                    118 / 1000  11.8%
+with any analyzed pronunciation    859 / 1000  85.9%
+with analyzed en-US pronunciation  682 / 1000  68.2%
+```
+
+The segmented pronunciation diagnostic v2 materially improved the no-locale comparison but also exposed that the supposedly unqualified bucket was still contaminated by source tags:
+
+```text
+all no-mapped-locale vs en-US:
+  surfaces                              21,306
+  exact-tail match                      62.85%
+  boundary-insensitive tail             65.61%
+
+v2 unqualified_fullword vs en-US:
+  surfaces                              19,354
+  exact-tail match                      67.40%
+  boundary-insensitive tail             70.38%
+  boundary-insensitive tail + stress    65.71%
+  phoneme-sequence match                65.27%
+  syllable-count match                  96.88%
+  stress-pattern match                  83.42%
+  vowel-family match                    72.27%
+
+other_profiled vs en-US:
+  surfaces                               2,941
+  exact-tail match                      13.26%
+  boundary-insensitive tail             13.70%
+
+partial vs en-US:
+  surfaces                                 185
+  exact-tail match                       3.24%
+  boundary-insensitive tail              3.78%
+```
+
+The v2 `unqualified_fullword` class is **not acceptance evidence**. Mismatch examples still contain tags such as `new-zealand`, `general-south-african`, `new-york-city`, `philadelphia` and `cot-caught-merger`. The previous classifier used a finite regional-pattern list and therefore treated unknown/unmatched tags as unqualified.
+
+The policy is now stricter:
+
+```text
+unqualified_fullword         no mapped locale + zero source tags + full-word IPA
+other_profiled_fullword      recognized non-US/GB regional/profile tag
+tagged_unmapped_fullword     one or more source tags, but no mapped locale/profile
+unmapped_partial             visibly partial prefix/suffix IPA
+en-GB                        preserved separately
+```
+
+Only the first class may be considered for a future General-English fallback. This avoids an open-ended attempt to enumerate every region, city, merger, split or source pronunciation qualifier.
+
+Source pronunciation provenance candidate policy becomes:
+
+```text
+en-source-backed-publish-v3.2-candidate
+```
+
+No default eligibility changes are accepted. No publish rebuild is required to run the v3 diagnostic because it reclassifies the existing publish-shard tags in place.
+
+Owner gate:
+
+```powershell
+git pull
+npm run en:pronunciation:fallback:diagnose
+```
+
+The diagnostic schema should be `rhymelab-en-pronunciation-fallback-diagnostic-v3`. The publish-v4 decision remains blocked until the strict tagless `unqualified_fullword_vs_en_us` agreement is known.

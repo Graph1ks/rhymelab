@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B6_SEGMENTED_UNPROFILED_IPA_PROVENANCE_AUDIT",
+    "status": "ACTIVE_12B6_STRICT_TAGLESS_IPA_DIAGNOSTIC",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B6_RERUN_CORRECTED_1000_WORD_AUDIT_AND_SEGMENTED_FALLBACK_DIAGNOSTIC_THEN_DEFINE_PUBLISH_V4",
+    "next_gate": "PHASE_12B6_OWNER_RUN_PRONUNCIATION_FALLBACK_DIAGNOSTIC_V3_THEN_DEFINE_PUBLISH_V4",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1446,7 +1446,9 @@
         "unresolved_pronunciation_variants": 35000,
         "semantic_fingerprint": "0be8f5509d4d618f3e2343dc4e543f2b3612c53e1ac02862f962a0006eaf0508",
         "fingerprints_equal": true
-      }
+      },
+      "candidate_pronunciation_provenance_policy": "en-source-backed-publish-v3.2-candidate",
+      "candidate_pronunciation_provenance_owner_rebuild_pending": true
     },
     "writer_db_v1": {
       "status": "V2_HISTORY_FIX_OWNER_BUILD_VERIFY_PASS_CANDIDATE",
@@ -1526,7 +1528,7 @@
       }
     },
     "coverage_audit_v1": {
-      "status": "V3_OWNER_RERUN_COMPLETE_STRATIFIED_REVIEW_IMPLEMENTED_OWNER_RERUN_PENDING",
+      "status": "OWNER_1000_WORD_RERUN_PASS_FALLBACK_V2_REVIEWED_STRICT_V3_PENDING",
       "contract": "docs/ENGLISH_COVERAGE_AUDIT_V1.md",
       "command": "npm run en:coverage:audit",
       "report": "data/local/en-coverage-audit-v1-report.json",
@@ -1822,7 +1824,7 @@
         ]
       },
       "random_1000_word_stress_probe": {
-        "status": "COMPLETE_WITH_PARSER_METADATA_FIX",
+        "status": "PASS_CONFIRMED_1000_ROWS",
         "actual_words": 1000,
         "first_run_rows": 1003,
         "ignored_prose_metadata_rows": 3,
@@ -1856,20 +1858,62 @@
           "strict_morphology_candidate": 1,
           "form_of_without_analyzed_lemma": 1
         },
-        "interpretation": "stress probe only; input metadata explicitly says words were not selected from an external lexical authority"
+        "interpretation": "stress probe only; input metadata explicitly says words were not selected from an external lexical authority",
+        "rerun_rows": 1000,
+        "rerun_ignored_metadata_lines": 3
       },
       "pronunciation_provenance_fix": {
-        "status": "IMPLEMENTED_OWNER_RERUN_PENDING",
-        "publish_policy": "en-source-backed-publish-v3.1-candidate",
-        "classes": [
-          "unqualified_fullword",
-          "other_profiled",
-          "unqualified_partial",
+        "status": "V2_OWNER_RERUN_REVIEWED_STRICT_V3_IMPLEMENTED_OWNER_RERUN_PENDING",
+        "current_owner_publish_fingerprint": "6a01534b57ff250fa0c11aef00f008e0e4d23ed023bf18718037498ee35467ba",
+        "candidate_publish_policy": "en-source-backed-publish-v3.2-candidate",
+        "diagnostic_schema": "rhymelab-en-pronunciation-fallback-diagnostic-v3",
+        "default_eligibility_changed": false,
+        "v2_owner_result": {
+          "analyzed_en_us_surfaces": 111574,
+          "analyzed_en_gb_surfaces": 32855,
+          "analyzed_no_mapped_locale_surfaces": 46840,
+          "analyzed_unqualified_fullword_surfaces": 44508,
+          "analyzed_other_profiled_surfaces": 3300,
+          "analyzed_unqualified_partial_surfaces": 593,
+          "comparison_unqualified_fullword_vs_en_us": {
+            "surfaces": 19354,
+            "exact_tail_match_pct": 67.4,
+            "boundary_insensitive_tail_match_pct": 70.38,
+            "boundary_insensitive_tail_plus_stress_match_pct": 65.71,
+            "phoneme_sequence_match_pct": 65.27,
+            "syllable_count_match_pct": 96.88,
+            "stress_pattern_match_pct": 83.42,
+            "vowel_family_match_pct": 72.27
+          },
+          "comparison_other_profiled_vs_en_us": {
+            "surfaces": 2941,
+            "exact_tail_match_pct": 13.26,
+            "boundary_insensitive_tail_match_pct": 13.7
+          },
+          "comparison_partial_vs_en_us": {
+            "surfaces": 185,
+            "exact_tail_match_pct": 3.24,
+            "boundary_insensitive_tail_match_pct": 3.78
+          },
+          "defect": "v2 unqualified bucket still contained tagged source pronunciations because unmatched tags were treated as unqualified",
+          "examples": [
+            "new-zealand",
+            "general-south-african",
+            "new-york-city",
+            "philadelphia",
+            "cot-caught-merger"
+          ]
+        },
+        "strict_v3_classes": [
+          "unqualified_fullword_tagless_only",
+          "other_profiled_fullword",
+          "tagged_unmapped_fullword",
+          "unmapped_partial",
           "en-GB"
         ],
-        "default_eligibility_changed": false,
-        "motivation": "old no-US/GB bucket mixed true unqualified IPA with other regional/profile-tagged IPA and partial IPA",
-        "command": "npm run en:pronunciation:fallback:diagnose"
+        "acceptance_rule": "only_tagless_fullword_no-locale_ipa_may_be_considered_for_general_english_fallback",
+        "command": "npm run en:pronunciation:fallback:diagnose",
+        "no_publish_rebuild_required_for_diagnostic": true
       }
     },
     "unknown_query_pronunciation_fallback": {

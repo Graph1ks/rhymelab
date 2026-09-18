@@ -855,3 +855,6 @@ Phase 12B6 exact rescue counts are complete: 4,204 Tier-A immediate candidates a
 
 
 Phase 12B6 1,000-word stress probe reviewed. Corrected actual-word coverage is 882/1000 in DB and 676/1000 default; coverage is perfect through rarity 4 and drops materially only in the rare tail. A provenance bug was found in the previous no-locale IPA bucket: other regional/profile-tagged and partial IPA were mixed with true unqualified full-word IPA. Current gate is the segmented fallback rerun before any General-English fallback or publish-v4 eligibility expansion.
+
+
+Phase 12B6 segmented fallback v2 rerun completed. Corrected 1,000-word probe is confirmed at 882/1000 DB coverage and 676/1000 default. The v2 `unqualified_fullword` bucket improved to 70.38% boundary-insensitive tail agreement but is still contaminated by tagged pronunciations. Current gate is diagnostic v3: only tagless full-word no-locale IPA counts as unqualified; tagged-unmapped, other-profiled and partial IPA are separated. No publish-v4 eligibility expansion yet.
