@@ -183,7 +183,7 @@ Decision: do **not** block Phase 11D on a manual 11C2 lexical-gap campaign. Keep
 
 The repeatability gate passed: two owner full-data runs produced the identical pronunciation fingerprint `fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548`. Phase 11C1 is accepted and closed.
 
-Phase 11D1 is accepted/frozen after two identical full-data window fingerprints. Current milestone is Phase 11D2 bounded indexed candidate retrieval. Read both `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md` and `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md` before changing mosaic code.
+Phases 11D1 and 11D2 are accepted/frozen after exact owner repeatability. Current milestone is Phase 11D3 representative query diagnostics. Read `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`, `docs/PHRASE_MOSAIC_RETRIEVAL_V2.md`, and `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md` before changing mosaic code.
 Phase 11D1 owner repeatability is accepted:
 
 ```text
@@ -194,23 +194,22 @@ windows              356,693
 
 11D2 adds a separate retrieval-anchor table; do not mutate/fold these keys back into the accepted 11D1 window fingerprint. The exact rhyme-tail key must exclude the first rhyme-syllable onset to stay consistent with `de-phon-v3`.
 
-The first owner full-data 11D2 build is complete:
+Phase 11D2 owner repeatability is accepted:
 
 ```text
-anchor rows             356,693
-exact-tail keys         181,548
-vowel keys               52,174
-final class keys             772
-anchor fingerprint      55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+anchor fingerprint   55626550bcabe9b1e422d61378121ada50b2a33a6507d5d4f4b9a726abf743ae
+repeat equal         true
+anchors              356,693
 ```
 
 Current owner gate:
 
 ```powershell
-npm run phrase:mosaic:retrieval
+npm run phrase:mosaic:diagnose
 ```
 
-Repeat once more and require the identical anchor fingerprint before representative query diagnostics. Phrase ranking remains deferred to 11E. 
+The default 11D3 suite is the existing 12-query Writer Page v2 plan. Treat no-anchor states as diagnostic evidence; do not widen the accepted substrate or add ranking weights solely to make the suite look better. Review the full-data report before 11E. 
+Phrase ranking remains deferred to 11E. 
 The accepted single-word Writer baseline remains frozen.
 
 
