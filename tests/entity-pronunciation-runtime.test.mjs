@@ -19,9 +19,10 @@ import {
   searchEntityRhymes,
 } from '../src/entity-writer-runtime.mjs';
 
-const [fixture, taxonomy] = await Promise.all([
+const [fixture, taxonomy, materializerSource] = await Promise.all([
   readFile('fixtures/entity/wikidata-cultural-v1.json', 'utf8').then(JSON.parse),
   readFile('sources/entity/wikidata-entity-taxonomy-v1.json', 'utf8').then(JSON.parse),
+  readFile('scripts/materialize-entity-pronunciations.mjs', 'utf8'),
 ]);
 
 function buildEntityRuntimeDb() {
@@ -144,4 +145,18 @@ test('entity phonetic runtime exposes indexed Rapper and Musician categories', (
   } finally {
     db.close();
   }
+});
+
+
+test('entity pronunciation materializer exposes progress and resumable checkpoints', () => {
+  assert.match(materializerSource, /const CHECKPOINT_EVERY = 10000/);
+  assert.match(materializerSource, /const PROGRESS_EVERY = 5000/);
+  assert.match(materializerSource, /phase 1\/3/);
+  assert.match(materializerSource, /phase 2\/3/);
+  assert.match(materializerSource, /phase 3\/3/);
+  assert.match(materializerSource, /entity_pronunciation_name_checkpoint/);
+  assert.match(materializerSource, /entity_phonetic_analysis_checkpoint/);
+  assert.match(materializerSource, /compatible partial analyzer index found; resuming/);
+  assert.match(materializerSource, /statement\.iterate/);
+  assert.match(materializerSource, /PRAGMA wal_checkpoint\(TRUNCATE\)/);
 });
