@@ -227,6 +227,30 @@ equal   true
 
 The base catalog fingerprint remained `f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d`, database size and coverage counts were unchanged. Phase 11C1 is accepted and closed.
 
+## Phase 11D1 owner full-data build — COMPLETE / REPEATABILITY PENDING
+
+The first full owner-local mosaic-window materialization succeeded:
+
+```text
+source pronunciation fingerprint
+fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+
+base catalog fingerprint
+f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d
+
+pronunciations scanned    90,089
+phrases with windows      90,089
+windows                  356,693
+SQLite                   510.09 MiB
+window fingerprint
+24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+```
+
+2–4-syllable windows account for 291,751 / 356,693 windows (~81.79%). 327,828 windows cross exactly one word boundary; multi-boundary windows are present up to five boundaries.
+
+Interpretation: the 11D1 substrate has useful scale without exploding combinatorially. Exact indexed lookup is ready; fuzzy candidate retrieval and phrase ranking remain intentionally deferred.
+
+Remaining 11D1 gate: rerun `npm run phrase:mosaic:windows` and require the same window fingerprint before 11D2.
 ## Phase 11D1 — current
 
 Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`.
