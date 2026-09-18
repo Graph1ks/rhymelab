@@ -464,7 +464,7 @@ const stratifiedSample={
   seed:reviewSeed,
   source_publish_fingerprint:manifest.semantic_fingerprint,
   sample_per_status_band:8,
-  rank_bands,
+  rank_bands:rankBands,
   cells:stratifiedCells,
 };
 
