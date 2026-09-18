@@ -466,7 +466,7 @@ async function runSearch(force = false) {
 function scheduleSearch(delay = 180, force = false) {
   clearTimeout(state.timer);
   const query = currentQuery();
-  if (query) {
+  if (query && languageBasis() !== 'en') {
     suggestions.innerHTML = '<div class="small">Searching RhymeLab…</div>';
   }
   state.timer = setTimeout(() => runSearch(force), delay);
