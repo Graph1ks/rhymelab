@@ -167,6 +167,8 @@ Phase 12A1 fixture CI and the owner-local report gate are accepted. Accepted sem
 
 Current work is **12A2 Wikidata + QRank staging**. Read `docs/ENTITY_STAGING_V1.md`.
 
+Owner source bootstrap is accepted. The validated compressed Wikidata 20260914 dump and the downloaded QRank artifact must remain local/gitignored and be retained until Phase 12 is complete. Do not redownload them between Phase 12 rebuilds unless an explicit source-refresh decision is made. QRank retrieval date 2026-09-18 is not its data vintage; the accepted response carried a 2024-03-16 Last-Modified timestamp.
+
 Owner source acquisition is now a gated local workflow:
 
 ```text
