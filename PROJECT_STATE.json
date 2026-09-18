@@ -1211,7 +1211,7 @@
     "must_not_emulate_english_with_german_phonology": true
   },
   "phase_12_entity_lexicon": {
-    "status": "CURRENT_ARCHITECTURE_GATE",
+    "status": "FIXTURE_PROTOTYPE_IMPLEMENTED_CI_PENDING",
     "plan": "docs/ENTITY_LEXICON_PLAN.md",
     "database": "data/local/rhymelab-entities-v1.sqlite",
     "runtime_local_only": true,
@@ -1269,6 +1269,37 @@
       "12B_english_phonology_single_word_profile_benchmark",
       "12C_full_entity_pronunciation_materialization_writer_entity_channel",
       "12D_english_phrase_mosaic_expansion"
+    ],
+    "fixture": {
+      "schema": "rhymelab-entity-fixture-v1",
+      "file": "fixtures/entity/wikidata-cultural-v1.json",
+      "builder": "scripts/build-entity-fixture.mjs",
+      "command": "npm run entity:fixture",
+      "database": "data/local/rhymelab-entities-v1-fixture.sqlite",
+      "report": "data/local/entity-lexicon-v1-fixture-report.json",
+      "taxonomy": "sources/entity/wikidata-entity-taxonomy-v1.json",
+      "core_schema": "rhymelab-entity-catalog-v1",
+      "taxonomy_policy": "wikidata-cultural-entity-taxonomy-v1",
+      "popularity_policy": "category-relative-popularity-v1",
+      "expected_input_items": 10,
+      "expected_structural_rejected": [
+        "Q900000004"
+      ],
+      "expected_popularity_rejected": [
+        "Q900000002",
+        "Q900000003"
+      ],
+      "expected_retained_entities": 7,
+      "bud_spencer_sentinel": "KEEP_person.actor_Tier_A",
+      "fixture_popularity_values_live": false,
+      "pronunciation_tables_present_but_unmaterialized": true,
+      "runtime_rewired": false
+    },
+    "current_gate": [
+      "fixture_ci",
+      "owner_local_fixture_build",
+      "review_fixture_report",
+      "then_design_full_dump_streamer_and_real_qrank_join"
     ]
   }
 }

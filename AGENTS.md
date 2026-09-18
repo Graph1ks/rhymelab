@@ -151,6 +151,16 @@ Frozen product rules:
 
 Current milestone: **Phase 12A — multilingual cultural Entity Lexicon**. Read `docs/ENTITY_LEXICON_PLAN.md` before entity/popularity/pronunciation work.
 
+Current implementation gate is the deterministic fixture/prototype:
+
+- `sources/entity/wikidata-entity-taxonomy-v1.json`;
+- `fixtures/entity/wikidata-cultural-v1.json`;
+- `scripts/entity-lexicon-core.mjs`;
+- `scripts/build-entity-fixture.mjs`;
+- `npm run entity:fixture`.
+
+Do not start the full Wikidata dump streamer until the fixture CI + owner-local report gate passes. Fixture popularity values are synthetic test scales only, never live QRank/pageview facts.
+
 Phase 12 sequence is now:
 
 1. 12A multilingual cultural Entity Lexicon architecture + fixture/prototype;
