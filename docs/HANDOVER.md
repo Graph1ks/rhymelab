@@ -59,14 +59,19 @@ Fixture popularity inputs are synthetic scales for deterministic tests only; the
 
 Current milestone: **12A2 Wikidata + QRank staging**.
 
-The owner source bootstrap is accepted. Keep these local raw files through all of Phase 12:
+The original owner bootstrap completed successfully, but the classic 103 GB Wikidata dump is no longer part of the active source contract. The owner explicitly rejected any further multi-hour full-dump staging/control comparison and may delete:
 
 ```text
 data/raw/entity/phase12a-20260918/wikidata-20260914-all.json.bz2
+```
+
+Do **not** require, redownload, restage, benchmark against, or ask the owner to retain that dump. Keep only the pinned QRank raw artifact for the active Phase 12A2 path:
+
+```text
 data/raw/entity/phase12a-20260918/qrank-20260918.csv.gz
 ```
 
-Wikidata passed exact-size + official SHA-1 and local SHA-256 verification. QRank was retrieved on 2026-09-18 but the response reported `Last-Modified: 2024-03-16`; treat the retrieval date and data vintage as separate provenance fields.
+QRank was retrieved on 2026-09-18 but the response reported `Last-Modified: 2024-03-16`; treat retrieval date and data vintage as separate provenance fields.
 
 Owner commands after the bootstrap PR merges:
 
@@ -79,34 +84,18 @@ The source bootstrap pins Wikidata snapshot 20260914, validates its published SH
 
 Read `docs/ENTITY_STAGING_V1.md`. The implementation stages only structurally relevant Wikidata candidates, keeps QRank in a disposable build-time SQLite, joins it locally, and produces category-relative cut diagnostics. The full final Entity Lexicon remains blocked until the owner full-source staging reports are reviewed.
 
-### Current owner full-stage run
+### Classic full-dump stage — ABANDONED
 
-The first accepted-source full run is currently in progress on the owner machine:
+The owner stopped the WSL/lbzip2 full-dump stage manually after the live QLever replacement was verified and deleted the partial staging SQLite. This path is no longer an acceptance/control gate.
 
-```text
-command                 npm run entity:owner:stage
-decompressor            wsl:lbzip2:8t
-taxonomy prefilter      13 reviewed QIDs
-transaction size        50,000
-latest observed lines   4,750,000
-latest JSON parsed      150,620 (3.17%)
-latest staged           115,358
-latest average rate     5,842 lines/s
-latest elapsed          0.23 h
-machine                 i7-7700K / 4C 8T, CPU saturated
-```
+Do not spend further project time on:
 
-The raw-line prefilter is lossless/conservative: it only decides whether a row can skip expensive JSON parsing; exact P31/P106 category validation still happens after parsing. External-ID duplicates are deduplicated deterministically before SQLite insertion. Secondary indexes are built after bulk ingestion and prepared statements are reused.
+- staging the 103 GB classic dump;
+- comparing QLever against a completed classic-dump stage;
+- preserving the classic dump for later validation;
+- optimizing BZip2/WSL/full-dump throughput.
 
-After the live QLever feasibility gate passed, the current multi-hour full-dump run became optional control evidence rather than a blocking gate. It may be stopped to save time; the validated 20260914 raw dump remains retained locally and can be staged later without another download.
-
-When the run finishes, review/upload:
-
-```text
-data/local/entity-wikidata-stage-v1-report.json
-data/local/entity-qrank-stage-v1-report.json
-data/local/entity-cut-diagnostics-v1-report.json
-```
+The active owner gate is the QLever fast path below.
 
 ### QLever selective acquisition — LIVE FEASIBILITY VERIFIED
 
@@ -149,9 +138,9 @@ Decision:
 - QLever is now the **verified fast-acquisition implementation target**, not merely a research candidate;
 - it is a build-time acquisition dependency only; runtime stays local/offline;
 - freeze exact result artifacts locally with query text, endpoint, timestamps, taxonomy hash, row counts, SHA-256 and semantic fingerprint;
-- the 20260914 raw dump remains retained locally as an optional dated validation/control source;
-- the owner does **not** need to wait for the current multi-hour full-dump stage before implementing/using the QLever fast path;
-- if the full-dump stage is stopped, no source data is lost and it can be rerun later without redownloading.
+- the classic 20260914 full dump is explicitly retired from the active project workflow and may be deleted;
+- no QLever-vs-classic-dump comparison is required;
+- the owner should proceed directly with the QLever fast path.
 
 The real local QLever acquisition + staging path is now implemented on the current Phase 12A2 branch. After merge, use:
 
