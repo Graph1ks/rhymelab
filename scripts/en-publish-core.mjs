@@ -1,5 +1,6 @@
 import {
   classifyWiktionaryHistory,
+  classifyWiktionaryRecordHistory,
   classifyWiktionaryIpaLocale,
   collectWiktionaryTags,
   isExplicitProperNameRecord,
@@ -55,7 +56,7 @@ export function lexicalEvidenceForHeadword(record) {
   const normalized = normalizeEnglishSurface(record?.word);
   if (!isEnglishPublishSurface(normalized)) return null;
   const tags = collectWiktionaryTags(record);
-  const history = classifyWiktionaryHistory(tags);
+  const history = classifyWiktionaryRecordHistory(record);
   const formOf = relationTargets(record?.senses, 'form_of');
   const altOf = relationTargets(record?.senses, 'alt_of');
   const lemmaCandidates = [...new Set([...formOf, ...altOf])];
