@@ -218,6 +218,38 @@ Review at least:
 - deterministic repeat fingerprint equality;
 - exact preservation of the accepted Phase 11B1 base catalog fingerprint.
 
+## Targeted coverage triage before 11D
+
+After the full 11C1 materialization, measure whether a small reviewed lexical coverage pass is worth doing before mosaic retrieval:
+
+```powershell
+npm run phrase:pronunciation:coverage
+```
+
+Default output:
+
+```text
+data/local/phrase-pronunciation-coverage-v1-report.json
+```
+
+The analyzer is read-only. It ranks unresolved normalized tokens by observed blocking impact and reports:
+
+- unresolved token occurrences and distinct unresolved normalized forms;
+- blocked phrases and blocked modern-eligible phrases;
+- phrases with exactly one distinct unresolved normalized token;
+- per-token phrase counts and modern phrase counts;
+- per-token single-blocker unlock counts;
+- observed surface, phrase-type and historical-state distributions;
+- cumulative Top-N resolution-unblock upper bounds.
+
+The unlock curve is deliberately an **upper bound**. A missing token is not automatically approved for 11C2 merely because it has high impact. Every added pronunciation still needs source-backed lexical/pronunciation review and must analyze cleanly under `de-ipa-v2`.
+
+Use this report to choose between:
+
+- a small targeted 11C2 pass for a compact set of high-impact ordinary German lexical gaps; or
+- proceeding directly to 11D if the missing coverage is diffuse, noisy, historical, entity-heavy or foreign-language-heavy.
+
+Do not add broad G2P fallback as part of this triage.
 ## Phrase Explorer
 
 After materialization:
