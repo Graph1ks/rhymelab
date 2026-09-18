@@ -32,7 +32,7 @@ semantic fingerprint
 
 Current milestone is **Phase 12A — multilingual cultural Entity Lexicon**. Architecture: `docs/ENTITY_LEXICON_PLAN.md`.
 
-The first deterministic fixture/prototype is implemented on branch work and must pass CI + owner-local build before the full dump streamer is started:
+The deterministic Phase 12A1 fixture/prototype has passed CI and the owner-local gate:
 
 ```text
 npm run entity:fixture
@@ -41,7 +41,7 @@ DB      data/local/rhymelab-entities-v1-fixture.sqlite
 report  data/local/entity-lexicon-v1-fixture-report.json
 ```
 
-Expected fixture gate:
+Accepted fixture gate:
 
 ```text
 10 input items
@@ -56,6 +56,10 @@ semantic fingerprint repeatable
 ```
 
 Fixture popularity inputs are synthetic scales for deterministic tests only; they are not live QRank/pageview measurements.
+
+Current milestone: **12A2 Wikidata + QRank staging**.
+
+Read `docs/ENTITY_STAGING_V1.md`. The implementation stages only structurally relevant Wikidata candidates, keeps QRank in a disposable build-time SQLite, joins it locally, and produces category-relative cut diagnostics. The full final Entity Lexicon remains blocked until the owner full-source staging reports are reviewed.
 
 The Phase 12 sequence is:
 
