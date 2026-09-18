@@ -912,3 +912,65 @@ Decision:
 This acceptance is for the bounded publish-composition mechanism, not final English runtime acceptance.
 
 Next owner gate is a full publish-v4 build and coverage A/B.
+
+## Publish-v4 owner full build + coverage A/B — REVIEW PASS, REPEATABILITY PENDING
+
+Owner artifacts generated 2026-09-18:
+
+```text
+policy                              en-source-backed-publish-v4-candidate
+publish fingerprint                 b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+
+published surfaces                  224,478   (+76,574 vs v3)
+default eligible                    123,533   (+47,836)
+analyzed en-US                      188,148   (+76,574)
+ranked published                    124,285   (+17,506)
+ranked default                       80,579   (+15,416)
+unranked published                  100,193
+unranked default                     42,954
+
+recovered punctuation aliases         2,104
+recovered exact-CMUdict possessives    5,127
+recovered strict inflections          69,343
+derived_inflection variants            99,727
+ambiguous inflection surfaces             176
+unresolved inflection bases           278,099
+```
+
+The v3 -> v4 ranked checkpoint movement is:
+
+| checkpoint | published v3 | published v4 | delta | default v3 | default v4 | delta |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1k | 1,000 | 1,000 | 0 | 988 | 988 | 0 |
+| 5k | 4,974 | 4,986 | +12 | 4,851 | 4,862 | +11 |
+| 10k | 9,856 | 9,920 | +64 | 9,439 | 9,498 | +59 |
+| 25k | 23,964 | 24,301 | +337 | 21,911 | 22,219 | +308 |
+| 50k | 44,172 | 45,771 | +1,599 | 37,605 | 39,004 | +1,399 |
+| 100k | 69,753 | 75,498 | +5,745 | 52,522 | 57,589 | +5,067 |
+| 150k | 84,362 | 93,951 | +9,589 | 58,506 | 67,019 | +8,513 |
+| 250k | 100,707 | 115,746 | +15,039 | 63,573 | 76,863 | +13,290 |
+| full ranked 311,685 | 106,779 | 124,285 | +17,506 | 65,163 | 80,579 | +15,416 |
+
+Important interpretation:
+
+- Top-1k is unchanged, so the new morphology path does not perturb the highest-frequency lexical core.
+- Gains increase gradually into the long tail, which is the intended behavior for productive inflection recovery.
+- The audit's `source_backed_pronunciation` checkpoint counts are unchanged. This is expected: `derived_inflection` is bounded source-composed pronunciation with explicit provenance, not relabeled direct source pronunciation.
+- Historical-only and explicit-proper-name-only rows remain non-default exclusions; ESDB-invalid remains a default-eligibility blocker.
+- No tagless/unprofiled General-English IPA is silently promoted to en-US.
+- The v4 owner artifacts are internally coherent enough to advance to repeatability, but this is **not** a publish freeze yet.
+
+Remaining blocking command:
+
+```powershell
+npm run en:publish:repeatability
+```
+
+Acceptance requires both unchanged-source runs to reproduce:
+
+```text
+b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+```
+
+Only after that passes should `data/local/rhymelab-en-v1.sqlite` be rebuilt and verified against the v4 publish fingerprint.
+
