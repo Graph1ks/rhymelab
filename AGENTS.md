@@ -20,7 +20,8 @@ Before changing the project in a fresh thread/session, read:
 12. `docs/API.md` for local API work
 13. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition work
 14. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity work
-15. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` while the Phase 12A2 popularity-cut candidate review is active
+15. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` for Phase 12A2 popularity-cut history
+16. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the active Phase 12A3 Entity IPA/runtime work
 
 ## Public-repository guardrails
 
@@ -168,7 +169,9 @@ Phase 12A1 fixture CI and the owner-local report gate are accepted. Accepted sem
 23e668d7a327982ba7367c875749d17d19697466cfa438a67df7a2d7ed9f4bba
 ```
 
-Current work is **12A2 Wikidata + QRank staging / final popularity-cut review**. Read `docs/ENTITY_STAGING_V1.md`, `docs/ENTITY_CUT_HYBRID_V1.md`, and `docs/ENTITY_CUT_HYBRID_V2.md`. The original QRank-present-first cut and Hybrid-v1 are retained as controls; Hybrid-v1 owner fingerprint `e770c1cfc655764e9e0f26e033c53fba0f1e1af4e2ca3b7ac82adf4eabde1e04` is rejected for freeze because `organization.company` still has zero missing-QRank retention. Hybrid-v2 geometric missing-evidence normalization is the active owner A/B gate.
+Phase 12A2 popularity/cut selection is **accepted**. Hybrid-v2 policy `category-relative-popularity-hybrid-v2-geometric-missing-evidence-candidate` is the frozen materialization baseline with owner fingerprint `337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201`. It retains 1,077,644 distinct entities, has 0.41% v1->v2 membership churn, leaves no QRank hard-gate categories, and preserves Bud Spencer as KEEP / Tier A. Original QRank-first and Hybrid-v1 remain diagnostic controls.
+
+Current work is **12A3 retained Entity catalog + conservative DE pronunciation/phonetic runtime + RhymePad Entity channel**. Read `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md`. Do not refetch QLever or restage Wikidata/QRank. The first pronunciation pass must not invent IPA: preserve eligible source-backed pronunciations and otherwise compose only exact Writer-v5 token pronunciations when every token resolves. Unresolved names remain out of phonetic retrieval.
 
 The classic 20260914 full-dump path is retired. The owner explicitly rejected further staging/comparison against the 103 GB dump and may delete it. Do not redownload it, require it, benchmark against it, or spend more time on BZip2/WSL/full-dump throughput. The only active Phase 12A2 acquisition path is the implemented build-time QLever selective exporter/stager.
 
@@ -184,7 +187,7 @@ npm run entity:owner:stage:qlever -- --retrieval-label 20260918
 
 The selected Wikidata item snapshot is 20260914 with official SHA-1 `0a985a65262a665fa33808c7d40a1d42ad28d62c`. QRank is pinned by retaining the downloaded 2026-09-18 raw artifact plus local SHA-256/headers. Do not replace this with an unversioned latest-only acceptance claim.
 
-Do not materialize the final large Entity Lexicon yet. First run the QLever owner staging/cut diagnostics on D:, then review category distributions and size. Fixture popularity values remain synthetic test scales only, never live QRank/pageview facts.
+The Phase 12A2 QLever owner staging/cut gate is complete. The accepted Hybrid-v2 retained set may now be materialized locally for the Phase 12A3 pronunciation/runtime gate. Fixture popularity values remain synthetic test scales only, never live QRank/pageview facts.
 
 Phase 12 sequence is now:
 
