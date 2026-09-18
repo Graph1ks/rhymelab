@@ -6,7 +6,7 @@ Repository state is authoritative. Do not reconstruct project state from prior c
 
 ## Active milestone
 
-**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. 12B6 coverage baseline exposed a history-classification defect; sense-aware publish v2 A/B is current.**
+**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. History-fix A/B passed; proper-name evidence fix + rescue-channel audit is current.**
 
 Read first:
 
@@ -114,7 +114,11 @@ The first full coverage audit is complete. It confirms a heavily frequency-skewe
 
 A confirmed bug in the old publish policy marks a whole entry historical when any flattened sense tag is archaic/obsolete/historical/dated. Candidate policy `en-source-backed-publish-v2-candidate` fixes this by requiring no current sense before historical-only exclusion.
 
-The current gate is **not ranking yet**. Rebuild publish + DB with the sense-aware history fix, rerun the coverage audit, and inspect automatic deltas plus remaining top-loss examples.
+The history-fix rebuild is complete and repeatable: default eligible 75,695 (+2,749), Top-10k default 94.38%, Top-100k default 52.52%, and historical-only losses collapsed to 1 / 67 / 208 at Top-10k / 50k / 100k.
+
+A second confirmed classifier defect remains: sense-level proper-name tags can poison a common record. `college` is the protected example. Candidate policy `en-source-backed-publish-v3-candidate` fixes this.
+
+The current gate is **not ranking yet**. Rebuild publish + DB with v3, then rerun coverage to quantify proper-name corrections plus ESDB+CMUdict lexical rescue, regular-inflection-shape recovery, and non-US locale gaps.
 
 English remains candidate-gated; no product EN runtime and no broad G2P is accepted yet.
 
@@ -306,15 +310,16 @@ The owner bootstrap and 12B2 diagnostics are complete. The 12B3 owner fixture al
 
 ## Next-thread execution order
 
-Continue with the **12B6 publish-v2 history-fix A/B**, not UI work and not Entity work.
+Continue with the **12B6 proper-name fix + rescue audit**, not UI work and not Entity work.
 
 1. run `npm run en:publish`;
 2. run `npm run en:publish:verify`;
 3. run `npm run en:publish:repeatability`;
 4. run `npm run en:db` and `npm run en:db:verify`;
-5. run `npm run en:coverage:audit`; it automatically compares to the existing baseline report;
-6. inspect Top-N deltas, remaining proper-name/no-pronunciation/lexical gaps, and the new form-of-with-analyzed-lemma recovery bucket;
-7. only then choose the next coverage expansion before ranking.
+5. run `npm run en:coverage:audit`;
+6. inspect proper-name Top-N deltas plus `esdb_plus_cmudict_non_wiktionary`, regular-inflection-shape, orthographic-variant, and published-no-en-US locale breakdowns;
+7. do not inherit arbitrary `form_of` pronunciation blindly; examples such as `ii -> second` prove semantic/form relations are not phonological rules;
+8. only then select the next controlled coverage expansion before ranking.
 
 Required diagnostics are specified in `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
 
