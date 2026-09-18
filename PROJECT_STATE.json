@@ -1195,7 +1195,7 @@
     "run_phase_11f_dedicated_phrase_mosaic_structural_regression_performance_benchmark",
     "close_phase_11_with_human_ndcg_pending_reference_if_no_independent_reviewers_exist"
   ],
-  "next_milestone": "PHASE_12A2_OWNER_QLEVER_FAST_PATH_AND_CUT_REVIEW",
+  "next_milestone": "PHASE_12A2_DISTINCT_RETAINED_COUNT_AND_FINAL_CUT_POLICY_REVIEW",
   "phase_12_english": {
     "status": "PLANNED_AFTER_12A",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -1211,13 +1211,13 @@
     "must_not_emulate_english_with_german_phonology": true
   },
   "phase_12_entity_lexicon": {
-    "status": "12A1_FIXTURE_ACCEPTED_12A2_STAGING_IMPLEMENTED_CI_PENDING",
+    "status": "12A2_QLEVER_OWNER_RUN_PASSED_CUT_REVIEW_ACTIVE",
     "plan": "docs/ENTITY_LEXICON_PLAN.md",
     "database": "data/local/rhymelab-entities-v1.sqlite",
     "runtime_local_only": true,
     "separate_from_writer_db": true,
     "separate_from_phrase_db": true,
-    "primary_entity_source": "wikidata_json_dump_CC0",
+    "primary_entity_source": "wikidata_via_qlever_selective_CC0",
     "global_popularity_source": "wikidata_qrank_CC0",
     "local_popularity_sources": [
       "wikimedia_dewiki_pageviews_optional",
@@ -1259,10 +1259,12 @@
     },
     "source_rules": {
       "full_wikidata_graph_import": false,
-      "stream_and_filter_snapshot": true,
+      "stream_and_filter_snapshot": false,
       "no_runtime_network": true,
       "external_identifier_metadata_requires_separate_license_audit": true,
-      "no_automatic_token_to_alias_invention": true
+      "no_automatic_token_to_alias_invention": true,
+      "selective_build_time_qlever_acquisition": true,
+      "pin_remote_query_results_locally": true
     },
     "phase_sequence": [
       "12A_multilingual_entity_lexicon_schema_taxonomy_popularity_pronunciation_contract_fixture",
@@ -1318,14 +1320,13 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "run_owner_qlever_fast_path",
-      "review_qlever_source_and_stage_reports",
-      "review_qrank_and_cut_diagnostics",
-      "confirm_bud_spencer_and_category_distributions",
+      "rerun_cut_diagnostic_for_distinct_retained_entity_count_only",
+      "review_distinct_retained_count_against_500k_1200k_and_preferred_600k_900k_ranges",
+      "review_low_qrank_coverage_categories_and_fallback_ordering",
       "freeze_source_acquisition_and_final_cut_policy"
     ],
     "staging_v1": {
-      "status": "QLEVER_FAST_ACQUISITION_IMPLEMENTED_OWNER_GATE_NEXT",
+      "status": "OWNER_QLEVER_RUN_PASSED_DISTINCT_RETAINED_RECOUNT_PENDING",
       "contract": "docs/ENTITY_STAGING_V1.md",
       "source_registry": "sources/entity/phase12a-sources-v1.json",
       "wikidata_stage_schema": "rhymelab-entity-stage-v1",
@@ -1526,7 +1527,28 @@
       "qlever_stage_command": "npm run entity:stage:qlever",
       "qlever_owner_command": "npm run entity:owner:stage:qlever -- --retrieval-label 20260918",
       "qlever_stage_report": "data/local/entity-qlever-stage-v1-report.json",
-      "qlever_source_report": "data/local/entity-qlever-source-v1-report.json"
+      "qlever_source_report": "data/local/entity-qlever-source-v1-report.json",
+      "owner_qlever_run": {
+        "status": "PASSED",
+        "completed_at": "2026-09-18",
+        "command": "npm run entity:owner:stage:qlever -- --retrieval-label 20260918 --skip-fetch",
+        "source_status": "ok",
+        "source_rows": {
+          "membership": 1875219,
+          "core": 1838448,
+          "aliases": 630965,
+          "external_ids": 993926,
+          "wikipedia_sitelinks": 4491472,
+          "total": 9830030
+        },
+        "source_raw_bytes": 783845729,
+        "source_gzip_bytes": 93454429,
+        "qrank_join_completed": true,
+        "cut_diagnostic_completed": true,
+        "all_sentinels_pass": true,
+        "cut_policy_frozen": false,
+        "note": "Owner command returned cleanly to PowerShell prompt after full cut diagnostic. Final cut freeze waits only for distinct retained entity count and distribution review."
+      }
     }
   }
 }

@@ -144,6 +144,35 @@ Decision:
 
 The real local QLever acquisition + staging path is now implemented on the current Phase 12A2 branch. After merge, use:
 
+### Owner QLever gate — PASS
+
+The owner-local QLever fast path has now completed end-to-end: source export, local entity stage, pinned QRank stage/join, category cut diagnostics, and sentinel gate all returned successfully.
+
+Owner source artifact counts:
+
+```text
+membership            1,875,219
+core                  1,838,448
+aliases                 630,965
+external IDs            993,926
+Wikipedia sitelinks   4,491,472
+total rows            9,830,030
+raw bytes           783,845,729
+gzip bytes           93,454,429
+```
+
+Do not fetch or restage these inputs again for the next gate. The local stage/QRank DBs already exist.
+
+The immediate next owner command after the distinct-retained diagnostic change lands is only:
+
+```powershell
+git pull
+npm run entity:cut:diagnose
+```
+
+Review `distinct_retained_entities`, `retained_membership_overlap`, category distributions, low-QRank-coverage categories and Bud Spencer sentinel evidence before freezing the final cut policy.
+
+
 ```powershell
 git pull
 npm run entity:owner:stage:qlever -- --retrieval-label 20260918

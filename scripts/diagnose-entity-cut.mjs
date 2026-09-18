@@ -41,12 +41,15 @@ try {
     db.exec('ANALYZE; PRAGMA optimize;');
   }
 
-  const categories = categoryCutDiagnostics(db, taxonomy);
+  const retainedQids = new Set();
+  const categories = categoryCutDiagnostics(db, taxonomy, { retainedQids });
   const sentinels = sentinelCutChecks(db, taxonomy);
   const stats = stageStats(db);
   const stageBytes = (await stat(entityStagePath)).size;
   const totalCategoryCandidates = categories.reduce((sum, row) => sum + row.candidates, 0);
   const totalCategoryKept = categories.reduce((sum, row) => sum + row.kept, 0);
+  const distinctRetainedEntities = retainedQids.size;
+  const retainedMembershipOverlap = totalCategoryKept - distinctRetainedEntities;
 
   const report = {
     schema: 'rhymelab-entity-cut-diagnostics-v1',
@@ -63,6 +66,11 @@ try {
     all_sentinels_pass: sentinels.every((row) => row.pass),
     total_category_memberships: totalCategoryCandidates,
     total_kept_category_memberships: totalCategoryKept,
+    distinct_retained_entities: distinctRetainedEntities,
+    retained_membership_overlap: retainedMembershipOverlap,
+    retained_memberships_per_entity: distinctRetainedEntities
+      ? Math.round(totalCategoryKept * 1_000_000 / distinctRetainedEntities) / 1_000_000
+      : 0,
     categories,
     note: 'This is a staging cut diagnostic. It ranks QRank first, then sitelinks/DE+EN presence/IDs/statements. Final popularity scoring and final DB materialization remain later gates.',
   };

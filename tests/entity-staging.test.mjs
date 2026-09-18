@@ -239,13 +239,15 @@ test('staging DB joins QRank and produces category-relative cut diagnostics', as
       withEnwiki: 3,
     });
 
-    const diagnostics = categoryCutDiagnostics(entityDb, taxonomy);
+    const retainedQids = new Set();
+    const diagnostics = categoryCutDiagnostics(entityDb, taxonomy, { retainedQids });
     const actorRows = diagnostics.find((row) => row.category === 'person.actor');
     assert.equal(actorRows.candidates, 3);
     assert.equal(actorRows.kept, 2);
     assert.equal(actorRows.top[0].qid, 'Q221074');
     assert.equal(actorRows.tail.at(-1).qid, 'Q900000012');
     assert.equal(actorRows.tail.at(-1).keep, false);
+    assert.deepEqual([...retainedQids].sort(), ['Q221074', 'Q900000011']);
 
     const sentinel = sentinelCutChecks(entityDb, taxonomy);
     assert.equal(sentinel[0].qid, 'Q221074');

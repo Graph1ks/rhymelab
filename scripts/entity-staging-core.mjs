@@ -548,7 +548,8 @@ function protectedQids(taxonomy) {
   return new Set((taxonomy.protected_sentinels || []).map((row) => row.qid));
 }
 
-export function categoryCutDiagnostics(db, taxonomy) {
+export function categoryCutDiagnostics(db, taxonomy, options = {}) {
+  const retainedQids = options.retainedQids instanceof Set ? options.retainedQids : null;
   const sentinels = protectedQids(taxonomy);
   const categories = db.prepare(`
     SELECT DISTINCT category
@@ -595,6 +596,7 @@ export function categoryCutDiagnostics(db, taxonomy) {
       const keep = percentile >= Number(row.retention_percentile_floor) || sentinels.has(row.qid);
       if (keep) {
         kept += 1;
+        retainedQids?.add(row.qid);
         if (tier === 'A') tierA += 1;
         else if (tier === 'B') tierB += 1;
         else tierC += 1;
