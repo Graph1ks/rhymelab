@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11D1_OWNER_FULL_BUILD_COMPLETE_REPEATABILITY_PENDING",
+  "phase": "GERMAN_PHASE_11D2_BOUNDED_INDEXED_RETRIEVAL_FIXTURE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11d1_owner_full_build_complete_repeatability_pending",
+    "status": "phase_11d1_accepted_phase_11d2_bounded_indexed_retrieval_fixture",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11D1_REPEATABILITY_GATE",
+    "next_milestone": "PHASE_11D2_OWNER_RETRIEVAL_ANCHOR_BUILD_GATE",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -426,8 +426,8 @@
       "owner_full_build_completed": true,
       "command": "npm run phrase:mosaic:windows",
       "default_report": "data/local/phrase-mosaic-windows-v1-report.json",
-      "repeatability_confirmed": false,
-      "owner_full_gate_accepted": false,
+      "repeatability_confirmed": true,
+      "owner_full_gate_accepted": true,
       "full_data_evidence": {
         "built_at": "2026-09-18T01:40:01.416Z",
         "database_bytes": 534872064,
@@ -457,7 +457,43 @@
         "fuzzy_candidate_retrieval_implemented": false,
         "phrase_ranking_implemented": false,
         "writer_runtime_rewired": false
+      },
+      "repeatability_evidence": {
+        "first_built_at": "2026-09-18T01:40:01.416Z",
+        "repeat_built_at": "2026-09-18T01:43:38.917Z",
+        "first_window_fingerprint": "24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac",
+        "repeat_window_fingerprint": "24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac",
+        "fingerprints_equal": true,
+        "database_bytes_equal": true,
+        "window_count_equal": true,
+        "distributions_equal": true,
+        "source_phrase_pronunciation_fingerprint": "fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548",
+        "base_catalog_fingerprint": "f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d"
       }
+    },
+    "mosaic_retrieval": {
+      "contract": "docs/PHRASE_MOSAIC_RETRIEVAL_V2.md",
+      "schema": "rhymelab-phrase-mosaic-retrieval-v1",
+      "retrieval_policy": "de-bounded-indexed-mosaic-retrieval-v1",
+      "anchor_policy": "de-mosaic-rhyme-anchors-v1",
+      "scorer": "de-phon-v3",
+      "source_window_fingerprint": "24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac",
+      "channels": [
+        "exact_tail",
+        "vowel_coda",
+        "vowel",
+        "final_nucleus_coda_class"
+      ],
+      "default_per_channel_limit": 128,
+      "default_max_candidates": 512,
+      "full_corpus_scan_fallback": false,
+      "phrase_ranking": false,
+      "writer_runtime_rewired": false,
+      "fixture_implementation_started": true,
+      "fixture_gate_pending_ci": true,
+      "owner_full_build_completed": false,
+      "command": "npm run phrase:mosaic:retrieval",
+      "default_report": "data/local/phrase-mosaic-retrieval-v1-report.json"
     }
   },
   "owner_measurement_outputs": {
@@ -472,13 +508,16 @@
     "phrase_catalog_diagnostics": "data/local/phrase-catalog-v1-diagnostics.json",
     "phrase_pronunciation_report": "data/local/phrase-pronunciation-v1-report.json",
     "phrase_pronunciation_coverage_report": "data/local/phrase-pronunciation-coverage-v1-report.json",
-    "phrase_mosaic_window_report": "data/local/phrase-mosaic-windows-v1-report.json"
+    "phrase_mosaic_window_report": "data/local/phrase-mosaic-windows-v1-report.json",
+    "phrase_mosaic_retrieval_report": "data/local/phrase-mosaic-retrieval-v1-report.json"
   },
   "next_actions": [
-    "repeat_phrase_mosaic_window_build_and_require_window_fingerprint_24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac",
-    "require_source_phrase_pronunciation_fingerprint_fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548",
-    "after_11d1_repeatability_pass_begin_11d2_bounded_indexed_candidate_retrieval",
-    "keep_phrase_ranking_deferred_to_11e",
+    "merge_11d2_fixture_only_after_validate_green",
+    "run_npm_phrase_mosaic_retrieval_owner_full_data",
+    "require_anchor_count_matches_356693_accepted_windows",
+    "require_source_window_fingerprint_24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac",
+    "repeat_anchor_materialization_and_require_identical_anchor_fingerprint",
+    "then_add_representative_query_diagnostics_before_11e_phrase_ranking",
     "keep_single_word_writer_frozen"
   ]
 }
