@@ -4,7 +4,7 @@ Last updated: 2026-09-18
 
 ## Status
 
-**CURRENT DESIGN / IMPLEMENTATION NEXT**
+**11E1 IMPLEMENTED AT FIXTURE/CODE LEVEL — CI PENDING**
 
 Phase 11D retrieval is accepted and frozen. Phase 11E consumes its output; it does not retune retrieval or phonetic relation truth.
 
@@ -272,11 +272,18 @@ Human NDCG remains deferred until the broader German Writer surface is mature an
 
 ### 11E1
 
+Implemented at code/fixture level:
+
 - ranking-evidence enrichment core;
 - deterministic surface-safety classifier;
 - Leipzig aggregate commonness;
+- source-backed style-tag aggregation;
+- normalized query-token overlap;
+- stable evidence fingerprint;
 - fixture tests;
-- diagnostic report that shows raw 11D4 order versus enriched evidence.
+- diagnostic report that shows raw 11D4 order versus enriched evidence;
+- command `npm run phrase:mosaic:rank:evidence`;
+- no candidate reordering in 11E1.
 
 ### 11E2
 
