@@ -85,6 +85,7 @@ function buildEntityRuntimeDb() {
   `);
   upsertMeta.run('entity_phonetic_runtime', ENTITY_PHONETIC_RUNTIME);
   upsertMeta.run('entity_phonetic_analyzer', ENTITY_RUNTIME_ANALYZER);
+  upsertMeta.run('entity_phonetic_analyses', 1);
   return { db, ipa };
 }
 
