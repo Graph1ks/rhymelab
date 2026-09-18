@@ -151,19 +151,50 @@ The derived pronunciation is stored with source
 
 The lexical source remains Wiktionary; the pronunciation identity is a deterministic consequence of the explicit punctuation-only alias relation and is not mislabeled as direct Wiktionary IPA.
 
-### What v4 does not yet enable
+### Regular inflection composition — accepted bounded v4 channel
 
-Regular inflection pronunciation composition is still disabled in the publisher.
+The v2 CMUdict control benchmark passes for bounded source-backed regular morphology:
 
-The candidate rules for `-s/-es/-ed/-ing` now have an explicit deterministic implementation plus a source-backed CMUdict control benchmark:
-
-```powershell
-npm run en:pronunciation:inflection:diagnose
+```text
+19,993 control surfaces
+95.46% full phoneme-sequence match
+96.02% boundary-insensitive stressed-tail match
+99.36% syllable-count match
+96.92% stress-pattern match
 ```
 
-The benchmark must be reviewed before morphology-derived pronunciations can become default-profile eligible.
+The previously weak epenthetic rules reach 97.06% (`-ed` after /t,d/) and 95.47% (`-es` after a sibilant) boundary-insensitive tail agreement after preserving both common reduced-vowel variants.
 
-Strict tagless Wiktionary IPA also remains non-en-US provenance. The v3 owner benchmark reached 76.52% boundary-insensitive stressed-tail agreement against explicit en-US controls, which is insufficient for silent en-US promotion.
+Publish v4 therefore permits a derived pronunciation only when all of these hold:
+
+- Wiktionary explicitly supplies `form_of` or `listed_form_of`;
+- exactly one lemma+regular spelling shape survives the strict gate;
+- source morphology tags identify plural/3sg, past/participle, or gerund/participle;
+- abbreviation/initialism/acronym/letter/number/symbol/contraction/misspelling blockers are absent;
+- the lemma already has analyzed en-US pronunciation evidence;
+- the lemma pronunciation is not itself a `derived_inflection`.
+
+Generated pronunciations use source `derived_inflection`, notation IPA and locale `en-US`. The derivation is single-hop and provenance-bearing.
+
+Suffix set:
+
+```text
+plural:      /s/, /z/, /ɪz/, /əz/
+past:        /t/, /d/, /ɪd/, /əd/
+progressive: /ɪŋ/
+```
+
+Ambiguous or unresolved lemma relationships are rejected.
+
+Strict tagless Wiktionary IPA remains non-en-US provenance. The v3 owner benchmark reached 76.52% boundary-insensitive stressed-tail agreement against explicit en-US controls, which is insufficient for silent en-US promotion.
+
+Current candidate policy:
+
+```text
+en-source-backed-publish-v4-candidate
+```
+
+A full owner publish build/verify and coverage A/B are required before this policy can be frozen.
 
 
 ### Morphology benchmark v1 result
