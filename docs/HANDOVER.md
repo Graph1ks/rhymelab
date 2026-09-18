@@ -368,3 +368,27 @@ surface -> DE/EN resolution -> query G2P -> IPA/pronunciation analyzer -> syllab
 ```
 
 Generated query pronunciation is never silently persisted as lexical truth. In `DE+EN`, if the language cannot be resolved from a source-backed match, ask the user whether the intended reading is German or English.
+
+
+### 12B6 stratified coverage review result
+
+The owner stratified sample has been reviewed across the full ranked range.
+
+Strong immediate candidates:
+- 4,036 exact-CMUdict possessive surfaces with an analyzed en-US base;
+- 168 punctuation-only aliases to analyzed en-US lemmas.
+
+Large gated candidates:
+- 13,454 regular-inflection-shape rows, but abbreviation/contraction noise proves morphology must be tag-gated;
+- 14,821 published rows without analyzed en-US, with review samples dominated by already analyzed unprofiled IPA;
+- 52,864 no-source-pronunciation rows, including many initialisms/abbreviations and genuine lexical items;
+- 26,264 proper-name-only rows, which belong to a separate searchable channel/product policy rather than being treated as ordinary common words.
+
+Run the two cheap diagnostics next; neither restreams Kaikki:
+
+```powershell
+npm run en:coverage:rescue
+npm run en:pronunciation:fallback:diagnose
+```
+
+Use their exact counts/agreement rates to define publish v4. Do not broad-G2P the tail.
