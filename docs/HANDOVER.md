@@ -16,11 +16,12 @@ Read in order:
 6. `DATA_SOURCES.md`
 7. `docs/WRITER_SEARCH_ACCEPTANCE.md`
 8. `docs/PHRASE_MOSAIC_PLAN.md`
-9. `docs/BENCHMARK.md`
-10. `docs/API.md`
-11. `docs/WRITER_RANKING.md`
-12. `docs/WRITER_LEXICAL_MODEL.md`
-13. `docs/EXTERNAL_COMPARISON_D_RHYME.md`
+9. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
+10. `docs/BENCHMARK.md`
+11. `docs/API.md`
+12. `docs/WRITER_RANKING.md`
+13. `docs/WRITER_LEXICAL_MODEL.md`
+14. `docs/EXTERNAL_COMPARISON_D_RHYME.md`
 
 ## Hard boundary
 
@@ -193,3 +194,73 @@ npm run dev
 Review `data/local/phrase-pronunciation-v1-report.json` and the IPA section in `http://127.0.0.1:3030/phrases`. Then run the pronunciation materializer again and require an identical pronunciation fingerprint. Phase 11D mosaic retrieval remains blocked until this full-data gate is accepted.
 
 Single-word Writer remains frozen; Human Writer NDCG remains pending.
+
+
+## Latest owner observation — Phrase Explorer / 11C1
+
+The simplified Phrase Explorer works after RUEG removal.
+
+A representative unresolved coverage case is:
+
+```text
+auf Hochtouren
+
+auf         resolved_preferred
+hochtouren  unresolved_no_writer_form
+```
+
+This is not a phrase-parser failure. The complete phrase pronunciation is blocked because Writer-v5 currently has no accepted pronunciation row for `hochtouren`.
+
+Treat this as a useful 11C coverage class. Before adding any broad G2P fallback, classify unresolved phrase tokens into:
+
+- useful ordinary German lexical gaps;
+- historical spellings;
+- names/entities;
+- foreign-language material;
+- source/noise artifacts.
+
+The earlier full-data pronunciation run was approximately 94.92% resolved tokens and 91.46% fully pronounceable phrases. The corrected surface-aware resolver and base-fingerprint contract are already in main. Do not infer that every remaining unresolved token deserves automatic pronunciation.
+
+## Deferred high-value direction — retrieval-first generation
+
+The owner explicitly wants the Markov / natural-language-retrieval direction preserved for later work.
+
+Authoritative design note:
+
+`docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
+
+Key idea:
+
+```text
+RhymeLab word + phrase DB
+  -> IPA / syllable / stress / phoneme windows across word boundaries
+  -> retrieve hundreds of attested natural chunks
+  -> constrain by naturalness / usage / register / syntax
+  -> deterministic Markov or template/phrase-splice recombination
+  -> rerank by rhyme / assonance / stress / naturalness / novelty
+```
+
+Preserve separate component scores rather than one opaque score.
+
+Research leads from the earlier discussion that must not be forgotten:
+
+- RhymePad: architecture/reference for phoneme and mosaic handling; English-oriented; verify independently before any adoption.
+- PanPhon: possible articulatory-feature edit distance for slant/assonance.
+- gruut: possible German/English pronunciation fallback/comparison; not part of current pronunciation truth.
+- SQLite FTS5: local lexical/context retrieval.
+- sqlite-vec / embeddings: optional research only; conflicts with current no-ML core boundary unless explicitly isolated by a future architecture decision.
+- Markov: particularly interesting as a deterministic recombination layer **after** source-backed phonetic retrieval.
+- LLM generation: only optional/downstream if ever explored; never core rhyme truth or required runtime.
+
+Do not implement these before current phrase IPA and deterministic mosaic retrieval are stable.
+
+## Immediate next-thread starting point
+
+1. Treat GitHub main as authoritative and read the required continuity files.
+2. Keep the single-word Writer frozen.
+3. RUEG is removed/rejected; do not revive it.
+4. Phrase Catalog + Leipzig + IPA Explorer are the active phrase foundation.
+5. Decide whether to:
+   - do a small 11C2 targeted high-value unresolved-token coverage pass first, or
+   - proceed directly to 11D deterministic cross-word phonetic windows / mosaic retrieval.
+6. Whichever path is chosen, preserve the future Markov/retrieval-first design note for the later generation phase.

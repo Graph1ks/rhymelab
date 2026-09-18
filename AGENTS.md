@@ -13,9 +13,10 @@ Before changing the project in a fresh thread/session, read:
 5. `DATA_SOURCES.md`
 6. `docs/WRITER_SEARCH_ACCEPTANCE.md`
 7. `docs/PHRASE_MOSAIC_PLAN.md`
-8. `docs/REPOSITORY_GOVERNANCE.md`
-9. `docs/BENCHMARK.md` for rhyme-quality/ranking work
-10. `docs/API.md` for local API work
+8. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
+9. `docs/REPOSITORY_GOVERNANCE.md`
+10. `docs/BENCHMARK.md` for rhyme-quality/ranking work
+11. `docs/API.md` for local API work
 
 ## Public-repository guardrails
 
@@ -174,3 +175,22 @@ npm run dev
 ```
 
 Inspect `data/local/phrase-pronunciation-v1-report.json` and `http://127.0.0.1:3030/phrases`. Require stable pronunciation fingerprint on repeat and unchanged Phase 11B1 base fingerprint before Phase 11D mosaic retrieval. The accepted single-word Writer baseline remains frozen.
+
+
+## Deferred future architecture — preserve, do not implement prematurely
+
+After Phase 11C/11D/11E, revisit `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`.
+
+The preserved direction is retrieval-first natural-language rhyme generation:
+
+```text
+attested phrase/chunk data
+  -> cross-word phonetic retrieval
+  -> naturalness/register/context filtering
+  -> optional deterministic Markov/template recombination
+  -> phonetic/naturalness reranking
+```
+
+Research leads to evaluate later include RhymePad as an architecture reference, PanPhon-style feature distance, gruut as a possible pronunciation fallback benchmark, FTS5, and optional/non-core vector semantics. None are accepted production dependencies now.
+
+Do not introduce embeddings, LLMs or ML/neural inference into the deterministic core search path without an explicit architecture decision.
