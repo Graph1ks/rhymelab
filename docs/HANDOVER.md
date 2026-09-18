@@ -558,3 +558,52 @@ npm run en:pronunciation:inflection:diagnose
 
 Expected output:
 `data/local/en-inflection-composition-diagnostic-v2-report.json`.
+
+
+### 12B7 morphology benchmark v2 accepted / publish-v4 full build next
+
+Owner v2 control:
+
+```text
+controls                               19,993
+phoneme sequence                        95.46%
+boundary-insensitive stressed tail      96.02%
+syllable count                          99.36%
+stress pattern                          96.92%
+
+CMUdict-base tail                       96.17%
+-ed after /t,d/ tail                    97.06%
+-es after sibilant tail                 95.47%
+```
+
+Decision: bounded deterministic morphology composition is accepted for the strict source-backed relation class.
+
+Production candidate implementation now requires:
+
+- explicit `form_of` / `listed_form_of`;
+- exactly one regular lemma+shape;
+- allowed morphology tags;
+- analyzed en-US source-backed lemma pronunciation;
+- no morphology-on-morphology chaining;
+- explicit `derived_inflection` pronunciation provenance;
+- ambiguity/unresolved-base rejection.
+
+Candidate policy:
+
+```text
+en-source-backed-publish-v4-candidate
+```
+
+Next owner commands after CI/merge:
+
+```powershell
+git pull
+npm run en:publish:rebuild
+npm run en:coverage:audit
+```
+
+Upload:
+- `data/local/en-publish-v1/manifest.json`
+- `data/local/en-coverage-audit-v1-report.json`
+
+Do not rebuild the English SQLite until publish-v4 counts/coverage are reviewed.
