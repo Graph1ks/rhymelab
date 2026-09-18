@@ -106,7 +106,7 @@ test('one-command owner workflow imports P898 evidence without changing DE runti
   assert.match(diagnostic, /wikidata_p898_source_evidence/);
   assert.match(diagnostic, /projected_preferred_name_ready_pct_if_accepted/);
   assert.match(materializer, /runtime_eligible_rows: 0/);
-  assert.match(materializer, /source_attested_unprofiled/);
+  assert.match(materializer, /WIKIDATA_P898_REVIEW_STATE/);
   assert.match(materializer, /Refusing to replace/);
   assert.equal(
     packageJson.scripts['entity:pronunciation:wikidata:p898:fetch'],
