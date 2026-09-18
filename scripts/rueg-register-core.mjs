@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { tokenizePhrase } from './phrase-catalog-core.mjs';
 
 export const RUEG_REGISTER_SCHEMA = 'rhymelab-rueg-register-v1';
-export const RUEG_REGISTER_POLICY = 'rueg-dakoda-dual-layer-register-v1';
+export const RUEG_REGISTER_POLICY = 'rueg-dakoda-exb-source-surface-register-v2';
 
 function sha256(value) {
   return createHash('sha256').update(String(value)).digest('hex');
