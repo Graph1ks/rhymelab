@@ -203,7 +203,7 @@ npm run phrase:catalog:diagnose
 
 ### 11C. Deterministic phrase pronunciation — current
 
-#### 11C1. Preferred citation composition — owner full-data build complete / gate pending
+#### 11C1. Preferred citation composition — complete / PASS
 
 Contract: `docs/PHRASE_PRONUNCIATION_V1.md`.
 
@@ -254,10 +254,33 @@ The tail is not concentrated enough to justify a blocking manual 11C2 pronunciat
 
 **Decision:** proceed directly to 11D after the remaining repeatability check. Any 11C2 lexical additions are optional background work, source-backed only, with no broad G2P fallback and no mutation of the frozen Writer-v5 runtime.
 
-Remaining 11C1 gate: confirm an identical pronunciation fingerprint on a repeat materialization.
-### 11D. Mosaic retrieval architecture
+Repeatability gate: **PASS**.
 
-Add deterministic indexed phrase-span retrieval capable of matching rhyme spans across one or more word boundaries without scanning the full phrase corpus at query time.
+```text
+first fingerprint   fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+repeat fingerprint  fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+```
+
+Phase 11C1 is closed.
+### 11D. Mosaic retrieval architecture — current
+
+#### 11D1. Deterministic cross-word window substrate — implemented / owner full-data gate pending
+
+Contract: `docs/PHRASE_MOSAIC_RETRIEVAL_V1.md`.
+
+Materialize 2–6-syllable phrase windows that strictly cross at least one accepted word boundary. Persist syllable/phoneme/token spans, boundary offsets, exact phoneme/vowel keys and deterministic fingerprints with indexed SQLite lookup.
+
+Owner gate:
+
+```powershell
+npm run phrase:mosaic:windows
+```
+
+Require a stable repeat window fingerprint before 11D2.
+
+#### 11D2. Bounded indexed candidate retrieval — next
+
+Design deterministic query-side candidate generation over the materialized substrate without scanning the full phrase corpus at request time. Exact/index-backed retrieval comes first; broader slant candidate anchors require a separate benchmarked policy.
 
 ### 11E. Phrase Writer ranking
 
