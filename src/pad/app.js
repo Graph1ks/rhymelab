@@ -151,7 +151,7 @@ function compactResults(data){
 }
 function deepResults(data){
   const rows=data.results||[],scope=$('#rhymeScope').value;
-  const visible=rows.filter((row)=>scope==='all'||row.resultKind===scope.slice(0,-1));
+  const scopeKind={words:'word',phrases:'phrase',entities:'entity'}[scope]||null;const visible=rows.filter((row)=>!scopeKind||row.resultKind===scopeKind);
   const labels={word:'Words',phrase:'Phrases / Mosaic',entity:'Entities'};
   const chunks=[];for(const kind of ['word','phrase','entity']){const kindRows=visible.filter((row)=>row.resultKind===kind);if(!kindRows.length)continue;for(const type of RHYME_TYPES){const typed=kindRows.filter((row)=>relationTypes(row).includes(type));if(!typed.length)continue;chunks.push(`<section class="rhyme-group ${kind}"><div class="rhyme-group-heading"><strong>${labels[kind]} · ${esc(typeLabel(type))}</strong><span>${typed.length}</span></div>${typed.map((row)=>candidateHtml(row,type)).join('')}</section>`);}}
   return chunks.join('')||'<div class="assist-status">No matching rhymes.</div>';
