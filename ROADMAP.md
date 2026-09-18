@@ -203,7 +203,7 @@ npm run phrase:catalog:diagnose
 
 ### 11C. Deterministic phrase pronunciation — current
 
-#### 11C1. Preferred citation composition — implemented / owner full-data gate pending
+#### 11C1. Preferred citation composition — owner full-data build complete / gate pending
 
 Contract: `docs/PHRASE_PRONUNCIATION_V1.md`.
 
@@ -227,6 +227,18 @@ npm run dev
 
 Review `data/local/phrase-pronunciation-v1-report.json` and the `/phrases` IPA surface before 11D.
 
+Confirmed owner full-data evidence:
+
+```text
+pronunciation fingerprint   fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+token coverage              94.92% (195,490 / 205,957)
+phrase coverage             91.46% (90,089 / 98,504)
+ready modern phrases        89,865
+unresolved tokens           10,467
+base catalog unchanged      yes
+```
+
+Remaining gate: confirm identical pronunciation fingerprint on repeat and review `phrase:pronunciation:coverage` before choosing targeted 11C2 versus direct 11D.
 ### 11D. Mosaic retrieval architecture
 
 Add deterministic indexed phrase-span retrieval capable of matching rhyme spans across one or more word boundaries without scanning the full phrase corpus at query time.

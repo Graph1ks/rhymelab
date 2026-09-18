@@ -184,6 +184,22 @@ connected speech          attested-or-explicit-rule-only-v1
 
 The Phase 11B1 catalog fingerprint is explicitly checked before/after materialization and must remain unchanged.
 
+
+The owner-local full-data 11C1 build has now completed successfully:
+
+```text
+pronunciation fingerprint   fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+resolved tokens             195,490 / 205,957
+token coverage              94.92%
+ready phrases               90,089 / 98,504
+ready modern phrases        89,865
+phrase coverage             91.46%
+unresolved tokens           10,467
+blocked phrases              8,415
+base fingerprint match      true
+```
+
+This closes the full-data-build portion of the owner gate. The owner gate itself remains open until a repeat materialization produces the same pronunciation fingerprint and the dedicated coverage-impact report is reviewed for the 11C2-vs-11D decision.
 Owner commands after merge:
 
 ```powershell
@@ -222,7 +238,7 @@ Treat this as a useful 11C coverage class. Before adding any broad G2P fallback,
 - foreign-language material;
 - source/noise artifacts.
 
-The earlier full-data pronunciation run was approximately 94.92% resolved tokens and 91.46% fully pronounceable phrases. The corrected surface-aware resolver and base-fingerprint contract are already in main. Do not infer that every remaining unresolved token deserves automatic pronunciation.
+The confirmed full-data pronunciation run resolved 195,490 / 205,957 tokens (94.92%) and produced 90,089 / 98,504 fully pronounceable phrases (91.46%). The corrected surface-aware resolver and base-fingerprint contract are already in main. Do not infer that every remaining unresolved token deserves automatic pronunciation.
 
 ## Deferred high-value direction — retrieval-first generation
 

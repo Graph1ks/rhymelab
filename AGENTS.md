@@ -151,7 +151,7 @@ Current work is Phase 11C phrase-pronunciation quality plus phrase-data diagnost
 
 Phase 11B2 diagnostics are complete: 15,449 modern-eligible phrases have Leipzig evidence (15.86%); the raw 98,504-row catalog is intentionally dominated by two-token multiword lexemes and contains abbreviation/surface-alias noise. Do not equate all catalog rows with songwriting phrases.
 
-Phase 11C1 deterministic phrase pronunciation is now implemented at fixture/code level.
+Phase 11C1 deterministic phrase pronunciation is implemented and the first owner full-data materialization has completed successfully.
 
 ```text
 schema                  rhymelab-phrase-pronunciation-v1
@@ -167,10 +167,22 @@ connected speech        none in 11C1
 
 11C1 retrieves phrase-token candidates by normalized form and resolves same-normalized collisions with deterministic surface-aware priority (exact surface/case, dictionary non-entity, non-entity, current, usage, stable ids) against the accepted Writer-v5 preferred eligible pronunciation inventory. Unknown tokens remain unresolved. It stores phrase IPA, all citation stress markers, phoneme/syllable word-boundary coordinates and per-token spans without mutating the Phase 11B1 base tables/fingerprint.
 
+Current owner full-data evidence:
+
+```text
+pronunciation fingerprint   fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e9548
+resolved tokens             195,490 / 205,957 (94.92%)
+ready phrases               90,089 / 98,504 (91.46%)
+ready modern phrases        89,865
+base catalog unchanged      yes
+```
+
+Do not mark the full 11C1 owner gate accepted yet: repeat fingerprint equality and coverage-impact triage remain pending.
 Current owner gate after merge:
 
 ```powershell
 npm run phrase:pronunciation
+npm run phrase:pronunciation:coverage
 npm run dev
 ```
 
