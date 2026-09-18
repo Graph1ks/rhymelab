@@ -11,10 +11,20 @@
       "homepage_url": "https://www.wikidata.org/wiki/Wikidata:Database_download",
       "canonical_latest_bz2_url": "https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.bz2",
       "canonical_latest_gz_url": "https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.gz",
-      "production_requirement": "resolve_and_pin_dated_snapshot_before_full_owner_build",
+      "production_requirement": "use_selected_dated_snapshot_and_verify_official_sha1_then_record_local_sha256",
       "local_raw_policy": "gitignored",
       "importer_policy": "stream_line_by_line_no_full_graph_import",
-      "runtime_network_required": false
+      "runtime_network_required": false,
+      "selected_owner_snapshot": {
+        "snapshot_label": "20260914",
+        "url": "https://dumps.wikimedia.org/wikidatawiki/entities/20260914/wikidata-20260914-all.json.bz2",
+        "filename": "wikidata-20260914-all.json.bz2",
+        "bytes": 103137817948,
+        "official_checksum_algorithm": "sha1",
+        "official_checksum": "0a985a65262a665fa33808c7d40a1d42ad28d62c",
+        "checksum_source_url": "https://dumps.wikimedia.org/wikidatawiki/entities/20260914/wikidata-20260914-sha1sums.txt",
+        "observed_published_at": "2026-09-15T23:15:00Z"
+      }
     },
     {
       "source_id": "wikidata-qrank",
@@ -24,9 +34,16 @@
       "homepage_url": "https://qrank.toolforge.org/",
       "canonical_download_url": "https://qrank.toolforge.org/download/qrank.csv.gz",
       "format": "gzip_csv_Entity_QRank",
-      "production_requirement": "pin_snapshot_label_and_checksum_before_acceptance",
+      "production_requirement": "bootstrap_once_keep_pinned_local_artifact_and_sha256_before_acceptance",
       "local_raw_policy": "gitignored",
-      "runtime_network_required": false
+      "runtime_network_required": false,
+      "selected_owner_snapshot_policy": {
+        "retrieval_date": "2026-09-18",
+        "filename": "qrank-20260918.csv.gz",
+        "source_url": "https://qrank.toolforge.org/download/qrank.csv.gz",
+        "pinning": "download_once_keep_local_raw_and_record_sha256_size_and_http_headers",
+        "historical_retrieval_guaranteed": false
+      }
     }
   ]
 }
