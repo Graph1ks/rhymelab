@@ -67,7 +67,26 @@ Phraseology must remain separate from phonetic truth: an expression being an idi
 
 ## Phase 11C — deterministic phrase pronunciation
 
+Contract: `docs/PHRASE_PRONUNCIATION_V1.md`.
+
 Construct phrase pronunciations from the accepted local pronunciation inventory. Preserve token pronunciation provenance and do not silently replace unknown tokens with guessed pronunciations.
+
+### Phase 11C1 implementation
+
+Implemented baseline:
+
+- exact normalized token lookup against Writer-v5 preferred eligible pronunciations;
+- one preferred citation pronunciation per fully resolved phrase;
+- explicit word-boundary positions in phoneme and syllable coordinates;
+- per-token Writer pronunciation provenance and spans;
+- all citation stress markers retained; no invented phrase-level main accent;
+- no G2P fallback;
+- no alternate phrase Cartesian product;
+- no generated connected-speech variants;
+- deterministic pronunciation fingerprint;
+- hard assertion that the Phase 11B1 base catalog fingerprint is unchanged.
+
+The owner full-data pronunciation gate remains pending.
 
 Connected-speech variants may be added only when backed by explicit deterministic rules or attested source evidence and must remain distinguishable from lexical citation pronunciations.
 
@@ -190,15 +209,15 @@ data/local/phrase-catalog-v1-report.json
 
 Review the full source build before Phase 11C. Required diagnostics include phrase/type/history/token distributions, Leipzig 1/2/3-corpus coverage, top/common phrase noise, build size/time, and deterministic repeat fingerprint equality.
 
-Phase 11C remains blocked until this full-data gate is reviewed.
+Phase 11C1 code is implemented. The remaining gate is the owner-local full pronunciation materialization and repeat-fingerprint review.
 
-Still explicitly out of scope:
+Still explicitly out of scope after 11C1:
 
-- phrase pronunciation generation;
-- connected-speech rules;
+- alternate/connected-speech phrase pronunciation generation;
 - mosaic retrieval/indexing;
 - phrase Writer ranking;
-- API/UI phrase surfacing;
+- Markov/generative recombination;
+- semantic/vector reranking;
 - Human Writer NDCG.
 
 The frozen single-word Writer remains untouched.

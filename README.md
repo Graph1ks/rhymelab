@@ -85,8 +85,9 @@ Repository state is authoritative. In a fresh development thread read:
 6. `DATA_SOURCES.md`
 7. `docs/WRITER_SEARCH_ACCEPTANCE.md`
 8. `docs/PHRASE_MOSAIC_PLAN.md`
-9. `docs/BENCHMARK.md`
-10. `docs/API.md`
+9. `docs/PHRASE_PRONUNCIATION_V1.md`
+10. `docs/BENCHMARK.md`
+11. `docs/API.md`
 
 ## Tests and public-readiness
 
@@ -123,17 +124,28 @@ Human Writer NDCG@10/20 remains `pending_reference` by explicit project decision
 
 Phase 11 is German phrase / mosaic / phraseology.
 
-Phase 11A source/licensing research is complete. Phase 11B1 now has a fixture-validated separate provenance-bearing phrase catalog implementation (`rhymelab-phrase-catalog-v1`) for German Wiktionary/Kaikki phrase attestations plus Leipzig sentence-level commonness evidence.
+The full Phase 11B1 phrase catalog has been built locally: 98,504 phrases / 97,400 modern-eligible, with Leipzig commonness evidence and the frozen base catalog fingerprint `f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d`.
 
-The next owner-local gate is:
+Phase 11B2 diagnostics and the Phase 11B3 Phrase Explorer/register layer are implemented. RUEG register evidence uses the slim DAKODA German Lx/L1/HL packages and preserves `dipl` + `norm`.
+
+Phase 11C1 deterministic phrase pronunciation is now implemented. It resolves phrase tokens against the accepted Writer-v5 pronunciation inventory, builds preferred citation IPA with explicit word-boundary coordinates, and never guesses unknown tokens.
+
+Local owner gate:
 
 ```powershell
-npm run phrase:catalog:bootstrap
+npm run phrase:pronunciation
+npm run dev
 ```
 
-This builds the gitignored local phrase database/report from the real source snapshots. Phrase pronunciation, mosaic indexing, phrase ranking and UI/API surfacing remain deferred until that full-data build is reviewed.
+Then open:
 
-See `docs/PHRASE_MOSAIC_PLAN.md` and `docs/PHRASE_CATALOG_V1.md`.
+```text
+http://127.0.0.1:3030/phrases
+```
+
+The generated report is `data/local/phrase-pronunciation-v1-report.json`. Phase 11D mosaic retrieval starts only after pronunciation coverage and deterministic-repeatability are reviewed.
+
+See `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_CATALOG_V1.md`, and `docs/PHRASE_PRONUNCIATION_V1.md`.
 
 English remains deferred until the German path is stable enough to freeze.
 

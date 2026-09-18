@@ -102,15 +102,13 @@ It will not be collected from the project owner alone. Independent human usefuln
 
 ## Current phase — Phase 11 German phrase / mosaic / phraseology
 
-Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`. Source decision: `docs/PHRASE_SOURCE_SURVEY.md`. Phrase catalog contract: `docs/PHRASE_CATALOG_V1.md`.
+Execution plan: `docs/PHRASE_MOSAIC_PLAN.md`. Phrase catalog contract: `docs/PHRASE_CATALOG_V1.md`. Pronunciation contract: `docs/PHRASE_PRONUNCIATION_V1.md`.
 
-### Phase 11B1 provenance phrase catalog — FULL OWNER BUILD COMPLETE
-
-The fixture-validated `rhymelab-phrase-catalog-v1` implementation has now been built successfully over the owner-local full source snapshots.
+### Phase 11B1 — full phrase catalog build complete
 
 ```text
 catalog fingerprint       f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d
-SQLite size               161,210,368 bytes / 153.74 MiB
+SQLite size               153.74 MiB
 phrases                    98,504
 modern eligible            97,400
 historical only             1,104
@@ -118,73 +116,78 @@ mixed historical              148
 attestations               99,357
 phrase tokens             205,957
 Leipzig evidence rows      28,799
-Wiktionary malformed rows       4
-runtime rewired             false
 ```
 
-The three frozen Leipzig inputs each completed at exactly 1,000,000 sentences with zero malformed sentence rows. This establishes the first real-data phrase-catalog build; data-quality diagnostics and an independent repeat full-build fingerprint remain required before Phase 11C.
+Phase 11B2 diagnostics found 15,449 modern-eligible phrases with Leipzig evidence (15.86%); 6,782 occur in one corpus, 3,984 in two and 4,683 in all three. The raw source catalog is intentionally broad and lexeme-heavy: 92,967 `multiword_lexeme` rows and 93,863 two-token rows. Abbreviation/surface aliases remain a known cleanup/ranking concern.
 
-### Phase 11B2 — lightweight modern register evidence
+### Phase 11B3 — register/context evidence + Phrase Explorer
 
-**Cologne Corpus of Kiezdeutsch 2025 v2 — selected.** It is a small CC BY 4.0 corpus of 2023 informal Cologne youth speech. RhymeLab downloads only the three transcription PDFs (~970 KiB total), never the ~158 MiB audio bundle. Cologne evidence is stored separately as youth/urban/spoken/register evidence and is not treated as representative general-German frequency.
+RUEG is selected via the slim DAKODA German subcorpora (RUEG-Lx/L1/HL), preserving both `dipl` and `norm` plus available register metadata. It remains additive register/context evidence, not general German frequency and not automatic phrase-candidate generation.
+
+Cologne Kiezdeutsch remains optional additive register evidence; automated Zenodo PDF 403 behavior is nonblocking because owner-local files may be supplied directly.
+
+The read-only Phrase Explorer is available at:
 
 ```text
-register schema        rhymelab-phrase-register-evidence-v1
-Cologne policy         cologne-kiezdeutsch-register-exact-token-sequence-v1
-candidate generation   false
-general commonness     false
-audio download         false
+http://127.0.0.1:3030/phrases
 ```
 
-**RUEG 1.0 — very useful but deferred.** The official current corpora ZIP is 4.4 GB before audio. Do not add it to the normal bootstrap unless a reproducible slim German-only distribution/export becomes available.
+### Phase 11C1 — deterministic phrase pronunciation — IMPLEMENTED / OWNER FULL-DATA GATE PENDING
+
+11C1 now reuses the accepted Writer-v5 pronunciation inventory and creates a separate additive pronunciation layer.
+
+```text
+schema                  rhymelab-phrase-pronunciation-v1
+policy                  de-phrase-pronunciation-v1
+token resolver          writer-v5-preferred-normalized-exact-v1
+composition             preferred-token-citation-composition-v1
+boundary policy         explicit-word-boundary-v1
+connected speech        attested-or-explicit-rule-only-v1
+IPA analyzer            de-ipa-v2
+G2P fallback            none
+phrase variants         preferred citation only
+```
+
+For every phrase token, 11C1 performs exact normalized lookup against the preferred eligible Writer-v5 pronunciation. Unknown tokens remain explicitly unresolved.
+
+For fully resolved phrases it stores:
+
+- complete IPA with explicit word boundaries;
+- canonical phoneme stream;
+- syllable count;
+- citation stress pattern and every primary/secondary stress position;
+- vowel/consonant and existing German analyzer keys;
+- word-boundary positions in both phoneme and syllable coordinates;
+- per-token Writer form/pronunciation provenance;
+- per-token phoneme and syllable spans.
+
+11C1 deliberately generates **zero** alternate phrase combinations and **zero** automatic connected-speech variants. The accepted Phase 11B1 base tables are not mutated, and materialization fails if the base catalog fingerprint changes.
+
+The Phrase Explorer now shows an `IPA ready` filter, phrase IPA, stress/syllable diagnostics, token IPA and token boundary spans.
 
 ### Immediate owner gate
 
-After this branch is merged:
+After merge:
 
 ```powershell
 git switch main
 git pull --ff-only
-npm run phrase:register:cologne:bootstrap
-npm run phrase:catalog:diagnose
-```
-
-Expected generated reports:
-
-```text
-data/local/cologne-kiezdeutsch-register-report.json
-data/local/phrase-catalog-v1-diagnostics.json
-```
-
-Review transcript-cleaning coverage, Cologne matched phrases, Leipzig 1/2/3-corpus coverage, phrase-type/token/history distributions and anomaly samples. Then repeat the full phrase build once to require the same catalog fingerprint before Phase 11C phrase pronunciation begins.
-
-The accepted German single-word Writer remains frozen and unchanged. Human Writer NDCG remains pending.
-
-## Phase 11B3 — RUEG dual-layer register + local Phrase Explorer
-
-Phase 11B2 catalog diagnostics are complete. The full catalog remains at 98,504 rows / 97,400 modern-eligible rows. 15,449 phrases have Leipzig evidence (15.86% of modern-eligible); 6,782 appear in one Leipzig corpus, 3,984 in two and 4,683 in all three. The raw source catalog is intentionally broad: 92,967 rows are `multiword_lexeme` and 93,863 rows contain exactly two lexical tokens. Abbreviation/surface aliases are therefore a known diagnostic/noise class, not a reason to discard the source catalog.
-
-RUEG is now selected through DAKODA's small open German subcorpora rather than the multi-gigabyte upstream release:
-
-```text
-RUEG-Lx   103,779 reported tokens
-RUEG-L1    41,953 reported tokens
-RUEG-HL    13,413 reported tokens
-total     159,145 reported tokens
-license   CC0 1.0 (DAKODA source records)
-```
-
-RhymeLab ingests EXB + metadata only and stores both `dipl` and `norm` per register unit. `dipl` is the colloquial/original-surface evidence; `norm` is the standard-form/search bridge. Neither is allowed to overwrite the other. RUEG remains register/context evidence, not representative general-German commonness, and does not generate new phrase candidates in 11B3.
-
-A read-only Phrase Explorer is available at `/phrases`. The phrase DB is optional for normal Writer startup and does not rewire the frozen single-word Writer.
-
-Owner gate after merge:
-
-```powershell
-npm run phrase:register:rueg:bootstrap
-npm run phrase:catalog:diagnose
+npm run phrase:pronunciation
 npm run dev
 ```
 
-Open `http://127.0.0.1:3030/phrases` and inspect the real RUEG report/context surface before Phase 11C.
+Generated report:
 
+```text
+data/local/phrase-pronunciation-v1-report.json
+```
+
+Review token coverage, phrase coverage, unresolved surfaces, syllable distribution, pronunciation-alternative counts and representative IPA/boundary samples. Run `npm run phrase:pronunciation` a second time and require the same pronunciation fingerprint.
+
+The base catalog fingerprint must remain:
+
+```text
+f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d
+```
+
+Only after this gate should Phase 11D mosaic/cross-word retrieval begin. The accepted single-word Writer remains frozen and unchanged. Human Writer NDCG remains pending.
