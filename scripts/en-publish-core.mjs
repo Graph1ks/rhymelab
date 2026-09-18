@@ -115,7 +115,11 @@ export function wiktionaryPronunciationEvidence(sound) {
     notation: 'ipa',
     raw: String(sound.ipa).trim(),
     locales,
-    locale_status: locales.length ? 'qualified' : 'source_attested_unprofiled',
+    locale_status: locales.length
+      ? 'qualified'
+      : locale.other_regional
+        ? 'source_attested_other_regional'
+        : 'source_attested_unprofiled',
     tags: locale.tags,
   };
 }
