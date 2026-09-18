@@ -1198,7 +1198,7 @@
   ],
   "next_milestone": "PHASE_12B1_OWNER_SOURCE_BOOTSTRAP_AND_12B2_FULL_SOURCE_DIAGNOSTIC_REVIEW",
   "phase_12_english": {
-    "status": "ACTIVE_12B6_COVERAGE_AUDIT_HISTORY_FIX_AB_PENDING",
+    "status": "ACTIVE_12B6_PROPER_NAME_FIX_AND_RESCUE_AUDIT_PENDING",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1279,7 +1279,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B6_REBUILD_PUBLISH_DB_AND_COVERAGE_AUDIT_WITH_SENSE_AWARE_HISTORY_THEN_REVIEW_REMAINING_LOSSES",
+    "next_gate": "PHASE_12B6_REBUILD_WITH_PROPER_NAME_FIX_THEN_QUANTIFY_ESDB_CMUDICT_MORPHOLOGY_AND_LOCALE_RESCUE_CHANNELS",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1384,10 +1384,10 @@
       }
     },
     "publish_layer_v1": {
-      "status": "V1_OWNER_REPEAT_PASS_V2_HISTORY_FIX_CANDIDATE_IMPLEMENTED",
+      "status": "V2_HISTORY_FIX_OWNER_PASS_V3_PROPER_NAME_FIX_CANDIDATE_IMPLEMENTED",
       "contract": "docs/ENGLISH_PUBLISH_V1.md",
       "schema": "rhymelab-en-publish-v1",
-      "policy": "en-source-backed-publish-v2-candidate",
+      "policy": "en-source-backed-publish-v3-candidate",
       "build_command": "npm run en:publish",
       "verify_command": "npm run en:publish:verify",
       "rebuild_command": "npm run en:publish:rebuild",
@@ -1436,10 +1436,20 @@
         "fingerprints_equal": true
       },
       "previous_accepted_owner_fingerprint": "4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124",
-      "candidate_history_fix_owner_build_pending": true
+      "candidate_history_fix_owner_build_pending": true,
+      "v2_history_fix_owner_result": {
+        "status": "PASS_REPEATABLE",
+        "published_surfaces": 147904,
+        "default_eligible_surfaces": 75695,
+        "analyzed_en_us_surfaces": 111574,
+        "pronunciation_variants": 274819,
+        "unresolved_pronunciation_variants": 35000,
+        "semantic_fingerprint": "0be8f5509d4d618f3e2343dc4e543f2b3612c53e1ac02862f962a0006eaf0508",
+        "fingerprints_equal": true
+      }
     },
     "writer_db_v1": {
-      "status": "OWNER_BUILD_VERIFY_PASS_CANDIDATE_NOT_PRODUCT_ACCEPTED",
+      "status": "V2_HISTORY_FIX_OWNER_BUILD_VERIFY_PASS_CANDIDATE",
       "contract": "docs/ENGLISH_WRITER_DB_V1.md",
       "schema": "rhymelab-en-writer-db-v1-candidate",
       "database": "data/local/rhymelab-en-v1.sqlite",
@@ -1499,10 +1509,24 @@
           }
         ],
         "verify_pass": true
+      },
+      "owner_history_fix_build": {
+        "status": "ok",
+        "forms": 147904,
+        "default_eligible_forms": 75695,
+        "pronunciations": 274819,
+        "analyzed_pronunciations": 239819,
+        "unresolved_pronunciations": 35000,
+        "default_profile_pronunciations": 106118,
+        "database_bytes": 121094144,
+        "database_mib": 115.48,
+        "semantic_fingerprint": "c6a0832d143979264a94c3e8d7cc30719011ed25404bca20321335389fea3377",
+        "retrieval_equivalence_mismatches": 0,
+        "verify_pass": true
       }
     },
     "coverage_audit_v1": {
-      "status": "OWNER_BASELINE_COMPLETE_HISTORY_FIX_AB_PENDING",
+      "status": "OWNER_HISTORY_FIX_AB_COMPLETE_PROPER_NAME_RESCUE_AUDIT_PENDING",
       "contract": "docs/ENGLISH_COVERAGE_AUDIT_V1.md",
       "command": "npm run en:coverage:audit",
       "report": "data/local/en-coverage-audit-v1-report.json",
@@ -1577,7 +1601,59 @@
         "owner_ab_pending": true
       },
       "form_of_recovery_probe_added": true,
-      "automatic_previous_audit_comparison": true
+      "automatic_previous_audit_comparison": true,
+      "owner_history_fix_ab": {
+        "default_eligible_surfaces": 75695,
+        "default_eligible_delta": 2749,
+        "ranked_default_surfaces": 65161,
+        "ranked_default_delta": 2503,
+        "top_10000": {
+          "default_eligible_pct": 94.38,
+          "default_eligible_delta": 535,
+          "historical_only": 1,
+          "explicit_proper_name_only": 386,
+          "no_source_backed_pronunciation": 58,
+          "form_of_with_analyzed_en_us_lemma": 29
+        },
+        "top_50000": {
+          "default_eligible_pct": 75.21,
+          "default_eligible_delta": 1605,
+          "historical_only": 67,
+          "explicit_proper_name_only": 5240,
+          "no_source_backed_pronunciation": 2194,
+          "form_of_with_analyzed_en_us_lemma": 969
+        },
+        "top_100000": {
+          "default_eligible_pct": 52.52,
+          "default_eligible_delta": 2064,
+          "historical_only": 208,
+          "explicit_proper_name_only": 11932,
+          "no_source_backed_pronunciation": 10897,
+          "published_no_analyzed_en_us_pronunciation": 5093,
+          "form_of_with_analyzed_en_us_lemma": 4793,
+          "form_of_without_analyzed_en_us_lemma": 2088,
+          "not_wiktionary_lexical_candidate": 12469
+        },
+        "interpretation": "history_fix_correct_and_material_but_major_coverage_gaps_remain"
+      },
+      "proper_name_classification_defect": {
+        "confirmed": true,
+        "symptom_examples": [
+          "college"
+        ],
+        "defect": "sense_level_proper_name_tags_were_flattened_into_record_level_proper_name_evidence",
+        "candidate_policy": "en-source-backed-publish-v3-candidate",
+        "fix": "proper_name_record_evidence_uses_pos_or_record_level_tags_only",
+        "owner_ab_pending": true
+      },
+      "rescue_audit_v2": {
+        "esdb_cmudict_non_wiktionary_probe": true,
+        "regular_inflection_shape_probe": true,
+        "arbitrary_form_of_pronunciation_inheritance_forbidden": true,
+        "orthographic_variant_probe": true,
+        "no_en_us_locale_breakdown": true,
+        "owner_run_pending": true
+      }
     }
   },
   "phase_12_entity_lexicon": {
