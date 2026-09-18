@@ -5,7 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { analyzeEnglishPronunciation } from './english-phonology.mjs';
 import {
-  composeEnglishInflectionIpa,
+  composeEnglishInflectionIpaVariants,
   isStrictEnglishInflectionRecovery,
   regularEnglishInflectionShape,
 } from './en-pronunciation-recovery.mjs';
@@ -139,18 +139,20 @@ for(const row of rows.values()){
   for(const basePron of basePronunciations){
     let baseAnalysis;
     try{baseAnalysis=fullAnalysis(basePron);}catch{continue;}
-    let composed;
-    try{composed=composeEnglishInflectionIpa(baseAnalysis,shape);}catch{continue;}
-    let composedAnalysis;
-    try{composedAnalysis=analyzeEnglishPronunciation(composed.raw,{notation:'ipa',locale:'en-US',source:'derived_inflection'});}catch{continue;}
+    let composedVariants;
+    try{composedVariants=composeEnglishInflectionIpaVariants(baseAnalysis,shape);}catch{continue;}
 
-    for(const targetPron of targetPronunciations){
-      let targetAnalysis;
-      try{targetAnalysis=fullAnalysis(targetPron);}catch{continue;}
-      const match=comparison(composedAnalysis,targetAnalysis);
-      const score=Object.values(match).filter(Boolean).length;
-      if(!best||score>best.score){
-        best={score,match,basePron,baseAnalysis,composed,composedAnalysis,targetPron,targetAnalysis};
+    for(const composed of composedVariants){
+      let composedAnalysis;
+      try{composedAnalysis=analyzeEnglishPronunciation(composed.raw,{notation:'ipa',locale:'en-US',source:'derived_inflection'});}catch{continue;}
+      for(const targetPron of targetPronunciations){
+        let targetAnalysis;
+        try{targetAnalysis=fullAnalysis(targetPron);}catch{continue;}
+        const match=comparison(composedAnalysis,targetAnalysis);
+        const score=Object.values(match).filter(Boolean).length;
+        if(!best||score>best.score){
+          best={score,match,basePron,baseAnalysis,composed,composedAnalysis,targetPron,targetAnalysis};
+        }
       }
     }
   }
@@ -179,6 +181,8 @@ for(const row of rows.values()){
       composed:{
         raw:best.composed.raw,
         suffix_rule:best.composed.suffix_rule,
+        suffix_variant:best.composed.suffix_variant,
+        suffix_ipa:best.composed.suffix_ipa,
         phonemes:best.composedAnalysis.canonicalPhonemes,
         stressed_tail:best.composedAnalysis.stressedTail,
       },
@@ -193,14 +197,14 @@ for(const row of rows.values()){
 }
 
 const report={
-  schema:'rhymelab-en-inflection-composition-diagnostic-v1',
+  schema:'rhymelab-en-inflection-composition-diagnostic-v2',
   publish_fingerprint:manifest.semantic_fingerprint,
   publish_policy:manifest.policy,
-  purpose:'Held-in source control for the proposed deterministic -s/-es/-ed/-ing composition rules. Exact CMUdict surface pronunciations are the control target; no publish eligibility changes are made by this diagnostic.',
+  purpose:'Held-in source control for proposed deterministic -s/-es/-ed/-ing composition. Exact CMUdict surface pronunciations are the control target. Epenthetic plural/past suffixes preserve both common reduced-vowel variants (/ɪ/ and /ə/); the best supported variant is compared against the control. No publish eligibility changes are made by this diagnostic.',
   gate:{
     production_enabled:false,
     broad_g2p:false,
-    rule:'Do not enable morphology pronunciation composition until owner evidence shows sufficiently high phoneme/rhyme-tail agreement and mismatch classes are reviewed.',
+    rule:'Do not enable morphology pronunciation composition until owner evidence shows sufficiently high variant-set phoneme/rhyme-tail agreement and remaining mismatch classes are reviewed.',
   },
   counts:{
     publish_rows:rows.size,
