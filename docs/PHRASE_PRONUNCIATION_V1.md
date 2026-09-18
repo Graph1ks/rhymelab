@@ -165,9 +165,9 @@ connected-speech variants generated = 0
 
 Future alternate phrase pronunciations require an explicit bounded policy.
 
-## Connected speech and RUEG
+## Connected speech
 
-RUEG `dipl` / `norm` evidence is valuable for later attested surface variants, but 11C1 does not automatically transform citation IPA from RUEG spelling.
+11C1 does not generate connected-speech pronunciations from unrelated corpus spelling variation.
 
 Future variants must remain distinguishable, for example:
 
