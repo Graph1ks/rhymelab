@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-18",
-  "phase": "GERMAN_PHASE_11E3_PHRASE_CHANNEL_DIVERSIFICATION",
+  "phase": "GERMAN_PHASE_11E4F_RUNTIME_INTEGRATION_FINAL_ACCEPTANCE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -100,7 +100,7 @@
     "repeatability_suite_fingerprint": "c0bcd4cdebcb43c83cdb8e74f18115f94ce91b8b99a5ca2c60563cf3e5941dab"
   },
   "phase_11_phrase_mosaic": {
-    "status": "phase_11e2_v2_accepted_phase_11e3_current",
+    "status": "phase_11e3_accepted_phase_11e4f_current",
     "plan": "docs/PHRASE_MOSAIC_PLAN.md",
     "first_gate": "public_phraseology_source_survey_and_license_decision_COMPLETE",
     "phrase_database_selected": true,
@@ -146,7 +146,7 @@
       "dwds_corpus_families_unless_specific_compatible_license_is_audited",
       "dwds_wordprofile_method_reference_only"
     ],
-    "next_milestone": "PHASE_11E3_PHRASE_CHANNEL_DIVERSIFICATION",
+    "next_milestone": "PHASE_11E4F_RUNTIME_INTEGRATION_FINAL_ACCEPTANCE",
     "phase_11b1_scope": [
       "separate_phrase_source_snapshot_catalog_schema",
       "raw_wiktextract_phrase_fixture_importer",
@@ -817,7 +817,7 @@
       }
     },
     "phase_11e_ranking": {
-      "status": "11E2_V2_ACCEPTED_11E3_CURRENT",
+      "status": "11E3_ACCEPTED_11E4F_CURRENT",
       "contract": "docs/PHRASE_MOSAIC_RANKING_V1.md",
       "accepted_retrieval_input_schema": "rhymelab-phrase-mosaic-retrieval-v2-candidate",
       "accepted_retrieval_policy": "de-bounded-indexed-mosaic-retrieval-v2-candidate",
@@ -854,7 +854,7 @@
       "default_report": "data/local/phrase-mosaic-ranking-evidence-v1-report.json",
       "evidence_enrichment_implemented": true,
       "phrase_utility_ranking_implemented": true,
-      "page_diversification_implemented": false,
+      "page_diversification_implemented": true,
       "writer_runtime_rewired": false,
       "fixture_gate_pending_ci": false,
       "owner_full_diagnostic_completed": true,
@@ -1050,20 +1050,53 @@
         "cross_channel_score_calibration": "deferred_until_shared_human_reference_exists"
       },
       "phase_11e3": {
+        "status": "ACCEPTED_FROZEN",
+        "acceptance_report": "docs/PHRASE_MOSAIC_DIVERSITY_ACCEPTANCE.md",
+        "schema": "rhymelab-phrase-mosaic-diversity-candidate-v1",
+        "policy": "de-phrase-channel-diversity-v1-candidate",
+        "exact_canonical_cap": 1,
+        "normalized_canonical_cap": 1,
+        "phrase_family_cap": 1,
+        "lexical_frame_cap": 3,
+        "lexical_head_cap": null,
+        "accepted_suite_diversity_fingerprint": "ca7e04e91226cd5a3855dbe302a54bffaccce8c6d3a9defff8be049ca6153ef1",
+        "diagnostic_baseline_fingerprint": "61e10fc5ab4a434f4668e5ee14c5b9ba721269ee1b4bd705d79cc5941cb44f96",
+        "owner_ab": {
+          "writer_page_candidates": 1182,
+          "diversified_writer_page_candidates": 749,
+          "suppressed_candidates": 433,
+          "lexical_frame_cap_suppressions": 429,
+          "exact_canonical_duplicate_suppressions": 4,
+          "queries_with_changed_top20": 6,
+          "original_top20_suppressed": 33,
+          "promoted_into_top20": 21,
+          "all_protected_checks_pass": true
+        },
+        "repeatability": {
+          "runs": 3,
+          "repeatable": true,
+          "baseline_gates_pass": true,
+          "all_protected_checks_pass": true,
+          "mismatches": []
+        },
+        "product_surface": {
+          "phrase_quota": false,
+          "cross_channel_promotion": false,
+          "empty_phrase_channel_allowed": true,
+          "preserve_suppression_provenance": true
+        }
+      },
+      "phase_11e4f": {
         "status": "CURRENT",
-        "scope": [
-          "canonical_duplicate_collapse",
-          "inflectional_or_obvious_template_cluster_reduction_when_deterministic_key_exists",
-          "top_page_phrase_family_concentration_diagnostics",
-          "deterministic_phrase_channel_diversification_only"
-        ],
-        "non_goals": [
-          "phrase_quota_in_default_results",
-          "promotion_over_better_single_word_results",
-          "randomized_diversity",
-          "cross_channel_score_calibration",
-          "ui_runtime_rewire_before_diversity_acceptance"
-        ]
+        "combined_workstream": true,
+        "integration_gate": "11E4",
+        "final_acceptance_gate": "11F",
+        "dependency_order_preserved": true,
+        "runtime_api_ui_integration_complete": false,
+        "final_benchmark_complete": false,
+        "runtime_integration_allowed": true,
+        "single_word_writer_must_remain_unchanged": true,
+        "local_only": true
       }
     },
     "thread_handover": "docs/THREAD_HANDOVER_PHASE_11E3.md",

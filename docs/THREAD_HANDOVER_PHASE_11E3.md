@@ -4,6 +4,8 @@ Last updated: 2026-09-18
 
 This file is the compact continuation checkpoint for a fresh engineering thread. Repository state is authoritative; if any chat history conflicts with the repository, follow the repository.
 
+> **Superseded checkpoint:** Phase 11E3 is now accepted/frozen. Continue from `docs/THREAD_HANDOVER_PHASE_11E4F.md`.
+
 ## Start in a fresh thread
 
 Read first:
