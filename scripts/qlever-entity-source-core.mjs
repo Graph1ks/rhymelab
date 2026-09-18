@@ -135,6 +135,10 @@ SELECT DISTINCT ?item ?site WHERE {
 }
 
 function decodeEscapeSequence(text, index) {
+  if (index + 1 >= text.length) {
+    return { value: '\\', consumed: 1 };
+  }
+
   const code = text[index + 1];
   const simple = {
     t: '\t',
@@ -160,23 +164,43 @@ function decodeEscapeSequence(text, index) {
       return { value: String.fromCodePoint(Number.parseInt(hex, 16)), consumed: 10 };
     }
   }
-  return { value: code ?? '', consumed: Math.min(2, text.length - index) };
+  return { value: code, consumed: 2 };
+}
+
+function quotedLiteralClosingQuote(raw) {
+  for (let index = raw.length - 1; index > 0; index -= 1) {
+    if (raw[index] !== '"') continue;
+    const suffix = raw.slice(index + 1);
+    if (
+      suffix === ''
+      || /^@[A-Za-z0-9-]+$/u.test(suffix)
+      || /^\^\^<[^>]+>$/u.test(suffix)
+    ) {
+      return index;
+    }
+  }
+  return -1;
 }
 
 function decodeQuotedLexical(raw) {
+  const closingQuote = quotedLiteralClosingQuote(raw);
+  if (closingQuote < 1) {
+    throw new Error(`Unterminated SPARQL TSV literal: ${raw.slice(0, 120)}`);
+  }
+
+  const lexical = raw.slice(1, closingQuote);
   let out = '';
-  for (let i = 1; i < raw.length; i += 1) {
-    const char = raw[i];
-    if (char === '"') return out;
+  for (let i = 0; i < lexical.length; i += 1) {
+    const char = lexical[i];
     if (char !== '\\') {
       out += char;
       continue;
     }
-    const decoded = decodeEscapeSequence(raw, i);
+    const decoded = decodeEscapeSequence(lexical, i);
     out += decoded.value;
     i += decoded.consumed - 1;
   }
-  throw new Error(`Unterminated SPARQL TSV literal: ${raw.slice(0, 120)}`);
+  return out;
 }
 
 export function decodeSparqlTsvTerm(rawValue) {
