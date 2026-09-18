@@ -171,7 +171,7 @@ test('English wordlist coverage audit separates DB presence, default selection a
     relation_kinds:[],lemma_candidates:[],morphology_recovery_candidates:[],orthographic_variant_recovery_candidates:[],
     possessive_recovery_candidates:[],published_locale_gap:null,publish_exclusion_reasons:[],
   })+'\n');
-  await writeFile(input,'No web source was used.\nrarity\\tword\nTier counts are descriptive metadata.\n1\\tsteady\n9\\tyclept\n10\\tzarf\n');
+  await writeFile(input,'No web source was used.\nrarity\tword\nTier counts are descriptive metadata.\n1\tsteady\n9\tyclept\n10\tzarf\n');
 
   execFileSync(process.execPath,[
     wordlistScript,'--input',input,'--db',dbPath,'--candidates',candidates,'--out',out,'--tsv-out',tsv,
