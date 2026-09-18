@@ -108,13 +108,13 @@ export function classifyWiktionaryIpaLocale(sound) {
   const us = tags.some((tag) => matchesAny(tag, US_PATTERNS));
   const uk = tags.some((tag) => matchesAny(tag, UK_PATTERNS));
   const hasRegionalQualifier = tags.some((tag) => matchesAny(tag, REGION_PATTERNS));
-  const otherRegional = hasRegionalQualifier && !us && !uk;
+  const otherProfiled = hasRegionalQualifier && !us && !uk;
   return {
     us,
     uk,
     unqualified: !hasRegionalQualifier,
     has_regional_qualifier: hasRegionalQualifier,
-    other_regional: otherRegional,
+    other_profiled: otherProfiled,
     tags,
   };
 }
