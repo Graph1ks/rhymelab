@@ -156,7 +156,33 @@ Review:
 - resulting SQLite size;
 - deterministic repeat window fingerprint.
 
-Run the materializer twice and require the same window fingerprint before 11D2.
+First owner full-data materialization:
+
+```text
+pronunciations scanned   90,089
+phrases with windows     90,089
+window count            356,693
+database size           510.09 MiB
+window fingerprint      24176031008b9180050a74f8b65ccab7f1cb27e1227ed86da9983b21008bd1ac
+```
+
+Distribution:
+
+```text
+2 syllables   97,867
+3 syllables  119,848
+4 syllables   74,036
+5 syllables   41,563
+6 syllables   23,379
+
+1 boundary   327,828
+2 boundaries  19,941
+3 boundaries   7,397
+4 boundaries   1,438
+5 boundaries      89
+```
+
+Run the materializer once more and require the same window fingerprint before 11D2.
 
 ## Explicitly deferred to 11D2 / 11E
 
