@@ -76,25 +76,24 @@ async function* tsvRows(spec){
   const stream=openTextLines(path);
   let header=null;
   let rows=0;
-  try{
-    for await(const line of stream.lines){
-      if(header===null){
-        header=String(line).replace(/\r$/u,'').split('\t').map((value)=>value.replace(/^\?/u,''));
-        continue;
-      }
-      if(!line) continue;
-      const values=parseSparqlTsvLine(line);
-      const row={};
-      for(let i=0;i<header.length;i+=1) row[header[i]]=values[i]??null;
-      rows+=1;
-      yield row;
+
+  for await(const line of stream.lines){
+    if(header===null){
+      header=String(line).replace(/\r$/u,'').split('\t').map((value)=>value.replace(/^\?/u,''));
+      continue;
     }
-    await stream.done;
-  }finally{
-    if(header===null) throw new Error(`Empty QLever TSV artifact: ${path}`);
-    if(rows!==Number(spec.rows)){
-      throw new Error(`QLever TSV row-count mismatch for ${spec.id}: expected ${spec.rows}, got ${rows}`);
-    }
+    if(!line) continue;
+    const values=parseSparqlTsvLine(line);
+    const row={};
+    for(let i=0;i<header.length;i+=1) row[header[i]]=values[i]??null;
+    rows+=1;
+    yield row;
+  }
+
+  await stream.done;
+  if(header===null) throw new Error(`Empty QLever TSV artifact: ${path}`);
+  if(rows!==Number(spec.rows)){
+    throw new Error(`QLever TSV row-count mismatch for ${spec.id}: expected ${spec.rows}, got ${rows}`);
   }
 }
 
@@ -185,6 +184,7 @@ try{
   }
   db.exec('COMMIT');
   importCounts.membership=n;
+  console.error(`[qlever-stage] membership rows=${n.toLocaleString('en-US')}`);
 
   const coreSpec=exportById.get('core');
   const getCore=db.prepare('SELECT * FROM ql_core WHERE qid=?');
@@ -228,6 +228,7 @@ try{
   db.exec('COMMIT');
   importCounts.core=n;
   importCounts.core_duplicate_rows=coreDuplicateRows;
+  console.error(`[qlever-stage] core rows=${n.toLocaleString('en-US')} duplicateRows=${coreDuplicateRows.toLocaleString('en-US')}`);
 
   const aliasSpec=exportById.get('aliases');
   const insertAlias=db.prepare(
@@ -245,6 +246,7 @@ try{
   }
   db.exec('COMMIT');
   importCounts.aliases=n;
+  console.error(`[qlever-stage] aliases rows=${n.toLocaleString('en-US')}`);
 
   const externalSpec=exportById.get('external_ids');
   const insertExternalTemp=db.prepare(
@@ -263,6 +265,7 @@ try{
   }
   db.exec('COMMIT');
   importCounts.external_ids=n;
+  console.error(`[qlever-stage] external_ids rows=${n.toLocaleString('en-US')}`);
 
   const wikiSpec=exportById.get('wikipedia_sitelinks');
   const upsertWiki=db.prepare(`
@@ -288,6 +291,7 @@ try{
   }
   db.exec('COMMIT');
   importCounts.wikipedia_sitelinks=n;
+  console.error(`[qlever-stage] wikipedia_sitelinks rows=${n.toLocaleString('en-US')}`);
 
   db.exec(`
     CREATE TEMP TABLE ql_name_presence(qid TEXT PRIMARY KEY) WITHOUT ROWID;
