@@ -392,6 +392,7 @@ function searchGermanPhraseChannel(phraseDb, query, options = {}) {
     rankingPolicy: ranked.policy,
     retrievalPolicy: retrieval.policy,
     retrieval: retrieval.retrieval,
+    queryAnchors: retrieval.query?.anchors || [],
     rankingFingerprint: ranked.rankingFingerprint,
     diversityFingerprint: diversified.diversityFingerprint,
     candidateCount: ranked.candidateCount,
