@@ -292,6 +292,27 @@ equal   true
 
 Anchor count, all distinct-key counts, source fingerprints and 720,117,760-byte DB size were unchanged. 11D2 is accepted/frozen.
 
+## Phase 11D3 owner full-data diagnostic — COMPLETE
+
+The first full diagnostic over the established 12-query Writer v2 suite completed successfully:
+
+```text
+ok queries                      9 / 12
+mean elapsed                    33.6 ms
+returned candidates            1,771
+weak                           989 (55.84%)
+slant                          720
+family                          60
+multisyllabic slant              1
+multisyllabic perfect            1
+final fallback channel         1,280 assignments
+semantic fingerprint
+294a26d670e0202a0b5171d51c16d6059eff3f03620dd5b57369a04b4a87625c
+```
+
+`Arbeitsweise`, `Liebe`, `Freiheit`, and `hitzefrei` demonstrate that the accepted substrate can return useful multiword phonetic candidates. However, `Leben`, `Feuer`, and `Gedanken` are dominated by weak final-fallback candidates, while `Musik` receives no mosaic anchor because its accepted stressed rhyme domain is one syllable even though the full word is two syllables.
+
+Decision: **do not proceed to 11E yet**. Keep 11D1 and 11D2 frozen and introduce a separate 11D4 candidate-retrieval revision with a full-surface multi-syllable query domain, a vowel-family bridge channel, and default rejection of weak candidates with no matched sound relation.
 ## Phase 11D3 — current
 
 Contract: `docs/PHRASE_MOSAIC_QUERY_DIAGNOSTICS_V1.md`.
