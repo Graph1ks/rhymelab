@@ -50,16 +50,14 @@ jobs:
           PREFIX wikibase: <http://wikiba.se/ontology#>
           """
 
-          values = "\n".join(
-              f'(wdt:{prop} wd:{qid} "{cat}")'
-              for prop, qid, cat in TAXONOMY
-          )
-
-          def candidate_pattern():
-              return f"""VALUES (?property ?target ?category) {{
-          {values}
-          }}
-          ?item ?property ?target ."""
+          def candidate_union(bind_category=True):
+              branches = []
+              for prop, qid, cat in TAXONOMY:
+                  bind = f' BIND("{cat}" AS ?category)' if bind_category else ""
+                  branches.append(
+                      "{ ?item wdt:" + prop + " wd:" + qid + " ." + bind + " }"
+                  )
+              return "\nUNION\n".join(branches)
 
           def fetch(query, accept="application/sparql-results+json", timeout=600):
               params = urllib.parse.urlencode({"query": query})
@@ -87,26 +85,22 @@ jobs:
           print("=== QLEVER RHYMELAB LIVE PROBE ===")
           print("endpoint", ENDPOINT)
 
-          count_query = PREFIX + f"""
-          SELECT ?category (COUNT(DISTINCT ?item) AS ?count) WHERE {{
-            {candidate_pattern()}
-          }}
-          GROUP BY ?category
-          ORDER BY ?category
-          """
-          rows, byte_count, ctype, elapsed = json_bindings(count_query)
           counts = {}
           print("\n=== CATEGORY COUNTS ===")
-          for row in rows:
-              cat = value(row, "category")
-              count = int(value(row, "count"))
+          for prop, qid, cat in TAXONOMY:
+              count_query = PREFIX + f"""
+              SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{
+                ?item wdt:{prop} wd:{qid} .
+              }}
+              """
+              rows, byte_count, ctype, elapsed = json_bindings(count_query)
+              count = int(value(rows[0], "count"))
               counts[cat] = count
-              print(f"{cat}\t{count:,}")
-          print(f"query_bytes={byte_count} content_type={ctype} elapsed_s={elapsed:.3f}")
+              print(f"{cat}\t{count:,}\telapsed_s={elapsed:.3f}")
 
           total_query = PREFIX + f"""
           SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{
-            {candidate_pattern()}
+            {candidate_union(bind_category=False)}
           }}
           """
           rows, byte_count, ctype, elapsed = json_bindings(total_query)
@@ -131,7 +125,7 @@ jobs:
           for name, extra in checks.items():
               query = PREFIX + f"""
               SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {{
-                {candidate_pattern()}
+                {candidate_union(bind_category=False)}
                 {extra}
               }}
               """
@@ -143,7 +137,7 @@ jobs:
 
           membership_query = PREFIX + f"""
           SELECT DISTINCT ?item ?category WHERE {{
-            {candidate_pattern()}
+            {candidate_union(bind_category=True)}
           }}
           """
           data, ctype, elapsed = fetch(membership_query, "text/tab-separated-values")
