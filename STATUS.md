@@ -173,6 +173,7 @@ After merge:
 git switch main
 git pull --ff-only
 npm run phrase:pronunciation
+npm run phrase:pronunciation:coverage
 npm run dev
 ```
 
@@ -180,9 +181,12 @@ Generated report:
 
 ```text
 data/local/phrase-pronunciation-v1-report.json
+data/local/phrase-pronunciation-coverage-v1-report.json
 ```
 
 Review token coverage, phrase coverage, unresolved surfaces, syllable distribution, pronunciation-alternative counts and representative IPA/boundary samples. Run `npm run phrase:pronunciation` a second time and require the same pronunciation fingerprint.
+
+The read-only coverage analyzer ranks unresolved normalized tokens by actual phrase-blocking impact and reports cumulative Top-N resolution-unblock upper bounds. Use it to decide whether a small reviewed 11C2 lexical-gap pass has enough leverage to justify itself before 11D; it does not approve pronunciations or introduce G2P.
 
 The base catalog fingerprint must remain:
 
