@@ -177,23 +177,23 @@ function bz2Command(path) {
     if (!commandExists(explicit)) {
       throw new Error(`RHYMELAB_BZIP2_CMD does not exist or is not executable: ${explicit}`);
     }
-    if (is7ZipCommand(explicit)) return { command: explicit, args: ['x', '-so', path] };
+    if (is7ZipCommand(explicit)) return { command: explicit, args: ['x', '-so', '-mmt=on', '-bsp2', '-bb0', path] };
     return { command: explicit, args: ['-dc', path] };
   }
 
   const candidates = process.platform === 'win32'
     ? [
-      { command: '7z', args: ['x', '-so', path] },
-      { command: '7z.exe', args: ['x', '-so', path] },
-      { command: '7zz', args: ['x', '-so', path] },
+      { command: '7z', args: ['x', '-so', '-mmt=on', '-bsp2', '-bb0', path] },
+      { command: '7z.exe', args: ['x', '-so', '-mmt=on', '-bsp2', '-bb0', path] },
+      { command: '7zz', args: ['x', '-so', '-mmt=on', '-bsp2', '-bb0', path] },
       { command: 'bzip2', args: ['-dc', path] },
-      ...windows7ZipCandidates().map((command) => ({ command, args: ['x', '-so', path] })),
+      ...windows7ZipCandidates().map((command) => ({ command, args: ['x', '-so', '-mmt=on', '-bsp2', '-bb0', path] })),
     ]
     : [
       { command: 'lbzip2', args: ['-dc', path] },
       { command: 'bzip2', args: ['-dc', path] },
-      { command: '7zz', args: ['x', '-so', path] },
-      { command: '7z', args: ['x', '-so', path] },
+      { command: '7zz', args: ['x', '-so', '-mmt=on', '-bsp2', '-bb0', path] },
+      { command: '7z', args: ['x', '-so', '-mmt=on', '-bsp2', '-bb0', path] },
     ];
 
   return candidates.find((candidate) => commandExists(candidate.command)) || null;
