@@ -147,6 +147,98 @@ The slim RUEG German subcorpora were evaluated locally. Inspection of the real E
 
 Possible later additions include UniMorph German, explicitly labeled pronunciation fallback resources, OpenThesaurus, OdeNet and Wikidata Lexemes. Definitions/full senses/semantic graphs/etymology/translations/embeddings remain outside the single-word rhyme hot path unless a later writer phase explicitly validates their use.
 
+## Phase 12A multilingual cultural entity sources
+
+Detailed architecture: `docs/ENTITY_LEXICON_PLAN.md`.
+
+### Wikidata JSON entity dump — USE
+
+Primary structured entity source.
+
+- License: CC0 structured data.
+- Access: official weekly JSON entity dump.
+- Build policy: stream compressed snapshot; retain only selected cultural categories/fields/IDs/relations.
+- Do not import the complete graph into product SQLite.
+- Pin dump date, URL and checksum.
+- Runtime remains offline.
+
+The initial reproducible build still needs to read a full entity snapshot because there is no official category-specific dump containing all required labels, aliases, sitelinks and statements. Raw dump stays local/gitignored.
+
+### Wikidata QRank — USE
+
+Primary global popularity signal.
+
+- Data license: CC0.
+- Bulk QID-aligned ranking.
+- Aggregates roughly twelve months of Wikimedia pageview activity across projects/languages.
+- Use as global popularity evidence, not cultural truth.
+- Combine with category-relative percentiles and DE/EN relevance signals.
+
+### Wikimedia Analytics pageviews — OPTIONAL USE
+
+Optional additive DE/EN/local-audience popularity evidence.
+
+Prefer bulk datasets over per-entity REST calls. Current country/project/page releases include Wikidata item IDs for mapped pages.
+
+Potential signals:
+
+- German Wikipedia pageviews;
+- English Wikipedia pageviews;
+- German-audience pageviews;
+- recent pageview momentum.
+
+Differentially-private/thresholded releases must be treated as noisy/partial evidence. Missing rows are not factual zero popularity.
+
+### MusicBrainz Core — USE / OPTIONAL ENRICHMENT
+
+MusicBrainz core database data is CC0.
+
+Allowed Phase 12A uses include retained artist/group/release/recording/work identity, aliases and relationships where the exact source table belongs to Core.
+
+Do **not** ingest supplementary tags, ratings, derived statistics or other CC BY-NC-SA supplementary data into the commercial core.
+
+Do not bulk-import the entire recording universe by default; prefer joins/enrichment for already retained or independently popular entities.
+
+### GLEIF — OPTIONAL / DEFERRED
+
+GLEIF legal-entity data is CC0.
+
+Use only for later corporate/legal-name enrichment or disambiguation of retained business entities.
+
+Do not use the multi-million-record LEI population as a primary company/brand generator: legal entities are not equivalent to culturally relevant brands and would undermine the popularity-cut objective.
+
+### Wikidata IPA transcription / pronunciation metadata — USE
+
+Wikidata IPA transcription (P898) is preferred source-backed entity pronunciation evidence where present.
+
+Preserve qualifying language/name and pronunciation-variety context. Do not flatten multiple pronunciations into one entity-level IPA field.
+
+Pronunciation audio metadata may be retained for evidence/review, but audio media itself has file-specific licensing and is not redistributed by default.
+
+### CMU Pronouncing Dictionary — USE CANDIDATE FOR ENGLISH
+
+CMUdict is permissively available for commercial use under its BSD-style terms and is a strong English lexicon candidate.
+
+It does not provide reliable coverage of arbitrary global proper names by itself.
+
+### gruut — RESEARCH / FALLBACK CANDIDATE
+
+gruut provides offline DE/EN lexicons and G2P functionality under permissive code licensing, but the upstream repository is archived.
+
+Evaluate as a reproducible fallback/benchmark, not as an unquestioned long-term dependency. Pin and audit individual language-data/model licenses before production use.
+
+### eSpeak NG — RESEARCH ONLY FOR CURRENT COMMERCIAL CORE
+
+eSpeak NG is GPL-3.0-or-later.
+
+Do not make it a required dependency of a future closed/commercial RhymeLab core without an explicit licensing/architecture decision.
+
+### External service identifiers
+
+Wikidata external IDs may be stored as Wikidata structured data.
+
+This does **not** authorize ingestion of the corresponding provider's metadata. IMDb/TMDB/Spotify/Discogs/etc. metadata needs a separate source/license/terms review before ingestion.
+
 ## Future English sources
 
 English begins only after German is stable. Candidate source families include:
