@@ -400,3 +400,49 @@ The next implementation should:
 7. record a deterministic semantic fingerprint and existing sentinel/cut diagnostics.
 
 Runtime remains fully local and network-free. QLever is a build/source acquisition dependency only.
+
+## Final exact replacement probe — 2026-09-18
+
+After the initial truthy feasibility probe, a second live pass matched the current JSON staging semantics more closely:
+
+- P31/P106 membership uses all valued statements via `p:/ps:`, not only `wdt:` truthy claims;
+- whitelisted external IDs also use all valued statement ranks;
+- `wikibase:statements` supplies statement count;
+- Wikipedia metrics are reconstructed from exact `QID × site` rows restricted by `wikibase:wikiGroup "wikipedia"`, which yields the same data needed for Wikipedia sitelink count plus DE/EN presence;
+- DE/EN labels, descriptions and aliases are exported separately and normalized locally.
+
+Final measured selective artifacts:
+
+```text
+artifact                    rows        raw bytes       gzip bytes    wall time
+membership (all ranks)     1,875,214    110,901,700      7,012,309      18.9 s
+core (all ranks)           1,838,443    216,224,248     49,198,431      33.8 s
+DE/EN aliases                630,965     45,329,457      8,268,118      17.0 s
+external IDs (all ranks)     993,923     66,189,842     12,860,016      16.7 s
+Wikipedia site pairs       4,491,468    315,301,793     16,711,786      27.8 s
+TOTAL                                   753,947,040     94,050,660     114.2 s
+```
+
+The compressed local artifact bundle is therefore about **89.7 MiB**, versus the 103,137,817,948-byte classic Wikidata dump. Even if HTTP transport were completely uncompressed, the measured payload is only about **719 MiB raw**.
+
+The public endpoint did return HTTP 429 after a deliberately aggressive sequence of many diagnostic queries. This is not a semantic blocker. The production exporter therefore performs only five coarse exports sequentially, paces requests, and retries HTTP 429 using `Retry-After`/bounded backoff.
+
+### Implemented owner fast path
+
+Commands:
+
+```powershell
+npm run entity:sources:qlever
+npm run entity:stage:qlever
+npm run entity:owner:stage:qlever -- --retrieval-label 20260918
+```
+
+The all-in-one owner command:
+
+1. exports the five selective QLever artifacts to `data/raw/entity/qlever-<retrieval-label>/`;
+2. freezes exact SPARQL text, query SHA-256, raw/gzip SHA-256, row counts, endpoint and retrieval timestamps;
+3. rebuilds the existing `rhymelab-entity-stage-v1` contract locally;
+4. stages the already-pinned local QRank artifact;
+5. joins QRank locally and runs the existing category-cut diagnostics.
+
+This is a build-time acquisition path only. RhymeLab runtime remains fully offline/local. The validated 20260914 classic dump remains retained as a dated control/recovery input but is no longer required to block current Phase 12A2 work.
