@@ -262,7 +262,7 @@ repeat fingerprint  fdee7796df2403cf2a24ad2e4f001c7cf09e536dee67bdfc764f565cdc8e
 ```
 
 Phase 11C1 is closed.
-### 11D. Mosaic retrieval architecture — current
+### 11D. Mosaic retrieval architecture — accepted / frozen
 
 #### 11D1. Deterministic cross-word window substrate — COMPLETE / PASS
 
@@ -398,9 +398,11 @@ Repeatability: **PASS**. Both owner runs produced the same candidate anchor fing
 
 11D retrieval is frozen. 11E is now current.
 
-### 11E. Phrase Writer ranking
+### 11E. Phrase Writer ranking — current
 
 Create a separate benchmarked phrase-ranking policy. Do not mutate the frozen single-word Writer policy in place.
+
+**11E1 evidence enrichment is implemented; fixture CI pending.** It adds deterministic Leipzig commonness, phrase/style evidence, surface safety, and normalized query-token overlap without reordering the frozen 11D4 candidate pool. Owner full-data distributions must be reviewed before any 11E2 ranking weights/policy are chosen.
 
 ### 11F. Phrase/mosaic benchmark
 
