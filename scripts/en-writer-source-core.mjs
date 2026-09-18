@@ -50,6 +50,40 @@ export function classifyWiktionaryHistory(tags) {
   };
 }
 
+export function classifyWiktionaryRecordHistory(record) {
+  const recordTags = normalizedTags([record?.tags || [], record?.raw_tags || []]);
+  const recordHistory = classifyWiktionaryHistory(recordTags);
+  const senses = Array.isArray(record?.senses) ? record.senses : [];
+  const senseHistories = senses.map((sense) => {
+    const tags = normalizedTags([sense?.tags || [], sense?.raw_tags || []]);
+    return classifyWiktionaryHistory(tags);
+  });
+
+  const recordWideHistorical = Boolean(
+    recordHistory.archaic || recordHistory.obsolete || recordHistory.historical || recordHistory.dated
+  );
+  let historicalSenseCount = 0;
+  let currentSenseCount = 0;
+  for (const history of senseHistories) {
+    const historical = Boolean(history.archaic || history.obsolete || history.historical || history.dated);
+    if (recordWideHistorical || historical) historicalSenseCount += 1;
+    else currentSenseCount += 1;
+  }
+
+  const historicalOnly = recordWideHistorical
+    || (senses.length > 0 && currentSenseCount === 0 && historicalSenseCount > 0);
+
+  return {
+    archaic: recordHistory.archaic || senseHistories.some((history) => history.archaic),
+    obsolete: recordHistory.obsolete || senseHistories.some((history) => history.obsolete),
+    historical: recordHistory.historical || senseHistories.some((history) => history.historical),
+    dated: recordHistory.dated || senseHistories.some((history) => history.dated),
+    historical_only: historicalOnly,
+    current_sense_count: currentSenseCount,
+    historical_sense_count: historicalSenseCount,
+  };
+}
+
 const US_PATTERNS = [
   /^us$/u, /^u\.s\.?$/u, /^usa$/u, /united states/u,
   /general[ -]american/u, /^genam$/u, /^ga$/u, /american[ -]english/u,
