@@ -82,6 +82,46 @@ jobs:
           def value(binding, name):
               return binding.get(name, {}).get("value")
 
+          def stream_to_file(query, path, accept="text/tab-separated-values", timeout=600):
+              params = urllib.parse.urlencode({"query": query})
+              req = urllib.request.Request(
+                  ENDPOINT + "?" + params,
+                  headers={
+                      "Accept": accept,
+                      "User-Agent": "Graph1ks-RhymeLab-QLever-Probe/1.0",
+                  },
+              )
+              started = time.time()
+              rows = 0
+              size = 0
+              with urllib.request.urlopen(req, timeout=timeout) as response, open(path, "wb") as out:
+                  content_type = response.headers.get("Content-Type")
+                  while True:
+                      chunk = response.read(1024 * 1024)
+                      if not chunk:
+                          break
+                      out.write(chunk)
+                      size += len(chunk)
+                      rows += chunk.count(b"\n")
+              rows = max(0, rows - 1)
+              return {
+                  "path": path,
+                  "rows": rows,
+                  "raw_bytes": size,
+                  "content_type": content_type,
+                  "elapsed_s": time.time() - started,
+              }
+
+          def gzip_size(path):
+              gz_path = path + ".gz"
+              with open(path, "rb") as src, gzip.open(gz_path, "wb", compresslevel=6) as dst:
+                  while True:
+                      chunk = src.read(1024 * 1024)
+                      if not chunk:
+                          break
+                      dst.write(chunk)
+              return os.path.getsize(gz_path)
+
           print("=== QLEVER RHYMELAB LIVE PROBE ===")
           print("endpoint", ENDPOINT)
 
@@ -193,6 +233,66 @@ jobs:
           print(json.dumps(rows, ensure_ascii=False, indent=2))
           print(f"count={len(rows)} elapsed_s={elapsed:.3f}")
 
+          core_query = PREFIX + f"""
+          SELECT DISTINCT
+            ?item ?labelDe ?labelEn ?descriptionDe ?descriptionEn
+            ?sitelinks ?statements ?identifiers ?hasDeWiki ?hasEnWiki
+          WHERE {{
+            {candidate_union(bind_category=False)}
+            OPTIONAL {{ ?item rdfs:label ?labelDe . FILTER(LANG(?labelDe) = "de") }}
+            OPTIONAL {{ ?item rdfs:label ?labelEn . FILTER(LANG(?labelEn) = "en") }}
+            OPTIONAL {{ ?item schema:description ?descriptionDe . FILTER(LANG(?descriptionDe) = "de") }}
+            OPTIONAL {{ ?item schema:description ?descriptionEn . FILTER(LANG(?descriptionEn) = "en") }}
+            OPTIONAL {{ ?item wikibase:sitelinks ?sitelinks }}
+            OPTIONAL {{ ?item wikibase:statements ?statements }}
+            OPTIONAL {{ ?item wikibase:identifiers ?identifiers }}
+            OPTIONAL {{ ?deArticle schema:about ?item ; schema:isPartOf <https://de.wikipedia.org/> . }}
+            OPTIONAL {{ ?enArticle schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }}
+            BIND(IF(BOUND(?deArticle), 1, 0) AS ?hasDeWiki)
+            BIND(IF(BOUND(?enArticle), 1, 0) AS ?hasEnWiki)
+          }}
+          """
+          core_export = stream_to_file(core_query, "/tmp/core.tsv")
+          core_export["gzip_bytes"] = gzip_size(core_export["path"])
+          print("\n=== FULL CORE EXPORT ===")
+          print(json.dumps(core_export, sort_keys=True))
+
+          alias_query = PREFIX + f"""
+          SELECT DISTINCT ?item ?language ?alias WHERE {{
+            {candidate_union(bind_category=False)}
+            ?item skos:altLabel ?alias .
+            FILTER(LANG(?alias) IN ("de", "en"))
+            BIND(LANG(?alias) AS ?language)
+          }}
+          """
+          alias_export = stream_to_file(alias_query, "/tmp/aliases.tsv")
+          alias_export["gzip_bytes"] = gzip_size(alias_export["path"])
+          print("\n=== FULL DE/EN ALIAS EXPORT ===")
+          print(json.dumps(alias_export, sort_keys=True))
+
+          external_query = PREFIX + f"""
+          SELECT DISTINCT ?item ?property ?value WHERE {{
+            {candidate_union(bind_category=False)}
+            VALUES ?property {{ wdt:P434 wdt:P345 wdt:P1953 wdt:P1902 }}
+            ?item ?property ?value .
+          }}
+          """
+          external_export = stream_to_file(external_query, "/tmp/external_ids.tsv")
+          external_export["gzip_bytes"] = gzip_size(external_export["path"])
+          print("\n=== FULL WHITELISTED EXTERNAL-ID EXPORT ===")
+          print(json.dumps(external_export, sort_keys=True))
+
+          dump_date_query = PREFIX + """
+          SELECT ?date WHERE {
+            wikibase:Dump schema:dateModified ?date .
+          }
+          LIMIT 10
+          """
+          dump_rows, _, _, dump_elapsed = json_bindings(dump_date_query)
+          print("\n=== QLEVER WIKIDATA DUMP DATE ===")
+          print(json.dumps(dump_rows, ensure_ascii=False))
+          print(f"elapsed_s={dump_elapsed:.3f}")
+
           summary = {
               "total_distinct_candidates": total,
               "category_counts": counts,
@@ -200,6 +300,9 @@ jobs:
               "membership_rows": rows_count,
               "membership_raw_bytes": len(data),
               "membership_gzip_bytes": os.path.getsize(gz_path),
+              "core_export": core_export,
+              "alias_export": alias_export,
+              "external_export": external_export,
           }
           print("\n=== MACHINE SUMMARY ===")
           print(json.dumps(summary, sort_keys=True))
