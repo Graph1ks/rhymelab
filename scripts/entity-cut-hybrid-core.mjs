@@ -1,6 +1,9 @@
 export const ENTITY_CUT_HYBRID_CANDIDATE_POLICY =
   'category-relative-popularity-hybrid-v1-candidate';
 
+export const ENTITY_CUT_HYBRID_V2_CANDIDATE_POLICY =
+  'category-relative-popularity-hybrid-v2-geometric-missing-evidence-candidate';
+
 export const ENTITY_CUT_HYBRID_WEIGHTS = Object.freeze({
   qrank_percentile: 55,
   wikipedia_sitelink_percentile: 25,
@@ -57,6 +60,53 @@ function externalIdPpm(row) {
   return Math.round(Math.min(Number(row.external_id_count || 0), EXTERNAL_ID_CAP) * SCORE_SCALE / EXTERNAL_ID_CAP);
 }
 
+function integerSqrt(value) {
+  let n = BigInt(value);
+  if (n < 0n) throw new RangeError('integerSqrt requires a non-negative value');
+  if (n < 2n) return Number(n);
+  let x0 = 1n << (BigInt(n.toString(2).length) >> 1n);
+  let x1 = (x0 + n / x0) >> 1n;
+  while (x1 < x0) {
+    x0 = x1;
+    x1 = (x0 + n / x0) >> 1n;
+  }
+  return Number(x0);
+}
+
+function scoreComponents(rows) {
+  const qrankScores = percentilePpmByValue(rows, (row) => row.qrank, { excludeMissing: true });
+  const sitelinkScores = percentilePpmByValue(rows, (row) => row.wikipedia_sitelink_count);
+  const statementScores = percentilePpmByValue(rows, (row) => row.statement_count);
+
+  return rows.map((row) => {
+    const components = {
+      qrank_percentile: qrankScores.get(row.qid) || 0,
+      wikipedia_sitelink_percentile: sitelinkScores.get(row.qid) || 0,
+      de_en_wikipedia_presence: wikipediaPresencePpm(row),
+      external_id_capped: externalIdPpm(row),
+      statement_count_percentile: statementScores.get(row.qid) || 0,
+    };
+    const weighted = Object.entries(ENTITY_CUT_HYBRID_WEIGHTS)
+      .reduce((sum, [key, weight]) => sum + components[key] * weight, 0);
+    return { row, components, weighted };
+  });
+}
+
+function sortHybridScoredRows(scored) {
+  return scored.sort((a, b) =>
+    b.candidate_score_ppm - a.candidate_score_ppm
+    || compareNumberDesc(a.qrank, b.qrank)
+    || compareNumberDesc(a.wikipedia_sitelink_count, b.wikipedia_sitelink_count)
+    || compareNumberDesc(
+      Number(a.has_dewiki || 0) + Number(a.has_enwiki || 0),
+      Number(b.has_dewiki || 0) + Number(b.has_enwiki || 0),
+    )
+    || compareNumberDesc(a.external_id_count, b.external_id_count)
+    || compareNumberDesc(a.statement_count, b.statement_count)
+    || compareQid(a, b)
+  );
+}
+
 export function rankControlEntityCutRows(rows) {
   return [...rows].sort((a, b) => {
     const aMissing = a.qrank == null ? 1 : 0;
@@ -75,39 +125,51 @@ export function rankControlEntityCutRows(rows) {
 }
 
 export function rankHybridEntityCutRows(rows) {
-  const qrankScores = percentilePpmByValue(rows, (row) => row.qrank, { excludeMissing: true });
-  const sitelinkScores = percentilePpmByValue(rows, (row) => row.wikipedia_sitelink_count);
-  const statementScores = percentilePpmByValue(rows, (row) => row.statement_count);
+  const scored = scoreComponents(rows).map(({ row, components, weighted }) => ({
+    ...row,
+    candidate_score_ppm: Math.round(weighted / 100),
+    candidate_components_ppm: components,
+  }));
+  return sortHybridScoredRows(scored);
+}
 
-  const scored = rows.map((row) => {
-    const components = {
-      qrank_percentile: qrankScores.get(row.qid) || 0,
-      wikipedia_sitelink_percentile: sitelinkScores.get(row.qid) || 0,
-      de_en_wikipedia_presence: wikipediaPresencePpm(row),
-      external_id_capped: externalIdPpm(row),
-      statement_count_percentile: statementScores.get(row.qid) || 0,
-    };
-    const weighted = Object.entries(ENTITY_CUT_HYBRID_WEIGHTS)
-      .reduce((sum, [key, weight]) => sum + components[key] * weight, 0);
+export function rankHybridV2EntityCutRows(rows) {
+  const qrankWeight = ENTITY_CUT_HYBRID_WEIGHTS.qrank_percentile;
+  const totalWeight = Object.values(ENTITY_CUT_HYBRID_WEIGHTS)
+    .reduce((sum, weight) => sum + weight, 0);
+  const missingAvailableWeight = totalWeight - qrankWeight;
+
+  const scored = scoreComponents(rows).map(({ row, components, weighted }) => {
+    const rawScorePpm = Math.round(weighted / totalWeight);
+    if (row.qrank != null) {
+      return {
+        ...row,
+        candidate_score_ppm: rawScorePpm,
+        candidate_raw_score_ppm: rawScorePpm,
+        candidate_available_evidence_score_ppm: rawScorePpm,
+        candidate_available_weight_pct: totalWeight,
+        candidate_missing_evidence_adjustment: 'none_qrank_present',
+        candidate_components_ppm: components,
+      };
+    }
+
+    const availableEvidenceScorePpm = Math.round(weighted / missingAvailableWeight);
+    const geometricScorePpm = integerSqrt(
+      BigInt(rawScorePpm) * BigInt(availableEvidenceScorePpm),
+    );
     return {
       ...row,
-      candidate_score_ppm: Math.round(weighted / 100),
+      candidate_score_ppm: geometricScorePpm,
+      candidate_raw_score_ppm: rawScorePpm,
+      candidate_available_evidence_score_ppm: availableEvidenceScorePpm,
+      candidate_available_weight_pct: missingAvailableWeight,
+      candidate_missing_evidence_adjustment:
+        'geometric_mean_zero_fill_and_available_evidence_normalization',
       candidate_components_ppm: components,
     };
   });
 
-  return scored.sort((a, b) =>
-    b.candidate_score_ppm - a.candidate_score_ppm
-    || compareNumberDesc(a.qrank, b.qrank)
-    || compareNumberDesc(a.wikipedia_sitelink_count, b.wikipedia_sitelink_count)
-    || compareNumberDesc(
-      Number(a.has_dewiki || 0) + Number(a.has_enwiki || 0),
-      Number(b.has_dewiki || 0) + Number(b.has_enwiki || 0),
-    )
-    || compareNumberDesc(a.external_id_count, b.external_id_count)
-    || compareNumberDesc(a.statement_count, b.statement_count)
-    || compareQid(a, b)
-  );
+  return sortHybridScoredRows(scored);
 }
 
 export function evaluateRankedEntityCutRows(rankedRows, retentionPercentileFloor, protectedQids = new Set()) {
