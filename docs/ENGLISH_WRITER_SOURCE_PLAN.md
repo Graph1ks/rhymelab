@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-18
 
-Status: **ACTIVE / 12B3 OWNER FIXTURE PASS / 12B4 ENGLISH PUBLISH LAYER IMPLEMENTED / OWNER FULL BUILD PENDING**
+Status: **ACTIVE / 12B4 OWNER BUILD+VERIFY PASS / REPEATABILITY GATE PENDING / 12B5 ENGLISH WRITER DB IMPLEMENTED**
 
 
 ## Implementation checkpoint — 2026-09-18
@@ -54,6 +54,21 @@ This is enough to start 12B3, but not enough to freeze a final runtime populatio
 - default eligibility requires analyzed en-US pronunciation, current lexical evidence, non-proper-name-only status and no ESDB invalid marker;
 - proper-name/common-word homographs remain eligible through ordinary lexical evidence;
 - final Writer row count remains unfrozen and no runtime DB is created in 12B4.
+
+Owner 12B4 full-data build + verifier result:
+
+```text
+published surfaces                 147,904
+default-eligible surfaces           72,946
+analyzed en-US surfaces            111,574
+pronunciation variants             274,819
+unresolved pronunciation variants   35,000
+semantic fingerprint
+4087cc8a41eff75a24e5cf33c25da1db0760bae658c7eb979a482c68acd56124
+verify                              PASS
+```
+
+The remaining 12B4 freeze requirement is an independent second build from the unchanged sources. `npm run en:publish:repeatability` now performs that gate and writes `data/local/en-publish-repeatability-v1-report.json`.
 
 
 ## Decision
@@ -501,18 +516,17 @@ Materialize source-backed lexical rows with:
 
 The source-backed publish cut requires Wiktionary lexical evidence plus at least one Wiktionary or exact-CMUdict pronunciation. Unsupported source IPA remains stored as unresolved source evidence; it is not guessed.
 
-Owner gate after merge:
+Owner build + verify passed. Freeze still requires one unchanged-source rebuild with the same semantic fingerprint:
 
 ```powershell
-npm run en:publish
-npm run en:publish:verify
+npm run en:publish:repeatability
 ```
-
-Review published/default-eligible counts, pronunciation analysis failure rate, locale mix, lexical-history/proper-name filters, source overlap and semantic fingerprint before starting 12B5.
 
 No final English Writer row count or broad G2P policy is accepted in 12B4.
 
-### 12B5 — English Writer DB
+### 12B5 — English Writer DB — IMPLEMENTED / OWNER MATERIALIZATION PENDING
+
+Contract: `docs/ENGLISH_WRITER_DB_V1.md`.
 
 Materialize indexed local SQLite:
 
@@ -520,7 +534,31 @@ Materialize indexed local SQLite:
 data/local/rhymelab-en-v1.sqlite
 ```
 
-Build retrieval indexes for the accepted English phonology rather than reusing German suffix keys blindly.
+The DB stores all source pronunciation variants separately. Unsupported/unresolved variants remain provenance rows but do not enter phonological retrieval indexes.
+
+English-specific indexed channels:
+
+- exact stressed tail;
+- multisyllabic stressed tail;
+- vowel sequence;
+- English vowel-family + coarse coda;
+- exact final coda.
+
+The coarse coda bridge is English place/manner based and deliberately voicing-neutral so consonant-family slants such as /t/ ~ /d/ are not split before scoring. Exact coda remains a separate index.
+
+12B5 refuses to build without a passing 12B4 repeatability report.
+
+Owner gate:
+
+```powershell
+npm run en:publish:repeatability
+npm run en:db
+npm run en:db:verify
+```
+
+The verifier requires correct schema/source fingerprints, default en-US invariants, intended index query plans, indexed-vs-full-scan retrieval equivalence, foreign-key integrity and an exact semantic DB fingerprint.
+
+No UI/API rewiring occurs in 12B5.
 
 ### 12B6 — benchmark + acceptance
 
@@ -561,7 +599,7 @@ A new thread should begin by reading:
 6. `ROADMAP.md`
 7. `PROJECT_STATE.json`
 
-Then start **12B1 source manifests/bootstrap + 12B2 diagnostics**.
+Then continue the **12B4 repeatability + 12B5 owner DB materialization/verification gate** before starting 12B6 benchmark work.
 
 Do not reopen Entity work first.
 
