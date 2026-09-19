@@ -96,6 +96,7 @@ test('DE collection diffs actual usage + Kaikki headword/listed-form sources aga
     workDb.close();
 
     assert.deepEqual(items,[
+      {language:'de',normalized:'lemma',surface:'Lemma'},
       {language:'de',normalized:'missinghead',surface:'MissingHead'},
       {language:'de',normalized:'missinglisted',surface:'MissingListed'},
       {language:'de',normalized:'missingusage',surface:'MissingUsage'},
@@ -175,11 +176,12 @@ test('EN collection scans publish-eligible Wiktionary lexical candidates absent 
     workDb.close();
 
     assert.deepEqual(items,[
+      {language:'en',normalized:'lemma',surface:'lemma'},
       {language:'en',normalized:'listedmissing',surface:'listedmissing'},
       {language:'en',normalized:'missingword',surface:'missingword'},
     ]);
     assert.equal(state.status,'complete');
-    assert.equal(Number(state.source_refs),2);
+    assert.equal(Number(state.source_refs),3);
   }finally{
     rmSync(root,{recursive:true,force:true});
   }
