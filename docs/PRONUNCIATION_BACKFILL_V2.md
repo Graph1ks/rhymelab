@@ -234,13 +234,13 @@ Order:
 
 Host eSpeak unavailability fails the eSpeak phase. It does not silently route the entire admitted source universe through the weaker client fallback.
 
-The eSpeak phase now supports bounded parallel child-process workers:
+The eSpeak phase now uses **four bounded batch workers by default**. Each worker sends a block of rows to one eSpeak process over stdin instead of launching one process per row:
 
 ```powershell
-npm run pronunciation:backfill:espeak -- --workers 16
+npm run pronunciation:backfill:espeak -- --workers 4
 ```
 
-Completed rows are still committed transactionally to the same resumable SQLite workset. Worker count changes throughput only; it does not alter pronunciation/admission policy.
+Default batch size is 512 rows per worker and can be overridden with `--espeak-batch-size`. DE and EN are processed as separate language phases so all four workers can use one fixed voice at a time. Output cardinality is checked before rows are mapped back to the workset; a mismatching batch is recursively split and an isolated single-row mismatch falls back to the established per-row adapter. Completed rows are still committed transactionally to the same resumable SQLite workset. Worker/batch settings change throughput only; they do not alter pronunciation, admission, analyzer, quality-tier or promotion policy.
 
 ## Generated quality classes
 
@@ -324,31 +324,40 @@ npm run pronunciation:backfill:benchmark:run
 
 ## eSpeak high-speed throughput test
 
-The original single-process-per-row benchmark showed roughly ~83 ms median eSpeak latency, which would make millions of serial process launches impractical. Before the full admitted run, measure the local machine with the real admitted workset:
+The first owner scaling run proved that per-row process launch is the bottleneck: 4 row-spawn workers reached 24.268 cases/s with no errors, while higher concurrency delivered diminishing throughput and started producing process-unavailable failures.
+
+The default high-speed test now keeps concurrency fixed at **4 workers** and benchmarks **batch size** instead:
 
 ```powershell
 npm run pronunciation:backfill:highspeed:test
 ```
 
-Default ladder:
+Default test:
 
 ```text
-1, 2, 4, 8, 16, 32 concurrent eSpeak processes
-256 identical admitted cases per level
+workers        4
+sample         2,048 admitted rows
+batch sizes    64, 128, 256, 512 rows/worker
 ```
 
 Output:
 
 ```text
-data/local/pronunciation-espeak-highspeed-v1.json
+data/local/pronunciation-espeak-highspeed-v2.json
 ```
 
-The test is read-only. It reports cases/second, p50/p95 child-process latency, errors/unavailable launches, speedup vs baseline, and projected hours for the remaining admitted population. Use its fastest stable worker count for the actual eSpeak phase instead of guessing a concurrency value.
+The test is read-only. It reports cases/second, process-mode/fallback counts, errors and projected hours for the remaining admitted population. A batch size is eligible for the full run only when the run is stable with zero process errors.
 
 Custom example:
 
 ```powershell
-npm run pronunciation:backfill:highspeed:test -- --cases 512 --workers-list 1,4,8,16,24,32
+npm run pronunciation:backfill:highspeed:test -- --workers 4 --cases 4096 --batch-sizes 128,256,512,1024
+```
+
+The old per-row spawn ladder is retained only as a control:
+
+```powershell
+npm run pronunciation:backfill:highspeed:spawn
 ```
 
 ## Owner commands
@@ -380,10 +389,10 @@ Measure local eSpeak concurrency before the multi-million-row generator pass:
 npm run pronunciation:backfill:highspeed:test
 ```
 
-Then run eSpeak with the fastest stable worker count from that report, for example:
+Then run eSpeak with four workers and the fastest stable batch size from the v2 report, for example:
 
 ```powershell
-npm run pronunciation:backfill:espeak -- --workers 16
+npm run pronunciation:backfill:espeak -- --workers 4 --espeak-batch-size 512
 ```
 
 After eSpeak completes, run the client fallback only for analyzer-rejected admitted rows:
@@ -392,10 +401,10 @@ After eSpeak completes, run the client fallback only for analyzer-rejected admit
 npm run pronunciation:backfill:client
 ```
 
-The convenience full-chain command still exists and defaults to `min(16, availableParallelism())` eSpeak workers. `--workers` overrides that local default explicitly:
+The convenience full-chain command still exists and defaults to 4 batched eSpeak workers. `--workers` and `--espeak-batch-size` override those local defaults explicitly:
 
 ```powershell
-npm run pronunciation:backfill -- --workers 16
+npm run pronunciation:backfill -- --workers 4 --espeak-batch-size 512
 ```
 
 Retry unexpected per-row processing errors:
