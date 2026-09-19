@@ -187,3 +187,111 @@ select option,select optgroup{background:#fff;color:var(--ink)}
   font-size:13px;
   line-height:1.45;
 }
+
+
+/* Floating search workspace and full-surface compact result cards */
+.search-stage{
+  position:sticky;
+  top:68px;
+  z-index:24;
+}
+.search-card{
+  backdrop-filter:blur(18px);
+  transition:padding .16s ease,border-radius .16s ease,box-shadow .16s ease;
+}
+.search-results-toolbar{
+  margin:14px 0 0;
+  padding:14px 0 0;
+  border:0;
+  border-top:1px solid var(--line);
+  border-radius:0;
+  box-shadow:none;
+  background:transparent;
+}
+.search-results-toolbar .toolbar-title{margin-bottom:12px}
+.search-filter-reveal{
+  display:none;
+  width:100%;
+  min-height:34px;
+  margin-top:8px;
+  border:1px dashed var(--line-strong);
+  border-radius:10px;
+  background:rgba(255,255,255,.5);
+  color:var(--muted);
+  align-items:center;
+  justify-content:center;
+  padding:6px 10px;
+  font-family:var(--mono);
+  font-size:10px;
+  font-weight:650;
+  letter-spacing:.05em;
+}
+.search-filter-reveal:hover,
+.search-filter-reveal:focus-visible{
+  border-color:var(--accent);
+  background:#eef1ff;
+  color:var(--accent-ink);
+  outline:none;
+}
+.search-stage.search-collapsed .search-card{
+  padding:10px 12px;
+  border-radius:16px;
+  box-shadow:0 14px 34px rgba(35,31,24,.14);
+}
+.search-stage.search-collapsed .search-mode-grid,
+.search-stage.search-collapsed .availability-bar,
+.search-stage.search-collapsed .search-results-toolbar{
+  display:none;
+}
+.search-stage.search-collapsed .search-card .search{height:52px}
+.search-stage.search-collapsed .search-filter-reveal{display:flex}
+.search-stage.search-collapsed.search-hover-open .search-mode-grid{display:grid}
+.search-stage.search-collapsed.search-hover-open .availability-bar{display:flex}
+.search-stage.search-collapsed.search-hover-open .search-results-toolbar:not(.hidden){display:block}
+.search-stage.search-collapsed.search-hover-open .search-filter-reveal{display:none}
+
+.results-compact .result-items{
+  grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  align-items:stretch;
+}
+.results-compact .result-row{
+  min-height:0;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"word word" "type score" "usage syllable";
+  align-items:start;
+  align-content:start;
+  row-gap:9px;
+}
+.results-compact .result-word{grid-area:word}
+.results-compact .result-title-line{
+  align-items:flex-start;
+  flex-wrap:wrap;
+  row-gap:6px;
+}
+.results-compact .result-title-line strong{
+  flex:1 0 100%;
+  min-width:0;
+  overflow:visible;
+  text-overflow:clip;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  line-height:1.22;
+}
+.results-compact .result-word .sub{
+  display:block;
+  margin-top:6px;
+  line-height:1.35;
+}
+.results-compact .result-word code{
+  display:block;
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.results-compact .type-col{grid-area:type;align-self:end}
+.results-compact .usage-col{display:block;grid-area:usage;align-self:end}
+.results-compact .syllable-col{grid-area:syllable;align-self:end;text-align:right}
+.results-compact .score{grid-area:score;align-self:end;text-align:right}
+.results-compact .kind-chip{max-width:100%;white-space:normal;line-height:1.15}

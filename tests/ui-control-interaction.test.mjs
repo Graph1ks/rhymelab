@@ -62,6 +62,9 @@ function buildFakeDom(){
   put('#searchForm');
   put('#searchInput');
   put('#searchButton');
+  put('#searchFiltersReveal');
+  put('#resultsToolbar');
+  put('.search-stage');
   put('#scopeFilter',new FakeElement({value:'all'}));
   put('#typeFilter',new FakeElement({value:'all'}));
   put('#variantMode',new FakeElement({value:'preferred'}));
@@ -175,6 +178,11 @@ test('unified UI primary controls bind and change state at runtime', async () =>
   runtime.installInteractiveControls();
   assert.equal(dom.document.documentElement.dataset.rhymelabControls,'bound');
 
+  const searchStage=dom.singles.get('.search-stage');
+  searchStage.classList.add('search-collapsed');
+  dom.singles.get('#searchFiltersReveal').dispatch('click');
+  assert.equal(searchStage.classList.contains('search-collapsed'),false);
+
   dom.basis[1].dispatch('click');
   assert.equal(runtime.state.basis,'en');
   assert.equal(localStorage.getItem('rhymelab.searchBasis'),'en');
@@ -214,6 +222,9 @@ test('unified UI control binding preflights the complete interactive surface', a
     '.scope-option',
   ]){
     assert.match(app,new RegExp(selector.replaceAll('.','\\.')));
+  }
+  for(const selector of ['#resultsToolbar','#searchFiltersReveal','.search-stage']){
+    assert.match(app,new RegExp(selector.replaceAll('.','\\.').replace('#','\\#')));
   }
 });
 
