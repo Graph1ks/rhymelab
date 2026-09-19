@@ -1188,10 +1188,12 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_phase12c_close_g2p_campaign",
-    "keep_704989_residual_english_entity_names_unresolved",
-    "materialize_source_backed_entity_pronunciation_runtime_without_generated_g2p",
-    "integrate_entity_channel_into_unified_writer_with_existing_deterministic_ranking_boundaries"
+    "read_docs_PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER_first",
+    "review_branch_implementation_and_finish_ai_acceptance_diagnostics",
+    "complete_benchmark_v3_context_review_without_silent_gold_changes",
+    "finish_docs_then_run_check_test_public_readiness",
+    "create_or_update_pr_require_validate_ci_before_merge",
+    "keep_external_ai_batches_isolated_from_runtime_until_explicit_acceptance"
   ],
   "next_milestone": "PHASE_12C_ENTITY_SOURCE_BACKED_RUNTIME_INTEGRATION",
   "phase_12_english": {
@@ -3524,5 +3526,33 @@
         "sqlite_pragma_tuning_after_query_shape_fixes"
       ]
     }
+  },
+  "active_candidate_branch": {
+    "branch": "phase12c-entity-runtime-ai-staging",
+    "status": "IMPLEMENTATION_IN_PROGRESS_NOT_MERGE_READY",
+    "handover": "docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md",
+    "base_main_sha": "963e1571794b1fbac07a48ae03d2297ff04e00f7",
+    "implemented": [
+      "source_backed_en_entity_runtime_and_phonetic_anchors",
+      "multilingual_de_en_entity_writer_channel",
+      "entity_scope_ui_and_rhymepad_accepted_en_writer_path",
+      "704989_unresolved_name_ai_queue_with_temporary_ids",
+      "isolated_ai_zip_import_and_staging_database",
+      "deterministic_arpabet_analysis_and_strict_validation",
+      "partial_complete_batch_import_and_audit",
+      "llm_600_benchmark_evaluator_with_confidence_strata",
+      "benchmark_v3_explicit_context_review_gate",
+      "multilingual_runtime_verifier_with_de_fingerprint_and_generated_zero_guards"
+    ],
+    "pending": [
+      "complete_ai_acceptance_diagnostics_without_promotion_threshold_precommitment",
+      "complete_benchmark_v3_context_gold_review",
+      "finish_durable_docs_and_consistency_review",
+      "run_check_tests_public_readiness",
+      "open_or_update_pr_and_require_validate_ci",
+      "squash_merge_only_after_green"
+    ],
+    "ai_runtime_promoted": false,
+    "owner_full_runtime_run_authorized": false
   }
 }
