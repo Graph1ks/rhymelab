@@ -268,3 +268,38 @@ test('German source pronunciation can retrieve English rhymes without requiring 
     db.close();
   }
 });
+
+
+test('unified Writer accepts browser-generated English IPA only as the query anchor',()=>{
+  const db=fixtureEnglishDb();
+  try{
+    const result=searchUnifiedWriter(
+      {writerDb:{},englishDb:db},
+      'mysterytime',
+      {
+        language:'en',
+        resultLanguage:'en',
+        scope:'words',
+        wordLimit:20,
+        queryPronunciations:{
+          en:{
+            ipa:'ˈtaɪm',
+            method:'client_rules',
+            sourceBacked:false,
+          },
+        },
+      },
+    );
+    assert.equal(result.status,'ok');
+    assert.equal(result.query.surface,'mysterytime');
+    assert.equal(result.query.preferredIpa,'ˈtaɪm');
+    assert.equal(result.query.generatedPronunciation,true);
+    assert.equal(result.query.queryPronunciation.clientOnly,true);
+    assert.equal(result.query.queryPronunciation.hostExecutableRequired,false);
+    assert.equal(result.query.queryPronunciation.canonicalLexicalFact,false);
+    assert.ok(result.results.some((row)=>row.normalized==='time'));
+    assert.ok(result.results.some((row)=>row.normalized==='rhyme'));
+  }finally{
+    db.close();
+  }
+});
