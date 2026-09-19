@@ -95,11 +95,10 @@ v2 is implemented around that real unit:
 
 Read `docs/ENTITY_G2P_PROPER_NAME_BENCHMARK_V2.md`.
 
-After merge, there is no separate v2 upload gate. Install/activate the pinned MFA environment once if needed, then run one owner command. It rebuilds benchmark v2 first and refuses to continue if the v2 invariants fail:
+After merge, there is no separate v2 upload gate. Run the owner command inside the **Miniforge Prompt with `(rhymelab-mfa)` visibly active**. Install/activate the pinned MFA environment once if needed, then run one owner command. It rebuilds benchmark v2 first and refuses to continue if the v2 invariants fail:
 
 ```powershell
 git pull
-conda activate rhymelab-mfa
 npm run entity:g2p:benchmark:mfa
 ```
 
@@ -109,7 +108,7 @@ Upload only the final compact evaluation:
 data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json
 ```
 
-Primary MFA target is pinned `english_us_arpa` v2.0.0a (ARPA / pynini / CC BY 4.0), chosen because its output is directly compatible with the accepted RhymeLab English analyzer.
+Primary MFA target is public release `english_us_arpa` v2.0.0a (ARPA / Pynini / CC BY 4.0), chosen because its output is directly compatible with the accepted RhymeLab English analyzer. The runner validates Pynini + the complete 69-phone ARPA inventory and records MFA's internal inspect version/fingerprint; it does not require the internal archive version string to equal the public release label.
 
 ## Frozen German baseline
 
