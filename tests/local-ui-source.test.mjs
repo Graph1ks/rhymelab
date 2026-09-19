@@ -121,7 +121,8 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /'fictional\.character':\{en:'Character'/);
   assert.match(app, /function entityDisplayLabel\(/);
   assert.match(app, /entityCategoryLabel\(category\)/);
-  assert.doesNotMatch(app, /kindLabel=isPhrase\?t\('phrase'\):isEntity\?\`\$\{String\(row\.language/);
+  assert.doesNotMatch(app, /· \$\{t\('entity'\)\}/);
+  assert.doesNotMatch(app, /layer-badge modern">\$\{t\('entity'\)\}/);
   assert.doesNotMatch(app, /<span class="meta-label">\$\{t\('source'\)\}/);
   assert.match(app, /UNIFIED RHYME WRITER/);
   assert.match(app, /VEREINHEITLICHTER REIM-WRITER/);
