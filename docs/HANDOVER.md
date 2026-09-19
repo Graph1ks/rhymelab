@@ -95,23 +95,18 @@ v2 is implemented around that real unit:
 
 Read `docs/ENTITY_G2P_PROPER_NAME_BENCHMARK_V2.md`.
 
-After merge run:
+After merge, there is no separate v2 upload gate. Install/activate the pinned MFA environment once if needed, then run one owner command. It rebuilds benchmark v2 first and refuses to continue if the v2 invariants fail:
 
 ```powershell
 git pull
-npm run entity:g2p:benchmark:prepare
+conda activate rhymelab-mfa
+npm run entity:g2p:benchmark:mfa
 ```
 
-Upload only:
+Upload only the final compact evaluation:
 
 ```text
-data/local/entity-g2p-proper-name-benchmark-v2.json
-```
-
-If v2 is structurally sound, MFA can then run through the integrated command:
-
-```powershell
-npm run entity:g2p:benchmark:mfa
+data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json
 ```
 
 Primary MFA target is pinned `english_us_arpa` v2.0.0a (ARPA / pynini / CC BY 4.0), chosen because its output is directly compatible with the accepted RhymeLab English analyzer.
