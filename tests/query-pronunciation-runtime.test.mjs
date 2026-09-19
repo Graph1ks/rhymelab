@@ -5,6 +5,8 @@ import { getPhonologyProfile } from '../scripts/phonology-profiles.mjs';
 import {
   QUERY_PRONUNCIATION_POLICY,
   deterministicRuleQueryPronunciation,
+  inspectEspeakQueryPronunciation,
+  normalizeEspeakIpa,
   resolveUnknownQueryPronunciation,
   tryEspeakQueryPronunciation,
 } from '../src/query-pronunciation-runtime.mjs';
@@ -101,4 +103,74 @@ test('invalid eSpeak output falls through to deterministic total resolution',()=
   assert.match(detail.queryPronunciation.method,/^deterministic_/);
   assert.ok(detail.preferredIpa);
   assert.ok(detail.syllableCount>=1);
+});
+
+
+test('eSpeak IPA adapter strips format joiners before diphthong and affricate analysis',()=>{
+  assert.equal(normalizeEspeakIpa('vˈa\u200dɪts','de'),'vˈaɪts');
+  assert.equal(normalizeEspeakIpa('d\u200dʒˈe\u200dɪ','en'),'dʒˈeɪ');
+
+  const de=tryEspeakQueryPronunciation('Veits','de',{
+    command:'espeak-ng-test',
+    runner:()=>({status:0,stdout:'vˈa\u200dɪts',stderr:''}),
+  });
+  assert.ok(de);
+  assert.equal(de.ipa,'vˈaɪts');
+  assert.equal(de.analysis.syllableCount,1);
+  assert.equal(de.analysis.exactTailKey,'aɪts');
+  assert.doesNotMatch(de.analysis.canonicalPhonemes,/\u200d/u);
+});
+
+test('eSpeak adapter maps observed DE long-a output into the accepted German inventory',()=>{
+  const resolved=tryEspeakQueryPronunciation('Haags','de',{
+    command:'espeak-ng-test',
+    runner:()=>({status:0,stdout:'hˈɑːks',stderr:''}),
+  });
+  assert.ok(resolved);
+  assert.equal(resolved.ipa,'hˈaːks');
+  assert.equal(resolved.analysis.syllableCount,1);
+  assert.equal(resolved.analysis.exactTailKey,'aːks');
+});
+
+test('eSpeak adapter accepts the previously rejected EN sentinel phone shapes',()=>{
+  const fixtures=new Map([
+    ['Holladio','hɑːlˈe\u200dɪdɪˌo\u200dʊ'],
+    ['Ironworm','ˈa\u200dɪ\u200dɚnwɜːm'],
+    ['Baladur','bˈælɐdjˌʊ\u200dɹ'],
+    ['Cawdor','kˈɔːdoː\u200dɹ'],
+    ['Rêver','ɹˈɛːvɚ'],
+  ]);
+  for(const [surface,raw] of fixtures){
+    const resolved=tryEspeakQueryPronunciation(surface,'en',{
+      command:'espeak-ng-test',
+      runner:()=>({status:0,stdout:raw,stderr:''}),
+    });
+    assert.ok(resolved,`${surface} should be analyzer-compatible after adapter normalization`);
+    assert.ok(resolved.analysis.syllableCount>=1);
+    assert.ok(resolved.analysis.exactTailKey);
+    assert.doesNotMatch(resolved.ipa,/\p{Cf}/u);
+  }
+});
+
+test('eSpeak inspection preserves rejected raw IPA and analyzer error for benchmark diagnosis',()=>{
+  const inspected=inspectEspeakQueryPronunciation('BadFixture','en',{
+    command:'espeak-ng-test',
+    runner:()=>({status:0,stdout:'???',stderr:''}),
+  });
+  assert.equal(inspected.status,'rejected');
+  assert.equal(inspected.rawIpa,'???');
+  assert.equal(inspected.ipa,'???');
+  assert.match(inspected.analyzerError,/Unsupported English IPA symbol/);
+});
+
+test('analyzer rejection does not mark an auto-discovered eSpeak executable as unavailable',()=>{
+  let calls=0;
+  const runner=(command,args)=>{
+    calls+=1;
+    return {status:0,stdout:calls===1?'???':'dɹˈægən',stderr:''};
+  };
+  const first=inspectEspeakQueryPronunciation('BadFixture','en',{runner});
+  assert.equal(first.status,'rejected');
+  const second=inspectEspeakQueryPronunciation('Dragon','en',{runner});
+  assert.equal(second.status,'accepted');
 });
