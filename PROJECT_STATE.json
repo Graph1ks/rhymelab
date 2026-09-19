@@ -1188,14 +1188,15 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "implement_guarded_commonness_06_plus_diversity_0_08_in_english_product_runtime",
-    "run_one_integrated_en_de_plus_en_product_acceptance_bundle_with_german_invariance",
-    "keep_acceptance_reports_compact_by_default_and_require_explicit_debug_flag_for_full_query_dumps",
-    "keep_entity_and_performance_work_frozen_until_product_en_acceptance"
+    "merge_phase12b11_english_product_integration_candidate",
+    "owner_run_npm_en_product_accept_once",
+    "if_integrated_acceptance_status_ok_restart_dev_server_and_test_en_plus_de_en_in_normal_ui",
+    "then_resume_deferred_entity_pronunciation_work_before_cross_language_phrase_expansion",
+    "keep_performance_optimization_deferred_until_en_and_entity_semantics_are_stable"
   ],
-  "next_milestone": "PHASE_12B11_ENGLISH_PRODUCT_INTEGRATION_ACCEPTANCE",
+  "next_milestone": "PHASE_12B11_ENGLISH_PRODUCT_INTEGRATED_OWNER_ACCEPTANCE",
   "phase_12_english": {
-    "status": "ACTIVE_12B11_ENGLISH_PRODUCT_INTEGRATION_ACCEPTANCE",
+    "status": "ACTIVE_12B11_ENGLISH_PRODUCT_INTEGRATED_OWNER_ACCEPTANCE",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1276,7 +1277,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B11_IMPLEMENT_SELECTED_EN_WRITER_POLICY_AND_RUN_INTEGRATED_PRODUCT_ACCEPTANCE",
+    "next_gate": "PHASE_12B11_OWNER_RUN_SINGLE_INTEGRATED_EN_PRODUCT_ACCEPTANCE",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -2322,7 +2323,7 @@
       "deterministic_local_offline_required": true
     },
     "retrieval_runtime": {
-      "status": "OWNER_DIAGNOSTIC_PASS_REPEATABILITY_BUNDLED_PENDING",
+      "status": "ACCEPTED_FOR_PRODUCT_INTEGRATION",
       "contract": "docs/ENGLISH_RETRIEVAL_RUNTIME_V1.md",
       "policy": "en-bounded-indexed-runtime-v1-candidate",
       "command": "npm run en:runtime:diagnose",
@@ -2355,7 +2356,7 @@
         "no_final_writer_ranking_in_retrieval_gate"
       ],
       "next_after_diagnostic": "bundled_independent_open_repeatability_plus_ranking_diversity_evidence",
-      "next_after_acceptance": "english_quality_commonness_writer_utility_then_separate_diversity_calibration",
+      "next_after_acceptance": "selected_writer_policy_integrated_in_product_candidate",
       "owner_diagnostic": {
         "status": "PASS",
         "report": "data/local/en-retrieval-runtime-v1-report.json",
@@ -2375,7 +2376,9 @@
         "failed_checks": 0
       },
       "bundle_command": "npm run en:acceptance:bundle",
-      "bundle_report": "data/local/en-acceptance-bundle-v1-report.json"
+      "bundle_report": "data/local/en-acceptance-bundle-v1-report.json",
+      "repeatability_status": "PASS_3_INDEPENDENT_OPENS",
+      "repeatability_fingerprint": "dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf"
     },
     "acceptance_bundle_v1": {
       "status": "PASS_EVIDENCE_REVIEWED",
@@ -2422,7 +2425,7 @@
       }
     },
     "writer_acceptance_v1": {
-      "status": "OWNER_EVIDENCE_REVIEWED_CANDIDATE_SELECTED",
+      "status": "ACCEPTED_FOR_PRODUCT_INTEGRATION",
       "contract": "docs/ENGLISH_WRITER_ACCEPTANCE_V1.md",
       "command": "npm run en:writer:accept",
       "report": "data/local/en-writer-acceptance-v1-report.json",
@@ -2498,6 +2501,53 @@
       "report_profile_default": "compact-v1",
       "compact_report_estimated_from_owner_evidence_bytes": 164921,
       "debug_report_requires_explicit_flag": "--debug-report <path>"
+    },
+    "product_integration_v1": {
+      "status": "IMPLEMENTED_OWNER_ACCEPTANCE_PENDING",
+      "contract": "docs/ENGLISH_PRODUCT_INTEGRATION_V1.md",
+      "product_runtime": "en-writer-product-v1-candidate",
+      "product_policy": "en-writer-guarded-quality-diversity-v1-candidate",
+      "ranking_evidence_policy": "en-writer-ranking-v2-candidate",
+      "quality_candidate": "guarded_commonness_06",
+      "diversity_weight": 0.08,
+      "english_database": "data/local/rhymelab-en-v1.sqlite",
+      "accepted_database_fingerprint": "beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37",
+      "accepted_publish_fingerprint": "b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
+      "accepted_runtime_diagnostic_fingerprint": "dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf",
+      "unified_modes": [
+        "de",
+        "en",
+        "both"
+      ],
+      "english_channels": {
+        "words": true,
+        "phrase_mosaic": false,
+        "entities": false
+      },
+      "de_en_cross_language_score_calibration": false,
+      "unknown_english_g2p": false,
+      "server_enablement_gate": "data/local/en-product-enabled-v1.json",
+      "marker_schema": "rhymelab-en-product-enabled-v1",
+      "marker_written_only_after_integrated_acceptance_pass": true,
+      "command": "npm run en:product:accept",
+      "report": "data/local/en-product-acceptance-v1-report.json",
+      "report_profile": "compact",
+      "acceptance_checks": [
+        "accepted_en_db_and_publish_fingerprints",
+        "selected_quality_and_diversity_policy",
+        "frozen_german_direct_vs_unified_equivalence",
+        "english_sentinel_resolution_and_language_isolation",
+        "time_rhyme_perfect",
+        "nation_station_multisyllabic_perfect",
+        "record_stress_variants",
+        "route_alternate_pronunciations",
+        "de_plus_en_count_consistency",
+        "english_phrase_channel_explicitly_unavailable",
+        "unknown_english_query_no_fake_pronunciation",
+        "two_independent_open_suite_repeatability"
+      ],
+      "product_en_enabled": false,
+      "auto_enable_after_owner_pass": true
     }
   },
   "phase_12_entity_lexicon": {
