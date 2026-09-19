@@ -7,8 +7,10 @@ import { performance } from 'node:perf_hooks';
 import { createGunzip } from 'node:zlib';
 import { createInterface } from 'node:readline';
 import { DatabaseSync } from 'node:sqlite';
-import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-adapter.mjs';
+import { inspectEspeakQueryPronunciation, inspectEspeakQueryPronunciationAsync } from './query-pronunciation-espeak-adapter.mjs';
 import { getPhonologyProfile } from './phonology-profiles.mjs';
+import { mapConcurrent } from './pronunciation-espeak-parallel.mjs';
+import { PRONUNCIATION_ADMISSION_POLICY, evaluatePronunciationAdmission } from './pronunciation-backfill-admission-core.mjs';
 import { normalizeGerman, optionsForListedForms } from './kaikki-resolver-lib.mjs';
 import { lexicalEvidenceForHeadword, lexicalEvidenceForListedForms } from './en-publish-core.mjs';
 import { readJson } from './en-writer-source-core.mjs';
@@ -50,10 +52,14 @@ const workPath=resolve(argValue('--work','data/local/pronunciation-backfill-v2.s
 const reportPath=resolve(argValue('--report','data/local/pronunciation-backfill-v2-report.json'));
 const reviewPath=resolve(argValue('--review-tsv','data/local/pronunciation-backfill-v2-review.tsv'));
 const allPath=resolve(argValue('--all-tsv','data/local/pronunciation-backfill-v2-all.tsv'));
+const admissionReportPath=resolve(argValue('--admission-report','data/local/pronunciation-backfill-v2-admission-report.json'));
+const admissionReviewPath=resolve(argValue('--admission-review-tsv','data/local/pronunciation-backfill-v2-admission-review-sample.tsv'));
 const command=argValue('--command',process.env.RHYMELAB_ESPEAK_COMMAND||null);
 const phase=String(argValue('--phase','all')).trim().toLowerCase();
 const progressEvery=integerArg('--progress-every',1000,{min:1,max:1_000_000});
 const commitEvery=integerArg('--commit-every',250,{min:1,max:10_000});
+const admissionCommitEvery=integerArg('--admission-commit-every',10000,{min:100,max:100_000});
+const espeakWorkers=integerArg('--workers',1,{min:1,max:128});
 const retryErrors=hasFlag('--retry-errors');
 const reset=hasFlag('--reset');
 const exportAll=hasFlag('--export-all');
@@ -69,7 +75,7 @@ for(const scope of requestedScopes){
     throw new Error('Unknown --scopes value: '+scope);
   }
 }
-if(!['all','plan','collect','espeak','client','report'].includes(phase)){
+if(!['all','plan','collect','admit','espeak','client','report'].includes(phase)){
   throw new Error('Unknown --phase value: '+phase);
 }
 
@@ -214,7 +220,7 @@ if(phase==='plan'){
 }
 
 if(reset){
-  for(const path of [workPath,workPath+'-wal',workPath+'-shm',reportPath,reviewPath,allPath]){
+  for(const path of [workPath,workPath+'-wal',workPath+'-shm',reportPath,reviewPath,allPath,admissionReportPath,admissionReviewPath]){
     await rm(path,{force:true});
   }
 }
@@ -222,6 +228,8 @@ if(reset){
 await mkdir(dirname(workPath),{recursive:true});
 await mkdir(dirname(reportPath),{recursive:true});
 await mkdir(dirname(reviewPath),{recursive:true});
+await mkdir(dirname(admissionReportPath),{recursive:true});
+await mkdir(dirname(admissionReviewPath),{recursive:true});
 
 const workDb=new DatabaseSync(workPath);
 createPronunciationBackfillStorage(workDb);
