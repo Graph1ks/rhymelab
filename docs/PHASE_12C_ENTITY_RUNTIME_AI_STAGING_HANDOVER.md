@@ -1,6 +1,6 @@
 # Phase 12C — Entity Runtime + AI Pronunciation Staging Handover
 
-Status: **IMPLEMENTATION IN PROGRESS / NOT MERGE-READY**
+Status: **OWNER FULL-DATA ACCEPTANCE PENDING**
 
 Branch:
 
@@ -72,7 +72,13 @@ npm run entity:runtime:multilingual
 npm run entity:runtime:multilingual:verify
 ```
 
-Do **not** give the owner a full-data runtime command until the branch is internally reviewed, documented, tested and CI-clean.
+The branch now provides one reviewed owner gate for the full local data contract:
+
+```powershell
+npm run entity:phase12c:owner
+```
+
+Use that consolidated gate rather than running full-data materialization steps ad hoc.
 
 ### 2. Unified Writer Entity channel
 
@@ -363,20 +369,24 @@ The repository acceptance pass subsequently tightened the AI staging boundary:
 - identical result re-imports are idempotent instead of falling through to a duplicate batch insert;
 - staging audit now persists threshold selectivity, category, orthography, unresolved-reason, popularity-tier and problem-population aggregates;
 - no runtime promotion threshold is selected by those diagnostics;
-- durable contracts now live in `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` and `docs/PHASE_12C_ACCEPTANCE.md`.
+- durable contracts now live in `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` and `docs/PHASE_12C_ACCEPTANCE.md`;
+- Entity ranking now uses guarded 0.02 phonetic neighborhoods before prominence, with syllable distance preserved ahead of popularity;
+- Entity result diversity deduplicates QIDs and caps repeated normalized surfaces;
+- Entity category metadata is loaded in batches instead of one SQL query per candidate;
+- `npm run entity:phase12c:owner` now materializes, verifies and evaluates the full owner-local source-backed runtime and emits one compact acceptance report.
 
 ## What is NOT finished
 
 Do not call this work accepted or merge-ready yet.
 
-Remaining work:
+Remaining source-backed work:
 
-1. complete benchmark-v3 context-gold review evidence against the generated local v2 control; do not invent replacement gold;
-2. keep draft PR #112's required `validate` check green on the final head;
-3. squash-merge only after benchmark-v3 review is complete and the branch is genuinely ready;
-4. only after merge give the owner full-data runtime build commands.
+1. run `npm run entity:phase12c:owner` against the owner's full local databases;
+2. review the compact full-data report and representative Entity result pages;
+3. keep PR #112's required `validate` check green on the final head;
+4. mark the PR ready and squash-merge after the owner gate is accepted.
 
-The tracked repository intentionally does not contain `data/local/entity-g2p-proper-name-benchmark-v2.json`. The review file therefore cannot by itself prove the original context/reference for every pending case (notably `To`). Closing that review requires the local generated control/review evidence rather than guessing from the surface string.
+Benchmark-v3 context-gold review is still required before AI pronunciation evidence can be accepted, but it no longer blocks the independent source-backed runtime merge. The tracked repository intentionally does not contain `data/local/entity-g2p-proper-name-benchmark-v2.json`; do not guess replacement gold from the surface string.
 
 ## Immediate next-thread starting procedure
 
@@ -395,8 +405,9 @@ A new thread should:
 6. continue from the unfinished acceptance/docs/CI work;
 7. do not redo the MFA/g2p-en campaign;
 8. do not ask the owner to rerun already accepted source acquisition;
-9. do not wait for all external AI batches before finishing the source-backed runtime path;
-10. never promote AI staging rows without a separate explicit acceptance gate.
+9. run the consolidated local owner gate when full-data evidence is requested; do not wait for external AI batches;
+10. benchmark-v3 review blocks AI evidence acceptance, not source-backed runtime acceptance;
+11. never promote AI staging rows without a separate explicit acceptance gate.
 
 ## Hard boundaries for the next thread
 
