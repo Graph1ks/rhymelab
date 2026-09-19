@@ -8,6 +8,9 @@ Current unknown-query boundary: missing pronunciation may occur in a single word
 
 Current owner-only bulk cleanup: `docs/PRONUNCIATION_BACKFILL_V2.md` is authoritative. The owner-local inventory has been consumed: Backfill V2 no longer depends on the absent `data/de/core/` stage and now reconstructs the DE source universe from `data/de/usage/de-usage.tsv` plus the original German Kaikki snapshot, while English uses the existing publish lexical-candidate functions over the pinned raw Kaikki source. Phrase/Entity remain pronunciation-independent catalog diffs. Use `npm run pronunciation:backfill:plan` for a no-write source preflight before collection.
 
+Backfill V2 collection has completed locally with 6,033,818 unique pending items / 6,200,338 source refs. No eSpeak/client generation has run. The next gate is `npm run pronunciation:backfill:audit`, followed by the 1000-case eSpeak-vs-client benchmark. Do not start the multi-million-row generator pass before reviewing those reports. The unresolved benchmark measures coverage/agreement only; the separate source-backed controls provide the actual calibration signal.
+
+
 
 For the accepted Phase 12C state on current `main`, read this focused handover **before the historical material below**:
 
