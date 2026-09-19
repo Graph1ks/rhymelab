@@ -147,9 +147,9 @@ The accepted German values are controls, not assumed English truth.
 
 Acceptance must compare result quality and result-set diversity. Do not declare EN ranking complete merely because top-1 phonetic scores look plausible.
 
-## 4. Entity work after initial English runtime acceptance
+## 4. Entity work after accepted English Product
 
-Entity Phase 12A remains frozen until the English single-word runtime is accepted far enough to reuse its phonology.
+The English Product is accepted. Entity Phase 12C is active and reuses the same accepted English phonology/profile rather than maintaining a second Entity-specific English analyzer.
 
 Resume from:
 
@@ -269,39 +269,35 @@ Performance changes must reproduce accepted Top-N ordering/result fingerprints. 
 
 ```text
 CURRENT
-English runtime + repeatability accepted
+English Product accepted / frozen
         |
         v
-Consolidated English Writer acceptance
-  - anchored phonetic bands
-  - bounded Commonness candidate sweep
-  - Diversity sweep
-  - automatic lowest-safe candidate selection
+One consolidated Entity multilingual evidence bundle
+  - P898 owner materialization as evidence only
+  - frozen DE Entity fingerprint invariance
+  - accepted EN profile/DB validation
+  - exact EN source-backed coverage
+  - bounded <=6-token EN composition coverage
         |
         v
-Integrated EN / DE+EN product acceptance
+One source-backed multilingual Entity runtime pass
+  - preserve DE runtime
+  - qualified P898 where regional/profile policy is actually supported
+  - exact accepted EN Writer / CMUdict
+  - bounded DE/EN token composition
         |
         v
-Product EN capability acceptance
-        |
-        v
-Resume Entity
-  - P898 owner gate
-  - DE/EN source-backed pronunciation
-  - exact CMUdict through EN analyzer
-  - bounded token composition
-  - proper-name G2P benchmark if still needed
-  - Entity phonetic + prominence + diversity ranking
+Entity prominence + diversity calibration
         |
         v
 DE + EN + Entity integrated product acceptance
         |
         v
 Dedicated DB/runtime performance phase
-  3s+ -> target ~100 ms p95 warm
+  target ~100 ms p95 warm
 ```
 
-Do not begin final DB-layout optimization before the above ranking/query contracts are sufficiently stable.
+Do not insert separate P898, CMUdict, English coverage, and token-composition owner gates unless the consolidated evidence report exposes a concrete blocker. Do not begin final DB-layout optimization before the multilingual Entity ranking/query contract is stable.
 
 ## 7. Current v4 DB checkpoint
 
