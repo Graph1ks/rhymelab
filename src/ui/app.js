@@ -1,11 +1,5 @@
-import {
-  CLIENT_QUERY_PRONUNCIATION_POLICY,
-  resolveUnknownClientPronunciation,
-} from './query-pronunciation-client.mjs';
-import {
-  readGeneratedPronunciationCache,
-  writeGeneratedPronunciationCache,
-} from './query-pronunciation-cache.mjs';
+import { CLIENT_QUERY_PRONUNCIATION_POLICY, resolveUnknownClientPronunciation } from './query-pronunciation-client.mjs';
+import { readGeneratedPronunciationCache, writeGeneratedPronunciationCache } from './query-pronunciation-cache.mjs';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
