@@ -11,23 +11,23 @@ Before changing the project in a fresh thread/session, read:
 3. `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` — isolated AI evidence/import/audit contract
 4. `docs/HANDOVER.md`
 5. `docs/PHASE_11_ACCEPTANCE.md`
-3. `STATUS.md`
-4. `PROJECT_STATE.json`
-5. `ROADMAP.md`
-6. `DATA_SOURCES.md`
-7. `docs/WRITER_SEARCH_ACCEPTANCE.md`
-8. `docs/PHRASE_MOSAIC_PLAN.md`
-9. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
-10. `docs/REPOSITORY_GOVERNANCE.md`
-11. `docs/BENCHMARK.md` for rhyme-quality/ranking work
-12. `docs/API.md` for local API work
-13. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition work
-14. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity work
-15. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` for Phase 12A2 popularity-cut history
-16. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the deferred Phase 12A3 Entity IPA/runtime checkpoint
-17. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the resumed Phase 12C Entity boundary and frozen baselines
-18. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for the active Phase 12B English Writer work
-19. `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md` for the unknown user-query pronunciation fallback contract
+6. `STATUS.md`
+7. `PROJECT_STATE.json`
+8. `ROADMAP.md`
+9. `DATA_SOURCES.md`
+10. `docs/WRITER_SEARCH_ACCEPTANCE.md`
+11. `docs/PHRASE_MOSAIC_PLAN.md`
+12. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
+13. `docs/REPOSITORY_GOVERNANCE.md`
+14. `docs/BENCHMARK.md` for rhyme-quality/ranking work
+15. `docs/API.md` for local API work
+16. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition history
+17. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity history
+18. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` for Phase 12A2 popularity-cut history
+19. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the Phase 12A3 Entity IPA/runtime checkpoint
+20. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the frozen Phase 12A boundary resumed by Phase 12C
+21. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for accepted/frozen Phase 12B English Writer history
+22. `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md` for the unknown user-query pronunciation fallback contract
 
 ## Public-repository guardrails
 
