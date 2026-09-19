@@ -1,25 +1,23 @@
 # Phase 12A Entity Lexicon — Deferred / Frozen Checkpoint
 
-Last updated: 2026-09-18
+Last updated: 2026-09-19
 
-Status: **DEFERRED / FROZEN WHILE PHASE 12B ENGLISH WORD WRITER PROCEEDS**
+Status: **RESUMED / PHASE 12C MULTILINGUAL PRONUNCIATION EVIDENCE ACTIVE**
 
 ## Decision
 
-Phase 12A Entity work is intentionally paused at the current validated checkpoint.
+The English single-word Product gate is accepted, so the Entity deferral condition is satisfied.
 
-Do not continue Entity pronunciation enrichment, P898 owner materialization, category tuning, source expansion, G2P experiments, or Entity database optimization until the English single-word Writer database/runtime has been built and accepted far enough to resume Entity work coherently.
+Entity work resumes from the frozen Phase 12A2 population and DE pronunciation runtime. Do not restage QLever/QRank, retune the Hybrid-v2 population, mass-G2P names, or optimize the final SQLite layout.
 
-This is a sequencing decision, not an Entity rejection.
+To avoid unnecessary serial gates, P898 materialization, DE runtime invariance, accepted-English validation, exact en-US coverage, and bounded English token-composition coverage are now collected by one consolidated owner evidence command before the multilingual Entity runtime is implemented.
 
 ## Frozen code checkpoint
 
 The last merged Entity change before this deferral is PR #70, which added the qualified Wikidata P898 pronunciation evidence layer.
 
 
-The P898 source layer exists in code, but the owner explicitly did **not** execute the new P898 owner workflow after PR #70.
-
-Therefore no full-data P898 materialization result is accepted or claimed.
+The P898 source layer exists in code and remained unexecuted through the English phase. Phase 12C now executes it inside the consolidated multilingual evidence bundle. Until that owner report is reviewed, no full-data P898 counts are accepted or claimed.
 
 ## Accepted Phase 12A2 population baseline
 
@@ -121,39 +119,41 @@ npm run entity:pronunciation:owner
 
 When Entity work resumes, the first Entity action is to run that owner workflow and verify that the accepted DE Entity runtime fingerprint remains unchanged before evaluating P898 coverage.
 
-## Frozen Entity boundaries
+## Phase 12C boundaries
 
-While deferred:
-
-- do not change the accepted retained Entity population;
-- do not retune Hybrid-v2;
+- preserve the accepted retained Entity population and Hybrid-v2 fingerprint;
+- preserve the accepted DE Entity runtime fingerprint;
 - do not refetch/restage Phase 12A2 Entity/QRank sources;
 - do not mass-G2P unresolved proper names;
 - do not promote generic Wikidata `de`/`en` evidence to `de-DE`/`en-US`;
-- do not route CMUdict into `de-ipa-v2`;
-- do not optimize the Entity SQLite layout;
-- do not remove the existing RhymePad Entity channel;
-- do not claim P898 owner/full-data coverage until the owner workflow is actually run.
+- route English source evidence only through the accepted English analyzer/profile;
+- keep P898 evidence non-runtime during the evidence gate;
+- keep the English Entity audit read-only;
+- do not optimize the Entity SQLite layout yet;
+- keep the existing German RhymePad Entity channel intact.
 
-## Resume condition
+## Active consolidated evidence gate
 
-Resume Phase 12A/12C Entity work only after the English single-word Writer has:
+Run:
 
-1. a pinned English source stack;
-2. a real English phonology/analyzer/scorer;
-3. a materialized local English Writer DB;
-4. an accepted initial English benchmark/runtime checkpoint.
+```powershell
+npm run entity:multilingual:evidence
+```
 
-At that point the English pronunciation stack can be reused for Entity `en-US` pronunciation promotion instead of inventing a second incompatible English phone model.
+Output:
 
-## Resume order
+```text
+data/local/entity-multilingual-pronunciation-evidence-v1-report.json
+```
 
-When Entity work resumes:
+The bundle combines the formerly separate resume steps:
 
-1. run `npm run entity:pronunciation:owner`;
-2. verify DE Entity runtime fingerprint invariance;
-3. review actual retained-Entity P898 evidence;
-4. promote only pronunciations supported by the accepted English profile;
-5. use CMUdict exact matches through that English profile;
-6. measure remaining multilingual/proper-name gaps;
-7. only then evaluate additional source-backed pronunciation layers or audited G2P candidates.
+1. existing Entity owner/P898 workflow;
+2. frozen DE runtime fingerprint invariance;
+3. accepted English Product marker/DB/profile validation;
+4. exact source-backed en-US Entity-name matches;
+5. bounded <=6-token source-backed English composition;
+6. compact unresolved/source coverage diagnostics.
+
+This is evidence-only. English Entity runtime promotion happens in the next implementation pass if the report is `evidence_ready`.
+
