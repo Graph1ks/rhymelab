@@ -1188,13 +1188,12 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_phase12c_corrected_proper_name_token_benchmark_v2",
-    "owner_one_time_install_pinned_mfa_english_us_arpa_2_0_0a_if_needed",
-    "owner_run_npm_entity_g2p_benchmark_mfa_once",
-    "review_corrected_v2_benchmark_structure_and_mfa_evaluation_together",
+    "merge_mfa_g2p_input_normalization_fix",
+    "owner_run_npm_entity_g2p_benchmark_mfa_in_miniforge_prompt_with_rhymelab_mfa_active",
+    "review_full_coverage_mfa_v2_evaluation",
     "then_decide_generated_fallback_policy_for_remaining_704989_unresolved_names"
   ],
-  "next_milestone": "PHASE_12C_ENTITY_PROPER_NAME_TOKEN_G2P_BENCHMARK_V2",
+  "next_milestone": "PHASE_12C_ENTITY_PROPER_NAME_TOKEN_G2P_BENCHMARK_V2_FULL_COVERAGE",
   "phase_12_english": {
     "status": "COMPLETE_ACCEPTED_FROZEN_PRODUCT_EN",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -3259,7 +3258,7 @@
             "reason": "whole Entity surfaces and CMUdict-heavy controls do not represent unknown Entity-name token fallback"
           },
           "v2": {
-            "status": "IMPLEMENTED_OWNER_PREP_PENDING",
+            "status": "INPUT_NORMALIZATION_FIX_IMPLEMENTED_OWNER_RERUN_PENDING",
             "policy": "entity-proper-name-token-g2p-benchmark-v2",
             "prepare_command": "npm run entity:g2p:benchmark:prepare",
             "benchmark": "data/local/entity-g2p-proper-name-benchmark-v2.json",
@@ -3270,7 +3269,11 @@
             "duplicate_normalized_allowed": false,
             "target_cases": 600,
             "per_category_cap": 100,
-            "owner_prepare_separate_upload_required": false
+            "owner_prepare_separate_upload_required": false,
+            "mfa_input_policy": "lowercase_normalized_with_recorded_combining_mark_fold_v1",
+            "ineligible_policy": "do_not_delete_unsupported_residual_graphemes",
+            "minimum_model_eligible_pct": 95,
+            "minimum_eligible_prediction_coverage_pct": 95
           },
           "primary_candidate": {
             "engine": "Montreal Forced Aligner",
@@ -3286,7 +3289,21 @@
           },
           "independent_candidate": "deep_phonemizer_en_us",
           "multilingual_research_candidate": "charsiu_multilingual",
-          "charsiu_production_allowed": false
+          "charsiu_production_allowed": false,
+          "first_mfa_owner_run": {
+            "status": "REJECTED_RUNNER_INPUT_MAPPING_DEFECT",
+            "benchmark_fingerprint": "02e0e3a330434676164bb6837793774a3edf69fdb7683b6035fa2cdf979b172a",
+            "evaluation_fingerprint": "89121cd7d0e32b3db1901641f88d076a1ce3c31a6b276357742cb3ce69ae020a",
+            "benchmark_cases": 600,
+            "prediction_rows": 13,
+            "evaluated": 13,
+            "missing": 587,
+            "exact_tail_pct_on_13_only": 76.92,
+            "mean_rhyme_score_on_13_only": 0.923103,
+            "model_result_accepted": false,
+            "root_cause": "MFA word-list generator strips graphemes outside its lowercase model inventory; runner supplied display-case proper-name surfaces and then attempted to remap cleaned outputs to original normalized tokens",
+            "model_fault": false
+          }
         },
         "owner_run_pending": false,
         "owner_result": {

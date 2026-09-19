@@ -155,3 +155,20 @@ Only after v2 evidence is reviewed do we decide whether MFA is useful as a fallb
 ### MFA archive-version note
 
 The public model release is documented by MFA as `english_us_arpa` v2.0.0a, ARPA, Pynini, CC BY 4.0. Some current MFA installs report an older internal build metadata string such as `2.0.0rc4.dev19+...` through `mfa model inspect`. RhymeLab therefore verifies stable model-family properties (Pynini + complete 69-phone ARPA inventory) and records the actual inspect string/fingerprint instead of requiring string equality with the public release label.
+
+
+## MFA model-input normalization
+
+MFA's word-list G2P path does not automatically lowercase input words. Its generator removes graphemes that are outside the selected model's grapheme inventory before rewriting. For the selected English US ARPA model, the expected inventory is lowercase `a-z` plus apostrophe.
+
+Therefore the RhymeLab runner never sends display-case Entity spelling directly to MFA. It derives a separate benchmark-only model input from the benchmark normalized token:
+
+- lowercase first;
+- normalize apostrophe variants to `'`;
+- decompose and remove combining diacritic marks when a base Latin grapheme remains;
+- preserve the original benchmark surface/reference for evaluation;
+- reject any residual unsupported grapheme rather than letting MFA silently delete it.
+
+The runner records model-input eligibility, diacritic-fold counts, input collisions and prediction coverage. It refuses to emit a quality evaluation when fewer than 95% of model-eligible cases receive a mapped prediction.
+
+The first owner MFA execution prior to this fix generated only 13 mapped predictions for 600 controls and is rejected as a runner defect. Its quality metrics are not model evidence.

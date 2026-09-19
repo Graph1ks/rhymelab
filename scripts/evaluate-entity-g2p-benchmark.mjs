@@ -24,6 +24,13 @@ const modelVersion=argValue('--model-version',null);
 const modelInspectVersion=argValue('--model-inspect-version',null);
 const modelInspectFingerprint=argValue('--model-inspect-fingerprint',null);
 const engineVersion=argValue('--engine-version',null);
+const modelInputEligible=Number.parseInt(argValue('--model-input-eligible','0'),10)||0;
+const modelInputIneligible=Number.parseInt(argValue('--model-input-ineligible','0'),10)||0;
+const modelInputCollisions=Number.parseInt(argValue('--model-input-collisions','0'),10)||0;
+const eligiblePredictionCoveragePct=Number(
+  argValue('--eligible-prediction-coverage-pct','0')
+)||0;
+const diacriticFoldCases=Number.parseInt(argValue('--diacritic-fold-cases','0'),10)||0;
 if(!predictionPath) throw new Error('--predictions <tsv> is required');
 
 const benchmark=JSON.parse(await readFile(benchmarkPath,'utf8'));
@@ -150,6 +157,13 @@ const evidence={
     inspect_reported_version:modelInspectVersion,
     inspect_fingerprint:modelInspectFingerprint,
     engine_version:engineVersion,
+    model_input:{
+      eligible_cases:modelInputEligible,
+      ineligible_cases:modelInputIneligible,
+      collisions:modelInputCollisions,
+      eligible_prediction_coverage_pct:eligiblePredictionCoveragePct,
+      diacritic_fold_cases:diacriticFoldCases,
+    },
   },
   benchmark_schema:benchmark.schema||null,
   benchmark_fingerprint:benchmark.semantic_fingerprint||null,

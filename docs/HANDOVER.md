@@ -110,6 +110,42 @@ data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json
 
 Primary MFA target is public release `english_us_arpa` v2.0.0a (ARPA / Pynini / CC BY 4.0), chosen because its output is directly compatible with the accepted RhymeLab English analyzer. The runner validates Pynini + the complete 69-phone ARPA inventory and records MFA's internal inspect version/fingerprint; it does not require the internal archive version string to equal the public release label.
 
+## MFA v2 owner rerun required — input normalization fix
+
+The first MFA execution must **not** be interpreted as a model benchmark:
+
+```text
+benchmark cases       600
+prediction rows        13
+evaluated              13
+missing               587
+partial exact-tail   76.92%
+partial rhyme score 0.923103
+model verdict          none
+```
+
+Cause: MFA's word-list generator removes graphemes not present in the G2P model. The ARPA model has lowercase `a-z` plus apostrophe; the runner fed display-case Proper Names. The resulting cleaned spellings could not be mapped back to most benchmark tokens.
+
+The fixed runner now creates explicit model inputs from the benchmark normalized token:
+
+```text
+Toyota     -> toyota
+Céline     -> celine   (recorded diacritic fold)
+O’Connor   -> o'connor
+```
+
+Unsupported residual graphemes are marked model-ineligible rather than silently removed. The owner run hard-fails if either model-input eligibility or prediction coverage over eligible cases falls below 95%.
+
+Run **inside Miniforge Prompt with `(rhymelab-mfa)` visibly active**:
+
+```powershell
+cd D:\rhymelab
+git pull
+npm run entity:g2p:benchmark:mfa
+```
+
+Upload only the new `data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json`.
+
 ## Frozen German baseline
 
 Phase 11 German Word + Phrase/Mosaic is **COMPLETE / ACCEPTED / FROZEN**.
