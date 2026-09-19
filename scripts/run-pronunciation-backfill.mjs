@@ -1205,25 +1205,26 @@ async function runAdmission(){
   }
 
   const examples={};
-  for(const row of workDb.prepare([
+  const exampleQuery=workDb.prepare([
     'SELECT a.decision,a.reason,a.shape,w.item_id,w.language,w.surface,w.token_count,w.source_ref_count,a.scopes_json',
     'FROM admission a JOIN work_item w USING(item_id)',
-    'WHERE a.decision<>\'admit\'',
-    'ORDER BY a.decision,a.reason,w.item_id',
-  ].join(' ')).iterate()){
-    const key=row.decision+':'+row.reason;
-    examples[key]??=[];
-    if(examples[key].length<8){
-      examples[key].push({
-        item_id:Number(row.item_id),
-        language:row.language,
-        surface:row.surface,
-        shape:row.shape,
-        token_count:Number(row.token_count)||1,
-        source_ref_count:Number(row.source_ref_count)||0,
-        scopes:JSON.parse(row.scopes_json||'[]'),
-      });
-    }
+    'WHERE a.decision=? AND a.reason=?',
+    'ORDER BY w.item_id LIMIT 8',
+  ].join(' '));
+  for(const key of Object.keys(byReason)){
+    const split=key.indexOf(':');
+    const decision=key.slice(0,split);
+    const reason=key.slice(split+1);
+    if(decision==='admit')continue;
+    examples[key]=exampleQuery.all(decision,reason).map((row)=>({
+      item_id:Number(row.item_id),
+      language:row.language,
+      surface:row.surface,
+      shape:row.shape,
+      token_count:Number(row.token_count)||1,
+      source_ref_count:Number(row.source_ref_count)||0,
+      scopes:JSON.parse(row.scopes_json||'[]'),
+    }));
   }
 
   const report={
