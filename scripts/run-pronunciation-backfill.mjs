@@ -1034,9 +1034,7 @@ async function collect(){
     const acceptedStates=['accepted','reviewed','accepted_source_composition','accepted_source_backed'];
     const placeholders=acceptedStates.map(()=>'?').join(',');
     try{
-      const analyzerPool=new PronunciationIpaAnalyzerPool({workers:analyzerWorkers});
-  try{
-    for(const language of ['de','en']){
+      for(const language of ['de','en']){
         if(stopRequested) break;
         const locale=language==='de'?'de-DE':'en-US';
         const missingWhere=[
