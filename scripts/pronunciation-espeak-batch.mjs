@@ -150,6 +150,85 @@ function processFailureRows(rows,processResult,mode){
   }));
 }
 
+async function inspectBatchRows(
+  rows,
+  rawIpas,
+  language,
+  processResult,
+  {
+    command,
+    engineVersion=null,
+    analyzerPool=null,
+    mode,
+    outputLineCounts=null,
+  }={},
+){
+  const perRowBatchElapsed=processResult.elapsed_ms/Math.max(1,rows.length);
+  return await Promise.all(rows.map(async(row,index)=>{
+    const started=performance.now();
+    try{
+      let inspected;
+      let analyzerElapsed=0;
+      let analyzerQueue=0;
+      let analyzerRoundtrip=0;
+      let analyzerWorker=null;
+      let analyzerMode='main_thread';
+
+      if(analyzerPool){
+        const analyzed=await analyzerPool.analyze({
+          surface:row.surface,
+          language,
+          rawIpa:rawIpas[index],
+          engineCommand:command,
+          engineVersion,
+        });
+        inspected=analyzed.inspection;
+        analyzerElapsed=Number(analyzed.analyzer_elapsed_ms)||0;
+        analyzerQueue=Number(analyzed.analyzer_queue_ms)||0;
+        analyzerRoundtrip=Number(analyzed.analyzer_roundtrip_ms)||0;
+        analyzerWorker=Number.isInteger(analyzed.worker_index)?analyzed.worker_index:null;
+        analyzerMode='worker_thread';
+      }else{
+        inspected=inspectEspeakIpaOutput(row.surface,language,rawIpas[index],{
+          engineCommand:command,
+          engineVersion,
+        });
+        analyzerElapsed=performance.now()-started;
+        analyzerRoundtrip=analyzerElapsed;
+      }
+
+      return {
+        row,
+        inspected,
+        error:null,
+        elapsed:perRowBatchElapsed+analyzerElapsed,
+        mode,
+        batch_size:rows.length,
+        batch_elapsed_ms:processResult.elapsed_ms,
+        stderr:String(processResult.stderr||'').trim()||null,
+        analyzer_mode:analyzerMode,
+        analyzer_elapsed_ms:analyzerElapsed,
+        analyzer_queue_ms:analyzerQueue,
+        analyzer_roundtrip_ms:analyzerRoundtrip,
+        analyzer_worker:analyzerWorker,
+        framed_output_lines:Array.isArray(outputLineCounts)?outputLineCounts[index]:undefined,
+      };
+    }catch(error){
+      return {
+        row,
+        inspected:null,
+        error,
+        elapsed:perRowBatchElapsed+(performance.now()-started),
+        mode:mode+'_analyzer_error',
+        batch_size:rows.length,
+        batch_elapsed_ms:processResult.elapsed_ms,
+        stderr:String(processResult.stderr||'').trim()||null,
+        analyzer_mode:analyzerPool?'worker_thread':'main_thread',
+      };
+    }
+  }));
+}
+
 async function processFramedChunk(rows,language,{
   command,
   engineVersion=null,
@@ -157,6 +236,7 @@ async function processFramedChunk(rows,language,{
   spawnProcess=spawn,
   fallbackSingle=true,
   boundaryIpa=null,
+  analyzerPool=null,
   mode='framed_batch_process',
 }={}){
   const code=normalizeLanguage(language);
@@ -183,34 +263,30 @@ async function processFramedChunk(rows,language,{
 
   const framed=splitFramedEspeakOutput(processResult.stdout,markerIpa);
   if(framed.groups.length===rows.length&&framed.trailing.length===0){
-    return rows.map((row,index)=>{
-      const rawIpa=framed.groups[index].join('\n');
-      return {
-        row,
-        inspected:inspectEspeakIpaOutput(row.surface,code,rawIpa,{
-          engineCommand:command,
-          engineVersion,
-        }),
-        error:null,
-        elapsed:processResult.elapsed_ms/Math.max(1,rows.length),
+    return await inspectBatchRows(
+      rows,
+      framed.groups.map((group)=>group.join('\n')),
+      code,
+      processResult,
+      {
+        command,
+        engineVersion,
+        analyzerPool,
         mode,
-        batch_size:rows.length,
-        batch_elapsed_ms:processResult.elapsed_ms,
-        stderr:String(processResult.stderr||'').trim()||null,
-        framed_output_lines:framed.groups[index].length,
-      };
-    });
+        outputLineCounts:framed.groups.map((group)=>group.length),
+      },
+    );
   }
 
   if(rows.length>1){
     const midpoint=Math.ceil(rows.length/2);
     const left=await processFramedChunk(rows.slice(0,midpoint),code,{
       command,engineVersion,timeoutMs,spawnProcess,fallbackSingle,
-      boundaryIpa:markerIpa,mode:'framed_batch_split',
+      boundaryIpa:markerIpa,analyzerPool,mode:'framed_batch_split',
     });
     const right=await processFramedChunk(rows.slice(midpoint),code,{
       command,engineVersion,timeoutMs,spawnProcess,fallbackSingle,
-      boundaryIpa:markerIpa,mode:'framed_batch_split',
+      boundaryIpa:markerIpa,analyzerPool,mode:'framed_batch_split',
     });
     return [...left,...right];
   }
@@ -278,11 +354,12 @@ async function processChunk(rows,language,{
   fallbackSingle=true,
   boundaryIpa=null,
   forceFramed=false,
+  analyzerPool=null,
 }={}){
   const code=normalizeLanguage(language);
   if(forceFramed){
     return await processFramedChunk(rows,code,{
-      command,engineVersion,timeoutMs,spawnProcess,fallbackSingle,boundaryIpa,
+      command,engineVersion,timeoutMs,spawnProcess,fallbackSingle,boundaryIpa,analyzerPool,
     });
   }
 
@@ -301,26 +378,25 @@ async function processChunk(rows,language,{
 
   const outputLines=parseEspeakBatchOutput(processResult.stdout);
   if(outputLines.length===rows.length){
-    return rows.map((row,index)=>({
-      row,
-      inspected:inspectEspeakIpaOutput(row.surface,code,outputLines[index],{
-        engineCommand:command,
+    return await inspectBatchRows(
+      rows,
+      outputLines,
+      code,
+      processResult,
+      {
+        command,
         engineVersion,
-      }),
-      error:null,
-      elapsed:processResult.elapsed_ms/Math.max(1,rows.length),
-      mode:'batch_process',
-      batch_size:rows.length,
-      batch_elapsed_ms:processResult.elapsed_ms,
-      stderr:String(processResult.stderr||'').trim()||null,
-    }));
+        analyzerPool,
+        mode:'batch_process',
+      },
+    );
   }
 
   // Do not recursively split an ordinary line batch. Complex eSpeak output can
   // legitimately contain multiple IPA lines for one input line; the previous
   // binary split path degraded into thousands of per-row process launches.
   return await processFramedChunk(rows,code,{
-    command,engineVersion,timeoutMs,spawnProcess,fallbackSingle,boundaryIpa,
+    command,engineVersion,timeoutMs,spawnProcess,fallbackSingle,boundaryIpa,analyzerPool,
     mode:'framed_batch_after_cardinality_mismatch',
   });
 }
@@ -350,6 +426,7 @@ export async function mapEspeakBatchWorkers(rows,language,{
   timeoutMs=60000,
   spawnProcess=spawn,
   boundaryRawIpa=null,
+  analyzerPool=null,
 }={}){
   const list=Array.from(rows||[]);
   if(!list.length)return [];
@@ -367,7 +444,7 @@ export async function mapEspeakBatchWorkers(rows,language,{
     Math.max(1,Number(workers)||4),
     ({rows:chunk,framed})=>processChunk(chunk,code,{
       command,engineVersion,timeoutMs,spawnProcess,
-      fallbackSingle:true,boundaryIpa:markerIpa,forceFramed:framed,
+      fallbackSingle:true,boundaryIpa:markerIpa,forceFramed:framed,analyzerPool,
     }),
   );
   return processed.flat();
