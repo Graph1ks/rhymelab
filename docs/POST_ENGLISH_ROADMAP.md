@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-19
 
-Status: **DOCUMENTED EXECUTION ORDER — English runtime diagnostic passed; bundled repeatability + ranking/diversity evidence is the active gate**
+Status: **DOCUMENTED EXECUTION ORDER — English bundle evidence reviewed; consolidated Writer acceptance is the active gate**
 
 ## 1. Why this document exists
 
@@ -269,17 +269,17 @@ Performance changes must reproduce accepted Top-N ordering/result fingerprints. 
 
 ```text
 CURRENT
-English runtime diagnostic accepted
+English runtime + repeatability accepted
         |
         v
-Single bundled evidence run
-  - independent-open runtime repeatability
-  - usage-stratified query sampling
-  - Quality/Commonness candidate sweep
-  - Diversity weight sweep
+Consolidated English Writer acceptance
+  - anchored phonetic bands
+  - bounded Commonness candidate sweep
+  - Diversity sweep
+  - automatic lowest-safe candidate selection
         |
         v
-One focused English Writer candidate acceptance pass
+Integrated EN / DE+EN product acceptance
         |
         v
 Product EN capability acceptance
@@ -329,4 +329,4 @@ snapshots equal                    true
 
 Materialization determinism is accepted. The subsequent persisted verifier pass also closed the multisyllabic gap: all five channels use their dedicated indexes, each passed 20 deterministic general and 20 explicit multi-result indexed-vs-full-scan samples with zero mismatches, and foreign-key violations are zero. DB storage/indexed retrieval is therefore closed.
 
-The read-only runtime diagnostic passed with semantic fingerprint `dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf`. The active gate is now `docs/ENGLISH_ACCEPTANCE_BUNDLE_V1.md`: run `npm run en:acceptance:bundle` once to combine independent-open repeatability, commonness/quality candidate evidence and diversity evidence. Do not enable product EN until one focused candidate acceptance pass is completed after bundle review.
+The read-only runtime diagnostic and 3-run repeatability passed. Phase 12B9 bundle evidence fingerprint is `d68ae5f883c9b4d007811573e94493d0bfe389a5c08144da3e63bb9195769c14`. Its first Commonness candidates are not promotable: both had 30 guard violations from a non-transitive pairwise near-tie comparator and raw spelling-overlap penalty increased unranked concentration. The active gate is now `docs/ENGLISH_WRITER_ACCEPTANCE_V1.md`: run `npm run en:writer:accept`. If it passes, move directly to integrated EN / DE+EN product acceptance rather than reopening separate ranking micro-gates.

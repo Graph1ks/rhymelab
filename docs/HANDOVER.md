@@ -708,49 +708,45 @@ cold start measured separately
 
 Performance optimization must preserve accepted Top-N/result fingerprints. Eliminate full scans and N+1s before low-level SQLite PRAGMA tuning.
 
-### Current immediate owner gate — bundled English acceptance evidence
+### Current immediate owner gate — consolidated English Writer acceptance
 
-The owner Phase 12B8 runtime diagnostic passed completely.
+Phase 12B9 bundle evidence passed and was reviewed.
 
 ```text
-status                         ok
-runtime semantic fingerprint   dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf
-DB fingerprint                 beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37
-publish fingerprint            b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
-stored reanalysis              200 / 200
-default-profile leakage        0
-same-open repeatability        0 mismatches
-failed checks                  0
+bundle status                 evidence_ready
+bundle semantic fingerprint   d68ae5f883c9b4d007811573e94493d0bfe389a5c08144da3e63bb9195769c14
+runtime repeatability         3 / 3 PASS
+runtime fingerprint           dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf
 ```
 
-Protected runtime sentinels also pass:
+Important findings:
 
-- `time -> rhyme` perfect;
-- `nation -> station` multisyllabic perfect through `multi`;
-- `record` stress variants;
-- `route` alternate pronunciations;
-- 20 derived-inflection reanalysis samples.
+- both first Commonness candidates produced 30 phonetic-guard violations;
+- root cause is a non-transitive pairwise near-tie comparator;
+- raw English query-spelling overlap is not safe as a Writer utility penalty;
+- Top-20 unranked rows rose from 119 in phonetic control to 197 / 218 in the two Commonness candidates.
 
-To avoid the previous micro-gate cadence, the next four evidence steps are bundled into one owner command:
+Phase 12B10 fixes these issues structurally:
+
+- strict relation tier;
+- anchored phonetic bands with full span <= 0.03;
+- Commonness only inside those bands;
+- raw query spelling overlap diagnostic-only;
+- small unknown-usage confidence penalty without treating unranked as rare;
+- separate same-lemma/near-duplicate Diversity layer;
+- automatic selection of the lowest Commonness weight and lowest Diversity weight that pass structural gates.
+
+Next owner command after merge:
 
 ```powershell
 git pull
-npm run en:acceptance:bundle
+npm run en:writer:accept
 ```
 
-The bundle performs:
-
-1. three independent runtime diagnostic DB opens and fingerprint comparison;
-2. deterministic query selection across usage/commonness strata;
-3. one-pass comparison of `phonetic_control`, `de_architecture_control` and `conservative_commonness` Quality candidates;
-4. one-pass Diversity sweep at weights `0`, `0.10`, `0.18`, `0.26` on the same pools.
-
-Primary upload:
+Upload only:
 
 ```text
-data/local/en-acceptance-bundle-v1-report.json
+data/local/en-writer-acceptance-v1-report.json
 ```
 
-Do not upload the intermediate repeatability run files unless requested.
-
-After bundle review, choose/adjust one candidate and run one focused acceptance pass. Do not return to one-command-per-micro-gate unless a real failure requires isolation.
+If status is `candidate_accepted_for_product_integration`, implement that selected policy directly and move to one integrated EN / DE+EN product acceptance bundle. Do not reopen separate Commonness or Diversity micro-gates.
