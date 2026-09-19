@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import {
-  analyzeEnglishArpabet,
   analyzeEnglishIpa,
+  tokenizeEnglishArpabet,
 } from './english-phonology.mjs';
 
 export const ENTITY_AI_PRONUNCIATION_SCHEMA='rhymelab-entity-ai-pronunciation-v1';
@@ -45,6 +45,7 @@ export function validateEntityAiArpabet(value,{allowBlank=false}={}){
   }
 
   const tokens=[];
+  let totalPrimary=0;
   for(const word of words){
     const wordTokens=word.trim().split(/\s+/u).filter(Boolean);
     if(!wordTokens.length){
@@ -70,10 +71,11 @@ export function validateEntityAiArpabet(value,{allowBlank=false}={}){
         return {valid:false,error:`unsupported_phone:${token}`,words:[],tokens:[]};
       }
     }
-    if(primary<1){
-      return {valid:false,error:'word_without_primary_stress',words:[],tokens:[]};
-    }
+    totalPrimary+=primary;
     tokens.push(...wordTokens);
+  }
+  if(totalPrimary<1){
+    return {valid:false,error:'pronunciation_without_primary_stress',words:[],tokens:[]};
   }
 
   return {
@@ -101,17 +103,23 @@ export function englishAnalysisToIpa(analysis){
   }).join('.');
 }
 
+function arpabetWordToIpa(word){
+  const segments=tokenizeEnglishArpabet(word);
+  return segments.map((segment)=>{
+    if(!segment.vowel) return segment.token;
+    const stress=Number(segment.stress||0)===2
+      ?'ˈ'
+      :Number(segment.stress||0)===1
+        ?'ˌ'
+        :'';
+    return stress+segment.token;
+  }).join('');
+}
+
 export function analyzeEntityAiArpabet(value){
   const validated=validateEntityAiArpabet(value);
   if(!validated.valid) throw new Error(validated.error);
-  const wordIpa=validated.words.map((word)=>
-    englishAnalysisToIpa(
-      analyzeEnglishArpabet(word,{
-        locale:'en-US',
-        source:'llm_entity_annotation',
-      })
-    )
-  );
+  const wordIpa=validated.words.map(arpabetWordToIpa);
   const ipa=wordIpa.join(' ');
   const analysis=analyzeEnglishIpa(ipa,{
     locale:'en-US',
