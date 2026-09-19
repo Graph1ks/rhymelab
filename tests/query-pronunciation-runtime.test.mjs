@@ -12,6 +12,7 @@ import {
   CLIENT_QUERY_PRONUNCIATION_POLICY,
   generateClientIpa,
   resolveUnknownClientPronunciation,
+  tokenizeClientPronunciationInput,
 } from '../src/ui/query-pronunciation-client.mjs';
 
 const SENTINELS=[
@@ -130,4 +131,56 @@ test('product runtime contains no eSpeak or child_process query pronunciation de
     readFile('src/query-pronunciation-runtime.mjs','utf8'),
     /ENOENT/,
   );
+});
+
+
+test('browser resolver resolves arbitrary mixed source-backed/generated word chains',async()=>{
+  const query='heute abend große gangbang party';
+  assert.deepEqual(
+    tokenizeClientPronunciationInput(query),
+    ['heute','abend','große','gangbang','party'],
+  );
+
+  const generatedReference=(surface)=>generateClientIpa(surface,'de');
+  const references=new Map(
+    ['heute','abend','große','party'].map((surface)=>[
+      surface,
+      {
+        surface,
+        preferredIpa:generatedReference(surface).ipa,
+      },
+    ]),
+  );
+  const detail=await resolveUnknownClientPronunciation(query,'de',{
+    lookupReference:async(surface)=>references.get(surface)||null,
+  });
+
+  assert.equal(detail.method,'client_token_chain');
+  assert.equal(detail.tokenCount,5);
+  assert.equal(detail.sourceBacked,false);
+  assert.deepEqual(detail.components,['heute','abend','große','gangbang','party']);
+  assert.deepEqual(detail.generatedTokens,['gangbang']);
+  assert.deepEqual(detail.sourceBackedTokens,['heute','abend','große','party']);
+  assert.equal(detail.tokens.length,5);
+  assert.equal(detail.tokens[3].surface,'gangbang');
+  assert.equal(detail.tokens[3].sourceBacked,false);
+  assert.equal(detail.ipa.split(' ').length,5);
+
+  const analysis=getPhonologyProfile('de').analyzeIpa(detail.ipa);
+  assert.ok(analysis.syllableCount>=5);
+  assert.ok(analysis.exactTailKey);
+});
+
+test('browser resolver can resolve a fully unknown multiword chain without DB pronunciation hits',async()=>{
+  const detail=await resolveUnknownClientPronunciation(
+    'Vulkanschnecken Dragonspawn Baladur',
+    'en',
+    {lookupReference:async()=>null},
+  );
+  assert.equal(detail.method,'client_token_chain');
+  assert.equal(detail.tokenCount,3);
+  assert.equal(detail.generatedTokens.length,3);
+  assert.equal(detail.sourceBackedTokens.length,0);
+  assert.equal(detail.ipa.split(' ').length,3);
+  assert.ok(getPhonologyProfile('en').analyzeIpa(detail.ipa).exactTailKey);
 });

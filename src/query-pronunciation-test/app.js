@@ -116,14 +116,12 @@ async function run(){
   const requested=languagesFor(language);
   const generated={};
 
-  if(!/\s/u.test(query)){
-    for(const code of requested){
-      if(data?.queries?.[code]?.preferredIpa)continue;
-      generated[code]=await resolveUnknownClientPronunciation(query,code,{
-        lookupReference,
-      });
-      if(generated[code]?.ipa)attachGenerated(params,code,generated[code]);
-    }
+  for(const code of requested){
+    if(data?.queries?.[code]?.preferredIpa)continue;
+    generated[code]=await resolveUnknownClientPronunciation(query,code,{
+      lookupReference,
+    });
+    if(generated[code]?.ipa)attachGenerated(params,code,generated[code]);
   }
 
   if(Object.values(generated).some((row)=>row?.ipa)){

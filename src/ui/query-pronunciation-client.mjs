@@ -1,4 +1,5 @@
-export const CLIENT_QUERY_PRONUNCIATION_POLICY='client-total-query-pronunciation-v1';
+export const CLIENT_QUERY_PRONUNCIATION_POLICY='client-total-query-pronunciation-v2';
+export const CLIENT_QUERY_MAX_TOKENS=64;
 
 const LANGUAGES=new Set(['de','en']);
 
@@ -15,6 +16,12 @@ export function normalizeClientSurface(value,language){
     .trim()
     .replace(/\s+/gu,' ')
     .toLocaleLowerCase(code==='de'?'de-DE':'en-US');
+}
+
+export function tokenizeClientPronunciationInput(value){
+  const text=String(value??'').normalize('NFKC').trim();
+  if(!text)return[];
+  return text.match(/[\p{L}\p{M}\p{N}]+(?:['’\-][\p{L}\p{M}\p{N}]+)*/gu)||[];
 }
 
 const DE_MULTI=Object.freeze([
@@ -130,6 +137,25 @@ export function generateClientIpa(surface,language){
   };
 }
 
+function referenceIpa(reference){
+  return String(reference?.preferredIpa||reference?.ipa||'').trim();
+}
+
+function sourceReferenceDetail(surface,language,reference){
+  const ipa=referenceIpa(reference);
+  if(!ipa)return null;
+  return {
+    language,
+    surface:String(reference?.surface||surface),
+    normalized:normalizeClientSurface(surface,language),
+    ipa,
+    method:'client_source_reference',
+    policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
+    sourceBacked:true,
+    clientOnly:true,
+  };
+}
+
 function demoteStress(ipa){
   return String(ipa||'').replaceAll('ˈ','ˌ');
 }
@@ -144,15 +170,14 @@ async function findTwoPartReferenceCompound(normalized,language,lookupReference)
   }
   candidates.sort((a,b)=>b.quality-a.quality||b.left.length-a.left.length);
 
-  for(const candidate of candidates){
+  for(const candidate of candidates.slice(0,8)){
     const [left,right]=await Promise.all([
       lookupReference(candidate.left,language),
       lookupReference(candidate.right,language),
     ]);
-    if(!left?.preferredIpa&&!left?.ipa)continue;
-    if(!right?.preferredIpa&&!right?.ipa)continue;
-    const leftIpa=left.preferredIpa||left.ipa;
-    const rightIpa=right.preferredIpa||right.ipa;
+    const leftIpa=referenceIpa(left);
+    const rightIpa=referenceIpa(right);
+    if(!leftIpa||!rightIpa)continue;
     return {
       language,
       surface:normalized,
@@ -171,18 +196,71 @@ async function findTwoPartReferenceCompound(normalized,language,lookupReference)
   return null;
 }
 
+async function resolveClientTokenPronunciation(surface,language,lookupReference){
+  const normalized=normalizeClientSurface(surface,language);
+  if(typeof lookupReference==='function'){
+    const exact=await lookupReference(normalized,language);
+    const exactDetail=sourceReferenceDetail(surface,language,exact);
+    if(exactDetail)return exactDetail;
+
+    const compound=await findTwoPartReferenceCompound(
+      normalized,
+      language,
+      lookupReference,
+    );
+    if(compound)return compound;
+  }
+  return generateClientIpa(surface,language);
+}
+
 export async function resolveUnknownClientPronunciation(
   surface,
   language,
-  {lookupReference=null}={},
+  {lookupReference=null,maxTokens=CLIENT_QUERY_MAX_TOKENS}={},
 ){
   const code=normalizeLanguage(language);
   const normalized=normalizeClientSurface(surface,code);
   if(!normalized)return null;
-  const composed=await findTwoPartReferenceCompound(
-    normalized,
-    code,
-    lookupReference,
+
+  const tokens=tokenizeClientPronunciationInput(surface);
+  if(tokens.length>Math.max(1,Number(maxTokens)||CLIENT_QUERY_MAX_TOKENS)){
+    throw new RangeError(`Query pronunciation exceeds ${maxTokens} tokens`);
+  }
+
+  if(tokens.length<=1){
+    return resolveClientTokenPronunciation(tokens[0]||surface,code,lookupReference);
+  }
+
+  const resolved=await Promise.all(
+    tokens.map((token)=>resolveClientTokenPronunciation(token,code,lookupReference)),
   );
-  return composed||generateClientIpa(surface,code);
+  const generatedTokens=resolved
+    .filter((token)=>!token.sourceBacked)
+    .map((token)=>token.surface);
+  const sourceBackedTokens=resolved
+    .filter((token)=>token.sourceBacked)
+    .map((token)=>token.surface);
+
+  return {
+    language:code,
+    surface:String(surface??'').normalize('NFKC').trim().replace(/\s+/gu,' '),
+    normalized,
+    ipa:resolved.map((token)=>token.ipa).join(' '),
+    method:'client_token_chain',
+    policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
+    sourceBacked:generatedTokens.length===0,
+    clientOnly:true,
+    tokenCount:resolved.length,
+    components:resolved.map((token)=>token.surface),
+    sourceBackedTokens,
+    generatedTokens,
+    tokens:resolved.map((token)=>({
+      surface:token.surface,
+      normalized:token.normalized,
+      ipa:token.ipa,
+      method:token.method,
+      sourceBacked:token.sourceBacked,
+      components:token.components||null,
+    })),
+  };
 }

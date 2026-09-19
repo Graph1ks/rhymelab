@@ -82,7 +82,7 @@ Run the normal development server, then open:
 http://127.0.0.1:3030/query-pronunciation-test
 ```
 
-This test keeps the normal database/retrieval/ranking pipeline intact and moves only missing single-token spelling → IPA generation into browser JavaScript.
+This test keeps the normal database/retrieval/ranking pipeline intact and moves only missing query pronunciation into browser JavaScript. Multi-word queries are resolved token-by-token: existing DB pronunciations are reused and only missing token pronunciations are generated locally.
 
 ## Repository continuity
 
@@ -139,7 +139,7 @@ The major accepted baselines are now:
 - **Phase 12B English single-word Writer:** accepted and frozen; English has its own analyzer/scorer/profile and is not routed through German phonology.
 - **Phase 12C source-backed multilingual Entity runtime:** accepted on `main`; the accepted DE Entity fingerprint is preserved and the accepted EN runtime contains source-backed rows only.
 - **AI Entity pronunciation staging:** isolated evidence only. It is not canonical runtime truth and is not promoted automatically.
-- **Total Query Pronunciation v1:** unknown normalized single-token queries resolve to ephemeral DE/EN pronunciation anchors in the end-user client. Source-backed database pronunciation still wins; only a missing query spelling is generated client-side, then the existing Writer/Phrase/Entity search pipeline continues unchanged. eSpeak-NG is benchmark-only and is not an end-user runtime dependency.
+- **Client Total Query Pronunciation:** unknown words and partially unresolved word chains resolve to ephemeral DE/EN query anchors in the end-user client. Source-backed token pronunciation still wins; only missing token IPA is generated client-side, then the existing Writer/Phrase/Entity search pipeline continues unchanged. eSpeak-NG is benchmark-only and is not an end-user runtime dependency.
 
 Current follow-up work is intentionally narrower:
 

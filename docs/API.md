@@ -71,7 +71,7 @@ Parameters:
 - `entity_limit=<n>`, `entity_pool=<n>` — bounded Entity controls;
 - `entity_category=<category|all>` — exact Entity taxonomy filter from the runtime capability list.
 
-### Unknown single-token query pronunciation
+### Unknown / partially unresolved query pronunciation
 
 The API itself does **not** run a pronunciation generator or host executable.
 
@@ -79,7 +79,7 @@ The product flow is:
 
 1. the normal Writer request attempts the existing source-backed query lookup;
 2. the browser/client identifies any missing requested-language query anchor;
-3. only that missing spelling is resolved to IPA by the end-user client;
+3. for a multi-word query, each token uses source-backed pronunciation when available and only missing token pronunciations are generated in the end-user client;
 4. the browser retries the same Writer endpoint with the generated IPA;
 5. the server validates that IPA through the existing accepted language analyzer and uses it only as an ephemeral query anchor;
 6. normal Word/Phrase/Entity retrieval, scoring and ranking continue unchanged.
@@ -99,7 +99,7 @@ A real source-backed query pronunciation always wins over supplied client IPA.
 
 Generated query metadata includes `generatedPronunciation=true` and `queryPronunciation.clientOnly=true`. Client-generated pronunciations are not persisted and are not lexical facts.
 
-`language=both` may therefore use a source-backed pronunciation for one language and a client-generated pronunciation only for the missing language. This total-resolution fallback applies to **single-token input only**. Accepted multi-word Phrase/Mosaic pronunciation rules remain unchanged.
+`language=both` may therefore use source-backed pronunciation for one language and client-generated pronunciation only for the missing language. Multi-word input is supported: the client composes a complete ephemeral phrase IPA from source-backed and generated token pronunciations.
 
 
 German single-word queries reuse the frozen `findWriterRhymes()` path unchanged. Phrase/Mosaic results run through the accepted 11D4 retrieval -> 11E2-v2 ranking -> 11E3 diversification stack.
@@ -107,8 +107,9 @@ German single-word queries reuse the frozen `findWriterRhymes()` path unchanged.
 Multi-word user queries are resolved in this order:
 
 1. exact accepted phrase-catalog pronunciation when available;
-2. otherwise deterministic composition of preferred Writer-v5 token pronunciations when every lexical token resolves;
-3. otherwise the multi-word query remains pronunciation-unresolved; Total Query Pronunciation v1 deliberately does not G2P unresolved multi-word Phrase/Mosaic input.
+2. otherwise deterministic server composition of preferred Writer-v5 token pronunciations when every lexical token resolves;
+3. otherwise the browser/client resolves each token independently: source-backed word pronunciation where available, local deterministic IPA only for missing tokens;
+4. the composed client phrase IPA is validated by the accepted analyzer and used only as the query anchor for the existing Word/Phrase/Entity search paths.
 
 The response keeps Word and Phrase/Mosaic channel orders separate. Numeric scores are not treated as globally calibrated across channels; the unified UI groups both channels in one workspace rather than inventing a cross-channel score.
 

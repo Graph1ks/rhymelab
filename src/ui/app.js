@@ -304,18 +304,25 @@ async function lookupSourceBackedWord(surface,language){
   return null;
 }
 
-function isSingleTokenQuery(value){
-  return Boolean(String(value||'').trim())&&!/\s/u.test(String(value||'').trim());
-}
-
 async function resolveMissingQueryPronunciations(data){
-  if(!isSingleTokenQuery(state.query))return {};
   const languages=basisLanguages(state.basis).filter(
     (language)=>state.capabilities?.languages?.[language]?.available!==false,
   );
   const missing=languages.filter((language)=>!data?.queries?.[language]?.preferredIpa);
   const generated={};
   for(const language of missing){
+    for(const token of data?.queries?.[language]?.tokens||[]){
+      if(!token?.ipa)continue;
+      const surface=token.word||token.surface||token.normalized;
+      if(!surface)continue;
+      state.wordCache.set(wordCacheKey(language,surface),{
+        surface,
+        normalized:token.normalized||surface,
+        preferredIpa:token.ipa,
+        ipa:token.ipa,
+        syllableCount:Number(token.syllableCount||0),
+      });
+    }
     generated[language]=await resolveUnknownClientPronunciation(
       state.query,
       language,
