@@ -1188,16 +1188,16 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "freeze_accepted_v4_english_db_semantic_fingerprint_beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37_as_runtime_benchmark_source",
+    "run_updated_npm_en_db_verify_once_against_existing_v4_db_without_rebuild",
+    "require_idx_en_pron_multi_query_plan_and_zero_general_plus_multi_result_mismatches_for_multisyllable_key",
+    "review_persisted_data_local_en_writer_db_verification_v1_report_json",
+    "then_freeze_accepted_v4_english_db_semantic_fingerprint_beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37_for_runtime_benchmark",
     "implement_and_run_read_only_english_retrieval_runtime_diagnostic_against_the_accepted_db",
-    "cover_exact_multisyllabic_vowel_family_coda_coda_stress_variant_and_morphology_cases_without_product_enablement",
-    "require_deterministic_retrieval_results_and_no_default_profile_or_provenance_leakage",
-    "after_retrieval_acceptance_begin_english_phonetic_quality_commonness_and_writer_utility_calibration",
-    "then_add_and_benchmark_separate_page_diversity_redundancy_control_before_product_en_acceptance"
+    "after_retrieval_acceptance_begin_english_phonetic_quality_commonness_writer_utility_then_separate_diversity_calibration"
   ],
-  "next_milestone": "PHASE_12B8_ENGLISH_RETRIEVAL_RUNTIME_ACCEPTANCE",
+  "next_milestone": "PHASE_12B8_CLOSE_MULTISYLLABIC_DB_RETRIEVAL_VERIFY_THEN_RUNTIME_ACCEPTANCE",
   "phase_12_english": {
-    "status": "ACTIVE_12B8_ENGLISH_RETRIEVAL_RUNTIME_ACCEPTANCE",
+    "status": "ACTIVE_12B8_MULTISYLLABIC_DB_RETRIEVAL_VERIFY_GATE",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1278,7 +1278,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B8_IMPLEMENT_AND_RUN_ENGLISH_RETRIEVAL_RUNTIME_DIAGNOSTIC",
+    "next_gate": "PHASE_12B8_RUN_UPDATED_EN_DB_VERIFY_WITH_PERSISTED_MULTI_CHANNEL_EVIDENCE",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1605,7 +1605,7 @@
       "publish_snapshot_frozen": true
     },
     "writer_db_v1": {
-      "status": "ACCEPTED_REPEATABLE_V4_MATERIALIZATION_FOR_RUNTIME_BENCHMARK",
+      "status": "V4_DB_REPEATABILITY_PASS_MULTISYLLABIC_RETRIEVAL_VERIFY_PATCH_PENDING_OWNER_RUN",
       "contract": "docs/ENGLISH_WRITER_DB_V1.md",
       "schema": "rhymelab-en-writer-db-v1-candidate",
       "database": "data/local/rhymelab-en-v1.sqlite",
@@ -1680,11 +1680,11 @@
         "retrieval_equivalence_mismatches": 0,
         "verify_pass": true
       },
-      "pending_owner_action": "none_for_db_materialization; next engineering gate is English retrieval/runtime diagnostic before ranking",
+      "pending_owner_action": "after merge run git pull then npm run en:db:verify; upload data/local/en-writer-db-verification-v1-report.json; no DB rebuild required",
       "repeatability_command": "npm run en:db:repeatability",
       "repeatability_report": "data/local/en-writer-db-repeatability-v1-report.json",
       "repeatability_status": "PASS",
-      "verifier_multi_result_equivalence": "PASS_BY_TWO_SUCCESSFUL_VERIFIER_RUNS",
+      "verifier_multi_result_equivalence": "PASS_FOR_EXACT_VOWEL_FAMILY_CODA_CODA_BY_TWO_SUCCESSFUL_VERIFIER_RUNS",
       "verifier_multi_result_channels": [
         "exact",
         "vowel",
@@ -1702,7 +1702,7 @@
         "foreign_key_check_clean"
       ],
       "semantic_fingerprint": "beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37",
-      "verifier_evidence_note": "repeatability runner completed both strengthened verifier invocations before writing status=ok; per-channel multi-result sample cardinalities are not serialized in the uploaded reports",
+      "verifier_evidence_note": "v4 DB materialization repeatability is accepted; exact/vowel/family+coda/coda strengthened verifier ran successfully twice, but multisyllable_key was not covered and must pass one updated verifier run before the full DB retrieval gate is frozen",
       "owner_v4_build": {
         "status": "PASS_ACCEPTED",
         "forms": 224478,
@@ -1738,6 +1738,16 @@
         "second_database_bytes": 190701568,
         "counts_equal": true,
         "source_publish_fingerprint_equal": true
+      },
+      "verifier_multisyllabic_gap": {
+        "discovered": true,
+        "issue": "idx_en_pron_multi existed but englishRetrievalQueryPlans sampled multisyllable_key only from the first exact-key row; when that row had no multisyllable_key the plan was empty, and verifier required/equivalence channels omitted multi",
+        "observed_build_report_multi_plan": [],
+        "fix_status": "IMPLEMENTED_OWNER_VERIFY_PENDING",
+        "fix": "select a dedicated non-null multisyllable_key sample; require idx_en_pron_multi; run general and explicit multi-result equivalence for multisyllable_key",
+        "rebuild_required": false,
+        "verification_command": "npm run en:db:verify",
+        "verification_report": "data/local/en-writer-db-verification-v1-report.json"
       }
     },
     "coverage_audit_v1": {
@@ -2259,7 +2269,7 @@
       "deterministic_local_offline_required": true
     },
     "retrieval_runtime": {
-      "status": "NEXT_ACTIVE_GATE",
+      "status": "BLOCKED_ONLY_ON_MULTISYLLABIC_DB_VERIFY_COMPLETION",
       "product_en_enabled": false,
       "accepted_db_semantic_fingerprint": "beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37",
       "requirements": [
