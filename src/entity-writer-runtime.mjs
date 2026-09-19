@@ -238,7 +238,10 @@ function analyzeEntityQuery(query,language,profile){
   }
   const ipa=query?.preferredIpa||query?.ipa||'';
   if(!ipa) return null;
-  return profile.analyzeIpa(ipa);
+  const targetIpa=language==='en'&&query?.language!=='en'
+    ?String(ipa).replaceAll('̯','')
+    :ipa;
+  return profile.analyzeIpa(targetIpa);
 }
 
 export function searchEntityRhymes(db, query, options = {}) {
