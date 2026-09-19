@@ -14,6 +14,8 @@ import {
   finalizeAgreement,
   finalizeGold,
 } from '../scripts/pronunciation-generator-benchmark-core.mjs';
+import { evaluatePronunciationAdmission } from '../scripts/pronunciation-backfill-admission-core.mjs';
+import { mapConcurrent } from '../scripts/pronunciation-espeak-parallel.mjs';
 
 test('surface audit classifies lexical and suspicious shapes deterministically',()=>{
   assert.equal(classifySurface('Arbeitsweise',1).shape,'clean_single');
@@ -67,4 +69,74 @@ test('gold calibration metrics compare predictions to references without declari
   assert.equal(final.exact_tail_pct,100);
   assert.equal(final.stress_pattern_pct,0);
   assert.equal(final.mean_rhyme_score,.75);
+});
+
+
+test('source-aware admission keeps lexical words, holds ambiguous word-source surfaces, and rejects explicit artifacts',()=>{
+  const clean=evaluatePronunciationAdmission({
+    surface:'Arbeitsweise',
+    tokenCount:1,
+    scopes:['de_usage_source_minus_accepted'],
+  });
+  assert.equal(clean.decision,'admit');
+  assert.equal(clean.shape,'clean_single');
+
+  const listedPhrase=evaluatePronunciationAdmission({
+    surface:'wir änderten',
+    tokenCount:2,
+    scopes:['de_listed_form_source_minus_accepted'],
+  });
+  assert.equal(listedPhrase.decision,'review');
+  assert.equal(listedPhrase.reason,'word_target_multiword');
+
+  const template=evaluatePronunciationAdmission({
+    surface:'er/sie/es werde kompostiert werden',
+    tokenCount:6,
+    scopes:['de_listed_form_source_minus_accepted'],
+  });
+  assert.equal(template.decision,'reject_noise');
+  assert.equal(template.reason,'word_source_pronoun_template');
+
+  const entity=evaluatePronunciationAdmission({
+    surface:'New York',
+    tokenCount:2,
+    scopes:['entity_en_no_source_pronunciation'],
+  });
+  assert.equal(entity.decision,'admit');
+
+  const phrase=evaluatePronunciationAdmission({
+    surface:'heute abend große party',
+    tokenCount:4,
+    scopes:['phrase_surface_unresolved'],
+  });
+  assert.equal(phrase.decision,'admit');
+});
+
+test('admission is permissive across overlapping scopes when a pronunciation-independent product scope admits the item',()=>{
+  const result=evaluatePronunciationAdmission({
+    surface:'New York',
+    tokenCount:2,
+    scopes:['en_wiktionary_lexical_source_minus_accepted','entity_en_no_source_pronunciation'],
+  });
+  assert.equal(result.decision,'admit');
+  assert.deepEqual(result.scopes,[
+    'en_wiktionary_lexical_source_minus_accepted',
+    'entity_en_no_source_pronunciation',
+  ]);
+});
+
+test('bounded concurrent mapper preserves input order and respects worker cap',async()=>{
+  let active=0;
+  let peak=0;
+  const values=Array.from({length:12},(_,index)=>index);
+  const result=await mapConcurrent(values,3,async(value)=>{
+    active+=1;
+    peak=Math.max(peak,active);
+    await new Promise((resolve)=>setTimeout(resolve,2));
+    active-=1;
+    return value*2;
+  });
+  assert.deepEqual(result,values.map((value)=>value*2));
+  assert.ok(peak<=3);
+  assert.ok(peak>=2);
 });

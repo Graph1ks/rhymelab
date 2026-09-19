@@ -171,6 +171,42 @@ The compressed source limitation is explicit: normal gzip does not support arbit
 
 If an input source/accepted DB revision changes, V2 fails closed instead of mixing revisions. Use `--reset` only when intentionally creating a fresh workset.
 
+## Admission/noise gate
+
+The completed owner audit showed that the raw 6.03M-item workset is not equivalent to 6.03M safe lexical generator targets. Before eSpeak runs, Backfill V2 now requires a resumable source-aware admission pass:
+
+```powershell
+npm run pronunciation:backfill:admit
+```
+
+Policy: `source-aware-pronunciation-admission-v1`.
+
+Decisions are stored per work item in SQLite:
+
+```text
+admit         safe enough for unattended bulk eSpeak generation
+review        plausible but held out of unattended generation
+reject_noise  strong structural/source artifact; retained for audit only
+```
+
+The decision is based on both surface shape and source scope. Important target boundaries:
+
+- DE/EN word-source scopes admit normal single lexical surfaces and lexical hyphen/apostrophe forms; multiword rows are held for review instead of being treated as word-runtime gaps.
+- Phrase surfaces may legitimately be multiword.
+- Phrase unresolved-token rows are expected to be lexical tokens.
+- Entity names may legitimately be multiword or contain ordinary punctuation.
+- obvious Wiktionary display/template artifacts such as numbered display rows, ellipsis placeholders, markup fragments and `er/sie/es` form templates are not sent blindly to eSpeak.
+- overlapping provenance is conservative: if one legitimate source scope admits the item, that valid scope wins over a stricter overlapping scope.
+
+Outputs:
+
+```text
+data/local/pronunciation-backfill-v2-admission-report.json
+data/local/pronunciation-backfill-v2-admission-review-sample.tsv
+```
+
+The gate does not delete source rows or canonical data. Rejected/review rows remain in the workset with their provenance.
+
 ## Generator chain
 
 The existing development adapter remains authoritative:
@@ -179,19 +215,30 @@ The existing development adapter remains authoritative:
 scripts/query-pronunciation-espeak-adapter.mjs
 ```
 
+The 1000-case held-out calibration confirmed eSpeak as the primary generator: it materially outperformed the client resolver on exact rhyme tail, syllable count, stress and mean rhyme score overall, with the largest margin on English. The client remains the fallback after eSpeak analyzer rejection.
+
 Order:
 
-1. eSpeak-NG with DE or en-US voice;
-2. existing eSpeak IPA normalization;
-3. accepted language analyzer;
-4. only analyzer-rejected eSpeak rows continue;
-5. `client-total-query-pronunciation-v2`;
-6. source-backed Writer token lookup / bounded source composition first;
-7. deterministic client rules;
-8. grapheme fallback;
-9. accepted language analyzer.
+1. source-aware admission/noise gate;
+2. eSpeak-NG with DE or en-US voice for `admit` rows only;
+3. existing eSpeak IPA normalization;
+4. accepted language analyzer;
+5. only analyzer-rejected eSpeak rows continue;
+6. `client-total-query-pronunciation-v2`;
+7. source-backed Writer token lookup / bounded source composition first;
+8. deterministic client rules;
+9. grapheme fallback;
+10. accepted language analyzer.
 
-Host eSpeak unavailability fails the eSpeak phase. It does not silently route the entire source universe through the weaker client fallback.
+Host eSpeak unavailability fails the eSpeak phase. It does not silently route the entire admitted source universe through the weaker client fallback.
+
+The eSpeak phase now supports bounded parallel child-process workers:
+
+```powershell
+npm run pronunciation:backfill:espeak -- --workers 16
+```
+
+Completed rows are still committed transactionally to the same resumable SQLite workset. Worker count changes throughput only; it does not alter pronunciation/admission policy.
 
 ## Generated quality classes
 
@@ -273,6 +320,35 @@ If the audit/gold samples already exist and only the generators should be rerun:
 npm run pronunciation:backfill:benchmark:run
 ```
 
+## eSpeak high-speed throughput test
+
+The original single-process-per-row benchmark showed roughly ~83 ms median eSpeak latency, which would make millions of serial process launches impractical. Before the full admitted run, measure the local machine with the real admitted workset:
+
+```powershell
+npm run pronunciation:backfill:highspeed:test
+```
+
+Default ladder:
+
+```text
+1, 2, 4, 8, 16, 32 concurrent eSpeak processes
+256 identical admitted cases per level
+```
+
+Output:
+
+```text
+data/local/pronunciation-espeak-highspeed-v1.json
+```
+
+The test is read-only. It reports cases/second, p50/p95 child-process latency, errors/unavailable launches, speedup vs baseline, and projected hours for the remaining admitted population. Use its fastest stable worker count for the actual eSpeak phase instead of guessing a concurrency value.
+
+Custom example:
+
+```powershell
+npm run pronunciation:backfill:highspeed:test -- --cases 512 --workers-list 1,4,8,16,24,32
+```
+
 ## Owner commands
 
 The owner-local inventory has now been consumed and the default source adapters above are mapped to the actual local files. A new inventory run is **not** required for this backfill unless the local data layout changes.
@@ -290,10 +366,34 @@ Collect the corrected source-diff population only:
 npm run pronunciation:backfill:collect
 ```
 
-Then run/continue the complete generator chain:
+Apply/review the admission gate:
 
 ```powershell
-npm run pronunciation:backfill
+npm run pronunciation:backfill:admit
+```
+
+Measure local eSpeak concurrency before the multi-million-row generator pass:
+
+```powershell
+npm run pronunciation:backfill:highspeed:test
+```
+
+Then run eSpeak with the fastest stable worker count from that report, for example:
+
+```powershell
+npm run pronunciation:backfill:espeak -- --workers 16
+```
+
+After eSpeak completes, run the client fallback only for analyzer-rejected admitted rows:
+
+```powershell
+npm run pronunciation:backfill:client
+```
+
+The convenience full-chain command still exists and defaults to `min(16, availableParallelism())` eSpeak workers. `--workers` overrides that local default explicitly:
+
+```powershell
+npm run pronunciation:backfill -- --workers 16
 ```
 
 Retry unexpected per-row processing errors:

@@ -4,11 +4,14 @@ import { once } from 'node:events';
 import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { availableParallelism } from 'node:os';
 import { createGunzip } from 'node:zlib';
 import { createInterface } from 'node:readline';
 import { DatabaseSync } from 'node:sqlite';
-import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-adapter.mjs';
+import { inspectEspeakQueryPronunciation, inspectEspeakQueryPronunciationAsync } from './query-pronunciation-espeak-adapter.mjs';
 import { getPhonologyProfile } from './phonology-profiles.mjs';
+import { mapConcurrent } from './pronunciation-espeak-parallel.mjs';
+import { PRONUNCIATION_ADMISSION_POLICY, evaluatePronunciationAdmission } from './pronunciation-backfill-admission-core.mjs';
 import { normalizeGerman, optionsForListedForms } from './kaikki-resolver-lib.mjs';
 import { lexicalEvidenceForHeadword, lexicalEvidenceForListedForms } from './en-publish-core.mjs';
 import { readJson } from './en-writer-source-core.mjs';
@@ -50,10 +53,15 @@ const workPath=resolve(argValue('--work','data/local/pronunciation-backfill-v2.s
 const reportPath=resolve(argValue('--report','data/local/pronunciation-backfill-v2-report.json'));
 const reviewPath=resolve(argValue('--review-tsv','data/local/pronunciation-backfill-v2-review.tsv'));
 const allPath=resolve(argValue('--all-tsv','data/local/pronunciation-backfill-v2-all.tsv'));
+const admissionReportPath=resolve(argValue('--admission-report','data/local/pronunciation-backfill-v2-admission-report.json'));
+const admissionReviewPath=resolve(argValue('--admission-review-tsv','data/local/pronunciation-backfill-v2-admission-review-sample.tsv'));
 const command=argValue('--command',process.env.RHYMELAB_ESPEAK_COMMAND||null);
 const phase=String(argValue('--phase','all')).trim().toLowerCase();
 const progressEvery=integerArg('--progress-every',1000,{min:1,max:1_000_000});
 const commitEvery=integerArg('--commit-every',250,{min:1,max:10_000});
+const admissionCommitEvery=integerArg('--admission-commit-every',10000,{min:100,max:100_000});
+const defaultEspeakWorkers=Math.max(1,Math.min(16,availableParallelism()));
+const espeakWorkers=integerArg('--workers',defaultEspeakWorkers,{min:1,max:128});
 const retryErrors=hasFlag('--retry-errors');
 const reset=hasFlag('--reset');
 const exportAll=hasFlag('--export-all');
@@ -69,7 +77,7 @@ for(const scope of requestedScopes){
     throw new Error('Unknown --scopes value: '+scope);
   }
 }
-if(!['all','plan','collect','espeak','client','report'].includes(phase)){
+if(!['all','plan','collect','admit','espeak','client','report'].includes(phase)){
   throw new Error('Unknown --phase value: '+phase);
 }
 
@@ -214,7 +222,7 @@ if(phase==='plan'){
 }
 
 if(reset){
-  for(const path of [workPath,workPath+'-wal',workPath+'-shm',reportPath,reviewPath,allPath]){
+  for(const path of [workPath,workPath+'-wal',workPath+'-shm',reportPath,reviewPath,allPath,admissionReportPath,admissionReviewPath]){
     await rm(path,{force:true});
   }
 }
@@ -222,6 +230,8 @@ if(reset){
 await mkdir(dirname(workPath),{recursive:true});
 await mkdir(dirname(reportPath),{recursive:true});
 await mkdir(dirname(reviewPath),{recursive:true});
+await mkdir(dirname(admissionReportPath),{recursive:true});
+await mkdir(dirname(admissionReviewPath),{recursive:true});
 
 const workDb=new DatabaseSync(workPath);
 createPronunciationBackfillStorage(workDb);
@@ -1063,6 +1073,203 @@ async function collect(){
   console.log('[collect] workset summary:',JSON.stringify(backfillSummary(workDb),null,2));
 }
 
+async function runAdmission(){
+  console.log('\n=== PRONUNCIATION BACKFILL · ADMISSION / NOISE GATE ===');
+  if(workDb.prepare("SELECT value FROM meta WHERE key='collection_complete'").get()?.value!=='1'){
+    throw new Error('Collection is incomplete. Finish --phase collect before admission.');
+  }
+
+  const existingPolicy=workDb.prepare("SELECT value FROM meta WHERE key='admission_policy'").get()?.value||null;
+  const existingComplete=workDb.prepare("SELECT value FROM meta WHERE key='admission_complete'").get()?.value||'0';
+  if(existingPolicy!==PRONUNCIATION_ADMISSION_POLICY){
+    workDb.exec('DELETE FROM admission');
+    upsertMeta.run('admission_complete','0');
+    upsertMeta.run('admission_last_item_id','0');
+  }
+  if(existingPolicy===PRONUNCIATION_ADMISSION_POLICY&&existingComplete==='1'){
+    console.log('[admission] already complete · policy='+PRONUNCIATION_ADMISSION_POLICY);
+  }else{
+    upsertMeta.run('admission_policy',PRONUNCIATION_ADMISSION_POLICY);
+    upsertMeta.run('admission_complete','0');
+    const lastItemId=Number(workDb.prepare("SELECT value FROM meta WHERE key='admission_last_item_id'").get()?.value||0);
+    const total=scalar(workDb,'SELECT COUNT(*) AS c FROM work_item');
+    const already=scalar(workDb,'SELECT COUNT(*) AS c FROM admission');
+    const selectRows=workDb.prepare([
+      'SELECT w.item_id,w.language,w.surface,w.normalized,w.token_count,w.source_ref_count,',
+      "GROUP_CONCAT(DISTINCT sr.scope) AS scopes",
+      'FROM work_item w JOIN source_ref sr ON sr.item_id=w.item_id',
+      'WHERE w.item_id>?',
+      'GROUP BY w.item_id',
+      'ORDER BY w.item_id',
+    ].join(' '));
+    const upsertAdmission=workDb.prepare([
+      'INSERT INTO admission(item_id,policy,decision,reason,shape,scopes_json,detail_json,evaluated_at)',
+      'VALUES(?,?,?,?,?,?,?,?)',
+      'ON CONFLICT(item_id) DO UPDATE SET',
+      'policy=excluded.policy,decision=excluded.decision,reason=excluded.reason,shape=excluded.shape,',
+      'scopes_json=excluded.scopes_json,detail_json=excluded.detail_json,evaluated_at=excluded.evaluated_at',
+    ].join(' '));
+
+    let done=already;
+    let currentLast=lastItemId;
+    let batch=0;
+    const startedAt=Date.now();
+    let transactionOpen=false;
+    console.log(
+      '[admission] policy='+PRONUNCIATION_ADMISSION_POLICY
+      +' · total='+total.toLocaleString('en-US')
+      +' · resume_after='+lastItemId.toLocaleString('en-US')
+    );
+
+    try{
+      workDb.exec('BEGIN IMMEDIATE');
+      transactionOpen=true;
+      for(const row of selectRows.iterate(lastItemId)){
+        if(stopRequested)break;
+        const scopes=String(row.scopes||'').split(',').filter(Boolean);
+        const decision=evaluatePronunciationAdmission({
+          surface:row.surface,
+          tokenCount:Number(row.token_count)||1,
+          scopes,
+        });
+        upsertAdmission.run(
+          Number(row.item_id),
+          PRONUNCIATION_ADMISSION_POLICY,
+          decision.decision,
+          decision.reason,
+          decision.shape,
+          safeJson(decision.scopes),
+          safeJson({artifact:decision.artifact,per_scope:decision.per_scope||[]}),
+          now(),
+        );
+        currentLast=Number(row.item_id);
+        done+=1;
+        batch+=1;
+
+        if(done%progressEvery===0){
+          console.log(progressLine({
+            phase:'admission',
+            done,
+            total,
+            startedAt,
+            extra:'last_item_id='+currentLast.toLocaleString('en-US'),
+          }));
+        }
+        if(batch>=admissionCommitEvery){
+          upsertMeta.run('admission_last_item_id',String(currentLast));
+          upsertMeta.run('updated_at',now());
+          workDb.exec('COMMIT');
+          transactionOpen=false;
+          workDb.exec('BEGIN IMMEDIATE');
+          transactionOpen=true;
+          batch=0;
+        }
+      }
+      upsertMeta.run('admission_last_item_id',String(currentLast));
+      upsertMeta.run('admission_complete',stopRequested?'0':'1');
+      upsertMeta.run('updated_at',now());
+      workDb.exec('COMMIT');
+      transactionOpen=false;
+    }catch(error){
+      if(transactionOpen)workDb.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  const byDecision=Object.fromEntries(
+    workDb.prepare('SELECT decision,COUNT(*) AS c FROM admission GROUP BY decision ORDER BY decision')
+      .all().map((row)=>[row.decision,Number(row.c)]),
+  );
+  const byReason=Object.fromEntries(
+    workDb.prepare([
+      "SELECT decision||':'||reason AS key,COUNT(*) AS c",
+      'FROM admission GROUP BY decision,reason ORDER BY decision,reason',
+    ].join(' ')).all().map((row)=>[row.key,Number(row.c)]),
+  );
+  const byShapeDecision={};
+  for(const row of workDb.prepare([
+    'SELECT shape,decision,COUNT(*) AS c FROM admission',
+    'GROUP BY shape,decision ORDER BY shape,decision',
+  ].join(' ')).all()){
+    byShapeDecision[row.shape]??={};
+    byShapeDecision[row.shape][row.decision]=Number(row.c);
+  }
+  const byScopeDecision={};
+  for(const row of workDb.prepare([
+    'SELECT sr.scope,a.decision,COUNT(DISTINCT sr.item_id) AS c',
+    'FROM source_ref sr JOIN admission a ON a.item_id=sr.item_id',
+    'GROUP BY sr.scope,a.decision ORDER BY sr.scope,a.decision',
+  ].join(' ')).all()){
+    byScopeDecision[row.scope]??={};
+    byScopeDecision[row.scope][row.decision]=Number(row.c);
+  }
+
+  const examples={};
+  const exampleQuery=workDb.prepare([
+    'SELECT a.decision,a.reason,a.shape,w.item_id,w.language,w.surface,w.token_count,w.source_ref_count,a.scopes_json',
+    'FROM admission a JOIN work_item w USING(item_id)',
+    'WHERE a.decision=? AND a.reason=?',
+    'ORDER BY w.item_id LIMIT 8',
+  ].join(' '));
+  for(const key of Object.keys(byReason)){
+    const split=key.indexOf(':');
+    const decision=key.slice(0,split);
+    const reason=key.slice(split+1);
+    if(decision==='admit')continue;
+    examples[key]=exampleQuery.all(decision,reason).map((row)=>({
+      item_id:Number(row.item_id),
+      language:row.language,
+      surface:row.surface,
+      shape:row.shape,
+      token_count:Number(row.token_count)||1,
+      source_ref_count:Number(row.source_ref_count)||0,
+      scopes:JSON.parse(row.scopes_json||'[]'),
+    }));
+  }
+
+  const report={
+    schema:'rhymelab-pronunciation-backfill-admission-report-v1',
+    policy:PRONUNCIATION_ADMISSION_POLICY,
+    work_database:workPath,
+    complete:workDb.prepare("SELECT value FROM meta WHERE key='admission_complete'").get()?.value==='1',
+    by_decision:byDecision,
+    by_reason:byReason,
+    by_shape_decision:byShapeDecision,
+    by_scope_decision:byScopeDecision,
+    examples,
+    semantics:{
+      admit:'Eligible for bulk eSpeak-NG processing.',
+      review:'Plausible but not admitted to unattended bulk generation.',
+      reject_noise:'Strong structural/source artifact; retained in workset but excluded from generation.',
+    },
+  };
+  report.semantic_fingerprint=hashJson(report);
+  await writeFile(admissionReportPath,JSON.stringify(report,null,2)+'\n','utf8');
+
+  const reviewHeader=['decision','reason','shape','item_id','language','surface','token_count','source_ref_count','scopes'];
+  const reviewRows=[];
+  for(const [key,rows] of Object.entries(examples)){
+    const [decision,...reasonParts]=key.split(':');
+    const reason=reasonParts.join(':');
+    for(const row of rows){
+      reviewRows.push([
+        decision,reason,row.shape,row.item_id,row.language,row.surface,row.token_count,row.source_ref_count,row.scopes.join(','),
+      ].map(tsvCell).join('\t'));
+    }
+  }
+  await writeFile(admissionReviewPath,[reviewHeader.join('\t'),...reviewRows].join('\n')+'\n','utf8');
+
+  console.log(JSON.stringify({
+    schema:report.schema,
+    policy:report.policy,
+    complete:report.complete,
+    by_decision:report.by_decision,
+    report:admissionReportPath,
+    review_sample:admissionReviewPath,
+    semantic_fingerprint:report.semantic_fingerprint,
+  },null,2));
+}
+
 function rowAnalysisFields(analysis){
   return {
     syllableCount:Number(analysis?.syllableCount||0)||null,
@@ -1098,16 +1305,33 @@ async function runEspeak(){
   if(workDb.prepare("SELECT value FROM meta WHERE key='collection_complete'").get()?.value!=='1'){
     throw new Error('Collection is incomplete. Resume --phase collect or run the default all-phase command first.');
   }
+  if(workDb.prepare("SELECT value FROM meta WHERE key='admission_complete'").get()?.value!=='1'){
+    throw new Error('Admission/noise gate is incomplete. Run --phase admit before eSpeak-NG.');
+  }
+  const admissionPolicy=workDb.prepare("SELECT value FROM meta WHERE key='admission_policy'").get()?.value||null;
+  if(admissionPolicy!==PRONUNCIATION_ADMISSION_POLICY){
+    throw new Error('Admission policy mismatch. Re-run --phase admit before eSpeak-NG.');
+  }
+
   const condition=retryErrors
-    ?"espeak_status IN ('pending','error')"
-    :"espeak_status='pending'";
-  const total=scalar(workDb,'SELECT COUNT(*) AS c FROM work_item WHERE '+condition);
+    ?"w.espeak_status IN ('pending','error')"
+    :"w.espeak_status='pending'";
+  const total=scalar(workDb,[
+    'SELECT COUNT(*) AS c FROM work_item w',
+    'JOIN admission a ON a.item_id=w.item_id',
+    "WHERE a.decision='admit' AND "+condition,
+  ].join(' '));
   if(!total){
-    console.log('[espeak] nothing pending.');
+    console.log('[espeak] nothing admitted/pending.');
     return;
   }
 
-  const first=workDb.prepare('SELECT surface,language FROM work_item WHERE '+condition+' ORDER BY item_id LIMIT 1').get();
+  const first=workDb.prepare([
+    'SELECT w.surface,w.language FROM work_item w',
+    'JOIN admission a ON a.item_id=w.item_id',
+    "WHERE a.decision='admit' AND "+condition,
+    'ORDER BY w.item_id LIMIT 1',
+  ].join(' ')).get();
   const preflight=inspectEspeakQueryPronunciation(first.surface,first.language,{command});
   if(preflight.status==='unavailable'){
     throw new Error(
@@ -1115,83 +1339,118 @@ async function runEspeak(){
       +'RHYMELAB_ESPEAK_COMMAND remains supported exactly like the earlier benchmark scripts.'
     );
   }
+  const resolvedCommand=preflight.engineCommand||command||null;
   console.log(
     '[espeak] engine='+(preflight.engineVersion||preflight.engine||'eSpeak-NG')
-    +' · command='+(preflight.engineCommand||command||'auto-detect')
-    +' · pending='+total.toLocaleString('en-US')
+    +' · command='+(resolvedCommand||'auto-detect')
+    +' · admitted_pending='+total.toLocaleString('en-US')
+    +' · workers='+espeakWorkers
   );
 
-  const batchQuery=workDb.prepare(
-    'SELECT item_id,language,surface,normalized FROM work_item WHERE '+condition+' ORDER BY item_id LIMIT ?'
-  );
+  const batchSize=Math.max(commitEvery,espeakWorkers*4);
+  const batchQuery=workDb.prepare([
+    'SELECT w.item_id,w.language,w.surface,w.normalized FROM work_item w',
+    'JOIN admission a ON a.item_id=w.item_id',
+    "WHERE a.decision='admit' AND "+condition,
+    'ORDER BY w.item_id LIMIT ?',
+  ].join(' '));
   let done=0,accepted=0,rejected=0,errors=0;
   const startedAt=Date.now();
 
   while(!stopRequested){
-    const rows=batchQuery.all(commitEvery);
+    const rows=batchQuery.all(batchSize);
     if(!rows.length) break;
+
+    const processed=await mapConcurrent(rows,espeakWorkers,async(row)=>{
+      const started=performance.now();
+      try{
+        const inspected=await inspectEspeakQueryPronunciationAsync(
+          row.surface,row.language,{command:resolvedCommand},
+        );
+        return {row,inspected,elapsed:performance.now()-started,error:null};
+      }catch(error){
+        return {row,inspected:null,elapsed:performance.now()-started,error};
+      }
+    });
+
     workDb.exec('BEGIN IMMEDIATE');
     try{
-      for(const row of rows){
-        if(stopRequested) break;
-        const started=performance.now();
-        let inspected;
+      for(const result of processed){
+        const row=result.row;
         try{
-          inspected=inspectEspeakQueryPronunciation(row.surface,row.language,{command});
-          if(inspected.status==='unavailable'){
-            throw new Error('espeak_process_unavailable');
-          }
-          const elapsed=performance.now()-started;
-          if(inspected.status==='accepted'){
+          if(result.error)throw result.error;
+          const inspected=result.inspected;
+          if(inspected?.status==='accepted'){
             const quality=classifyEspeakResolution(inspected);
             const a=rowAnalysisFields(inspected.analysis);
             updateEspeakAccepted.run(
               quality.qualityTier,quality.qualityReason,quality.method,
               inspected.ipa,inspected.rawIpa||null,a.syllableCount,a.primaryStress,a.stressPattern,
               a.exactTailKey,a.vowelKey,a.codaKey,inspected.engine||'espeak-ng',
-              inspected.engineVersion||null,now(),Number(row.item_id),
+              inspected.engineVersion||preflight.engineVersion||null,now(),Number(row.item_id),
             );
             insertAttempt.run(
-              Number(row.item_id),'espeak','accepted',quality.qualityReason,elapsed,
-              safeJson({normalization_changed:String(inspected.rawIpa||'')!==String(inspected.ipa||'')}),
+              Number(row.item_id),'espeak','accepted',quality.qualityReason,result.elapsed,
+              safeJson({
+                normalization_changed:String(inspected.rawIpa||'')!==String(inspected.ipa||''),
+                workers:espeakWorkers,
+              }),
               now(),
             );
             accepted+=1;
-          }else{
+          }else if(inspected?.status==='rejected'){
             const reason=inspected.analyzerError||'analyzer_rejected_espeak_ipa';
             updateEspeakRejected.run(
-              inspected.rawIpa||null,inspected.engine||'espeak-ng',inspected.engineVersion||null,
+              inspected.rawIpa||null,inspected.engine||'espeak-ng',
+              inspected.engineVersion||preflight.engineVersion||null,
               reason,now(),Number(row.item_id),
             );
             insertAttempt.run(
-              Number(row.item_id),'espeak','rejected',reason,elapsed,
-              safeJson({normalized_ipa:inspected.ipa||null,attempts:inspected.attempts||[]}),
+              Number(row.item_id),'espeak','rejected',reason,result.elapsed,
+              safeJson({normalized_ipa:inspected.ipa||null,attempts:inspected.attempts||[],workers:espeakWorkers}),
               now(),
             );
             rejected+=1;
+          }else{
+            const reason='espeak_process_unavailable';
+            updateEspeakError.run(reason,now(),Number(row.item_id));
+            insertAttempt.run(
+              Number(row.item_id),'espeak','error',reason,result.elapsed,
+              safeJson({attempts:inspected?.attempts||[],workers:espeakWorkers}),now(),
+            );
+            errors+=1;
           }
         }catch(error){
-          const elapsed=performance.now()-started;
           const message=String(error?.message||error);
-          if(message==='espeak_process_unavailable') throw error;
           updateEspeakError.run(message,now(),Number(row.item_id));
-          insertAttempt.run(Number(row.item_id),'espeak','error',message,elapsed,'{}',now());
+          insertAttempt.run(
+            Number(row.item_id),'espeak','error',message,result.elapsed,
+            safeJson({workers:espeakWorkers}),now(),
+          );
           errors+=1;
         }
         done+=1;
-        if(done%progressEvery===0){
-          console.log(progressLine({phase:'espeak',done,total,startedAt,accepted,rejected,errors}));
-        }
       }
       workDb.exec('COMMIT');
     }catch(error){
       workDb.exec('ROLLBACK');
       throw error;
     }
+
+    if(done%progressEvery===0||done===total||processed.length<batchSize){
+      console.log(progressLine({
+        phase:'espeak',done,total,startedAt,accepted,rejected,errors,
+        extra:'workers='+espeakWorkers,
+      }));
+    }
   }
   upsertMeta.run('espeak_last_run_at',now());
+  upsertMeta.run('espeak_workers_last_run',String(espeakWorkers));
   upsertMeta.run('updated_at',now());
-  console.log(progressLine({phase:'espeak',done,total,startedAt,accepted,rejected,errors,extra:stopRequested?'checkpointed':'complete'}));
+  console.log(progressLine({
+    phase:'espeak',done,total,startedAt,accepted,rejected,errors,
+    extra:(stopRequested?'checkpointed · ':'complete · ')+'workers='+espeakWorkers,
+  }));
 }
 
 const updateClientAccepted=workDb.prepare([
@@ -1389,11 +1648,15 @@ async function report(){
   );
   const report={
     schema:'rhymelab-pronunciation-backfill-report-v1',
-    status:summary.pending===0?'resolved_or_review_ready':'in_progress',
+    status:(workDb.prepare("SELECT value FROM meta WHERE key='admission_complete'").get()?.value==='1'&&summary.generator_pending===0)
+      ?'resolved_or_review_ready':'in_progress',
     policy:PRONUNCIATION_BACKFILL_POLICY,
     work_database:workPath,
     source_fingerprint:sourceFingerprint,
     source_snapshot:sourceSnapshot,
+    admission_policy:workDb.prepare("SELECT value FROM meta WHERE key='admission_policy'").get()?.value||null,
+    admission_complete:workDb.prepare("SELECT value FROM meta WHERE key='admission_complete'").get()?.value==='1',
+    admission_report:existsSync(admissionReportPath)?admissionReportPath:null,
     summary,
     scan_states:scanStates,
     attempt_counts:attempts,
@@ -1427,9 +1690,10 @@ async function report(){
 
 try{
   if(phase==='all'||phase==='collect') await collect();
+  if(!stopRequested&&(phase==='all'||phase==='admit')) await runAdmission();
   if(!stopRequested&&(phase==='all'||phase==='espeak')) await runEspeak();
   if(!stopRequested&&(phase==='all'||phase==='client')) await runClientResolver();
-  if(phase==='all'||phase==='collect'||phase==='espeak'||phase==='client'||phase==='report') await report();
+  if(phase==='all'||phase==='collect'||phase==='admit'||phase==='espeak'||phase==='client'||phase==='report') await report();
 }finally{
   workDb.exec('PRAGMA wal_checkpoint(TRUNCATE);');
   workDb.close();

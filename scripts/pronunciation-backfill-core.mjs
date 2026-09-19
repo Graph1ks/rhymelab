@@ -74,11 +74,23 @@ export function createPronunciationBackfillStorage(db){
     '  detail_json TEXT NOT NULL DEFAULT \'{}\',',
     '  created_at TEXT NOT NULL',
     ');',
+    'CREATE TABLE IF NOT EXISTS admission(',
+    '  item_id INTEGER PRIMARY KEY REFERENCES work_item(item_id) ON DELETE CASCADE,',
+    '  policy TEXT NOT NULL,',
+    '  decision TEXT NOT NULL CHECK(decision IN (\'admit\',\'review\',\'reject_noise\')),',
+    '  reason TEXT NOT NULL,',
+    '  shape TEXT NOT NULL,',
+    '  scopes_json TEXT NOT NULL,',
+    '  detail_json TEXT NOT NULL DEFAULT \'{}\',',
+    '  evaluated_at TEXT NOT NULL',
+    ');',
     'CREATE INDEX IF NOT EXISTS idx_backfill_work_espeak ON work_item(espeak_status,item_id);',
     'CREATE INDEX IF NOT EXISTS idx_backfill_work_client ON work_item(client_status,espeak_status,item_id);',
     'CREATE INDEX IF NOT EXISTS idx_backfill_work_final ON work_item(final_status,quality_tier,item_id);',
     'CREATE INDEX IF NOT EXISTS idx_backfill_source_item ON source_ref(item_id,scope);',
     'CREATE INDEX IF NOT EXISTS idx_backfill_attempt_item ON attempt(item_id,stage,attempt_id);',
+    'CREATE INDEX IF NOT EXISTS idx_backfill_admission_decision ON admission(decision,item_id);',
+    'CREATE INDEX IF NOT EXISTS idx_backfill_admission_reason ON admission(decision,reason,item_id);',
   ].join('\n'));
 }
 
@@ -181,9 +193,28 @@ export function backfillSummary(db){
       'ORDER BY scope',
     ].join(' ')).all().map((row)=>[row.scope,Number(row.c)]),
   );
+  const hasAdmission=Boolean(db.prepare("SELECT 1 AS ok FROM sqlite_schema WHERE type='table' AND name='admission'").get());
+  const admission=hasAdmission
+    ?Object.fromEntries(
+      db.prepare([
+        'SELECT decision,COUNT(*) AS c FROM admission',
+        'GROUP BY decision ORDER BY decision',
+      ].join(' ')).all().map((row)=>[row.decision,Number(row.c)]),
+    )
+    :{};
   return {
     unique_items:scalar('SELECT COUNT(*) AS c FROM work_item'),
     source_refs:scalar('SELECT COUNT(*) AS c FROM source_ref'),
+    admission,
+    generator_pending:hasAdmission
+      ?scalar("SELECT COUNT(*) AS c FROM work_item w JOIN admission a USING(item_id) WHERE a.decision='admit' AND w.final_status='pending'")
+      :scalar("SELECT COUNT(*) AS c FROM work_item WHERE final_status='pending'"),
+    held_for_review:hasAdmission
+      ?scalar("SELECT COUNT(*) AS c FROM admission WHERE decision='review'")
+      :0,
+    rejected_as_noise:hasAdmission
+      ?scalar("SELECT COUNT(*) AS c FROM admission WHERE decision='reject_noise'")
+      :0,
     espeak_accepted:scalar("SELECT COUNT(*) AS c FROM work_item WHERE espeak_status='accepted'"),
     espeak_rejected:scalar("SELECT COUNT(*) AS c FROM work_item WHERE espeak_status='rejected'"),
     client_accepted:scalar("SELECT COUNT(*) AS c FROM work_item WHERE client_status='accepted'"),
