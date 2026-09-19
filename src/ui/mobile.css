@@ -2,6 +2,7 @@
   .topbar-inner{display:flex!important;align-items:center;justify-content:space-between;gap:12px!important;padding:11px 16px!important}
   .primary-nav{justify-self:auto!important;margin-left:auto}
   .topbar-meta{display:none}
+  .topbar-actions{margin-left:auto}
   .shell{padding:18px 16px 64px!important}
   .search-mode-grid{grid-template-columns:1fr}
   .workspace{display:flex!important;flex-direction:column;gap:16px!important}
@@ -49,6 +50,8 @@
   select,.checkbox-line{min-height:46px}
   .result-row{grid-template-columns:minmax(0,1fr) auto!important;gap:10px!important;padding:13px 12px!important;min-height:64px}
   .result-row .type-col,.result-row .syllable-col,.result-row .usage-col{display:none!important}
+  .results-compact .result-row .type-col,.results-compact .result-row .syllable-col{display:block!important}
+  .results-compact .result-items{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:7px;padding:7px}
   .result-word strong{font-size:15px}
   .result-word .sub{font-size:10px}
   .score{font-size:12px;min-width:42px}
@@ -75,10 +78,16 @@
   .controls-grid{grid-template-columns:1fr!important}
   .filter-summary-hint{display:none}
   .toolbar-title{align-items:flex-start}
+  .view-switch{order:4;margin-left:0;width:100%;justify-content:stretch}
+  .view-option{flex:1;min-height:38px}
   .result-count{max-width:55%}
+  .ui-language-switch{padding:2px}
+  .ui-lang-option{min-height:34px;padding:0 7px}
   .word-heading{display:block}
   .layer-badges{flex-direction:row;align-items:center;margin-top:10px}
   .meta-grid,.analysis-summary,.analysis-grid{grid-template-columns:1fr!important}
   .result-title-line{align-items:flex-start}
   .kind-chip{font-size:8px}
+  .results-compact .result-items{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .results-compact .result-row{min-height:92px;padding:9px!important}
 }

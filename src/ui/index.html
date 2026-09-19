@@ -22,12 +22,18 @@
         <small>LOCAL</small>
       </a>
       <nav class="primary-nav" aria-label="RhymeLab workspace">
-        <a class="primary-nav-link active" href="/" aria-current="page">SEARCH</a>
-        <a class="primary-nav-link" href="/pad">RHYMEPAD</a>
+        <a class="primary-nav-link active" href="/" aria-current="page" data-i18n="navSearch">SEARCH</a>
+        <a class="primary-nav-link" href="/pad" data-i18n="navRhymePad">RHYMEPAD</a>
       </nav>
-      <div class="topbar-meta" aria-label="Local runtime">
-        <span class="runtime-dot" aria-hidden="true"></span>
-        <span>LOCAL RUNTIME</span>
+      <div class="topbar-actions">
+        <div class="ui-language-switch" role="group" aria-label="Interface language">
+          <button type="button" class="ui-lang-option" data-ui-lang="de" aria-label="Deutsch">DE</button>
+          <button type="button" class="ui-lang-option" data-ui-lang="en" aria-label="English">EN</button>
+        </div>
+        <div class="topbar-meta" aria-label="Local runtime">
+          <span class="runtime-dot" aria-hidden="true"></span>
+          <span data-i18n="localRuntime">LOCAL RUNTIME</span>
+        </div>
       </div>
     </div>
   </header>
@@ -94,6 +100,10 @@
             <span class="material-symbols-outlined" aria-hidden="true">tune</span>
             <strong data-i18n="browse">Browse results</strong>
             <span id="resultCount" class="result-count"></span>
+            <div class="view-switch" role="group" aria-label="Result layout">
+              <button type="button" class="view-option active" data-view="list" data-i18n="viewList">List</button>
+              <button type="button" class="view-option" data-view="compact" data-i18n="viewCompact">Compact</button>
+            </div>
           </div>
 
           <details class="filter-drawer" open>
@@ -119,9 +129,11 @@
             <label>
               <span data-i18n="syllables">Syllables</span>
               <select id="syllableFilter">
-                <option value="same" data-i18n-option="same">Same count</option>
-                <option value="near" data-i18n-option="plusMinus">±1 syllable</option>
                 <option value="all" data-i18n-option="all" selected>All</option>
+                <option value="same" data-i18n-option="same">Same count</option>
+                <option value="near1" data-i18n-option="plusMinus1">±1 syllable</option>
+                <option value="near2" data-i18n-option="plusMinus2">±2 syllables</option>
+                <option value="near3" data-i18n-option="plusMinus3">±3 syllables</option>
               </select>
             </label>
 
@@ -129,6 +141,7 @@
               <span data-i18n="sort">Sort</span>
               <select id="sortMode">
                 <option value="recommended" data-i18n-option="recommended">Recommended</option>
+                <option value="syllables" data-i18n-option="syllableDistance">Syllable distance</option>
                 <option value="common" data-i18n-option="mostCommon">Most common</option>
                 <option value="closest" data-i18n-option="closest">Closest rhyme</option>
                 <option value="alpha" data-i18n-option="alphabetical">A–Z</option>
