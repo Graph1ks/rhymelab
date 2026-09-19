@@ -1,6 +1,6 @@
 # Phase 12C — Entity Pronunciation Source Expansion v1
 
-Status: **implemented / owner full-data run pending**
+Status: **ACCEPTED / owner full-data evidence complete**
 
 This block expands Entity pronunciation coverage before any broad proper-name G2P is considered.
 
@@ -236,3 +236,24 @@ raw Kaikki proper-name IPA
 Only that residual population becomes the proper-name G2P problem.
 
 This keeps the next engineering step proportional to the actual remaining gap.
+
+
+## Accepted owner result
+
+```text
+status                         evidence_ready
+semantic fingerprint           fdabce67cc53ef7028402b7a92b6538a61663477a41adf81905c80218f0b949d
+source index fingerprint       eab125329a5a99897b1cf7508243ce5659e9cdd56cd59a9b32d144a83d8e74c9
+baseline ready                 459,728 / 1,415,550 = 32.48%
+expanded ready                 710,561 / 1,415,550 = 50.20%
+absolute gain                  250,833
+incremental direct ready        10,255
+improved composition ready     240,578
+preferred expanded ready       558,036 / 1,062,694 = 52.51%
+remaining unresolved           704,989
+preferred unresolved           504,658
+Moby used                      no
+generated G2P used             no
+```
+
+Decision: accept the source-expansion layer. Do not add another blocking Moby run. Move directly to the real proper-name G2P benchmark. Only the residual 704,989-name population is eligible for a later generated-pronunciation policy, and only after benchmark evidence.

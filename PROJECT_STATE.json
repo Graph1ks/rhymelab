@@ -1188,14 +1188,14 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_phase12c_entity_pronunciation_source_expansion",
-    "owner_run_npm_entity_pronunciation_expand_once",
-    "review_single_compact_source_expansion_report",
-    "prepare_proper_name_g2p_benchmark_only_for_remaining_unresolved_population",
-    "then_implement_source_backed_multilingual_entity_runtime_and_only_benchmarked_generated_fallbacks",
-    "keep_final_performance_optimization_deferred_until_entity_query_contract_is_stable"
+    "merge_phase12c_source_expansion_acceptance",
+    "owner_run_npm_entity_g2p_benchmark_prepare",
+    "benchmark_mfa_first_on_real_proper_name_control_set",
+    "benchmark_deepphonemizer_only_as_independent_comparison",
+    "keep_charsiu_research_only_until_license_provenance_is_clean",
+    "only_then_decide_generated_fallback_policy_for_remaining_704989_unresolved_names"
   ],
-  "next_milestone": "PHASE_12C_ENTITY_PRONUNCIATION_SOURCE_EXPANSION",
+  "next_milestone": "PHASE_12C_ENTITY_PROPER_NAME_G2P_BENCHMARK",
   "phase_12_english": {
     "status": "COMPLETE_ACCEPTED_FROZEN_PRODUCT_EN",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -2592,7 +2592,7 @@
     }
   },
   "phase_12_entity_lexicon": {
-    "status": "ACTIVE_PHASE_12C_ENTITY_PRONUNCIATION_SOURCE_EXPANSION",
+    "status": "ACTIVE_PHASE_12C_ENTITY_PROPER_NAME_G2P_BENCHMARK",
     "plan": "docs/ENTITY_LEXICON_PLAN.md",
     "database": "data/local/rhymelab-entities-v1.sqlite",
     "runtime_local_only": true,
@@ -2701,13 +2701,12 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "reuse_existing_raw_kaikki_proper_name_ipa",
-      "reuse_full_pinned_cmudict_direct_entity_lookup",
-      "improve_deterministic_entity_name_composition",
-      "optional_moby_raw_secondary_evidence",
-      "measure_remaining_unresolved_before_any_g2p",
-      "prepare_mfa_deepphonemizer_charsiu_benchmark_boundary",
-      "no_mass_g2p",
+      "source_expansion_accepted",
+      "prepare_real_source_backed_proper_name_control_set",
+      "benchmark_mfa_english_us_first",
+      "benchmark_deepphonemizer_as_independent_control",
+      "no_generated_runtime_promotion_before_benchmark",
+      "charsiu_research_only",
       "no_entity_population_retune"
     ],
     "staging_v1": {
@@ -3064,7 +3063,7 @@
       }
     },
     "pronunciation_runtime_v1": {
-      "status": "MULTILINGUAL_EVIDENCE_ACCEPTED_SOURCE_EXPANSION_ACTIVE",
+      "status": "SOURCE_EXPANSION_ACCEPTED_G2P_BENCHMARK_ACTIVE",
       "contract": "docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md",
       "entity_schema": "rhymelab-entity-catalog-v1",
       "catalog_command": "npm run entity:catalog:materialize",
@@ -3220,7 +3219,7 @@
         }
       },
       "source_expansion_v1": {
-        "status": "IMPLEMENTED_OWNER_RUN_PENDING",
+        "status": "ACCEPTED_OWNER_FULL_DATA",
         "contract": "docs/ENTITY_PRONUNCIATION_SOURCE_EXPANSION_V1.md",
         "registry": "sources/entity/entity-pronunciation-expansion-v1.json",
         "policy": "entity-pronunciation-source-expansion-v1",
@@ -3251,8 +3250,36 @@
           "independent_candidate": "deep_phonemizer_en_us",
           "multilingual_research_candidate": "charsiu_multilingual",
           "charsiu_production_allowed": false,
-          "benchmark_only_until_source_expansion_review": true
-        }
+          "benchmark_only_until_source_expansion_review": true,
+          "status": "ACTIVE_NEXT_GATE",
+          "benchmark_population_basis": "real preferred Entity names with direct source-backed pronunciation controls",
+          "residual_unresolved_population": 704989
+        },
+        "owner_run_pending": false,
+        "owner_result": {
+          "status": "evidence_ready",
+          "semantic_fingerprint": "fdabce67cc53ef7028402b7a92b6538a61663477a41adf81905c80218f0b949d",
+          "source_index_fingerprint": "eab125329a5a99897b1cf7508243ce5659e9cdd56cd59a9b32d144a83d8e74c9",
+          "english_names": 1415550,
+          "preferred_names": 1062694,
+          "baseline_ready": 459728,
+          "baseline_ready_pct": 32.48,
+          "expanded_ready": 710561,
+          "expanded_ready_pct": 50.2,
+          "absolute_ready_gain": 250833,
+          "baseline_preferred_ready": 382346,
+          "expanded_preferred_ready": 558036,
+          "expanded_preferred_ready_pct": 52.51,
+          "preferred_absolute_ready_gain": 175690,
+          "incremental_direct_ready": 10255,
+          "incremental_improved_composition_ready": 240578,
+          "unresolved_after_expansion": 704989,
+          "unresolved_after_expansion_pct": 49.8,
+          "preferred_unresolved_after_expansion": 504658,
+          "moby_used": false,
+          "generated_g2p_used": false
+        },
+        "decision": "accept_source_expansion_skip_optional_moby_as_blocking_gate_move_to_proper_name_g2p_benchmark"
       }
     },
     "deferred_checkpoint": "docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md",
@@ -3312,16 +3339,16 @@
       ]
     },
     "entity_resume": {
-      "status": "ACTIVE_SOURCE_EXPANSION_BEFORE_G2P",
+      "status": "ACTIVE_PROPER_NAME_G2P_BENCHMARK",
       "sequence": [
         "accepted_multilingual_evidence_complete",
-        "raw_kaikki_proper_name_ipa_plus_raw_cmudict_plus_improved_composition",
-        "measure_residual_unresolved_population",
+        "accepted_source_expansion_710561_ready_50_2pct",
         "prepare_real_entity_proper_name_g2p_control_set",
-        "benchmark_mfa_and_independent_candidate_only_on_residual_need",
+        "benchmark_mfa_english_us",
+        "benchmark_deepphonemizer_as_independent_candidate",
         "keep_charsiu_research_only_until_license_provenance_clean",
-        "implement_source_backed_multilingual_entity_runtime",
-        "add_only_benchmarked_generated_fallback_if_needed",
+        "decide_generated_fallback_policy_only_for_remaining_704989_unresolved_names",
+        "implement_source_backed_multilingual_entity_runtime_plus_accepted_generated_fallback_if_any",
         "calibrate_entity_phonetic_prominence_and_diversity_ranking",
         "integrated_de_en_entity_product_acceptance"
       ],
