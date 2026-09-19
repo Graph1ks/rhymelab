@@ -1,12 +1,12 @@
 # CURRENT BRANCH HANDOVER — Phase 12C runtime + AI staging
 
-For the current candidate branch `phase12c-entity-runtime-ai-staging`, read this focused handover **before the historical material below**:
+For the accepted Phase 12C state on current `main`, read this focused handover **before the historical material below**:
 
 ```text
 docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md
 ```
 
-Current status: the **source-backed Phase 12C owner full-data gate is accepted**. The full local run passed materialization, multilingual verification and Entity Writer acceptance with 710,500 EN runtime-ready names, 705,050 unresolved names, 3,552,500 EN rhyme anchors, preserved DE fingerprint, deterministic ranking/repeatability and no generated/LLM runtime promotion. EN runtime fingerprint: `3f2c520ce99868eda81991e6247c6c93bdf8c78f7805d7ceef2cc2ebd85bb6d8`. PR #112 is in repository-finalization; Entity Writer latency remains follow-up work because the owner sample is still hundreds of milliseconds p50 and >1s p95. AI pronunciation work is now explicitly **Top-100k targeted only**: future annotation covers runtime-unresolved English names attached to the 100,000 highest-priority retained Entities under accepted popularity ordering; the remaining long tail stays unresolved by default. Historical 704,989-row queue artifacts remain immutable evidence rather than the forward campaign. Benchmark-v3 context-gold review remains pending for the separate AI-evidence track only and does not block source-backed runtime acceptance. Never promote AI staging into runtime without a later explicit gate.
+Current status: the **source-backed Phase 12C owner full-data gate is accepted and merged to `main` via PR #112**. The full local run passed materialization, multilingual verification and Entity Writer acceptance with 710,500 EN runtime-ready names, 705,050 unresolved names, 3,552,500 EN rhyme anchors, preserved DE fingerprint, deterministic ranking/repeatability and no generated/LLM runtime promotion. EN runtime fingerprint: `3f2c520ce99868eda81991e6247c6c93bdf8c78f7805d7ceef2cc2ebd85bb6d8`. Entity Writer latency remains follow-up work because the owner sample is still hundreds of milliseconds p50 and >1s p95. AI pronunciation work is explicitly **Top-100k targeted only**: future annotation covers runtime-unresolved English names attached to the 100,000 highest-priority retained Entities under accepted popularity ordering; the remaining long tail stays unresolved by default. Historical 704,989-row queue artifacts remain immutable evidence rather than the forward campaign. Benchmark-v3 context-gold review remains pending for the separate AI-evidence track only. Never promote AI staging into runtime without a later explicit gate.
 
 Current acceptance documents:
 

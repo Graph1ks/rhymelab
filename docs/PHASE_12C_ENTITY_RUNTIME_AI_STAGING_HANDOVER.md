@@ -1,12 +1,14 @@
 # Phase 12C — Entity Runtime + AI Pronunciation Staging Handover
 
-Status: **SOURCE-BACKED OWNER FULL-DATA ACCEPTED — PR FINALIZATION**
+Status: **SOURCE-BACKED ACCEPTED / MERGED TO MAIN**
 
-Branch:
+Historical implementation branch:
 
 ```text
 phase12c-entity-runtime-ai-staging
 ```
+
+Accepted source-backed implementation was squash-merged to `main` via PR #112 at commit `e0ddbfac`.
 
 Base when this workstream started (Git SHA-1):
 
@@ -408,7 +410,7 @@ The earlier 710,561 figure remains source-resolution evidence, not the accepted 
 
 Measured Entity Writer latency is still follow-up work: the owner acceptance sample observed approximately 384–403 ms p50 and 1.15–1.22 s p95. Do not describe Phase 12C as having met the separate ~100 ms product latency target.
 
-Remaining source-backed repository work is PR finalization only: keep the final documentation head green, mark PR #112 ready, then squash-merge when authorized.
+Source-backed repository finalization is complete: PR #112 was squash-merged to `main`. No source-backed Phase 12C merge blocker remains.
 
 Benchmark-v3 context-gold review is still required before AI pronunciation evidence can be accepted, but it does not block the independent source-backed runtime merge. The tracked repository intentionally does not contain `data/local/entity-g2p-proper-name-benchmark-v2.json`; do not guess replacement gold from the surface string.
 
@@ -418,7 +420,7 @@ Post-merge AI policy: do not spend annotation effort on the full long tail. Buil
 
 A new thread should:
 
-1. switch context to branch `phase12c-entity-runtime-ai-staging`;
+1. start from current `main`; treat `phase12c-entity-runtime-ai-staging` as historical implementation context only;
 2. read this document;
 3. read current branch versions of:
    - `AGENTS.md`
@@ -437,7 +439,7 @@ A new thread should:
 
 ## Hard boundaries for the next thread
 
-- GitHub `main` remains authoritative for accepted project state; this branch is a candidate until merged.
+- GitHub `main` is authoritative for the accepted Phase 12C source-backed state; the old Phase 12C branch is historical.
 - Local bulk data and AI results stay gitignored.
 - Do not commit generated 700k annotation data.
 - Do not upload or expose `AI_ID_MAP_LOCAL_ONLY.tsv`.
