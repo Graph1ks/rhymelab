@@ -1,4 +1,4 @@
-export const ENGLISH_RANKING_EVIDENCE_POLICY='en-writer-ranking-evidence-v1-candidate';
+export const ENGLISH_RANKING_EVIDENCE_POLICY='en-writer-ranking-evidence-v2-candidate';
 
 export const ENGLISH_RHYME_TIER=Object.freeze({
   multisyllabic_perfect:0,
@@ -17,28 +17,36 @@ export const ENGLISH_QUALITY_CANDIDATES=Object.freeze([
     phonetic:1,
     syllable:0,
     commonness:0,
-    lexical_overlap:0,
+    unknown_usage_penalty:0,
     near_tie_band:0,
   }),
   Object.freeze({
-    id:'de_architecture_control',
-    phonetic:0.72,
-    syllable:0.16,
-    commonness:0.12,
-    lexical_overlap:0.16,
+    id:'guarded_commonness_06',
+    phonetic:0.80,
+    syllable:0.14,
+    commonness:0.06,
+    unknown_usage_penalty:0.015,
     near_tie_band:0.03,
   }),
   Object.freeze({
-    id:'conservative_commonness',
-    phonetic:0.78,
-    syllable:0.16,
-    commonness:0.06,
-    lexical_overlap:0.16,
+    id:'guarded_commonness_10',
+    phonetic:0.76,
+    syllable:0.14,
+    commonness:0.10,
+    unknown_usage_penalty:0.020,
+    near_tie_band:0.03,
+  }),
+  Object.freeze({
+    id:'guarded_commonness_14',
+    phonetic:0.72,
+    syllable:0.14,
+    commonness:0.14,
+    unknown_usage_penalty:0.025,
     near_tie_band:0.03,
   }),
 ]);
 
-export const ENGLISH_DIVERSITY_WEIGHTS=Object.freeze([0,0.10,0.18,0.26]);
+export const ENGLISH_DIVERSITY_WEIGHTS=Object.freeze([0,0.08,0.12,0.16,0.20]);
 
 function clamp01(value){
   return Math.max(0,Math.min(1,Number(value)||0));
@@ -53,15 +61,20 @@ export function parseJsonArray(value){
   }
 }
 
+export function hasUsageEvidence(zipf,rank){
+  return (zipf!==null&&zipf!==undefined&&Number.isFinite(Number(zipf)))
+    ||(rank!==null&&rank!==undefined&&Number.isFinite(Number(rank))&&Number(rank)>0);
+}
+
 export function commonnessUtility(zipf,rank){
   if(zipf!==null&&zipf!==undefined&&Number.isFinite(Number(zipf))){
-    // wordfreq Zipf values are treated only as bounded ordering evidence.
     return clamp01((Number(zipf)-1.5)/5);
   }
   if(rank!==null&&rank!==undefined&&Number.isFinite(Number(rank))&&Number(rank)>0){
     const normalized=1-(Math.log10(Number(rank)+9)-1)/5.5;
     return clamp01(normalized);
   }
+  // Unknown usage remains neutral-ish evidence, not a claim that the surface is rare.
   return 0.25;
 }
 
@@ -97,33 +110,80 @@ export function qualityEvidence(candidate,queryNormalized,config){
   const phonetic=clamp01(candidate?.score?.overall);
   const syllable=clamp01(candidate?.score?.syllable);
   const commonness=commonnessUtility(candidate.wordfreq_zipf,candidate.wordfreq_rank);
+  const usage_known=hasUsageEvidence(candidate.wordfreq_zipf,candidate.wordfreq_rank);
   const lexical_overlap=lexicalSimilarity(queryNormalized,candidate.normalized);
+  const usage_uncertainty_penalty=usage_known?0:Number(config.unknown_usage_penalty||0);
   const utility=
-    config.phonetic*phonetic
-    +config.syllable*syllable
-    +config.commonness*commonness
-    -config.lexical_overlap*lexical_overlap;
+    Number(config.phonetic||0)*phonetic
+    +Number(config.syllable||0)*syllable
+    +Number(config.commonness||0)*commonness
+    -usage_uncertainty_penalty;
   return {
     phonetic,
     syllable,
     commonness,
+    usage_known,
     lexical_overlap,
+    usage_uncertainty_penalty,
     utility:Number(utility.toFixed(8)),
   };
 }
 
-export function qualityComparator(config){
-  const band=Number(config.near_tie_band||0);
-  return (a,b)=>{
-    const tierDelta=Number(a.tier)-Number(b.tier);
-    if(tierDelta) return tierDelta;
-    const scoreDelta=Number(b.evidence.phonetic)-Number(a.evidence.phonetic);
-    if(Math.abs(scoreDelta)>band) return scoreDelta;
-    return Number(b.evidence.utility)-Number(a.evidence.utility)
-      ||Number(b.evidence.phonetic)-Number(a.evidence.phonetic)
-      ||Number(a.wordfreq_rank??Number.MAX_SAFE_INTEGER)-Number(b.wordfreq_rank??Number.MAX_SAFE_INTEGER)
-      ||String(a.normalized).localeCompare(String(b.normalized),'en');
-  };
+function stableTie(a,b){
+  return Number(b.evidence.utility)-Number(a.evidence.utility)
+    ||Number(b.evidence.phonetic)-Number(a.evidence.phonetic)
+    ||Number(b.evidence.usage_known)-Number(a.evidence.usage_known)
+    ||Number(a.wordfreq_rank??Number.MAX_SAFE_INTEGER)-Number(b.wordfreq_rank??Number.MAX_SAFE_INTEGER)
+    ||Number(a.pronunciation_id??Number.MAX_SAFE_INTEGER)-Number(b.pronunciation_id??Number.MAX_SAFE_INTEGER)
+    ||String(a.normalized).localeCompare(String(b.normalized),'en');
+}
+
+/**
+ * Rank by strict relation tier, then partition each tier into anchored phonetic
+ * bands. Product evidence may reorder only inside a band whose full score span
+ * is <= near_tie_band. This avoids the non-transitive pairwise comparator issue.
+ */
+export function rankQualityRows(rows,config){
+  const band=Math.max(0,Number(config.near_tie_band||0));
+  const sorted=[...rows].sort((a,b)=>
+    Number(a.tier)-Number(b.tier)
+    ||Number(b.evidence.phonetic)-Number(a.evidence.phonetic)
+    ||Number(a.pronunciation_id??Number.MAX_SAFE_INTEGER)-Number(b.pronunciation_id??Number.MAX_SAFE_INTEGER)
+    ||String(a.normalized).localeCompare(String(b.normalized),'en')
+  );
+  const ranked=[];
+  let index=0;
+  let bandId=0;
+  while(index<sorted.length){
+    const tier=sorted[index].tier;
+    const tierRows=[];
+    while(index<sorted.length&&sorted[index].tier===tier){
+      tierRows.push(sorted[index]);
+      index+=1;
+    }
+    let offset=0;
+    while(offset<tierRows.length){
+      const anchor=Number(tierRows[offset].evidence.phonetic);
+      const group=[];
+      while(
+        offset<tierRows.length
+        &&anchor-Number(tierRows[offset].evidence.phonetic)<=band+1e-12
+      ){
+        group.push(tierRows[offset]);
+        offset+=1;
+      }
+      group.sort(stableTie);
+      for(const row of group){
+        ranked.push({
+          ...row,
+          quality_band:bandId,
+          quality_band_anchor:Number(anchor.toFixed(8)),
+        });
+      }
+      bandId+=1;
+    }
+  }
+  return ranked;
 }
 
 function lemmaSet(row){
@@ -145,7 +205,7 @@ export function candidateRedundancy(a,b){
   return clamp01(Math.max(lexical,prefix*0.9));
 }
 
-export function diversifyRanked(rows,{weight=0.18,limit=20,nearTieBand=0.03}={}){
+export function diversifyRanked(rows,{weight=0.12,limit=20}={}){
   const remaining=[...rows];
   const selected=[];
   while(remaining.length&&selected.length<limit){
@@ -154,13 +214,15 @@ export function diversifyRanked(rows,{weight=0.18,limit=20,nearTieBand=0.03}={})
     let bestScore=-Infinity;
     for(let i=0;i<remaining.length;i+=1){
       const row=remaining[i];
-      if(row.tier!==base.tier) break;
-      if(base.evidence.phonetic-row.evidence.phonetic>nearTieBand) break;
+      if(row.tier!==base.tier||row.quality_band!==base.quality_band) break;
       const maxRedundancy=selected.length
         ? Math.max(...selected.map((picked)=>candidateRedundancy(row,picked)))
         : 0;
-      const diversifiedScore=row.evidence.utility-weight*maxRedundancy;
-      if(diversifiedScore>bestScore){
+      const diversifiedScore=row.evidence.utility-Number(weight||0)*maxRedundancy;
+      if(
+        diversifiedScore>bestScore
+        ||(diversifiedScore===bestScore&&stableTie(row,remaining[bestIndex])<0)
+      ){
         bestScore=diversifiedScore;
         bestIndex=i;
       }
@@ -172,7 +234,7 @@ export function diversifyRanked(rows,{weight=0.18,limit=20,nearTieBand=0.03}={})
     selected.push({
       ...picked,
       max_redundancy:Number(maxRedundancy.toFixed(6)),
-      diversified_score:Number((picked.evidence.utility-weight*maxRedundancy).toFixed(8)),
+      diversified_score:Number((picked.evidence.utility-Number(weight||0)*maxRedundancy).toFixed(8)),
     });
   }
   return selected;
@@ -191,7 +253,7 @@ export function pageMetrics(rows,limit=20){
     const row=page[i];
     if(normalized.has(row.normalized)) duplicates+=1;
     normalized.add(row.normalized);
-    if(row.wordfreq_rank==null) unranked+=1;
+    if(!row.evidence?.usage_known) unranked+=1;
     if(Number(row.evidence?.lexical_overlap||0)>=0.65) highOverlap+=1;
     const ls=lemmaSet(row);
     let repeat=false;
@@ -228,12 +290,23 @@ export function guardViolations(rows,{nearTieBand=0.03,limit=20}={}){
       const a=page[i],b=page[j];
       if(a.tier>b.tier){
         violations.push({above:a.normalized,below:b.normalized,reason:'worse_tier_above_better_tier'});
-      }else if(a.tier===b.tier&&b.evidence.phonetic-a.evidence.phonetic>nearTieBand){
+      }else if(
+        a.tier===b.tier
+        &&Number.isInteger(a.quality_band)
+        &&Number.isInteger(b.quality_band)
+        &&a.quality_band>b.quality_band
+      ){
+        violations.push({above:a.normalized,below:b.normalized,reason:'quality_band_order'});
+      }else if(
+        a.tier===b.tier
+        &&a.quality_band===b.quality_band
+        &&Math.abs(Number(a.evidence.phonetic)-Number(b.evidence.phonetic))>nearTieBand+1e-12
+      ){
         violations.push({
           above:a.normalized,
           below:b.normalized,
-          reason:'outside_phonetic_near_tie_band',
-          delta:Number((b.evidence.phonetic-a.evidence.phonetic).toFixed(6)),
+          reason:'quality_band_too_wide',
+          delta:Number(Math.abs(Number(a.evidence.phonetic)-Number(b.evidence.phonetic)).toFixed(6)),
         });
       }
     }
