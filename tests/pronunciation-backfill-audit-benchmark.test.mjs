@@ -112,6 +112,17 @@ test('source-aware admission keeps lexical words, holds ambiguous word-source su
   assert.equal(phrase.decision,'admit');
 });
 
+test('admission conservatively reviews work items that have no surviving source provenance',()=>{
+  const result=evaluatePronunciationAdmission({
+    surface:'Hawaiʻi',
+    tokenCount:1,
+    scopes:[],
+  });
+  assert.equal(result.decision,'review');
+  assert.equal(result.reason,'no_source_scope');
+  assert.deepEqual(result.scopes,[]);
+});
+
 test('admission is permissive across overlapping scopes when a pronunciation-independent product scope admits the item',()=>{
   const result=evaluatePronunciationAdmission({
     surface:'New York',

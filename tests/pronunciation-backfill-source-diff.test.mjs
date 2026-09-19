@@ -143,6 +143,12 @@ test('EN collection scans publish-eligible Wiktionary lexical candidates absent 
     writeFileSync(join(rawDir,rawName),gzipSync(Buffer.from([
       JSON.stringify({lang_code:'en',word:'knownword',pos:'noun',senses:[{glosses:['known']}],forms:[]}),
       JSON.stringify({lang_code:'en',word:'missingword',pos:'noun',senses:[{glosses:['missing']}],forms:[]}),
+      // lexical source normalization maps modifier-letter apostrophe to ASCII, while
+      // the runtime phonology normalizer preserves it. Both rows therefore share
+      // one source_key but would create two runtime-normalized items without the
+      // orphan guard.
+      JSON.stringify({lang_code:'en',word:'Hawaiʻi',pos:'proper_noun',senses:[{glosses:['name']}],forms:[]}),
+      JSON.stringify({lang_code:'en',word:"Hawai'i",pos:'proper_noun',senses:[{glosses:['name']}],forms:[]}),
       JSON.stringify({lang_code:'en',word:'lemma',pos:'verb',senses:[{glosses:['lemma']}],forms:[
         {form:'listedmissing',tags:['past']},
         {form:'romanized',tags:['romanization']}
@@ -173,15 +179,21 @@ test('EN collection scans publish-eligible Wiktionary lexical candidates absent 
     const workDb=new DatabaseSync(work,{readOnly:true});
     const items=workDb.prepare('SELECT language,normalized,surface FROM work_item ORDER BY normalized').all().map((row)=>({...row}));
     const state=workDb.prepare("SELECT status,source_refs FROM scan_state WHERE scope='en_wiktionary_lexical_source_minus_accepted'").get();
+    const orphanCount=Number(workDb.prepare([
+      'SELECT COUNT(*) AS c FROM work_item w',
+      'WHERE NOT EXISTS (SELECT 1 FROM source_ref sr WHERE sr.item_id=w.item_id)',
+    ].join(' ')).get()?.c||0);
     workDb.close();
 
     assert.deepEqual(items,[
+      {language:'en',normalized:'hawaiʻi',surface:'Hawaiʻi'},
       {language:'en',normalized:'lemma',surface:'lemma'},
       {language:'en',normalized:'listedmissing',surface:'listedmissing'},
       {language:'en',normalized:'missingword',surface:'missingword'},
     ]);
+    assert.equal(orphanCount,0);
     assert.equal(state.status,'complete');
-    assert.equal(Number(state.source_refs),3);
+    assert.equal(Number(state.source_refs),4);
   }finally{
     rmSync(root,{recursive:true,force:true});
   }

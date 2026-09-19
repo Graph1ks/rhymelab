@@ -207,6 +207,8 @@ data/local/pronunciation-backfill-v2-admission-review-sample.tsv
 
 The gate does not delete source rows or canonical data. Rejected/review rows remain in the workset with their provenance.
 
+Admission completeness is checked against the full `work_item` population, not only rows that still have a `source_ref`. Any legacy orphan work item is conservatively classified as `review:no_source_scope` and reported in the admission integrity block. New collection runs prevent such orphans from being created when a source-key uniqueness collision occurs. Re-running `npm run pronunciation:backfill:admit` repairs missing admission decisions in place; no source recollection is required.
+
 ## Generator chain
 
 The existing development adapter remains authoritative:
