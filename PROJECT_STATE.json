@@ -3683,7 +3683,8 @@
       "runtime_required": false,
       "network_required": false,
       "canonical_lexical_truth": false,
-      "license_boundary": "upstream_GPL_3_or_later_separate_host_executable_only"
+      "license_boundary": "upstream_GPL_3_or_later_separate_host_executable_only",
+      "adapter_normalization": "espeak-to-rhymelab-ipa-v2"
     },
     "deterministic_fallback": true,
     "generated_query_ephemeral": true,
@@ -3696,7 +3697,7 @@
       "sample_size": 1000,
       "selection_policy": "stratified-unresolved-local-db-v1",
       "owner_run_completed": false,
-      "owner_sample_fingerprint": null,
+      "owner_sample_fingerprint": "c51fad67e560787af92cc1f133ec355e8ffe2b6afd4c5fd546c2e27b26d434a5",
       "owner_espeak_report_fingerprint": null,
       "strata": {
         "phrase_de_unresolved_token": 200,
@@ -3713,14 +3714,25 @@
         "Dragonspawn",
         "Ironworm",
         "Baladur"
-      ]
+      ],
+      "owner_sample_completed": true,
+      "baseline_v1_report_completed": true,
+      "baseline_v1_report_fingerprint": "6dde5b586895bc22e7b606429d37eac99913e6ca37d997a5d7926d6fb0c07c3e",
+      "baseline_v1_status": "INVALIDATED_ADAPTER_NORMALIZATION",
+      "baseline_v1_cases": 1014,
+      "baseline_v1_predicted": 685,
+      "baseline_v1_failed": 329,
+      "baseline_v1_coverage_pct": 67.55,
+      "normalized_v2_rerun_completed": false,
+      "normalized_v2_report_fingerprint": null
     },
     "generated_staging": {
       "schema": "rhymelab-generated-pronunciation-staging-v1",
       "policy": "generated-pronunciation-opt-in-staging-v1",
       "consumer_policy": "opt_in_only",
       "canonical_runtime_promoted": false,
-      "generated_candidate_overlay_promoted": false
+      "generated_candidate_overlay_promoted": false,
+      "minimum_report_schema": "rhymelab-query-pronunciation-espeak-oov-report-v2"
     },
     "docs": [
       "docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md",

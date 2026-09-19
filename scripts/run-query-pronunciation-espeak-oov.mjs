@@ -3,9 +3,9 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { tryEspeakQueryPronunciation } from '../src/query-pronunciation-runtime.mjs';
+import { inspectEspeakQueryPronunciation } from '../src/query-pronunciation-runtime.mjs';
 
-export const ESPEAK_OOV_REPORT_SCHEMA='rhymelab-query-pronunciation-espeak-oov-report-v1';
+export const ESPEAK_OOV_REPORT_SCHEMA='rhymelab-query-pronunciation-espeak-oov-report-v2';
 
 const args=process.argv.slice(2);
 function argValue(flag,fallback=null){
@@ -13,8 +13,8 @@ function argValue(flag,fallback=null){
   return i>=0?(args[i+1]||fallback):fallback;
 }
 const samplePath=resolve(argValue('--sample','data/local/query-pronunciation-oov-sample-v1.json'));
-const outPath=resolve(argValue('--out','data/local/query-pronunciation-espeak-oov-report-v1.json'));
-const tsvPath=resolve(argValue('--tsv','data/local/query-pronunciation-espeak-oov-predictions-v1.tsv'));
+const outPath=resolve(argValue('--out','data/local/query-pronunciation-espeak-oov-report-v2.json'));
+const tsvPath=resolve(argValue('--tsv','data/local/query-pronunciation-espeak-oov-predictions-v2.tsv'));
 const command=argValue('--command',process.env.RHYMELAB_ESPEAK_COMMAND||null);
 
 await mkdir(dirname(outPath),{recursive:true});
@@ -58,30 +58,41 @@ let engineVersion=null;
 
 for(const row of cases){
   const started=performance.now();
-  const resolved=tryEspeakQueryPronunciation(row.surface,row.language,{command});
+  const inspected=inspectEspeakQueryPronunciation(row.surface,row.language,{command});
   const elapsedMs=performance.now()-started;
   latencies.push(elapsedMs);
 
-  if(!resolved){
+  engineCommand??=inspected.engineCommand||null;
+  engineVersion??=inspected.engineVersion||null;
+
+  if(inspected.status!=='accepted'){
     failures.push({
-      case_id:row.case_id,
-      surface:row.surface,
-      language:row.language,
-      reason:'espeak_prediction_unavailable_or_analyzer_rejected',
+      ...row,
+      status:inspected.status,
+      reason:inspected.status==='rejected'
+        ?'analyzer_rejected_espeak_ipa'
+        :'espeak_process_unavailable',
+      engine_command:inspected.engineCommand||null,
+      engine_version:inspected.engineVersion||null,
+      raw_ipa:inspected.rawIpa||null,
+      normalized_ipa:inspected.ipa||null,
+      analyzer_error:inspected.analyzerError||null,
+      attempts:inspected.attempts||[],
+      elapsed_ms:Number(elapsedMs.toFixed(3)),
     });
     continue;
   }
 
-  engineCommand??=resolved.engineCommand||null;
-  engineVersion??=resolved.engineVersion||null;
-  const analysis=resolved.analysis;
+  const analysis=inspected.analysis;
   predictions.push({
     ...row,
-    method:resolved.method,
-    engine:resolved.engine,
-    engine_command:resolved.engineCommand||null,
-    engine_version:resolved.engineVersion||null,
-    ipa:resolved.ipa,
+    method:inspected.method,
+    engine:inspected.engine,
+    engine_command:inspected.engineCommand||null,
+    engine_version:inspected.engineVersion||null,
+    raw_ipa:inspected.rawIpa||null,
+    ipa:inspected.ipa,
+    normalization_changed:(inspected.rawIpa||'')!==(inspected.ipa||''),
     syllable_count:Number(analysis.syllableCount||0),
     primary_stress:Number(analysis.primaryStressSyllable||0)||null,
     stress_pattern:analysis.stressPattern||null,
@@ -119,6 +130,12 @@ for(const entry of Object.values(byStratum)){
   entry.coverage_pct=pct(entry.predicted,entry.cases);
 }
 
+const byFailureReason={};
+for(const row of failures){
+  byFailureReason[row.reason]=(byFailureReason[row.reason]||0)+1;
+}
+const normalizationChanged=predictions.filter((row)=>row.normalization_changed).length;
+
 const evidence={
   schema:ESPEAK_OOV_REPORT_SCHEMA,
   status:failures.length?'partial':'complete',
@@ -140,13 +157,16 @@ const evidence={
   failed:failures.length,
   prediction_coverage_pct:pct(predictions.length,cases.length),
   analyzer_compatible_pct:pct(predictions.length,cases.length),
+  normalization_changed:normalizationChanged,
+  normalization_changed_pct:pct(normalizationChanged,predictions.length),
+  by_failure_reason:byFailureReason,
   latency_ms:{
     p50:percentile(sortedLatency,0.5),
     p95:percentile(sortedLatency,0.95),
     max:sortedLatency.length?Number(sortedLatency.at(-1).toFixed(3)):0,
   },
   by_stratum:byStratum,
-  failures:failures.slice(0,100),
+  failures,
   predictions,
   safeguards:{
     canonical_lexicon_mutated:false,
@@ -164,8 +184,8 @@ const report={...evidence,semantic_fingerprint:semanticFingerprint};
 await writeFile(outPath,JSON.stringify(report,null,2)+'\n','utf8');
 
 const header=[
-  'case_id','source_stratum','language','surface','normalized','ipa','syllable_count',
-  'primary_stress','stress_pattern','exact_tail_key','engine','engine_version','elapsed_ms',
+  'case_id','source_stratum','language','surface','normalized','raw_ipa','ipa','normalization_changed',
+  'syllable_count','primary_stress','stress_pattern','exact_tail_key','engine','engine_version','elapsed_ms',
 ];
 const lines=[
   header.join('\t'),
@@ -185,6 +205,9 @@ console.log(JSON.stringify({
   failed:report.failed,
   prediction_coverage_pct:report.prediction_coverage_pct,
   analyzer_compatible_pct:report.analyzer_compatible_pct,
+  normalization_changed:report.normalization_changed,
+  normalization_changed_pct:report.normalization_changed_pct,
+  by_failure_reason:report.by_failure_reason,
   latency_ms:report.latency_ms,
   by_stratum:report.by_stratum,
   semantic_fingerprint:semanticFingerprint,

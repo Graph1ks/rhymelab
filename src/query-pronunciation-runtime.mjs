@@ -32,16 +32,18 @@ function compactCache(){
   }
 }
 
-function normalizeEspeakIpa(value,language){
+export function normalizeEspeakIpa(value,language){
+  const code=normalizeLanguage(language);
   let ipa=String(value??'')
     .normalize('NFC')
+    .replace(/\p{Cf}/gu,'')
     .replace(/[\r\n]+/gu,' ')
     .replace(/[‖|]+/gu,' ')
     .replace(/_/gu,' ')
     .replace(/\s+/gu,' ')
     .trim();
 
-  if(language==='en'){
+  if(code==='en'){
     ipa=ipa
       .replaceAll('ɫ','l')
       .replaceAll('ɾ','t')
@@ -49,13 +51,22 @@ function normalizeEspeakIpa(value,language){
       .replaceAll('ᵊ','ə')
       .replaceAll('ɡ','g')
       .replaceAll('əː','ɜ')
-      .replaceAll('ɹ̩','ɚ');
+      .replaceAll('ɹ̩','ɚ')
+      .replaceAll('oː','oʊ')
+      .replaceAll('eː','eɪ')
+      .replaceAll('ɛː','ɛ')
+      .replaceAll('ɪː','i')
+      .replaceAll('ʊː','u');
   }else{
     ipa=ipa
       .replaceAll('ɡ','g')
       .replaceAll('ɾ','r')
       .replaceAll('ɫ','l')
-      .replaceAll('ᵊ','ə');
+      .replaceAll('ᵊ','ə')
+      .replaceAll('ɑː','aː')
+      .replaceAll('ɒː','aː')
+      .replaceAll('ɜː','ɐ')
+      .replaceAll('ɜ','ɐ');
   }
 
   return ipa;
@@ -98,7 +109,7 @@ function analyzeIpa(ipa,language){
   return {profile,analysis};
 }
 
-export function tryEspeakQueryPronunciation(
+export function inspectEspeakQueryPronunciation(
   surface,
   language,
   {
@@ -109,33 +120,97 @@ export function tryEspeakQueryPronunciation(
   const code=normalizeLanguage(language);
   const voice=code==='de'?'de':'en-us';
   const autoDiscovery=runner==null&&!command&&!process.env.RHYMELAB_ESPEAK_COMMAND;
-  if(autoDiscovery&&autoEspeakCommandState===null) return null;
+  if(autoDiscovery&&autoEspeakCommandState===null){
+    return {
+      status:'unavailable',
+      language:code,
+      surface:String(surface),
+      attempts:[],
+    };
+  }
   const candidates=autoDiscovery&&typeof autoEspeakCommandState==='string'
     ?[autoEspeakCommandState]
     :espeakCommands(command);
+  const attempts=[];
 
   for(const candidate of candidates){
     const result=runCommand(candidate,['-q','--ipa=3','-v',voice,String(surface)],runner);
-    if(result?.error||result?.status!==0) continue;
-    const ipa=normalizeEspeakIpa(result.stdout,code);
-    if(!ipa) continue;
+    if(result?.error||result?.status!==0){
+      attempts.push({
+        command:candidate,
+        processStatus:result?.status??null,
+        processError:result?.error?String(result.error.message||result.error):null,
+        stderr:String(result?.stderr||'').trim()||null,
+      });
+      continue;
+    }
+
+    if(autoDiscovery) autoEspeakCommandState=candidate;
+    const rawIpa=String(result.stdout??'').normalize('NFC').trim();
+    const ipa=normalizeEspeakIpa(rawIpa,code);
+    if(!ipa){
+      return {
+        status:'rejected',
+        language:code,
+        surface:String(surface),
+        engine:'espeak-ng',
+        engineCommand:candidate,
+        engineVersion:engineVersion(candidate,runner),
+        rawIpa,
+        ipa,
+        analyzerError:'empty_normalized_ipa',
+        attempts,
+      };
+    }
+
     try{
       const {analysis}=analyzeIpa(ipa,code);
-      if(autoDiscovery) autoEspeakCommandState=candidate;
       return {
+        status:'accepted',
         method:'espeak_ng',
         engine:'espeak-ng',
         engineCommand:candidate,
         engineVersion:engineVersion(candidate,runner),
+        language:code,
+        surface:String(surface),
+        rawIpa,
         ipa,
         analysis,
+        attempts,
       };
-    }catch{
-      continue;
+    }catch(error){
+      return {
+        status:'rejected',
+        language:code,
+        surface:String(surface),
+        engine:'espeak-ng',
+        engineCommand:candidate,
+        engineVersion:engineVersion(candidate,runner),
+        rawIpa,
+        ipa,
+        analyzerError:String(error?.message||error),
+        attempts,
+      };
     }
   }
+
   if(autoDiscovery) autoEspeakCommandState=null;
-  return null;
+  return {
+    status:'unavailable',
+    language:code,
+    surface:String(surface),
+    attempts,
+  };
+}
+
+export function tryEspeakQueryPronunciation(
+  surface,
+  language,
+  options={},
+){
+  const inspected=inspectEspeakQueryPronunciation(surface,language,options);
+  if(inspected.status!=='accepted') return null;
+  return inspected;
 }
 
 const DE_MULTI=Object.freeze([

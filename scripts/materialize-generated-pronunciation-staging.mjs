@@ -13,7 +13,7 @@ function argValue(flag,fallback=null){
   const i=args.indexOf(flag);
   return i>=0?(args[i+1]||fallback):fallback;
 }
-const reportPath=resolve(argValue('--report','data/local/query-pronunciation-espeak-oov-report-v1.json'));
+const reportPath=resolve(argValue('--report','data/local/query-pronunciation-espeak-oov-report-v2.json'));
 const outPath=resolve(argValue('--out','data/local/rhymelab-generated-pronunciations-v1.sqlite'));
 const replace=args.includes('--replace');
 
@@ -23,8 +23,8 @@ if(existsSync(outPath)){
 }
 
 const report=JSON.parse(await readFile(reportPath,'utf8'));
-if(report.schema!=='rhymelab-query-pronunciation-espeak-oov-report-v1'){
-  throw new Error(`Unexpected report schema: ${report.schema||'missing'}`);
+if(report.schema!=='rhymelab-query-pronunciation-espeak-oov-report-v2'){
+  throw new Error(`Unexpected report schema: ${report.schema||'missing'}; v2 evidence required.`);
 }
 
 const db=new DatabaseSync(outPath);
