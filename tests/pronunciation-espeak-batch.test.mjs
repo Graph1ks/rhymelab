@@ -181,3 +181,61 @@ test('plain batch cardinality mismatch retries the whole chunk with framing',asy
   assert.ok(result.every((row)=>row.mode==='framed_batch_after_cardinality_mismatch'));
   assert.ok(result.every((row)=>row.inspected?.status==='accepted'));
 });
+
+
+test('batch mapper offloads row analysis through supplied analyzer pool',async()=>{
+  const counter={count:0};
+  const analyzerCalls=[];
+  const analyzerPool={
+    async analyze(payload){
+      analyzerCalls.push(payload);
+      return {
+        inspection:{
+          status:'accepted',
+          method:'espeak_ng',
+          engine:'espeak-ng',
+          engineCommand:payload.engineCommand,
+          engineVersion:payload.engineVersion,
+          language:payload.language,
+          surface:payload.surface,
+          rawIpa:payload.rawIpa,
+          ipa:payload.rawIpa,
+          analysis:{
+            syllableCount:2,
+            primaryStressSyllable:0,
+            stressPattern:'10',
+            exactTailKey:'a',
+            vowelKey:'a',
+            codaKey:'',
+          },
+          attempts:[],
+        },
+        analyzer_elapsed_ms:1.25,
+        analyzer_queue_ms:.5,
+        analyzer_roundtrip_ms:2,
+        worker_index:2,
+      };
+    },
+  };
+  const rows=Array.from({length:8},(_,index)=>({
+    item_id:index+1,
+    language:'de',
+    surface:'Hallo'+index,
+  }));
+  const result=await mapEspeakBatchWorkers(rows,'de',{
+    command:'mock-espeak',
+    engineVersion:'mock',
+    workers:4,
+    batchSize:4,
+    spawnProcess:fakeBatchSpawn(counter),
+    boundaryRawIpa:'boundary',
+    analyzerPool,
+  });
+
+  assert.equal(analyzerCalls.length,8);
+  assert.equal(result.length,8);
+  assert.ok(result.every((row)=>row.analyzer_mode==='worker_thread'));
+  assert.ok(result.every((row)=>row.analyzer_worker===2));
+  assert.ok(result.every((row)=>row.analyzer_elapsed_ms===1.25));
+  assert.ok(result.every((row)=>row.inspected?.status==='accepted'));
+});
