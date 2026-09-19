@@ -18,7 +18,7 @@ import {
   diversifyRanked,
   guardViolations,
   pageMetrics,
-  rankQualityRows,
+  qualityComparator,
   qualityEvidence,
   relationTier,
 } from './en-writer-ranking-evidence-core.mjs';
@@ -213,10 +213,10 @@ try{
 
     const configs={};
     for(const config of ENGLISH_QUALITY_CANDIDATES){
-      const rows=rankQualityRows(raw.map((row)=>({
+      const rows=raw.map((row)=>({
         ...row,
         evidence:qualityEvidence(row,queryRow.normalized,config),
-      })),config);
+      })).sort(qualityComparator(config));
 
       const qualityMetrics=pageMetrics(rows,20);
       const violations=guardViolations(rows,{nearTieBand:config.near_tie_band,limit:20});
