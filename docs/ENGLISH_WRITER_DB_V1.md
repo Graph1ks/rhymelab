@@ -1,6 +1,6 @@
 # English Writer DB v1 — Phase 12B5
 
-Status: **v4 source accepted / owner DB repeatability gate pending**
+Status: **v4 DB materialization repeatability accepted / multisyllabic retrieval verification patch pending**
 
 ## Purpose
 
@@ -111,7 +111,7 @@ The DB verifier checks:
 - foreign keys;
 - query plans using the intended indexes;
 - indexed-vs-full-scan retrieval equivalence over deterministic sample keys;
-- explicit multi-result indexed-vs-full-scan equivalence for exact, vowel, family+coda and coda channels;
+- explicit multi-result indexed-vs-full-scan equivalence for exact, multisyllabic, vowel, family+coda and coda channels;
 - deterministic semantic fingerprint over all stored form/pronunciation rows.
 
 The multi-result gate samples only retrieval keys with more than one default-profile pronunciation row and fails if indexed and full-scan result ID sequences differ. This closes the earlier verifier gap where deterministic sample keys were not guaranteed to exercise result sets larger than one row.
@@ -159,6 +159,7 @@ Reports:
 data/local/en-publish-repeatability-v1-report.json
 data/local/en-writer-db-v1-report.json
 data/local/en-writer-db-repeatability-v1-report.json
+data/local/en-writer-db-verification-v1-report.json
 ```
 
 ## Explicit non-goals
@@ -175,3 +176,45 @@ data/local/en-writer-db-repeatability-v1-report.json
 - resume Entity/P898 work.
 
 Product/runtime promotion still requires Phase 12B6 benchmark + acceptance.
+
+## Owner v4 materialization result — REPEATABLE
+
+The owner v4 DB repeatability run completed successfully:
+
+```text
+source publish fingerprint
+b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+
+DB semantic fingerprint
+beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37
+
+forms                            224,478
+default eligible                 123,533
+pronunciations                   375,321
+analyzed pronunciations          339,987
+unresolved pronunciations         35,334
+default-profile pronunciations   173,413
+SQLite                            181.87 MiB
+database bytes                    190,701,568
+```
+
+Both DB builds reproduced the same semantic fingerprint, counts and database byte size. The materialization itself is therefore accepted as deterministic.
+
+During review, one verifier-coverage gap was found: `idx_en_pron_multi` existed, but the query-plan sampler only looked at the first exact-key row. If that row had no `multisyllable_key`, the reported multi plan was empty, and the verifier did not include a separate multisyllabic equivalence channel.
+
+The fix is source-only and requires no DB rebuild:
+
+- select a dedicated non-null `multisyllable_key` plan sample;
+- require `idx_en_pron_multi`;
+- run deterministic indexed-vs-full-scan equivalence for multisyllabic keys;
+- run explicit multi-result equivalence for multisyllabic keys;
+- persist all verifier evidence to `data/local/en-writer-db-verification-v1-report.json`.
+
+Next owner command after the fix is merged:
+
+```powershell
+git pull
+npm run en:db:verify
+```
+
+This is a read-only verification pass against the already materialized v4 DB.
