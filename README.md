@@ -1,6 +1,6 @@
 # RhymeLab
 
-German-first phonetic rhyme engine for songwriting and rap-writing tools.
+Local-first phonetic rhyme engine and songwriting workspace for German and English.
 
 RhymeLab is a **local-only** Node.js + SQLite project. Core search is deterministic and does not require LLM/ML inference, hosted ranking, telemetry, uploads, or a runtime network connection.
 
@@ -78,16 +78,16 @@ RHYMELAB_PORT        port, default 3030
 Repository state is authoritative. In a fresh development thread read:
 
 1. `AGENTS.md`
-2. `docs/HANDOVER.md`
-3. `STATUS.md`
-4. `PROJECT_STATE.json`
-5. `ROADMAP.md`
-6. `DATA_SOURCES.md`
-7. `docs/WRITER_SEARCH_ACCEPTANCE.md`
-8. `docs/PHRASE_MOSAIC_PLAN.md`
-9. `docs/PHRASE_PRONUNCIATION_V1.md`
-10. `docs/BENCHMARK.md`
-11. `docs/API.md`
+2. `PROJECT.md`
+3. `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`
+4. `docs/HANDOVER.md`
+5. `STATUS.md`
+6. `PROJECT_STATE.json`
+7. `ROADMAP.md`
+8. `DATA_SOURCES.md`
+9. the acceptance/domain documents relevant to the subsystem being changed
+
+`PROJECT.md` holds durable project intent, repository mode, architecture boundaries, cost/licensing/contribution policy, and QA expectations. `STATUS.md` plus the handover documents hold current continuation state. `CHANGELOG.md` is the curated meaningful history from 2026-09-19 onward.
 
 ## Tests and public-readiness
 
@@ -120,34 +120,29 @@ repeatability mismatches                  0
 
 Human Writer NDCG@10/20 remains `pending_reference` by explicit project decision until the broader German Writer surface, including phrase/mosaic/phraseology, is mature and independent human reviewers are available.
 
-## Current roadmap
+## Current project state
 
-Phase 11 is German phrase / mosaic / phraseology.
+The major accepted baselines are now:
 
-The full Phase 11B1 phrase catalog has been built locally: 98,504 phrases / 97,400 modern-eligible, with Leipzig commonness evidence and the frozen base catalog fingerprint `f98692ac0763d711a1c99627d2ce1ca3727babf299cb5a438f45f28a7be1ce6d`.
+- **Phase 11 German Phrase/Mosaic:** complete, accepted, and frozen.
+- **Phase 12B English single-word Writer:** accepted and frozen; English has its own analyzer/scorer/profile and is not routed through German phonology.
+- **Phase 12C source-backed multilingual Entity runtime:** accepted on `main`; the accepted DE Entity fingerprint is preserved and the accepted EN runtime contains source-backed rows only.
+- **AI Entity pronunciation staging:** isolated evidence only. It is not canonical runtime truth and is not promoted automatically.
 
-Phase 11B2 diagnostics and the Phase 11B3 Phrase Explorer are implemented.
+Current follow-up work is intentionally narrower:
 
-Phase 11C1 deterministic phrase pronunciation is now implemented. It resolves phrase tokens against the accepted Writer-v5 pronunciation inventory, builds preferred citation IPA with explicit word-boundary coordinates, and never guesses unknown tokens.
+1. improve Entity Writer latency without changing accepted semantics;
+2. continue only the targeted Top-100k unresolved-Entity pronunciation evidence campaign, not the full unresolved long tail;
+3. refine the product/UI without silently changing frozen retrieval, ranking, phonology, or diversity behavior.
 
-Local owner gate:
+Authoritative current-state documents:
 
-```powershell
-npm run phrase:pronunciation
-npm run dev
-```
-
-Then open:
-
-```text
-http://127.0.0.1:3030/phrases
-```
-
-The generated report is `data/local/phrase-pronunciation-v1-report.json`. Phase 11D mosaic retrieval starts only after pronunciation coverage and deterministic-repeatability are reviewed.
-
-See `docs/PHRASE_MOSAIC_PLAN.md`, `docs/PHRASE_CATALOG_V1.md`, and `docs/PHRASE_PRONUNCIATION_V1.md`.
-
-English remains deferred until the German path is stable enough to freeze.
+- `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`
+- `docs/PHASE_12C_ACCEPTANCE.md`
+- `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md`
+- `docs/PHASE_11_ACCEPTANCE.md`
+- `docs/WRITER_SEARCH_ACCEPTANCE.md`
+- `docs/ENGLISH_WRITER_SOURCE_PLAN.md`
 
 ## Data and provenance
 
@@ -182,4 +177,8 @@ See:
 
 ## Contributing
 
-See `CONTRIBUTING.md` and `CLA.md`. Never commit credentials, personal data, downloaded raw third-party corpora, generated local databases, benchmark review/reference files, or generated reports.
+RhymeLab is a public **owner-controlled / solo-dev** project. Issues may be used for bug reports, suggestions, and feedback, but unsolicited external pull requests are not accepted.
+
+Explicitly authorized external code/documentation contributions remain subject to `CONTRIBUTING.md` and `CLA.md`.
+
+Never commit credentials, personal data, downloaded raw third-party corpora, generated local databases, benchmark review/reference files, or generated reports.
