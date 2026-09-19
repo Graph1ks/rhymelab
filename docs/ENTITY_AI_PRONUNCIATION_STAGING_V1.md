@@ -4,7 +4,9 @@ Status: **EVIDENCE STAGING ONLY / NOT RUNTIME TRUTH**
 
 ## Purpose
 
-This contract governs external LLM pronunciation evidence for the 704,989 English Entity names that remain unresolved after accepted source-backed expansion. It is intentionally separate from the source-backed Entity runtime.
+This contract governs external LLM pronunciation evidence for unresolved English Entity names. It is intentionally separate from the source-backed Entity runtime.
+
+The original staging tooling can represent the historical 704,989-row source-unresolved population, but the accepted forward collection policy is narrower: only unresolved English names attached to the **top 100,000 retained Entities by the accepted Entity popularity ordering** are in scope for the next AI campaign. The exact targeted row count must be measured from the owner-local database before export. The remaining long tail stays unresolved by default.
 
 AI evidence may be collected, imported, analyzed and benchmarked locally. It must not become an accepted `entity_pronunciation` runtime row without a separate explicit promotion decision.
 
@@ -37,6 +39,8 @@ data/local/entity-ai-pronunciation-queue-v1/
 ```
 
 Input batch columns are exactly `id`, `name`, `ctx`, `cat`. Temporary AI IDs are sequential and separate from RhymeLab IDs.
+
+The existing full unresolved queue format is retained for reproducibility and importer compatibility, but it is not the approved next campaign scope. A future targeted Top-100k export must use a new manifest/export identity and must not rewrite, renumber or reinterpret already-created historical batch IDs.
 
 ## Result artifact contract
 
