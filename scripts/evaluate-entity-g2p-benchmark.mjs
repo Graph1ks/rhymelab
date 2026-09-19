@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { analyzeEnglishPronunciation } from './english-phonology.mjs';
 import { scoreEnglishRhymeAnalyses } from './english-rhyme-features.mjs';
+import { buildG2pScoreCalibration } from './g2p-confidence-calibration.mjs';
 
 const args=process.argv.slice(2);
 function argValue(flag,fallback=null){
@@ -38,12 +39,25 @@ const lines=(await readFile(resolve(predictionPath),'utf8'))
   .split(/\r?\n/u)
   .filter(Boolean);
 const predictions=new Map();
+const header=lines.length?lines[0].split('\t'):[];
+const hasScore=header.includes('g2p_score');
 for(const line of lines){
   if(line.startsWith('case_id\t')) continue;
-  const [caseId,notation,...rest]=line.split('\t');
-  const pronunciation=rest.join('\t').trim();
+  const parts=line.split('\t');
+  const caseId=String(parts[0]||'').trim();
+  const notation=String(parts[1]||'').trim();
+  let g2pScore=null;
+  let pronunciation='';
+  if(hasScore){
+    const rawScore=String(parts[2]||'').trim();
+    const score=Number(rawScore);
+    g2pScore=Number.isFinite(score)?score:null;
+    pronunciation=parts.slice(3).join('\t').trim();
+  }else{
+    pronunciation=parts.slice(2).join('\t').trim();
+  }
   if(!caseId||!notation||!pronunciation) continue;
-  predictions.set(caseId,{notation,pronunciation});
+  predictions.set(caseId,{notation,pronunciation,g2p_score:g2pScore});
 }
 
 function analyze(value,notation){
@@ -67,6 +81,7 @@ let stress=0;
 let primaryStress=0;
 let scoreSum=0;
 const failures=[];
+const scoredOutcomes=[];
 
 for(const testCase of benchmark.cases||[]){
   const prediction=predictions.get(testCase.case_id);
@@ -129,6 +144,19 @@ for(const testCase of benchmark.cases||[]){
   if(best.stress) stress+=1;
   if(best.primaryStress) primaryStress+=1;
   scoreSum+=Number(best.score.overall||0);
+  if(Number.isFinite(Number(prediction.g2p_score))){
+    scoredOutcomes.push({
+      case_id:testCase.case_id,
+      surface:testCase.surface,
+      g2p_score:Number(prediction.g2p_score),
+      exact_phones:best.exactPhones,
+      exact_tail:best.exactTail,
+      syllable_match:best.syllable,
+      stress_match:best.stress,
+      primary_stress_match:best.primaryStress,
+      rhyme_score:Number(best.score.overall||0),
+    });
+  }
 
   if(
     failures.length<30
@@ -183,6 +211,7 @@ const evidence={
       :0,
   },
   failure_sample:failures,
+  confidence_calibration:buildG2pScoreCalibration(scoredOutcomes),
   decision_boundary:{
     runtime_promoted:false,
     generated_pronunciations_persisted:false,
