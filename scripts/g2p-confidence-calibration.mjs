@@ -21,7 +21,11 @@ export function buildG2pScoreCalibration(
   }={},
 ){
   const scored=outcomes
-    .filter((row)=>Number.isFinite(Number(row.g2p_score)))
+    .filter((row)=>
+      row.g2p_score!==null
+      &&row.g2p_score!==''
+      &&Number.isFinite(Number(row.g2p_score))
+    )
     .map((row)=>({...row,g2p_score:Number(row.g2p_score)}))
     .sort((a,b)=>a.g2p_score-b.g2p_score||String(a.case_id).localeCompare(String(b.case_id),'en'));
 
