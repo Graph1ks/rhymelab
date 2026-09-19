@@ -54,11 +54,11 @@ export function parseJsonArray(value){
 }
 
 export function commonnessUtility(zipf,rank){
-  if(Number.isFinite(Number(zipf))){
+  if(zipf!==null&&zipf!==undefined&&Number.isFinite(Number(zipf))){
     // wordfreq Zipf values are treated only as bounded ordering evidence.
     return clamp01((Number(zipf)-1.5)/5);
   }
-  if(Number.isFinite(Number(rank))&&Number(rank)>0){
+  if(rank!==null&&rank!==undefined&&Number.isFinite(Number(rank))&&Number(rank)>0){
     const normalized=1-(Math.log10(Number(rank)+9)-1)/5.5;
     return clamp01(normalized);
   }
