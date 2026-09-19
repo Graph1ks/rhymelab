@@ -387,7 +387,7 @@ npm run pronunciation:backfill:espeak -- --workers 16
 After eSpeak completes, run the client fallback only for analyzer-rejected admitted rows:
 
 ```powershell
-npm run pronunciation:backfill -- --phase client
+npm run pronunciation:backfill:client
 ```
 
 The convenience full-chain command still exists and defaults to `min(16, availableParallelism())` eSpeak workers. `--workers` overrides that local default explicitly:
