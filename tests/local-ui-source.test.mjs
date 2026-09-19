@@ -127,8 +127,9 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /\.basis-option/);
   assert.match(css, /\.result-language-option/);
   assert.match(css, /\.scope-option/);
-  assert.match(css, /\.basis-option\.active,\.result-language-option\.active,\.scope-option\.active/);
-  assert.match(css, /background:var\(--accent\);color:#fff/);
+  assert.match(css, /\.result-language-option\.active/);
+  assert.match(css, /background:var\(--surface-strong\)/);
+  assert.doesNotMatch(css, /\.basis-option\.active,\.result-language-option\.active,\.scope-option\.active/);
   assert.doesNotMatch(css, /inset 0 -2px 0 #b58a2b/);
   assert.match(css, /appearance:none/);
   assert.match(css, /\*::-webkit-scrollbar/);
