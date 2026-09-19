@@ -177,3 +177,13 @@ select option,select optgroup{background:#fff;color:var(--ink)}
   .topbar-actions{gap:6px;flex-wrap:wrap;justify-content:flex-end}
 }
 
+.ui-runtime-failure{
+  margin:0 0 16px;
+  padding:13px 15px;
+  border:1px solid #d9a79a;
+  border-radius:12px;
+  background:#faeee9;
+  color:#7d3020;
+  font-size:13px;
+  line-height:1.45;
+}
