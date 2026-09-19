@@ -132,6 +132,9 @@
     "query:oov:sample": "node --no-warnings scripts/sample-query-pronunciation-oov.mjs",
     "query:oov:espeak": "node --no-warnings scripts/run-query-pronunciation-espeak-oov.mjs",
     "query:oov:stage": "node --no-warnings scripts/materialize-generated-pronunciation-staging.mjs",
-    "query:oov:benchmark": "npm run query:oov:sample && npm run query:oov:espeak"
+    "query:oov:benchmark": "npm run query:oov:sample && npm run query:oov:espeak",
+    "query:gold:sample": "node --no-warnings scripts/sample-query-pronunciation-gold.mjs",
+    "query:gold:espeak": "node --no-warnings scripts/run-query-pronunciation-espeak-gold.mjs",
+    "query:gold:benchmark": "npm run query:gold:sample && npm run query:gold:espeak"
   }
 }
