@@ -254,6 +254,8 @@ try{
   let inserted=0;
   let existingCount=0;
   let unresolved=0;
+  let runtimeAnalysisRejected=0;
+  const runtimeAnalysisRejectedSamples=[];
   const statusCounts=new Map();
   const unresolvedUnits=new Map();
   const startedAt=Date.now();
@@ -274,23 +276,50 @@ try{
           }
         }else{
           const p=resolved.pronunciation;
-          insertPronunciation.run(
-            name.name_id,
-            'en-US',
-            'en-US',
-            p.ipa,
-            preferredExists.get(name.name_id)?0:1,
-            p.source_kind,
-            JSON.stringify({
-              ...p.source_record,
-              resolution_status:resolved.status,
-            }),
-            0,
-            null,
-            1,
-            p.review_state,
-          );
-          inserted+=1;
+          let runtimeAnalysisError=null;
+          try{
+            analyzeEntityPronunciation(p.ipa,'en');
+          }catch(error){
+            runtimeAnalysisError=error;
+          }
+          if(runtimeAnalysisError){
+            unresolved+=1;
+            runtimeAnalysisRejected+=1;
+            statusCounts.set(
+              'unresolved_runtime_analysis',
+              (statusCounts.get('unresolved_runtime_analysis')||0)+1,
+            );
+            if(runtimeAnalysisRejectedSamples.length<25){
+              runtimeAnalysisRejectedSamples.push({
+                name_id:Number(name.name_id),
+                entity_id:Number(name.entity_id),
+                qid:name.qid,
+                surface:name.surface,
+                source_kind:p.source_kind,
+                resolution_status:resolved.status,
+                ipa:p.ipa,
+                error:String(runtimeAnalysisError?.message||runtimeAnalysisError),
+              });
+            }
+          }else{
+            insertPronunciation.run(
+              name.name_id,
+              'en-US',
+              'en-US',
+              p.ipa,
+              preferredExists.get(name.name_id)?0:1,
+              p.source_kind,
+              JSON.stringify({
+                ...p.source_record,
+                resolution_status:resolved.status,
+              }),
+              0,
+              null,
+              1,
+              p.review_state,
+            );
+            inserted+=1;
+          }
         }
       }
 
@@ -511,6 +540,8 @@ try{
       quarantined_existing_runtime_rows:quarantinedExisting,
       quarantine_samples:quarantineSamples,
       unresolved_names:Math.max(0,names.length-readyNames),
+      runtime_analysis_rejected:runtimeAnalysisRejected,
+      runtime_analysis_rejected_samples:runtimeAnalysisRejectedSamples,
       phonetic_analyses:totalAnalyses,
       analyses_resumed:resumed,
       rejected_analyses:rejected,
