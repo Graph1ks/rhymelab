@@ -3575,7 +3575,7 @@
         "accepted": true,
         "pr": 112,
         "merge_method": "squash",
-        "merge_commit": "e0ddbfac7cdf7229a7a3049c1426c6fb70783cdf",
+        "merge_commit": "e0ddbfac",
         "merged_at": "2026-09-19T13:16:40Z"
       },
       "next_engineering_focus": [
