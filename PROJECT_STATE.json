@@ -28,7 +28,9 @@
     "unknown_single_token_query_pronunciation": "client-total-query-pronunciation-v1",
     "optional_espeak_ng_host_adapter": false,
     "generated_pronunciation_canonical_persistence": false,
-    "query_pronunciation_generation_location": "end_user_client"
+    "query_pronunciation_generation_location": "end_user_client",
+    "unknown_query_pronunciation": "client-total-query-pronunciation-v2",
+    "multiword_client_query_pronunciation": true
   },
   "legacy_control_baseline": {
     "status": "preserved",
@@ -3668,9 +3670,9 @@
     "ai_data_required_for_source_runtime_acceptance": false
   },
   "query_pronunciation": {
-    "status": "BROWSER_CLIENT_RUNTIME_IMPLEMENTED_BROWSER_TEST_READY",
+    "status": "CLIENT_WORD_AND_MULTIWORD_RUNTIME_IMPLEMENTED",
     "policy": "total-query-pronunciation-v1",
-    "scope": "single_token_user_queries_only",
+    "scope": "user_queries_single_or_multiword",
     "single_token_total": true,
     "source_backed_preferred": true,
     "languages": [
@@ -3771,7 +3773,7 @@
       "owner_report_fingerprint": null,
       "role": "development_espeak_reference_only_not_client_acceptance"
     },
-    "client_policy": "client-total-query-pronunciation-v1",
+    "client_policy": "client-total-query-pronunciation-v2",
     "execution_location": "end_user_client",
     "client_module": "src/ui/query-pronunciation-client.mjs",
     "browser_test_route": "/query-pronunciation-test",
@@ -3809,6 +3811,11 @@
       "analyzer_compatibility_tested": true,
       "browser_manual_test_ready": true,
       "source_backed_gold_benchmark_for_client_pending": true
-    }
+    },
+    "multiword_total": true,
+    "max_client_tokens": 64,
+    "token_resolution": "source_backed_first_generate_only_missing",
+    "multiword_composition": "space_joined_token_ipa_ephemeral_query_anchor",
+    "regression_sentinel": "heute abend große gangbang party"
   }
 }
