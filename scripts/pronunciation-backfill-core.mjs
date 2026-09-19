@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
-export const PRONUNCIATION_BACKFILL_SCHEMA='rhymelab-pronunciation-backfill-v1';
-export const PRONUNCIATION_BACKFILL_POLICY='espeak-then-client-resolver-staging-v1';
+export const PRONUNCIATION_BACKFILL_SCHEMA='rhymelab-pronunciation-backfill-v2';
+export const PRONUNCIATION_BACKFILL_POLICY='source-diff-espeak-then-client-resolver-staging-v2';
 
 export function hashJson(value){
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
