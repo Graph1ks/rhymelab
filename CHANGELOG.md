@@ -13,7 +13,28 @@ Git remains the complete technical history. This changelog is intentionally cura
 - Added PROJECT.md as the durable source for RhymeLab's solo-dev/owner-controlled repository model, architecture boundaries, zero-cost policy, licensing/contribution posture, QA gate, and continuity responsibilities.
 - Added repository-wide editor and Git attribute defaults for predictable text formatting and line endings.
 
+### Fixed
+
+- Restored primary unified-search control interaction after PR #117 accidentally used an undefined `$# Changelog
+
+This file records meaningful user-visible, behavioral, compatibility, security, data/provenance, and release changes.
+
+Git remains the complete technical history. This changelog is intentionally curated rather than commit-by-commit.
+
+## Unreleased
+
+### Added
+
+- Added independent result-language targeting so a source-resolved German query can request German, English, or combined results without treating the German spelling as an English lexeme.
+- Added runtime-driven Entity category filtering, an alphabetized Sources dialog, bounded search-pool counts, and per-relation More controls for standard browsing.
+- Added PROJECT.md as the durable source for RhymeLab's solo-dev/owner-controlled repository model, architecture boundaries, zero-cost policy, licensing/contribution posture, QA gate, and continuity responsibilities.
+- Added repository-wide editor and Git attribute defaults for predictable text formatting and line endings.
+
+ selector helper in three event-binding lines, causing partial UI initialization after the Search submit handler.
+- Added atomic control-surface preflight, visible initialization failure reporting, and a runtime simulated-DOM interaction smoke covering Query Language, Result Language, Search Scope, UI Language, and result layout controls.
+
 ### Changed
+
 
 - Standard unfiltered search now uses explicit per-category More controls; automatic progressive/endless scrolling is reserved for a selected rhyme/sound relation.
 - Active segmented controls, dropdowns, and vertical/horizontal scrollbars use one consistent styled UI treatment; the old partial-capability underline on buttons is removed.
