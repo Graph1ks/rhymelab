@@ -128,6 +128,10 @@
     "entity:ai:import": "node --no-warnings scripts/import-entity-ai-pronunciation-result.mjs",
     "entity:ai:audit": "node --no-warnings scripts/audit-entity-ai-pronunciation.mjs",
     "entity:llm:benchmark:evaluate": "node --no-warnings scripts/evaluate-entity-llm-benchmark.mjs",
-    "entity:g2p:benchmark:v3": "node --no-warnings scripts/build-entity-g2p-benchmark-v3.mjs"
+    "entity:g2p:benchmark:v3": "node --no-warnings scripts/build-entity-g2p-benchmark-v3.mjs",
+    "query:oov:sample": "node --no-warnings scripts/sample-query-pronunciation-oov.mjs",
+    "query:oov:espeak": "node --no-warnings scripts/run-query-pronunciation-espeak-oov.mjs",
+    "query:oov:stage": "node --no-warnings scripts/materialize-generated-pronunciation-staging.mjs",
+    "query:oov:benchmark": "npm run query:oov:sample && npm run query:oov:espeak"
   }
 }
