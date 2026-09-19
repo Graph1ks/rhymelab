@@ -1,6 +1,6 @@
 # Total Query Pronunciation v1
 
-Status: **implemented product/runtime baseline; full local-data benchmark pending owner run**  
+Status: **implemented product/runtime baseline; first 1000-case owner run completed; normalized v2 rerun pending**  
 Policy: `total-query-pronunciation-v1`
 
 ## Goal
@@ -116,12 +116,55 @@ Script:
 
 Default output:
 
-- `data/local/query-pronunciation-espeak-oov-report-v1.json`
-- `data/local/query-pronunciation-espeak-oov-predictions-v1.tsv`
+- `data/local/query-pronunciation-espeak-oov-report-v2.json`
+- `data/local/query-pronunciation-espeak-oov-predictions-v2.tsv`
 
 The report measures structural coverage and local latency. It explicitly does **not** claim correctness gold for unresolved rows.
 
+Report v2 also records raw eSpeak IPA, normalized IPA, whether normalization changed the pronunciation, and the exact analyzer rejection reason for every failed case.
+
 The same run includes the seven product sentinels in both languages.
+
+### First owner run — diagnostic baseline, not accepted evidence
+
+The first Windows 11 owner run used eSpeak-NG 1.52.0 over the deterministic 1000-row local sample plus 14 product-sentinel language cases.
+
+```text
+sample fingerprint
+c51fad67e560787af92cc1f133ec355e8ffe2b6afd4c5fd546c2e27b26d434a5
+
+v1 report fingerprint
+6dde5b586895bc22e7b606429d37eac99913e6ca37d997a5d7926d6fb0c07c3e
+
+cases                         1014
+database unresolved cases     1000
+product sentinel cases          14
+accepted                        685
+failed                          329
+coverage                      67.55%
+p50                            82.414 ms
+p95                            94.689 ms
+max                           152.365 ms
+
+DE phrase unresolved          194 / 200  97%
+DE preferred Entity           200 / 200 100%
+DE Entity alias               200 / 200 100%
+EN preferred Entity            48 / 200  24%
+EN Entity alias                32 / 200  16%
+product sentinels              11 / 14   78.57%
+```
+
+This v1 report is diagnostic only and must not be used for generated-pronunciation staging. It exposed an adapter-normalization defect rather than an eSpeak-NG coverage ceiling:
+
+- eSpeak-NG 1.52.0 emits Unicode format joiners inside some diphthongs/affricates;
+- the v1 adapter left those characters in place;
+- German analysis could carry them into phoneme/rhyme keys and split diphthongs into multiple nuclei;
+- English analysis rejected many such outputs;
+- eSpeak also emits phone variants such as DE `ɑː` and EN `oː` / `ɛː` that require explicit adapter normalization into the already accepted analyzer inventories.
+
+The accepted DE/EN analyzers remain unchanged. The fix belongs exclusively in the eSpeak adapter.
+
+A normalized v2 owner rerun is required before any generated-pronunciation staging DB is built.
 
 ## Generated pronunciation staging
 
@@ -197,7 +240,6 @@ Implemented now:
 
 Pending owner-local evidence:
 
-- real 1000-case sample fingerprint;
-- eSpeak-NG coverage and latency report;
+- normalized v2 eSpeak-NG coverage and latency report on the already fingerprinted 1000-case sample;
 - held-out pronunciation-quality benchmark;
 - any promotion of generated candidate data.
