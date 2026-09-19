@@ -12,13 +12,15 @@ function argValue(flag,fallback=null){
 }
 
 const benchmarkPath=resolve(
-  argValue('--benchmark','data/local/entity-g2p-proper-name-benchmark-v1.json')
+  argValue('--benchmark','data/local/entity-g2p-proper-name-benchmark-v2.json')
 );
 const predictionPath=argValue('--predictions');
 const candidateId=String(argValue('--candidate','candidate')).trim();
 const outPath=resolve(
-  argValue('--out',`data/local/entity-g2p-${candidateId}-evaluation-v1.json`)
+  argValue('--out',`data/local/entity-g2p-${candidateId}-evaluation-v2.json`)
 );
+const modelId=argValue('--model-id',null);
+const modelVersion=argValue('--model-version',null);
 if(!predictionPath) throw new Error('--predictions <tsv> is required');
 
 const benchmark=JSON.parse(await readFile(benchmarkPath,'utf8'));
@@ -137,8 +139,13 @@ for(const testCase of benchmark.cases||[]){
 
 function pct(n,d){return d?Math.round(n*10000/d)/100:0;}
 const evidence={
-  schema:'rhymelab-entity-g2p-candidate-evaluation-v1',
+  schema:'rhymelab-entity-g2p-candidate-evaluation-v2',
   candidate:candidateId,
+  candidate_metadata:{
+    model_id:modelId,
+    model_version:modelVersion,
+  },
+  benchmark_schema:benchmark.schema||null,
   benchmark_fingerprint:benchmark.semantic_fingerprint||null,
   benchmark_cases:(benchmark.cases||[]).length,
   prediction_rows:predictions.size,
@@ -159,7 +166,7 @@ const evidence={
   decision_boundary:{
     runtime_promoted:false,
     generated_pronunciations_persisted:false,
-    purpose:'proper-name G2P benchmark evidence only',
+    purpose:'proper-name token G2P benchmark evidence only',
   },
 };
 const fingerprint=createHash('sha256')
