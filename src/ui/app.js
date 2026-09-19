@@ -157,7 +157,7 @@ function syncResultLanguageControls(){$$('.result-language-option').forEach((but
 function scopeCapability(scope,basis=state.resultLanguage){const languages=basisLanguages(basis),capabilities=state.capabilities;if(!capabilities)return{available:true,partial:false,supportedLanguages:languages};const flag=scope==='phrases'?'phraseMosaic':scope==='entities'?'entityRhymes':'wordWriter';if(scope==='all'){const supportedLanguages=languages.filter((language)=>{const row=capabilities.languages?.[language];return Boolean(row?.wordWriter||row?.phraseMosaic||row?.entityRhymes);});return{available:supportedLanguages.length>0,partial:supportedLanguages.length>0&&supportedLanguages.length<languages.length,supportedLanguages};}const supportedLanguages=languages.filter((language)=>Boolean(capabilities.languages?.[language]?.[flag]));return{available:supportedLanguages.length>0,partial:supportedLanguages.length>0&&supportedLanguages.length<languages.length,supportedLanguages};}
 function syncContextFilters(){const scope=$('#scopeFilter').value;$('#variantFilter')?.classList.toggle('context-hidden',scope==='phrases'||scope==='entities');$('#historicalFilter')?.classList.toggle('context-hidden',scope==='entities');const entityAvailable=Array.isArray(state.capabilities?.entities?.categories)&&state.capabilities.entities.categories.length>0;$('#entityCategoryFilter')?.classList.toggle('context-hidden',!entityAvailable||!(scope==='all'||scope==='entities'));}
 function renderAvailabilityBar(){const node=$('#availabilityBar');if(!node)return;const scopes=[['words',t('words')],['phrases',t('phrases')],['entities',t('entities')]];node.innerHTML=scopes.map(([scope,label])=>{const capability=scopeCapability(scope),status=!capability.available?'unavailable':capability.partial?'partial':'available',languages=capability.supportedLanguages.map((language)=>language.toUpperCase()).join('+')||'—';return`<span class="availability-chip ${status}"><span class="availability-dot" aria-hidden="true"></span><strong>${esc(label)}</strong><small>${esc(languages)}</small></span>`;}).join('');}
-function setFloatingSearchCollapsed(collapsed){const stage=$('.search-stage');if(!stage)return;stage.classList.toggle('search-collapsed',Boolean(collapsed));}
+function setFloatingSearchCollapsed(collapsed){const stage=$('.search-stage');if(!stage)return;stage.classList.toggle('search-collapsed',Boolean(collapsed));if(!collapsed)stage.classList.remove('search-hover-open');}
 function revealFloatingSearch(){floatingSearchRevealUntilScroll=true;setFloatingSearchCollapsed(false);}
 function syncFloatingSearchState({consumeReveal=false}={}){if(typeof window==='undefined')return;if(consumeReveal)floatingSearchRevealUntilScroll=false;const shouldCollapse=Boolean(state.data)&&window.scrollY>96&&!floatingSearchRevealUntilScroll;setFloatingSearchCollapsed(shouldCollapse);}
 
@@ -463,7 +463,7 @@ async function search(word,{revealControls=false}={}){
 const REQUIRED_SINGLE_CONTROLS=[
   '#searchForm','#searchInput','#scopeFilter','#typeFilter','#variantMode','#syllableFilter','#sortMode',
   '#historicalMode','#entityCategory','#sourcesButton','#sourcesClose','#sourcesDialog','#results',
-  '#resultsToolbar','#searchFiltersReveal',
+  '#resultsToolbar','#searchFiltersReveal','.search-stage',
 ];
 const REQUIRED_CONTROL_GROUPS=[
   '.ui-lang-option','.view-option','.basis-option','.result-language-option','.scope-option',
@@ -481,7 +481,11 @@ function installInteractiveControls(){
   assertInteractiveControlSurface();
 
   $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();search($('#searchInput').value,{revealControls:true});});
+  const floatingSearchStage=$('.search-stage');
   $('#searchFiltersReveal').addEventListener('click',()=>revealFloatingSearch());
+  $('#searchFiltersReveal').addEventListener('pointerenter',()=>floatingSearchStage.classList.add('search-hover-open'));
+  $('#searchFiltersReveal').addEventListener('focus',()=>floatingSearchStage.classList.add('search-hover-open'));
+  floatingSearchStage.addEventListener('pointerleave',()=>floatingSearchStage.classList.remove('search-hover-open'));
   $$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{const language=button.dataset.uiLang;if(!['de','en'].includes(language))return;state.lang=language;localStorage.setItem('rhymelab.language',language);applyLanguage();}));
   $$('.view-option').forEach((button)=>button.addEventListener('click',()=>{const view=button.dataset.view;if(!['list','compact'].includes(view))return;state.view=view;localStorage.setItem('rhymelab.resultView',view);syncViewControls();if(state.data)render();}));
   $$('.basis-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.basis=['de','en','both'].includes(button.dataset.basis)?button.dataset.basis:'de';localStorage.setItem('rhymelab.searchBasis',state.basis);syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
