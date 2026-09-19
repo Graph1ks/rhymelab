@@ -1188,16 +1188,18 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "run_updated_npm_en_db_verify_once_against_existing_v4_db_without_rebuild",
-    "require_idx_en_pron_multi_query_plan_and_zero_general_plus_multi_result_mismatches_for_multisyllable_key",
-    "review_persisted_data_local_en_writer_db_verification_v1_report_json",
-    "then_freeze_accepted_v4_english_db_semantic_fingerprint_beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37_for_runtime_benchmark",
-    "implement_and_run_read_only_english_retrieval_runtime_diagnostic_against_the_accepted_db",
-    "after_retrieval_acceptance_begin_english_phonetic_quality_commonness_writer_utility_then_separate_diversity_calibration"
+    "run_npm_en_runtime_diagnose_on_owner_machine_against_accepted_v4_db",
+    "review_data_local_en_retrieval_runtime_v1_report_json",
+    "require_all_five_runtime_query_plans_to_use_dedicated_indexes",
+    "require_zero_stored_analysis_reanalysis_mismatches_and_zero_default_profile_leakage",
+    "require_runtime_sentinels_time_rhyme_nation_station_record_route_and_derived_inflection_samples_to_pass",
+    "after_runtime_diagnostic_pass_add_runtime_repeatability_across_independent_db_opens",
+    "then_begin_english_phonetic_relation_commonness_writer_quality_utility_calibration",
+    "then_add_separate_english_diversity_redundancy_calibration_before_product_en_enablement"
   ],
-  "next_milestone": "PHASE_12B8_CLOSE_MULTISYLLABIC_DB_RETRIEVAL_VERIFY_THEN_RUNTIME_ACCEPTANCE",
+  "next_milestone": "PHASE_12B8_ENGLISH_RETRIEVAL_RUNTIME_DIAGNOSTIC",
   "phase_12_english": {
-    "status": "ACTIVE_12B8_MULTISYLLABIC_DB_RETRIEVAL_VERIFY_GATE",
+    "status": "ACTIVE_12B8_ENGLISH_RETRIEVAL_RUNTIME_DIAGNOSTIC",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1278,7 +1280,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B8_RUN_UPDATED_EN_DB_VERIFY_WITH_PERSISTED_MULTI_CHANNEL_EVIDENCE",
+    "next_gate": "PHASE_12B8_RUN_EN_RUNTIME_DIAGNOSTIC_THEN_REPEATABILITY",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -1605,7 +1607,7 @@
       "publish_snapshot_frozen": true
     },
     "writer_db_v1": {
-      "status": "V4_DB_REPEATABILITY_PASS_MULTISYLLABIC_RETRIEVAL_VERIFY_PATCH_PENDING_OWNER_RUN",
+      "status": "ACCEPTED_V4_DB_STORAGE_AND_INDEXED_RETRIEVAL_GATE",
       "contract": "docs/ENGLISH_WRITER_DB_V1.md",
       "schema": "rhymelab-en-writer-db-v1-candidate",
       "database": "data/local/rhymelab-en-v1.sqlite",
@@ -1680,13 +1682,14 @@
         "retrieval_equivalence_mismatches": 0,
         "verify_pass": true
       },
-      "pending_owner_action": "after merge run git pull then npm run en:db:verify; upload data/local/en-writer-db-verification-v1-report.json; no DB rebuild required",
+      "pending_owner_action": "none; DB storage/retrieval gate accepted",
       "repeatability_command": "npm run en:db:repeatability",
       "repeatability_report": "data/local/en-writer-db-repeatability-v1-report.json",
       "repeatability_status": "PASS",
-      "verifier_multi_result_equivalence": "PASS_FOR_EXACT_VOWEL_FAMILY_CODA_CODA_BY_TWO_SUCCESSFUL_VERIFIER_RUNS",
+      "verifier_multi_result_equivalence": "PASS_ALL_FIVE_CHANNELS",
       "verifier_multi_result_channels": [
         "exact",
+        "multi",
         "vowel",
         "family_coda",
         "coda"
@@ -1702,7 +1705,7 @@
         "foreign_key_check_clean"
       ],
       "semantic_fingerprint": "beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37",
-      "verifier_evidence_note": "v4 DB materialization repeatability is accepted; exact/vowel/family+coda/coda strengthened verifier ran successfully twice, but multisyllable_key was not covered and must pass one updated verifier run before the full DB retrieval gate is frozen",
+      "verifier_evidence_note": "persisted owner verification confirms all five dedicated indexes, 20 general and 20 multi-result samples per channel, zero mismatches, stable DB fingerprint and zero foreign-key violations",
       "owner_v4_build": {
         "status": "PASS_ACCEPTED",
         "forms": 224478,
@@ -1717,6 +1720,7 @@
         "source_publish_fingerprint": "b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
         "required_index_plans": {
           "exact": "idx_en_pron_exact",
+          "multi": "idx_en_pron_multi",
           "vowel": "idx_en_pron_vowel",
           "family_coda": "idx_en_pron_family_coda",
           "coda": "idx_en_pron_coda"
@@ -1743,11 +1747,64 @@
         "discovered": true,
         "issue": "idx_en_pron_multi existed but englishRetrievalQueryPlans sampled multisyllable_key only from the first exact-key row; when that row had no multisyllable_key the plan was empty, and verifier required/equivalence channels omitted multi",
         "observed_build_report_multi_plan": [],
-        "fix_status": "IMPLEMENTED_OWNER_VERIFY_PENDING",
+        "fix_status": "PASS_CLOSED",
         "fix": "select a dedicated non-null multisyllable_key sample; require idx_en_pron_multi; run general and explicit multi-result equivalence for multisyllable_key",
         "rebuild_required": false,
         "verification_command": "npm run en:db:verify",
-        "verification_report": "data/local/en-writer-db-verification-v1-report.json"
+        "verification_report": "data/local/en-writer-db-verification-v1-report.json",
+        "owner_verification": {
+          "status": "PASS",
+          "query_plan_index": "idx_en_pron_multi",
+          "samples": 20,
+          "mismatches": 0,
+          "multi_result_samples": 20,
+          "max_multi_result_size": 1430,
+          "multi_result_mismatches": 0
+        }
+      },
+      "owner_v4_verification": {
+        "status": "PASS",
+        "report": "data/local/en-writer-db-verification-v1-report.json",
+        "source_publish_fingerprint": "b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
+        "semantic_fingerprint": "beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37",
+        "foreign_key_violations": 0,
+        "retrieval_equivalence": {
+          "exact": {
+            "samples": 20,
+            "mismatches": 0,
+            "multi_result_samples": 20,
+            "max_multi_result_size": 1430,
+            "multi_result_mismatches": 0
+          },
+          "multi": {
+            "samples": 20,
+            "mismatches": 0,
+            "multi_result_samples": 20,
+            "max_multi_result_size": 1430,
+            "multi_result_mismatches": 0
+          },
+          "vowel": {
+            "samples": 20,
+            "mismatches": 0,
+            "multi_result_samples": 20,
+            "max_multi_result_size": 4043,
+            "multi_result_mismatches": 0
+          },
+          "family_coda": {
+            "samples": 20,
+            "mismatches": 0,
+            "multi_result_samples": 20,
+            "max_multi_result_size": 1593,
+            "multi_result_mismatches": 0
+          },
+          "coda": {
+            "samples": 20,
+            "mismatches": 0,
+            "multi_result_samples": 20,
+            "max_multi_result_size": 28690,
+            "multi_result_mismatches": 0
+          }
+        }
       }
     },
     "coverage_audit_v1": {
@@ -2269,20 +2326,39 @@
       "deterministic_local_offline_required": true
     },
     "retrieval_runtime": {
-      "status": "BLOCKED_ONLY_ON_MULTISYLLABIC_DB_VERIFY_COMPLETION",
+      "status": "CANDIDATE_IMPLEMENTED_OWNER_DIAGNOSTIC_PENDING",
+      "contract": "docs/ENGLISH_RETRIEVAL_RUNTIME_V1.md",
+      "policy": "en-bounded-indexed-runtime-v1-candidate",
+      "command": "npm run en:runtime:diagnose",
+      "report": "data/local/en-retrieval-runtime-v1-report.json",
       "product_en_enabled": false,
       "accepted_db_semantic_fingerprint": "beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37",
+      "source_publish_fingerprint": "b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9",
+      "default_profile": "en-US",
+      "channel_limit_candidate": 128,
+      "max_candidates_candidate": 512,
+      "channels": [
+        "exact",
+        "multi",
+        "vowel",
+        "family_coda",
+        "coda"
+      ],
       "requirements": [
         "read_only_against_separate_english_db",
         "default_profile_en_us_only_by_explicit_eligibility",
         "preserve_source_pronunciation_variants_and_provenance",
-        "deterministic_candidate_retrieval",
+        "bounded_deterministic_candidate_retrieval",
+        "all_five_runtime_query_shapes_use_dedicated_indexes",
+        "reanalysis_matches_materialized_phonology_keys",
         "exercise_exact_multisyllabic_vowel_family_coda_and_coda_channels",
         "exercise_stress_alternate_pronunciation_and_derived_inflection_cases",
         "no_broad_g2p",
         "no_german_runtime_mutation",
-        "no_product_en_enablement_before_ranking_acceptance"
+        "no_product_en_enablement_before_ranking_acceptance",
+        "no_final_writer_ranking_in_retrieval_gate"
       ],
+      "next_after_diagnostic": "runtime_repeatability_across_independent_db_opens",
       "next_after_acceptance": "english_quality_commonness_writer_utility_then_separate_diversity_calibration"
     }
   },
