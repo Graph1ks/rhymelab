@@ -901,3 +901,7 @@ Phase 12C Entity pronunciation source expansion owner run is **ACCEPTED**. The c
 
 The next gate is the real proper-name G2P benchmark already implemented by `npm run entity:g2p:benchmark:prepare`. Benchmark MFA first; use DeepPhonemizer only as an independent comparison. Charsiu remains research-only pending clean model/data licensing. Do not generate pronunciations for the 704,989 residual names until the proper-name benchmark establishes an acceptable fallback policy.
 
+Phase 12C G2P benchmark v1 preparation is **REJECTED AS A CONTROL-SET DESIGN DEFECT BEFORE MODEL EXECUTION**. The 600-case file was popularity-first over whole Entity surfaces: 599/600 were single-word surfaces, 592/600 had CMUdict references, and only 578 normalized surfaces were distinct. This would overstate ordinary-English/CMUdict performance and does not match the unknown-token fallback unit. No G2P model was run.
+
+Benchmark v2 is implemented around unique Entity-name tokens with explicit en-US Kaikki/Wiktionary proper-name IPA as gold; CMUdict is excluded as gold and duplicate normalized controls are forbidden. The primary MFA target is now pinned `english_us_arpa` v2.0.0a (ARPA, Pynini, CC BY 4.0), which avoids a phone-set conversion layer. The normal owner gate is bundled: `npm run entity:g2p:benchmark:mfa` rebuilds v2, validates it, runs MFA, and writes `data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json`.
+
