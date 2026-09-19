@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async () => {
-  const [html, app, css, mobileCss, server] = await Promise.all([
+  const [html, app, clientPronunciation, queryTest, css, mobileCss, server] = await Promise.all([
     readFile('src/ui/index.html', 'utf8'),
     readFile('src/ui/app.js', 'utf8'),
+    readFile('src/ui/query-pronunciation-client.mjs', 'utf8'),
+    readFile('src/query-pronunciation-test/app.js', 'utf8'),
     readFile('src/ui/styles.css', 'utf8'),
     readFile('src/ui/mobile.css', 'utf8'),
     readFile('src/server.mjs', 'utf8'),
@@ -65,6 +67,20 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /resultKind/);
   assert.match(app, /renderPhrasePanel/);
   assert.match(app, /\/api\/writer\?/);
+  assert.match(app, /resolveUnknownClientPronunciation/);
+  assert.match(app, /resolveMissingQueryPronunciations/);
+  assert.match(app, /query_ipa_\$\{language\}/);
+  assert.match(app, /lookupSourceBackedWord/);
+  assert.match(clientPronunciation, /client-total-query-pronunciation-v1/);
+  assert.match(clientPronunciation, /client_source_reference_compound/);
+  assert.doesNotMatch(clientPronunciation, /node:child_process|spawnSync|process\.|RHYMELAB_ESPEAK|espeak/iu);
+  assert.doesNotMatch(clientPronunciation, /\bfetch\s*\(|XMLHttpRequest|WebSocket/);
+  assert.doesNotMatch(clientPronunciation, /findWriterRhymes|searchEnglishWriter|searchEntityRhymes|rankClientRhymeCandidates/);
+  assert.match(queryTest, /resolveUnknownClientPronunciation/);
+  assert.match(queryTest, /\/api\/writer\?/);
+  assert.match(server, /query_ipa_\$\{language\}/);
+  assert.match(server, /queryPronunciations:/);
+  assert.match(server, /\/query-pronunciation-test/);
   assert.match(server, /resultLanguage: url\.searchParams\.get\('result_language'\)/);
   assert.match(app, /\/api\/phrases\/detail/);
   assert.match(app, /language:state\.basis/);
@@ -91,7 +107,8 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /rhymelab\.resultView/);
   assert.match(app, /syncUiLanguageControls/);
   assert.match(app, /syncViewControls/);
-  assert.doesNotThrow(() => new Function(app));
+  const appWithoutImports=app.replace(/^import .*?;\s*$/gm,'');
+  assert.doesNotThrow(() => new Function(appWithoutImports));
   assert.doesNotMatch(app, /\$\$\$/);
   assert.match(app, /function assertInteractiveControlSurface\(/);
   assert.match(app, /function installInteractiveControls\(/);
