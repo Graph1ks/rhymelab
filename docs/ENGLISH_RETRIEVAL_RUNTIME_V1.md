@@ -1,6 +1,6 @@
 # English Retrieval Runtime v1 — Phase 12B8
 
-Status: **candidate implementation / owner diagnostic pending**
+Status: **owner diagnostic passed / repeatability moved into bundled acceptance evidence**
 
 ## Purpose
 
@@ -114,18 +114,38 @@ Phase 12B8 does not:
 - create cross-language rhymes;
 - resume Entity pronunciation work.
 
-## Next gate
+## Owner diagnostic result
 
-If the owner diagnostic passes, repeatability/runtime acceptance should be reviewed before ranking work.
-
-Ranking then proceeds in separate layers:
+The owner diagnostic passed:
 
 ```text
-phonetic/relation calibration
--> commonness safety
--> Writer Quality / Utility
--> separate Diversity / Redundancy
--> product EN acceptance
+status                         ok
+runtime semantic fingerprint   dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf
+stored reanalysis              200 / 200 exact
+default-profile leakage        0
+same-open repeatability        0 mismatches
+time -> rhyme                  perfect PASS
+nation -> station              multisyllabic perfect PASS
+record stress variants         PASS
+route alternates               PASS
+derived inflection samples     20 / 20 reanalysis PASS
+failed checks                  0
 ```
 
-German numeric ranking/diversity weights remain controls, not automatic English defaults.
+## Next gate — bundled
+
+To reduce owner iteration latency, runtime repeatability and the first ranking/diversity evidence sweep are now combined:
+
+```powershell
+npm run en:acceptance:bundle
+```
+
+Primary output:
+
+```text
+data/local/en-acceptance-bundle-v1-report.json
+```
+
+The bundle runs three independent runtime diagnostic DB opens, then evaluates deterministic usage-stratified query samples against multiple Quality/Commonness candidates and Diversity weights in the same data pass.
+
+German numeric ranking/diversity values remain controls, not automatic English defaults.
