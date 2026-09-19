@@ -3667,7 +3667,7 @@
     "ai_data_required_for_source_runtime_acceptance": false
   },
   "query_pronunciation": {
-    "status": "IMPLEMENTED_RUNTIME_BASELINE_OWNER_BENCHMARK_PENDING",
+    "status": "STRUCTURAL_V2_ACCEPTED_GOLD_CONTROL_PENDING",
     "policy": "total-query-pronunciation-v1",
     "scope": "single_token_user_queries_only",
     "single_token_total": true,
@@ -3696,9 +3696,9 @@
     "benchmark": {
       "sample_size": 1000,
       "selection_policy": "stratified-unresolved-local-db-v1",
-      "owner_run_completed": false,
+      "owner_run_completed": true,
       "owner_sample_fingerprint": "c51fad67e560787af92cc1f133ec355e8ffe2b6afd4c5fd546c2e27b26d434a5",
-      "owner_espeak_report_fingerprint": null,
+      "owner_espeak_report_fingerprint": "facd6d15fa6096d33409de274d0271279560c3a728f2f860e9ee24bbff5ff1e5",
       "strata": {
         "phrase_de_unresolved_token": 200,
         "entity_de_preferred_unresolved": 200,
@@ -3723,8 +3723,16 @@
       "baseline_v1_predicted": 685,
       "baseline_v1_failed": 329,
       "baseline_v1_coverage_pct": 67.55,
-      "normalized_v2_rerun_completed": false,
-      "normalized_v2_report_fingerprint": null
+      "normalized_v2_rerun_completed": true,
+      "normalized_v2_report_fingerprint": "facd6d15fa6096d33409de274d0271279560c3a728f2f860e9ee24bbff5ff1e5",
+      "normalized_v2_cases": 1014,
+      "normalized_v2_predicted": 1012,
+      "normalized_v2_failed": 2,
+      "normalized_v2_coverage_pct": 99.8,
+      "normalized_v2_normalization_changed": 830,
+      "normalized_v2_normalization_changed_pct": 82.02,
+      "normalized_v2_structural_evidence_accepted": true,
+      "lexical_correctness_accepted": false
     },
     "generated_staging": {
       "schema": "rhymelab-generated-pronunciation-staging-v1",
@@ -3732,11 +3740,32 @@
       "consumer_policy": "opt_in_only",
       "canonical_runtime_promoted": false,
       "generated_candidate_overlay_promoted": false,
-      "minimum_report_schema": "rhymelab-query-pronunciation-espeak-oov-report-v2"
+      "minimum_report_schema": "rhymelab-query-pronunciation-espeak-oov-report-v2",
+      "structural_v2_evidence_accepted": true,
+      "owner_staging_materialized": false,
+      "runtime_promotion_blocked": true
     },
     "docs": [
       "docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md",
       "docs/QUERY_PRONUNCIATION_TOTAL_V1.md"
-    ]
+    ],
+    "gold_control": {
+      "status": "IMPLEMENTED_OWNER_RUN_PENDING",
+      "schema": "rhymelab-query-pronunciation-espeak-gold-report-v1",
+      "sample_size": 1000,
+      "language_counts": {
+        "de": 500,
+        "en": 500
+      },
+      "syllable_buckets": [
+        "1",
+        "2",
+        "3",
+        "4+"
+      ],
+      "source_backed_only": true,
+      "automatic_runtime_promotion": false,
+      "owner_report_fingerprint": null
+    }
   }
 }
