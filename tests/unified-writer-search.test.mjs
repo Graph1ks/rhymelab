@@ -33,7 +33,7 @@ test('English capability is explicit and never silently emulated', () => {
   assert.equal(capabilities.languages.en.entityRhymes, false);
   assert.equal(
     capabilities.languages.en.reason,
-    'english_phonology_and_runtime_not_implemented',
+    'english_database_unavailable',
   );
   assert.equal(capabilities.bases.en, false);
   assert.equal(capabilities.acceptedPhraseAnchorFingerprint,
