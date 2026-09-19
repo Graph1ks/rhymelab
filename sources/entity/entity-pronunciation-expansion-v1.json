@@ -54,7 +54,14 @@
       "direct_rhymelab_notation": "arpabet",
       "install_command": "mfa model download g2p english_us_arpa --version 2.0.0a",
       "runtime_policy": "build-time benchmark candidate only until corrected proper-name token controls pass; generated provenance mandatory",
-      "selection_reason": "ARPA output is directly compatible with the accepted RhymeLab English analyzer and avoids an extra MFA-phone-set conversion layer"
+      "selection_reason": "ARPA output is directly compatible with the accepted RhymeLab English analyzer and avoids an extra MFA-phone-set conversion layer",
+      "inspect_validation": {
+        "public_release_label": "2.0.0a",
+        "required_architecture": "pynini",
+        "required_phone_set": "complete_69_phone_ARPA",
+        "internal_archive_version_string": "record_only_not_release_label_gate",
+        "reason": "MFA model inspect may expose an internal build metadata version that differs from the public model release label"
+      }
     },
     "deep_phonemizer_en_us": {
       "role": "independent_generated_pronunciation_benchmark_candidate",
