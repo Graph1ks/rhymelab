@@ -1450,6 +1450,16 @@ async function runEspeak(){
                   process_mode:result.mode,
                   batch_size:result.batch_size,
                   batch_elapsed_ms:Number(result.batch_elapsed_ms||0),
+                  analyzer_mode:result.analyzer_mode||null,
+                  analyzer_elapsed_ms:Number(result.analyzer_elapsed_ms||0),
+                  analyzer_queue_ms:Number(result.analyzer_queue_ms||0),
+                  analyzer_roundtrip_ms:Number(result.analyzer_roundtrip_ms||0),
+                  analyzer_worker:result.analyzer_worker??null,
+                  analyzer_mode:result.analyzer_mode||null,
+                  analyzer_elapsed_ms:Number(result.analyzer_elapsed_ms||0),
+                  analyzer_queue_ms:Number(result.analyzer_queue_ms||0),
+                  analyzer_roundtrip_ms:Number(result.analyzer_roundtrip_ms||0),
+                  analyzer_worker:result.analyzer_worker??null,
                 }),
                 now(),
               );
@@ -1498,6 +1508,11 @@ async function runEspeak(){
                 process_mode:result.mode,
                 batch_size:result.batch_size,
                 batch_elapsed_ms:Number(result.batch_elapsed_ms||0),
+                analyzer_mode:result.analyzer_mode||null,
+                analyzer_elapsed_ms:Number(result.analyzer_elapsed_ms||0),
+                analyzer_queue_ms:Number(result.analyzer_queue_ms||0),
+                analyzer_roundtrip_ms:Number(result.analyzer_roundtrip_ms||0),
+                analyzer_worker:result.analyzer_worker??null,
                 stderr:result.stderr||null,
                 cardinality_mismatch:result.cardinality_mismatch||null,
               }),now(),
@@ -1521,6 +1536,7 @@ async function runEspeak(){
       const modeSummary=Object.entries(processModes)
         .map(([mode,count])=>mode+':'+count.toLocaleString('en-US'))
         .join(',');
+      const analyzerStats=analyzerPool.stats();
       console.log(progressLine({
         phase:'espeak:'+language,
         done,
@@ -1531,6 +1547,7 @@ async function runEspeak(){
           +' '+languageDone.toLocaleString('en-US')+'/'+languageTotal.toLocaleString('en-US')
           +' · recent='+recentRate.toFixed(1)+'/s'
           +' · batch4='+espeakWorkers+'x'+espeakBatchSize
+          +' · analyzer='+analyzerWorkers+'w q='+analyzerStats.queued+' restarts='+analyzerStats.worker_restarts
           +' · modes='+modeSummary,
       }));
     }
@@ -1543,11 +1560,15 @@ async function runEspeak(){
   upsertMeta.run('espeak_workers_last_run',String(espeakWorkers));
   upsertMeta.run('espeak_process_mode_last_run','batch');
   upsertMeta.run('espeak_batch_size_last_run',String(espeakBatchSize));
+  upsertMeta.run('espeak_analyzer_workers_last_run',String(analyzerWorkers));
+  upsertMeta.run('espeak_analyzer_mode_last_run','worker_threads');
   upsertMeta.run('updated_at',now());
   console.log(progressLine({
     phase:'espeak',done,total,startedAt,accepted,rejected,errors,
     extra:(stopRequested?'checkpointed · ':'complete · ')
-      +'mode=batch · workers='+espeakWorkers+' · batch_per_worker='+espeakBatchSize,
+      +'mode=batch+worker-analysis · workers='+espeakWorkers
+      +' · batch_per_worker='+espeakBatchSize
+      +' · analyzer_workers='+analyzerWorkers,
   }));
 }
 
