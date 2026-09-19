@@ -222,6 +222,20 @@ Resolution continues to report count, percentage, throughput, ETA and accepted/r
 
 ## Owner commands
 
+Before the next full-data source mapping/run, inventory the owner's actual local `data/` tree instead of relying on assumed default source paths:
+
+```powershell
+npm run data:inventory
+```
+
+Primary inventory artifact:
+
+```text
+data/local/local-data-inventory-v1-report.json
+```
+
+Backfill source adapters should be finalized against that report because historical/original source files may live in heterogeneous local layouts and formats.
+
 Update first:
 
 ```powershell
