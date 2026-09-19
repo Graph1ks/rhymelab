@@ -146,42 +146,63 @@ npm run entity:g2p:benchmark:mfa
 
 Upload only the new `data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json`.
 
-## MFA proper-name benchmark — full baseline valid, confidence calibration next
+## Phase 12C — MFA closed; independent g2p-en neural benchmark active
 
-The corrected MFA v2 owner run is now valid:
+MFA is **rejected for Entity runtime fallback** after confidence calibration.
 
 ```text
-benchmark controls             600
-model-input eligible           599
-eligible prediction coverage 100%
-predictions                    599
-evaluated                      597
-invalid                          2
-missing                          1
+calibrated evaluation fingerprint
+9bc00102d46af55352505389c03fe048083cdd81c966007ab86924d9df233488
 
-exact phones                 70.35%
-exact rhyme tail             71.19%
-syllable count               95.98%
-stress pattern               80.57%
-primary stress               94.14%
-mean rhyme score           0.913040
-evaluation fingerprint
-b6c3943f90a90a2938bcd3ce74ccecc95eedc67712fe751a6dda0266b2c91b5a
+full exact-tail                         71.19%
+best 10% by MFA path score             86.67%
+max retention at >=90% exact-tail       1.68%  (10 / 597)
+max retention at >=85% exact-tail      21.94%  (131 / 597)
 ```
 
-This is useful G2P, but not safe enough for an unconditional Entity fallback because roughly 28.81% of evaluated controls miss the source-backed exact stressed rhyme tail.
+The score signal is real but not selective enough to provide useful high-confidence Entity coverage.
 
-Do **not** move to a second model yet. The next gate is cheaper: calibrate MFA's own Pynini path score against benchmark correctness. The runner now uses `--export_scores`, records the score per prediction, and reports retention/quality curves.
+The next independent candidate is **forced-neural `g2p-en` 2.1.0**:
 
-Run **inside Miniforge Prompt with `(rhymelab-mfa)` visibly active**:
+- Apache-2.0 package/repository;
+- bundled `checkpoint20.npz`;
+- CMUdict training basis;
+- stressed ARPAbet output;
+- benchmark calls `G2p.predict()` directly;
+- CMUdict/homograph/POS lookup is bypassed;
+- no runtime promotion.
+
+DeepPhonemizer is deferred: code license is MIT, but the pretrained checkpoint is not separately licensed explicitly enough for the intended commercial runtime path.
+
+Read `docs/ENTITY_G2P_G2PEN_BENCHMARK_V1.md`.
+
+### One-time owner setup
+
+Use a **Miniforge Prompt** and create a separate environment:
+
+```powershell
+conda create -n rhymelab-g2pen -c conda-forge python=3.10 g2p-en=2.1.0 -y
+conda activate rhymelab-g2pen
+python -m nltk.downloader cmudict averaged_perceptron_tagger
+```
+
+### Owner gate
+
+The prompt must visibly start with `(rhymelab-g2pen)`:
 
 ```powershell
 cd D:\rhymelab
 git pull
-npm run entity:g2p:benchmark:mfa
+npm run entity:g2p:benchmark:g2pen
 ```
 
-Upload only the resulting `data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json`. If the score does not provide a useful high-confidence subset, reject MFA as a runtime fallback and only then move to the independent candidate.
+Upload only:
+
+```text
+data/local/entity-g2p-g2pen-neural-evaluation-v2.json
+```
+
+If this independent neural model does not materially improve exact stressed rhyme-tail quality over MFA, stop the generated-G2P campaign rather than stacking more models.
 
 ## Frozen German baseline
 
