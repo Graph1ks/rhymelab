@@ -1302,16 +1302,33 @@ async function runEspeak(){
   if(workDb.prepare("SELECT value FROM meta WHERE key='collection_complete'").get()?.value!=='1'){
     throw new Error('Collection is incomplete. Resume --phase collect or run the default all-phase command first.');
   }
+  if(workDb.prepare("SELECT value FROM meta WHERE key='admission_complete'").get()?.value!=='1'){
+    throw new Error('Admission/noise gate is incomplete. Run --phase admit before eSpeak-NG.');
+  }
+  const admissionPolicy=workDb.prepare("SELECT value FROM meta WHERE key='admission_policy'").get()?.value||null;
+  if(admissionPolicy!==PRONUNCIATION_ADMISSION_POLICY){
+    throw new Error('Admission policy mismatch. Re-run --phase admit before eSpeak-NG.');
+  }
+
   const condition=retryErrors
-    ?"espeak_status IN ('pending','error')"
-    :"espeak_status='pending'";
-  const total=scalar(workDb,'SELECT COUNT(*) AS c FROM work_item WHERE '+condition);
+    ?"w.espeak_status IN ('pending','error')"
+    :"w.espeak_status='pending'";
+  const total=scalar(workDb,[
+    'SELECT COUNT(*) AS c FROM work_item w',
+    'JOIN admission a ON a.item_id=w.item_id',
+    "WHERE a.decision='admit' AND "+condition,
+  ].join(' '));
   if(!total){
-    console.log('[espeak] nothing pending.');
+    console.log('[espeak] nothing admitted/pending.');
     return;
   }
 
-  const first=workDb.prepare('SELECT surface,language FROM work_item WHERE '+condition+' ORDER BY item_id LIMIT 1').get();
+  const first=workDb.prepare([
+    'SELECT w.surface,w.language FROM work_item w',
+    'JOIN admission a ON a.item_id=w.item_id',
+    "WHERE a.decision='admit' AND "+condition,
+    'ORDER BY w.item_id LIMIT 1',
+  ].join(' ')).get();
   const preflight=inspectEspeakQueryPronunciation(first.surface,first.language,{command});
   if(preflight.status==='unavailable'){
     throw new Error(
@@ -1319,83 +1336,118 @@ async function runEspeak(){
       +'RHYMELAB_ESPEAK_COMMAND remains supported exactly like the earlier benchmark scripts.'
     );
   }
+  const resolvedCommand=preflight.engineCommand||command||null;
   console.log(
     '[espeak] engine='+(preflight.engineVersion||preflight.engine||'eSpeak-NG')
-    +' · command='+(preflight.engineCommand||command||'auto-detect')
-    +' · pending='+total.toLocaleString('en-US')
+    +' · command='+(resolvedCommand||'auto-detect')
+    +' · admitted_pending='+total.toLocaleString('en-US')
+    +' · workers='+espeakWorkers
   );
 
-  const batchQuery=workDb.prepare(
-    'SELECT item_id,language,surface,normalized FROM work_item WHERE '+condition+' ORDER BY item_id LIMIT ?'
-  );
+  const batchSize=Math.max(commitEvery,espeakWorkers*4);
+  const batchQuery=workDb.prepare([
+    'SELECT w.item_id,w.language,w.surface,w.normalized FROM work_item w',
+    'JOIN admission a ON a.item_id=w.item_id',
+    "WHERE a.decision='admit' AND "+condition,
+    'ORDER BY w.item_id LIMIT ?',
+  ].join(' '));
   let done=0,accepted=0,rejected=0,errors=0;
   const startedAt=Date.now();
 
   while(!stopRequested){
-    const rows=batchQuery.all(commitEvery);
+    const rows=batchQuery.all(batchSize);
     if(!rows.length) break;
+
+    const processed=await mapConcurrent(rows,espeakWorkers,async(row)=>{
+      const started=performance.now();
+      try{
+        const inspected=await inspectEspeakQueryPronunciationAsync(
+          row.surface,row.language,{command:resolvedCommand},
+        );
+        return {row,inspected,elapsed:performance.now()-started,error:null};
+      }catch(error){
+        return {row,inspected:null,elapsed:performance.now()-started,error};
+      }
+    });
+
     workDb.exec('BEGIN IMMEDIATE');
     try{
-      for(const row of rows){
-        if(stopRequested) break;
-        const started=performance.now();
-        let inspected;
+      for(const result of processed){
+        const row=result.row;
         try{
-          inspected=inspectEspeakQueryPronunciation(row.surface,row.language,{command});
-          if(inspected.status==='unavailable'){
-            throw new Error('espeak_process_unavailable');
-          }
-          const elapsed=performance.now()-started;
-          if(inspected.status==='accepted'){
+          if(result.error)throw result.error;
+          const inspected=result.inspected;
+          if(inspected?.status==='accepted'){
             const quality=classifyEspeakResolution(inspected);
             const a=rowAnalysisFields(inspected.analysis);
             updateEspeakAccepted.run(
               quality.qualityTier,quality.qualityReason,quality.method,
               inspected.ipa,inspected.rawIpa||null,a.syllableCount,a.primaryStress,a.stressPattern,
               a.exactTailKey,a.vowelKey,a.codaKey,inspected.engine||'espeak-ng',
-              inspected.engineVersion||null,now(),Number(row.item_id),
+              inspected.engineVersion||preflight.engineVersion||null,now(),Number(row.item_id),
             );
             insertAttempt.run(
-              Number(row.item_id),'espeak','accepted',quality.qualityReason,elapsed,
-              safeJson({normalization_changed:String(inspected.rawIpa||'')!==String(inspected.ipa||'')}),
+              Number(row.item_id),'espeak','accepted',quality.qualityReason,result.elapsed,
+              safeJson({
+                normalization_changed:String(inspected.rawIpa||'')!==String(inspected.ipa||''),
+                workers:espeakWorkers,
+              }),
               now(),
             );
             accepted+=1;
-          }else{
+          }else if(inspected?.status==='rejected'){
             const reason=inspected.analyzerError||'analyzer_rejected_espeak_ipa';
             updateEspeakRejected.run(
-              inspected.rawIpa||null,inspected.engine||'espeak-ng',inspected.engineVersion||null,
+              inspected.rawIpa||null,inspected.engine||'espeak-ng',
+              inspected.engineVersion||preflight.engineVersion||null,
               reason,now(),Number(row.item_id),
             );
             insertAttempt.run(
-              Number(row.item_id),'espeak','rejected',reason,elapsed,
-              safeJson({normalized_ipa:inspected.ipa||null,attempts:inspected.attempts||[]}),
+              Number(row.item_id),'espeak','rejected',reason,result.elapsed,
+              safeJson({normalized_ipa:inspected.ipa||null,attempts:inspected.attempts||[],workers:espeakWorkers}),
               now(),
             );
             rejected+=1;
+          }else{
+            const reason='espeak_process_unavailable';
+            updateEspeakError.run(reason,now(),Number(row.item_id));
+            insertAttempt.run(
+              Number(row.item_id),'espeak','error',reason,result.elapsed,
+              safeJson({attempts:inspected?.attempts||[],workers:espeakWorkers}),now(),
+            );
+            errors+=1;
           }
         }catch(error){
-          const elapsed=performance.now()-started;
           const message=String(error?.message||error);
-          if(message==='espeak_process_unavailable') throw error;
           updateEspeakError.run(message,now(),Number(row.item_id));
-          insertAttempt.run(Number(row.item_id),'espeak','error',message,elapsed,'{}',now());
+          insertAttempt.run(
+            Number(row.item_id),'espeak','error',message,result.elapsed,
+            safeJson({workers:espeakWorkers}),now(),
+          );
           errors+=1;
         }
         done+=1;
-        if(done%progressEvery===0){
-          console.log(progressLine({phase:'espeak',done,total,startedAt,accepted,rejected,errors}));
-        }
       }
       workDb.exec('COMMIT');
     }catch(error){
       workDb.exec('ROLLBACK');
       throw error;
     }
+
+    if(done%progressEvery===0||done===total||processed.length<batchSize){
+      console.log(progressLine({
+        phase:'espeak',done,total,startedAt,accepted,rejected,errors,
+        extra:'workers='+espeakWorkers,
+      }));
+    }
   }
   upsertMeta.run('espeak_last_run_at',now());
+  upsertMeta.run('espeak_workers_last_run',String(espeakWorkers));
   upsertMeta.run('updated_at',now());
-  console.log(progressLine({phase:'espeak',done,total,startedAt,accepted,rejected,errors,extra:stopRequested?'checkpointed':'complete'}));
+  console.log(progressLine({
+    phase:'espeak',done,total,startedAt,accepted,rejected,errors,
+    extra:(stopRequested?'checkpointed · ':'complete · ')+'workers='+espeakWorkers,
+  }));
 }
 
 const updateClientAccepted=workDb.prepare([
