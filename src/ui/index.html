@@ -98,23 +98,8 @@
         </form>
 
         <div id="availabilityBar" class="availability-bar" aria-live="polite"></div>
-      </div>
-    </section>
 
-    <section class="hero" id="emptyState">
-      <p class="eyebrow" data-i18n="eyebrow">UNIFIED RHYME WRITER</p>
-      <h1 data-i18n="headline">Search words and phrases by sound.</h1>
-      <p data-i18n="intro">One local phonetic workspace for single-word rhymes and cross-word Phrase/Mosaic matches.</p>
-      <div class="hero-notes">
-        <span data-i18n="noteLocal">Runs locally</span>
-        <span data-i18n="notePhonetic">IPA-based</span>
-        <span data-i18n="noteUsage">Usage-ranked</span>
-      </div>
-    </section>
-
-    <section id="workspace" class="workspace hidden" aria-live="polite">
-      <div class="results-column">
-        <div class="toolbar-card">
+        <div id="resultsToolbar" class="toolbar-card search-results-toolbar hidden">
           <div class="toolbar-title">
             <span class="material-symbols-outlined" aria-hidden="true">tune</span>
             <strong data-i18n="browse">Browse results</strong>
@@ -193,6 +178,24 @@
           </details>
         </div>
 
+
+        <button type="button" id="searchFiltersReveal" class="search-filter-reveal" data-i18n="showSearchFilters">Show result search filters</button>
+      </div>
+    </section>
+
+    <section class="hero" id="emptyState">
+      <p class="eyebrow" data-i18n="eyebrow">UNIFIED RHYME WRITER</p>
+      <h1 data-i18n="headline">Search words and phrases by sound.</h1>
+      <p data-i18n="intro">One local phonetic workspace for single-word rhymes and cross-word Phrase/Mosaic matches.</p>
+      <div class="hero-notes">
+        <span data-i18n="noteLocal">Runs locally</span>
+        <span data-i18n="notePhonetic">IPA-based</span>
+        <span data-i18n="noteUsage">Usage-ranked</span>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace hidden" aria-live="polite">
+      <div class="results-column">
         <div id="capabilityNotice" class="status capability-notice hidden"></div>
         <div id="loading" class="status hidden" data-i18n="searching">Searching…</div>
         <div id="error" class="status error hidden"></div>
