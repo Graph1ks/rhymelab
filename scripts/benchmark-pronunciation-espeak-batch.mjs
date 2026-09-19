@@ -222,6 +222,7 @@ try{
     schema:report.schema,
     workers:report.workers,
     analyzer_workers:report.analyzer_workers,
+    analyzer_mode:report.analyzer_mode,
     fastest_stable_batch_size:report.fastest_stable_batch_size,
     fastest_stable_cases_per_second:report.fastest_stable_cases_per_second,
     fastest_stable_projected_pending_hours:report.fastest_stable_projected_pending_hours,
