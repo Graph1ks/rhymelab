@@ -13,7 +13,7 @@ function argValue(flag,fallback=null){
 const entityDb=resolve(argValue('--entity-db','data/local/rhymelab-entities-v1.sqlite'));
 const englishDb=resolve(argValue('--en-db','data/local/rhymelab-en-v1.sqlite'));
 const englishMarker=resolve(
-  argValue('--en-marker','data/local/en-product-acceptance-v1.json')
+  argValue('--en-marker','data/local/en-product-enabled-v1.json')
 );
 const sourceIndex=resolve(
   argValue('--source-index','data/work/entity/entity-pronunciation-source-expansion-v1.sqlite')
