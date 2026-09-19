@@ -13,14 +13,14 @@ import {
 import {
   ENGLISH_DIVERSITY_WEIGHTS,
   ENGLISH_QUALITY_CANDIDATES,
-  ENGLISH_RANKING_EVIDENCE_POLICY,
+  ENGLISH_WRITER_RANKING_V2_POLICY,
   diversifyRanked,
   guardViolations,
   pageMetrics,
   qualityEvidence,
   rankQualityRows,
   relationTier,
-} from './en-writer-ranking-evidence-core.mjs';
+} from './en-writer-ranking-v2-core.mjs';
 
 const args=process.argv.slice(2);
 function argValue(flag,fallback){
@@ -366,7 +366,7 @@ try{
     db_semantic_fingerprint:expectedDbFingerprint,
     source_publish_fingerprint:expectedPublishFingerprint,
     runtime_diagnostic_fingerprint:runtimeCheck.semantic_fingerprint,
-    ranking_evidence_policy:ENGLISH_RANKING_EVIDENCE_POLICY,
+    ranking_evidence_policy:ENGLISH_WRITER_RANKING_V2_POLICY,
     retrieval_options:{channel_limit:channelLimit,max_candidates:maxCandidates},
     query_sampling:{
       lyricist_requested:LYRICIST_QUERIES.length,
