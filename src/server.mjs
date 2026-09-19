@@ -31,6 +31,7 @@ const englishMarkerPath = resolve(
 const uiDir = resolve('src/ui');
 const padUiDir = resolve('src/pad');
 const benchmarkUiDir = resolve('src/benchmark-ui');
+const queryPronunciationTestDir = resolve('src/query-pronunciation-test');
 
 let writerDb;
 try {
@@ -93,6 +94,7 @@ try {
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
 const padHtml = Buffer.from(materializeRhymePadV14().html);
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
+const queryPronunciationTestHtml = readFileSync(resolve(queryPronunciationTestDir, 'index.html'));
 const assets = {
   '/': { type: 'text/html; charset=utf-8', body: writerHtml },
   '/pad': { type: 'text/html; charset=utf-8', body: padHtml },
@@ -102,10 +104,15 @@ const assets = {
   '/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'styles.css')) },
   '/assets/mobile.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'mobile.css')) },
   '/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'app.js')) },
+  '/assets/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-client.mjs')) },
   '/benchmark': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
   '/benchmark/': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
   '/benchmark/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'styles.css')) },
   '/benchmark/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'app.js')) },
+  '/query-pronunciation-test': { type: 'text/html; charset=utf-8', body: queryPronunciationTestHtml },
+  '/query-pronunciation-test/': { type: 'text/html; charset=utf-8', body: queryPronunciationTestHtml },
+  '/query-pronunciation-test/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(queryPronunciationTestDir, 'app.js')) },
+  '/query-pronunciation-test/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(queryPronunciationTestDir, 'styles.css')) },
 };
 
 function json(res, data, status = 200, allowCors = true) {
@@ -126,6 +133,25 @@ function asset(res, entry) {
     'x-content-type-options': 'nosniff',
   });
   res.end(entry.body);
+}
+
+function clientQueryPronunciation(url, language) {
+  const ipa = String(url.searchParams.get(`query_ipa_${language}`) || '').trim();
+  if (!ipa) return null;
+  let components = null;
+  const rawComponents = url.searchParams.get(`query_components_${language}`);
+  if (rawComponents) {
+    try {
+      const parsed = JSON.parse(rawComponents);
+      if (Array.isArray(parsed)) components = parsed.slice(0, 8).map(String);
+    } catch {}
+  }
+  return {
+    ipa: ipa.slice(0, 512),
+    method: String(url.searchParams.get(`query_method_${language}`) || 'client_unknown').slice(0, 80),
+    sourceBacked: url.searchParams.get(`query_source_backed_${language}`) === '1',
+    components,
+  };
 }
 
 async function readJsonBody(req, maxBytes = 32 * 1024) {
@@ -232,6 +258,10 @@ const server = createServer(async (req, res) => {
           entityLimit: url.searchParams.get('entity_limit') || url.searchParams.get('limit'),
           entityPoolLimit: url.searchParams.get('entity_pool'),
           entityCategory: url.searchParams.get('entity_category') || 'all',
+          queryPronunciations: {
+            de: clientQueryPronunciation(url, 'de'),
+            en: clientQueryPronunciation(url, 'en'),
+          },
         },
       );
       const status = result.status === 'language_unavailable'
