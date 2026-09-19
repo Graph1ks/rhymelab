@@ -390,7 +390,7 @@ After eSpeak completes, run the client fallback only for analyzer-rejected admit
 npm run pronunciation:backfill -- --phase client
 ```
 
-The convenience full-chain command still exists, but defaults to one eSpeak worker unless `--workers` is supplied:
+The convenience full-chain command still exists and defaults to `min(16, availableParallelism())` eSpeak workers. `--workers` overrides that local default explicitly:
 
 ```powershell
 npm run pronunciation:backfill -- --workers 16
