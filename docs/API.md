@@ -71,13 +71,29 @@ Parameters:
 - `entity_limit=<n>`, `entity_pool=<n>` — bounded Entity controls;
 - `entity_category=<category|all>` — exact Entity taxonomy filter from the runtime capability list.
 
+### Unknown single-token query pronunciation
+
+For a normalizable single-token query that has no source-backed pronunciation in a requested query language, the Writer API generates an **ephemeral query pronunciation** rather than returning `query_not_found` for that reason alone.
+
+Resolution order:
+
+1. source-backed local pronunciation;
+2. optional separately installed local eSpeak-NG host executable, analyzer-gated;
+3. deterministic RhymeLab language rules;
+4. deterministic grapheme fallback.
+
+Generated query metadata includes `generatedPronunciation=true` and a `queryPronunciation` object describing policy, method, engine, language and persistence boundary. Generated query pronunciations are not written to the accepted DE/EN/Entity/Phrase databases and are not lexical facts.
+
+`language=both` resolves DE and EN query anchors independently. This total-resolution contract applies to **single-token input only**. Accepted multi-word Phrase/Mosaic pronunciation rules remain unchanged.
+
+
 German single-word queries reuse the frozen `findWriterRhymes()` path unchanged. Phrase/Mosaic results run through the accepted 11D4 retrieval -> 11E2-v2 ranking -> 11E3 diversification stack.
 
 Multi-word user queries are resolved in this order:
 
 1. exact accepted phrase-catalog pronunciation when available;
 2. otherwise deterministic composition of preferred Writer-v5 token pronunciations when every lexical token resolves;
-3. otherwise the query is returned as pronunciation-unresolved; no G2P or guessed IPA is introduced.
+3. otherwise the multi-word query remains pronunciation-unresolved; Total Query Pronunciation v1 deliberately does not G2P unresolved multi-word Phrase/Mosaic input.
 
 The response keeps Word and Phrase/Mosaic channel orders separate. Numeric scores are not treated as globally calibrated across channels; the unified UI groups both channels in one workspace rather than inventing a cross-channel score.
 
@@ -118,7 +134,7 @@ Phase 12B11 provides the accepted source-backed English single-word Writer behin
 - `result_language` controls which result-language channels are requested;
 - DE+EN results preserve language-local channel ranks; raw DE/EN scores are not treated as cross-language calibrated;
 - English Phrase/Mosaic remains unavailable;
-- no unknown-query G2P is introduced by this split.
+- unknown normalized single-token queries use `total-query-pronunciation-v1`: source-backed lookup first, then a deterministic ephemeral language-specific query pronunciation; multi-word Phrase/Mosaic behavior is unchanged.
 
 The response includes `counts.searchPool` with bounded candidate-pool counts from the active indexed pipelines. These are truthful current search-pool counts, not a claim that the entire lexical/entity database was exhaustively rescored.
 
