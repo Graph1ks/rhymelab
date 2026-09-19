@@ -20,7 +20,6 @@ import {
   compareAnalyses,
   finalizeAgreement,
   finalizeGold,
-  pct,
   percentile,
 } from './pronunciation-generator-benchmark-core.mjs';
 import { BACKFILL_AUDIT_SAMPLE_SCHEMA } from './pronunciation-backfill-audit-core.mjs';
