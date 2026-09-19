@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
+import { parseCmudictEntry } from '../scripts/en-writer-source-core.mjs';
 import {
   classifyKaikkiProperNamePronunciations,
   cmudictEntityPronunciation,
@@ -55,6 +56,18 @@ test('Kaikki proper-name IPA keeps locale boundaries explicit',()=>{
   assert.equal(uk.runtime_profile_eligible,false);
   assert.ok(generic);
   assert.equal(generic.runtime_profile_eligible,false);
+});
+
+test('CMUdict parser preserves pronunciation and removes alternate suffix',()=>{
+  assert.deepEqual(
+    parseCmudictEntry('DEPP(2)  D EH1 P'),
+    {
+      sourceSurface:'DEPP(2)',
+      surface:'DEPP',
+      normalized:'depp',
+      pronunciation:'D EH1 P',
+    },
+  );
 });
 
 test('CMUdict raw Entity evidence is en-US and analyzed, Moby remains raw-only',()=>{
