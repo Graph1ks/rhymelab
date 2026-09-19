@@ -1,6 +1,6 @@
 # Phase 12C — Entity Runtime + AI Staging Acceptance
 
-Status: **SOURCE-BACKED OWNER FULL-DATA ACCEPTED — PR FINALIZATION**
+Status: **SOURCE-BACKED ACCEPTED / MERGED TO MAIN**
 
 Branch: `phase12c-entity-runtime-ai-staging`
 
@@ -173,7 +173,7 @@ node scripts/public-readiness-audit.mjs
 
 GitHub required check: `validate`.
 
-Draft PR: #112.
+Merged PR: #112 (squash merge `e0ddbfac7cdf7229a7a3049c1426c6fb70783cdf`).
 
 The final branch head must be green before merge. CI validates the repository/tooling contract; the local owner report validates the full-data contract.
 
@@ -181,12 +181,14 @@ The final branch head must be green before merge. CI validates the repository/to
 
 Benchmark-v3 and missing AI staging data are **not** merge blockers for the source-backed track.
 
-The source-backed owner gate is accepted. Remaining PR-finalization steps are:
+The source-backed owner gate is accepted and PR #112 was squash-merged to `main`.
 
-1. keep GitHub `validate` green on the final documentation head;
-2. mark PR #112 ready for review;
-3. squash-merge the source-backed Phase 12C branch when the repository finalization step is authorized.
+No source-backed Phase 12C merge blocker remains. Follow-up work is deliberately separate:
 
-Entity Writer latency optimization remains follow-up work and does not alter the accepted source/provenance/ranking boundary.
+1. optimize Entity Writer latency toward the established warm product target while preserving accepted result semantics;
+2. build a fresh targeted AI pronunciation export for runtime-unresolved English names in the accepted Top-100k Entity population;
+3. keep benchmark-v3 review and any AI promotion decision isolated from accepted runtime truth.
+
+Entity Writer latency optimization does not alter the accepted source/provenance/ranking boundary.
 
 AI evidence can arrive days later and continues through its separate staging/benchmark gate without reopening the accepted source-backed runtime boundary.
