@@ -100,6 +100,41 @@ Accepted Phrase/Mosaic **candidate** pronunciations and the frozen Phase 11 retr
 
 The changed rule concerns only ad-hoc user query pronunciation. An unresolved user text chain may now receive a generated query IPA; this does not generate or mutate Phrase/Mosaic database rows.
 
+## Persistent generated-token cache
+
+Implementation:
+
+- `src/ui/query-pronunciation-cache.mjs`
+- schema `rhymelab-query-pronunciation-cache-v1`
+- IndexedDB database `rhymelab-query-pronunciation`
+- store `generated_pronunciations`
+- bounded to 10,000 entries
+
+The app's existing startup `GET /api/health` call exposes `query_pronunciation_revision`, a SHA-256 revision derived from the active local DB file state plus their metadata rows.
+
+A persisted generated pronunciation is reusable only when all of these match:
+
+1. language;
+2. normalized spelling;
+3. client resolver policy;
+4. current database revision.
+
+A revision/policy mismatch deletes or ignores the stale row. If no health revision is available, the persistent cache fails closed and normal local generation still works without trusting persisted pronunciation.
+
+Source-backed pronunciation remains authoritative. Exact source-backed pronunciations are not written into the generated cache.
+
+The effective precedence is:
+
+```text
+current source-backed DB pronunciation
+> valid current-revision generated cache
+> new client generation
+```
+
+The normal Writer request still runs before fallback, so a newly added source-backed whole-query pronunciation wins immediately after the DB revision changes.
+
+See `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md` for the fresh-thread continuation contract.
+
 ## Browser test
 
 Run:
@@ -123,9 +158,10 @@ Client-generated query details must remain:
 
 - `generatedPronunciation=true`;
 - `queryPronunciation.clientOnly=true`;
-- non-persistent;
 - non-canonical;
 - explicit about method/components.
+
+The composed query anchor itself is ephemeral. Generated **token pronunciations** may be persisted only in the revision-/policy-gated IndexedDB performance cache described below. Cache persistence does not convert generated pronunciation into lexical truth.
 
 For token chains, source-backed tokens and locally generated tokens remain distinguishable in the client result object.
 
