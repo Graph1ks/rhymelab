@@ -1188,15 +1188,15 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_phase12b11_english_product_integration_candidate",
-    "owner_run_npm_en_product_accept_once",
-    "if_integrated_acceptance_status_ok_restart_dev_server_and_test_en_plus_de_en_in_normal_ui",
-    "then_resume_deferred_entity_pronunciation_work_before_cross_language_phrase_expansion",
-    "keep_performance_optimization_deferred_until_en_and_entity_semantics_are_stable"
+    "merge_phase12b11_product_retrieval_reservoir_fix",
+    "owner_rerun_npm_en_product_accept_once",
+    "if_status_ok_restart_dev_server_and_smoke_test_en_and_de_en",
+    "then_resume_deferred_entity_pronunciation_work",
+    "keep_final_performance_optimization_deferred_until_semantics_stable"
   ],
-  "next_milestone": "PHASE_12B11_ENGLISH_PRODUCT_INTEGRATED_OWNER_ACCEPTANCE",
+  "next_milestone": "PHASE_12B11_ENGLISH_PRODUCT_INTEGRATED_OWNER_ACCEPTANCE_RERUN",
   "phase_12_english": {
-    "status": "ACTIVE_12B11_ENGLISH_PRODUCT_INTEGRATED_OWNER_ACCEPTANCE",
+    "status": "ACTIVE_12B11_ENGLISH_PRODUCT_ACCEPTANCE_RERUN_AFTER_RETRIEVAL_FIX",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1277,7 +1277,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B11_OWNER_RUN_SINGLE_INTEGRATED_EN_PRODUCT_ACCEPTANCE",
+    "next_gate": "PHASE_12B11_OWNER_RERUN_SINGLE_INTEGRATED_EN_PRODUCT_ACCEPTANCE",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -2503,7 +2503,7 @@
       "debug_report_requires_explicit_flag": "--debug-report <path>"
     },
     "product_integration_v1": {
-      "status": "IMPLEMENTED_OWNER_ACCEPTANCE_PENDING",
+      "status": "OWNER_RUN_1_FAILED_SINGLE_RETRIEVAL_SENTINEL_FIX_IMPLEMENTED",
       "contract": "docs/ENGLISH_PRODUCT_INTEGRATION_V1.md",
       "product_runtime": "en-writer-product-v1-candidate",
       "product_policy": "en-writer-guarded-quality-diversity-v1-candidate",
@@ -2547,7 +2547,31 @@
         "two_independent_open_suite_repeatability"
       ],
       "product_en_enabled": false,
-      "auto_enable_after_owner_pass": true
+      "auto_enable_after_owner_pass": true,
+      "product_retrieval_profile": "en-product-retrieval-reservoir-v1",
+      "product_channel_limits": {
+        "exact": 1536,
+        "multi": 1536,
+        "vowel": 128,
+        "family_coda": 128,
+        "coda": 128
+      },
+      "product_max_candidates": 3072,
+      "owner_run_1": {
+        "status": "FAILED_SINGLE_CHECK",
+        "report": "data/local/en-product-acceptance-v1-report.json",
+        "semantic_fingerprint": "c390e1accbe189857868d57fd79c50f0e72c3ef74f2dc8bdece7df4234006c5d",
+        "suite_repeatability_fingerprint": "775981494e9d1621f1ef27b2f39f66625d1fcd9ff3fd8073c04ac6a9ce7e5a03",
+        "passed_checks": 12,
+        "failed_checks": [
+          "english_multisyllabic_nation_station"
+        ],
+        "diagnosis": "normal product retrieval used 128 rows per channel; nation->station is valid but falls outside that precise-channel slice",
+        "db_fingerprint_match": true,
+        "german_invariance": true,
+        "english_language_leakage_violations": 0,
+        "independent_open_repeatability": true
+      }
     }
   },
   "phase_12_entity_lexicon": {
