@@ -739,7 +739,7 @@ function englishCheckpoint(value){
 }
 
 async function collectEnglishSourceDiff(){
-  const scope='en_source_minus_accepted';
+  const scope='en_wiktionary_lexical_source_minus_accepted';
   const saved=workDb.prepare('SELECT * FROM scan_state WHERE scope=?').get(scope)||null;
   if(saved?.status==='complete'){
     console.log('[collect:'+scope+'] already complete · gaps='+Number(saved.source_refs||0).toLocaleString('en-US'));
@@ -763,7 +763,7 @@ async function collectEnglishSourceDiff(){
   ].join(' '));
 
   console.log(
-    '[collect:'+scope+'] original Kaikki/Wiktextract -> accepted EN Writer diff'
+    '[collect:'+scope+'] original Kaikki lexical candidates -> accepted EN Writer diff'
     +' · source='+enKaikkiPath
     +' · resume_raw_line='+rawLine.toLocaleString('en-US')
   );
@@ -771,7 +771,7 @@ async function collectEnglishSourceDiff(){
     console.log(
       '[collect:'+scope+'] gzip source is sequential: resume re-decompresses the prefix to raw line '
       +rawLine.toLocaleString('en-US')
-      +' but does not redo DB inserts or any eSpeak/client work.'
+      +' but does not redo committed gap rows or pronunciation generation.'
     );
   }
 
@@ -781,22 +781,26 @@ async function collectEnglishSourceDiff(){
   let batch=0;
   let transactionOpen=false;
 
-  const maybeAdd=(surface,kind,sourceRecord)=>{
-    const normalized=normalizeEnglishSurface(surface);
-    if(!normalized||!isWriterCandidateSurface(normalized)) return;
+  const maybeAdd=(evidence,sourceRecord)=>{
+    if(!evidence?.normalized||!evidence?.surface) return;
     candidateSurfaces+=1;
-    if(accepted.get(normalized)) return;
+    if(accepted.get(evidence.normalized)) return;
     const result=addWorkReference({
       scope,
       sourceDb:enKaikkiPath,
-      sourceTable:'wiktextract',
-      sourceKey:normalized,
-      surface:String(surface),
+      sourceTable:'wiktextract_lexical_candidate',
+      sourceKey:evidence.normalized,
+      surface:evidence.surface,
       language:'en',
       context:{
-        reason:'source_candidate_not_in_accepted_en_writer',
-        evidence_kind:kind,
+        reason:'wiktionary_lexical_candidate_without_accepted_en_us_pronunciation',
+        evidence_kind:evidence.evidence_kind,
         source_record:sourceRecord,
+        pos:evidence.pos||null,
+        proper_name:Boolean(evidence.proper_name),
+        historical_only:Boolean(evidence.history?.historical_only),
+        relation_kinds:evidence.relation_kinds||[],
+        lemma_candidates:evidence.lemma_candidates||[],
       },
     });
     refs+=result.refAdded;
@@ -811,26 +815,26 @@ async function collectEnglishSourceDiff(){
       if(currentRawLine<=rawLine) continue;
       if(stopRequested) break;
       if(!line) continue;
+
       let entry;
       try{entry=JSON.parse(line);}catch{continue;}
+      rawLine=currentRawLine;
       if(entry?.lang_code!=='en') continue;
 
       englishEntries+=1;
       const sourceRecord=String(entry.word||'')+'#'+englishEntries;
-      maybeAdd(entry.word,'wiktionary_headword',sourceRecord);
-      for(const form of entry.forms||[]){
-        if(!form?.form) continue;
-        maybeAdd(form.form,'wiktionary_listed_form',sourceRecord);
+      maybeAdd(lexicalEvidenceForHeadword(entry),sourceRecord);
+      for(const evidence of lexicalEvidenceForListedForms(entry)){
+        maybeAdd(evidence,sourceRecord);
       }
 
-      rawLine=currentRawLine;
       batch+=1;
       if(englishEntries%progressEvery===0){
         const elapsed=Math.max(0.001,(Date.now()-startedAt)/1000);
         console.log(
           '[collect:'+scope+'] english_entries='+englishEntries.toLocaleString('en-US')
           +' · raw_line='+rawLine.toLocaleString('en-US')
-          +' · candidate_occurrences='+candidateSurfaces.toLocaleString('en-US')
+          +' · lexical_candidate_occurrences='+candidateSurfaces.toLocaleString('en-US')
           +' · missing_unique_refs='+refs.toLocaleString('en-US')
           +' · unique_added='+uniques.toLocaleString('en-US')
           +' · '+(englishEntries/elapsed).toFixed(1)+' English entries/s'
@@ -849,6 +853,7 @@ async function collectEnglishSourceDiff(){
         batch=0;
       }
     }
+
     upsertScan.run(
       scope,stopRequested?'running':'complete',
       JSON.stringify({rawLine,englishEntries,candidateSurfaces}),
@@ -868,7 +873,7 @@ async function collectEnglishSourceDiff(){
   console.log(
     '[collect:'+scope+'] '+(stopRequested?'checkpointed':'complete')
     +' · english_entries='+englishEntries.toLocaleString('en-US')
-    +' · candidate_occurrences='+candidateSurfaces.toLocaleString('en-US')
+    +' · lexical_candidate_occurrences='+candidateSurfaces.toLocaleString('en-US')
     +' · missing_unique_refs='+refs.toLocaleString('en-US')
     +' · unique_added='+uniques.toLocaleString('en-US')
   );
