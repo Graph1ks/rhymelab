@@ -153,3 +153,9 @@ Downloaded raw corpora, raw Wiktionary/Kaikki snapshots, generated German bulk d
 
 Any future third-party code or data must have its source, license, attribution, version/snapshot, and redistribution boundary documented before it is committed. A commercial license from Graph1ks never overrides third-party terms.
 
+### g2p-en
+
+Phase 12C uses `g2p-en` only as an independent local build-time benchmark candidate after the MFA fallback was rejected. The upstream project is Apache License 2.0 and distributes its neural checkpoint `g2p_en/checkpoint20.npz` inside the licensed package/repository. The model uses CMU Pronouncing Dictionary training data; CMUdict carries its own permissive BSD-style redistribution terms.
+
+RhymeLab's benchmark bypasses the package's normal CMUdict, homograph and POS lookup path and calls the bundled neural predictor directly. This prevents the control set from being inflated by dictionary hits. The package/model is not bundled by RhymeLab and is not a runtime dependency unless a later benchmark explicitly promotes it.
+
