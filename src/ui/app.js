@@ -12,7 +12,7 @@ const I18N = {
   en: {
     title:'RhymeLab Local',eyebrow:'UNIFIED RHYME WRITER',headline:'Find rhymes across words, phrases and names.',
     intro:'Search German, English or both. RhymeLab combines every locally available channel and still lets you isolate words, Phrase/Mosaic matches or Entities.',
-    noteLocal:'Runs locally',notePhonetic:'IPA-based',noteUsage:'Deterministic',navSearch:'SEARCH',navRhymePad:'RHYMEPAD',localRuntime:'LOCAL RUNTIME',browse:'Browse results',resultScope:'Results',languageBasis:'Query pronunciation',resultLanguage:'Result language',searchIn:'Search in',basisGerman:'German',basisEnglish:'English',basisBoth:'Combined',scopeAll:'Words + phrases + entities',scopeAllButton:'All',scopeWords:'Words',scopePhrases:'Phrases / Mosaic',scopePhrasesShort:'Phrases',scopeEntities:'Entities',words:'Words',phrases:'Phrases / Mosaic',entities:'Entities',word:'Word',phrase:'Phrase',entity:'Entity',filters:'Filters',filtersHint:'Rhyme, syllables, sorting and vocabulary',viewList:'List',viewCompact:'Compact',searchOptions:'Search options',searchOptionsHint:'Query, result language and scope',resultFilters:'Result filters',resultFiltersHint:'Rhyme, syllables, sorting and vocabulary',rhymeType:'Rhyme / sound relation',
+    noteLocal:'Runs locally',notePhonetic:'IPA-based',noteUsage:'Deterministic',navSearch:'SEARCH',navRhymePad:'RHYMEPAD',localRuntime:'LOCAL RUNTIME',browse:'Browse results',resultScope:'Results',languageBasis:'Query pronunciation',resultLanguage:'Result language',searchIn:'Search in',basisGerman:'German',basisEnglish:'English',basisBoth:'Combined',scopeAll:'Words + phrases + entities',scopeAllButton:'All',scopeWords:'Words',scopePhrases:'Phrases / Mosaic',scopePhrasesShort:'Phrases',scopeEntities:'Entities',words:'Words',phrases:'Phrases / Mosaic',entities:'Entities',word:'Word',phrase:'Phrase',entity:'Entity',filters:'Filters',filtersHint:'Rhyme, syllables, sorting and vocabulary',viewList:'List',viewCompact:'Compact',searchOptionsShort:'Options',resultFiltersShort:'Filters',rhymeType:'Rhyme / sound relation',
     syllables:'Syllables',sort:'Sort',pronunciation:'Pronunciation',vocabulary:'Vocabulary',all:'All',same:'Same count',plusMinus1:'±1 syllable',plusMinus2:'±2 syllables',plusMinus3:'±3 syllables',
     recommended:'Recommended',syllableDistance:'Closest syllable count',mostCommon:'Most common',closest:'Closest rhyme',alphabetical:'A–Z',standard:'Standard',allVariants:'All variants',
     searching:'Searching…',includeHistorical:'Include historical / obsolete words',scrollMore:'Scroll for more results…',searchPlaceholder:'Search a word, phrase or entity…',search:'Search',
@@ -30,7 +30,7 @@ const I18N = {
   de: {
     title:'RhymeLab Lokal',eyebrow:'VEREINHEITLICHTER REIM-WRITER',headline:'Reime für Wörter, Phrasen und Namen finden.',
     intro:'Deutsch, Englisch oder beides durchsuchen. RhymeLab vereint alle lokal verfügbaren Kanäle und lässt Wörter, Phrase/Mosaic-Treffer und Entitäten trotzdem getrennt auswählen.',
-    noteLocal:'Läuft lokal',notePhonetic:'IPA-basiert',noteUsage:'Deterministisch',navSearch:'SUCHE',navRhymePad:'RHYMEPAD',localRuntime:'LOKALE RUNTIME',browse:'Ergebnisse',resultScope:'Ergebnisse',languageBasis:'Aussprache der Suche',resultLanguage:'Treffersprache',searchIn:'Suchen in',basisGerman:'Deutsch',basisEnglish:'Englisch',basisBoth:'Kombiniert',scopeAll:'Wörter + Wortgruppen + Entitäten',scopeAllButton:'Alles',scopeWords:'Wörter',scopePhrases:'Wortgruppen / Mosaic',scopePhrasesShort:'Phrasen',scopeEntities:'Entitäten',words:'Wörter',phrases:'Wortgruppen / Mosaic',entities:'Entitäten',word:'Wort',phrase:'Wortgruppe',entity:'Entität',filters:'Filter',filtersHint:'Reim, Silben, Sortierung und Wortschatz',viewList:'Liste',viewCompact:'Kompakt',searchOptions:'Suchoptionen',searchOptionsHint:'Aussprache, Treffersprache und Suchbereich',resultFilters:'Ergebnisfilter',resultFiltersHint:'Reim, Silben, Sortierung und Wortschatz',rhymeType:'Reim / Klangbeziehung',
+    noteLocal:'Läuft lokal',notePhonetic:'IPA-basiert',noteUsage:'Deterministisch',navSearch:'SUCHE',navRhymePad:'RHYMEPAD',localRuntime:'LOKALE RUNTIME',browse:'Ergebnisse',resultScope:'Ergebnisse',languageBasis:'Aussprache der Suche',resultLanguage:'Treffersprache',searchIn:'Suchen in',basisGerman:'Deutsch',basisEnglish:'Englisch',basisBoth:'Kombiniert',scopeAll:'Wörter + Wortgruppen + Entitäten',scopeAllButton:'Alles',scopeWords:'Wörter',scopePhrases:'Wortgruppen / Mosaic',scopePhrasesShort:'Phrasen',scopeEntities:'Entitäten',words:'Wörter',phrases:'Wortgruppen / Mosaic',entities:'Entitäten',word:'Wort',phrase:'Wortgruppe',entity:'Entität',filters:'Filter',filtersHint:'Reim, Silben, Sortierung und Wortschatz',viewList:'Liste',viewCompact:'Kompakt',searchOptionsShort:'Optionen',resultFiltersShort:'Filter',rhymeType:'Reim / Klangbeziehung',
     syllables:'Silben',sort:'Sortierung',pronunciation:'Aussprache',vocabulary:'Wortschatz',all:'Alle',same:'Gleiche Anzahl',plusMinus1:'±1 Silbe',plusMinus2:'±2 Silben',plusMinus3:'±3 Silben',
     recommended:'Empfohlen',syllableDistance:'Nächste Silbenzahl',mostCommon:'Am häufigsten',closest:'Ähnlichster Reim',alphabetical:'A–Z',standard:'Standard',allVariants:'Alle Varianten',
     searching:'Suche…',includeHistorical:'Historische / veraltete Wörter einbeziehen',scrollMore:'Weiter scrollen für mehr Ergebnisse…',searchPlaceholder:'Wort, Phrase oder Entität suchen…',search:'Suchen',
@@ -128,11 +128,11 @@ const savedBasis=localStorage.getItem('rhymelab.searchBasis');
 const savedResultLanguage=localStorage.getItem('rhymelab.resultLanguage');
 const savedUiLanguage=localStorage.getItem('rhymelab.language');
 const savedResultView=localStorage.getItem('rhymelab.resultView');
-const savedSearchOptionsExpanded=localStorage.getItem('rhymelab.searchOptionsExpanded');
-const savedResultFiltersExpanded=localStorage.getItem('rhymelab.resultFiltersExpanded');
+const savedSearchOptionsExpanded=localStorage.getItem('rhymelab.searchOptionsExpanded.v2');
+const savedResultFiltersExpanded=localStorage.getItem('rhymelab.resultFiltersExpanded.v2');
 const detectedUiLanguage=String(navigator.language||'en').toLocaleLowerCase('en-US').startsWith('de')?'de':'en';
 const initialBasis=['de','en','both'].includes(savedBasis)?savedBasis:'de';
-const defaultSearchSectionsExpanded=!(typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia('(max-width:720px)').matches);
+const defaultSearchSectionsExpanded=true;
 const state={
   lang:['de','en'].includes(savedUiLanguage)?savedUiLanguage:detectedUiLanguage,
   basis:initialBasis,
@@ -142,7 +142,7 @@ const state={
   resultFiltersExpanded:savedResultFiltersExpanded==null?defaultSearchSectionsExpanded:savedResultFiltersExpanded==='1',
   capabilities:null,pronunciationRevision:null,data:null,visibleCount:60,pageSize:60,sectionPageSize:24,
   sectionVisible:new Map(),query:'',scrollObserver:null,wordCache:new Map(),pronunciationMisses:new Set(),
-  detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null,
+  detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null,searchAutoCompactThreshold:null,
 };
 const esc=(value)=>String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const t=(key)=>I18N[state.lang][key]??I18N.en[key]??key;
@@ -176,8 +176,8 @@ function scopeCapability(scope,basis=state.resultLanguage){const languages=basis
 function syncContextFilters(){const scope=$('#scopeFilter').value;$('#variantFilter')?.classList.toggle('context-hidden',scope==='phrases'||scope==='entities');$('#historicalFilter')?.classList.toggle('context-hidden',scope==='entities');const entityAvailable=Array.isArray(state.capabilities?.entities?.categories)&&state.capabilities.entities.categories.length>0;$('#entityCategoryFilter')?.classList.toggle('context-hidden',!entityAvailable||!(scope==='all'||scope==='entities'));}
 function renderAvailabilityBar(){const node=$('#availabilityBar');if(!node)return;const scopes=[['words',t('words')],['phrases',t('phrases')],['entities',t('entities')]];node.innerHTML=scopes.map(([scope,label])=>{const capability=scopeCapability(scope),status=!capability.available?'unavailable':capability.partial?'partial':'available',languages=capability.supportedLanguages.map((language)=>language.toUpperCase()).join('+')||'—';return`<span class="availability-chip ${status}"><span class="availability-dot" aria-hidden="true"></span><strong>${esc(label)}</strong><small>${esc(languages)}</small></span>`;}).join('');}
 const SEARCH_SECTION_CONFIG=Object.freeze({
-  searchOptions:{section:'#searchOptionsSection',button:'#searchOptionsToggle',stateKey:'searchOptionsExpanded',storageKey:'rhymelab.searchOptionsExpanded'},
-  resultFilters:{section:'#resultFiltersSection',button:'#resultFiltersToggle',stateKey:'resultFiltersExpanded',storageKey:'rhymelab.resultFiltersExpanded'},
+  searchOptions:{section:'#searchOptionsSection',button:'#searchOptionsToggle',stateKey:'searchOptionsExpanded',storageKey:'rhymelab.searchOptionsExpanded.v2'},
+  resultFilters:{section:'#resultFiltersSection',button:'#resultFiltersToggle',stateKey:'resultFiltersExpanded',storageKey:'rhymelab.resultFiltersExpanded.v2'},
 });
 
 function searchStickyTop(){
@@ -191,27 +191,47 @@ function searchStickyTop(){
 function updateStickyLayout(){
   if(typeof window==='undefined')return;
   const root=document.documentElement;
-  const stage=$('.search-stage');
-  if(!stage||!root?.style?.setProperty)return;
+  const core=$('#searchForm');
+  if(!root?.style?.setProperty)return;
   const stickyTop=searchStickyTop();
-  const rect=stage.getBoundingClientRect?.();
-  const stageHeight=Math.ceil(Number(rect?.height||stage.offsetHeight||0));
+  const coreRect=core?.getBoundingClientRect?.();
+  const coreHeight=Math.ceil(Number(coreRect?.height||core?.offsetHeight||60));
   root.style.setProperty('--search-sticky-top',`${stickyTop}px`);
-  root.style.setProperty('--word-panel-sticky-top',`${stickyTop+stageHeight+14}px`);
+  root.style.setProperty('--word-panel-sticky-top',`${stickyTop+coreHeight+14}px`);
+}
+
+function refreshSearchCompactThreshold(){
+  if(typeof window==='undefined')return null;
+  const stage=$('.search-stage');
+  const anchor=$('#searchStageAnchor');
+  const core=$('#searchForm');
+  if(!stage||!anchor||!core||stage.classList.contains('search-auto-compact'))return state.searchAutoCompactThreshold;
+  const anchorRect=anchor.getBoundingClientRect?.();
+  const coreRect=core.getBoundingClientRect?.();
+  const stageHeight=Number(stage.offsetHeight||stage.getBoundingClientRect?.()?.height||0);
+  const coreHeight=Number(coreRect?.height||core.offsetHeight||60);
+  const anchorDocumentY=window.scrollY+Number(anchorRect?.top||0);
+  state.searchAutoCompactThreshold=Math.max(
+    0,
+    Math.round(anchorDocumentY+stageHeight-searchStickyTop()-coreHeight),
+  );
+  return state.searchAutoCompactThreshold;
 }
 
 function syncSearchSectionControls(){
   const stage=$('.search-stage');
   const autoCompact=stage?.classList.contains('search-auto-compact');
-  for(const [name,config] of Object.entries(SEARCH_SECTION_CONFIG)){
+  for(const config of Object.values(SEARCH_SECTION_CONFIG)){
     const section=$(config.section);
     const button=$(config.button);
     const preferred=Boolean(state[config.stateKey]);
-    section?.classList.toggle('section-collapsed',!preferred);
-    const peeked=stage?.classList.contains(`search-auto-peek-${name}`);
-    button?.setAttribute('aria-expanded',String(preferred&&(!autoCompact||peeked)));
+    const actuallyExpanded=preferred&&!autoCompact;
+    section?.classList.toggle('section-collapsed',!actuallyExpanded);
+    button?.classList.toggle('active',actuallyExpanded);
+    button?.setAttribute('aria-expanded',String(actuallyExpanded));
   }
   updateStickyLayout();
+  if(!autoCompact)refreshSearchCompactThreshold();
 }
 
 function setSearchSectionExpanded(name,expanded,{persist=true}={}){
@@ -219,29 +239,30 @@ function setSearchSectionExpanded(name,expanded,{persist=true}={}){
   if(!config)return;
   state[config.stateKey]=Boolean(expanded);
   if(persist)localStorage.setItem(config.storageKey,expanded?'1':'0');
-  const stage=$('.search-stage');
-  stage?.classList.remove('search-auto-compact','search-auto-peek-searchOptions','search-auto-peek-resultFilters');
+  $('.search-stage')?.classList.remove('search-auto-compact');
   syncSearchSectionControls();
 }
 
 function toggleSearchSection(name){
   const config=SEARCH_SECTION_CONFIG[name];
   if(!config)return;
-  setSearchSectionExpanded(name,!state[config.stateKey]);
-}
-
-function setSearchAutoPeek(name,active){
-  const config=SEARCH_SECTION_CONFIG[name];
   const stage=$('.search-stage');
-  if(!config||!stage?.classList.contains('search-auto-compact')||!state[config.stateKey])return;
-  stage.classList.toggle(`search-auto-peek-${name}`,Boolean(active));
-  syncSearchSectionControls();
+  if(stage?.classList.contains('search-auto-compact')){
+    stage.classList.remove('search-auto-compact');
+    if(!state[config.stateKey]){
+      state[config.stateKey]=true;
+      localStorage.setItem(config.storageKey,'1');
+    }
+    syncSearchSectionControls();
+    return;
+  }
+  setSearchSectionExpanded(name,!state[config.stateKey]);
 }
 
 function clearSearchAutoCompact(){
   const stage=$('.search-stage');
   if(!stage)return;
-  stage.classList.remove('search-auto-compact','search-auto-peek-searchOptions','search-auto-peek-resultFilters');
+  stage.classList.remove('search-auto-compact');
   syncSearchSectionControls();
 }
 
@@ -250,26 +271,24 @@ function syncFloatingSearchState(){
   const stage=$('.search-stage');
   if(!stage)return;
   updateStickyLayout();
-
   if(!state.data){
-    clearSearchAutoCompact();
+    if(stage.classList.contains('search-auto-compact'))clearSearchAutoCompact();
     return;
   }
+
+  const threshold=state.searchAutoCompactThreshold??refreshSearchCompactThreshold();
+  if(!Number.isFinite(threshold))return;
+  const focusedInside=Boolean(document.activeElement&&stage.contains?.(document.activeElement));
 
   if(stage.classList.contains('search-auto-compact')){
-    if(window.scrollY<=4)clearSearchAutoCompact();
+    if(window.scrollY<threshold-24){
+      stage.classList.remove('search-auto-compact');
+      syncSearchSectionControls();
+    }
     return;
   }
 
-  const anyPreferredPanel=state.searchOptionsExpanded||state.resultFiltersExpanded;
-  if(!anyPreferredPanel)return;
-  const rect=stage.getBoundingClientRect?.();
-  if(!rect)return;
-  const stickyTop=searchStickyTop();
-  const atStickyBoundary=rect.top<=stickyTop+1;
-  const lowerEdgeThreatened=rect.bottom>=window.innerHeight-24;
-  const focusedInside=Boolean(document.activeElement&&stage.contains?.(document.activeElement));
-  if(atStickyBoundary&&lowerEdgeThreatened&&!focusedInside){
+  if(window.scrollY>=threshold&&!focusedInside){
     stage.classList.add('search-auto-compact');
     syncSearchSectionControls();
   }
@@ -381,6 +400,7 @@ function render(){
   setupInfiniteScroll(progressive&&hasMore);
   renderCapabilityNotice(state.data.warnings||[]);
   updateStickyLayout();
+  refreshSearchCompactThreshold();
 }
 function resultByKey(key){return state.data?.results?.find((row)=>`${row.resultKind||'word'}:${row.resultId||row.windowId||row.normalized||row.word}`===key)||null;}
 async function inspectResult(result,displayType=null){if(!result)return;const key=`${result.resultKind||'word'}:${result.resultId||result.windowId||result.normalized||result.word}`;if(!key||!state.data)return;state.inspectedWord=key;state.inspectedResult=result;state.inspectedType=displayType;const token=++state.detailRequest;if(result.resultKind==='entity'){renderEntityPanel(result,displayType);return;}if(result.resultKind==='phrase'){const cacheKey=`phrase:${result.phraseId||result.normalized}`,cached=state.wordCache.get(cacheKey);if(cached){if(token===state.detailRequest&&state.inspectedWord===key)renderPhrasePanel(result,result,cached,displayType);return;}if(!result.phraseId){renderPhrasePanel(result,result,null,displayType);return;}try{const response=await fetch(`/api/phrases/detail?id=${encodeURIComponent(result.phraseId)}`);if(!response.ok){renderPhrasePanel(result,result,null,displayType);return;}const detail=await response.json();state.wordCache.set(cacheKey,detail);if(token===state.detailRequest&&state.inspectedWord===key)renderPhrasePanel(result,result,detail,displayType);}catch{renderPhrasePanel(result,result,null,displayType);}return;}const wordKey=wordCacheKey(result.language||'de',result.normalized||result.word),cached=state.wordCache.get(wordKey);if(cached){if(token===state.detailRequest&&state.inspectedWord===key)renderWordPanel(cached,result,displayType);return;}try{const response=await fetch(`/api/word/${encodeURIComponent(result.word)}?language=${encodeURIComponent(result.language||'de')}`);if(!response.ok)return;const detail=await response.json();state.wordCache.set(wordKey,detail);if(token===state.detailRequest&&state.inspectedWord===key)renderWordPanel(detail,result,displayType);}catch{}}
@@ -498,7 +518,6 @@ async function requestWriter(params){
 async function search(word){
   state.query=word.trim();
   if(!state.query)return;
-  clearSearchAutoCompact();
   $('#emptyState').classList.add('hidden');
   $('#workspace').classList.remove('hidden');
   $('#resultFiltersSection').classList.remove('hidden');
@@ -562,6 +581,7 @@ async function search(word){
     history.replaceState(null,'',url);
     render();
     syncSearchSectionControls();
+    refreshSearchCompactThreshold();
     syncFloatingSearchState();
   }catch(error){
     state.data=null;
@@ -580,7 +600,7 @@ const REQUIRED_SINGLE_CONTROLS=[
   '#searchForm','#searchInput','#scopeFilter','#typeFilter','#variantMode','#syllableFilter','#sortMode',
   '#historicalMode','#entityCategory','#sourcesButton','#sourcesClose','#sourcesDialog','#results',
   '#resultsToolbar','#resultFiltersSection','#searchOptionsToggle','#resultFiltersToggle',
-  '#searchOptionsSection','#searchOptionsPanel','#resultFiltersPanel','.search-stage',
+  '#searchOptionsSection','#searchOptionsPanel','#resultFiltersPanel','#searchStageAnchor','.search-stage',
 ];
 const REQUIRED_CONTROL_GROUPS=[
   '.ui-lang-option','.view-option','.basis-option','.result-language-option','.scope-option',
@@ -600,14 +620,6 @@ function installInteractiveControls(){
   $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();search($('#searchInput').value);});
   $('#searchOptionsToggle').addEventListener('click',()=>toggleSearchSection('searchOptions'));
   $('#resultFiltersToggle').addEventListener('click',()=>toggleSearchSection('resultFilters'));
-  for(const [name,config] of Object.entries(SEARCH_SECTION_CONFIG)){
-    const section=$(config.section);
-    const button=$(config.button);
-    button.addEventListener('pointerenter',()=>setSearchAutoPeek(name,true));
-    button.addEventListener('focus',()=>setSearchAutoPeek(name,true));
-    section.addEventListener('pointerleave',()=>setSearchAutoPeek(name,false));
-    section.addEventListener('focusout',(event)=>{if(!section.contains(event.relatedTarget))setSearchAutoPeek(name,false);});
-  }
   $$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{const language=button.dataset.uiLang;if(!['de','en'].includes(language))return;state.lang=language;localStorage.setItem('rhymelab.language',language);applyLanguage();}));
   $$('.view-option').forEach((button)=>button.addEventListener('click',()=>{const view=button.dataset.view;if(!['list','compact'].includes(view))return;state.view=view;localStorage.setItem('rhymelab.resultView',view);syncViewControls();if(state.data)render();}));
   $$('.basis-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.basis=['de','en','both'].includes(button.dataset.basis)?button.dataset.basis:'de';localStorage.setItem('rhymelab.searchBasis',state.basis);syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
@@ -627,7 +639,7 @@ function installInteractiveControls(){
   $('#results').addEventListener('focusout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
   if(typeof window!=='undefined'){
     window.addEventListener('scroll',()=>syncFloatingSearchState(),{passive:true});
-    window.addEventListener('resize',()=>{clearSearchAutoCompact();syncFloatingSearchState();},{passive:true});
+    window.addEventListener('resize',()=>{clearSearchAutoCompact();refreshSearchCompactThreshold();syncFloatingSearchState();},{passive:true});
   }
 
   document.documentElement.dataset.rhymelabControls='bound';
