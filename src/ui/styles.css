@@ -28,7 +28,7 @@
 .scope-option{font-size:12px}
 .basis-option:hover:not(:disabled),.scope-option:hover:not(:disabled){background:rgba(255,255,255,.62);color:var(--ink)}
 .basis-option.active,.scope-option.active{background:var(--surface-strong);color:var(--accent-ink);box-shadow:0 2px 8px rgba(35,31,24,.08)}
-.basis-option.partial,.scope-option.partial{box-shadow:inset 0 -2px 0 #b58a2b}
+.basis-option.partial,.scope-option.partial{box-shadow:none}
 .basis-option:disabled,.scope-option:disabled,.basis-option.unavailable,.scope-option.unavailable{cursor:not-allowed;opacity:.38}
 .basis-option:focus-visible,.scope-option:focus-visible,.search-button:focus-visible,.primary-nav-link:focus-visible{outline:3px solid rgba(49,84,213,.22);outline-offset:2px}
 .search-card .search{height:60px;border-radius:15px;box-shadow:none}
