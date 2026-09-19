@@ -303,3 +303,53 @@ test('unified Writer accepts browser-generated English IPA only as the query anc
     db.close();
   }
 });
+
+
+test('source-backed English query pronunciation wins over supplied browser IPA',()=>{
+  const db=fixtureEnglishDb();
+  try{
+    const result=searchUnifiedWriter(
+      {writerDb:{},englishDb:db},
+      'time',
+      {
+        language:'en',
+        resultLanguage:'en',
+        scope:'words',
+        wordLimit:20,
+        queryPronunciations:{
+          en:{ipa:'ˈwaɪn',method:'client_rules',sourceBacked:false},
+        },
+      },
+    );
+    assert.equal(result.status,'ok');
+    assert.equal(result.query.surface,'time');
+    assert.notEqual(result.query.preferredIpa,'ˈwaɪn');
+    assert.notEqual(result.query.generatedPronunciation,true);
+    assert.ok(result.results.some((row)=>row.normalized==='rhyme'));
+  }finally{
+    db.close();
+  }
+});
+
+test('invalid browser IPA is rejected instead of becoming lexical truth',()=>{
+  const db=fixtureEnglishDb();
+  try{
+    const result=searchUnifiedWriter(
+      {writerDb:{},englishDb:db},
+      'totallyunknownsurface',
+      {
+        language:'en',
+        resultLanguage:'en',
+        scope:'words',
+        queryPronunciations:{
+          en:{ipa:'???',method:'client_rules',sourceBacked:false},
+        },
+      },
+    );
+    assert.equal(result.status,'query_not_found');
+    assert.equal(result.query,null);
+    assert.deepEqual(result.results,[]);
+  }finally{
+    db.close();
+  }
+});
