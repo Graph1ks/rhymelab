@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
 const args=process.argv.slice(2);
@@ -29,22 +29,68 @@ const runtimeReport=resolve(outDir,'entity-multilingual-runtime-v1-report.json')
 const verificationReport=resolve(outDir,'entity-multilingual-runtime-verification-v1-report.json');
 const writerReport=resolve(outDir,'entity-writer-acceptance-v1-report.json');
 
-function runStep(id,script,stepArgs){
-  console.error(`\n[phase12c-owner] ${id}`);
-  const child=spawnSync(process.execPath,[script,...stepArgs],{
-    stdio:'inherit',
-    cwd:process.cwd(),
-  });
-  return {
-    id,
-    exit_code:child.status??1,
-    signal:child.signal||null,
-    passed:child.status===0,
-  };
+function appendTail(current,chunk,limit=12000){
+  return (current+String(chunk||'')).slice(-limit);
 }
 
+async function runStep(id,script,stepArgs){
+  console.error(`\n[phase12c-owner] ${id}`);
+  return new Promise((resolveStep)=>{
+    const child=spawn(process.execPath,[script,...stepArgs],{
+      stdio:['inherit','pipe','pipe'],
+      cwd:process.cwd(),
+    });
+    let stdoutTail='';
+    let stderrTail='';
+    let settled=false;
+    const finish=(row)=>{
+      if(settled) return;
+      settled=true;
+      resolveStep(row);
+    };
+    child.stdout.on('data',(chunk)=>{
+      process.stdout.write(chunk);
+      stdoutTail=appendTail(stdoutTail,chunk);
+    });
+    child.stderr.on('data',(chunk)=>{
+      process.stderr.write(chunk);
+      stderrTail=appendTail(stderrTail,chunk);
+    });
+    child.once('error',(error)=>{
+      finish({
+        id,
+        exit_code:1,
+        signal:null,
+        passed:false,
+        error:String(error?.message||error),
+        stdout_tail:stdoutTail||null,
+        stderr_tail:stderrTail||null,
+      });
+    });
+    child.once('close',(code,signal)=>{
+      const passed=code===0;
+      finish({
+        id,
+        exit_code:code??1,
+        signal:signal||null,
+        passed,
+        ...(passed?{}:{
+          stdout_tail:stdoutTail||null,
+          stderr_tail:stderrTail||null,
+        }),
+      });
+    });
+  });
+}
+
+await Promise.all([
+  rm(runtimeReport,{force:true}),
+  rm(verificationReport,{force:true}),
+  rm(writerReport,{force:true}),
+]);
+
 const steps=[];
-steps.push(runStep(
+steps.push(await runStep(
   'materialize_multilingual_entity_runtime',
   'scripts/materialize-entity-multilingual-runtime.mjs',
   [
@@ -57,7 +103,7 @@ steps.push(runStep(
 ));
 
 if(steps.at(-1).passed){
-  steps.push(runStep(
+  steps.push(await runStep(
     'verify_multilingual_entity_runtime',
     'scripts/verify-entity-multilingual-runtime.mjs',
     ['--entities',entityDb,'--report',runtimeReport,'--out',verificationReport],
@@ -65,7 +111,7 @@ if(steps.at(-1).passed){
 }
 
 if(steps.at(-1).passed){
-  steps.push(runStep(
+  steps.push(await runStep(
     'accept_entity_writer',
     'scripts/accept-entity-writer-phase12c.mjs',
     [
@@ -83,9 +129,12 @@ async function readJson(path){
   return JSON.parse(await readFile(path,'utf8'));
 }
 
-const runtime=await readJson(runtimeReport);
-const verification=await readJson(verificationReport);
-const writer=await readJson(writerReport);
+const materializeStep=steps.find((row)=>row.id==='materialize_multilingual_entity_runtime');
+const verifyStep=steps.find((row)=>row.id==='verify_multilingual_entity_runtime');
+const writerStep=steps.find((row)=>row.id==='accept_entity_writer');
+const runtime=materializeStep?.passed?await readJson(runtimeReport):null;
+const verification=verifyStep?.passed?await readJson(verificationReport):null;
+const writer=writerStep?.passed?await readJson(writerReport):null;
 const passed=steps.length===3
   &&steps.every((row)=>row.passed)
   &&runtime?.status==='ok'
