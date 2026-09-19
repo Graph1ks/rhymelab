@@ -2,6 +2,10 @@ import { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';
 import { getPhonologyProfile } from '../scripts/phonology-profiles.mjs';
 import {
+  ENTITY_WRITER_RANKING_POLICY,
+  rankAndDiversifyEntityRows,
+} from './entity-writer-ranking.mjs';
+import {
   ENTITY_EN_PHONETIC_RUNTIME,
   ENTITY_EN_RUNTIME_ANALYZER,
   ENTITY_PHONETIC_RUNTIME,
@@ -97,21 +101,38 @@ function normalizeCategory(value) {
   return category || 'all';
 }
 
-function categoryRows(db, entityId) {
-  return db.prepare(`
-    SELECT category,category_score,category_rank,category_percentile,
-      category_tier,retained_by_category
-    FROM entity_category
-    WHERE entity_id=?
-    ORDER BY retained_by_category DESC,category_percentile DESC,category
-  `).all(entityId).map((row) => ({
-    category: row.category,
-    score: Number(row.category_score || 0),
-    rank: Number(row.category_rank || 0),
-    percentile: Number(row.category_percentile || 0),
-    tier: row.category_tier,
-    retained: Boolean(row.retained_by_category),
-  }));
+function categoryRowsByEntity(db, entityIds, chunkSize = 400) {
+  const ids = [...new Set((entityIds || []).map(Number).filter(Number.isFinite))];
+  const rowsByEntity = new Map(ids.map((id) => [id, []]));
+  let queryCount = 0;
+
+  for (let offset = 0; offset < ids.length; offset += chunkSize) {
+    const chunk = ids.slice(offset, offset + chunkSize);
+    if (!chunk.length) continue;
+    const placeholders = chunk.map(() => '?').join(',');
+    const rows = db.prepare(`
+      SELECT entity_id,category,category_score,category_rank,category_percentile,
+        category_tier,retained_by_category
+      FROM entity_category
+      WHERE entity_id IN (${placeholders})
+      ORDER BY entity_id,retained_by_category DESC,category_percentile DESC,category
+    `).all(...chunk);
+    queryCount += 1;
+    for (const row of rows) {
+      const entityId = Number(row.entity_id);
+      if (!rowsByEntity.has(entityId)) rowsByEntity.set(entityId, []);
+      rowsByEntity.get(entityId).push({
+        category: row.category,
+        score: Number(row.category_score || 0),
+        rank: Number(row.category_rank || 0),
+        percentile: Number(row.category_percentile || 0),
+        tier: row.category_tier,
+        retained: Boolean(row.retained_by_category),
+      });
+    }
+  }
+
+  return { rowsByEntity, queryCount };
 }
 
 function runtimeLanguageState(db,tablesReady,language){
@@ -318,6 +339,10 @@ export function searchEntityRhymes(db, query, options = {}) {
     }
   }
 
+  const categoryIndex=categoryRowsByEntity(
+    db,
+    [...byPronunciation.values()].map((row)=>row.entity_id),
+  );
   const results=[];
   for(const row of byPronunciation.values()){
     let candidateAnalysis;
@@ -331,7 +356,7 @@ export function searchEntityRhymes(db, query, options = {}) {
     if(!types.length) continue;
     if(requestedType!=='all'&&!types.includes(requestedType)) continue;
     const relations=relationRows(score);
-    const categories=categoryRows(db,row.entity_id);
+    const categories=categoryIndex.rowsByEntity.get(Number(row.entity_id))||[];
     const selectedCategory=category==='all'
       ?categories.find((entry)=>entry.category===row.primary_category)||categories[0]||null
       :categories.find((entry)=>entry.category===category)||null;
@@ -389,31 +414,13 @@ export function searchEntityRhymes(db, query, options = {}) {
     });
   }
 
-  results.sort((a,b)=>
-    Number(a.rhymeTier??99)-Number(b.rhymeTier??99)
-    ||Number(b.score||0)-Number(a.score||0)
-    ||Number(a.syllableDistance||0)-Number(b.syllableDistance||0)
-    ||Number(b.selectedCategory?.percentile||b.popularityPercentile||0)
-      -Number(a.selectedCategory?.percentile||a.popularityPercentile||0)
-    ||Number(b.popularityScore||0)-Number(a.popularityScore||0)
-    ||a.surface.localeCompare(b.surface,language==='de'?'de':'en')
-    ||a.entityQid.localeCompare(b.entityQid,'en')
-  );
-
-  const deduped=[];
-  const seen=new Set();
-  for(const row of results){
-    const key=`${row.entityQid}\u001f${row.normalized}`;
-    if(seen.has(key)) continue;
-    seen.add(key);
-    deduped.push(row);
-    if(deduped.length>=limit) break;
-  }
+  const ranked=rankAndDiversifyEntityRows(results,{limit});
 
   return {
     available:true,
     reason:null,
     policy:ENTITY_WRITER_RUNTIME_POLICY,
+    rankingPolicy:ENTITY_WRITER_RANKING_POLICY,
     runtime:languageCapability.runtime,
     analyzer:languageCapability.analyzer,
     language,
@@ -421,6 +428,15 @@ export function searchEntityRhymes(db, query, options = {}) {
     category,
     retrievalAnchors:anchors,
     candidateCount:byPronunciation.size,
-    results:deduped.map((row,index)=>({...row,channelRank:index+1})),
+    scoredCandidateCount:results.length,
+    rankingDiagnostics:{
+      categoryBatchQueries:categoryIndex.queryCount,
+      phoneticBandWidth:ranked.phoneticBandWidth,
+      surfaceCap:ranked.surfaceCap,
+      suppressedCount:ranked.suppressedCount,
+      suppressionReasonCounts:ranked.suppressionReasonCounts,
+      guardViolations:ranked.guardViolations,
+    },
+    results:ranked.results,
   };
 }
