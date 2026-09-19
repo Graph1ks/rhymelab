@@ -99,6 +99,39 @@ async function runCommandAsync(command,args,runner){
   });
 }
 
+export function inspectEspeakIpaOutput(
+  surface,
+  language,
+  rawIpa,
+  {engineCommand=null,engineVersion=null,attempts=[]}={},
+){
+  const code=normalizeLanguage(language);
+  const raw=String(rawIpa??'').normalize('NFC').trim();
+  const ipa=normalizeEspeakIpa(raw,code);
+  if(!ipa){
+    return {
+      status:'rejected',language:code,surface:String(surface),engine:'espeak-ng',
+      engineCommand,engineVersion,rawIpa:raw,ipa,
+      analyzerError:'empty_normalized_ipa',attempts,
+    };
+  }
+  try{
+    const profile=getPhonologyProfile(code);
+    const analysis=profile.analyzeIpa(ipa);
+    return {
+      status:'accepted',method:'espeak_ng',engine:'espeak-ng',
+      engineCommand,engineVersion,language:code,surface:String(surface),
+      rawIpa:raw,ipa,analysis,attempts,
+    };
+  }catch(error){
+    return {
+      status:'rejected',language:code,surface:String(surface),engine:'espeak-ng',
+      engineCommand,engineVersion,rawIpa:raw,ipa,
+      analyzerError:String(error?.message||error),attempts,
+    };
+  }
+}
+
 export function inspectEspeakQueryPronunciation(
   surface,
   language,
@@ -128,31 +161,11 @@ export function inspectEspeakQueryPronunciation(
     }
 
     if(autoDiscovery)autoEspeakCommandState=candidate;
-    const rawIpa=String(result.stdout??'').normalize('NFC').trim();
-    const ipa=normalizeEspeakIpa(rawIpa,code);
-    if(!ipa){
-      return {
-        status:'rejected',language:code,surface:String(surface),engine:'espeak-ng',
-        engineCommand:candidate,engineVersion:engineVersion(candidate,runner),
-        rawIpa,ipa,analyzerError:'empty_normalized_ipa',attempts,
-      };
-    }
-
-    try{
-      const profile=getPhonologyProfile(code);
-      const analysis=profile.analyzeIpa(ipa);
-      return {
-        status:'accepted',method:'espeak_ng',engine:'espeak-ng',
-        engineCommand:candidate,engineVersion:engineVersion(candidate,runner),
-        language:code,surface:String(surface),rawIpa,ipa,analysis,attempts,
-      };
-    }catch(error){
-      return {
-        status:'rejected',language:code,surface:String(surface),engine:'espeak-ng',
-        engineCommand:candidate,engineVersion:engineVersion(candidate,runner),
-        rawIpa,ipa,analyzerError:String(error?.message||error),attempts,
-      };
-    }
+    return inspectEspeakIpaOutput(surface,code,result.stdout,{
+      engineCommand:candidate,
+      engineVersion:engineVersion(candidate,runner),
+      attempts,
+    });
   }
 
   if(autoDiscovery)autoEspeakCommandState=null;
@@ -188,31 +201,11 @@ export async function inspectEspeakQueryPronunciationAsync(
     }
 
     if(autoDiscovery)autoEspeakCommandState=candidate;
-    const rawIpa=String(result.stdout??'').normalize('NFC').trim();
-    const ipa=normalizeEspeakIpa(rawIpa,code);
-    if(!ipa){
-      return {
-        status:'rejected',language:code,surface:String(surface),engine:'espeak-ng',
-        engineCommand:candidate,engineVersion:engineVersion(candidate,runner),
-        rawIpa,ipa,analyzerError:'empty_normalized_ipa',attempts,
-      };
-    }
-
-    try{
-      const profile=getPhonologyProfile(code);
-      const analysis=profile.analyzeIpa(ipa);
-      return {
-        status:'accepted',method:'espeak_ng',engine:'espeak-ng',
-        engineCommand:candidate,engineVersion:engineVersion(candidate,runner),
-        language:code,surface:String(surface),rawIpa,ipa,analysis,attempts,
-      };
-    }catch(error){
-      return {
-        status:'rejected',language:code,surface:String(surface),engine:'espeak-ng',
-        engineCommand:candidate,engineVersion:engineVersion(candidate,runner),
-        rawIpa,ipa,analyzerError:String(error?.message||error),attempts,
-      };
-    }
+    return inspectEspeakIpaOutput(surface,code,result.stdout,{
+      engineCommand:candidate,
+      engineVersion:engineVersion(candidate,runner),
+      attempts,
+    });
   }
 
   if(autoDiscovery)autoEspeakCommandState=null;
