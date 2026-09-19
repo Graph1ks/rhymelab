@@ -143,6 +143,8 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /const defaultSearchSectionsExpanded=true/);
   assert.match(app, /searchAutoCompactThreshold/);
   assert.match(app, /stickyPanelOverride/);
+  assert.match(app, /const STICKY_DETAIL_GAP=24/);
+  assert.doesNotMatch(app, /focusedInside/);
   assert.match(app, /function enterSearchAutoCompact\(/);
   assert.match(app, /function exitSearchAutoCompact\(/);
   assert.match(app, /function updateFloatingSearchGeometry\(/);
@@ -230,7 +232,7 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /width:var\(--search-fixed-width,100%\)/);
   assert.match(css, /overscroll-behavior:contain/);
   assert.doesNotMatch(css, /\.search-stage\.search-auto-compact\{[\s\S]{0,120}?position:sticky/);
-  assert.match(css, /\.word-panel\{top:var\(--word-panel-sticky-top,142px\)\}/);
+  assert.match(css, /\.word-panel\{top:var\(--word-panel-sticky-top,152px\)\}/);
   assert.match(css, /\.search-core-toggle/);
   assert.match(css, /grid-template-columns:auto minmax\(0,1fr\) auto 68px 68px/);
   assert.match(css, /\.search-control-section\.section-collapsed \.search-section-panel/);
