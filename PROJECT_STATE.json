@@ -2406,7 +2406,7 @@
       "owner_report": {
         "status": "evidence_ready",
         "report": "data/local/en-acceptance-bundle-v1-report.json",
-        "semantic_fingerprint": null,
+        "semantic_fingerprint": "d68ae5f883c9b4d007811573e94493d0bfe389a5c08144da3e63bb9195769c14",
         "runtime_repeatability_passed": true,
         "runtime_runs": 3,
         "runtime_fingerprint": "dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf",
