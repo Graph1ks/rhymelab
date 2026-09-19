@@ -33,6 +33,7 @@ Before changing the project in a fresh thread/session, read:
 25. `docs/QUERY_PRONUNCIATION_TOTAL_V1.md` for the active client-side total query-pronunciation runtime for words and word chains plus benchmark/staging boundaries
 26. `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md` for the current client resolver, persistent cache/revalidation contract, browser test, and fresh-thread continuation
 27. `docs/PRONUNCIATION_BACKFILL_V2.md` for the corrected owner-authorized source/stage → accepted diff plus resumable eSpeak → client-resolver staging workflow
+28. `docs/LOCAL_DATA_INVENTORY.md` before changing local source-path assumptions or full-data backfill adapters
 
 ## Operating model — solo-dev / owner-controlled
 
@@ -108,6 +109,7 @@ A narrow pronunciation exception is active for **user query anchors**: when sour
 - Do not invent lexical, pronunciation, phraseological, source, license, or benchmark facts.
 - Unknown or partially unresolved **user queries, including multi-word chains**, use client Total Query Pronunciation: source-backed query/token pronunciation is preferred, missing token pronunciations are generated deterministically in the end-user client, and the resulting ephemeral DE/EN phrase/word anchor re-enters the existing RhymeLab database/retrieval/ranking path. Generated token pronunciation may persist only as revision-/policy-gated non-canonical performance cache; generated query anchors are not lexical facts and must never be silently promoted into accepted data.
 - Owner-only bulk pronunciation cleanup is now allowed only through corrected Backfill V2: collect source/stage → accepted gaps into a separate local staging DB, run the existing eSpeak-NG adapter first, run `client-total-query-pronunciation-v2` only for eSpeak analyzer-rejections, preserve A/B/C/D/U generated-quality classes, resume from SQLite checkpoints, and require a later explicit promotion/audit decision before any generated row can enter canonical runtime data.
+- Before assuming historical/original local data paths or adapting Backfill V2 to owner files, run `npm run data:inventory` and use `data/local/local-data-inventory-v1-report.json` as the structural/path evidence. Do not guess source locations from repository conventions when owner-local artifacts may differ.
 - Public web visibility alone does not make a source legally/reproducibly ingestible.
 - External-model reference labels are evidence, not human-expert gold.
 - Protect accepted exact-rhyme behavior unless strong evidence requires otherwise.
