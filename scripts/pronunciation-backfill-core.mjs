@@ -90,6 +90,7 @@ export function createPronunciationBackfillStorage(db){
     'CREATE INDEX IF NOT EXISTS idx_backfill_source_item ON source_ref(item_id,scope);',
     'CREATE INDEX IF NOT EXISTS idx_backfill_attempt_item ON attempt(item_id,stage,attempt_id);',
     'CREATE INDEX IF NOT EXISTS idx_backfill_admission_decision ON admission(decision,item_id);',
+    'CREATE INDEX IF NOT EXISTS idx_backfill_admission_reason ON admission(decision,reason,item_id);',
   ].join('\n'));
 }
 
