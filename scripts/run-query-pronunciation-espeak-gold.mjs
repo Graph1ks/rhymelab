@@ -10,7 +10,7 @@ import {
   evaluateAgainstReferences,
   pct,
 } from './query-pronunciation-gold-core.mjs';
-import { inspectEspeakQueryPronunciation } from '../src/query-pronunciation-runtime.mjs';
+import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-adapter.mjs';
 
 const args=process.argv.slice(2);
 function argValue(flag,fallback=null){
