@@ -161,11 +161,13 @@ console.log(JSON.stringify({
 },null,2));
 
 const insertEvidence=prepareEntityPronunciationSourceInsert(sourceDb);
-const insertMany=sourceDb.transaction((rows)=>{
+function insertMany(rows){
   let inserted=0;
-  for(const row of rows) inserted+=insertEntityPronunciationEvidence(insertEvidence,row);
+  for(const row of rows){
+    inserted+=insertEntityPronunciationEvidence(insertEvidence,row);
+  }
   return inserted;
-});
+}
 
 const sourceStats={
   kaikki:{
@@ -193,6 +195,7 @@ const sourceStats={
 };
 
 console.log('\n12C SOURCE EXPANSION: scan existing raw Kaikki proper-name IPA…');
+sourceDb.exec('BEGIN IMMEDIATE;');
 const kaikkiLines=createInterface({
   input:createReadStream(kaikkiPath).pipe(createGunzip()),
   crlfDelay:Infinity,
@@ -229,8 +232,10 @@ for await(const line of kaikkiLines){
     );
   }
 }
+sourceDb.exec('COMMIT;');
 
 console.log('\n12C SOURCE EXPANSION: scan full pinned CMUdict directly…');
+sourceDb.exec('BEGIN IMMEDIATE;');
 const cmuLines=createInterface({
   input:createReadStream(cmudictPath),
   crlfDelay:Infinity,
@@ -244,8 +249,10 @@ for await(const line of cmuLines){
   const row=cmudictEntityPronunciation(entry);
   if(row) sourceStats.cmudict.inserted+=insertMany([row]);
 }
+sourceDb.exec('COMMIT;');
 
 if(mobyPath){
+  sourceDb.exec('BEGIN IMMEDIATE;');
   console.log('\n12C SOURCE EXPANSION: scan optional Moby Pronunciator II evidence…');
   const mobyLines=createInterface({
     input:createReadStream(mobyPath),
@@ -260,6 +267,7 @@ if(mobyPath){
     const row=mobyEntityPronunciation(entry);
     if(row) sourceStats.moby.inserted+=insertMany([row]);
   }
+  sourceDb.exec('COMMIT;');
 }else{
   console.log('\n12C SOURCE EXPANSION: Moby file absent; optional source skipped.');
 }
