@@ -269,11 +269,24 @@ export function englishRuntimeQueryPlans(db){
     family_coda:db.prepare("SELECT vowel_family AS a,coda_class AS b FROM en_pronunciation WHERE default_profile_eligible=1 AND vowel_family IS NOT NULL AND coda_class IS NOT NULL ORDER BY id LIMIT 1").get(),
     coda:db.prepare("SELECT coda_key AS a FROM en_pronunciation WHERE default_profile_eligible=1 AND coda_key IS NOT NULL ORDER BY id LIMIT 1").get(),
   };
+  const runtimePlan=(where,...args)=>plan(
+    `SELECT p.id
+     FROM en_pronunciation p
+     JOIN en_form f ON f.id=p.form_id
+     WHERE ${where}
+       AND p.default_profile_eligible=1
+       AND f.default_eligible=1
+       AND p.form_id<>?
+     ORDER BY p.id
+     LIMIT 128`,
+    ...args,
+    -1
+  );
   return {
-    exact:samples.exact?plan('SELECT id FROM en_pronunciation WHERE exact_key=? AND default_profile_eligible=1 ORDER BY id LIMIT 128',samples.exact.a):[],
-    multi:samples.multi?plan('SELECT id FROM en_pronunciation WHERE multisyllable_key=? AND default_profile_eligible=1 ORDER BY id LIMIT 128',samples.multi.a):[],
-    vowel:samples.vowel?plan('SELECT id FROM en_pronunciation WHERE vowel_key=? AND default_profile_eligible=1 ORDER BY id LIMIT 128',samples.vowel.a):[],
-    family_coda:samples.family_coda?plan('SELECT id FROM en_pronunciation WHERE vowel_family=? AND coda_class=? AND default_profile_eligible=1 ORDER BY id LIMIT 128',samples.family_coda.a,samples.family_coda.b):[],
-    coda:samples.coda?plan('SELECT id FROM en_pronunciation WHERE coda_key=? AND default_profile_eligible=1 ORDER BY id LIMIT 128',samples.coda.a):[],
+    exact:samples.exact?runtimePlan('p.exact_key=?',samples.exact.a):[],
+    multi:samples.multi?runtimePlan('p.multisyllable_key=?',samples.multi.a):[],
+    vowel:samples.vowel?runtimePlan('p.vowel_key=?',samples.vowel.a):[],
+    family_coda:samples.family_coda?runtimePlan('p.vowel_family=? AND p.coda_class=?',samples.family_coda.a,samples.family_coda.b):[],
+    coda:samples.coda?runtimePlan('p.coda_key=?',samples.coda.a):[],
   };
 }
