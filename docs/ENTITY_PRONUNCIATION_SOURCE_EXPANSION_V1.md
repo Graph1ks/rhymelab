@@ -153,12 +153,14 @@ Primary proper-name G2P candidate.
 Pinned benchmark target:
 
 ```text
-English (US) MFA G2P model v2.2.1
-architecture  Phonetisaurus
+English (US) ARPA G2P model v2.0.0a
+model id      english_us_arpa
+architecture  pynini
+phone set     ARPA
 license       CC BY 4.0
 ```
 
-This is compatible with the project's local/offline and commercial-use constraints, subject to attribution.
+This is compatible with the project's local/offline and commercial-use constraints, subject to attribution. ARPA is selected because it feeds the accepted RhymeLab English analyzer directly without an extra phone-set conversion layer.
 
 ### DeepPhonemizer
 
@@ -183,8 +185,8 @@ npm run entity:g2p:benchmark:prepare
 Outputs:
 
 ```text
-data/local/entity-g2p-proper-name-benchmark-v1.json
-data/local/entity-g2p-proper-name-benchmark-v1-input.tsv
+data/local/entity-g2p-proper-name-benchmark-v2.json
+data/local/entity-g2p-proper-name-benchmark-v2-input.tsv
 ```
 
 The benchmark is built from real preferred Entity names with direct source-backed pronunciation evidence. This gives us a relevant proper-name control instead of relying on ordinary dictionary-word G2P accuracy.
@@ -257,3 +259,10 @@ generated G2P used             no
 ```
 
 Decision: accept the source-expansion layer. Do not add another blocking Moby run. Move directly to the real proper-name G2P benchmark. Only the residual 704,989-name population is eligible for a later generated-pronunciation policy, and only after benchmark evidence.
+
+
+## Benchmark v1 correction
+
+The first prepared 600-case benchmark was rejected before any G2P execution because it sampled whole Entity surfaces rather than the unknown token unit used by fallback composition. It contained 599/600 single-word surfaces, 592/600 CMUdict-backed cases, and only 578 distinct normalized surfaces.
+
+The corrected contract is `docs/ENTITY_G2P_PROPER_NAME_BENCHMARK_V2.md`. v2 uses unique Entity-name tokens with explicit en-US Kaikki/Wiktionary proper-name IPA controls and excludes CMUdict as benchmark gold.

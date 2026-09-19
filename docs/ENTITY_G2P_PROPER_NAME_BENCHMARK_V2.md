@@ -1,0 +1,151 @@
+# Phase 12C — Proper-Name G2P Benchmark v2
+
+Status: **IMPLEMENTED / owner v2 preparation pending**
+
+## Why v1 was rejected before running G2P
+
+The first owner benchmark preparation completed successfully, but the resulting control set was not representative of the fallback problem.
+
+Owner v1 evidence:
+
+```text
+schema                     rhymelab-entity-g2p-proper-name-benchmark-v1
+status                     prepared
+cases                      600
+semantic fingerprint       e9b6e47cc91cee2e9410136f1e40de97c979679532b1a8eda62f26974eb62d7c
+
+single-word Entity surfaces 599 / 600
+CMUdict-backed cases        592 / 600
+distinct normalized         578 / 600
+duplicate normalized         22
+multi-word Entity surfaces    1 / 600
+```
+
+This would mainly measure ordinary-English / CMUdict-like spelling behavior, not the unknown name-unit problem that blocks Entity composition.
+
+Examples of duplicate controls included the same normalized surface through multiple entities/categories such as `Queen`, `Madonna`, `Metallica`, `Dune`, `Spider-Man`, and `Tesla`.
+
+No G2P model was run against v1.
+
+## Correct benchmark unit
+
+The generated fallback will be used to resolve **unknown Entity name tokens**, after deterministic Entity-name tokenization/composition.
+
+Therefore v2 benchmarks the same unit:
+
+```text
+Entity surface
+  -> deterministic Entity lookup units
+  -> unknown token
+  -> G2P candidate
+  -> compose Entity pronunciation
+```
+
+The benchmark control is a token observed inside a preferred searchable English Entity name for which raw Kaikki/Wiktionary provides explicit `en-US` proper-name IPA.
+
+This deliberately excludes CMUdict as benchmark gold. CMUdict remains a production source layer, but it must not make the G2P benchmark artificially easy.
+
+## v2 selection contract
+
+Default target: 600 unique normalized token controls.
+
+Each case must satisfy:
+
+- token appears in a real preferred searchable English Entity name;
+- token has explicit raw Kaikki/Wiktionary proper-name evidence;
+- at least one parseable `en-US` IPA control exists;
+- normalized token is unique across the benchmark;
+- control references are Kaikki proper-name IPA only;
+- Entity context is retained for category/popularity diagnostics;
+- deterministic per-category cap remains 100.
+
+The report also records coarse orthographic buckets:
+
+- `non_ascii`;
+- `apostrophe`;
+- `very_short`;
+- `short`;
+- `medium`;
+- `long`.
+
+## MFA candidate
+
+Primary candidate is now the official MFA **English (US) ARPA** G2P model rather than the MFA-phone-set model.
+
+```text
+model id       english_us_arpa
+model version  2.0.0a
+phone set      ARPA
+architecture   pynini
+license        CC BY 4.0
+```
+
+Reason: ARPA output is directly compatible with RhymeLab's accepted English ARPAbet analyzer. No extra MFA-phone-set conversion layer is required.
+
+The model remains build-time benchmark evidence only.
+
+## Owner workflow
+
+The standalone preparation command remains available for diagnostics:
+
+```powershell
+npm run entity:g2p:benchmark:prepare
+```
+
+It writes:
+
+```text
+data/local/entity-g2p-proper-name-benchmark-v2.json
+data/local/entity-g2p-proper-name-benchmark-v2-input.tsv
+```
+
+The normal owner gate does not require a separate review/upload between preparation and MFA.
+
+One-time MFA setup, if MFA is not already installed:
+
+```powershell
+conda create -n rhymelab-mfa -c conda-forge montreal-forced-aligner -y
+conda activate rhymelab-mfa
+mfa model download g2p english_us_arpa --version 2.0.0a
+```
+
+Then run the complete owner gate:
+
+```powershell
+git pull
+conda activate rhymelab-mfa
+npm run entity:g2p:benchmark:mfa
+```
+
+The npm command first rebuilds v2, then the runner:
+
+1. requires benchmark schema v2;
+2. requires zero duplicate normalized controls;
+3. verifies MFA is available;
+4. verifies the installed `english_us_arpa` model reports pinned version `2.0.0a`;
+5. generates one pronunciation per token;
+6. converts the generated dictionary to the RhymeLab prediction TSV contract;
+7. evaluates it automatically against explicit proper-name IPA controls.
+
+Primary output:
+
+```text
+data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json
+```
+
+Generated pronunciations are not persisted to the Entity DB by this workflow.
+
+## Decision boundary
+
+Do not promote G2P because it performs well on ordinary English words.
+
+The benchmark must establish whether the model preserves the features RhymeLab actually uses for rhyme search:
+
+- exact canonical phones;
+- exact stressed rhyme tail;
+- syllable count;
+- stress pattern;
+- primary stress;
+- accepted English rhyme-analysis score.
+
+Only after v2 evidence is reviewed do we decide whether MFA is useful as a fallback for the remaining 704,989 unresolved English Entity names.

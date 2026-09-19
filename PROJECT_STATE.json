@@ -1188,14 +1188,13 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_phase12c_source_expansion_acceptance",
-    "owner_run_npm_entity_g2p_benchmark_prepare",
-    "benchmark_mfa_first_on_real_proper_name_control_set",
-    "benchmark_deepphonemizer_only_as_independent_comparison",
-    "keep_charsiu_research_only_until_license_provenance_is_clean",
-    "only_then_decide_generated_fallback_policy_for_remaining_704989_unresolved_names"
+    "merge_phase12c_corrected_proper_name_token_benchmark_v2",
+    "owner_one_time_install_pinned_mfa_english_us_arpa_2_0_0a_if_needed",
+    "owner_run_npm_entity_g2p_benchmark_mfa_once",
+    "review_corrected_v2_benchmark_structure_and_mfa_evaluation_together",
+    "then_decide_generated_fallback_policy_for_remaining_704989_unresolved_names"
   ],
-  "next_milestone": "PHASE_12C_ENTITY_PROPER_NAME_G2P_BENCHMARK",
+  "next_milestone": "PHASE_12C_ENTITY_PROPER_NAME_TOKEN_G2P_BENCHMARK_V2",
   "phase_12_english": {
     "status": "COMPLETE_ACCEPTED_FROZEN_PRODUCT_EN",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -2701,11 +2700,11 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "source_expansion_accepted",
-      "prepare_real_source_backed_proper_name_control_set",
-      "benchmark_mfa_english_us_first",
-      "benchmark_deepphonemizer_as_independent_control",
-      "no_generated_runtime_promotion_before_benchmark",
+      "reject_v1_whole_surface_cmudict_heavy_control",
+      "prepare_v2_unique_proper_name_token_controls",
+      "benchmark_pinned_mfa_english_us_arpa_first",
+      "no_generated_runtime_promotion_before_v2_review",
+      "deep_phonemizer_only_as_independent_followup_if_needed",
       "charsiu_research_only",
       "no_entity_population_retune"
     ],
@@ -3063,7 +3062,7 @@
       }
     },
     "pronunciation_runtime_v1": {
-      "status": "SOURCE_EXPANSION_ACCEPTED_G2P_BENCHMARK_ACTIVE",
+      "status": "G2P_BENCHMARK_V1_REJECTED_V2_FIX_IMPLEMENTED",
       "contract": "docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md",
       "entity_schema": "rhymelab-entity-catalog-v1",
       "catalog_command": "npm run entity:catalog:materialize",
@@ -3244,16 +3243,50 @@
         "generic_english_to_en_us_promotion": false,
         "mass_g2p": false,
         "g2p_benchmark": {
-          "prepare_command": "npm run entity:g2p:benchmark:prepare",
-          "evaluate_command": "npm run entity:g2p:benchmark:evaluate",
-          "primary_candidate": "mfa_english_us_g2p_v2_2_1",
+          "status": "V1_OWNER_PREP_REJECTED_V2_IMPLEMENTED_OWNER_RERUN_PENDING",
+          "contract": "docs/ENTITY_G2P_PROPER_NAME_BENCHMARK_V2.md",
+          "v1_owner_result": {
+            "status": "REJECTED_SAMPLING_BIAS",
+            "schema": "rhymelab-entity-g2p-proper-name-benchmark-v1",
+            "semantic_fingerprint": "e9b6e47cc91cee2e9410136f1e40de97c979679532b1a8eda62f26974eb62d7c",
+            "cases": 600,
+            "distinct_normalized": 578,
+            "duplicate_normalized": 22,
+            "single_word_entity_surfaces": 599,
+            "multi_word_entity_surfaces": 1,
+            "cases_with_cmudict_reference": 592,
+            "g2p_executed": false,
+            "reason": "whole Entity surfaces and CMUdict-heavy controls do not represent unknown Entity-name token fallback"
+          },
+          "v2": {
+            "status": "IMPLEMENTED_OWNER_PREP_PENDING",
+            "policy": "entity-proper-name-token-g2p-benchmark-v2",
+            "prepare_command": "npm run entity:g2p:benchmark:prepare",
+            "benchmark": "data/local/entity-g2p-proper-name-benchmark-v2.json",
+            "input": "data/local/entity-g2p-proper-name-benchmark-v2-input.tsv",
+            "unit": "unique_entity_name_token",
+            "gold": "explicit_en_us_wiktionary_kaikki_proper_name_ipa",
+            "cmudict_as_gold": false,
+            "duplicate_normalized_allowed": false,
+            "target_cases": 600,
+            "per_category_cap": 100,
+            "owner_prepare_separate_upload_required": false
+          },
+          "primary_candidate": {
+            "engine": "Montreal Forced Aligner",
+            "model_id": "english_us_arpa",
+            "model_version": "2.0.0a",
+            "architecture": "pynini",
+            "phone_set": "ARPA",
+            "license": "CC-BY-4.0",
+            "command": "npm run entity:g2p:benchmark:mfa",
+            "evaluation": "data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json",
+            "runtime_promoted": false,
+            "command_behavior": "rebuild_v2_benchmark_then_run_mfa_and_evaluate_in_one_owner_command"
+          },
           "independent_candidate": "deep_phonemizer_en_us",
           "multilingual_research_candidate": "charsiu_multilingual",
-          "charsiu_production_allowed": false,
-          "benchmark_only_until_source_expansion_review": true,
-          "status": "ACTIVE_NEXT_GATE",
-          "benchmark_population_basis": "real preferred Entity names with direct source-backed pronunciation controls",
-          "residual_unresolved_population": 704989
+          "charsiu_production_allowed": false
         },
         "owner_run_pending": false,
         "owner_result": {

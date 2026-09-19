@@ -43,12 +43,18 @@
   "g2p_benchmark_candidates": {
     "mfa_english_us": {
       "role": "primary_generated_pronunciation_candidate_after_source_expansion",
-      "model": "English (US) MFA G2P model v2.2.1",
-      "architecture": "phonetisaurus",
+      "model_id": "english_us_arpa",
+      "model": "English (US) ARPA G2P model v2.0.0a",
+      "architecture": "pynini",
+      "phone_set": "ARPA",
+      "model_version": "2.0.0a",
       "model_license": "CC-BY-4.0",
       "commercial_use": true,
       "local_offline": true,
-      "runtime_policy": "build-time benchmark candidate only until proper-name controls pass; generated provenance mandatory"
+      "direct_rhymelab_notation": "arpabet",
+      "install_command": "mfa model download g2p english_us_arpa --version 2.0.0a",
+      "runtime_policy": "build-time benchmark candidate only until corrected proper-name token controls pass; generated provenance mandatory",
+      "selection_reason": "ARPA output is directly compatible with the accepted RhymeLab English analyzer and avoids an extra MFA-phone-set conversion layer"
     },
     "deep_phonemizer_en_us": {
       "role": "independent_generated_pronunciation_benchmark_candidate",

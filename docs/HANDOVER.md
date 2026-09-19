@@ -67,48 +67,49 @@ npm run entity:multilingual:evidence
 
 Upload only the compact primary report. If it is `evidence_ready`, the next implementation step is one source-backed multilingual Entity runtime pass rather than another coverage micro-gate.
 
-## Active Phase 12C — proper-name G2P benchmark
+## Active Phase 12C — proper-name token G2P benchmark v2
 
-Entity pronunciation source expansion is **accepted**.
+The first 600-case benchmark preparation was **rejected before running any G2P model**.
 
 ```text
-report status                 evidence_ready
-semantic fingerprint          fdabce67cc53ef7028402b7a92b6538a61663477a41adf81905c80218f0b949d
-source index fingerprint      eab125329a5a99897b1cf7508243ce5659e9cdd56cd59a9b32d144a83d8e74c9
-
-EN Entity names               1,415,550
-baseline ready                  459,728   32.48%
-expanded ready                  710,561   50.20%
-absolute gain                   250,833
-
-preferred names               1,062,694
-expanded preferred ready        558,036   52.51%
-preferred gain                  175,690
-
-incremental direct ready         10,255
-improved composition ready      240,578
-remaining unresolved            704,989
-preferred unresolved            504,658
-generated G2P used                   no
+v1 fingerprint             e9b6e47cc91cee2e9410136f1e40de97c979679532b1a8eda62f26974eb62d7c
+cases                      600
+single-word Entity surface 599
+multi-word Entity surface    1
+CMUdict-backed cases       592
+distinct normalized        578
+duplicate normalized        22
+G2P executed                no
 ```
 
-Interpretation: raw Kaikki/CMUdict direct recovery helps, but the large win is deterministic composition over the accepted + expanded source inventory. Moby was absent; it remains optional and does not justify another blocking source gate.
+Problem: v1 sampled whole Entity surfaces and mostly measured ordinary CMUdict-like spellings. The generated fallback actually needs to solve the **unknown token** that blocks deterministic Entity-name composition.
 
-The next owner action is now:
+v2 is implemented around that real unit:
+
+- unique normalized Entity-name tokens;
+- token must occur in a preferred searchable English Entity name;
+- explicit en-US Kaikki/Wiktionary proper-name IPA is the benchmark gold;
+- CMUdict is not benchmark gold;
+- duplicate normalized controls are forbidden;
+- Entity category/popularity context remains attached.
+
+Read `docs/ENTITY_G2P_PROPER_NAME_BENCHMARK_V2.md`.
+
+After merge, there is no separate v2 upload gate. Install/activate the pinned MFA environment once if needed, then run one owner command. It rebuilds benchmark v2 first and refuses to continue if the v2 invariants fail:
 
 ```powershell
 git pull
-npm run entity:g2p:benchmark:prepare
+conda activate rhymelab-mfa
+npm run entity:g2p:benchmark:mfa
 ```
 
-Outputs:
+Upload only the final compact evaluation:
 
 ```text
-data/local/entity-g2p-proper-name-benchmark-v1.json
-data/local/entity-g2p-proper-name-benchmark-v1-input.tsv
+data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json
 ```
 
-Do not run generated pronunciations over the 704,989 unresolved names yet. Benchmark MFA English-US first on the real source-backed proper-name control set; DeepPhonemizer is the independent comparison. Charsiu remains research-only until exact model/data licensing is clean.
+Primary MFA target is pinned `english_us_arpa` v2.0.0a (ARPA / pynini / CC BY 4.0), chosen because its output is directly compatible with the accepted RhymeLab English analyzer.
 
 ## Frozen German baseline
 

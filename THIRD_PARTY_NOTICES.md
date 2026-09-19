@@ -123,9 +123,11 @@ Moby Pronunciator II is supported as an optional owner-local secondary pronuncia
 
 RhymeLab does not bundle Moby data in Git. The Phase 12C implementation stores legacy Moby ASCII phone strings as raw evidence only; it does not automatically convert or promote them into the accepted English runtime.
 
-### Montreal Forced Aligner English (US) G2P model
+### Montreal Forced Aligner English (US) ARPA G2P model
 
-The Phase 12C benchmark plan identifies English (US) MFA G2P model v2.2.1 as the primary generated-pronunciation candidate. The upstream model documentation records license **CC BY 4.0** and architecture Phonetisaurus.
+The Phase 12C benchmark plan identifies the pinned `english_us_arpa` v2.0.0a model as the primary generated-pronunciation candidate. Upstream documents it as General American English, ARPA phone set, Pynini architecture, and **CC BY 4.0**.
+
+The ARPA model is selected because its output can be consumed directly by RhymeLab's accepted English ARPAbet analyzer without a separate phone-set conversion layer.
 
 The model is not bundled in this repository and is not a runtime dependency. If later used for generated Entity pronunciations, attribution and exact model-version provenance must be preserved.
 
