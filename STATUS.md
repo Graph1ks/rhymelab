@@ -935,5 +935,5 @@ Implemented on the branch: source-backed EN Entity runtime and rhyme anchors, DE
 
 Acceptance contracts: `docs/PHASE_12C_ACCEPTANCE.md` and `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md`.
 
-Status is **implementation in progress / not merge-ready**. Benchmark-v3 context-gold review and GitHub `validate` CI are still required. AI staging remains non-runtime evidence and no confidence threshold is preselected for promotion.
+Status is **implementation in progress / not merge-ready**. Draft PR #112 is open and its `validate` gate is green; benchmark-v3 context-gold review remains the substantive merge blocker. AI staging remains non-runtime evidence and no confidence threshold is preselected for promotion.
 

@@ -371,12 +371,12 @@ Do not call this work accepted or merge-ready yet.
 
 Remaining work:
 
-1. complete benchmark-v3 context-gold review evidence; do not invent replacement gold;
-2. run/require repository validation through the pull-request `validate` job (`npm run check`, `npm test`, public-readiness audit);
-3. inspect CI failures and fix them rather than weakening tests;
-4. update the acceptance document with the final CI result;
-5. squash-merge only after the branch is genuinely ready;
-6. only after merge give the owner full-data runtime build commands.
+1. complete benchmark-v3 context-gold review evidence against the generated local v2 control; do not invent replacement gold;
+2. keep draft PR #112's required `validate` check green on the final head;
+3. squash-merge only after benchmark-v3 review is complete and the branch is genuinely ready;
+4. only after merge give the owner full-data runtime build commands.
+
+The tracked repository intentionally does not contain `data/local/entity-g2p-proper-name-benchmark-v2.json`. The review file therefore cannot by itself prove the original context/reference for every pending case (notably `To`). Closing that review requires the local generated control/review evidence rather than guessing from the surface string.
 
 ## Immediate next-thread starting procedure
 

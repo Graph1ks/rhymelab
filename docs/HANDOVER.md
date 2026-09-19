@@ -6,7 +6,7 @@ For the current candidate branch `phase12c-entity-runtime-ai-staging`, read this
 docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md
 ```
 
-Current status: implementation is substantial but **not merge-ready**. Source-backed EN Entity runtime, multilingual Entity Writer integration, isolated AI pronunciation staging, strict AI artifact-contract validation, aggregate staging diagnostics and durable Phase 12C contracts are implemented. Benchmark-v3 context-gold review and PR/`validate` CI remain pending. Do not give an owner full-data runtime run yet, and do not promote AI staging into runtime.
+Current status: implementation is substantial but **not merge-ready**. Source-backed EN Entity runtime, multilingual Entity Writer integration, isolated AI pronunciation staging, strict AI artifact-contract validation, aggregate staging diagnostics and durable Phase 12C contracts are implemented. Benchmark-v3 context-gold review remains pending. Draft PR #112 has passed `validate`; the required check must remain green on the final head. Do not give an owner full-data runtime run yet, and do not promote AI staging into runtime.
 
 Current acceptance documents:
 

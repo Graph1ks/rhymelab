@@ -44,7 +44,7 @@ Durable staging contract: `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md`.
 
 The staging audit may measure retention/selectivity at multiple confidence thresholds, but it does not prove correctness and does not preselect a promotion threshold. Model confidence is supplementary evidence only.
 
-Benchmark-v3 remains `review_pending`. The six flagged context/homograph cases must be resolved from independent review evidence; model output must not be promoted into gold.
+Benchmark-v3 remains `review_pending`. The six flagged context/homograph cases must be resolved from independent review evidence; model output must not be promoted into gold. The generated v2 control lives under `data/local/` and is intentionally not tracked, so the tracked review file alone is insufficient to reconstruct every original context/reference (notably `To`).
 
 ## Repository checks
 

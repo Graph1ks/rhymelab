@@ -3548,16 +3548,27 @@
       "durable_phase12c_acceptance_and_ai_staging_contracts"
     ],
     "pending": [
-      "complete_benchmark_v3_context_gold_review",
-      "run_pull_request_validate_ci_and_fix_failures",
-      "record_final_ci_evidence",
-      "squash_merge_only_after_green"
+      "complete_benchmark_v3_context_gold_review_against_local_v2_control_evidence",
+      "keep_pull_request_validate_green_on_final_head",
+      "squash_merge_only_after_benchmark_review_and_green_ci"
     ],
     "ai_runtime_promoted": false,
     "owner_full_runtime_run_authorized": false,
     "acceptance_doc": "docs/PHASE_12C_ACCEPTANCE.md",
     "ai_staging_contract": "docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md",
     "base_main_sha1": "963e1571794b1fbac07a48ae03d2297ff04e00f7",
-    "ai_promotion_threshold": null
+    "ai_promotion_threshold": null,
+    "validate": {
+      "status": "GREEN",
+      "pull_request": 112,
+      "evidence_run_id": 35442332922,
+      "evidence_sha1": "5f503eb5e694879aba577b4bf7fbf50ec7f2f25c",
+      "required_on_final_head": true,
+      "checks": [
+        "npm_run_check",
+        "npm_test_364_of_364",
+        "public_readiness_audit"
+      ]
+    }
   }
 }
