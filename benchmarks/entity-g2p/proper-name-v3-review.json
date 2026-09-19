@@ -1,0 +1,44 @@
+{
+  "schema": "rhymelab-entity-proper-name-benchmark-v3-review-v1",
+  "status": "review_pending",
+  "policy": "entity-context-aware-gold-repair-v1",
+  "rule": "No gold pronunciation changes are applied unless a review entry is explicitly accepted with replacement references. Pending entries remain unchanged in draft output.",
+  "candidates": [
+    {
+      "case_id": "token-13259",
+      "surface": "Side",
+      "status": "pending",
+      "reason": "entity context appears to be The Dark Side of the Moon; v2 reference may represent a different proper-name reading"
+    },
+    {
+      "case_id": "token-5499",
+      "surface": "Nice",
+      "status": "pending",
+      "reason": "entity context appears to be The Nice Guys; v2 reference may represent the French place-name reading"
+    },
+    {
+      "case_id": "token-5887",
+      "surface": "Worms",
+      "status": "pending",
+      "reason": "entity context appears to be the video game Worms; v2 reference may represent the German place-name reading"
+    },
+    {
+      "case_id": "token-5786",
+      "surface": "To",
+      "status": "pending",
+      "reason": "title/function-word context can differ from isolated proper-name control pronunciation"
+    },
+    {
+      "case_id": "token-5434",
+      "surface": "Mobile",
+      "status": "pending",
+      "reason": "T-Mobile context may require a brand-specific English reading rather than unrelated proper-name evidence"
+    },
+    {
+      "case_id": "token-12337",
+      "surface": "Kerr",
+      "status": "pending",
+      "reason": "Deborah Kerr has an entity-specific surname pronunciation that must be checked against v2 control provenance"
+    }
+  ]
+}

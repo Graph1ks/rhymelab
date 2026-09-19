@@ -119,6 +119,15 @@
     "entity:g2p:benchmark:prepare": "node --no-warnings scripts/prepare-entity-g2p-benchmark.mjs",
     "entity:g2p:benchmark:evaluate": "node --no-warnings scripts/evaluate-entity-g2p-benchmark.mjs",
     "entity:g2p:benchmark:mfa": "npm run entity:g2p:benchmark:prepare && node --no-warnings scripts/run-entity-g2p-mfa-benchmark.mjs",
-    "entity:g2p:benchmark:g2pen": "npm run entity:g2p:benchmark:prepare && node --no-warnings scripts/run-entity-g2pen-benchmark.mjs"
+    "entity:g2p:benchmark:g2pen": "npm run entity:g2p:benchmark:prepare && node --no-warnings scripts/run-entity-g2pen-benchmark.mjs",
+    "entity:runtime:multilingual": "node --no-warnings scripts/materialize-entity-multilingual-runtime.mjs && node --no-warnings scripts/verify-entity-multilingual-runtime.mjs",
+    "entity:runtime:multilingual:verify": "node --no-warnings scripts/verify-entity-multilingual-runtime.mjs",
+    "entity:writer:accept": "node --no-warnings scripts/accept-entity-writer-phase12c.mjs",
+    "entity:phase12c:owner": "node --no-warnings scripts/run-entity-phase12c-owner-acceptance.mjs",
+    "entity:ai:queue": "node --no-warnings scripts/export-entity-ai-pronunciation-batches.mjs",
+    "entity:ai:import": "node --no-warnings scripts/import-entity-ai-pronunciation-result.mjs",
+    "entity:ai:audit": "node --no-warnings scripts/audit-entity-ai-pronunciation.mjs",
+    "entity:llm:benchmark:evaluate": "node --no-warnings scripts/evaluate-entity-llm-benchmark.mjs",
+    "entity:g2p:benchmark:v3": "node --no-warnings scripts/build-entity-g2p-benchmark-v3.mjs"
   }
 }

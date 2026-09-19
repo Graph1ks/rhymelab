@@ -1,6 +1,6 @@
 # Public-facing status
 
-Last updated: 2026-09-18
+Last updated: 2026-09-19
 
 RhymeLab's public repository is `Graph1ks/rhymelab`. `main` is protected and the required public CI check is `validate`.
 
@@ -128,7 +128,7 @@ The product surface is now only the main Writer UI at `/`. There is no separate 
 
 Search-language basis remains `DE / EN / DE+EN`. German is active and frozen; English remains capability-gated until an accepted English runtime exists.
 
-Current active milestone: **Phase 12B — English single-word Writer database + real English phonology/profile/benchmark**.
+Current active milestone: **Phase 12C — source-backed multilingual Entity runtime + isolated AI pronunciation staging acceptance**.
 
 Source/architecture contract: `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
 
@@ -156,7 +156,7 @@ The >1M figure is a raw word-form universe, not a final default Writer count. Ph
 
 wordfreq is selected only as the initial commonness candidate. Its maintainer states that the underlying frequency snapshot runs through about 2021 and is unlikely to be updated again, so modern songwriting/rap vocabulary must be benchmarked before final acceptance.
 
-Phase 12A Entity work is now **DEFERRED / FROZEN** while the English Writer is built.
+The Phase 12A Entity checkpoint remains frozen historical evidence. Phase 12C has resumed Entity work after English product acceptance, without reopening the accepted Hybrid-v2 population or DE runtime baseline.
 
 Entity deferred checkpoint: `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md`.
 
@@ -924,4 +924,38 @@ This is materially worse than MFA on the product-critical exact stressed rhyme t
 The g2p-en owner report's `confidence_calibration` block is invalid reporting noise: the candidate has no confidence score and the evaluator coerced `null` to zero before calibration. Primary metrics are unaffected. The evaluator now treats missing confidence as unscored; no owner rerun is required.
 
 Authoritative decision: `docs/ENTITY_G2P_DECISION_V1.md`. Next Phase 12C gate is source-backed Entity pronunciation/runtime integration only.
+
+## Phase 12C candidate branch checkpoint — runtime + AI staging
+
+Active candidate branch: `phase12c-entity-runtime-ai-staging`.
+
+Focused continuation document: `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`.
+
+Implemented on the branch: source-backed EN Entity runtime and rhyme anchors, DE+EN Entity Writer channel/UI integration, guarded phonetic-first Entity ranking, deterministic QID/surface diversity, batched category metadata, a full-data Entity Writer acceptance suite, one consolidated owner runner, historical full-unresolved AI queue tooling, ZIP importer/staging SQLite/audit, strict ARPAbet and manifest/batch validation, idempotent identical-result imports, aggregate confidence/category/orthography/problem-population diagnostics, LLM benchmark evaluator, benchmark-v3 explicit review gate, and multilingual runtime verification preserving the frozen DE fingerprint with zero generated accepted EN runtime rows.
+
+Acceptance contracts: `docs/PHASE_12C_ACCEPTANCE.md` and `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md`.
+
+Current source-backed gate: **OWNER FULL-DATA ACCEPTED**.
+
+```text
+owner report                     rhymelab-phase12c-owner-acceptance-v1 / ok
+EN names considered              1,415,550
+EN runtime-ready                   710,500 / 50.19%
+EN unresolved                      705,050 / 49.81%
+EN analyses                        710,500
+EN anchors                       3,552,500
+EN runtime fingerprint
+3f2c520ce99868eda81991e6247c6c93bdf8c78f7805d7ceef2cc2ebd85bb6d8
+DE fingerprint                   preserved
+DE/EN acceptance coverage        100% / 100%
+ranking repeatability            PASS
+Writer semantic fingerprint
+76ac9a32e62fd7b253515569294599012010e9be758db24227a910d893141ae7
+```
+
+The previous 710,561 figure is retained as source-resolution evidence; 710,500 is the accepted runtime-analyzable baseline. Performance is not yet product-target quality: the owner acceptance sample measured roughly 384–403 ms p50 and 1.15–1.22 s p95, so Entity Writer latency optimization remains explicit follow-up work.
+
+Benchmark-v3 context-gold review and AI pronunciation evidence belong to the separate AI-evidence track. They do **not** block source-backed runtime acceptance or merge. AI staging remains non-runtime evidence, `runtime_promoted=0`, and no confidence threshold is preselected for promotion.
+
+Updated AI collection policy: do **not** annotate the complete 704,989/705,050 unresolved long tail. The next campaign is limited to runtime-unresolved English names attached to the **top 100,000 retained Entities by accepted popularity ordering**. The exact target count must be measured locally before export; historical bulk queue IDs remain immutable. Everything outside that Top-100k scope stays unresolved unless the owner later changes the policy.
 

@@ -6,16 +6,26 @@ import { englishCoarseCodaClass } from './en-writer-db-core.mjs';
 export const ENTITY_PRONUNCIATION_POLICY = 'entity-pronunciation-source-composition-v1';
 export const ENTITY_PHONETIC_RUNTIME = 'entity-phonetic-runtime-de-v1';
 export const ENTITY_RUNTIME_ANALYZER = 'de-ipa-v2';
+export const ENTITY_EN_PHONETIC_RUNTIME = 'entity-phonetic-runtime-en-v1';
+export const ENTITY_EN_RUNTIME_ANALYZER = 'en-pron-v1-candidate';
 
-const ELIGIBLE_REVIEW_STATES = new Set([
+export const ENTITY_RUNTIME_REVIEW_STATES = Object.freeze([
   'accepted',
   'reviewed',
   'accepted_source_composition',
+  'accepted_source_backed',
 ]);
+const ELIGIBLE_REVIEW_STATES = new Set(ENTITY_RUNTIME_REVIEW_STATES);
+
+export function entityPronunciationRuntimeEligibleForLanguage(row,language='de') {
+  const code=String(language||'de').trim().toLocaleLowerCase('en-US');
+  const locale=code==='en'?'en-US':'de-DE';
+  return String(row?.locale||'')===locale
+    &&ELIGIBLE_REVIEW_STATES.has(String(row?.review_state||''));
+}
 
 export function entityPronunciationRuntimeEligible(row) {
-  return String(row?.locale || '') === 'de-DE'
-    && ELIGIBLE_REVIEW_STATES.has(String(row?.review_state || ''));
+  return entityPronunciationRuntimeEligibleForLanguage(row,'de');
 }
 
 export function composeEntityNamePronunciation(surface, resolveToken) {

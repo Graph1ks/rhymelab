@@ -6,25 +6,28 @@ This repository is the authoritative engineering/project memory for RhymeLab. Re
 
 Before changing the project in a fresh thread/session, read:
 
-1. `docs/HANDOVER.md`
-2. `docs/PHASE_11_ACCEPTANCE.md`
-3. `STATUS.md`
-4. `PROJECT_STATE.json`
-5. `ROADMAP.md`
-6. `DATA_SOURCES.md`
-7. `docs/WRITER_SEARCH_ACCEPTANCE.md`
-8. `docs/PHRASE_MOSAIC_PLAN.md`
-9. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
-10. `docs/REPOSITORY_GOVERNANCE.md`
-11. `docs/BENCHMARK.md` for rhyme-quality/ranking work
-12. `docs/API.md` for local API work
-13. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition work
-14. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity work
-15. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` for Phase 12A2 popularity-cut history
-16. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the deferred Phase 12A3 Entity IPA/runtime checkpoint
-17. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the resumed Phase 12C Entity boundary and frozen baselines
-18. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for the active Phase 12B English Writer work
-19. `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md` for the unknown user-query pronunciation fallback contract
+1. `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — current branch handover for Phase 12C runtime + AI staging
+2. `docs/PHASE_12C_ACCEPTANCE.md` — current repository acceptance gate and remaining blockers
+3. `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` — isolated AI evidence/import/audit contract
+4. `docs/HANDOVER.md`
+5. `docs/PHASE_11_ACCEPTANCE.md`
+6. `STATUS.md`
+7. `PROJECT_STATE.json`
+8. `ROADMAP.md`
+9. `DATA_SOURCES.md`
+10. `docs/WRITER_SEARCH_ACCEPTANCE.md`
+11. `docs/PHRASE_MOSAIC_PLAN.md`
+12. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
+13. `docs/REPOSITORY_GOVERNANCE.md`
+14. `docs/BENCHMARK.md` for rhyme-quality/ranking work
+15. `docs/API.md` for local API work
+16. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition history
+17. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity history
+18. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` for Phase 12A2 popularity-cut history
+19. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the Phase 12A3 Entity IPA/runtime checkpoint
+20. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the frozen Phase 12A boundary resumed by Phase 12C
+21. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for accepted/frozen Phase 12B English Writer history
+22. `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md` for the unknown user-query pronunciation fallback contract
 
 ## Public-repository guardrails
 
@@ -156,11 +159,11 @@ Frozen product rules:
 - `DE / EN / DE+EN` remains the unified language-basis contract;
 - English stays capability-gated until Phase 12 supplies a real accepted English runtime.
 
-Current active milestone: **Phase 12B — English single-word Writer source stack + real English phonology/profile/benchmark**.
+Current active milestone: **Phase 12C — source-backed multilingual Entity runtime + isolated AI pronunciation staging acceptance**.
 
-Read `docs/ENGLISH_WRITER_SOURCE_PLAN.md` before English source, pronunciation, phonology, ranking or database work.
+Read `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`, `docs/PHASE_12C_ACCEPTANCE.md`, and `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` before changing Entity runtime, AI staging, benchmark-review, or promotion boundaries.
 
-Phase 12A Entity work is **DEFERRED / FROZEN at the current checkpoint**. Read `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` before touching it.
+The Phase 12A deferred checkpoint remains frozen historical evidence; Phase 12C has resumed Entity work only within the current source-backed/runtime and isolated-staging contracts.
 
 Frozen Entity facts:
 
@@ -200,7 +203,7 @@ English implementation rules:
 
 Phase 12B11 English Product is **ACCEPTED / FROZEN**. Owner integrated acceptance passed with semantic fingerprint `c889adf2253f3b149d6363f2063b40717b79a4f0cf24a06c953a599a66613ca6`; all checks passed, German direct-vs-unified Writer invariance passed, `nation -> station` is preserved as multisyllabic-perfect, independent-open repeatability passed, and the local `data/local/en-product-enabled-v1.json` marker was written. The accepted English product uses `guarded_commonness_06`, Diversity `0.08`, and retrieval profile `en-product-retrieval-reservoir-v1`. Do not reopen English ranking/retrieval micro-gates without a concrete regression.
 
-The current implementation gate is **Phase 12C source-backed Entity pronunciation/runtime integration**. Source expansion is accepted at 710,561 / 1,415,550 EN Entity names ready (50.20%); 704,989 remain unresolved. Proper-name benchmark v2 is frozen as the accepted 600-case control. Generated proper-name G2P is closed with no runtime promotion: MFA exact-tail 71.19% and its confidence gate retained only 1.68% at >=90% exact-tail / 21.94% at >=85%; independent forced-neural `g2p-en` 2.1.0 performed worse at 64.26% exact-tail, owner report fingerprint `5511c6e2c83550b753692a64a1485302c88b61b5bc4acecf4a3a8e29937061b6`. The g2p-en report's confidence block is invalid reporting noise because missing scores were coerced to zero; primary metrics are unaffected and the evaluator is fixed. Do not benchmark a third G2P model, do not mass-generate the residual Entity population, and do not promote generated pronunciations. Keep unresolved names unresolved and continue Phase 12C with accepted source-backed pronunciation evidence only. Authoritative decision: `docs/ENTITY_G2P_DECISION_V1.md`.
+The current implementation gate on candidate branch `phase12c-entity-runtime-ai-staging` is **Phase 12C source-backed multilingual Entity runtime + isolated AI pronunciation staging acceptance**. The branch implements source-backed EN Entity runtime/anchors, multilingual Entity Writer integration, AI queue/export/import/audit staging, strict artifact-contract validation, aggregate candidate diagnostics, LLM benchmark tooling and a benchmark-v3 review gate. It is **not merge-ready yet**: benchmark-v3 context-gold review remains pending. Draft PR #112 has a green `validate` gate; keep that check green on the final head. AI staging rows must not become runtime truth automatically; source-backed EN runtime must remain independently usable; the accepted DE Entity fingerprint must remain unchanged; generated rows in accepted EN runtime remain zero.
 
 The classic 20260914 full-dump path is retired. The owner explicitly rejected further staging/comparison against the 103 GB dump and may delete it. Do not redownload it, require it, benchmark against it, or spend more time on BZip2/WSL/full-dump throughput. The only active Phase 12A2 acquisition path is the implemented build-time QLever selective exporter/stager.
 

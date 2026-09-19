@@ -1,12 +1,12 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-19",
-  "phase": "PHASE_12C_ENTITY_MULTILINGUAL_PRONUNCIATION",
+  "phase": "PHASE_12C_ENTITY_RUNTIME_AI_STAGING_ACCEPTANCE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
     "protected_main": true,
-    "current_branch": "main",
+    "current_branch": "phase12c-entity-runtime-ai-staging",
     "writer_pull_request": 3,
     "writer_pull_request_status": "merged",
     "writer_owner_acceptance_review": "complete",
@@ -1188,10 +1188,12 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_phase12c_close_g2p_campaign",
-    "keep_704989_residual_english_entity_names_unresolved",
-    "materialize_source_backed_entity_pronunciation_runtime_without_generated_g2p",
-    "integrate_entity_channel_into_unified_writer_with_existing_deterministic_ranking_boundaries"
+    "read_docs_PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER_first",
+    "review_branch_implementation_and_finish_ai_acceptance_diagnostics",
+    "complete_benchmark_v3_context_review_without_silent_gold_changes",
+    "finish_docs_then_run_check_test_public_readiness",
+    "create_or_update_pr_require_validate_ci_before_merge",
+    "keep_external_ai_batches_isolated_from_runtime_until_explicit_acceptance"
   ],
   "next_milestone": "PHASE_12C_ENTITY_SOURCE_BACKED_RUNTIME_INTEGRATION",
   "phase_12_english": {
@@ -3485,20 +3487,90 @@
       ]
     },
     "entity_resume": {
-      "status": "ACTIVE_PROPER_NAME_G2P_BENCHMARK",
+      "status": "PHASE_12C_SOURCE_BACKED_OWNER_ACCEPTED_PR_FINALIZATION",
       "sequence": [
-        "accepted_multilingual_evidence_complete",
-        "accepted_source_expansion_710561_ready_50_2pct",
-        "prepare_real_entity_proper_name_g2p_control_set",
-        "benchmark_mfa_english_us",
-        "benchmark_deepphonemizer_as_independent_candidate",
-        "keep_charsiu_research_only_until_license_provenance_clean",
-        "decide_generated_fallback_policy_only_for_remaining_704989_unresolved_names",
-        "implement_source_backed_multilingual_entity_runtime_plus_accepted_generated_fallback_if_any",
-        "calibrate_entity_phonetic_prominence_and_diversity_ranking",
-        "integrated_de_en_entity_product_acceptance"
+        "source_backed_multilingual_entity_runtime_repository_acceptance",
+        "guarded_entity_writer_ranking_and_metadata_batching",
+        "owner_full_data_runtime_and_entity_writer_acceptance",
+        "squash_merge_source_backed_phase12c_runtime_after_green_ci",
+        "build_targeted_ai_pronunciation_evidence_for_runtime_unresolved_names_within_top_100k_entities",
+        "review_benchmark_v3_context_gold_with_independent_evidence",
+        "evaluate_ai_staging_quality_without_automatic_promotion_threshold",
+        "explicit_separate_runtime_promotion_decision_if_evidence_ever_justifies_it"
       ],
-      "prominence_rule": "prominence_may_reorder_phonetically_near_equivalent_entities_but_must_not_override_materially_worse_rhyme_quality"
+      "generated_runtime_fallback": "REJECTED_MFA_AND_G2PEN",
+      "ai_staging_runtime_truth": false,
+      "automatic_ai_promotion": false,
+      "prominence_rule": "prominence_may_reorder_phonetically_near_equivalent_entities_but_must_not_override_materially_worse_rhyme_quality",
+      "source_runtime_merge_blocked_by_ai_evidence": false,
+      "benchmark_v3_blocks_source_runtime": false,
+      "benchmark_v3_blocks_ai_evidence_acceptance": true,
+      "entity_ranking": {
+        "status": "ACCEPTED_FULL_DATA_REPEATABLE",
+        "policy": "entity-writer-ranking-v2-phonetic-band-prominence-v1",
+        "phonetic_band_width": 0.02,
+        "prominence_scope": "same_rhyme_tier_same_phonetic_band_same_syllable_distance",
+        "qid_deduplication": true,
+        "repeated_surface_cap": 2,
+        "category_metadata_batching": true
+      },
+      "owner_full_data_acceptance": {
+        "status": "ACCEPTED",
+        "built_at": "2026-09-19T13:07:27.378Z",
+        "command": "npm run entity:phase12c:owner",
+        "report": "data/local/phase12c-owner-acceptance-v1-report.json",
+        "english_names_considered": 1415550,
+        "english_runtime_ready": 710500,
+        "english_runtime_ready_pct": 50.19,
+        "english_unresolved": 705050,
+        "english_unresolved_pct": 49.81,
+        "english_phonetic_analyses": 710500,
+        "english_rhyme_anchors": 3552500,
+        "english_runtime_fingerprint": "3f2c520ce99868eda81991e6247c6c93bdf8c78f7805d7ceef2cc2ebd85bb6d8",
+        "de_runtime_fingerprint": "38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3",
+        "generated_g2p_used": false,
+        "llm_annotation_used": false,
+        "ai_staging_runtime_promoted": false,
+        "writer_coverage": {
+          "de_resolved_fraction": 1,
+          "de_nonempty_entity_fraction": 1,
+          "en_resolved_fraction": 1,
+          "en_nonempty_entity_fraction": 1
+        },
+        "writer_repeatable": true,
+        "writer_semantic_fingerprint": "76ac9a32e62fd7b253515569294599012010e9be758db24227a910d893141ae7",
+        "timing_ms": {
+          "run_1": {
+            "p50": 384.274,
+            "p95": 1146.857,
+            "max": 1487.707
+          },
+          "run_2": {
+            "p50": 403.45,
+            "p95": 1221.21,
+            "max": 1579.879
+          }
+        },
+        "performance_target_met": false,
+        "performance_followup_required": true
+      },
+      "source_resolution_baseline": {
+        "names_considered": 1415550,
+        "source_resolved_candidates": 710561,
+        "unresolved_after_source_resolution": 704989,
+        "note": "source-resolution evidence only; accepted runtime-ready rows must also pass the EN runtime analyzer"
+      },
+      "ai_pronunciation_scope": {
+        "status": "TOP_100K_TARGETED_ONLY",
+        "entity_population": "top_100000_retained_entities_by_accepted_popularity_ordering",
+        "target": "english_names_without_runtime_valid_pronunciation",
+        "include_source_resolved_analyzer_rejects": true,
+        "exact_target_row_count": "MEASURE_OWNER_LOCAL_BEFORE_EXPORT",
+        "long_tail_policy": "LEAVE_UNRESOLVED_BY_DEFAULT",
+        "historical_704989_queue": "RETAIN_AS_IMMUTABLE_REPRODUCIBLE_EVIDENCE_NOT_FUTURE_CAMPAIGN_SCOPE",
+        "new_export_identity_required": true,
+        "automatic_runtime_promotion": false
+      }
     },
     "performance_phase": {
       "status": "DEFERRED_UNTIL_DE_EN_ENTITY_QUERY_CONTRACTS_STABLE",
@@ -3524,5 +3596,60 @@
         "sqlite_pragma_tuning_after_query_shape_fixes"
       ]
     }
+  },
+  "active_candidate_branch": {
+    "branch": "phase12c-entity-runtime-ai-staging",
+    "status": "OWNER_FULL_DATA_ACCEPTANCE_PENDING",
+    "handover": "docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md",
+    "implemented": [
+      "source_backed_en_entity_runtime_and_phonetic_anchors",
+      "multilingual_de_en_entity_writer_channel",
+      "entity_scope_ui_and_rhymepad_accepted_en_writer_path",
+      "704989_unresolved_name_ai_queue_with_temporary_ids",
+      "isolated_ai_zip_import_and_staging_database",
+      "deterministic_arpabet_analysis_and_strict_validation",
+      "partial_complete_batch_import_and_audit",
+      "llm_600_benchmark_evaluator_with_confidence_strata",
+      "benchmark_v3_explicit_context_review_gate",
+      "multilingual_runtime_verifier_with_de_fingerprint_and_generated_zero_guards",
+      "strict_ai_manifest_batch_and_sha_validation",
+      "idempotent_identical_ai_result_reimport",
+      "aggregate_ai_confidence_orthography_problem_population_diagnostics",
+      "durable_phase12c_acceptance_and_ai_staging_contracts",
+      "guarded_entity_writer_ranking_v2_phonetic_band_prominence",
+      "entity_qid_and_surface_diversity",
+      "batched_entity_category_metadata_lookup",
+      "full_data_entity_writer_acceptance_suite",
+      "consolidated_phase12c_owner_acceptance_runner"
+    ],
+    "pending": [
+      "run_npm_entity_phase12c_owner_against_full_local_databases",
+      "review_owner_full_data_runtime_and_entity_writer_report",
+      "keep_pull_request_validate_green_on_final_head",
+      "mark_pr_ready_and_squash_merge_after_owner_gate"
+    ],
+    "ai_runtime_promoted": false,
+    "owner_full_runtime_run_authorized": true,
+    "acceptance_doc": "docs/PHASE_12C_ACCEPTANCE.md",
+    "ai_staging_contract": "docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md",
+    "base_main_sha1": "963e1571794b1fbac07a48ae03d2297ff04e00f7",
+    "ai_promotion_threshold": null,
+    "validate": {
+      "status": "GREEN",
+      "pull_request": 112,
+      "evidence_run_id": 35442332922,
+      "evidence_sha1": "5f503eb5e694879aba577b4bf7fbf50ec7f2f25c",
+      "required_on_final_head": true,
+      "checks": [
+        "npm_run_check",
+        "npm_test_364_of_364",
+        "public_readiness_audit"
+      ]
+    },
+    "owner_command": "npm run entity:phase12c:owner",
+    "owner_report": "data/local/phase12c-owner-acceptance-v1-report.json",
+    "benchmark_v3_blocks_source_runtime": false,
+    "benchmark_v3_blocks_ai_evidence_acceptance": true,
+    "ai_data_required_for_source_runtime_acceptance": false
   }
 }

@@ -1,0 +1,53 @@
+{
+  "schema": "rhymelab-entity-writer-acceptance-plan-v1",
+  "description": "Deterministic full-data Entity Writer acceptance. Structural and ranking guards are automated; semantic usefulness remains owner-reviewed from representative result pages.",
+  "sampling": {
+    "entity_limit": 40,
+    "entity_pool_limit": 256,
+    "review_depth": 12,
+    "runs": 2
+  },
+  "gates": {
+    "minimum_resolved_query_fraction": 1.0,
+    "minimum_nonempty_entity_fraction_de": 0.7,
+    "minimum_nonempty_entity_fraction_en": 0.8,
+    "generated_runtime_rows_max": 0,
+    "ranking_guard_violations_max": 0,
+    "duplicate_qids_per_page_max": 0,
+    "repeated_surface_per_page_max": 2
+  },
+  "queries": {
+    "de": [
+      "Arbeitsweise",
+      "Liebe",
+      "Leben",
+      "Zeit",
+      "Nacht",
+      "Feuer",
+      "verloren",
+      "Gedanken",
+      "Freiheit",
+      "Musik"
+    ],
+    "en": [
+      "time",
+      "nation",
+      "record",
+      "route",
+      "love",
+      "cough",
+      "dream",
+      "night",
+      "fire",
+      "heart",
+      "music",
+      "city"
+    ]
+  },
+  "both_probes": [
+    "time",
+    "Liebe",
+    "music",
+    "Musik"
+  ]
+}
