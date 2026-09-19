@@ -177,11 +177,17 @@ function sqliteMeta(db){
     if(!exists) return null;
     const columns=db.prepare("PRAGMA table_info('meta')").all().map((row)=>String(row.name));
     if(!columns.includes('key')||!columns.includes('value')) return {columns};
-    const rows=db.prepare('SELECT key,value FROM meta ORDER BY key LIMIT 100').all();
+    const rows=db.prepare('SELECT key,value FROM meta ORDER BY key LIMIT 200').all();
+    const safeValuePattern=/(?:^|_)(schema|policy|version|fingerprint|runtime|profile|status|id)(?:$|_)/iu;
     return {
       columns,
-      values:Object.fromEntries(rows.map((row)=>[String(row.key),String(row.value)])),
-      truncated:rows.length>=100,
+      keys:rows.map((row)=>String(row.key)),
+      values:Object.fromEntries(
+        rows
+          .filter((row)=>safeValuePattern.test(String(row.key)))
+          .map((row)=>[String(row.key),String(row.value).slice(0,500)]),
+      ),
+      truncated:rows.length>=200,
     };
   }catch(error){
     return {error:String(error?.message||error)};
