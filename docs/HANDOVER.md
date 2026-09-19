@@ -6,7 +6,7 @@ Repository state is authoritative. Do not reconstruct project state from prior c
 
 ## Active milestone
 
-**Phase 12B — English single-word Writer database + real English phonology/profile/benchmark. v3 coverage rerun reviewed; stratified long-tail sampling + rescue classification is current.**
+**Phase 12B11 — English product integration acceptance. English Writer ranking candidate is selected; product EN is still gated.**
 
 Read first:
 
@@ -18,6 +18,31 @@ Read first:
 6. `ROADMAP.md`
 7. `PROJECT_STATE.json`
 8. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` only for the frozen Entity boundary
+
+## Current English checkpoint — 2026-09-19
+
+Phase 12B10 owner evidence is complete and reviewed.
+
+```text
+owner report fingerprint          b1aacf3c2de3f91b9ce740744b15f89c797a24b4dc916f0f72f5d8235ea266cb
+selected Quality                  guarded_commonness_06
+selected Diversity                0.08
+phonetic guard violations         0
+mean phonetic drop                0.001061
+mean commonness uplift            0.035469
+diversity near-dup reduction      45.6853%
+diversity lemma reduction         38.7755%
+diversity commonness drop         0.034878
+```
+
+The original owner JSON was 44,256,392 bytes because the runner repeated full Top-20 matrices for every query/config/diversity combination. This is fixed: the default acceptance report is now compact, with full matrices available only via explicit `--debug-report <path>`.
+
+Do **not** request another ranking owner run. Next implementation block:
+
+1. wire `guarded_commonness_06 + diversity 0.08` into the English product runtime;
+2. run one integrated EN / DE+EN product acceptance bundle;
+3. require English repeatability and frozen German invariance;
+4. enable product EN only after that bundle passes.
 
 ## Frozen German baseline
 
