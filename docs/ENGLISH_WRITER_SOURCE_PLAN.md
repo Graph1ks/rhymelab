@@ -600,32 +600,30 @@ Require:
 - repeated DB-open fingerprint stability;
 - unchanged frozen German Writer/Phrase behavior.
 
-### Current English gate — READ-ONLY RETRIEVAL RUNTIME DIAGNOSTIC
+### Current English gate — BUNDLED ACCEPTANCE EVIDENCE
 
-The v4 DB storage/indexed-retrieval gate is accepted. Full owner verification confirms dedicated indexes and zero general/multi-result equivalence mismatches across exact, multisyllabic, vowel, family+coda and coda channels.
-
-Accepted DB fingerprint:
+The owner read-only runtime diagnostic passed with zero failed checks and semantic fingerprint:
 
 ```text
-beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37
+dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf
 ```
 
-The next candidate layer is defined in `docs/ENGLISH_RETRIEVAL_RUNTIME_V1.md`.
+To reduce iteration latency, independent-open runtime repeatability, Quality/Commonness evidence and Diversity evidence are now collected in one pass.
 
 Next owner command after merge:
 
 ```powershell
 git pull
-npm run en:runtime:diagnose
+npm run en:acceptance:bundle
 ```
 
-Upload:
+Primary output:
 
 ```text
-data/local/en-retrieval-runtime-v1-report.json
+data/local/en-acceptance-bundle-v1-report.json
 ```
 
-This gate is read-only and candidate-only. It must not enable product EN or introduce final commonness/Writer Utility/Diversity ranking.
+Review this one report to choose or adjust a single English Writer candidate. Then run one focused acceptance pass. Do not split these diagnostics back into separate owner gates unless the bundle exposes a real failure.
 ### 12B7 — product integration
 
 Only after the English runtime gate is credible:
@@ -648,7 +646,7 @@ A new thread should begin by reading:
 6. `ROADMAP.md`
 7. `PROJECT_STATE.json`
 
-Then run the **English retrieval runtime diagnostic** via `npm run en:runtime:diagnose` and review `data/local/en-retrieval-runtime-v1-report.json`. DB storage/indexed retrieval is already accepted; do not rebuild it unless source policy changes.
+Then run the **bundled English acceptance evidence** via `npm run en:acceptance:bundle` and review `data/local/en-acceptance-bundle-v1-report.json`. DB storage/indexed retrieval and the first runtime diagnostic are already accepted.
 
 Do not reopen Entity work first.
 
