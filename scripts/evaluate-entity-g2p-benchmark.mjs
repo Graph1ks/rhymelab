@@ -4,7 +4,10 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { analyzeEnglishPronunciation } from './english-phonology.mjs';
 import { scoreEnglishRhymeAnalyses } from './english-rhyme-features.mjs';
-import { buildG2pScoreCalibration } from './g2p-confidence-calibration.mjs';
+import {
+  buildG2pScoreCalibration,
+  hasFiniteG2pScore,
+} from './g2p-confidence-calibration.mjs';
 
 const args=process.argv.slice(2);
 function argValue(flag,fallback=null){
@@ -144,7 +147,7 @@ for(const testCase of benchmark.cases||[]){
   if(best.stress) stress+=1;
   if(best.primaryStress) primaryStress+=1;
   scoreSum+=Number(best.score.overall||0);
-  if(Number.isFinite(Number(prediction.g2p_score))){
+  if(hasFiniteG2pScore(prediction.g2p_score)){
     scoredOutcomes.push({
       case_id:testCase.case_id,
       surface:testCase.surface,
