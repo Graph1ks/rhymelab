@@ -22,6 +22,7 @@ import { analyzeEnglishArpabet } from '../scripts/english-phonology.mjs';
 test('Entity AI ARPAbet validator enforces phone separation, stress and word boundaries',()=>{
   assert.equal(validateEntityAiArpabet('T OY0 OW1 T AH0').valid,true);
   assert.equal(validateEntityAiArpabet('D AA1 R K | S AY1 D').valid,true);
+  assert.equal(validateEntityAiArpabet('D AA1 R K | AH0 V | DH AH0 | M UW1 N').valid,true);
   assert.equal(validateEntityAiArpabet('MIY1').valid,false);
   assert.equal(validateEntityAiArpabet('M IY').valid,false);
   assert.equal(validateEntityAiArpabet('M IY1 |').valid,false);
