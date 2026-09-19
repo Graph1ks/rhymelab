@@ -1386,13 +1386,16 @@ async function runEspeak(){
 
   const batchWindow=Math.max(commitEvery,espeakWorkers*espeakBatchSize);
   const batchQuery=workDb.prepare([
-    'SELECT w.item_id,w.language,w.surface,w.normalized FROM work_item w',
+    'SELECT w.item_id,w.language,w.surface,w.normalized,a.shape FROM work_item w',
     'JOIN admission a ON a.item_id=w.item_id',
     "WHERE a.decision='admit' AND "+condition+' AND w.language=?',
     'ORDER BY w.item_id LIMIT ?',
   ].join(' '));
   let done=0,accepted=0,rejected=0,errors=0;
+  const processModes={};
   const startedAt=Date.now();
+  let recentStartedAt=startedAt;
+  let recentDone=0;
 
   for(const language of ['de','en']){
     if(stopRequested)break;
@@ -1420,6 +1423,7 @@ async function runEspeak(){
       try{
         for(const result of processed){
           const row=result.row;
+          processModes[result.mode||'unknown']=(processModes[result.mode||'unknown']||0)+1;
           try{
             if(result.error)throw result.error;
             const inspected=result.inspected;
@@ -1503,6 +1507,14 @@ async function runEspeak(){
         throw error;
       }
 
+      const progressNow=Date.now();
+      const recentSeconds=Math.max(0.001,(progressNow-recentStartedAt)/1000);
+      const recentRate=(done-recentDone)/recentSeconds;
+      recentStartedAt=progressNow;
+      recentDone=done;
+      const modeSummary=Object.entries(processModes)
+        .map(([mode,count])=>mode+':'+count.toLocaleString('en-US'))
+        .join(',');
       console.log(progressLine({
         phase:'espeak:'+language,
         done,
@@ -1511,7 +1523,9 @@ async function runEspeak(){
         accepted,rejected,errors,
         extra:'lang='+language
           +' '+languageDone.toLocaleString('en-US')+'/'+languageTotal.toLocaleString('en-US')
-          +' · batch4='+espeakWorkers+'x'+espeakBatchSize,
+          +' · recent='+recentRate.toFixed(1)+'/s'
+          +' · batch4='+espeakWorkers+'x'+espeakBatchSize
+          +' · modes='+modeSummary,
       }));
     }
   }
