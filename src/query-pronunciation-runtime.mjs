@@ -7,6 +7,7 @@ export const QUERY_PRONUNCIATION_LANGUAGES=Object.freeze(['de','en']);
 
 const cache=new Map();
 const commandVersionCache=new Map();
+let autoEspeakCommandState=undefined;
 
 function normalizeLanguage(value){
   const language=String(value||'').trim().toLocaleLowerCase('en-US');
@@ -107,13 +108,20 @@ export function tryEspeakQueryPronunciation(
 ){
   const code=normalizeLanguage(language);
   const voice=code==='de'?'de':'en-us';
-  for(const candidate of espeakCommands(command)){
+  const autoDiscovery=runner==null&&!command&&!process.env.RHYMELAB_ESPEAK_COMMAND;
+  if(autoDiscovery&&autoEspeakCommandState===null) return null;
+  const candidates=autoDiscovery&&typeof autoEspeakCommandState==='string'
+    ?[autoEspeakCommandState]
+    :espeakCommands(command);
+
+  for(const candidate of candidates){
     const result=runCommand(candidate,['-q','--ipa=3','-v',voice,String(surface)],runner);
     if(result?.error||result?.status!==0) continue;
     const ipa=normalizeEspeakIpa(result.stdout,code);
     if(!ipa) continue;
     try{
       const {analysis}=analyzeIpa(ipa,code);
+      if(autoDiscovery) autoEspeakCommandState=candidate;
       return {
         method:'espeak_ng',
         engine:'espeak-ng',
@@ -126,6 +134,7 @@ export function tryEspeakQueryPronunciation(
       continue;
     }
   }
+  if(autoDiscovery) autoEspeakCommandState=null;
   return null;
 }
 
@@ -399,4 +408,5 @@ export function resolveUnknownQueryPronunciation(
 
 export function clearQueryPronunciationCache(){
   cache.clear();
+  autoEspeakCommandState=undefined;
 }
