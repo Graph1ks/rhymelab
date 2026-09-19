@@ -3,6 +3,10 @@ import { spawnSync } from 'node:child_process';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { normalizeEnglishSurface } from './en-writer-source-core.mjs';
+import {
+  requiresShell,
+  resolveCondaTool,
+} from './local-command-resolution.mjs';
 
 const args=process.argv.slice(2);
 function argValue(flag,fallback=null){
@@ -25,7 +29,10 @@ const predictionsPath=resolve(
 const evaluationPath=resolve(
   argValue('--out','data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json')
 );
-const mfaCommand=String(argValue('--mfa','mfa'));
+const mfaCommand=resolveCondaTool('mfa',{
+  explicit:argValue('--mfa',null),
+});
+const pythonCommand=resolveCondaTool('python');
 const modelId='english_us_arpa';
 const modelVersion='2.0.0a';
 
@@ -33,7 +40,7 @@ function run(command,commandArgs,{capture=false}={}){
   const result=spawnSync(command,commandArgs,{
     encoding:'utf8',
     stdio:capture?'pipe':'inherit',
-    shell:false,
+    shell:requiresShell(command),
   });
   if(result.error) throw result.error;
   if(result.status!==0){
@@ -88,7 +95,7 @@ if(cases.length!==benchmark.actual_size){
 console.log('\nMFA PROPER-NAME TOKEN BENCHMARK: preflight…');
 run(mfaCommand,['--help'],{capture:true});
 const mfaVersion=run(
-  'python',
+  pythonCommand,
   [
     '-c',
     "from importlib.metadata import version; print(version('montreal-forced-aligner'))",
@@ -122,6 +129,9 @@ await writeFile(
 );
 
 console.log(JSON.stringify({
+  mfa_command:mfaCommand,
+  python_command:pythonCommand,
+  conda_prefix:process.env.CONDA_PREFIX||null,
   mfa_version:mfaVersion,
   model:modelId,
   model_version:modelVersion,
