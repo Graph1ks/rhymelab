@@ -105,6 +105,8 @@ try{
   const sourceTotal=Object.values(scopeCounts).reduce((sum,value)=>sum+value,0);
   let sourceScanned=0;
   const sourceStarted=Date.now();
+  const scopeShape={};
+  const scopeShapeExamples={};
 
   console.log('[audit] building deterministic '+sampleSize+'-case scope-balanced sample from '+sourceTotal.toLocaleString('en-US')+' source refs');
   for(const row of db.prepare([
@@ -113,6 +115,19 @@ try{
     'ORDER BY sr.source_ref_id',
   ].join(' ')).iterate()){
     const scope=String(row.scope);
+    const cls=classifySurface(row.surface,row.token_count);
+    scopeShape[scope]??={};
+    inc(scopeShape[scope],cls.shape);
+    scopeShapeExamples[scope]??={};
+    scopeShapeExamples[scope][cls.shape]??=[];
+    if(scopeShapeExamples[scope][cls.shape].length<4){
+      scopeShapeExamples[scope][cls.shape].push({
+        item_id:Number(row.item_id),
+        language:String(row.language),
+        surface:String(row.surface),
+        source_ref_count:Number(row.source_ref_count)||0,
+      });
+    }
     const reservoir=reservoirs.get(scope);
     if(!reservoir){sourceScanned+=1;continue;}
     const key=String(row.item_id);
@@ -228,6 +243,8 @@ try{
     by_source_ref_count:bySourceRefCount,
     language_shape:languageShape,
     scopes:scopeCounts,
+    scope_shape:scopeShape,
+    scope_shape_examples:scopeShapeExamples,
     shape_examples:examplesByShape,
     interpretation:{
       clean_single:'single-token letter-dominant candidate',
@@ -270,6 +287,7 @@ try{
     by_language:byLanguage,
     by_shape:byShape,
     scopes:scopeCounts,
+    scope_shape:scopeShape,
     sample_cases:selected.length,
     sample_by_scope:sampleByScope,
     report:outPath,
