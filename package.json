@@ -138,6 +138,8 @@
     "query:gold:benchmark": "npm run query:gold:sample && npm run query:gold:espeak",
     "pronunciation:backfill": "node --no-warnings scripts/run-pronunciation-backfill.mjs",
     "pronunciation:backfill:collect": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase collect",
-    "pronunciation:backfill:report": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase report"
+    "pronunciation:backfill:report": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase report",
+    "data:inventory": "node --no-warnings scripts/report-local-data-inventory.mjs",
+    "data:inventory:full": "node --no-warnings scripts/report-local-data-inventory.mjs --row-counts --hash"
   }
 }
