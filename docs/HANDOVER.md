@@ -146,6 +146,43 @@ npm run entity:g2p:benchmark:mfa
 
 Upload only the new `data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json`.
 
+## MFA proper-name benchmark — full baseline valid, confidence calibration next
+
+The corrected MFA v2 owner run is now valid:
+
+```text
+benchmark controls             600
+model-input eligible           599
+eligible prediction coverage 100%
+predictions                    599
+evaluated                      597
+invalid                          2
+missing                          1
+
+exact phones                 70.35%
+exact rhyme tail             71.19%
+syllable count               95.98%
+stress pattern               80.57%
+primary stress               94.14%
+mean rhyme score           0.913040
+evaluation fingerprint
+b6c3943f90a90a2938bcd3ce74ccecc95eedc67712fe751a6dda0266b2c91b5a
+```
+
+This is useful G2P, but not safe enough for an unconditional Entity fallback because roughly 28.81% of evaluated controls miss the source-backed exact stressed rhyme tail.
+
+Do **not** move to a second model yet. The next gate is cheaper: calibrate MFA's own Pynini path score against benchmark correctness. The runner now uses `--export_scores`, records the score per prediction, and reports retention/quality curves.
+
+Run **inside Miniforge Prompt with `(rhymelab-mfa)` visibly active**:
+
+```powershell
+cd D:\rhymelab
+git pull
+npm run entity:g2p:benchmark:mfa
+```
+
+Upload only the resulting `data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json`. If the score does not provide a useful high-confidence subset, reject MFA as a runtime fallback and only then move to the independent candidate.
+
 ## Frozen German baseline
 
 Phase 11 German Word + Phrase/Mosaic is **COMPLETE / ACCEPTED / FROZEN**.
