@@ -134,13 +134,25 @@ export function isExplicitProperNameRecord(record) {
   return recordTags.some((tag) => /proper(?: |-)?(?:noun|name)/u.test(tag));
 }
 
-export function parseCmudictSurface(line) {
+export function parseCmudictEntry(line) {
   const trimmed = String(line || '').trim();
   if (!trimmed || trimmed.startsWith(';;;')) return null;
   const match = trimmed.match(/^(\S+)\s{1,}(.+)$/u);
   if (!match) return null;
-  const surface = match[1].replace(/\(\d+\)$/u, '');
-  return normalizeEnglishSurface(surface);
+  const sourceSurface=match[1];
+  const surface=sourceSurface.replace(/\(\d+\)$/u,'');
+  const pronunciation=String(match[2]||'').trim();
+  if(!pronunciation) return null;
+  return {
+    sourceSurface,
+    surface,
+    normalized:normalizeEnglishSurface(surface),
+    pronunciation,
+  };
+}
+
+export function parseCmudictSurface(line) {
+  return parseCmudictEntry(line)?.normalized||null;
 }
 
 const ESDB_VARIANT_LEVEL = new Map([
