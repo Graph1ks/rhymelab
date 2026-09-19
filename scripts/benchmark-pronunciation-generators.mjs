@@ -185,6 +185,7 @@ function tsv(value){return String(value??'').replace(/[\t\r\n]/gu,' ');}
 
 const missingStats=createAgreementStats();
 const missingByScope={};
+const missingByLanguage={};
 const missingOutcomes=[];
 const esLat=[];
 const clLat=[];
@@ -198,12 +199,18 @@ try{
     const pair=await runPair(row);
     const scope=row.sampled_scope||'unknown';
     missingByScope[scope]??=createAgreementStats();
+    missingByLanguage[row.language]??=createAgreementStats();
     addAgreement(missingStats,{
       espeakAccepted:pair.espeak.accepted,
       clientAccepted:pair.client.accepted,
       comparison:pair.comparison,
     });
     addAgreement(missingByScope[scope],{
+      espeakAccepted:pair.espeak.accepted,
+      clientAccepted:pair.client.accepted,
+      comparison:pair.comparison,
+    });
+    addAgreement(missingByLanguage[row.language],{
       espeakAccepted:pair.espeak.accepted,
       clientAccepted:pair.client.accepted,
       comparison:pair.comparison,
@@ -225,6 +232,7 @@ try{
   }
 
   const goldStats={espeak:createGoldStats(),client:createGoldStats()};
+  const goldByLanguage={};
   const goldOutcomes=[];
   const goldPair={espeak_higher_rhyme_score:0,client_higher_rhyme_score:0,tied_rhyme_score:0,both_evaluated:0};
   console.log('\n=== GENERATOR CALIBRATION · SOURCE-BACKED CONTROLS ===');
@@ -245,6 +253,9 @@ try{
     }
     addGold(goldStats.espeak,esBest);
     addGold(goldStats.client,clBest);
+    goldByLanguage[row.language]??={espeak:createGoldStats(),client:createGoldStats()};
+    addGold(goldByLanguage[row.language].espeak,esBest);
+    addGold(goldByLanguage[row.language].client,clBest);
     if(esBest&&clBest){
       goldPair.both_evaluated+=1;
       const a=Number(esBest.score?.overall||0);
@@ -297,12 +308,17 @@ try{
     unresolved_comparison:{
       metrics:finalizeAgreement(missingStats),
       by_scope:Object.fromEntries(Object.entries(missingByScope).map(([scope,stats])=>[scope,finalizeAgreement(stats)])),
+      by_language:Object.fromEntries(Object.entries(missingByLanguage).map(([language,stats])=>[language,finalizeAgreement(stats)])),
       client_methods:clientMethods,
       interpretation:'Agreement/coverage on unresolved rows is structural evidence, not lexical correctness because these rows have no direct gold.',
     },
     gold_calibration:{
       espeak:finalizeGold(goldStats.espeak),
       client:finalizeGold(goldStats.client),
+      by_language:Object.fromEntries(Object.entries(goldByLanguage).map(([language,stats])=>[
+        language,
+        {espeak:finalizeGold(stats.espeak),client:finalizeGold(stats.client)},
+      ])),
       pairwise_rhyme_score:goldPair,
       interpretation:'Held-out source-backed controls estimate generator quality. The client exact-surface lookup is blocked; component lookup remains available.',
     },
