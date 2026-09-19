@@ -6,7 +6,7 @@ For the current candidate branch `phase12c-entity-runtime-ai-staging`, read this
 docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md
 ```
 
-Current status: repository implementation is at the **owner full-data acceptance gate**. Source-backed EN Entity runtime, multilingual Entity Writer integration, guarded phonetic-first Entity ranking, batched category metadata, full-data acceptance tooling, isolated AI pronunciation staging, strict AI artifact validation and aggregate staging diagnostics are implemented. Run `npm run entity:phase12c:owner` against the owner-local databases and return the compact report before finalizing PR #112. Benchmark-v3 context-gold review remains pending for the separate AI-evidence track only; missing AI batches do not block source-backed runtime acceptance. Never promote AI staging into runtime without a later explicit gate.
+Current status: the **source-backed Phase 12C owner full-data gate is accepted**. The full local run passed materialization, multilingual verification and Entity Writer acceptance with 710,500 EN runtime-ready names, 705,050 unresolved names, 3,552,500 EN rhyme anchors, preserved DE fingerprint, deterministic ranking/repeatability and no generated/LLM runtime promotion. EN runtime fingerprint: `3f2c520ce99868eda81991e6247c6c93bdf8c78f7805d7ceef2cc2ebd85bb6d8`. PR #112 is in repository-finalization; Entity Writer latency remains follow-up work because the owner sample is still hundreds of milliseconds p50 and >1s p95. Benchmark-v3 context-gold review remains pending for the separate AI-evidence track only; missing AI batches do not block source-backed runtime acceptance. Never promote AI staging into runtime without a later explicit gate.
 
 Current acceptance documents:
 
