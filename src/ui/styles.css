@@ -195,13 +195,20 @@ select option,select optgroup{background:#fff;color:var(--ink)}
   position:relative;
   z-index:24;
 }
-.search-stage.search-auto-compact{
-  position:sticky;
-  top:var(--search-sticky-top,68px);
-}
 .search-card{
   backdrop-filter:blur(18px);
   transition:padding .16s ease,border-radius .16s ease,box-shadow .16s ease;
+}
+.search-stage.search-auto-compact .search-card{
+  position:fixed;
+  top:var(--search-sticky-top,68px);
+  left:var(--search-fixed-left,0);
+  width:var(--search-fixed-width,100%);
+  z-index:40;
+  box-sizing:border-box;
+  max-height:calc(100vh - var(--search-sticky-top,68px) - 8px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
 }
 .word-panel{top:var(--word-panel-sticky-top,142px)}
 
