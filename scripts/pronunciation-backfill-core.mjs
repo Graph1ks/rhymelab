@@ -208,6 +208,12 @@ export function backfillSummary(db){
     generator_pending:hasAdmission
       ?scalar("SELECT COUNT(*) AS c FROM work_item w JOIN admission a USING(item_id) WHERE a.decision='admit' AND w.final_status='pending'")
       :scalar("SELECT COUNT(*) AS c FROM work_item WHERE final_status='pending'"),
+    held_for_review:hasAdmission
+      ?scalar("SELECT COUNT(*) AS c FROM admission WHERE decision='review'")
+      :0,
+    rejected_as_noise:hasAdmission
+      ?scalar("SELECT COUNT(*) AS c FROM admission WHERE decision='reject_noise'")
+      :0,
     espeak_accepted:scalar("SELECT COUNT(*) AS c FROM work_item WHERE espeak_status='accepted'"),
     espeak_rejected:scalar("SELECT COUNT(*) AS c FROM work_item WHERE espeak_status='rejected'"),
     client_accepted:scalar("SELECT COUNT(*) AS c FROM work_item WHERE client_status='accepted'"),
