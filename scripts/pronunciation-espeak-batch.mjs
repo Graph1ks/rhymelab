@@ -29,6 +29,11 @@ function rawLine(value){
   return String(value??'').normalize('NFC').trim();
 }
 
+function shouldSparseFrame(row){
+  const shape=String(row?.shape||'').trim();
+  return Boolean(shape)&&!['clean_single','joined_lexeme'].includes(shape);
+}
+
 function shouldFrame(row){
   const shape=String(row?.shape||'').trim();
   return Boolean(shape)&&!['clean_single','joined_lexeme'].includes(shape);
@@ -229,6 +234,107 @@ async function inspectBatchRows(
   }));
 }
 
+async function processDenseFramedChunk(rows,language,{
+  command,
+  engineVersion=null,
+  timeoutMs=60000,
+  spawnProcess=spawn,
+  boundaryIpa=null,
+  analyzerPool=null,
+  mode='dense_framed_rescue',
+}={}){
+  const code=normalizeLanguage(language);
+  const voice=code==='de'?'de':'en-us';
+  const markerIpa=resolveBoundaryRawIpa(command,code,boundaryIpa);
+  const input=[];
+  for(const row of rows){
+    const surface=inputLine(row.surface);
+    if(surface===ESPEAK_BATCH_BOUNDARY_SURFACE){
+      throw new Error('Work item collides with reserved eSpeak batch boundary surface.');
+    }
+    input.push(surface,ESPEAK_BATCH_BOUNDARY_SURFACE);
+  }
+
+  const processResult=await executeBatchProcess(
+    command,
+    ['-q','--ipa=3','-v',voice],
+    input.join('\n')+'\n',
+    {timeoutMs,spawnProcess},
+  );
+  if(processResult.error||processResult.status!==0){
+    return processFailureRows(rows,processResult,mode+'_process_error');
+  }
+
+  const framed=splitFramedEspeakOutput(processResult.stdout,markerIpa);
+  if(framed.groups.length===rows.length&&framed.trailing.length===0){
+    const inspected=await inspectBatchRows(
+      rows,
+      framed.groups.map((group)=>group.join('\n')),
+      code,
+      processResult,
+      {
+        command,
+        engineVersion,
+        analyzerPool,
+        mode,
+        outputLineCounts:framed.groups.map((group)=>group.length),
+      },
+    );
+    for(let index=0;index<inspected.length;index+=1){
+      inspected[index].dense_frame_output_lines=framed.groups[index].length;
+    }
+    return inspected;
+  }
+
+  // Marker parse failure is exceptional. Split only this rescue batch, never the
+  // normal sparse path, so the common case cannot fan out into a spawn storm.
+  if(rows.length>1){
+    const midpoint=Math.ceil(rows.length/2);
+    const left=await processDenseFramedChunk(rows.slice(0,midpoint),code,{
+      command,engineVersion,timeoutMs,spawnProcess,boundaryIpa:markerIpa,
+      analyzerPool,mode:'dense_framed_recovery',
+    });
+    const right=await processDenseFramedChunk(rows.slice(midpoint),code,{
+      command,engineVersion,timeoutMs,spawnProcess,boundaryIpa:markerIpa,
+      analyzerPool,mode:'dense_framed_recovery',
+    });
+    return [...left,...right];
+  }
+
+  const started=performance.now();
+  try{
+    const inspected=await inspectEspeakQueryPronunciationAsync(
+      rows[0].surface,code,{command},
+    );
+    return [{
+      row:rows[0],
+      inspected,
+      error:null,
+      elapsed:performance.now()-started,
+      mode:'row_process_fallback',
+      batch_size:1,
+      batch_elapsed_ms:processResult.elapsed_ms,
+      stderr:String(processResult.stderr||'').trim()||null,
+      cardinality_mismatch:{
+        expected_groups:1,
+        actual_groups:framed.groups.length,
+        trailing_lines:framed.trailing.length,
+      },
+    }];
+  }catch(error){
+    return [{
+      row:rows[0],
+      inspected:null,
+      error,
+      elapsed:performance.now()-started,
+      mode:'row_process_fallback_error',
+      batch_size:1,
+      batch_elapsed_ms:processResult.elapsed_ms,
+      stderr:String(processResult.stderr||'').trim()||null,
+    }];
+  }
+}
+
 async function processSparseFramedChunk(rows,language,{
   command,
   engineVersion=null,
@@ -240,7 +346,7 @@ async function processSparseFramedChunk(rows,language,{
   mode='sparse_framed_batch',
 }={}){
   const code=normalizeLanguage(language);
-  const voice=code==='de'?'de-us':'en-us';
+  const voice=code==='de'?'de':'en-us';
   const markerIpa=resolveBoundaryRawIpa(command,code,boundaryIpa);
   const groupSize=Math.max(1,Math.min(Number(frameGroupSize)||16,rows.length));
   const groups=[];
@@ -262,7 +368,7 @@ async function processSparseFramedChunk(rows,language,{
 
   const processResult=await executeBatchProcess(
     command,
-    ['-q','--ipa=3','-v',code==='de'?'de':'en-us'],
+    ['-q','--ipa=3','-v',voice],
     input.join('\n')+'\n',
     {timeoutMs,spawnProcess},
   );
@@ -272,64 +378,24 @@ async function processSparseFramedChunk(rows,language,{
 
   const framed=splitFramedEspeakOutput(processResult.stdout,markerIpa);
   if(framed.groups.length!==groups.length||framed.trailing.length!==0){
-    if(rows.length>1){
-      const midpoint=Math.ceil(rows.length/2);
-      const nextGroupSize=Math.max(1,Math.min(groupSize,Math.ceil(rows.length/4)));
-      const left=await processSparseFramedChunk(rows.slice(0,midpoint),code,{
-        command,engineVersion,timeoutMs,spawnProcess,boundaryIpa:markerIpa,
-        analyzerPool,frameGroupSize:nextGroupSize,mode:'sparse_framed_recovery',
-      });
-      const right=await processSparseFramedChunk(rows.slice(midpoint),code,{
-        command,engineVersion,timeoutMs,spawnProcess,boundaryIpa:markerIpa,
-        analyzerPool,frameGroupSize:nextGroupSize,mode:'sparse_framed_recovery',
-      });
-      return [...left,...right];
-    }
-
-    const started=performance.now();
-    try{
-      const inspected=await inspectEspeakQueryPronunciationAsync(
-        rows[0].surface,code,{command},
-      );
-      return [{
-        row:rows[0],
-        inspected,
-        error:null,
-        elapsed:performance.now()-started,
-        mode:'row_process_fallback',
-        batch_size:1,
-        batch_elapsed_ms:processResult.elapsed_ms,
-        stderr:String(processResult.stderr||'').trim()||null,
-        sparse_frame_group_size:groupSize,
-        cardinality_mismatch:{
-          expected_groups:1,
-          actual_groups:framed.groups.length,
-          trailing_lines:framed.trailing.length,
-        },
-      }];
-    }catch(error){
-      return [{
-        row:rows[0],
-        inspected:null,
-        error,
-        elapsed:performance.now()-started,
-        mode:'row_process_fallback_error',
-        batch_size:1,
-        batch_elapsed_ms:processResult.elapsed_ms,
-        stderr:String(processResult.stderr||'').trim()||null,
-        sparse_frame_group_size:groupSize,
-      }];
-    }
+    return await processDenseFramedChunk(rows,code,{
+      command,
+      engineVersion,
+      timeoutMs,
+      spawnProcess,
+      boundaryIpa:markerIpa,
+      analyzerPool,
+      mode:'dense_framed_marker_recovery',
+    });
   }
 
-  const outcomes=[];
+  const resolvedByItemId=new Map();
+  const ambiguousRows=[];
+  let sparseAmbiguousGroups=0;
+
   for(let groupIndex=0;groupIndex<groups.length;groupIndex+=1){
     const groupRows=groups[groupIndex];
     const outputLines=framed.groups[groupIndex];
-
-    // Every admitted row is lexical/non-empty. If the bounded group has exactly
-    // one output line per row, the line mapping is already unambiguous and no
-    // further marker synthesis is required.
     if(outputLines.length===groupRows.length){
       const inspected=await inspectBatchRows(
         groupRows,
@@ -345,50 +411,47 @@ async function processSparseFramedChunk(rows,language,{
       );
       for(const result of inspected){
         result.sparse_frame_group_size=groupSize;
-        result.sparse_frame_output_lines=outputLines.length;
+        result.sparse_frame_ambiguous_groups=0;
+        resolvedByItemId.set(Number(result.row.item_id),result);
       }
-      outcomes.push(...inspected);
-      continue;
+    }else{
+      sparseAmbiguousGroups+=1;
+      ambiguousRows.push(...groupRows);
     }
+  }
 
-    // A single-row sparse frame owns every IPA line before its boundary marker,
-    // so multiline eSpeak output can be joined without another process launch.
-    if(groupRows.length===1){
-      const inspected=await inspectBatchRows(
-        groupRows,
-        [outputLines.join('\n')],
-        code,
-        processResult,
-        {
-          command,
-          engineVersion,
-          analyzerPool,
-          mode:'sparse_framed_single',
-          outputLineCounts:[outputLines.length],
-        },
-      );
-      inspected[0].sparse_frame_group_size=1;
-      inspected[0].sparse_frame_output_lines=outputLines.length;
-      outcomes.push(...inspected);
-      continue;
-    }
-
-    // Only the ambiguous subgroup is synthesized again. This keeps the common
-    // path at one boundary marker per N rows while preserving exact ownership
-    // for genuinely multiline rows.
-    const refined=await processSparseFramedChunk(groupRows,code,{
+  if(ambiguousRows.length){
+    const rescued=await processDenseFramedChunk(ambiguousRows,code,{
       command,
       engineVersion,
       timeoutMs,
       spawnProcess,
       boundaryIpa:markerIpa,
       analyzerPool,
-      frameGroupSize:Math.max(1,Math.ceil(groupRows.length/2)),
-      mode:'sparse_framed_refine',
+      mode:'dense_framed_rescue',
     });
-    outcomes.push(...refined);
+    for(const result of rescued){
+      result.sparse_frame_group_size=groupSize;
+      result.sparse_frame_ambiguous_groups=sparseAmbiguousGroups;
+      resolvedByItemId.set(Number(result.row.item_id),result);
+    }
   }
-  return outcomes;
+
+  return rows.map((row)=>{
+    const result=resolvedByItemId.get(Number(row.item_id));
+    if(result)return result;
+    return {
+      row,
+      inspected:null,
+      error:new Error('Sparse framing lost row ownership for item '+String(row.item_id)),
+      elapsed:0,
+      mode:'sparse_framed_mapping_error',
+      batch_size:rows.length,
+      batch_elapsed_ms:processResult.elapsed_ms,
+      sparse_frame_group_size:groupSize,
+      sparse_frame_ambiguous_groups:sparseAmbiguousGroups,
+    };
+  });
 }
 
 async function processChunk(rows,language,{
@@ -399,8 +462,16 @@ async function processChunk(rows,language,{
   boundaryIpa=null,
   analyzerPool=null,
   frameGroupSize=16,
+  forceSparseFrame=false,
 }={}){
   const code=normalizeLanguage(language);
+  if(forceSparseFrame){
+    return await processSparseFramedChunk(rows,code,{
+      command,engineVersion,timeoutMs,spawnProcess,boundaryIpa,
+      analyzerPool,frameGroupSize,mode:'sparse_framed_batch',
+    });
+  }
+
   const voice=code==='de'?'de':'en-us';
   const lines=rows.map((row)=>inputLine(row.surface));
   const processResult=await executeBatchProcess(
@@ -430,9 +501,6 @@ async function processChunk(rows,language,{
     );
   }
 
-  // Framing V2: a cardinality mismatch no longer adds one spoken marker per
-  // row. Re-run the ambiguous batch with sparse marker groups and recursively
-  // refine only the groups whose output cardinality is still ambiguous.
   return await processSparseFramedChunk(rows,code,{
     command,
     engineVersion,
@@ -441,15 +509,24 @@ async function processChunk(rows,language,{
     boundaryIpa,
     analyzerPool,
     frameGroupSize,
-    mode:'sparse_framed_batch',
+    mode:'sparse_framed_after_cardinality_mismatch',
   });
 }
 
 function buildChunks(list,size){
   const chunks=[];
-  for(let index=0;index<list.length;index+=size){
-    chunks.push(list.slice(index,index+size));
+  let current=[];
+  let sparse=null;
+  for(const row of list){
+    const rowSparse=shouldSparseFrame(row);
+    if(current.length&&(current.length>=size||rowSparse!==sparse)){
+      chunks.push({rows:current,sparse});
+      current=[];
+    }
+    if(!current.length)sparse=rowSparse;
+    current.push(row);
   }
+  if(current.length)chunks.push({rows:current,sparse});
   return chunks;
 }
 
@@ -478,7 +555,7 @@ export async function mapEspeakBatchWorkers(rows,language,{
   const processed=await mapConcurrent(
     chunks,
     Math.max(1,Number(workers)||4),
-    (chunk)=>processChunk(chunk,code,{
+    ({rows:chunk,sparse})=>processChunk(chunk,code,{
       command,
       engineVersion,
       timeoutMs,
@@ -486,6 +563,7 @@ export async function mapEspeakBatchWorkers(rows,language,{
       boundaryIpa:markerIpa,
       analyzerPool,
       frameGroupSize:Math.max(1,Number(frameGroupSize)||16),
+      forceSparseFrame:Boolean(sparse),
     }),
   );
   return processed.flat();
