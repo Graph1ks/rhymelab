@@ -118,6 +118,6 @@
     "entity:pronunciation:expand": "node --no-warnings scripts/run-entity-pronunciation-source-expansion.mjs",
     "entity:g2p:benchmark:prepare": "node --no-warnings scripts/prepare-entity-g2p-benchmark.mjs",
     "entity:g2p:benchmark:evaluate": "node --no-warnings scripts/evaluate-entity-g2p-benchmark.mjs",
-    "entity:g2p:benchmark:mfa": "node --no-warnings scripts/run-entity-g2p-mfa-benchmark.mjs"
+    "entity:g2p:benchmark:mfa": "npm run entity:g2p:benchmark:prepare && node --no-warnings scripts/run-entity-g2p-mfa-benchmark.mjs"
   }
 }
