@@ -72,7 +72,7 @@ for(const scope of requestedScopes){
     throw new Error('Unknown --scopes value: '+scope);
   }
 }
-if(!['all','collect','espeak','client','report'].includes(phase)){
+if(!['all','plan','collect','espeak','client','report'].includes(phase)){
   throw new Error('Unknown --phase value: '+phase);
 }
 
@@ -186,6 +186,45 @@ if(requestedScopes.has('en')){
   };
 }
 const sourceFingerprint=hashJson(sourceSnapshot);
+
+if(phase==='plan'){
+  console.log(JSON.stringify({
+    schema:'rhymelab-pronunciation-backfill-source-plan-v1',
+    policy:PRONUNCIATION_BACKFILL_POLICY,
+    source_fingerprint:sourceFingerprint,
+    requested_scopes:[...requestedScopes],
+    sources:{
+      de:requestedScopes.has('de')?{
+        usage_inventory:deUsagePath,
+        wiktionary_raw:deKaikkiPath,
+        accepted_db:deDbPath,
+        collectors:[
+          'de_usage_source_minus_accepted',
+          'de_wiktionary_headword_source_minus_accepted',
+          'de_listed_form_source_minus_accepted',
+        ],
+      }:null,
+      en:requestedScopes.has('en')?{
+        registry:enRegistryPath,
+        wiktionary_raw:enKaikkiPath,
+        accepted_db:enDbPath,
+        collector:'en_wiktionary_lexical_source_minus_accepted',
+        candidate_policy:'lexicalEvidenceForHeadword + lexicalEvidenceForListedForms',
+      }:null,
+      phrases:requestedScopes.has('phrases')?{
+        catalog_db:phraseDbPath,
+        collectors:['phrase_unresolved_token','phrase_surface_unresolved'],
+        source_boundary:'pronunciation-independent phrase/token catalog',
+      }:null,
+      entities:requestedScopes.has('entities')?{
+        catalog_db:entityDbPath,
+        collectors:['entity_de_no_source_pronunciation','entity_en_no_source_pronunciation'],
+        source_boundary:'retained searchable entity-name catalog before pronunciation',
+      }:null,
+    },
+  },null,2));
+  process.exit(0);
+}
 
 const workDb=new DatabaseSync(workPath);
 createPronunciationBackfillStorage(workDb);
