@@ -71,8 +71,12 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /resolveMissingQueryPronunciations/);
   assert.match(app, /query_ipa_\$\{language\}/);
   assert.match(app, /lookupSourceBackedWord/);
-  assert.match(clientPronunciation, /client-total-query-pronunciation-v1/);
+  assert.match(clientPronunciation, /client-total-query-pronunciation-v2/);
   assert.match(clientPronunciation, /client_source_reference_compound/);
+  assert.match(clientPronunciation, /client_token_chain/);
+  assert.match(clientPronunciation, /tokenizeClientPronunciationInput/);
+  assert.doesNotMatch(app, /isSingleTokenQuery/);
+  assert.doesNotMatch(queryTest, /if\(!\/\\s\/u\.test\(query\)\)/);
   assert.doesNotMatch(clientPronunciation, /node:child_process|spawnSync|process\.|RHYMELAB_ESPEAK|espeak/iu);
   assert.doesNotMatch(clientPronunciation, /\bfetch\s*\(|XMLHttpRequest|WebSocket/);
   assert.doesNotMatch(clientPronunciation, /findWriterRhymes|searchEnglishWriter|searchEntityRhymes|rankClientRhymeCandidates/);
