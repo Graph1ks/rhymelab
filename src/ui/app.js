@@ -192,16 +192,55 @@ function updateStickyLayout(){
   if(typeof window==='undefined')return;
   const root=document.documentElement;
   const stage=$('.search-stage');
+  const card=$('.search-card');
   const core=$('#searchForm');
   if(!root?.style?.setProperty)return;
   const stickyTop=searchStickyTop();
   const coreRect=core?.getBoundingClientRect?.();
   const coreHeight=Math.ceil(Number(coreRect?.height||core?.offsetHeight||60));
   const stickyExpanded=Boolean(stage?.classList.contains('search-auto-compact')&&state.stickyPanelOverride);
-  const stageHeight=Math.ceil(Number(stage?.offsetHeight||stage?.getBoundingClientRect?.()?.height||coreHeight));
-  const occupiedHeight=stickyExpanded?stageHeight:coreHeight;
+  const cardHeight=Math.ceil(Number(card?.getBoundingClientRect?.()?.height||card?.offsetHeight||coreHeight));
+  const occupiedHeight=stickyExpanded?cardHeight:coreHeight;
   root.style.setProperty('--search-sticky-top',`${stickyTop}px`);
   root.style.setProperty('--word-panel-sticky-top',`${stickyTop+occupiedHeight+14}px`);
+}
+
+function updateFloatingSearchGeometry(){
+  if(typeof window==='undefined')return;
+  const stage=$('.search-stage');
+  if(!stage?.classList.contains('search-auto-compact')||!stage.style?.setProperty)return;
+  const rect=stage.getBoundingClientRect?.();
+  if(!rect)return;
+  stage.style.setProperty('--search-fixed-left',`${Math.round(rect.left)}px`);
+  stage.style.setProperty('--search-fixed-width',`${Math.round(rect.width)}px`);
+}
+
+function enterSearchAutoCompact(){
+  const stage=$('.search-stage');
+  if(!stage||stage.classList.contains('search-auto-compact'))return;
+  const rect=stage.getBoundingClientRect?.();
+  const reserveHeight=Math.ceil(Number(rect?.height||stage.offsetHeight||0));
+  if(reserveHeight>0&&stage.style)stage.style.height=`${reserveHeight}px`;
+  if(stage.style?.setProperty&&rect){
+    stage.style.setProperty('--search-fixed-left',`${Math.round(rect.left)}px`);
+    stage.style.setProperty('--search-fixed-width',`${Math.round(rect.width)}px`);
+  }
+  stage.classList.add('search-auto-compact');
+  syncSearchSectionControls();
+}
+
+function exitSearchAutoCompact(){
+  const stage=$('.search-stage');
+  if(!stage)return;
+  stage.classList.remove('search-auto-compact');
+  state.stickyPanelOverride=null;
+  syncSearchSectionControls();
+  if(stage.style){
+    stage.style.height='';
+    stage.style.removeProperty?.('--search-fixed-left');
+    stage.style.removeProperty?.('--search-fixed-width');
+  }
+  refreshSearchCompactThreshold();
 }
 
 function refreshSearchCompactThreshold(){
@@ -267,10 +306,8 @@ function toggleSearchSection(name){
 
 function clearSearchAutoCompact(){
   const stage=$('.search-stage');
-  if(!stage)return;
-  stage.classList.remove('search-auto-compact');
-  state.stickyPanelOverride=null;
-  syncSearchSectionControls();
+  if(!stage?.classList.contains('search-auto-compact'))return;
+  exitSearchAutoCompact();
 }
 
 function syncFloatingSearchState(){
@@ -288,18 +325,12 @@ function syncFloatingSearchState(){
   const focusedInside=Boolean(document.activeElement&&stage.contains?.(document.activeElement));
 
   if(stage.classList.contains('search-auto-compact')){
-    if(window.scrollY<threshold-24){
-      stage.classList.remove('search-auto-compact');
-      state.stickyPanelOverride=null;
-      syncSearchSectionControls();
-    }
+    updateFloatingSearchGeometry();
+    if(window.scrollY<threshold-36)exitSearchAutoCompact();
     return;
   }
 
-  if(window.scrollY>=threshold&&!focusedInside){
-    stage.classList.add('search-auto-compact');
-    syncSearchSectionControls();
-  }
+  if(window.scrollY>=threshold&&!focusedInside)enterSearchAutoCompact();
 }
 
 function populateEntityCategories(){const select=$('#entityCategory');if(!select)return;const current=select.value||'all',categories=[...(state.capabilities?.entities?.categories||[])].sort((a,b)=>entityCategoryLabel(a).localeCompare(entityCategoryLabel(b),state.lang==='de'?'de':'en',{sensitivity:'base'}));const groups=new Map();for(const category of categories){const [family='other']=String(category).split('.');if(!groups.has(family))groups.set(family,[]);groups.get(family).push(category);}select.innerHTML=`<option value="all">${esc(t('allEntities'))}</option>`+[...groups.entries()].sort(([a],[b])=>humanize(a).localeCompare(humanize(b),state.lang==='de'?'de':'en',{sensitivity:'base'})).map(([family,items])=>`<optgroup label="${esc(humanize(family))}">${items.map((category)=>`<option value="${esc(category)}">${esc(entityCategoryLabel(category))}</option>`).join('')}</optgroup>`).join('');select.value=categories.includes(current)?current:'all';}
@@ -647,7 +678,11 @@ function installInteractiveControls(){
   $('#results').addEventListener('focusout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
   if(typeof window!=='undefined'){
     window.addEventListener('scroll',()=>syncFloatingSearchState(),{passive:true});
-    window.addEventListener('resize',()=>{clearSearchAutoCompact();refreshSearchCompactThreshold();syncFloatingSearchState();},{passive:true});
+    window.addEventListener('resize',()=>{
+      if($('.search-stage')?.classList.contains('search-auto-compact'))updateFloatingSearchGeometry();
+      else refreshSearchCompactThreshold();
+      syncFloatingSearchState();
+    },{passive:true});
   }
 
   document.documentElement.dataset.rhymelabControls='bound';
