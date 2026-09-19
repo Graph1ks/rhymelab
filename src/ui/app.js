@@ -204,21 +204,140 @@ function resultByKey(key){return state.data?.results?.find((row)=>`${row.resultK
 async function inspectResult(result,displayType=null){if(!result)return;const key=`${result.resultKind||'word'}:${result.resultId||result.windowId||result.normalized||result.word}`;if(!key||!state.data)return;state.inspectedWord=key;state.inspectedResult=result;state.inspectedType=displayType;const token=++state.detailRequest;if(result.resultKind==='entity'){renderEntityPanel(result,displayType);return;}if(result.resultKind==='phrase'){const cacheKey=`phrase:${result.phraseId||result.normalized}`,cached=state.wordCache.get(cacheKey);if(cached){if(token===state.detailRequest&&state.inspectedWord===key)renderPhrasePanel(result,result,cached,displayType);return;}if(!result.phraseId){renderPhrasePanel(result,result,null,displayType);return;}try{const response=await fetch(`/api/phrases/detail?id=${encodeURIComponent(result.phraseId)}`);if(!response.ok){renderPhrasePanel(result,result,null,displayType);return;}const detail=await response.json();state.wordCache.set(cacheKey,detail);if(token===state.detailRequest&&state.inspectedWord===key)renderPhrasePanel(result,result,detail,displayType);}catch{renderPhrasePanel(result,result,null,displayType);}return;}const wordKey=wordCacheKey(result.language||'de',result.normalized||result.word),cached=state.wordCache.get(wordKey);if(cached){if(token===state.detailRequest&&state.inspectedWord===key)renderWordPanel(cached,result,displayType);return;}try{const response=await fetch(`/api/word/${encodeURIComponent(result.word)}?language=${encodeURIComponent(result.language||'de')}`);if(!response.ok)return;const detail=await response.json();state.wordCache.set(wordKey,detail);if(token===state.detailRequest&&state.inspectedWord===key)renderWordPanel(detail,result,displayType);}catch{}}
 function restoreQueryPanel(){state.inspectedWord=null;state.inspectedResult=null;state.inspectedType=null;state.detailRequest+=1;if(state.data?.query?.kind==='phrase')renderPhrasePanel(state.data.query);else if(state.data?.query)renderWordPanel(state.data.query);}
 
-function renderCapabilityNotice(warnings=[]){const node=$('#capabilityNotice');if(!node)return;const messages=[];if(state.basis==='en'&&state.capabilities?.languages?.en?.available===false)messages.push(t('englishUnavailable'));else if(state.basis==='both'&&state.capabilities?.partialBases?.both)messages.push(t('bothPartial'));const scopeState=scopeCapability($('#scopeFilter').value);if(scopeState.partial)messages.push(t('scopePartial'));for(const warning of warnings||[]){const message=warning?.code==='english_runtime_unavailable'?t('englishUnavailable'):warning?.message;if(message&&!messages.includes(message))messages.push(message);}node.textContent=messages.join(' ');node.classList.toggle('hidden',messages.length===0);}
+function renderCapabilityNotice(warnings=[]){
+  const node=$('#capabilityNotice');
+  if(!node)return;
+  const messages=[];
+  if(state.basis==='en'&&state.capabilities?.languages?.en?.available===false)messages.push(t('englishUnavailable'));
+  else if(state.basis==='both'&&state.capabilities?.partialBases?.both)messages.push(t('bothPartial'));
+  if((state.resultLanguage==='en'||state.resultLanguage==='both')&&state.capabilities?.languages?.en?.available===false)messages.push(t('englishUnavailable'));
+  const scopeState=scopeCapability($('#scopeFilter').value);
+  if(scopeState.partial)messages.push(t('scopePartial'));
+  for(const warning of warnings||[]){
+    const message=warning?.code==='english_runtime_unavailable'?t('englishUnavailable'):warning?.message;
+    if(message&&!messages.includes(message))messages.push(message);
+  }
+  node.textContent=messages.join(' ');
+  node.classList.toggle('hidden',messages.length===0);
+}
+
 async function loadCapabilities(){try{const response=await fetch('/api/health');if(!response.ok)return;const health=await response.json();state.capabilities=health.unified_writer||null;syncCapabilityControls();applyLanguage();renderCapabilityNotice();}catch{}}
-async function search(word){state.query=word.trim();if(!state.query)return;$('#emptyState').classList.add('hidden');$('#workspace').classList.remove('hidden');$('#loading').classList.remove('hidden');$('#error').classList.add('hidden');$('#results').innerHTML='';state.visibleCount=state.pageSize;state.inspectedWord=null;state.inspectedResult=null;state.inspectedType=null;state.detailRequest+=1;state.scrollObserver?.disconnect();try{const requestedType=$('#typeFilter').value,backendType=SOUND_RELATION_TYPES.includes(requestedType)?'all':requestedType,params=new URLSearchParams({q:state.query,language:state.basis,scope:$('#scopeFilter').value,word_limit:'250',word_pool:'800',phrase_limit:'250',phrase_pool:'512',phrase_per_channel:'128',entity_limit:'250',entity_pool:'512',entity_category:'all',variants:$('#variantMode').value,historical:$('#historicalMode').checked?'all':'current',type:backendType}),response=await fetch(`/api/writer?${params}`),data=await response.json();if(!response.ok){const warning=(data.warnings||[]).map((entry)=>entry?.code==='english_runtime_unavailable'?t('englishUnavailable'):entry?.message).filter(Boolean).join(' ');throw new Error(response.status===404?t('notFound'):(warning||data.error||data.status||'Request failed'));}state.data=data;state.capabilities=data.capabilities||state.capabilities;syncCapabilityControls();updateSyllableLabels();if(data.query?.kind==='word')state.wordCache.set(wordCacheKey(data.query.language||'de',data.query?.surface||state.query),data.query);const url=new URL(location.href);url.searchParams.set('q',state.query);url.searchParams.set('lang',state.basis);url.searchParams.set('scope',$('#scopeFilter').value);url.searchParams.set('type',requestedType);history.replaceState(null,'',url);render();}catch(error){state.data=null;$('#wordPanel').innerHTML='';$('#scrollSentinel').classList.add('hidden');$('#error').textContent=error.message;$('#error').classList.remove('hidden');renderCapabilityNotice();}finally{$('#loading').classList.add('hidden');}}
+async function search(word){
+  state.query=word.trim();
+  if(!state.query)return;
+  $('#emptyState').classList.add('hidden');
+  $('#workspace').classList.remove('hidden');
+  $('#loading').classList.remove('hidden');
+  $('#error').classList.add('hidden');
+  $('#results').innerHTML='';
+  state.visibleCount=state.pageSize;
+  state.sectionVisible.clear();
+  state.inspectedWord=null;
+  state.inspectedResult=null;
+  state.inspectedType=null;
+  state.detailRequest+=1;
+  state.scrollObserver?.disconnect();
+
+  try{
+    const requestedType=$('#typeFilter').value;
+    const backendType=SOUND_RELATION_TYPES.includes(requestedType)?'all':requestedType;
+    const params=new URLSearchParams({
+      q:state.query,
+      language:state.basis,
+      result_language:state.resultLanguage,
+      scope:$('#scopeFilter').value,
+      word_limit:'250',
+      word_pool:'800',
+      phrase_limit:'250',
+      phrase_pool:'512',
+      phrase_per_channel:'128',
+      entity_limit:'250',
+      entity_pool:'512',
+      entity_category:$('#entityCategory')?.value||'all',
+      variants:$('#variantMode').value,
+      historical:$('#historicalMode').checked?'all':'current',
+      type:backendType,
+    });
+    const response=await fetch(`/api/writer?${params}`);
+    const data=await response.json();
+    if(!response.ok){
+      const warning=(data.warnings||[]).map((entry)=>entry?.code==='english_runtime_unavailable'?t('englishUnavailable'):entry?.message).filter(Boolean).join(' ');
+      throw new Error(response.status===404?t('notFound'):(warning||data.error||data.status||'Request failed'));
+    }
+
+    state.data=data;
+    state.capabilities=data.capabilities||state.capabilities;
+    syncCapabilityControls();
+    updateSyllableLabels();
+    if(data.query?.kind==='word')state.wordCache.set(wordCacheKey(data.query.language||'de',data.query?.surface||state.query),data.query);
+
+    const url=new URL(location.href);
+    url.searchParams.set('q',state.query);
+    url.searchParams.set('lang',state.basis);
+    url.searchParams.set('result_lang',state.resultLanguage);
+    url.searchParams.set('scope',$('#scopeFilter').value);
+    url.searchParams.set('type',requestedType);
+    const entityCategory=$('#entityCategory')?.value||'all';
+    if(entityCategory==='all')url.searchParams.delete('entity_category');
+    else url.searchParams.set('entity_category',entityCategory);
+    history.replaceState(null,'',url);
+    render();
+  }catch(error){
+    state.data=null;
+    $('#wordPanel').innerHTML='';
+    $('#scrollSentinel').classList.add('hidden');
+    $('#error').textContent=error.message;
+    $('#error').classList.remove('hidden');
+    renderCapabilityNotice();
+  }finally{
+    $('#loading').classList.add('hidden');
+  }
+}
 
 $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();search($('#searchInput').value);});
 $$$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{const language=button.dataset.uiLang;if(!['de','en'].includes(language))return;state.lang=language;localStorage.setItem('rhymelab.language',language);applyLanguage();}));
 $$('.view-option').forEach((button)=>button.addEventListener('click',()=>{const view=button.dataset.view;if(!['list','compact'].includes(view))return;state.view=view;localStorage.setItem('rhymelab.resultView',view);syncViewControls();if(state.data)render();}));
 $$$('.basis-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.basis=['de','en','both'].includes(button.dataset.basis)?button.dataset.basis:'de';localStorage.setItem('rhymelab.searchBasis',state.basis);syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
+$$('.result-language-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.resultLanguage=['de','en','both'].includes(button.dataset.resultLanguage)?button.dataset.resultLanguage:'de';localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);state.sectionVisible.clear();syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
 $$$('.scope-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;setScope(button.dataset.scope,{rerun:true});renderCapabilityNotice();}));
 ['typeFilter','variantMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{if(state.query)search(state.query);else renderCapabilityNotice();}));
-['syllableFilter','sortMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{state.visibleCount=state.pageSize;if(state.data)render();}));
+['syllableFilter','sortMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{state.visibleCount=state.pageSize;state.sectionVisible.clear();if(state.data)render();}));
 $('#historicalMode').addEventListener('change',()=>{if(state.query)search(state.query);});
+$('#entityCategory').addEventListener('change',()=>{state.sectionVisible.clear();if(state.query)search(state.query);});
+$('#sourcesButton').addEventListener('click',()=>{$('#sourcesDialog').showModal();});
+$('#sourcesClose').addEventListener('click',()=>{$('#sourcesDialog').close();});
+$('#sourcesDialog').addEventListener('click',(event)=>{if(event.target===$('#sourcesDialog'))$('#sourcesDialog').close();});
+$('#results').addEventListener('click',(event)=>{const button=event.target.closest('[data-more-section]');if(!button)return;const key=button.dataset.moreSection,current=state.sectionVisible.get(key)||state.sectionPageSize;state.sectionVisible.set(key,current+state.sectionPageSize);render();});
 $('#results').addEventListener('pointerover',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;inspectResult(resultByKey(row.dataset.resultKey),row.dataset.displayType);});
 $('#results').addEventListener('pointerout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
 $('#results').addEventListener('focusin',(event)=>{const row=event.target.closest('.result-row');if(row)inspectResult(resultByKey(row.dataset.resultKey),row.dataset.displayType);});
 $('#results').addEventListener('focusout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
-async function bootstrap(){const initialUrl=new URL(location.href),initialBasis=initialUrl.searchParams.get('lang'),initialScope=initialUrl.searchParams.get('scope'),initialType=initialUrl.searchParams.get('type');if(['de','en','both'].includes(initialBasis))state.basis=initialBasis;if(['all','words','phrases','entities'].includes(initialScope))$('#scopeFilter').value=initialScope;if(['all',...RHYME_TYPES].includes(initialType))$('#typeFilter').value=initialType;setScope($('#scopeFilter').value);applyLanguage();await loadCapabilities();const initial=initialUrl.searchParams.get('q');if(initial){$('#searchInput').value=initial;await search(initial);}}
+async function bootstrap(){
+  const initialUrl=new URL(location.href);
+  const initialBasis=initialUrl.searchParams.get('lang');
+  const initialResultLanguage=initialUrl.searchParams.get('result_lang');
+  const initialScope=initialUrl.searchParams.get('scope');
+  const initialType=initialUrl.searchParams.get('type');
+  const initialEntityCategory=initialUrl.searchParams.get('entity_category');
+
+  if(['de','en','both'].includes(initialBasis))state.basis=initialBasis;
+  if(['de','en','both'].includes(initialResultLanguage))state.resultLanguage=initialResultLanguage;
+  if(['all','words','phrases','entities'].includes(initialScope))$('#scopeFilter').value=initialScope;
+  if(['all',...RHYME_TYPES].includes(initialType))$('#typeFilter').value=initialType;
+
+  setScope($('#scopeFilter').value);
+  applyLanguage();
+  await loadCapabilities();
+
+  if(initialEntityCategory&&[...($('#entityCategory')?.options||[])].some((option)=>option.value===initialEntityCategory)){
+    $('#entityCategory').value=initialEntityCategory;
+  }
+  syncContextFilters();
+
+  const initial=initialUrl.searchParams.get('q');
+  if(initial){
+    $('#searchInput').value=initial;
+    await search(initial);
+  }
+}
 bootstrap();
