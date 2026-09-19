@@ -189,19 +189,56 @@ select option,select optgroup{background:#fff;color:var(--ink)}
 }
 
 
-/* Floating search workspace and full-surface compact result cards */
+/* Floating search workspace, persistent accordions and sticky detail geometry */
 .search-stage{
   position:sticky;
-  top:68px;
+  top:var(--search-sticky-top,68px);
   z-index:24;
 }
 .search-card{
   backdrop-filter:blur(18px);
   transition:padding .16s ease,border-radius .16s ease,box-shadow .16s ease;
 }
+.word-panel{top:var(--word-panel-sticky-top,90px)}
+
+.search-control-section{min-width:0}
+.search-options-section{margin-bottom:10px}
+.result-filters-section{margin-top:10px}
+.search-section-toggle{
+  width:100%;
+  min-height:40px;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:rgba(255,255,255,.52);
+  color:var(--ink);
+  padding:6px 10px;
+  text-align:left;
+}
+.search-section-toggle:hover{border-color:var(--line-strong);background:rgba(255,255,255,.82)}
+.search-section-toggle:focus-visible{outline:3px solid rgba(49,84,213,.22);outline-offset:2px}
+.search-section-icon{font-size:18px;color:var(--accent-ink)}
+.search-section-toggle-copy{min-width:0;display:flex;align-items:baseline;gap:8px}
+.search-section-toggle-copy strong{font-size:11px;letter-spacing:.01em}
+.search-section-toggle-copy small{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--muted);
+  font-size:10px;
+}
+.search-section-chevron{font-size:18px;color:var(--muted);transform:rotate(180deg);transition:transform .15s ease}
+.search-control-section.section-collapsed .search-section-chevron{transform:rotate(0)}
+.search-control-section.section-collapsed .search-section-panel{display:none}
+.search-section-panel{padding-top:9px}
+
 .search-results-toolbar{
-  margin:14px 0 0;
-  padding:14px 0 0;
+  margin:0;
+  padding:12px 0 0;
   border:0;
   border-top:1px solid var(--line);
   border-radius:0;
@@ -209,46 +246,16 @@ select option,select optgroup{background:#fff;color:var(--ink)}
   background:transparent;
 }
 .search-results-toolbar .toolbar-title{margin-bottom:12px}
-.search-filter-reveal{
-  display:none;
-  width:100%;
-  min-height:34px;
-  margin-top:8px;
-  border:1px dashed var(--line-strong);
-  border-radius:10px;
-  background:rgba(255,255,255,.5);
-  color:var(--muted);
-  align-items:center;
-  justify-content:center;
-  padding:6px 10px;
-  font-family:var(--mono);
-  font-size:10px;
-  font-weight:650;
-  letter-spacing:.05em;
-}
-.search-filter-reveal:hover,
-.search-filter-reveal:focus-visible{
-  border-color:var(--accent);
-  background:#eef1ff;
-  color:var(--accent-ink);
-  outline:none;
-}
-.search-stage.search-collapsed .search-card{
+
+.search-stage.search-auto-compact .search-card{
   padding:10px 12px;
   border-radius:16px;
   box-shadow:0 14px 34px rgba(35,31,24,.14);
 }
-.search-stage.search-collapsed .search-mode-grid,
-.search-stage.search-collapsed .availability-bar,
-.search-stage.search-collapsed .search-results-toolbar{
-  display:none;
-}
-.search-stage.search-collapsed .search-card .search{height:52px}
-.search-stage.search-collapsed .search-filter-reveal{display:flex}
-.search-stage.search-collapsed.search-hover-open .search-mode-grid{display:grid}
-.search-stage.search-collapsed.search-hover-open .availability-bar{display:flex}
-.search-stage.search-collapsed.search-hover-open .search-results-toolbar:not(.hidden){display:block}
-.search-stage.search-collapsed.search-hover-open .search-filter-reveal{display:none}
+.search-stage.search-auto-compact .search-section-panel{display:none}
+.search-stage.search-auto-compact .search-card .search{height:52px}
+.search-stage.search-auto-compact.search-auto-peek-searchOptions #searchOptionsSection:not(.section-collapsed) .search-section-panel{display:block}
+.search-stage.search-auto-compact.search-auto-peek-resultFilters #resultFiltersSection:not(.section-collapsed) .search-section-panel{display:block}
 
 .results-compact .result-items{
   grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
