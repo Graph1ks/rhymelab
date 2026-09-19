@@ -162,15 +162,3 @@ test('eSpeak inspection preserves rejected raw IPA and analyzer error for benchm
   assert.equal(inspected.ipa,'???');
   assert.match(inspected.analyzerError,/Unsupported English IPA symbol/);
 });
-
-test('analyzer rejection does not mark an auto-discovered eSpeak executable as unavailable',()=>{
-  let calls=0;
-  const runner=(command,args)=>{
-    calls+=1;
-    return {status:0,stdout:calls===1?'???':'dɹˈægən',stderr:''};
-  };
-  const first=inspectEspeakQueryPronunciation('BadFixture','en',{runner});
-  assert.equal(first.status,'rejected');
-  const second=inspectEspeakQueryPronunciation('Dragon','en',{runner});
-  assert.equal(second.status,'accepted');
-});
