@@ -12,7 +12,7 @@ const I18N = {
   en: {
     title:'RhymeLab Local',eyebrow:'UNIFIED RHYME WRITER',headline:'Find rhymes across words, phrases and names.',
     intro:'Search German, English or both. RhymeLab combines every locally available channel and still lets you isolate words, Phrase/Mosaic matches or Entities.',
-    noteLocal:'Runs locally',notePhonetic:'IPA-based',noteUsage:'Deterministic',navSearch:'SEARCH',navRhymePad:'RHYMEPAD',localRuntime:'LOCAL RUNTIME',browse:'Browse results',resultScope:'Results',languageBasis:'Query pronunciation',resultLanguage:'Result language',searchIn:'Search in',basisGerman:'German',basisEnglish:'English',basisBoth:'Combined',scopeAll:'Words + phrases + entities',scopeAllButton:'All',scopeWords:'Words',scopePhrases:'Phrases / Mosaic',scopePhrasesShort:'Phrases',scopeEntities:'Entities',words:'Words',phrases:'Phrases / Mosaic',entities:'Entities',word:'Word',phrase:'Phrase',entity:'Entity',filters:'Filters',filtersHint:'Rhyme, syllables, sorting and vocabulary',viewList:'List',viewCompact:'Compact',rhymeType:'Rhyme / sound relation',
+    noteLocal:'Runs locally',notePhonetic:'IPA-based',noteUsage:'Deterministic',navSearch:'SEARCH',navRhymePad:'RHYMEPAD',localRuntime:'LOCAL RUNTIME',browse:'Browse results',resultScope:'Results',languageBasis:'Query pronunciation',resultLanguage:'Result language',searchIn:'Search in',basisGerman:'German',basisEnglish:'English',basisBoth:'Combined',scopeAll:'Words + phrases + entities',scopeAllButton:'All',scopeWords:'Words',scopePhrases:'Phrases / Mosaic',scopePhrasesShort:'Phrases',scopeEntities:'Entities',words:'Words',phrases:'Phrases / Mosaic',entities:'Entities',word:'Word',phrase:'Phrase',entity:'Entity',filters:'Filters',filtersHint:'Rhyme, syllables, sorting and vocabulary',viewList:'List',viewCompact:'Compact',showSearchFilters:'Show search / result filters',rhymeType:'Rhyme / sound relation',
     syllables:'Syllables',sort:'Sort',pronunciation:'Pronunciation',vocabulary:'Vocabulary',all:'All',same:'Same count',plusMinus1:'±1 syllable',plusMinus2:'±2 syllables',plusMinus3:'±3 syllables',
     recommended:'Recommended',syllableDistance:'Closest syllable count',mostCommon:'Most common',closest:'Closest rhyme',alphabetical:'A–Z',standard:'Standard',allVariants:'All variants',
     searching:'Searching…',includeHistorical:'Include historical / obsolete words',scrollMore:'Scroll for more results…',searchPlaceholder:'Search a word, phrase or entity…',search:'Search',
@@ -30,7 +30,7 @@ const I18N = {
   de: {
     title:'RhymeLab Lokal',eyebrow:'VEREINHEITLICHTER REIM-WRITER',headline:'Reime für Wörter, Phrasen und Namen finden.',
     intro:'Deutsch, Englisch oder beides durchsuchen. RhymeLab vereint alle lokal verfügbaren Kanäle und lässt Wörter, Phrase/Mosaic-Treffer und Entitäten trotzdem getrennt auswählen.',
-    noteLocal:'Läuft lokal',notePhonetic:'IPA-basiert',noteUsage:'Deterministisch',navSearch:'SUCHE',navRhymePad:'RHYMEPAD',localRuntime:'LOKALE RUNTIME',browse:'Ergebnisse',resultScope:'Ergebnisse',languageBasis:'Aussprache der Suche',resultLanguage:'Treffersprache',searchIn:'Suchen in',basisGerman:'Deutsch',basisEnglish:'Englisch',basisBoth:'Kombiniert',scopeAll:'Wörter + Wortgruppen + Entitäten',scopeAllButton:'Alles',scopeWords:'Wörter',scopePhrases:'Wortgruppen / Mosaic',scopePhrasesShort:'Phrasen',scopeEntities:'Entitäten',words:'Wörter',phrases:'Wortgruppen / Mosaic',entities:'Entitäten',word:'Wort',phrase:'Wortgruppe',entity:'Entität',filters:'Filter',filtersHint:'Reim, Silben, Sortierung und Wortschatz',viewList:'Liste',viewCompact:'Kompakt',rhymeType:'Reim / Klangbeziehung',
+    noteLocal:'Läuft lokal',notePhonetic:'IPA-basiert',noteUsage:'Deterministisch',navSearch:'SUCHE',navRhymePad:'RHYMEPAD',localRuntime:'LOKALE RUNTIME',browse:'Ergebnisse',resultScope:'Ergebnisse',languageBasis:'Aussprache der Suche',resultLanguage:'Treffersprache',searchIn:'Suchen in',basisGerman:'Deutsch',basisEnglish:'Englisch',basisBoth:'Kombiniert',scopeAll:'Wörter + Wortgruppen + Entitäten',scopeAllButton:'Alles',scopeWords:'Wörter',scopePhrases:'Wortgruppen / Mosaic',scopePhrasesShort:'Phrasen',scopeEntities:'Entitäten',words:'Wörter',phrases:'Wortgruppen / Mosaic',entities:'Entitäten',word:'Wort',phrase:'Wortgruppe',entity:'Entität',filters:'Filter',filtersHint:'Reim, Silben, Sortierung und Wortschatz',viewList:'Liste',viewCompact:'Kompakt',showSearchFilters:'Ergebnis-Suchfilter anzeigen',rhymeType:'Reim / Klangbeziehung',
     syllables:'Silben',sort:'Sortierung',pronunciation:'Aussprache',vocabulary:'Wortschatz',all:'Alle',same:'Gleiche Anzahl',plusMinus1:'±1 Silbe',plusMinus2:'±2 Silben',plusMinus3:'±3 Silben',
     recommended:'Empfohlen',syllableDistance:'Nächste Silbenzahl',mostCommon:'Am häufigsten',closest:'Ähnlichster Reim',alphabetical:'A–Z',standard:'Standard',allVariants:'Alle Varianten',
     searching:'Suche…',includeHistorical:'Historische / veraltete Wörter einbeziehen',scrollMore:'Weiter scrollen für mehr Ergebnisse…',searchPlaceholder:'Wort, Phrase oder Entität suchen…',search:'Suchen',
@@ -125,6 +125,7 @@ const SOURCE_CATALOG=Object.freeze([
 ]);
 
 const savedBasis=localStorage.getItem('rhymelab.searchBasis');const savedResultLanguage=localStorage.getItem('rhymelab.resultLanguage');const savedUiLanguage=localStorage.getItem('rhymelab.language');const savedResultView=localStorage.getItem('rhymelab.resultView');const detectedUiLanguage=String(navigator.language||'en').toLocaleLowerCase('en-US').startsWith('de')?'de':'en';const initialBasis=['de','en','both'].includes(savedBasis)?savedBasis:'de';const state={lang:['de','en'].includes(savedUiLanguage)?savedUiLanguage:detectedUiLanguage,basis:initialBasis,resultLanguage:['de','en','both'].includes(savedResultLanguage)?savedResultLanguage:initialBasis,view:['list','compact'].includes(savedResultView)?savedResultView:'list',capabilities:null,pronunciationRevision:null,data:null,visibleCount:60,pageSize:60,sectionPageSize:24,sectionVisible:new Map(),query:'',scrollObserver:null,wordCache:new Map(),pronunciationMisses:new Set(),detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null};
+let floatingSearchRevealUntilScroll=false;
 const esc=(value)=>String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const t=(key)=>I18N[state.lang][key]??I18N.en[key]??key;
 const number=(value)=>Number(value).toLocaleString(state.lang==='de'?'de-DE':'en-US');
@@ -156,6 +157,10 @@ function syncResultLanguageControls(){$$('.result-language-option').forEach((but
 function scopeCapability(scope,basis=state.resultLanguage){const languages=basisLanguages(basis),capabilities=state.capabilities;if(!capabilities)return{available:true,partial:false,supportedLanguages:languages};const flag=scope==='phrases'?'phraseMosaic':scope==='entities'?'entityRhymes':'wordWriter';if(scope==='all'){const supportedLanguages=languages.filter((language)=>{const row=capabilities.languages?.[language];return Boolean(row?.wordWriter||row?.phraseMosaic||row?.entityRhymes);});return{available:supportedLanguages.length>0,partial:supportedLanguages.length>0&&supportedLanguages.length<languages.length,supportedLanguages};}const supportedLanguages=languages.filter((language)=>Boolean(capabilities.languages?.[language]?.[flag]));return{available:supportedLanguages.length>0,partial:supportedLanguages.length>0&&supportedLanguages.length<languages.length,supportedLanguages};}
 function syncContextFilters(){const scope=$('#scopeFilter').value;$('#variantFilter')?.classList.toggle('context-hidden',scope==='phrases'||scope==='entities');$('#historicalFilter')?.classList.toggle('context-hidden',scope==='entities');const entityAvailable=Array.isArray(state.capabilities?.entities?.categories)&&state.capabilities.entities.categories.length>0;$('#entityCategoryFilter')?.classList.toggle('context-hidden',!entityAvailable||!(scope==='all'||scope==='entities'));}
 function renderAvailabilityBar(){const node=$('#availabilityBar');if(!node)return;const scopes=[['words',t('words')],['phrases',t('phrases')],['entities',t('entities')]];node.innerHTML=scopes.map(([scope,label])=>{const capability=scopeCapability(scope),status=!capability.available?'unavailable':capability.partial?'partial':'available',languages=capability.supportedLanguages.map((language)=>language.toUpperCase()).join('+')||'—';return`<span class="availability-chip ${status}"><span class="availability-dot" aria-hidden="true"></span><strong>${esc(label)}</strong><small>${esc(languages)}</small></span>`;}).join('');}
+function setFloatingSearchCollapsed(collapsed){const stage=$('.search-stage');if(!stage)return;stage.classList.toggle('search-collapsed',Boolean(collapsed));}
+function revealFloatingSearch(){floatingSearchRevealUntilScroll=true;setFloatingSearchCollapsed(false);}
+function syncFloatingSearchState({consumeReveal=false}={}){if(typeof window==='undefined')return;if(consumeReveal)floatingSearchRevealUntilScroll=false;const shouldCollapse=Boolean(state.data)&&window.scrollY>96&&!floatingSearchRevealUntilScroll;setFloatingSearchCollapsed(shouldCollapse);}
+
 function populateEntityCategories(){const select=$('#entityCategory');if(!select)return;const current=select.value||'all',categories=[...(state.capabilities?.entities?.categories||[])].sort((a,b)=>entityCategoryLabel(a).localeCompare(entityCategoryLabel(b),state.lang==='de'?'de':'en',{sensitivity:'base'}));const groups=new Map();for(const category of categories){const [family='other']=String(category).split('.');if(!groups.has(family))groups.set(family,[]);groups.get(family).push(category);}select.innerHTML=`<option value="all">${esc(t('allEntities'))}</option>`+[...groups.entries()].sort(([a],[b])=>humanize(a).localeCompare(humanize(b),state.lang==='de'?'de':'en',{sensitivity:'base'})).map(([family,items])=>`<optgroup label="${esc(humanize(family))}">${items.map((category)=>`<option value="${esc(category)}">${esc(entityCategoryLabel(category))}</option>`).join('')}</optgroup>`).join('');select.value=categories.includes(current)?current:'all';}
 function setScope(scope,{rerun=false}={}){const requested=['all','words','phrases','entities'].includes(scope)?scope:'all',capability=scopeCapability(requested),fallback=scopeCapability('all').available?'all':scopeCapability('words').available?'words':scopeCapability('entities').available?'entities':'phrases',next=capability.available?requested:fallback;$('#scopeFilter').value=next;$$('.scope-option').forEach((button)=>{const active=button.dataset.scope===next;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});syncContextFilters();renderAvailabilityBar();if(rerun&&state.query)search(state.query);}
 function syncCapabilityControls(){if(!state.capabilities){syncResultLanguageControls();setScope($('#scopeFilter').value);return;}$$('.basis-option').forEach((button)=>{const basis=button.dataset.basis,available=state.capabilities?.bases?.[basis]!==false,partial=basis==='both'&&Boolean(state.capabilities?.partialBases?.both);button.disabled=!available;button.classList.toggle('unavailable',!available);button.classList.toggle('partial',available&&partial);button.setAttribute('aria-disabled',String(!available));});if(state.capabilities?.bases?.[state.basis]===false){state.basis=state.capabilities?.bases?.de!==false?'de':state.capabilities?.bases?.en!==false?'en':'both';localStorage.setItem('rhymelab.searchBasis',state.basis);}syncResultLanguageControls();const targetLanguages=basisLanguages(state.resultLanguage),targetAvailable=targetLanguages.some((language)=>state.capabilities?.languages?.[language]?.available);if(!targetAvailable){state.resultLanguage=state.capabilities?.languages?.de?.available?'de':state.capabilities?.languages?.en?.available?'en':'both';localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);syncResultLanguageControls();}$$('.scope-option').forEach((button)=>{const capability=scopeCapability(button.dataset.scope);button.disabled=!capability.available;button.classList.toggle('unavailable',!capability.available);button.classList.toggle('partial',capability.partial);button.setAttribute('aria-disabled',String(!capability.available));});populateEntityCategories();setScope($('#scopeFilter').value);}
@@ -375,11 +380,13 @@ async function requestWriter(params){
   const data=await response.json();
   return {response,data};
 }
-async function search(word){
+async function search(word,{revealControls=false}={}){
   state.query=word.trim();
   if(!state.query)return;
+  if(revealControls)revealFloatingSearch();
   $('#emptyState').classList.add('hidden');
   $('#workspace').classList.remove('hidden');
+  $('#resultsToolbar').classList.remove('hidden');
   $('#loading').classList.remove('hidden');
   $('#error').classList.add('hidden');
   $('#results').innerHTML='';
@@ -439,8 +446,10 @@ async function search(word){
     else url.searchParams.set('entity_category',entityCategory);
     history.replaceState(null,'',url);
     render();
+    syncFloatingSearchState();
   }catch(error){
     state.data=null;
+    setFloatingSearchCollapsed(false);
     $('#wordPanel').innerHTML='';
     $('#scrollSentinel').classList.add('hidden');
     $('#error').textContent=error.message;
@@ -454,6 +463,7 @@ async function search(word){
 const REQUIRED_SINGLE_CONTROLS=[
   '#searchForm','#searchInput','#scopeFilter','#typeFilter','#variantMode','#syllableFilter','#sortMode',
   '#historicalMode','#entityCategory','#sourcesButton','#sourcesClose','#sourcesDialog','#results',
+  '#resultsToolbar','#searchFiltersReveal',
 ];
 const REQUIRED_CONTROL_GROUPS=[
   '.ui-lang-option','.view-option','.basis-option','.result-language-option','.scope-option',
@@ -470,7 +480,8 @@ function assertInteractiveControlSurface(){
 function installInteractiveControls(){
   assertInteractiveControlSurface();
 
-  $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();search($('#searchInput').value);});
+  $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();search($('#searchInput').value,{revealControls:true});});
+  $('#searchFiltersReveal').addEventListener('click',()=>revealFloatingSearch());
   $$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{const language=button.dataset.uiLang;if(!['de','en'].includes(language))return;state.lang=language;localStorage.setItem('rhymelab.language',language);applyLanguage();}));
   $$('.view-option').forEach((button)=>button.addEventListener('click',()=>{const view=button.dataset.view;if(!['list','compact'].includes(view))return;state.view=view;localStorage.setItem('rhymelab.resultView',view);syncViewControls();if(state.data)render();}));
   $$('.basis-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.basis=['de','en','both'].includes(button.dataset.basis)?button.dataset.basis:'de';localStorage.setItem('rhymelab.searchBasis',state.basis);syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
@@ -488,6 +499,7 @@ function installInteractiveControls(){
   $('#results').addEventListener('pointerout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
   $('#results').addEventListener('focusin',(event)=>{const row=event.target.closest('.result-row');if(row)inspectResult(resultByKey(row.dataset.resultKey),row.dataset.displayType);});
   $('#results').addEventListener('focusout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
+  if(typeof window!=='undefined')window.addEventListener('scroll',()=>syncFloatingSearchState({consumeReveal:true}),{passive:true});
 
   document.documentElement.dataset.rhymelabControls='bound';
 }
