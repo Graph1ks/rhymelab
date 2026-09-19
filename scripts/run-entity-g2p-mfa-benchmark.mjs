@@ -7,6 +7,7 @@ import {
   requiresShell,
   resolveCondaTool,
 } from './local-command-resolution.mjs';
+import { inspectMfaEnglishUsArpa } from './mfa-model-inspect-core.mjs';
 
 const args=process.argv.slice(2);
 function argValue(flag,fallback=null){
@@ -107,13 +108,15 @@ const modelInspect=run(
   ['model','inspect','g2p',modelId],
   {capture:true},
 );
-if(!modelInspect.includes(modelVersion)){
+const modelIdentity=inspectMfaEnglishUsArpa(modelInspect);
+if(!modelIdentity.valid){
   throw new Error(
-    'MFA model '+modelId+' is not verified as pinned version '+modelVersion+'.\n'
-    +'Install it once with:\n'
+    'MFA model '+modelId+' does not match the expected English US ARPA family.\n'
+    +'Expected architecture=pynini and the complete 69-phone ARPA inventory.\n'
+    +'Install/reinstall with:\n'
     +'  mfa model download g2p '+modelId+' --version '+modelVersion+'\n'
-    +'Then rerun this command.\n\nModel inspect output:\n'
-    +modelInspect
+    +'Then rerun this command.\n\nParsed identity:\n'
+    +JSON.stringify(modelIdentity,null,2)
   );
 }
 
@@ -134,7 +137,11 @@ console.log(JSON.stringify({
   conda_prefix:process.env.CONDA_PREFIX||null,
   mfa_version:mfaVersion,
   model:modelId,
-  model_version:modelVersion,
+  public_model_version:modelVersion,
+  inspect_reported_version:modelIdentity.reported_version,
+  inspect_architecture:modelIdentity.architecture,
+  inspect_phone_count:modelIdentity.phone_count,
+  model_inspect_fingerprint:modelIdentity.inspect_fingerprint,
   benchmark_cases:cases.length,
   word_list:wordListPath,
 },null,2));
@@ -190,6 +197,8 @@ run(process.execPath,[
   '--candidate','mfa-en-us-arpa',
   '--model-id',modelId,
   '--model-version',modelVersion,
+  '--model-inspect-version',modelIdentity.reported_version||'',
+  '--model-inspect-fingerprint',modelIdentity.inspect_fingerprint,
   '--engine-version',mfaVersion,
   '--out',evaluationPath,
 ]);
