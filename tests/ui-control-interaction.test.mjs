@@ -62,7 +62,12 @@ function buildFakeDom(){
   put('#searchForm');
   put('#searchInput');
   put('#searchButton');
-  put('#searchFiltersReveal');
+  put('#searchOptionsToggle');
+  put('#resultFiltersToggle');
+  put('#searchOptionsSection');
+  put('#searchOptionsPanel');
+  put('#resultFiltersSection');
+  put('#resultFiltersPanel');
   put('#resultsToolbar');
   put('.search-stage');
   put('#scopeFilter',new FakeElement({value:'all'}));
@@ -178,10 +183,15 @@ test('unified UI primary controls bind and change state at runtime', async () =>
   runtime.installInteractiveControls();
   assert.equal(dom.document.documentElement.dataset.rhymelabControls,'bound');
 
-  const searchStage=dom.singles.get('.search-stage');
-  searchStage.classList.add('search-collapsed');
-  dom.singles.get('#searchFiltersReveal').dispatch('click');
-  assert.equal(searchStage.classList.contains('search-collapsed'),false);
+  dom.singles.get('#searchOptionsToggle').dispatch('click');
+  assert.equal(runtime.state.searchOptionsExpanded,false);
+  assert.equal(localStorage.getItem('rhymelab.searchOptionsExpanded'),'0');
+  assert.equal(dom.singles.get('#searchOptionsToggle').getAttribute('aria-expanded'),'false');
+
+  dom.singles.get('#resultFiltersToggle').dispatch('click');
+  assert.equal(runtime.state.resultFiltersExpanded,false);
+  assert.equal(localStorage.getItem('rhymelab.resultFiltersExpanded'),'0');
+  assert.equal(dom.singles.get('#resultFiltersToggle').getAttribute('aria-expanded'),'false');
 
   dom.basis[1].dispatch('click');
   assert.equal(runtime.state.basis,'en');
@@ -223,9 +233,14 @@ test('unified UI control binding preflights the complete interactive surface', a
   ]){
     assert.match(app,new RegExp(selector.replaceAll('.','\\.')));
   }
-  for(const selector of ['#resultsToolbar','#searchFiltersReveal','.search-stage']){
+  for(const selector of [
+    '#resultsToolbar','#searchOptionsToggle','#resultFiltersToggle',
+    '#searchOptionsSection','#resultFiltersSection','.search-stage',
+  ]){
     assert.match(app,new RegExp(selector.replaceAll('.','\\.').replace('#','\\#')));
   }
+  assert.match(app,/rhymelab\.searchOptionsExpanded/);
+  assert.match(app,/rhymelab\.resultFiltersExpanded/);
 });
 
 
