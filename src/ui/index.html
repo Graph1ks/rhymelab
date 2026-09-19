@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon_names=close,expand_more,language,search,tune&display=block" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon_names=close,language,search,tune&display=block" rel="stylesheet">
   <link rel="stylesheet" href="/assets/styles.css">
   <link rel="stylesheet" href="/assets/mobile.css">
 </head>
@@ -40,17 +40,10 @@
   </header>
 
   <main class="shell">
+    <div id="searchStageAnchor" class="search-stage-anchor" aria-hidden="true"></div>
     <section class="search-stage" aria-label="Rhyme search">
       <div class="search-card">
         <section id="searchOptionsSection" class="search-control-section search-options-section">
-          <button type="button" id="searchOptionsToggle" class="search-section-toggle" aria-expanded="true" aria-controls="searchOptionsPanel">
-            <span class="material-symbols-outlined search-section-icon" aria-hidden="true">language</span>
-            <span class="search-section-toggle-copy">
-              <strong data-i18n="searchOptions">Search options</strong>
-              <small data-i18n="searchOptionsHint">Query, result language and scope</small>
-            </span>
-            <span class="material-symbols-outlined search-section-chevron" aria-hidden="true">expand_more</span>
-          </button>
           <div id="searchOptionsPanel" class="search-section-panel">
             <div class="search-mode-grid">
               <div class="mode-group">
@@ -103,24 +96,23 @@
           </div>
         </section>
 
-        <form id="searchForm" class="search" role="search">
+        <form id="searchForm" class="search search-core" role="search">
           <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
           <input id="searchInput" type="search" autocomplete="off" spellcheck="false" placeholder="Search a word, phrase or entity…" aria-label="Search a word, phrase or entity">
           <button class="search-button" type="submit" id="searchButton">Search</button>
+          <button type="button" id="searchOptionsToggle" class="search-core-toggle" aria-expanded="true" aria-controls="searchOptionsPanel" title="Search options">
+            <span class="material-symbols-outlined" aria-hidden="true">language</span>
+            <span class="search-core-toggle-label" data-i18n="searchOptionsShort">Options</span>
+          </button>
+          <button type="button" id="resultFiltersToggle" class="search-core-toggle" aria-expanded="true" aria-controls="resultFiltersPanel" title="Result filters">
+            <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+            <span class="search-core-toggle-label" data-i18n="resultFiltersShort">Filters</span>
+          </button>
         </form>
 
-        <div id="availabilityBar" class="availability-bar" aria-live="polite"></div>
-
         <section id="resultFiltersSection" class="search-control-section result-filters-section hidden">
-          <button type="button" id="resultFiltersToggle" class="search-section-toggle" aria-expanded="true" aria-controls="resultFiltersPanel">
-            <span class="material-symbols-outlined search-section-icon" aria-hidden="true">tune</span>
-            <span class="search-section-toggle-copy">
-              <strong data-i18n="resultFilters">Result filters</strong>
-              <small data-i18n="resultFiltersHint">Rhyme, syllables, sorting and vocabulary</small>
-            </span>
-            <span class="material-symbols-outlined search-section-chevron" aria-hidden="true">expand_more</span>
-          </button>
           <div id="resultFiltersPanel" class="search-section-panel">
+            <div id="availabilityBar" class="availability-bar" aria-live="polite"></div>
             <div id="resultsToolbar" class="toolbar-card search-results-toolbar">
               <div class="toolbar-title">
                 <span class="material-symbols-outlined" aria-hidden="true">tune</span>
@@ -132,12 +124,7 @@
                 </div>
               </div>
 
-              <details class="filter-drawer" open>
-                <summary>
-                  <span data-i18n="filters">Filters</span>
-                  <span class="filter-summary-hint" data-i18n="filtersHint">Rhyme, syllables, sorting and vocabulary</span>
-                </summary>
-                <div class="controls-grid">
+              <div class="controls-grid">
                 <label>
                   <span data-i18n="rhymeType">Rhyme type</span>
                   <select id="typeFilter">
@@ -196,8 +183,7 @@
                     <span data-i18n="includeHistorical">Include historical / obsolete</span>
                   </span>
                 </label>
-                </div>
-              </details>
+              </div>
             </div>
           </div>
         </section>

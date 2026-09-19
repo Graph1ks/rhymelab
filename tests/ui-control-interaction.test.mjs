@@ -69,6 +69,7 @@ function buildFakeDom(){
   put('#resultFiltersSection');
   put('#resultFiltersPanel');
   put('#resultsToolbar');
+  put('#searchStageAnchor');
   put('.search-stage');
   put('#scopeFilter',new FakeElement({value:'all'}));
   put('#typeFilter',new FakeElement({value:'all'}));
@@ -185,12 +186,12 @@ test('unified UI primary controls bind and change state at runtime', async () =>
 
   dom.singles.get('#searchOptionsToggle').dispatch('click');
   assert.equal(runtime.state.searchOptionsExpanded,false);
-  assert.equal(localStorage.getItem('rhymelab.searchOptionsExpanded'),'0');
+  assert.equal(localStorage.getItem('rhymelab.searchOptionsExpanded.v2'),'0');
   assert.equal(dom.singles.get('#searchOptionsToggle').getAttribute('aria-expanded'),'false');
 
   dom.singles.get('#resultFiltersToggle').dispatch('click');
   assert.equal(runtime.state.resultFiltersExpanded,false);
-  assert.equal(localStorage.getItem('rhymelab.resultFiltersExpanded'),'0');
+  assert.equal(localStorage.getItem('rhymelab.resultFiltersExpanded.v2'),'0');
   assert.equal(dom.singles.get('#resultFiltersToggle').getAttribute('aria-expanded'),'false');
 
   dom.basis[1].dispatch('click');
@@ -235,12 +236,13 @@ test('unified UI control binding preflights the complete interactive surface', a
   }
   for(const selector of [
     '#resultsToolbar','#searchOptionsToggle','#resultFiltersToggle',
-    '#searchOptionsSection','#resultFiltersSection','.search-stage',
+    '#searchOptionsSection','#resultFiltersSection','#searchStageAnchor','.search-stage',
   ]){
     assert.match(app,new RegExp(selector.replaceAll('.','\\.').replace('#','\\#')));
   }
-  assert.match(app,/rhymelab\.searchOptionsExpanded/);
-  assert.match(app,/rhymelab\.resultFiltersExpanded/);
+  assert.match(app,/rhymelab\.searchOptionsExpanded\.v2/);
+  assert.match(app,/rhymelab\.resultFiltersExpanded\.v2/);
+  assert.match(app,/const defaultSearchSectionsExpanded=true/);
 });
 
 
