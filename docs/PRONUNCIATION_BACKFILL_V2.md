@@ -240,7 +240,7 @@ The eSpeak phase now uses **four bounded batch workers by default**. Each worker
 npm run pronunciation:backfill:espeak -- --workers 4
 ```
 
-Default batch size is 512 rows per worker and can be overridden with `--espeak-batch-size`. DE and EN are processed as separate language phases so all four workers can use one fixed voice at a time. Output cardinality is checked before rows are mapped back to the workset; a mismatching batch is recursively split and an isolated single-row mismatch falls back to the established per-row adapter. Completed rows are still committed transactionally to the same resumable SQLite workset. Worker/batch settings change throughput only; they do not alter pronunciation, admission, analyzer, quality-tier or promotion policy.
+Default batch size is 512 rows per worker and can be overridden with `--espeak-batch-size`. Complex/multi-line-capable surfaces are boundary-framed inside the batch so eSpeak may emit more than one IPA line for a row without destroying row alignment. A plain line-batch cardinality mismatch is retried once as one framed batch instead of recursively degrading into per-row process launches. DE and EN are processed as separate language phases so all four workers can use one fixed voice at a time. Output cardinality is checked before rows are mapped back to the workset; a mismatching batch is recursively split and an isolated single-row mismatch falls back to the established per-row adapter. Completed rows are still committed transactionally to the same resumable SQLite workset. Worker/batch settings change throughput only; they do not alter pronunciation, admission, analyzer, quality-tier or promotion policy.
 
 ## Generated quality classes
 
@@ -346,7 +346,7 @@ Output:
 data/local/pronunciation-espeak-highspeed-v2.json
 ```
 
-The test is read-only. It reports cases/second, process-mode/fallback counts, errors and projected hours for the remaining admitted population. A batch size is eligible for the full run only when the run is stable with zero process errors.
+The test is read-only. It reports cases/second, process-mode/fallback counts, errors and projected hours for the remaining admitted population. The full runner additionally prints a per-window `recent=.../s` rate and cumulative process-mode counts so fallback storms are visible immediately instead of being hidden by the cumulative ETA. A batch size is eligible for the full run only when the run is stable with zero process errors.
 
 Custom example:
 
