@@ -8,6 +8,9 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Added
 
+- Added Total Query Pronunciation v1: unknown normalized single-token queries now receive analyzer-compatible ephemeral DE/EN pronunciation anchors instead of failing solely because their spelling is absent from the lexicon.
+- Added an optional local eSpeak-NG host adapter plus deterministic in-repository DE/EN fallback rules; generated query pronunciations are never canonical lexical facts.
+- Added a deterministic 1000-case unresolved-data sampler, local eSpeak-NG structural/latency benchmark runner, and a separate opt-in-only generated-pronunciation staging SQLite path.
 - Added independent result-language targeting so a source-resolved German query can request German, English, or combined results without treating the German spelling as an English lexeme.
 - Added runtime-driven Entity category filtering, an alphabetized Sources dialog, bounded search-pool counts, and per-relation More controls for standard browsing.
 - Added a runtime UI interaction smoke and durable UI interaction contract for primary browser controls.
@@ -22,6 +25,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Changed
 
+- DE+EN unknown single-token queries now resolve independent DE and EN pronunciation anchors rather than stopping for spelling ambiguity; multi-word Phrase/Mosaic pronunciation rules remain frozen.
+- Generated query pronunciation is visibly marked in the search inspector and uses the existing accepted language-specific retrieval/scoring/ranking paths.
 - Standard unfiltered search now uses explicit per-category More controls; automatic progressive/endless scrolling is reserved for a selected rhyme/sound relation.
 - Entity category dropdown labels are rendered as readable localized subtype names instead of raw taxonomy paths.
 - Active segmented controls, dropdowns, and vertical/horizontal scrollbars use one consistent styled UI treatment; the old partial-capability underline on buttons is removed.
