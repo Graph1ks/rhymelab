@@ -7,6 +7,7 @@ import { performance } from 'node:perf_hooks';
 import { DatabaseSync } from 'node:sqlite';
 import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-adapter.mjs';
 import { mapEspeakBatchWorkers } from './pronunciation-espeak-batch.mjs';
+import { PronunciationIpaAnalyzerPool } from './pronunciation-ipa-analyzer-pool.mjs';
 import { PRONUNCIATION_ADMISSION_POLICY } from './pronunciation-backfill-admission-core.mjs';
 
 const args=process.argv.slice(2);
@@ -38,6 +39,7 @@ const outPath=resolve(argValue('--out','data/local/pronunciation-espeak-highspee
 const command=argValue('--command',process.env.RHYMELAB_ESPEAK_COMMAND||null);
 const cases=intArg('--cases',2048,{min:128,max:20000});
 const workers=intArg('--workers',4,{min:1,max:32});
+const analyzerWorkers=intArg('--analyzer-workers',4,{min:1,max:16});
 const batchSizes=parseBatchSizes(argValue('--batch-sizes','64,128,256,512'));
 
 if(!existsSync(workPath))throw new Error('Backfill work database missing: '+workPath);
