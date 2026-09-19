@@ -4,6 +4,8 @@ Durable project identity, solo-dev repository mode, architecture boundaries, cos
 
 Current UI/API follow-up: query-pronunciation language and result language are now separate contracts. A source-backed DE query may request EN word results by re-analyzing the resolved source pronunciation under the accepted English target phonology and then using the existing indexed English retrieval/scoring/ranking stack; accepted same-language paths are unchanged. Entity category filters are populated from runtime capabilities. Standard unfiltered browsing uses per-section More buttons, while endless scrolling is limited to an explicitly selected rhyme/sound relation. Individual result inspectors no longer repeat source labels; the UI has one alphabetized Sources dialog. EN -> DE word bridging remains intentionally unimplemented pending an explicit target-pronunciation adaptation policy.
 
+Current unknown-query boundary: for a missing **single-token** DE/EN query pronunciation, only spelling -> IPA generation runs in the end-user client via `src/ui/query-pronunciation-client.mjs`. The existing database lookup, Writer/Phrase/Entity retrieval, scoring, ranking and result behavior remain unchanged. Source-backed query pronunciations always win; the browser may use source-backed DB pronunciations as compound references, then submits only missing ephemeral IPA anchors back to `/api/writer`. eSpeak-NG is benchmark/development-only under `scripts/` and must never be reintroduced as an end-user runtime dependency. Manual browser flow: `/query-pronunciation-test`.
+
 For the accepted Phase 12C state on current `main`, read this focused handover **before the historical material below**:
 
 ```text
