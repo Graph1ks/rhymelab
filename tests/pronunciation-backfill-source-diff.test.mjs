@@ -77,7 +77,7 @@ test('DE collection diffs pre-publish core against accepted Writer DB',()=>{
     assert.equal(result.status,0,result.stderr||result.stdout);
 
     const workDb=new DatabaseSync(work,{readOnly:true});
-    const items=workDb.prepare('SELECT language,normalized,surface FROM work_item ORDER BY normalized').all();
+    const items=workDb.prepare('SELECT language,normalized,surface FROM work_item ORDER BY normalized').all().map((row)=>({...row}));
     const scopes=workDb.prepare('SELECT scope,status FROM scan_state ORDER BY scope').all();
     workDb.close();
 
@@ -147,7 +147,7 @@ test('EN collection scans original Kaikki candidates absent from accepted en-US 
     assert.equal(result.status,0,result.stderr||result.stdout);
 
     const workDb=new DatabaseSync(work,{readOnly:true});
-    const items=workDb.prepare('SELECT language,normalized,surface FROM work_item ORDER BY normalized').all();
+    const items=workDb.prepare('SELECT language,normalized,surface FROM work_item ORDER BY normalized').all().map((row)=>({...row}));
     const state=workDb.prepare("SELECT status,source_refs FROM scan_state WHERE scope='en_source_minus_accepted'").get();
     workDb.close();
 
