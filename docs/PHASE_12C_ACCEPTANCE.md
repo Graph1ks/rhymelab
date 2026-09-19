@@ -108,6 +108,21 @@ Durable staging contract: `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md`.
 
 No AI batch result is required for the source-backed owner gate or for source-backed runtime operation.
 
+### AI scope decision after source-runtime acceptance
+
+The earlier 704,989-row source-unresolved export remains valid tooling/evidence, but it is **not** the planned production annotation campaign anymore.
+
+Future AI pronunciation work is deliberately bounded:
+
+- rank retained Entities by the accepted Entity popularity ordering;
+- take only the **top 100,000 Entities**;
+- target only English names in that population that still lack a runtime-valid pronunciation;
+- include analyzer-rejected source candidates when they fall inside that top-100k population;
+- measure the exact targeted row count from the owner-local database before export;
+- leave the remaining long-tail unresolved population unresolved by default.
+
+Do not renumber or mutate already-created historical AI batches. Any new campaign should use a new targeted manifest/export identity so old staging evidence remains reproducible.
+
 ## Benchmark-v3 interpretation
 
 Benchmark-v3 remains `review_pending`. The six flagged context/homograph cases must eventually be resolved from independent review evidence; model output must not be promoted into gold.
