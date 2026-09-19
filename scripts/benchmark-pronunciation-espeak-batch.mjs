@@ -39,7 +39,7 @@ const outPath=resolve(argValue('--out','data/local/pronunciation-espeak-highspee
 const command=argValue('--command',process.env.RHYMELAB_ESPEAK_COMMAND||null);
 const cases=intArg('--cases',2048,{min:128,max:20000});
 const workers=intArg('--workers',4,{min:1,max:32});
-const analyzerWorkers=intArg('--analyzer-workers',4,{min:1,max:16});
+const analyzerWorkers=intArg('--analyzer-workers',4,{min:0,max:16});
 const batchSizes=parseBatchSizes(argValue('--batch-sizes','64,128,256,512'));
 
 if(!existsSync(workPath))throw new Error('Backfill work database missing: '+workPath);
@@ -101,10 +101,22 @@ try{
     +' · pending='+pendingTotal.toLocaleString('en-US')
   );
 
-  const analyzerPool=new PronunciationIpaAnalyzerPool({workers:analyzerWorkers});
+  const analyzerPool=analyzerWorkers>0
+    ?new PronunciationIpaAnalyzerPool({workers:analyzerWorkers})
+    :null;
+  if(analyzerPool){
+    await Promise.all(Array.from({length:analyzerWorkers},()=>analyzerPool.analyze({
+      surface:sample[0].surface,
+      language:sample[0].language,
+      rawIpa:preflight.rawIpa,
+      engineCommand:resolvedCommand,
+      engineVersion:preflight.engineVersion||null,
+    })));
+  }
   const runs=[];
   try{
   for(const batchSize of batchSizes){
+    const statsBefore=analyzerPool?.stats()||null;
     const started=performance.now();
     const outcomes=[];
     for(const language of ['de','en']){
@@ -131,8 +143,20 @@ try{
     }
     const casesPerSecond=sample.length/Math.max(.001,elapsedMs/1000);
     const stable=errors===0;
+    const statsAfter=analyzerPool?.stats()||null;
+    const analyzerDelta=statsAfter&&statsBefore?{
+      submitted:statsAfter.submitted-statsBefore.submitted,
+      completed:statsAfter.completed-statsBefore.completed,
+      failed:statsAfter.failed-statsBefore.failed,
+      worker_restarts:statsAfter.worker_restarts-statsBefore.worker_restarts,
+      analyzer_elapsed_ms:Number((statsAfter.analyzer_elapsed_ms-statsBefore.analyzer_elapsed_ms).toFixed(3)),
+      queue_elapsed_ms:Number((statsAfter.queue_elapsed_ms-statsBefore.queue_elapsed_ms).toFixed(3)),
+    }:null;
     const run={
       workers,
+      analyzer_workers:analyzerWorkers,
+      analyzer_mode:analyzerPool?'worker_threads':'main_thread',
+      analyzer:analyzerDelta,
       batch_size:batchSize,
       cases:sample.length,
       accepted,
@@ -149,6 +173,7 @@ try{
       '[highspeed-v2] workers='+workers
       +' · batch='+batchSize
       +' · '+run.cases_per_second.toFixed(1)+'/s'
+      +' · analyzer='+(analyzerPool?analyzerWorkers+'w':'main')
       +' · errors='+errors
       +' · projected='+run.projected_pending_hours.toFixed(2)+'h'
       +' · modes='+JSON.stringify(modes)
@@ -156,7 +181,7 @@ try{
   }
 
   }finally{
-    await analyzerPool.close();
+    await analyzerPool?.close();
   }
 
   const stableRuns=runs.filter((run)=>run.stable);
@@ -179,6 +204,7 @@ try{
     },
     workers,
     analyzer_workers:analyzerWorkers,
+    analyzer_mode:analyzerPool?'worker_threads':'main_thread',
     batch_sizes:batchSizes,
     runs,
     fastest_stable_batch_size:fastest?.stable?fastest.batch_size:null,
