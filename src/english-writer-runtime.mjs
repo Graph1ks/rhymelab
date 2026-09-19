@@ -32,6 +32,15 @@ export const ENGLISH_WRITER_PRODUCT_RUNTIME='en-writer-product-v1-candidate';
 export const ENGLISH_WRITER_PRODUCT_POLICY='en-writer-guarded-quality-diversity-v1-candidate';
 export const ENGLISH_WRITER_QUALITY_ID='guarded_commonness_06';
 export const ENGLISH_WRITER_DIVERSITY_WEIGHT=0.08;
+export const ENGLISH_PRODUCT_RETRIEVAL_PROFILE='en-product-retrieval-reservoir-v1';
+export const ENGLISH_PRODUCT_CHANNEL_LIMITS=Object.freeze({
+  exact:1536,
+  multi:1536,
+  vowel:128,
+  family_coda:128,
+  coda:128,
+});
+export const ENGLISH_PRODUCT_MAX_CANDIDATES=3072;
 export const ENGLISH_PRODUCT_MARKER_SCHEMA='rhymelab-en-product-enabled-v1';
 
 const PRIMARY_TYPES=new Set([
@@ -383,7 +392,8 @@ export function searchEnglishWriter(db,surface,options={}){
   const retrieval=retrieveEnglishRuntimeCandidates(db,surface,{
     statements,
     channelLimit:DEFAULT_ENGLISH_RUNTIME_CHANNEL_LIMIT,
-    maxCandidates:DEFAULT_ENGLISH_RUNTIME_MAX_CANDIDATES,
+    channelLimits:ENGLISH_PRODUCT_CHANNEL_LIMITS,
+    maxCandidates:ENGLISH_PRODUCT_MAX_CANDIDATES,
   });
   if(retrieval.status!=='ok') return null;
 
@@ -446,7 +456,9 @@ export function searchEnglishWriter(db,surface,options={}){
     },
     writerRetrieval:{
       policy:retrieval.policy,
+      profile:ENGLISH_PRODUCT_RETRIEVAL_PROFILE,
       channelLimit:retrieval.channel_limit,
+      channelLimits:retrieval.channel_limits,
       maxCandidates:retrieval.max_candidates,
       channelCounts:retrieval.channel_counts,
       queryPronunciations:retrieval.pronunciations.length,
