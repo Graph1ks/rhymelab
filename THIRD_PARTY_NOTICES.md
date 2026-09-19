@@ -110,6 +110,33 @@ RhymeLab may locally use the pinned English large wordfreq data artifact as comm
 The wordfreq project code is Apache-2.0; its bundled frequency data carries separate attribution/share-alike obligations documented upstream, including **CC BY-SA 4.0** for redistributed data. RhymeLab does not relicense that data under the repository's root license and does not add wordfreq as a runtime dependency.
 
 
+## Phase 12C Entity pronunciation expansion
+
+Registry:
+`sources/entity/entity-pronunciation-expansion-v1.json`
+
+The primary expansion reuses the already documented raw English Wiktionary/Kaikki snapshot and pinned CMUdict revision. Those source/license boundaries remain unchanged.
+
+### Moby Pronunciator II
+
+Moby Pronunciator II is supported as an optional owner-local secondary pronunciation source. Its documentation states that the documentation, software and database are Public Domain material by grant from the author, January 2001.
+
+RhymeLab does not bundle Moby data in Git. The Phase 12C implementation stores legacy Moby ASCII phone strings as raw evidence only; it does not automatically convert or promote them into the accepted English runtime.
+
+### Montreal Forced Aligner English (US) G2P model
+
+The Phase 12C benchmark plan identifies English (US) MFA G2P model v2.2.1 as the primary generated-pronunciation candidate. The upstream model documentation records license **CC BY 4.0** and architecture Phonetisaurus.
+
+The model is not bundled in this repository and is not a runtime dependency. If later used for generated Entity pronunciations, attribution and exact model-version provenance must be preserved.
+
+### DeepPhonemizer and CharsiuG2P
+
+Neither project nor pretrained weights are bundled by RhymeLab.
+
+DeepPhonemizer code is recorded as MIT and is benchmark-only until the exact pretrained checkpoint/license is pinned.
+
+CharsiuG2P code is recorded as MIT, but upstream notes that some collected pronunciation datasets have unspecified licenses. Charsiu therefore remains research-only and may not enter the commercial production pipeline without an exact model/data license audit.
+
 ## Trademarks and named entities
 
 `data/supplemental/modern-entities.json` contains names of third-party brands, platforms, companies, products, and services for linguistic/pronunciation purposes. Their inclusion does not claim ownership of those names or marks and does not imply affiliation, sponsorship, or endorsement.
