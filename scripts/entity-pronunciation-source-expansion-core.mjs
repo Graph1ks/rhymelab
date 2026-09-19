@@ -111,11 +111,13 @@ export function collectEntityPronunciationTargets(rows){
       if(unit.normalized) units.add(unit.normalized);
     }
   }
+  const allTargets=new Set(names);
+  for(const unit of units) allTargets.add(unit);
   return {
     english_names:englishNames,
     distinct_names:names,
     distinct_units:units,
-    all_targets:new Set([...names,...units]),
+    all_targets:allTargets,
   };
 }
 
