@@ -46,7 +46,7 @@ Policy:
 Reuse the complete pinned CMUdict snapshot directly:
 
 ```text
-commit 74790861f652b15e4ac49015a90074ad62a27690
+commit 74790861f652…
 ```
 
 This lookup is independent of English Writer default lexical admission. An Entity name or token may therefore resolve through CMUdict even when that proper name never belonged in the default Writer vocabulary.
