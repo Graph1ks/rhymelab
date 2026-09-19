@@ -21,6 +21,8 @@ const outPath=resolve(
 );
 const modelId=argValue('--model-id',null);
 const modelVersion=argValue('--model-version',null);
+const modelInspectVersion=argValue('--model-inspect-version',null);
+const modelInspectFingerprint=argValue('--model-inspect-fingerprint',null);
 const engineVersion=argValue('--engine-version',null);
 if(!predictionPath) throw new Error('--predictions <tsv> is required');
 
@@ -144,7 +146,9 @@ const evidence={
   candidate:candidateId,
   candidate_metadata:{
     model_id:modelId,
-    model_version:modelVersion,
+    public_model_version:modelVersion,
+    inspect_reported_version:modelInspectVersion,
+    inspect_fingerprint:modelInspectFingerprint,
     engine_version:engineVersion,
   },
   benchmark_schema:benchmark.schema||null,
