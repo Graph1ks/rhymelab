@@ -203,6 +203,119 @@ function collectRightEdgeCandidates(db, queryAnalysis, queryNormalized, querySyl
   };
 }
 
+export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {}) {
+  const limit = clampLimit(options.limit, 250, 250);
+  const profile = getPhonologyProfile('de');
+  const ipa = String(queryDetail?.preferredIpa || queryDetail?.ipa || '').trim();
+  if (!ipa) return null;
+
+  let queryAnalysis;
+  try { queryAnalysis = profile.analyzeIpa(ipa); }
+  catch { return null; }
+
+  const queryNormalized = String(
+    queryDetail?.normalized || queryDetail?.surface || queryDetail?.word || '',
+  ).normalize('NFKC').trim().toLocaleLowerCase('de-DE');
+  const querySurface = String(
+    queryDetail?.surface || queryDetail?.word || queryNormalized,
+  ).normalize('NFKC').trim();
+  const querySyllables = Number(
+    queryDetail?.syllableCount || queryAnalysis.syllableCount || 0,
+  );
+  const runtimeState = materializedWriterRuntimeState(db);
+  const retrieval = collectRightEdgeCandidates(
+    db,
+    queryAnalysis,
+    queryNormalized,
+    querySyllables,
+    profile,
+    options,
+  );
+  const soundSorted = [...retrieval.results].sort(compareSound);
+  const morphologyInput = [{
+    normalized: queryNormalized,
+    surface: querySurface,
+    lemma: queryDetail?.lemma || null,
+    partOfSpeech: queryDetail?.partOfSpeech || null,
+  }, ...soundSorted];
+  const morphology = runtimeState.active
+    ? resolveMaterializedWriterMorphologyBatch(db, morphologyInput, 'de')
+    : resolveWriterMorphologyBatch(db, morphologyInput, 'de');
+  const query = {
+    ...queryDetail,
+    kind: 'word',
+    language: queryDetail?.language || 'de',
+    surface: querySurface,
+    normalized: queryNormalized,
+    preferredIpa: ipa,
+    ipa,
+    syllableCount: querySyllables,
+    writerMorphology: morphology.get(queryNormalized) || null,
+  };
+  const morphologyRows = soundSorted.map((row) => ({
+    ...row,
+    writerMorphology: morphology.get(row.normalized) || null,
+  }));
+  const ranked = rankWriterRecommendedResults(morphologyRows, query, { limit });
+  const results = ranked.slice(0, limit);
+  const resolvedMorphology = morphologyRows.filter(
+    (row) => row.writerMorphology?.status === 'attested_right_head_candidate',
+  ).length;
+
+  return {
+    schema: 'rhymelab-writer-external-query-v1',
+    status: 'ok',
+    query,
+    phonology: {
+      analyzer: profile.analyzerVersion || null,
+      scorer: profile.scorerVersion || null,
+      writerAnchorPolicy: profile.writerAnchorPolicyVersion || null,
+    },
+    selection: {
+      mode: 'writer_ranked_external_query',
+      limit,
+      coverageFloorPerType: 0,
+    },
+    rankingPolicy: WRITER_RANKING_POLICY,
+    ranking: 'accepted German writer ranking over indexed candidates anchored by an external ephemeral query pronunciation',
+    writerRuntime: runtimeState.active ? {
+      id: runtimeState.runtimeId,
+      databaseSchema: runtimeState.databaseSchema,
+      anchorStorage: runtimeState.anchorStorage,
+      anchorCandidateBasis: runtimeState.anchorCandidateBasis,
+      morphologyStorage: runtimeState.morphologyStorage,
+    } : {
+      id: 'validation-like-dynamic-v1',
+      databaseSchema: runtimeState.databaseSchema,
+      anchorStorage: 'vowel_key_suffix_like',
+      anchorCandidateBasis: 'legacy-vowel-key-string-suffix-v1',
+      morphologyStorage: 'dynamic-hot-single-analysis',
+    },
+    writerRetrieval: {
+      policy: profile.writerAnchorPolicyVersion || null,
+      source: runtimeState.active ? 'writer_anchor' : 'hot.vowel_key LIKE suffix',
+      storage: runtimeState.active ? runtimeState.anchorStorage : null,
+      candidateBasis: runtimeState.active ? runtimeState.anchorCandidateBasis : 'legacy-vowel-key-string-suffix-v1',
+      rightEdgeKeys: retrieval.keys,
+      baseCandidates: 0,
+      rightEdgeCandidates: retrieval.results.length,
+      mergedCandidates: soundSorted.length,
+      externalQuery: true,
+    },
+    writerMorphology: {
+      policy: WRITER_MORPHOLOGY_POLICY,
+      source: runtimeState.active ? 'writer_morphology_evidence + form_analysis' : 'dynamic hot lookup',
+      storage: runtimeState.active ? runtimeState.morphologyStorage : null,
+      query: query.writerMorphology,
+      resolvedCandidates: resolvedMorphology,
+      totalCandidates: morphologyRows.length,
+      externalQuery: true,
+    },
+    results,
+    groups: groupsFor(results),
+  };
+}
+
 export function findWriterRhymes(db, word, options = {}) {
   const limit = clampLimit(options.limit, 250, 250);
   const base = findRhymes(db, word, {

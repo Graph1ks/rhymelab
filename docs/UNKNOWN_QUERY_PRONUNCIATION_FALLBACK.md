@@ -1,146 +1,202 @@
 # Unknown Query Pronunciation Fallback
 
-Status: **product/runtime contract candidate — implementation gated by language-specific pronunciation benchmarks**
+Status: **active product/runtime contract — Total Query Pronunciation v1**
 
-## Product requirement
+The implementation contract is detailed in `docs/QUERY_PRONUNCIATION_TOTAL_V1.md`.
 
-A user-entered word must not become unusable merely because it is absent from the local lexicon.
+## Product invariant
 
-Dictionary/source pronunciation remains preferred truth. Unknown-query handling is a separate runtime fallback that creates an **ephemeral query pronunciation**, not a new lexical fact.
+A normalized single-token user query must not become unusable merely because its spelling is absent from the local lexical databases.
 
-The fallback exists only to analyze the query strongly enough to retrieve known rhyme candidates.
+For an available query language:
 
-## Query order
+```text
+unknown single-token spelling
+-> one deterministic DE and/or EN query pronunciation
+-> analyzer-compatible IPA
+-> syllables + stress + rhyme keys
+-> normal indexed Writer / Phrase-Mosaic / Entity retrieval
+```
 
-For a single-token query:
+For a single-token query, `query_pronunciation_unresolved` and `query_not_found` are not acceptable merely because source-backed pronunciation is missing.
 
-1. normalize for the selected language;
-2. try exact local lexical/pronunciation lookup;
-3. if a source-backed pronunciation exists, use it;
-4. otherwise enter unknown-query pronunciation fallback;
-5. generate a language-specific pronunciation candidate;
-6. run the normal language-specific phonology analyzer on that pronunciation;
-7. derive syllables, stress and retrieval keys;
-8. query the normal indexed database with those keys;
-9. mark the query pronunciation as generated/ephemeral in the UI and diagnostics.
+Source-backed pronunciation remains preferred lexical truth. Generated query pronunciation is ephemeral query state and is never silently promoted into a canonical lexicon.
 
-Generated pronunciations must never be silently written into the published lexicon or treated as source-backed evidence.
+## Resolution order
+
+For each requested query-pronunciation language:
+
+1. normalize the query surface;
+2. try exact local source-backed lexical/pronunciation lookup;
+3. if source-backed pronunciation exists, use it unchanged;
+4. otherwise enter Total Query Pronunciation v1;
+5. try an externally installed local eSpeak-NG executable when available;
+6. accept its output only if the existing language analyzer accepts the resulting IPA;
+7. otherwise use RhymeLab's deterministic language-specific grapheme rules;
+8. if those rules still cannot yield an analyzable pronunciation, use the deterministic grapheme fallback;
+9. analyze the generated IPA through the existing DE/EN phonology profile;
+10. use the existing indexed retrieval/scoring/ranking pipeline.
+
+No generated query pronunciation receives a lexical confidence score. The runtime chooses exactly one deterministic reading for each selected language.
 
 ## Language behavior
 
 ### DE
 
-If the product language is explicitly `DE`, use only the German fallback profile.
+`Query Pronunciation = DE` resolves only the German query anchor.
 
 ### EN
 
-If the product language is explicitly `EN`, use only the English fallback profile.
+`Query Pronunciation = EN` resolves only the English query anchor.
 
 ### DE+EN
 
-If the surface is known in exactly one language runtime, use that source-backed language pronunciation.
+`Query Pronunciation = DE+EN` resolves both language anchors independently.
 
-If the surface is unknown in both runtimes, the UI must ask the user which reading to use:
+If a source-backed pronunciation exists in one language but not the other, the known language remains source-backed and the missing language receives a generated temporary query pronunciation.
 
-```text
-Aussprache:
-[ Deutsch ] [ English ]
-```
+The product does not stop and ask the user to resolve spelling ambiguity for single-token queries. Language choice itself is the explicit product control.
 
-Do not silently infer language from spelling when the result would materially change rhyme retrieval.
+## Multi-word boundary
 
-If both language runtimes know the surface with materially different pronunciations, expose the language choice rather than flattening them into one reading.
+This contract changes **single-token unknown-query behavior only**.
 
-## Pronunciation preview
+Existing accepted Phrase/Mosaic and source-composition rules for multi-word input remain frozen. In particular, this change does not mass-G2P unresolved phrase tokens into the accepted Phrase/Mosaic catalog.
 
-For a generated query reading, show at least:
+## Query provenance
+
+Generated query details must expose:
 
 - selected language;
-- generated IPA/canonical pronunciation;
-- syllable split;
-- stress position when available;
-- a clear generated/fallback provenance marker.
+- generated IPA;
+- syllable count;
+- stress position/pattern;
+- `generatedPronunciation=true`;
+- generation method;
+- engine/policy version;
+- `ephemeral=true`;
+- `persisted=false`;
+- `canonicalLexicalFact=false`.
 
-A later product iteration may allow direct pronunciation editing or choosing between multiple generated readings, but the initial implementation must at least allow DE/EN selection in ambiguous combined-language mode.
+The browser shows **Generated pronunciation / Generierte Aussprache**. It must not show `uncertain` as a query-resolution state.
 
-## Architecture boundary
+## eSpeak-NG boundary
 
-The existing analyzers are **pronunciation analyzers**, not spelling-to-pronunciation generators:
+eSpeak-NG is an optional externally installed host tool.
 
-- German: `scripts/german-ipa.mjs` parses/analyzes German IPA;
-- English: `scripts/english-phonology.mjs` parses CMUdict ARPAbet or English IPA.
+- It is not bundled with RhymeLab.
+- It is not a network service.
+- It is not an LLM or neural ranking/search model.
+- Its generated pronunciation is not source-backed lexical truth.
+- Its output must pass the existing RhymeLab language analyzer before use.
+- If it is absent or rejected by the analyzer, deterministic RhymeLab rules provide the total fallback.
+- `RHYMELAB_ESPEAK_COMMAND` may point at an explicit local executable.
 
-Therefore unknown-query support requires a separate deterministic grapheme-to-pronunciation layer per language.
+Upstream eSpeak-NG is GPL-3.0-or-later. Any future decision to bundle or redistribute it with RhymeLab requires a separate licensing/distribution decision. This contract only approves invocation of a separately installed host executable.
 
-Conceptually:
+## Bulk generated-pronunciation boundary
 
-```text
-orthography
-  -> language-specific query G2P
-  -> IPA / canonical pronunciation
-  -> existing phonology analyzer
-  -> syllables + stress + rhyme keys
-  -> indexed retrieval
-```
+Query-time fallback does not automatically promote generated pronunciations into the accepted databases.
 
-Do not put orthographic heuristics directly into the rhyme scorer.
-
-## Bulk-G2P boundary
-
-This runtime fallback does **not** approve broad G2P materialization into the English or German databases.
-
-The distinction is deliberate:
+The repository now provides a separate staging path:
 
 ```text
-query-time fallback
-  ephemeral
-  user-visible provenance
-  used only as query anchor
-  may be corrected/retried
-
-bulk lexicon G2P
-  persistent lexical data
-  affects hundreds of thousands of candidate rows
-  requires a separate acceptance decision
+real unresolved RhymeLab rows
+-> deterministic 1000-case sample
+-> optional local eSpeak-NG run
+-> analyzer-compatible generated rows
+-> generated pronunciation staging SQLite
+-> generated_unreviewed
+-> consumer_policy = opt_in_only
 ```
 
-The existing prohibition on broad mass-G2P remains in force.
+The staging schema is designed so a later product version can expose an explicit user checkbox for generated/unclear-spelling candidate rows.
 
-## Acceptance gate
+That candidate-overlay checkbox is not promoted into the product until the generated dataset and retrieval semantics have passed their own acceptance gate.
 
-Before enabling a language fallback in the product:
+## 1000-case unresolved benchmark
 
-1. build a held-out test set of source-backed words;
-2. hide their dictionary pronunciation;
-3. generate pronunciation from spelling only;
-4. compare generated syllable count, stress, rhyme tail and retrieval keys against source-backed truth;
-5. report error classes by word shape and frequency;
-6. protect representative names, slang, compounds, contractions and inflections;
-7. require deterministic repeatability;
-8. verify that generated query pronunciations never mutate lexical DB fingerprints.
+The default sample is exactly 1000 unique unresolved rows from local RhymeLab databases:
 
-Exact phone-by-phone identity is useful but not the only relevant metric. For RhymeLab the decisive downstream metric is whether the generated query preserves the correct rhyme domain and retrieves the expected candidate families.
+- 200 German unresolved Phrase/Mosaic tokens;
+- 200 German preferred unresolved Entity names;
+- 200 English preferred unresolved Entity names;
+- 200 German unresolved Entity aliases;
+- 200 English unresolved Entity aliases.
 
-## Licensing/runtime note
+The selection is deterministic from a versioned seed and receives a semantic fingerprint.
 
-Any third-party G2P engine must satisfy the local/offline/commercial distribution constraints before adoption.
+Product sentinels are evaluated in addition to the 1000 database rows:
 
-Do not embed a dependency merely because it can emit IPA. In particular, copyleft/native-runtime licensing and model-inference dependencies must be reviewed against RhymeLab's commercial and deterministic-core boundaries.
+- Vulkanschnecken
+- Glutamat
+- Winterwolf
+- Holladio
+- Dragonspawn
+- Ironworm
+- Baladur
 
-## Product failure mode
+Each sentinel is tested under both DE and EN pronunciation profiles.
 
-The final UX must not be:
+## Owner workflow
 
-```text
-unknown word -> no results
+Build the real local unresolved sample:
+
+```bash
+npm run query:oov:sample
 ```
 
-It should be:
+Run the optional local eSpeak-NG structural benchmark:
 
-```text
-unknown word
--> choose/resolve language if needed
--> generate transparent temporary pronunciation
--> show syllables/pronunciation
--> retrieve rhymes using normal phonology
+```bash
+npm run query:oov:espeak
 ```
+
+Or both:
+
+```bash
+npm run query:oov:benchmark
+```
+
+Materialize the generated opt-in staging database:
+
+```bash
+npm run query:oov:stage -- --replace
+```
+
+Default outputs stay under `data/local/` and remain outside Git.
+
+## Acceptance metrics
+
+The 1000 unresolved rows do not have source-backed gold by definition, so their first role is structural/product validation:
+
+- resolution coverage;
+- analyzer-compatible IPA coverage;
+- valid syllable count;
+- valid stress;
+- valid rhyme-tail/retrieval keys;
+- deterministic repeatability;
+- p50 / p95 host latency;
+- failure distribution by source stratum.
+
+Quality acceptance still requires held-out source-backed controls where dictionary pronunciation is hidden and generated output is compared against source truth.
+
+For RhymeLab, the decisive quality metrics include:
+
+- exact/near phone agreement;
+- syllable-count agreement;
+- stress agreement;
+- rhyme-tail agreement;
+- retrieval-family agreement.
+
+## Non-goals
+
+This contract does not:
+
+- mutate accepted DE/EN lexical database fingerprints;
+- mass-promote generated Entity pronunciations;
+- treat generated output as source evidence;
+- introduce LLM inference;
+- introduce neural ranking;
+- introduce a runtime network dependency;
+- reopen accepted scorer/ranking policies.

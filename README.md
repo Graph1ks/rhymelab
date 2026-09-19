@@ -69,6 +69,7 @@ RHYMELAB_WRITER_DB   promoted Writer v5 database
 RHYMELAB_LEGACY_DB   optional v4 control database
 RHYMELAB_HOST        bind host, default 127.0.0.1
 RHYMELAB_PORT        port, default 3030
+RHYMELAB_ESPEAK_COMMAND  optional path/name for a separately installed eSpeak-NG executable used only for unknown single-token query pronunciation
 ```
 
 `RHYMELAB_DB` remains a compatibility alias for the legacy/control DB path.
@@ -128,12 +129,14 @@ The major accepted baselines are now:
 - **Phase 12B English single-word Writer:** accepted and frozen; English has its own analyzer/scorer/profile and is not routed through German phonology.
 - **Phase 12C source-backed multilingual Entity runtime:** accepted on `main`; the accepted DE Entity fingerprint is preserved and the accepted EN runtime contains source-backed rows only.
 - **AI Entity pronunciation staging:** isolated evidence only. It is not canonical runtime truth and is not promoted automatically.
+- **Total Query Pronunciation v1:** unknown normalized single-token queries resolve to ephemeral DE/EN pronunciation anchors locally; source-backed pronunciation still wins, eSpeak-NG is optional/not bundled, and deterministic in-repo rules guarantee a fallback.
 
 Current follow-up work is intentionally narrower:
 
-1. improve Entity Writer latency without changing accepted semantics;
-2. continue only the targeted Top-100k unresolved-Entity pronunciation evidence campaign, not the full unresolved long tail;
-3. refine the product/UI without silently changing frozen retrieval, ranking, phonology, or diversity behavior.
+1. run/review the owner-local 1000-case unresolved Total Query Pronunciation benchmark;
+2. improve Entity Writer latency without changing accepted semantics;
+3. continue only the targeted Top-100k unresolved-Entity pronunciation evidence campaign, not the full unresolved long tail;
+4. refine the product/UI without silently changing frozen retrieval, ranking, phonology, or diversity behavior.
 
 Authoritative current-state documents:
 
@@ -143,6 +146,8 @@ Authoritative current-state documents:
 - `docs/PHASE_11_ACCEPTANCE.md`
 - `docs/WRITER_SEARCH_ACCEPTANCE.md`
 - `docs/ENGLISH_WRITER_SOURCE_PLAN.md`
+- `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md`
+- `docs/QUERY_PRONUNCIATION_TOTAL_V1.md`
 
 ## Data and provenance
 

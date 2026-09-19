@@ -30,6 +30,7 @@ Before changing the project in a fresh thread/session, read:
 22. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the frozen Phase 12A boundary resumed by Phase 12C
 23. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for accepted/frozen Phase 12B English Writer history
 24. `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md` for the unknown user-query pronunciation fallback contract
+25. `docs/QUERY_PRONUNCIATION_TOTAL_V1.md` for the active total single-token query-pronunciation runtime and benchmark/staging workflow
 
 ## Operating model — solo-dev / owner-controlled
 
@@ -88,6 +89,8 @@ Do not introduce hosted/provider runtime, remote database bindings, telemetry, a
 
 RhymeLab core rhyme retrieval, scoring, writer ranking and result diversification must remain deterministic and locally executable on ordinary consumer hardware. Do not introduce LLM inference, machine-learning model inference, neural ranking, hosted ranking/search services, or a network dependency into the core search path. External models may be used only as optional benchmark/reference evidence; they must never be required to build, run, reproduce, or explain core search results.
 
+A narrow pronunciation exception is active for **single-token user query anchors only**: deterministic non-neural local pronunciation generation may create ephemeral DE/EN query IPA when source-backed lookup misses. An externally installed eSpeak-NG executable may be used as an optional local rule-based host engine; it is not bundled, not required, not lexical truth, and its output must pass the existing RhymeLab analyzer. This exception must never affect candidate ranking, canonical database rows, Entity bulk materialization, or accepted Phrase/Mosaic pronunciation.
+
 ## Durable product decisions
 
 - German first; English only after the German writer path, including phrase/mosaic work, is stable enough to freeze.
@@ -101,6 +104,7 @@ RhymeLab core rhyme retrieval, scoring, writer ranking and result diversificatio
 - Curated modern pronunciations may overlay dictionary forms while dictionary alternatives remain available.
 - Historical-only vocabulary is hidden by default and explicitly opt-in.
 - Do not invent lexical, pronunciation, phraseological, source, license, or benchmark facts.
+- Unknown normalized **single-token user queries** are a separate runtime case: source-backed pronunciation is preferred, otherwise `total-query-pronunciation-v1` must generate one deterministic ephemeral DE/EN query anchor for each selected query language. Generated query anchors are not lexical facts and must never be silently persisted/promoted.
 - Public web visibility alone does not make a source legally/reproducibly ingestible.
 - External-model reference labels are evidence, not human-expert gold.
 - Protect accepted exact-rhyme behavior unless strong evidence requires otherwise.
@@ -186,7 +190,7 @@ Frozen product rules:
 - no Phrase/Mosaic quota or forced visibility;
 - no invented cross-channel score calibration;
 - zero Phrase/Mosaic results remain valid;
-- no guessed/G2P pronunciation for unresolved multi-word input;
+- no guessed/G2P pronunciation for unresolved multi-word Phrase/Mosaic input; the active Total Query Pronunciation v1 exception applies to single-token user queries only;
 - `DE / EN / DE+EN` remains the unified language-basis contract;
 - English stays capability-gated until Phase 12 supplies a real accepted English runtime.
 

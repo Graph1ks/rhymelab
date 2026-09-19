@@ -139,6 +139,20 @@ DeepPhonemizer code is recorded as MIT and is benchmark-only until the exact pre
 
 CharsiuG2P code is recorded as MIT, but upstream notes that some collected pronunciation datasets have unspecified licenses. Charsiu therefore remains research-only and may not enter the commercial production pipeline without an exact model/data license audit.
 
+## eSpeak-NG — optional host pronunciation tool
+
+RhymeLab Total Query Pronunciation v1 can optionally invoke a **separately installed** eSpeak-NG executable on the user's machine for unknown single-token query pronunciation.
+
+Upstream project:
+
+`https://github.com/espeak-ng/espeak-ng`
+
+Upstream license recorded by the project: **GPL-3.0-or-later**.
+
+RhymeLab does **not** vendor, bundle, link, or redistribute eSpeak-NG in this implementation. It is not required for normal operation because the in-repository deterministic pronunciation fallback remains available. Generated eSpeak-NG output is analyzer-gated ephemeral query evidence, not source-backed lexical truth.
+
+Any future decision to bundle or redistribute eSpeak-NG with a desktop/package distribution requires a separate license/distribution review and must not be inferred from the current external-host invocation support.
+
 ## Trademarks and named entities
 
 `data/supplemental/modern-entities.json` contains names of third-party brands, platforms, companies, products, and services for linguistic/pronunciation purposes. Their inclusion does not claim ownership of those names or marks and does not imply affiliation, sponsorship, or endorsement.
