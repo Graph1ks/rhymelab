@@ -553,79 +553,73 @@ async function runEspeak(){
     +' · pending='+total.toLocaleString('en-US')
   );
 
-  const query=workDb.prepare(
-    'SELECT item_id,language,surface,normalized FROM work_item WHERE '+condition+' ORDER BY item_id'
+  const batchQuery=workDb.prepare(
+    'SELECT item_id,language,surface,normalized FROM work_item WHERE '+condition+' ORDER BY item_id LIMIT ?'
   );
-  let done=0,accepted=0,rejected=0,errors=0,batch=0;
+  let done=0,accepted=0,rejected=0,errors=0;
   const startedAt=Date.now();
-  let transactionOpen=false;
-  try{
+
+  while(!stopRequested){
+    const rows=batchQuery.all(commitEvery);
+    if(!rows.length) break;
     workDb.exec('BEGIN IMMEDIATE');
-    transactionOpen=true;
-    for(const row of query.iterate()){
-      if(stopRequested) break;
-      const started=performance.now();
-      let inspected;
-      try{
-        inspected=inspectEspeakQueryPronunciation(row.surface,row.language,{command});
-        if(inspected.status==='unavailable'){
-          throw new Error('espeak_process_unavailable');
+    try{
+      for(const row of rows){
+        if(stopRequested) break;
+        const started=performance.now();
+        let inspected;
+        try{
+          inspected=inspectEspeakQueryPronunciation(row.surface,row.language,{command});
+          if(inspected.status==='unavailable'){
+            throw new Error('espeak_process_unavailable');
+          }
+          const elapsed=performance.now()-started;
+          if(inspected.status==='accepted'){
+            const quality=classifyEspeakResolution(inspected);
+            const a=rowAnalysisFields(inspected.analysis);
+            updateEspeakAccepted.run(
+              quality.qualityTier,quality.qualityReason,quality.method,
+              inspected.ipa,inspected.rawIpa||null,a.syllableCount,a.primaryStress,a.stressPattern,
+              a.exactTailKey,a.vowelKey,a.codaKey,inspected.engine||'espeak-ng',
+              inspected.engineVersion||null,now(),Number(row.item_id),
+            );
+            insertAttempt.run(
+              Number(row.item_id),'espeak','accepted',quality.qualityReason,elapsed,
+              safeJson({normalization_changed:String(inspected.rawIpa||'')!==String(inspected.ipa||'')}),
+              now(),
+            );
+            accepted+=1;
+          }else{
+            const reason=inspected.analyzerError||'analyzer_rejected_espeak_ipa';
+            updateEspeakRejected.run(
+              inspected.rawIpa||null,inspected.engine||'espeak-ng',inspected.engineVersion||null,
+              reason,now(),Number(row.item_id),
+            );
+            insertAttempt.run(
+              Number(row.item_id),'espeak','rejected',reason,elapsed,
+              safeJson({normalized_ipa:inspected.ipa||null,attempts:inspected.attempts||[]}),
+              now(),
+            );
+            rejected+=1;
+          }
+        }catch(error){
+          const elapsed=performance.now()-started;
+          const message=String(error?.message||error);
+          if(message==='espeak_process_unavailable') throw error;
+          updateEspeakError.run(message,now(),Number(row.item_id));
+          insertAttempt.run(Number(row.item_id),'espeak','error',message,elapsed,'{}',now());
+          errors+=1;
         }
-        const elapsed=performance.now()-started;
-        if(inspected.status==='accepted'){
-          const quality=classifyEspeakResolution(inspected);
-          const a=rowAnalysisFields(inspected.analysis);
-          updateEspeakAccepted.run(
-            quality.qualityTier,quality.qualityReason,quality.method,
-            inspected.ipa,inspected.rawIpa||null,a.syllableCount,a.primaryStress,a.stressPattern,
-            a.exactTailKey,a.vowelKey,a.codaKey,inspected.engine||'espeak-ng',
-            inspected.engineVersion||null,now(),Number(row.item_id),
-          );
-          insertAttempt.run(
-            Number(row.item_id),'espeak','accepted',quality.qualityReason,elapsed,
-            safeJson({normalization_changed:String(inspected.rawIpa||'')!==String(inspected.ipa||'')}),
-            now(),
-          );
-          accepted+=1;
-        }else{
-          const reason=inspected.analyzerError||'analyzer_rejected_espeak_ipa';
-          updateEspeakRejected.run(
-            inspected.rawIpa||null,inspected.engine||'espeak-ng',inspected.engineVersion||null,
-            reason,now(),Number(row.item_id),
-          );
-          insertAttempt.run(
-            Number(row.item_id),'espeak','rejected',reason,elapsed,
-            safeJson({normalized_ipa:inspected.ipa||null,attempts:inspected.attempts||[]}),
-            now(),
-          );
-          rejected+=1;
+        done+=1;
+        if(done%progressEvery===0){
+          console.log(progressLine({phase:'espeak',done,total,startedAt,accepted,rejected,errors}));
         }
-      }catch(error){
-        const elapsed=performance.now()-started;
-        const message=String(error?.message||error);
-        if(message==='espeak_process_unavailable') throw error;
-        updateEspeakError.run(message,now(),Number(row.item_id));
-        insertAttempt.run(Number(row.item_id),'espeak','error',message,elapsed,'{}',now());
-        errors+=1;
       }
-      done+=1;
-      batch+=1;
-      if(done%progressEvery===0){
-        console.log(progressLine({phase:'espeak',done,total,startedAt,accepted,rejected,errors}));
-      }
-      if(batch>=commitEvery){
-        workDb.exec('COMMIT');
-        transactionOpen=false;
-        workDb.exec('BEGIN IMMEDIATE');
-        transactionOpen=true;
-        batch=0;
-      }
+      workDb.exec('COMMIT');
+    }catch(error){
+      workDb.exec('ROLLBACK');
+      throw error;
     }
-    workDb.exec('COMMIT');
-    transactionOpen=false;
-  }catch(error){
-    if(transactionOpen) workDb.exec('ROLLBACK');
-    throw error;
   }
   upsertMeta.run('espeak_last_run_at',now());
   upsertMeta.run('updated_at',now());
@@ -658,102 +652,87 @@ async function runClientResolver(){
   }
   console.log('[client] pending='+total.toLocaleString('en-US')+' · policy=client-total-query-pronunciation-v2');
 
-  const query=workDb.prepare(
-    'SELECT item_id,language,surface,normalized FROM work_item WHERE '+condition+' ORDER BY item_id'
+  const batchQuery=workDb.prepare(
+    'SELECT item_id,language,surface,normalized FROM work_item WHERE '+condition+' ORDER BY item_id LIMIT ?'
   );
-  let done=0,accepted=0,rejected=0,errors=0,batch=0;
+  let done=0,accepted=0,rejected=0,errors=0;
   const startedAt=Date.now();
-  let transactionOpen=false;
-  try{
-    workDb.exec('BEGIN IMMEDIATE');
-    transactionOpen=true;
-    for(const row of query.iterate()){
-      if(stopRequested) break;
-      const started=performance.now();
-      try{
-        const detail=await resolveUnknownClientPronunciation(row.surface,row.language);
-        if(!detail?.ipa){
-          const reason='client_resolver_empty';
-          updateClientRejected.run(reason,reason,now(),Number(row.item_id));
-          insertAttempt.run(Number(row.item_id),'client','rejected',reason,performance.now()-started,'{}',now());
-          rejected+=1;
-        }else{
-          let analysis;
-          try{
-            analysis=getPhonologyProfile(row.language).analyzeIpa(detail.ipa);
-          }catch(error){
-            const reason='client_analyzer_rejected: '+String(error?.message||error);
-            updateClientRejected.run('client_analyzer_rejected',reason,now(),Number(row.item_id));
-            insertAttempt.run(
-              Number(row.item_id),'client','rejected','client_analyzer_rejected',
-              performance.now()-started,safeJson({ipa:detail.ipa,error:String(error?.message||error)}),now(),
-            );
-            rejected+=1;
-            done+=1;
-            batch+=1;
-            if(done%progressEvery===0){
-              console.log(progressLine({phase:'client',done,total,startedAt,accepted,rejected,errors}));
-            }
-            if(batch>=commitEvery){
-              workDb.exec('COMMIT');
-              transactionOpen=false;
-              workDb.exec('BEGIN IMMEDIATE');
-              transactionOpen=true;
-              batch=0;
-            }
-            continue;
-          }
-          const quality=classifyClientResolution(detail);
-          const a=rowAnalysisFields(analysis);
-          updateClientAccepted.run(
-            quality.qualityTier,quality.qualityReason,quality.method,detail.ipa,
-            a.syllableCount,a.primaryStress,a.stressPattern,a.exactTailKey,a.vowelKey,a.codaKey,
-            detail.sourceBacked?1:0,now(),Number(row.item_id),
-          );
-          insertAttempt.run(
-            Number(row.item_id),'client','accepted',quality.qualityReason,performance.now()-started,
-            safeJson({
-              method:detail.method,
-              source_backed:Boolean(detail.sourceBacked),
-              token_count:Number(detail.tokenCount||detail.tokens?.length||1),
-              generated_tokens:detail.generatedTokens||[],
-              source_backed_tokens:detail.sourceBackedTokens||[],
-            }),
-            now(),
-          );
-          accepted+=1;
-        }
-      }catch(error){
-        const message=String(error?.message||error);
-        if(error instanceof RangeError){
-          updateClientRejected.run('client_input_out_of_policy',message,now(),Number(row.item_id));
-          insertAttempt.run(Number(row.item_id),'client','rejected','client_input_out_of_policy',performance.now()-started,safeJson({error:message}),now());
-          rejected+=1;
-        }else{
-          updateClientError.run(message,now(),Number(row.item_id));
-          insertAttempt.run(Number(row.item_id),'client','error',message,performance.now()-started,'{}',now());
-          errors+=1;
-        }
-      }
 
-      done+=1;
-      batch+=1;
-      if(done%progressEvery===0){
-        console.log(progressLine({phase:'client',done,total,startedAt,accepted,rejected,errors}));
+  while(!stopRequested){
+    const rows=batchQuery.all(commitEvery);
+    if(!rows.length) break;
+    workDb.exec('BEGIN IMMEDIATE');
+    try{
+      for(const row of rows){
+        if(stopRequested) break;
+        const started=performance.now();
+        try{
+          const detail=await resolveUnknownClientPronunciation(row.surface,row.language);
+          if(!detail?.ipa){
+            const reason='client_resolver_empty';
+            updateClientRejected.run(reason,reason,now(),Number(row.item_id));
+            insertAttempt.run(Number(row.item_id),'client','rejected',reason,performance.now()-started,'{}',now());
+            rejected+=1;
+          }else{
+            let analysis;
+            try{
+              analysis=getPhonologyProfile(row.language).analyzeIpa(detail.ipa);
+            }catch(error){
+              const reason='client_analyzer_rejected: '+String(error?.message||error);
+              updateClientRejected.run('client_analyzer_rejected',reason,now(),Number(row.item_id));
+              insertAttempt.run(
+                Number(row.item_id),'client','rejected','client_analyzer_rejected',
+                performance.now()-started,safeJson({ipa:detail.ipa,error:String(error?.message||error)}),now(),
+              );
+              rejected+=1;
+              done+=1;
+              if(done%progressEvery===0){
+                console.log(progressLine({phase:'client',done,total,startedAt,accepted,rejected,errors}));
+              }
+              continue;
+            }
+            const quality=classifyClientResolution(detail);
+            const a=rowAnalysisFields(analysis);
+            updateClientAccepted.run(
+              quality.qualityTier,quality.qualityReason,quality.method,detail.ipa,
+              a.syllableCount,a.primaryStress,a.stressPattern,a.exactTailKey,a.vowelKey,a.codaKey,
+              detail.sourceBacked?1:0,now(),Number(row.item_id),
+            );
+            insertAttempt.run(
+              Number(row.item_id),'client','accepted',quality.qualityReason,performance.now()-started,
+              safeJson({
+                method:detail.method,
+                source_backed:Boolean(detail.sourceBacked),
+                token_count:Number(detail.tokenCount||detail.tokens?.length||1),
+                generated_tokens:detail.generatedTokens||[],
+                source_backed_tokens:detail.sourceBackedTokens||[],
+              }),
+              now(),
+            );
+            accepted+=1;
+          }
+        }catch(error){
+          const message=String(error?.message||error);
+          if(error instanceof RangeError){
+            updateClientRejected.run('client_input_out_of_policy',message,now(),Number(row.item_id));
+            insertAttempt.run(Number(row.item_id),'client','rejected','client_input_out_of_policy',performance.now()-started,safeJson({error:message}),now());
+            rejected+=1;
+          }else{
+            updateClientError.run(message,now(),Number(row.item_id));
+            insertAttempt.run(Number(row.item_id),'client','error',message,performance.now()-started,'{}',now());
+            errors+=1;
+          }
+        }
+        done+=1;
+        if(done%progressEvery===0){
+          console.log(progressLine({phase:'client',done,total,startedAt,accepted,rejected,errors}));
+        }
       }
-      if(batch>=commitEvery){
-        workDb.exec('COMMIT');
-        transactionOpen=false;
-        workDb.exec('BEGIN IMMEDIATE');
-        transactionOpen=true;
-        batch=0;
-      }
+      workDb.exec('COMMIT');
+    }catch(error){
+      workDb.exec('ROLLBACK');
+      throw error;
     }
-    workDb.exec('COMMIT');
-    transactionOpen=false;
-  }catch(error){
-    if(transactionOpen) workDb.exec('ROLLBACK');
-    throw error;
   }
   upsertMeta.run('client_last_run_at',now());
   upsertMeta.run('updated_at',now());
