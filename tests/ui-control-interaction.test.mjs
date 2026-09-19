@@ -152,7 +152,7 @@ test('unified UI primary controls bind and change state at runtime', async () =>
   const app=await readFile('src/ui/app.js','utf8');
   assert.doesNotMatch(app,/\$\$\$/);
 
-  const testable=app.replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
+  const testable=app\n    .replace(/^import .*?;\\s*$/gmu,'')\n    .replace(/initializeUi\\(\\)\\.catch\\(reportUiInitializationFailure\\);\\s*$/,'');
   const dom=buildFakeDom();
   const localStorage=makeStorage();
 
@@ -218,7 +218,7 @@ test('unified UI control binding preflights the complete interactive surface', a
 
 test('entity result presentation uses concrete taxonomy labels instead of generic Entity', async () => {
   const app=await readFile('src/ui/app.js','utf8');
-  const testable=app.replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
+  const testable=app\n    .replace(/^import .*?;\\s*$/gmu,'')\n    .replace(/initializeUi\\(\\)\\.catch\\(reportUiInitializationFailure\\);\\s*$/,'');
   const dom=buildFakeDom();
   const localStorage=makeStorage();
 
@@ -294,7 +294,7 @@ test('entity result presentation uses concrete taxonomy labels instead of generi
 
 test('control-surface preflight rejects a missing required control group', async () => {
   const app=await readFile('src/ui/app.js','utf8');
-  const testable=app.replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
+  const testable=app\n    .replace(/^import .*?;\\s*$/gmu,'')\n    .replace(/initializeUi\\(\\)\\.catch\\(reportUiInitializationFailure\\);\\s*$/,'');
   const dom=buildFakeDom();
   dom.groups.set('.basis-option',[]);
   const localStorage=makeStorage();
