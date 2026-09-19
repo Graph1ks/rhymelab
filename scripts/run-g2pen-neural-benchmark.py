@@ -9,23 +9,6 @@ import unicodedata
 from pathlib import Path
 
 
-def prepare_input(value):
-    original = str(value or "")
-    normalized = unicodedata.normalize("NFKC", original).strip().lower()
-    decomposed = unicodedata.normalize("NFKD", normalized)
-    folded = "".join(ch for ch in decomposed if unicodedata.category(ch) != "Mn")
-    folded = unicodedata.normalize("NFKC", folded)
-    unsupported = sorted(set(ch for ch in folded if not ("a" <= ch <= "z")))
-    return {
-        "original": original,
-        "normalized": normalized,
-        "model_input": folded if folded and not unsupported else None,
-        "eligible": bool(folded) and not unsupported,
-        "strategy": "lowercase_diacritic_fold" if folded != normalized else "lowercase_normalized",
-        "unsupported_graphemes": unsupported,
-    }
-
-
 def require_nltk_resources():
     try:
         import nltk
@@ -64,29 +47,15 @@ def sha256_file(path):
     return h.hexdigest()
 
 
-def self_test():
-    assert prepare_input("Toyota")["model_input"] == "toyota"
-    assert prepare_input("Céline")["model_input"] == "celine"
-    assert prepare_input("Pokémon")["model_input"] == "pokemon"
-    assert prepare_input("O’Connor")["eligible"] is False
-    assert prepare_input("Søren")["eligible"] is False
-    print("g2p-en benchmark bridge self-test: PASS")
-
-
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--benchmark")
+    parser.add_argument("--input")
     parser.add_argument("--predictions")
     parser.add_argument("--metadata")
-    parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
 
-    if args.self_test:
-        self_test()
-        return
-
-    if not args.benchmark or not args.predictions or not args.metadata:
-        parser.error("--benchmark, --predictions and --metadata are required")
+    if not args.input or not args.predictions or not args.metadata:
+        parser.error("--input, --predictions and --metadata are required")
 
     require_nltk_resources()
 
@@ -99,9 +68,9 @@ def main():
             "Install once with: conda install -c conda-forge g2p-en -y"
         ) from exc
 
-    benchmark = json.loads(Path(args.benchmark).read_text(encoding="utf-8"))
-    if benchmark.get("schema") != "rhymelab-entity-g2p-proper-name-token-benchmark-v2":
-        raise RuntimeError("Expected proper-name token benchmark v2")
+    prepared = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    if prepared.get("schema") != "rhymelab-g2pen-neural-input-v1":
+        raise RuntimeError("Expected RhymeLab g2p-en neural input v1")
 
     engine = G2p()
     package_version = importlib.metadata.version("g2p-en")
@@ -111,21 +80,16 @@ def main():
         raise RuntimeError(f"Bundled g2p-en checkpoint missing: {checkpoint}")
 
     rows = []
-    ineligible = []
-    diacritic_fold_cases = 0
-    for case in benchmark.get("cases", []):
-        prepared = prepare_input(case.get("normalized") or case.get("surface"))
-        if prepared["strategy"] == "lowercase_diacritic_fold":
-            diacritic_fold_cases += 1
-        if not prepared["eligible"]:
-            ineligible.append({
-                "case_id": case.get("case_id"),
-                "surface": case.get("surface"),
-                "unsupported_graphemes": prepared["unsupported_graphemes"],
-            })
-            continue
-
-        phones = engine.predict(prepared["model_input"])
+    for case in prepared.get("cases", []):
+        model_input = str(case.get("model_input") or "")
+        if not model_input or not re.fullmatch(r"[a-z]+", model_input):
+            raise RuntimeError(
+                "Invalid RhymeLab-prepared g2p-en model input for "
+                + str(case.get("case_id"))
+                + ": "
+                + model_input
+            )
+        phones = engine.predict(model_input)
         pronunciation = " ".join(str(phone) for phone in phones if phone)
         if not pronunciation:
             continue
@@ -143,8 +107,7 @@ def main():
     Path(args.predictions).parent.mkdir(parents=True, exist_ok=True)
     Path(args.predictions).write_text("\n".join(output) + "\n", encoding="utf-8")
 
-    total = len(benchmark.get("cases", []))
-    eligible = total - len(ineligible)
+    eligible = len(prepared.get("cases", []))
     coverage = round((len(rows) * 100 / eligible), 2) if eligible else 0
     metadata = {
         "schema": "rhymelab-g2pen-neural-benchmark-metadata-v1",
@@ -153,13 +116,9 @@ def main():
         "package_version": package_version,
         "model_id": "checkpoint20.npz",
         "checkpoint_sha256": sha256_file(checkpoint),
-        "benchmark_cases": total,
         "model_input_eligible": eligible,
-        "model_input_ineligible": len(ineligible),
         "prediction_rows": len(rows),
         "eligible_prediction_coverage_pct": coverage,
-        "diacritic_fold_cases": diacritic_fold_cases,
-        "ineligible_sample": ineligible[:20],
         "neural_path_forced": True,
         "cmudict_lookup_used": False,
         "homograph_lookup_used": False,
