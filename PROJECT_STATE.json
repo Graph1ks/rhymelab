@@ -1189,11 +1189,10 @@
   },
   "next_actions": [
     "merge_phase12c_corrected_proper_name_token_benchmark_v2",
-    "owner_rerun_npm_entity_g2p_benchmark_prepare_once",
-    "review_v2_unique_kaikki_proper_name_token_controls",
-    "install_pinned_mfa_english_us_arpa_2_0_0a_if_needed",
-    "run_npm_entity_g2p_benchmark_mfa",
-    "review_mfa_v2_evaluation_before_any_generated_runtime_promotion"
+    "owner_one_time_install_pinned_mfa_english_us_arpa_2_0_0a_if_needed",
+    "owner_run_npm_entity_g2p_benchmark_mfa_once",
+    "review_corrected_v2_benchmark_structure_and_mfa_evaluation_together",
+    "then_decide_generated_fallback_policy_for_remaining_704989_unresolved_names"
   ],
   "next_milestone": "PHASE_12C_ENTITY_PROPER_NAME_TOKEN_G2P_BENCHMARK_V2",
   "phase_12_english": {
@@ -3270,7 +3269,8 @@
             "cmudict_as_gold": false,
             "duplicate_normalized_allowed": false,
             "target_cases": 600,
-            "per_category_cap": 100
+            "per_category_cap": 100,
+            "owner_prepare_separate_upload_required": false
           },
           "primary_candidate": {
             "engine": "Montreal Forced Aligner",
@@ -3281,7 +3281,8 @@
             "license": "CC-BY-4.0",
             "command": "npm run entity:g2p:benchmark:mfa",
             "evaluation": "data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json",
-            "runtime_promoted": false
+            "runtime_promoted": false,
+            "command_behavior": "rebuild_v2_benchmark_then_run_mfa_and_evaluate_in_one_owner_command"
           },
           "independent_candidate": "deep_phonemizer_en_us",
           "multilingual_research_candidate": "charsiu_multilingual",
