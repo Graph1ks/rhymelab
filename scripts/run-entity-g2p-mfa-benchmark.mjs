@@ -222,35 +222,45 @@ run(mfaCommand,[
   modelId,
   dictionaryPath,
   '--num_pronunciations','1',
+  '--export_scores',
 ]);
 
 const generated=new Map();
+let generatedWithoutScore=0;
 for(const line of (await readFile(dictionaryPath,'utf8')).split(/\r?\n/u)){
-  const trimmed=line.trim();
-  if(!trimmed) continue;
-  const parts=trimmed.split(/\s+/u);
+  if(!line.trim()) continue;
+  const parts=line.split('\t');
   if(parts.length<2) continue;
-  const surface=parts.shift();
+  const surface=String(parts[0]||'').trim();
+  const pronunciation=String(parts[1]||'').trim();
+  const scoreRaw=String(parts[2]||'').trim();
+  const score=Number(scoreRaw);
   const normalized=normalizeEnglishSurface(surface);
-  const pronunciation=parts.join(' ');
-  if(normalized&&!generated.has(normalized)){
-    generated.set(normalized,pronunciation);
-  }
+  if(!normalized||!pronunciation||generated.has(normalized)) continue;
+  if(!Number.isFinite(score)) generatedWithoutScore+=1;
+  generated.set(normalized,{
+    pronunciation,
+    score:Number.isFinite(score)?score:null,
+  });
 }
 
-const predictionLines=['case_id\tnotation\tpronunciation'];
+const predictionLines=['case_id\tnotation\tg2p_score\tpronunciation'];
 let generatedCases=0;
+let generatedCasesWithScore=0;
 const missingEligibleCases=[];
 for(const row of eligibleCases){
-  const pronunciation=generated.get(row.mfa_input.model_input);
-  if(!pronunciation){
+  const generatedRow=generated.get(row.mfa_input.model_input);
+  if(!generatedRow){
     missingEligibleCases.push(row);
     continue;
   }
   predictionLines.push(
-    row.case_id+'\tarpabet\t'+pronunciation
+    row.case_id+'\tarpabet\t'
+    +(generatedRow.score??'')+'\t'
+    +generatedRow.pronunciation
   );
   generatedCases+=1;
+  if(Number.isFinite(generatedRow.score)) generatedCasesWithScore+=1;
 }
 await writeFile(predictionsPath,predictionLines.join('\n')+'\n');
 
@@ -259,7 +269,9 @@ const eligiblePredictionCoveragePct=eligibleCases.length
   :0;
 console.log(JSON.stringify({
   generated_dictionary_rows:generated.size,
+  generated_dictionary_rows_without_score:generatedWithoutScore,
   mapped_prediction_rows:generatedCases,
+  mapped_prediction_rows_with_score:generatedCasesWithScore,
   model_input_eligible_cases:eligibleCases.length,
   model_input_ineligible_cases:ineligibleCases.length,
   eligible_prediction_coverage_pct:eligiblePredictionCoveragePct,
@@ -271,6 +283,13 @@ console.log(JSON.stringify({
   })),
   predictions:predictionsPath,
 },null,2));
+
+if(generatedCasesWithScore!==generatedCases){
+  throw new Error(
+    'MFA --export_scores did not provide a finite score for every mapped '
+    +'prediction. Refusing confidence calibration.'
+  );
+}
 
 if(eligiblePredictionCoveragePct<95){
   throw new Error(

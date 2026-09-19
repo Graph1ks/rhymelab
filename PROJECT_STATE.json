@@ -1188,12 +1188,13 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_mfa_g2p_input_normalization_fix",
+    "merge_phase12c_mfa_confidence_calibration",
     "owner_run_npm_entity_g2p_benchmark_mfa_in_miniforge_prompt_with_rhymelab_mfa_active",
-    "review_full_coverage_mfa_v2_evaluation",
-    "then_decide_generated_fallback_policy_for_remaining_704989_unresolved_names"
+    "review_score_retention_curve",
+    "accept_score_gated_mfa_only_if_confidence_signal_materially_improves_exact_tail",
+    "otherwise_reject_mfa_runtime_fallback_and_move_to_independent_candidate"
   ],
-  "next_milestone": "PHASE_12C_ENTITY_PROPER_NAME_TOKEN_G2P_BENCHMARK_V2_FULL_COVERAGE",
+  "next_milestone": "PHASE_12C_ENTITY_MFA_CONFIDENCE_CALIBRATION",
   "phase_12_english": {
     "status": "COMPLETE_ACCEPTED_FROZEN_PRODUCT_EN",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -3303,6 +3304,47 @@
             "model_result_accepted": false,
             "root_cause": "MFA word-list generator strips graphemes outside its lowercase model inventory; runner supplied display-case proper-name surfaces and then attempted to remap cleaned outputs to original normalized tokens",
             "model_fault": false
+          },
+          "full_mfa_owner_run": {
+            "status": "VALID_FULL_COVERAGE_BENCHMARK",
+            "evaluation_fingerprint": "b6c3943f90a90a2938bcd3ce74ccecc95eedc67712fe751a6dda0266b2c91b5a",
+            "benchmark_fingerprint": "02e0e3a330434676164bb6837793774a3edf69fdb7683b6035fa2cdf979b172a",
+            "benchmark_cases": 600,
+            "model_input_eligible": 599,
+            "model_input_ineligible": 1,
+            "eligible_prediction_coverage_pct": 100,
+            "prediction_rows": 599,
+            "evaluated": 597,
+            "invalid": 2,
+            "missing": 1,
+            "exact_phone_pct": 70.35,
+            "exact_tail_pct": 71.19,
+            "syllable_count_pct": 95.98,
+            "stress_pattern_pct": 80.57,
+            "primary_stress_pct": 94.14,
+            "mean_rhyme_score": 0.91304,
+            "unconditional_runtime_promotion": false,
+            "interpretation": "useful_but_not_safe_for_blind_fallback_due_to_28_81pct_non_exact_rhyme_tail"
+          },
+          "confidence_calibration": {
+            "status": "IMPLEMENTED_OWNER_RERUN_PENDING",
+            "source_signal": "MFA Pynini exported path score",
+            "score_direction": "lower_is_better",
+            "command": "npm run entity:g2p:benchmark:mfa",
+            "output": "data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json",
+            "retention_points_pct": [
+              10,
+              25,
+              50,
+              75,
+              90,
+              100
+            ],
+            "reports_max_retention_at_exact_tail_pct": [
+              90,
+              85
+            ],
+            "generated_runtime_promotion": false
           }
         },
         "owner_run_pending": false,
