@@ -31,6 +31,31 @@ owner ranking report fingerprint  b1aacf3c2de3f91b9ce740744b15f89c797a24b4dc916f
 
 Phase 12B11 product integration code is implemented.
 
+Owner integrated acceptance run 1 was **not accepted** because exactly one sentinel failed:
+
+```text
+failed check    english_multisyllabic_nation_station
+all other checks PASS
+suite repeatability PASS
+German invariance PASS
+EN leakage violations 0
+```
+
+Diagnosis: product retrieval still used the low-level 128-row/channel diagnostic bound. `station` is a valid multisyllabic-perfect candidate for `nation`, but can fall outside that slice in the dense `-ation` bucket.
+
+The fix keeps broad channels bounded while widening only precise channels:
+
+```text
+profile       en-product-retrieval-reservoir-v1
+exact         1536
+multi         1536
+vowel          128
+family_coda    128
+coda           128
+merged max    3072
+```
+
+
 ```text
 English product runtime           en-writer-product-v1-candidate
 English product policy            en-writer-guarded-quality-diversity-v1-candidate

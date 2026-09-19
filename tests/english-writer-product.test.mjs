@@ -116,6 +116,40 @@ function fixtureEnglishDb(){
   return db;
 }
 
+
+function denseNationFixtureDb(){
+  const db=new DatabaseSync(':memory:');
+  createEnglishWriterDbStorage(db);
+  const insert=prepareEnglishWriterDbInserts(db);
+  insertEnglishPublishRow(insert,publishRow(1,'nation','N EY1 SH AH0 N',{rank:1389,zipf:4.88}));
+  for(let id=2;id<=180;id+=1){
+    insertEnglishPublishRow(
+      insert,
+      publishRow(
+        id,
+        `nationfiller${String(id).padStart(3,'0')}`,
+        'N EY1 SH AH0 N',
+        {rank:200000+id,zipf:2.0},
+      ),
+    );
+  }
+  insertEnglishPublishRow(
+    insert,
+    publishRow(181,'station','S T EY1 SH AH0 N',{rank:1700,zipf:4.7}),
+  );
+  const meta=db.prepare('INSERT INTO meta(key,value) VALUES(?,?)');
+  const values={
+    schema:ACCEPTED_ENGLISH_DB_SCHEMA,
+    language:'en',
+    default_locale:'en-US',
+    retrieval_policy:'en-indexed-rhyme-retrieval-v1-candidate',
+    publish_fingerprint:ACCEPTED_ENGLISH_PUBLISH_FINGERPRINT,
+    semantic_fingerprint:ACCEPTED_ENGLISH_DB_FINGERPRINT,
+  };
+  for(const [key,value] of Object.entries(values)) meta.run(key,String(value));
+  return db;
+}
+
 test('English product runtime exposes accepted candidate policy and source-backed query detail',()=>{
   const db=fixtureEnglishDb();
   try{
@@ -148,6 +182,22 @@ test('English product Writer ranks deterministic source-backed perfect rhymes',(
       result.results.map((row)=>row.normalized),
       searchEnglishWriter(db,'time',{limit:20}).results.map((row)=>row.normalized),
     );
+  }finally{
+    db.close();
+  }
+});
+
+
+test('English product retrieval keeps common exact multisyllabic rhymes beyond the 128-row diagnostic slice',()=>{
+  const db=denseNationFixtureDb();
+  try{
+    const result=searchEnglishWriter(db,'nation',{limit:20});
+    const station=result.results.find((row)=>row.normalized==='station');
+    assert.ok(station);
+    assert.equal(station.type,'multisyllabic_perfect');
+    assert.equal(result.writerRetrieval.channelLimits.exact,1536);
+    assert.equal(result.writerRetrieval.channelLimits.multi,1536);
+    assert.equal(result.writerRetrieval.channelLimits.vowel,128);
   }finally{
     db.close();
   }

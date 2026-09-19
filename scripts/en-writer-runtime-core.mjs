@@ -160,6 +160,12 @@ function argsForChannel(kind,queryPronunciation,formId,limit){
 
 export function retrieveEnglishRuntimeCandidates(db,surface,options={}){
   const channelLimit=Math.max(1,Number(options.channelLimit||DEFAULT_ENGLISH_RUNTIME_CHANNEL_LIMIT));
+  const channelLimits=Object.fromEntries(
+    CHANNELS.map(({kind})=>[
+      kind,
+      Math.max(1,Number(options.channelLimits?.[kind]??channelLimit)),
+    ])
+  );
   const maxCandidates=Math.max(1,Number(options.maxCandidates||DEFAULT_ENGLISH_RUNTIME_MAX_CANDIDATES));
   const statements=options.statements||prepareEnglishRuntimeStatements(db);
   const query=resolveEnglishRuntimeQuery(db,surface,{statements});
@@ -168,6 +174,7 @@ export function retrieveEnglishRuntimeCandidates(db,surface,options={}){
       policy:ENGLISH_RUNTIME_RETRIEVAL_POLICY,
       ...query,
       channel_limit:channelLimit,
+      channel_limits:channelLimits,
       max_candidates:maxCandidates,
       candidates:[],
       channel_counts:Object.fromEntries(CHANNELS.map(({kind})=>[kind,0])),
@@ -178,7 +185,12 @@ export function retrieveEnglishRuntimeCandidates(db,surface,options={}){
   const channelCounts=Object.fromEntries(CHANNELS.map(({kind})=>[kind,0]));
   for(const queryPronunciation of query.pronunciations){
     for(const {kind} of CHANNELS){
-      const args=argsForChannel(kind,queryPronunciation,queryPronunciation.form_id,channelLimit);
+      const args=argsForChannel(
+        kind,
+        queryPronunciation,
+        queryPronunciation.form_id,
+        channelLimits[kind]
+      );
       if(!args) continue;
       const rows=statements[kind].all(...args);
       channelCounts[kind]+=rows.length;
@@ -213,6 +225,7 @@ export function retrieveEnglishRuntimeCandidates(db,surface,options={}){
     policy:ENGLISH_RUNTIME_RETRIEVAL_POLICY,
     ...query,
     channel_limit:channelLimit,
+    channel_limits:channelLimits,
     max_candidates:maxCandidates,
     candidates,
     channel_counts:channelCounts,
