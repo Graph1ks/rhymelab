@@ -92,3 +92,21 @@
   .results-compact .result-items{grid-template-columns:repeat(2,minmax(0,1fr))}
   .results-compact .result-row{min-height:92px;padding:9px!important}
 }
+
+
+/* Floating search and compact-card responsive overrides */
+@media(max-width:900px){
+  .search-stage{top:64px}
+}
+@media(max-width:720px){
+  .search-stage{top:62px}
+  .search-stage.search-collapsed .search-card{padding:8px 10px}
+  .search-stage.search-collapsed .search-card .search{height:52px;min-height:52px}
+  .search-results-toolbar{padding-top:12px}
+  .results-compact .result-row .usage-col{display:block!important}
+}
+@media(max-width:520px){
+  .search-stage{top:60px}
+  .results-compact .result-items{grid-template-columns:1fr!important}
+  .results-compact .result-row{min-height:0!important}
+}
