@@ -1,6 +1,6 @@
 # Local Data Inventory V1
 
-Status: **implemented; owner run pending**
+Status: **implemented; owner inventory consumed**
 
 Purpose: produce one compact, read-only structural report of the owner's actual local `data/` tree before pronunciation-backfill source paths are finalized.
 
@@ -97,22 +97,29 @@ For compressed JSONL/text files, only a bounded decompressed prefix is sampled.
 
 ## Pronunciation-backfill workflow
 
-Before changing Backfill V2 source adapters again, the owner should run:
+The owner supplied the generated inventory once, and the relevant local source map has now been consumed into Backfill V2. No repeat inventory run is required unless the local `data/` layout changes.
 
-```powershell
-git switch main
-git pull --ff-only
-npm run data:inventory
-```
-
-Then provide only:
+Current source mapping:
 
 ```text
-data/local/local-data-inventory-v1-report.json
+DE lexical/usage source:
+  data/de/usage/de-usage.tsv
+  data/work/de-rhyme-core-v1/downloads/dewiktionary-kaikki-raw.jsonl.gz
+
+EN lexical source:
+  data/raw/en/phase12b-20260918/enwiktionary-kaikki-20260916.jsonl.gz
+
+Accepted/runtime comparison DBs:
+  data/local/rhymelab-v5.sqlite
+  data/local/rhymelab-en-v1.sqlite
+  data/local/rhymelab-phrases-v1.sqlite
+  data/local/rhymelab-entities-v1.sqlite
 ```
 
-The next code pass should use that report to map the **actual local original/source/stage artifacts** and their real structures to Backfill V2 adapters.
+Use the lightweight no-write preflight before collection:
 
-Do not start the million-scale eSpeak pass merely because a guessed default path exists. First close the local-source inventory mapping.
+```powershell
+npm run pronunciation:backfill:plan
+```
 
-The inventory command is read-only with respect to the scanned data. Its only write is the requested JSON report.
+The inventory reporter remains available only for future local-layout changes.

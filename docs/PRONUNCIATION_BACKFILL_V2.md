@@ -38,21 +38,22 @@ The accepted DBs are now the **right-hand side of the diff**, not the population
 
 ### German words
 
-Two source layers are used because the German build has two relevant pre-publish surfaces:
+The owner-local inventory showed that the old `data/de/core/` stage is not present locally, while the two actual source inventories needed to reconstruct it are present:
 
-1. `data/de/core/manifest.json` + its shards
-   - contains the pre-publish German headword/usage universe;
-   - includes forms with no usable pronunciation that never reached the accepted Writer DB.
-2. the pinned raw German Kaikki/Wiktextract snapshot
-   - default: `data/work/de-rhyme-core-v1/downloads/dewiktionary-kaikki-raw.jsonl.gz`;
-   - used for listed/inflected source forms exposed by the German resolver but not represented in the core headword universe.
+1. `data/de/usage/de-usage.tsv`
+   - merged German usage-source universe used by the DE core build;
+   - catches usage-ranked forms that never acquired an accepted pronunciation.
+2. `data/work/de-rhyme-core-v1/downloads/dewiktionary-kaikki-raw.jsonl.gz`
+   - original German Kaikki/Wiktextract snapshot;
+   - provides dictionary headwords plus listed/inflected forms independently of pronunciation success.
 
 Both are compared against `data/local/rhymelab-v5.sqlite`.
 
 Scopes:
 
 ```text
-de_source_minus_accepted
+de_usage_source_minus_accepted
+de_wiktionary_headword_source_minus_accepted
 de_listed_form_source_minus_accepted
 ```
 
@@ -65,14 +66,16 @@ sources/en/phase12b-sources-v1.json
 data/raw/en/phase12b-20260918/enwiktionary-kaikki-20260916.jsonl.gz
 ```
 
-Headwords and listed forms that satisfy the existing Writer-candidate surface filter are compared against accepted analyzed en-US pronunciation rows in `data/local/rhymelab-en-v1.sqlite`.
+Headwords and listed forms are passed through the **same pronunciation-independent lexical candidate functions used by the English publish build** (`lexicalEvidenceForHeadword` / `lexicalEvidenceForListedForms`) and then compared against accepted analyzed en-US pronunciation rows in `data/local/rhymelab-en-v1.sqlite`.
 
-This is the important correction over V1: English source candidates that never entered the accepted Writer database because pronunciation could not be resolved are now part of the workset.
+This avoids treating every arbitrary form in the 2.70 GiB Wiktextract file as a Writer candidate while still recovering lexical candidates that were excluded only because no accepted pronunciation materialized.
+
+CMUdict, SCOWL/ESDB and wordfreq remain auxiliary pronunciation/lexical/usage evidence exactly as in the existing English build; they do not independently create the pronunciation-missing candidate universe here.
 
 Scope:
 
 ```text
-en_source_minus_accepted
+en_wiktionary_lexical_source_minus_accepted
 ```
 
 ### German Phrase/Mosaic
@@ -101,9 +104,10 @@ The pre-Hybrid popularity-rejected Entity population is deliberately not resurre
 
 ## Default local inputs
 
+These defaults now match the owner-local inventory:
+
 ```text
-data/de/core/manifest.json
-data/de/core/shard-*.jsonl
+data/de/usage/de-usage.tsv
 data/work/de-rhyme-core-v1/downloads/dewiktionary-kaikki-raw.jsonl.gz
 
 sources/en/phase12b-sources-v1.json
@@ -118,7 +122,7 @@ data/local/rhymelab-entities-v1.sqlite
 Alternative local source locations can be supplied with:
 
 ```text
---de-core <dir>
+--de-usage <file>
 --de-kaikki <file>
 --en-registry <file>
 --en-raw-dir <dir>
@@ -158,10 +162,10 @@ This matters for phrase tokens, dictionary forms and Entity names that overlap.
 
 Collection, eSpeak and client stages commit bounded batches.
 
-- German core shards resume from `processing_order` and can skip completed shards.
+- German usage TSV resumes from the last committed usage rank.
 - Phrase/Entity SQLite scans resume from stable source keys.
 - eSpeak and client processing resume from per-item status.
-- English/German raw gzip streams are sequential. If a raw-source collection is interrupted, the next run re-decompresses only to the last committed raw-line checkpoint, then continues; already committed gap rows are not reinserted and no completed pronunciation generation is repeated.
+- English/German raw gzip streams are sequential. If a raw-source collection is interrupted, the next run re-decompresses to the last committed raw-line checkpoint, then continues; already committed gap rows are not reinserted and no completed pronunciation generation is repeated.
 
 The compressed source limitation is explicit: normal gzip does not support arbitrary random line seeks. The expensive million-row pronunciation stage remains fully checkpointed.
 
@@ -209,9 +213,10 @@ Collection identifies the exact source scope currently being scanned and reports
 Examples:
 
 ```text
-[collect:de_source_minus_accepted] ...
+[collect:de_usage_source_minus_accepted] ...
+[collect:de_wiktionary_headword_source_minus_accepted] ...
 [collect:de_listed_form_source_minus_accepted] ...
-[collect:en_source_minus_accepted] ...
+[collect:en_wiktionary_lexical_source_minus_accepted] ...
 [collect:phrase_unresolved_token] ...
 [collect:phrase_surface_unresolved] ...
 [collect:entity_de_no_source_pronunciation] ...
@@ -222,19 +227,7 @@ Resolution continues to report count, percentage, throughput, ETA and accepted/r
 
 ## Owner commands
 
-Before the next full-data source mapping/run, inventory the owner's actual local `data/` tree instead of relying on assumed default source paths:
-
-```powershell
-npm run data:inventory
-```
-
-Primary inventory artifact:
-
-```text
-data/local/local-data-inventory-v1-report.json
-```
-
-Backfill source adapters should be finalized against that report because historical/original source files may live in heterogeneous local layouts and formats.
+The owner-local inventory has now been consumed and the default source adapters above are mapped to the actual local files. A new inventory run is **not** required for this backfill unless the local data layout changes.
 
 Update first:
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -14,63 +14,77 @@ function run(args){
   });
 }
 
-test('DE collection diffs pre-publish core against accepted Writer DB',()=>{
+test('source-map plan validates actual DE local inputs without creating a work database',()=>{
+  const root=mkdtempSync(join(tmpdir(),'rhymelab-backfill-plan-'));
+  try{
+    const acceptedPath=join(root,'accepted.sqlite');
+    const db=new DatabaseSync(acceptedPath);
+    db.exec([
+      'CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);',
+      'CREATE TABLE hot(normalized TEXT,pronunciation_preferred INTEGER,pronunciation_eligible INTEGER);',
+    ].join('\n'));
+    db.close();
+
+    const usagePath=join(root,'de-usage.tsv');
+    writeFileSync(usagePath,'rank\tform\tnormalized_form\n1\tTest\ttest\n');
+    const rawPath=join(root,'de.jsonl.gz');
+    writeFileSync(rawPath,gzipSync(Buffer.from(JSON.stringify({lang_code:'de',word:'Test'})+'\n')));
+    const work=join(root,'should-not-exist.sqlite');
+
+    const result=run([
+      '--phase','plan','--scopes','de',
+      '--de-db',acceptedPath,'--de-usage',usagePath,'--de-kaikki',rawPath,
+      '--work',work,
+    ]);
+    assert.equal(result.status,0,result.stderr||result.stdout);
+    assert.match(result.stdout,/rhymelab-pronunciation-backfill-source-plan-v1/);
+    assert.match(result.stdout,/de_usage_source_minus_accepted/);
+    assert.match(result.stdout,/de_wiktionary_headword_source_minus_accepted/);
+    assert.match(result.stdout,/de_listed_form_source_minus_accepted/);
+    assert.equal(existsSync(work),false);
+  }finally{
+    rmSync(root,{recursive:true,force:true});
+  }
+});
+
+test('DE collection diffs actual usage + Kaikki headword/listed-form sources against accepted Writer DB',()=>{
   const root=mkdtempSync(join(tmpdir(),'rhymelab-backfill-de-'));
   try{
     const acceptedPath=join(root,'accepted.sqlite');
     const db=new DatabaseSync(acceptedPath);
-    db.exec(`
-      CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
-      CREATE TABLE hot(
-        normalized TEXT,
-        surface TEXT,
-        ipa TEXT,
-        historical INTEGER DEFAULT 0,
-        pronunciation_preferred INTEGER,
-        pronunciation_eligible INTEGER,
-        usage_rank INTEGER,
-        pronunciation_rank INTEGER,
-        id INTEGER PRIMARY KEY
-      );
-    `);
+    db.exec([
+      'CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);',
+      'CREATE TABLE hot(',
+      ' normalized TEXT,surface TEXT,ipa TEXT,historical INTEGER DEFAULT 0,',
+      ' pronunciation_preferred INTEGER,pronunciation_eligible INTEGER,',
+      ' usage_rank INTEGER,pronunciation_rank INTEGER,id INTEGER PRIMARY KEY',
+      ');',
+    ].join('\n'));
     db.prepare('INSERT INTO hot(normalized,surface,ipa,pronunciation_preferred,pronunciation_eligible,id) VALUES(?,?,?,?,?,?)')
       .run('known','Known','ˈkoːn',1,1,1);
     db.close();
 
-    const coreDir=join(root,'core');
-    mkdirSync(coreDir,{recursive:true});
-    const rows=[
-      {
-        processing_order:1,word:'Known',normalized_form:'known',usage_rank:null,
-        dictionary_status:'complete',source_entry_count:1,
-        pronunciations:[{ipa:'ˈkoːn'}],
-      },
-      {
-        processing_order:2,word:'Missingwort',normalized_form:'missingwort',usage_rank:null,
-        dictionary_status:'partial',source_entry_count:1,
-        pronunciations:[],
-      },
-    ];
-    const shard=rows.map((row)=>JSON.stringify(row)).join('\n')+'\n';
-    writeFileSync(join(coreDir,'shard-000001.jsonl'),shard);
-    writeFileSync(join(coreDir,'manifest.json'),JSON.stringify({
-      schema:'rhymelab-de-core-v2',
-      total_forms:2,
-      files:[{
-        file:'shard-000001.jsonl',items:2,
-        first_processing_order:1,last_processing_order:2,sha256:'fixture',
-      }],
-    }));
+    const usagePath=join(root,'de-usage.tsv');
+    writeFileSync(usagePath,[
+      'rank\tform\tnormalized_form\tusage_score\tcombined_count\tsource_count\tsource_counts_json\tsource_per_million_json',
+      '1\tKnown\tknown\t10\t100\t3\t{}\t{}',
+      '2\tMissingUsage\tmissingusage\t9\t90\t3\t{}\t{}',
+    ].join('\n')+'\n');
 
     const rawPath=join(root,'de.jsonl.gz');
-    writeFileSync(rawPath,gzipSync(Buffer.from(
-      JSON.stringify({lang_code:'de',word:'Known',forms:[]})+'\n'
-    )));
+    writeFileSync(rawPath,gzipSync(Buffer.from([
+      JSON.stringify({lang_code:'de',word:'Known',pos:'noun',senses:[{glosses:['known']}],forms:[]}),
+      JSON.stringify({lang_code:'de',word:'MissingHead',pos:'noun',senses:[{glosses:['missing']}],forms:[]}),
+      JSON.stringify({
+        lang_code:'de',word:'Lemma',pos:'verb',senses:[{glosses:['lemma']}],
+        forms:[{form:'MissingListed',tags:['past']}],
+      }),
+    ].join('\n')+'\n')));
 
     const work=join(root,'work.sqlite');
     const result=run([
       '--phase','collect','--scopes','de',
-      '--de-db',acceptedPath,'--de-core',coreDir,'--de-kaikki',rawPath,
+      '--de-db',acceptedPath,'--de-usage',usagePath,'--de-kaikki',rawPath,
       '--work',work,'--report',join(root,'report.json'),'--review-tsv',join(root,'review.tsv'),
       '--progress-every','1','--commit-every','1',
     ]);
@@ -78,18 +92,24 @@ test('DE collection diffs pre-publish core against accepted Writer DB',()=>{
 
     const workDb=new DatabaseSync(work,{readOnly:true});
     const items=workDb.prepare('SELECT language,normalized,surface FROM work_item ORDER BY normalized').all().map((row)=>({...row}));
-    const scopes=workDb.prepare('SELECT scope,status FROM scan_state ORDER BY scope').all();
+    const scopes=workDb.prepare('SELECT scope,status FROM scan_state ORDER BY scope').all().map((row)=>({...row}));
     workDb.close();
 
-    assert.deepEqual(items,[{language:'de',normalized:'missingwort',surface:'Missingwort'}]);
-    assert.ok(scopes.some((row)=>row.scope==='de_source_minus_accepted'&&row.status==='complete'));
+    assert.deepEqual(items,[
+      {language:'de',normalized:'lemma',surface:'Lemma'},
+      {language:'de',normalized:'missinghead',surface:'MissingHead'},
+      {language:'de',normalized:'missinglisted',surface:'MissingListed'},
+      {language:'de',normalized:'missingusage',surface:'MissingUsage'},
+    ]);
+    assert.ok(scopes.some((row)=>row.scope==='de_usage_source_minus_accepted'&&row.status==='complete'));
+    assert.ok(scopes.some((row)=>row.scope==='de_wiktionary_headword_source_minus_accepted'&&row.status==='complete'));
     assert.ok(scopes.some((row)=>row.scope==='de_listed_form_source_minus_accepted'&&row.status==='complete'));
   }finally{
     rmSync(root,{recursive:true,force:true});
   }
 });
 
-test('EN collection scans original Kaikki candidates absent from accepted en-US pronunciation inventory',()=>{
+test('EN collection scans publish-eligible Wiktionary lexical candidates absent from accepted en-US pronunciation inventory',()=>{
   const root=mkdtempSync(join(tmpdir(),'rhymelab-backfill-en-'));
   try{
     const acceptedPath=join(root,'accepted-en.sqlite');
@@ -121,8 +141,12 @@ test('EN collection scans original Kaikki candidates absent from accepted en-US 
     mkdirSync(rawDir,{recursive:true});
     const rawName='en.jsonl.gz';
     writeFileSync(join(rawDir,rawName),gzipSync(Buffer.from([
-      JSON.stringify({lang_code:'en',word:'knownword',forms:[]}),
-      JSON.stringify({lang_code:'en',word:'missingword',forms:[]}),
+      JSON.stringify({lang_code:'en',word:'knownword',pos:'noun',senses:[{glosses:['known']}],forms:[]}),
+      JSON.stringify({lang_code:'en',word:'missingword',pos:'noun',senses:[{glosses:['missing']}],forms:[]}),
+      JSON.stringify({lang_code:'en',word:'lemma',pos:'verb',senses:[{glosses:['lemma']}],forms:[
+        {form:'listedmissing',tags:['past']},
+        {form:'romanized',tags:['romanization']}
+      ]}),
       JSON.stringify({lang_code:'de',word:'ignorieren',forms:[]}),
     ].join('\n')+'\n')));
 
@@ -148,12 +172,16 @@ test('EN collection scans original Kaikki candidates absent from accepted en-US 
 
     const workDb=new DatabaseSync(work,{readOnly:true});
     const items=workDb.prepare('SELECT language,normalized,surface FROM work_item ORDER BY normalized').all().map((row)=>({...row}));
-    const state=workDb.prepare("SELECT status,source_refs FROM scan_state WHERE scope='en_source_minus_accepted'").get();
+    const state=workDb.prepare("SELECT status,source_refs FROM scan_state WHERE scope='en_wiktionary_lexical_source_minus_accepted'").get();
     workDb.close();
 
-    assert.deepEqual(items,[{language:'en',normalized:'missingword',surface:'missingword'}]);
+    assert.deepEqual(items,[
+      {language:'en',normalized:'lemma',surface:'lemma'},
+      {language:'en',normalized:'listedmissing',surface:'listedmissing'},
+      {language:'en',normalized:'missingword',surface:'missingword'},
+    ]);
     assert.equal(state.status,'complete');
-    assert.equal(Number(state.source_refs),1);
+    assert.equal(Number(state.source_refs),3);
   }finally{
     rmSync(root,{recursive:true,force:true});
   }

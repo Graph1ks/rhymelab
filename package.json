@@ -140,6 +140,7 @@
     "pronunciation:backfill:collect": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase collect",
     "pronunciation:backfill:report": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase report",
     "data:inventory": "node --no-warnings scripts/report-local-data-inventory.mjs",
-    "data:inventory:full": "node --no-warnings scripts/report-local-data-inventory.mjs --row-counts --hash"
+    "data:inventory:full": "node --no-warnings scripts/report-local-data-inventory.mjs --row-counts --hash",
+    "pronunciation:backfill:plan": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase plan"
   }
 }
