@@ -146,63 +146,63 @@ npm run entity:g2p:benchmark:mfa
 
 Upload only the new `data/local/entity-g2p-mfa-en-us-arpa-evaluation-v2.json`.
 
-## Phase 12C — MFA closed; independent g2p-en neural benchmark active
+## Phase 12C — generated proper-name G2P closed; source-backed runtime next
 
-MFA is **rejected for Entity runtime fallback** after confidence calibration.
+Generated proper-name G2P is **closed with no runtime promotion**.
 
-```text
-calibrated evaluation fingerprint
-9bc00102d46af55352505389c03fe048083cdd81c966007ab86924d9df233488
-
-full exact-tail                         71.19%
-best 10% by MFA path score             86.67%
-max retention at >=90% exact-tail       1.68%  (10 / 597)
-max retention at >=85% exact-tail      21.94%  (131 / 597)
-```
-
-The score signal is real but not selective enough to provide useful high-confidence Entity coverage.
-
-The next independent candidate is **forced-neural `g2p-en` 2.1.0**:
-
-- Apache-2.0 package/repository;
-- bundled `checkpoint20.npz`;
-- CMUdict training basis;
-- stressed ARPAbet output;
-- benchmark calls `G2p.predict()` directly;
-- CMUdict/homograph/POS lookup is bypassed;
-- no runtime promotion.
-
-DeepPhonemizer is deferred: code license is MIT, but the pretrained checkpoint is not separately licensed explicitly enough for the intended commercial runtime path.
-
-Read `docs/ENTITY_G2P_G2PEN_BENCHMARK_V1.md`.
-
-### One-time owner setup
-
-Use a **Miniforge Prompt** and create a separate environment:
-
-```powershell
-conda create -n rhymelab-g2pen -c conda-forge python=3.10 g2p-en=2.1.0 -y
-conda activate rhymelab-g2pen
-python -m nltk.downloader cmudict averaged_perceptron_tagger
-```
-
-### Owner gate
-
-The prompt must visibly start with `(rhymelab-g2pen)`:
-
-```powershell
-cd D:\rhymelab
-git pull
-npm run entity:g2p:benchmark:g2pen
-```
-
-Upload only:
+Accepted 600-case control fingerprint:
 
 ```text
-data/local/entity-g2p-g2pen-neural-evaluation-v2.json
+02e0e3a330434676164bb6837793774a3edf69fdb7683b6035fa2cdf979b172a
 ```
 
-If this independent neural model does not materially improve exact stressed rhyme-tail quality over MFA, stop the generated-G2P campaign rather than stacking more models.
+Final candidate comparison:
+
+```text
+                              MFA         g2p-en neural
+model-input eligible            599/600     596/600
+eligible prediction coverage    100%        100%
+evaluated                       597         596
+exact phones                    70.35%      64.60%
+exact stressed rhyme tail       71.19%      64.26%
+syllable count                  95.98%      93.62%
+stress pattern                  80.57%      81.88%
+primary stress                  94.14%      91.95%
+mean rhyme score                0.913040    0.891655
+```
+
+MFA confidence gating was already insufficient:
+
+```text
+best 10% exact-tail                 86.67%
+retention at >=90% exact-tail       1.68%
+retention at >=85% exact-tail      21.94%
+```
+
+The independent `g2p-en` benchmark forced `G2p.predict()` and bypassed CMUdict, homograph and POS lookup. Its owner report fingerprint is:
+
+```text
+5511c6e2c83550b753692a64a1485302c88b61b5bc4acecf4a3a8e29937061b6
+```
+
+Its `confidence_calibration` block is not accepted evidence because the model emits no confidence and the evaluator converted `null` to `0`. Primary metrics are unaffected; the evaluator is fixed and no rerun is required.
+
+Decision:
+
+- reject MFA runtime fallback;
+- reject g2p-en runtime fallback;
+- do not benchmark/model-stack a third G2P candidate;
+- do not mass-generate the remaining 704,989 unresolved English Entity names;
+- keep unresolved names unresolved;
+- use only accepted source-backed pronunciation evidence at runtime.
+
+Read `docs/ENTITY_G2P_DECISION_V1.md`.
+
+### Next Phase 12C gate
+
+Continue with **source-backed Entity pronunciation/runtime integration** using the already accepted source-expansion evidence. Generated G2P is out of scope unless a future explicit decision reopens it.
+
+No Miniforge/G2P owner command is pending.
 
 ## Frozen German baseline
 
