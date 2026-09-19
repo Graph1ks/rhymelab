@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { findRhymes, getStats, getWord, openRhymeDb, searchWords } from './local-engine.mjs';
 import { DEFAULT_WRITER_DB_PATH, openWriterDb } from './experimental-writer-db.mjs';
@@ -91,6 +92,33 @@ try {
   console.warn('Normal Writer runtime remains available; only the Entity rhyme channel is unavailable.');
 }
 
+function databaseRevisionPart(db,path){
+  if(!db) return null;
+  let meta=[];
+  try{
+    meta=db.prepare('SELECT key,value FROM meta ORDER BY key').all()
+      .map((row)=>[String(row.key),String(row.value)]);
+  }catch{}
+  let file=null;
+  try{
+    const stat=statSync(path,{bigint:true});
+    file={
+      size:String(stat.size),
+      mtimeNs:String(stat.mtimeNs),
+    };
+  }catch{}
+  return {file,meta};
+}
+
+const queryPronunciationRevision=createHash('sha256')
+  .update(JSON.stringify({
+    writer:databaseRevisionPart(writerDb,writerDbPath),
+    english:databaseRevisionPart(englishDb,englishDbPath),
+    phrase:databaseRevisionPart(phraseDb,phraseDbPath),
+    entity:databaseRevisionPart(entityDb,entityDbPath),
+  }))
+  .digest('hex');
+
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
 const padHtml = Buffer.from(materializeRhymePadV14().html);
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
@@ -105,6 +133,7 @@ const assets = {
   '/assets/mobile.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'mobile.css')) },
   '/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'app.js')) },
   '/assets/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-client.mjs')) },
+  '/assets/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-cache.mjs')) },
   '/benchmark': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
   '/benchmark/': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
   '/benchmark/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'styles.css')) },
@@ -228,6 +257,12 @@ const server = createServer(async (req, res) => {
         english_available: Boolean(englishDb),
         english_error: englishDb ? null : englishDbError,
         english_acceptance_marker: englishMarker.accepted ? englishMarkerPath : null,
+        query_pronunciation_revision: queryPronunciationRevision,
+        query_pronunciation_cache: {
+          schema: 'rhymelab-query-pronunciation-cache-v1',
+          revision: queryPronunciationRevision,
+          revalidation: 'health_revision_once_per_app_session',
+        },
         unified_writer: unifiedWriterCapabilities({
           writerDb,
           englishDb,
