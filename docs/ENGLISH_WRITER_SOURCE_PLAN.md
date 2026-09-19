@@ -600,34 +600,40 @@ Require:
 - repeated DB-open fingerprint stability;
 - unchanged frozen German Writer/Phrase behavior.
 
-### Current English gate — PRODUCT INTEGRATION ACCEPTANCE
+### Current English gate — OWNER INTEGRATED PRODUCT ACCEPTANCE
 
-Phase 12B10 owner ranking/diversity evidence is reviewed.
+The selected single-word English Writer policy is implemented in the unified product candidate:
 
 ```text
-owner report fingerprint          b1aacf3c2de3f91b9ce740744b15f89c797a24b4dc916f0f72f5d8235ea266cb
+runtime                           en-writer-product-v1-candidate
+policy                            en-writer-guarded-quality-diversity-v1-candidate
 Quality                           guarded_commonness_06
 Diversity                         0.08
-Quality guard violations          0
-Quality phonetic drop             0.001061
-Quality Commonness uplift         0.035469
-Diversity near-dup reduction      45.6853%
-Diversity lemma reduction         38.7755%
-Diversity phonetic drop           0.000322
-Diversity Commonness drop         0.034878
+language modes                    DE / EN / DE+EN
 ```
 
-Decision: accept this candidate for product integration. Do not run another ranking micro-gate. Stronger tested Diversity weights breached the <=0.04 Commonness-drop guard.
+English remains locally gated until the full-data integrated command passes:
 
-The default acceptance-report shape is now compact. Full per-query/config/diversity Top-20 matrices are debug-only via `--debug-report <path>`; the previous 42.21 MiB default report was an output-format defect.
+```powershell
+git pull
+npm run en:product:accept
+```
 
-Next implementation block:
+Primary report:
 
-- wire the selected English Quality + Diversity policy into the normal English Writer runtime;
-- preserve the separate English DB and en-US default-profile boundary;
-- keep German runtime/result ordering frozen;
-- run one integrated EN / DE+EN product smoke + repeatability + German-invariance acceptance bundle;
-- only then enable EN / DE+EN as accepted product capabilities.
+```text
+data/local/en-product-acceptance-v1-report.json
+```
+
+PASS automatically writes:
+
+```text
+data/local/en-product-enabled-v1.json
+```
+
+The next server restart then enables English without another code change.
+
+The integrated gate protects frozen German Writer output, verifies EN sentinel behavior and source-backed variants, checks DE+EN composition/repeatability, keeps EN Phrase/Mosaic and EN Entity disabled, and does not add unknown-query G2P.
 
 ### 12B7 — product integration
 
