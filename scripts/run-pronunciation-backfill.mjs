@@ -691,7 +691,7 @@ async function runClientResolver(){
   const startedAt=Date.now();
 
   try{
-  while(!stopRequested){
+    while(!stopRequested){
     const rows=batchQuery.all(commitEvery);
     if(!rows.length) break;
     workDb.exec('BEGIN IMMEDIATE');
@@ -700,7 +700,9 @@ async function runClientResolver(){
         if(stopRequested) break;
         const started=performance.now();
         try{
-          const detail=await resolveUnknownClientPronunciation(row.surface,row.language,{\n            lookupReference:(surface,language)=>referenceLookup.lookup(surface,language),\n          });
+          const detail=await resolveUnknownClientPronunciation(row.surface,row.language,{
+            lookupReference:(surface,language)=>referenceLookup.lookup(surface,language),
+          });
           if(!detail?.ipa){
             const reason='client_resolver_empty';
             updateClientRejected.run(reason,reason,now(),Number(row.item_id));
@@ -766,7 +768,6 @@ async function runClientResolver(){
       workDb.exec('ROLLBACK');
       throw error;
     }
-  }
   }finally{
     referenceLookup.close();
   }
