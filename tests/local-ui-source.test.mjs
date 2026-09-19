@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async () => {
-  const [html, app, css, mobileCss] = await Promise.all([
+  const [html, app, css, mobileCss, server] = await Promise.all([
     readFile('src/ui/index.html', 'utf8'),
     readFile('src/ui/app.js', 'utf8'),
     readFile('src/ui/styles.css', 'utf8'),
     readFile('src/ui/mobile.css', 'utf8'),
+    readFile('src/server.mjs', 'utf8'),
   ]);
 
   assert.match(html, /<html lang="en">/);
@@ -64,6 +65,7 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /resultKind/);
   assert.match(app, /renderPhrasePanel/);
   assert.match(app, /\/api\/writer\?/);
+  assert.match(server, /resultLanguage: url\.searchParams\.get\('result_language'\)/);
   assert.match(app, /\/api\/phrases\/detail/);
   assert.match(app, /language:state\.basis/);
   assert.match(app, /result_language:state\.resultLanguage/);
