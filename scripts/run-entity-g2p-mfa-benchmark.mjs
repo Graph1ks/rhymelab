@@ -86,7 +86,15 @@ if(cases.length!==benchmark.actual_size){
 }
 
 console.log('\nMFA PROPER-NAME TOKEN BENCHMARK: preflight…');
-const mfaVersion=run(mfaCommand,['--version'],{capture:true});
+run(mfaCommand,['--help'],{capture:true});
+const mfaVersion=run(
+  'python',
+  [
+    '-c',
+    "from importlib.metadata import version; print(version('montreal-forced-aligner'))",
+  ],
+  {capture:true},
+);
 const modelInspect=run(
   mfaCommand,
   ['model','inspect','g2p',modelId],
