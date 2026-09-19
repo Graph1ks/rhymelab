@@ -89,7 +89,7 @@ Do not introduce hosted/provider runtime, remote database bindings, telemetry, a
 
 RhymeLab core rhyme retrieval, scoring, writer ranking and result diversification must remain deterministic and locally executable on ordinary consumer hardware. Do not introduce LLM inference, machine-learning model inference, neural ranking, hosted ranking/search services, or a network dependency into the core search path. External models may be used only as optional benchmark/reference evidence; they must never be required to build, run, reproduce, or explain core search results.
 
-A narrow pronunciation exception is active for **single-token user query anchors only**: deterministic non-neural local pronunciation generation may create ephemeral DE/EN query IPA when source-backed lookup misses. An externally installed eSpeak-NG executable may be used as an optional local rule-based host engine; it is not bundled, not required, not lexical truth, and its output must pass the existing RhymeLab analyzer. This exception must never affect candidate ranking, canonical database rows, Entity bulk materialization, or accepted Phrase/Mosaic pronunciation.
+A narrow pronunciation exception is active for **single-token user query anchors only**: when source-backed lookup misses, deterministic non-neural pronunciation generation runs in the **end-user client** and may create ephemeral DE/EN query IPA. Source-backed DB/API lookups may be used as pronunciation references or compound components. The client generator must not depend on Node.js, `child_process`, a host executable, eSpeak-NG, an LLM, or a paid/runtime pronunciation service. The supplied IPA is validated by the existing accepted analyzer and then enters the unchanged retrieval/scoring/ranking path. eSpeak-NG is benchmark/development evidence under `scripts/` only. This exception must never affect candidate ranking, canonical database rows, Entity bulk materialization, or accepted Phrase/Mosaic pronunciation.
 
 ## Durable product decisions
 
@@ -104,7 +104,7 @@ A narrow pronunciation exception is active for **single-token user query anchors
 - Curated modern pronunciations may overlay dictionary forms while dictionary alternatives remain available.
 - Historical-only vocabulary is hidden by default and explicitly opt-in.
 - Do not invent lexical, pronunciation, phraseological, source, license, or benchmark facts.
-- Unknown normalized **single-token user queries** are a separate runtime case: source-backed pronunciation is preferred, otherwise `total-query-pronunciation-v1` must generate one deterministic ephemeral DE/EN query anchor for each selected query language. Generated query anchors are not lexical facts and must never be silently persisted/promoted.
+- Unknown normalized **single-token user queries** are a separate runtime case: source-backed pronunciation is preferred, otherwise `total-query-pronunciation-v1` must generate one deterministic ephemeral DE/EN query anchor **in the end-user client** for each missing selected query language. The rest of search remains on the existing RhymeLab database/retrieval/ranking path. Generated query anchors are not lexical facts and must never be silently persisted/promoted.
 - Public web visibility alone does not make a source legally/reproducibly ingestible.
 - External-model reference labels are evidence, not human-expert gold.
 - Protect accepted exact-rhyme behavior unless strong evidence requires otherwise.
