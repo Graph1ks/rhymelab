@@ -8,7 +8,7 @@ Branch:
 phase12c-entity-runtime-ai-staging
 ```
 
-Base when this workstream started:
+Base when this workstream started (Git SHA-1):
 
 ```text
 main 963e1571794b1fbac07a48ae03d2297ff04e00f7
@@ -354,36 +354,29 @@ At handover time the branch is approximately 22 commits ahead of `main` and incl
 
 This branch has **not** completed the final documentation/acceptance/CI gate.
 
+## Continuation progress after this handover
+
+The repository acceptance pass subsequently tightened the AI staging boundary:
+
+- result manifests now require a valid `results.tsv` SHA-256;
+- complete/partial batch ranges, sequential IDs, C/A/U counts and zero-error counters are cross-checked against the actual result rows;
+- identical result re-imports are idempotent instead of falling through to a duplicate batch insert;
+- staging audit now persists threshold selectivity, category, orthography, unresolved-reason, popularity-tier and problem-population aggregates;
+- no runtime promotion threshold is selected by those diagnostics;
+- durable contracts now live in `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` and `docs/PHASE_12C_ACCEPTANCE.md`.
+
 ## What is NOT finished
 
 Do not call this work accepted or merge-ready yet.
 
 Remaining work:
 
-1. review all branch code for consistency and accidental boundary violations;
-2. complete AI acceptance diagnostics:
-   - define/persist candidate-quality analysis over imported staging rows;
-   - benchmark confidence strata without preselecting a threshold;
-   - inspect category/orthography/problem populations;
-   - keep promotion disabled;
-3. complete benchmark-v3 review evidence; do not invent replacement gold;
-4. finish/update durable project documentation:
-   - `AGENTS.md`
-   - `docs/HANDOVER.md`
-   - `PROJECT_STATE.json`
-   - `STATUS.md`
-   - relevant Entity runtime/AI staging contract docs as needed;
-5. run repository checks on the branch:
-   ```powershell
-   npm run check
-   npm test
-   node scripts/public-readiness-audit.mjs
-   ```
-6. inspect failures and fix them rather than weakening tests;
-7. only then create/update the PR;
-8. require GitHub `validate` CI green;
-9. squash-merge only after the branch is genuinely ready;
-10. only after merge give the owner full-data runtime build commands.
+1. complete benchmark-v3 context-gold review evidence; do not invent replacement gold;
+2. run/require repository validation through the pull-request `validate` job (`npm run check`, `npm test`, public-readiness audit);
+3. inspect CI failures and fix them rather than weakening tests;
+4. update the acceptance document with the final CI result;
+5. squash-merge only after the branch is genuinely ready;
+6. only after merge give the owner full-data runtime build commands.
 
 ## Immediate next-thread starting procedure
 

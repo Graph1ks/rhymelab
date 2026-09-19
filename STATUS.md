@@ -1,6 +1,6 @@
 # Public-facing status
 
-Last updated: 2026-09-18
+Last updated: 2026-09-19
 
 RhymeLab's public repository is `Graph1ks/rhymelab`. `main` is protected and the required public CI check is `validate`.
 
@@ -128,7 +128,7 @@ The product surface is now only the main Writer UI at `/`. There is no separate 
 
 Search-language basis remains `DE / EN / DE+EN`. German is active and frozen; English remains capability-gated until an accepted English runtime exists.
 
-Current active milestone: **Phase 12B — English single-word Writer database + real English phonology/profile/benchmark**.
+Current active milestone: **Phase 12C — source-backed multilingual Entity runtime + isolated AI pronunciation staging acceptance**.
 
 Source/architecture contract: `docs/ENGLISH_WRITER_SOURCE_PLAN.md`.
 
@@ -156,7 +156,7 @@ The >1M figure is a raw word-form universe, not a final default Writer count. Ph
 
 wordfreq is selected only as the initial commonness candidate. Its maintainer states that the underlying frequency snapshot runs through about 2021 and is unlikely to be updated again, so modern songwriting/rap vocabulary must be benchmarked before final acceptance.
 
-Phase 12A Entity work is now **DEFERRED / FROZEN** while the English Writer is built.
+The Phase 12A Entity checkpoint remains frozen historical evidence. Phase 12C has resumed Entity work after English product acceptance, without reopening the accepted Hybrid-v2 population or DE runtime baseline.
 
 Entity deferred checkpoint: `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md`.
 
@@ -931,7 +931,9 @@ Active candidate branch: `phase12c-entity-runtime-ai-staging`.
 
 Focused continuation document: `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`.
 
-Implemented on the branch: source-backed EN Entity runtime and rhyme anchors, DE+EN Entity Writer channel/UI integration, isolated 704,989-row AI pronunciation queue, ZIP importer/staging SQLite/audit, strict ARPAbet analysis/validation, LLM benchmark evaluator, benchmark-v3 explicit review gate, and multilingual runtime verification preserving the frozen DE fingerprint with zero generated accepted EN runtime rows.
+Implemented on the branch: source-backed EN Entity runtime and rhyme anchors, DE+EN Entity Writer channel/UI integration, isolated 704,989-row AI pronunciation queue, ZIP importer/staging SQLite/audit, strict ARPAbet and manifest/batch validation, idempotent identical-result imports, aggregate confidence/category/orthography/problem-population diagnostics, LLM benchmark evaluator, benchmark-v3 explicit review gate, and multilingual runtime verification preserving the frozen DE fingerprint with zero generated accepted EN runtime rows.
 
-Status is **implementation in progress / not merge-ready**. AI acceptance diagnostics, benchmark-v3 review completion, final documentation/consistency review, local checks and GitHub `validate` CI are still required. AI staging remains non-runtime evidence.
+Acceptance contracts: `docs/PHASE_12C_ACCEPTANCE.md` and `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md`.
+
+Status is **implementation in progress / not merge-ready**. Benchmark-v3 context-gold review and GitHub `validate` CI are still required. AI staging remains non-runtime evidence and no confidence threshold is preselected for promotion.
 

@@ -7,8 +7,10 @@ This repository is the authoritative engineering/project memory for RhymeLab. Re
 Before changing the project in a fresh thread/session, read:
 
 1. `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — current branch handover for Phase 12C runtime + AI staging
-2. `docs/HANDOVER.md`
-2. `docs/PHASE_11_ACCEPTANCE.md`
+2. `docs/PHASE_12C_ACCEPTANCE.md` — current repository acceptance gate and remaining blockers
+3. `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` — isolated AI evidence/import/audit contract
+4. `docs/HANDOVER.md`
+5. `docs/PHASE_11_ACCEPTANCE.md`
 3. `STATUS.md`
 4. `PROJECT_STATE.json`
 5. `ROADMAP.md`
@@ -157,11 +159,11 @@ Frozen product rules:
 - `DE / EN / DE+EN` remains the unified language-basis contract;
 - English stays capability-gated until Phase 12 supplies a real accepted English runtime.
 
-Current active milestone: **Phase 12B — English single-word Writer source stack + real English phonology/profile/benchmark**.
+Current active milestone: **Phase 12C — source-backed multilingual Entity runtime + isolated AI pronunciation staging acceptance**.
 
-Read `docs/ENGLISH_WRITER_SOURCE_PLAN.md` before English source, pronunciation, phonology, ranking or database work.
+Read `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`, `docs/PHASE_12C_ACCEPTANCE.md`, and `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` before changing Entity runtime, AI staging, benchmark-review, or promotion boundaries.
 
-Phase 12A Entity work is **DEFERRED / FROZEN at the current checkpoint**. Read `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` before touching it.
+The Phase 12A deferred checkpoint remains frozen historical evidence; Phase 12C has resumed Entity work only within the current source-backed/runtime and isolated-staging contracts.
 
 Frozen Entity facts:
 
@@ -201,7 +203,7 @@ English implementation rules:
 
 Phase 12B11 English Product is **ACCEPTED / FROZEN**. Owner integrated acceptance passed with semantic fingerprint `c889adf2253f3b149d6363f2063b40717b79a4f0cf24a06c953a599a66613ca6`; all checks passed, German direct-vs-unified Writer invariance passed, `nation -> station` is preserved as multisyllabic-perfect, independent-open repeatability passed, and the local `data/local/en-product-enabled-v1.json` marker was written. The accepted English product uses `guarded_commonness_06`, Diversity `0.08`, and retrieval profile `en-product-retrieval-reservoir-v1`. Do not reopen English ranking/retrieval micro-gates without a concrete regression.
 
-The current implementation gate on candidate branch `phase12c-entity-runtime-ai-staging` is **Phase 12C source-backed multilingual Entity runtime + isolated AI pronunciation staging acceptance**. Read `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` first. The branch implements source-backed EN Entity runtime/anchors, multilingual Entity Writer integration, AI queue/export/import/audit staging, LLM benchmark tooling and a benchmark-v3 review gate. It is **not merge-ready yet**: durable docs/acceptance diagnostics/final review and GitHub `validate` CI remain pending. AI staging rows must not become runtime truth automatically; source-backed EN runtime must remain independently usable; the accepted DE Entity fingerprint must remain unchanged; generated rows in accepted EN runtime remain zero.
+The current implementation gate on candidate branch `phase12c-entity-runtime-ai-staging` is **Phase 12C source-backed multilingual Entity runtime + isolated AI pronunciation staging acceptance**. The branch implements source-backed EN Entity runtime/anchors, multilingual Entity Writer integration, AI queue/export/import/audit staging, strict artifact-contract validation, aggregate candidate diagnostics, LLM benchmark tooling and a benchmark-v3 review gate. It is **not merge-ready yet**: benchmark-v3 context-gold review and GitHub `validate` CI remain pending. AI staging rows must not become runtime truth automatically; source-backed EN runtime must remain independently usable; the accepted DE Entity fingerprint must remain unchanged; generated rows in accepted EN runtime remain zero.
 
 The classic 20260914 full-dump path is retired. The owner explicitly rejected further staging/comparison against the 103 GB dump and may delete it. Do not redownload it, require it, benchmark against it, or spend more time on BZip2/WSL/full-dump throughput. The only active Phase 12A2 acquisition path is the implemented build-time QLever selective exporter/stager.
 
