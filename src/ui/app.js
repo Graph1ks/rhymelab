@@ -113,6 +113,6 @@ $('#results').addEventListener('pointerout',(event)=>{const row=event.target.clo
 $('#results').addEventListener('focusin',(event)=>{const row=event.target.closest('.result-row');if(row)inspectResult(resultByKey(row.dataset.resultKey),row.dataset.displayType);});
 $('#results').addEventListener('focusout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
 applyLanguage();
-const initialUrl=new URL(location.href),initialBasis=initialUrl.searchParams.get('lang'),initialScope=initialUrl.searchParams.get('scope');if(['de','en','both'].includes(initialBasis))state.basis=initialBasis;if(['all','words','phrases','entities'].includes(initialScope))$('#scopeFilter').value=initialScope;setScope($('#scopeFilter').value);applyLanguage();loadCapabilities();
+const initialUrl=new URL(location.href),initialBasis=initialUrl.searchParams.get('lang'),initialScope=initialUrl.searchParams.get('scope');if(['de','en','both'].includes(initialBasis))state.basis=initialBasis;if(['all','words','phrases','entities'].includes(initialScope))$('#scopeFilter').value=initialScope;setScope($('#scopeFilter').value);applyLanguage();await loadCapabilities();
 const initial=initialUrl.searchParams.get('q');
 if(initial){$('#searchInput').value=initial;search(initial);}
