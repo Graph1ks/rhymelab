@@ -173,7 +173,7 @@ node scripts/public-readiness-audit.mjs
 
 GitHub required check: `validate`.
 
-Merged PR: #112 (squash merge `e0ddbfac7cdf7229a7a3049c1426c6fb70783cdf`).
+Merged PR: #112 (squash merge `e0ddbfac`).
 
 The final branch head must be green before merge. CI validates the repository/tooling contract; the local owner report validates the full-data contract.
 
