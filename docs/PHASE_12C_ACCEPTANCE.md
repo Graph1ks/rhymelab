@@ -58,13 +58,21 @@ node scripts/public-readiness-audit.mjs
 
 GitHub required check: `validate`.
 
-Current state: **pending PR CI**.
+Validation evidence:
+
+- Draft PR: #112.
+- GitHub Actions `validate` run 514 / run ID `35442290540` passed on Git SHA-1 `11135c8fd192eeee9ac9a6307103f193985a60c2`.
+- `npm run check`: PASS.
+- `npm test`: PASS — 364 tests / 364 passed / 0 failed.
+- `node scripts/public-readiness-audit.mjs`: PASS.
+- The PR check on the final branch head remains the canonical merge gate; documentation-only evidence commits must also receive green `validate`.
+
+Current state: **repository CI gate passed; benchmark-v3 review still blocks merge-readiness**.
 
 ## Remaining blockers
 
 1. complete benchmark-v3 context-gold review with actual evidence;
-2. obtain green GitHub `validate` for the final branch head and fix failures without weakening tests;
-3. record final CI evidence here;
-4. squash-merge only after the branch is genuinely ready.
+2. keep GitHub `validate` green on the final branch head;
+3. squash-merge only after benchmark-v3 review is complete and the branch is genuinely ready.
 
 Owner full-data runtime commands remain withheld until merge. AI staging results are not required to finish or operate the source-backed runtime path.
