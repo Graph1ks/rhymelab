@@ -229,69 +229,63 @@ async function inspectBatchRows(
   }));
 }
 
-async function processFramedChunk(rows,language,{
+async function processSparseFramedChunk(rows,language,{
   command,
   engineVersion=null,
   timeoutMs=60000,
   spawnProcess=spawn,
-  fallbackSingle=true,
   boundaryIpa=null,
   analyzerPool=null,
-  mode='framed_batch_process',
+  frameGroupSize=16,
+  mode='sparse_framed_batch',
 }={}){
   const code=normalizeLanguage(language);
-  const voice=code==='de'?'de':'en-us';
+  const voice=code==='de'?'de-us':'en-us';
   const markerIpa=resolveBoundaryRawIpa(command,code,boundaryIpa);
+  const groupSize=Math.max(1,Math.min(Number(frameGroupSize)||16,rows.length));
+  const groups=[];
+  for(let index=0;index<rows.length;index+=groupSize){
+    groups.push(rows.slice(index,index+groupSize));
+  }
+
   const input=[];
-  for(const row of rows){
-    const surface=inputLine(row.surface);
-    if(surface===ESPEAK_BATCH_BOUNDARY_SURFACE){
-      throw new Error('Work item collides with reserved eSpeak batch boundary surface.');
+  for(const group of groups){
+    for(const row of group){
+      const surface=inputLine(row.surface);
+      if(surface===ESPEAK_BATCH_BOUNDARY_SURFACE){
+        throw new Error('Work item collides with reserved eSpeak batch boundary surface.');
+      }
+      input.push(surface);
     }
-    input.push(surface,ESPEAK_BATCH_BOUNDARY_SURFACE);
+    input.push(ESPEAK_BATCH_BOUNDARY_SURFACE);
   }
 
   const processResult=await executeBatchProcess(
     command,
-    ['-q','--ipa=3','-v',voice],
+    ['-q','--ipa=3','-v',code==='de'?'de':'en-us'],
     input.join('\n')+'\n',
     {timeoutMs,spawnProcess},
   );
   if(processResult.error||processResult.status!==0){
-    return processFailureRows(rows,processResult,'framed_batch_process_error');
+    return processFailureRows(rows,processResult,mode+'_process_error');
   }
 
   const framed=splitFramedEspeakOutput(processResult.stdout,markerIpa);
-  if(framed.groups.length===rows.length&&framed.trailing.length===0){
-    return await inspectBatchRows(
-      rows,
-      framed.groups.map((group)=>group.join('\n')),
-      code,
-      processResult,
-      {
-        command,
-        engineVersion,
-        analyzerPool,
-        mode,
-        outputLineCounts:framed.groups.map((group)=>group.length),
-      },
-    );
-  }
+  if(framed.groups.length!==groups.length||framed.trailing.length!==0){
+    if(rows.length>1){
+      const midpoint=Math.ceil(rows.length/2);
+      const nextGroupSize=Math.max(1,Math.min(groupSize,Math.ceil(rows.length/4)));
+      const left=await processSparseFramedChunk(rows.slice(0,midpoint),code,{
+        command,engineVersion,timeoutMs,spawnProcess,boundaryIpa:markerIpa,
+        analyzerPool,frameGroupSize:nextGroupSize,mode:'sparse_framed_recovery',
+      });
+      const right=await processSparseFramedChunk(rows.slice(midpoint),code,{
+        command,engineVersion,timeoutMs,spawnProcess,boundaryIpa:markerIpa,
+        analyzerPool,frameGroupSize:nextGroupSize,mode:'sparse_framed_recovery',
+      });
+      return [...left,...right];
+    }
 
-  if(rows.length>1){
-    const midpoint=Math.ceil(rows.length/2);
-    const left=await processFramedChunk(rows.slice(0,midpoint),code,{
-      command,engineVersion,timeoutMs,spawnProcess,fallbackSingle,
-      boundaryIpa:markerIpa,analyzerPool,mode:'framed_batch_split',
-    });
-    const right=await processFramedChunk(rows.slice(midpoint),code,{
-      command,engineVersion,timeoutMs,spawnProcess,fallbackSingle,
-      boundaryIpa:markerIpa,analyzerPool,mode:'framed_batch_split',
-    });
-    return [...left,...right];
-  }
-
-  if(fallbackSingle){
     const started=performance.now();
     try{
       const inspected=await inspectEspeakQueryPronunciationAsync(
@@ -306,9 +300,10 @@ async function processFramedChunk(rows,language,{
         batch_size:1,
         batch_elapsed_ms:processResult.elapsed_ms,
         stderr:String(processResult.stderr||'').trim()||null,
+        sparse_frame_group_size:groupSize,
         cardinality_mismatch:{
-          expected:1,
-          actual:framed.groups.length,
+          expected_groups:1,
+          actual_groups:framed.groups.length,
           trailing_lines:framed.trailing.length,
         },
       }];
@@ -322,28 +317,78 @@ async function processFramedChunk(rows,language,{
         batch_size:1,
         batch_elapsed_ms:processResult.elapsed_ms,
         stderr:String(processResult.stderr||'').trim()||null,
-        cardinality_mismatch:{
-          expected:1,
-          actual:framed.groups.length,
-          trailing_lines:framed.trailing.length,
-        },
+        sparse_frame_group_size:groupSize,
       }];
     }
   }
 
-  return [{
-    row:rows[0],
-    inspected:null,
-    error:new Error(
-      'eSpeak framed batch output mismatch: expected 1 boundary group, got '
-      +framed.groups.length+' with '+framed.trailing.length+' trailing lines'
-    ),
-    elapsed:processResult.elapsed_ms,
-    mode:'framed_batch_cardinality_mismatch',
-    batch_size:1,
-    batch_elapsed_ms:processResult.elapsed_ms,
-    stderr:String(processResult.stderr||'').trim()||null,
-  }];
+  const outcomes=[];
+  for(let groupIndex=0;groupIndex<groups.length;groupIndex+=1){
+    const groupRows=groups[groupIndex];
+    const outputLines=framed.groups[groupIndex];
+
+    // Every admitted row is lexical/non-empty. If the bounded group has exactly
+    // one output line per row, the line mapping is already unambiguous and no
+    // further marker synthesis is required.
+    if(outputLines.length===groupRows.length){
+      const inspected=await inspectBatchRows(
+        groupRows,
+        outputLines,
+        code,
+        processResult,
+        {
+          command,
+          engineVersion,
+          analyzerPool,
+          mode,
+        },
+      );
+      for(const result of inspected){
+        result.sparse_frame_group_size=groupSize;
+        result.sparse_frame_output_lines=outputLines.length;
+      }
+      outcomes.push(...inspected);
+      continue;
+    }
+
+    // A single-row sparse frame owns every IPA line before its boundary marker,
+    // so multiline eSpeak output can be joined without another process launch.
+    if(groupRows.length===1){
+      const inspected=await inspectBatchRows(
+        groupRows,
+        [outputLines.join('\n')],
+        code,
+        processResult,
+        {
+          command,
+          engineVersion,
+          analyzerPool,
+          mode:'sparse_framed_single',
+          outputLineCounts:[outputLines.length],
+        },
+      );
+      inspected[0].sparse_frame_group_size=1;
+      inspected[0].sparse_frame_output_lines=outputLines.length;
+      outcomes.push(...inspected);
+      continue;
+    }
+
+    // Only the ambiguous subgroup is synthesized again. This keeps the common
+    // path at one boundary marker per N rows while preserving exact ownership
+    // for genuinely multiline rows.
+    const refined=await processSparseFramedChunk(groupRows,code,{
+      command,
+      engineVersion,
+      timeoutMs,
+      spawnProcess,
+      boundaryIpa:markerIpa,
+      analyzerPool,
+      frameGroupSize:Math.max(1,Math.ceil(groupRows.length/2)),
+      mode:'sparse_framed_refine',
+    });
+    outcomes.push(...refined);
+  }
+  return outcomes;
 }
 
 async function processChunk(rows,language,{
@@ -351,18 +396,11 @@ async function processChunk(rows,language,{
   engineVersion=null,
   timeoutMs=60000,
   spawnProcess=spawn,
-  fallbackSingle=true,
   boundaryIpa=null,
-  forceFramed=false,
   analyzerPool=null,
+  frameGroupSize=16,
 }={}){
   const code=normalizeLanguage(language);
-  if(forceFramed){
-    return await processFramedChunk(rows,code,{
-      command,engineVersion,timeoutMs,spawnProcess,fallbackSingle,boundaryIpa,analyzerPool,
-    });
-  }
-
   const voice=code==='de'?'de':'en-us';
   const lines=rows.map((row)=>inputLine(row.surface));
   const processResult=await executeBatchProcess(
@@ -392,29 +430,26 @@ async function processChunk(rows,language,{
     );
   }
 
-  // Do not recursively split an ordinary line batch. Complex eSpeak output can
-  // legitimately contain multiple IPA lines for one input line; the previous
-  // binary split path degraded into thousands of per-row process launches.
-  return await processFramedChunk(rows,code,{
-    command,engineVersion,timeoutMs,spawnProcess,fallbackSingle,boundaryIpa,analyzerPool,
-    mode:'framed_batch_after_cardinality_mismatch',
+  // Framing V2: a cardinality mismatch no longer adds one spoken marker per
+  // row. Re-run the ambiguous batch with sparse marker groups and recursively
+  // refine only the groups whose output cardinality is still ambiguous.
+  return await processSparseFramedChunk(rows,code,{
+    command,
+    engineVersion,
+    timeoutMs,
+    spawnProcess,
+    boundaryIpa,
+    analyzerPool,
+    frameGroupSize,
+    mode:'sparse_framed_batch',
   });
 }
 
 function buildChunks(list,size){
   const chunks=[];
-  let current=[];
-  let framed=null;
-  for(const row of list){
-    const rowFramed=shouldFrame(row);
-    if(current.length&&(current.length>=size||rowFramed!==framed)){
-      chunks.push({rows:current,framed});
-      current=[];
-    }
-    if(!current.length)framed=rowFramed;
-    current.push(row);
+  for(let index=0;index<list.length;index+=size){
+    chunks.push(list.slice(index,index+size));
   }
-  if(current.length)chunks.push({rows:current,framed});
   return chunks;
 }
 
@@ -427,6 +462,7 @@ export async function mapEspeakBatchWorkers(rows,language,{
   spawnProcess=spawn,
   boundaryRawIpa=null,
   analyzerPool=null,
+  frameGroupSize=16,
 }={}){
   const list=Array.from(rows||[]);
   if(!list.length)return [];
@@ -442,9 +478,14 @@ export async function mapEspeakBatchWorkers(rows,language,{
   const processed=await mapConcurrent(
     chunks,
     Math.max(1,Number(workers)||4),
-    ({rows:chunk,framed})=>processChunk(chunk,code,{
-      command,engineVersion,timeoutMs,spawnProcess,
-      fallbackSingle:true,boundaryIpa:markerIpa,forceFramed:framed,analyzerPool,
+    (chunk)=>processChunk(chunk,code,{
+      command,
+      engineVersion,
+      timeoutMs,
+      spawnProcess,
+      boundaryIpa:markerIpa,
+      analyzerPool,
+      frameGroupSize:Math.max(1,Number(frameGroupSize)||16),
     }),
   );
   return processed.flat();
