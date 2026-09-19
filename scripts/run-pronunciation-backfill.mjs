@@ -1034,7 +1034,9 @@ async function collect(){
     const acceptedStates=['accepted','reviewed','accepted_source_composition','accepted_source_backed'];
     const placeholders=acceptedStates.map(()=>'?').join(',');
     try{
-      for(const language of ['de','en']){
+      const analyzerPool=new PronunciationIpaAnalyzerPool({workers:analyzerWorkers});
+  try{
+    for(const language of ['de','en']){
         if(stopRequested) break;
         const locale=language==='de'?'de-DE':'en-US';
         const missingWhere=[
@@ -1382,7 +1384,8 @@ async function runEspeak(){
     +' · admitted_pending='+total.toLocaleString('en-US')
     +' · workers='+espeakWorkers
     +' · batch_per_worker='+espeakBatchSize
-    +' · mode=batch'
+    +' · analyzer_workers='+analyzerWorkers
+    +' · mode=batch+worker-analysis'
     +' · by_language='+safeJson(pendingByLanguage)
   );
 
@@ -1419,6 +1422,7 @@ async function runEspeak(){
         engineVersion:preflight.engineVersion||null,
         workers:espeakWorkers,
         batchSize:espeakBatchSize,
+        analyzerPool,
       });
 
       workDb.exec('BEGIN IMMEDIATE');
@@ -1530,6 +1534,9 @@ async function runEspeak(){
           +' · modes='+modeSummary,
       }));
     }
+    }
+  }finally{
+    await analyzerPool.close();
   }
 
   upsertMeta.run('espeak_last_run_at',now());
