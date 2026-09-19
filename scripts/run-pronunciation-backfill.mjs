@@ -1,12 +1,19 @@
 #!/usr/bin/env node
-import { createWriteStream, existsSync } from 'node:fs';
+import { createReadStream, createWriteStream, existsSync } from 'node:fs';
 import { once } from 'node:events';
-import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { createGunzip } from 'node:zlib';
+import { createInterface } from 'node:readline';
 import { DatabaseSync } from 'node:sqlite';
 import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-adapter.mjs';
 import { getPhonologyProfile } from './phonology-profiles.mjs';
+import {
+  isWriterCandidateSurface,
+  normalizeEnglishSurface,
+  readJson,
+} from './en-writer-source-core.mjs';
 import {
   resolveUnknownClientPronunciation,
   tokenizeClientPronunciationInput,
@@ -34,13 +41,16 @@ function integerArg(flag,fallback,{min=1,max=1_000_000}={}){
 }
 
 const deDbPath=resolve(argValue('--de-db','data/local/rhymelab-v5.sqlite'));
+const deCoreDir=resolve(argValue('--de-core','data/de/core'));
 const enDbPath=resolve(argValue('--en-db','data/local/rhymelab-en-v1.sqlite'));
+const enRegistryPath=resolve(argValue('--en-registry','sources/en/phase12b-sources-v1.json'));
+const enRawDirArg=argValue('--en-raw-dir',null);
 const phraseDbPath=resolve(argValue('--phrases','data/local/rhymelab-phrases-v1.sqlite'));
 const entityDbPath=resolve(argValue('--entities','data/local/rhymelab-entities-v1.sqlite'));
-const workPath=resolve(argValue('--work','data/local/pronunciation-backfill-v1.sqlite'));
-const reportPath=resolve(argValue('--report','data/local/pronunciation-backfill-v1-report.json'));
-const reviewPath=resolve(argValue('--review-tsv','data/local/pronunciation-backfill-v1-review.tsv'));
-const allPath=resolve(argValue('--all-tsv','data/local/pronunciation-backfill-v1-all.tsv'));
+const workPath=resolve(argValue('--work','data/local/pronunciation-backfill-v2.sqlite'));
+const reportPath=resolve(argValue('--report','data/local/pronunciation-backfill-v2-report.json'));
+const reviewPath=resolve(argValue('--review-tsv','data/local/pronunciation-backfill-v2-review.tsv'));
+const allPath=resolve(argValue('--all-tsv','data/local/pronunciation-backfill-v2-all.tsv'));
 const command=argValue('--command',process.env.RHYMELAB_ESPEAK_COMMAND||null);
 const phase=String(argValue('--phase','all')).trim().toLowerCase();
 const progressEvery=integerArg('--progress-every',1000,{min:1,max:1_000_000});
@@ -104,13 +114,40 @@ function scalar(db,sql,...params){
 }
 
 const sourcePaths=[];
-if(requestedScopes.has('de')) sourcePaths.push(['de',deDbPath]);
-if(requestedScopes.has('en')) sourcePaths.push(['en',enDbPath]);
-if(requestedScopes.has('phrases')) sourcePaths.push(['phrases',phraseDbPath]);
-if(requestedScopes.has('entities')) sourcePaths.push(['entities',entityDbPath]);
+if(requestedScopes.has('de')) sourcePaths.push(['de_accepted',deDbPath]);
+if(requestedScopes.has('en')) sourcePaths.push(['en_accepted',enDbPath]);
+if(requestedScopes.has('phrases')) sourcePaths.push(['phrases_catalog',phraseDbPath]);
+if(requestedScopes.has('entities')) sourcePaths.push(['entities_catalog',entityDbPath]);
 for(const [scope,path] of sourcePaths){
   if(!existsSync(path)){
     throw new Error('Required '+scope+' database missing: '+path+'; narrow --scopes explicitly if this database should be excluded.');
+  }
+}
+
+let deCoreManifest=null;
+let deCoreManifestPath=null;
+if(requestedScopes.has('de')){
+  deCoreManifestPath=join(deCoreDir,'manifest.json');
+  if(!existsSync(deCoreManifestPath)){
+    throw new Error('Required German pre-publish source core missing: '+deCoreManifestPath+'. Build it with npm run de:core or point --de-core at the existing core directory.');
+  }
+  deCoreManifest=JSON.parse(await readFile(deCoreManifestPath,'utf8'));
+  if(!Array.isArray(deCoreManifest.files)) throw new Error('German core manifest has no files array: '+deCoreManifestPath);
+}
+
+let enRegistry=null;
+let enKaikkiSource=null;
+let enRawDir=null;
+let enKaikkiPath=null;
+if(requestedScopes.has('en')){
+  if(!existsSync(enRegistryPath)) throw new Error('English source registry missing: '+enRegistryPath);
+  enRegistry=await readJson(enRegistryPath);
+  enRawDir=resolve(enRawDirArg||enRegistry.local_raw_directory||'data/raw/en/phase12b-20260918');
+  enKaikkiSource=Object.values(enRegistry.sources||{}).find((source)=>String(source.source_id||'').startsWith('enwiktionary-kaikki'));
+  if(!enKaikkiSource) throw new Error('English source registry has no Kaikki/Wiktextract source.');
+  enKaikkiPath=resolve(enRawDir,enKaikkiSource.local_filename);
+  if(!existsSync(enKaikkiPath)){
+    throw new Error('Required original English Kaikki source missing: '+enKaikkiPath+'. Run npm run en:sources:bootstrap or point --en-raw-dir at the pinned source directory.');
   }
 }
 
@@ -135,6 +172,28 @@ for(const [scope,path] of sourcePaths){
   }finally{
     db.close();
   }
+}
+if(requestedScopes.has('de')){
+  sourceSnapshot.de_source_core={
+    ...(await fileState(deCoreManifestPath)),
+    schema:deCoreManifest.schema||null,
+    total_forms:Number(deCoreManifest.total_forms||0),
+    files:(deCoreManifest.files||[]).map((row)=>({
+      file:row.file,
+      items:Number(row.items||0),
+      first_processing_order:Number(row.first_processing_order||0),
+      last_processing_order:Number(row.last_processing_order||0),
+      sha256:row.sha256||null,
+    })),
+  };
+}
+if(requestedScopes.has('en')){
+  sourceSnapshot.en_source_kaikki={
+    ...(await fileState(enKaikkiPath)),
+    registry:enRegistry.id||null,
+    source_id:enKaikkiSource.source_id||null,
+    snapshot:enKaikkiSource.snapshot||null,
+  };
 }
 const sourceFingerprint=hashJson(sourceSnapshot);
 
