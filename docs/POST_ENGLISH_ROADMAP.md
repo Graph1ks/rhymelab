@@ -1,8 +1,8 @@
 # RhymeLab — Post-English Ranking, Entity and Performance Roadmap
 
-Last updated: 2026-09-18
+Last updated: 2026-09-19
 
-Status: **DOCUMENTED FUTURE EXECUTION ORDER — do not skip the active English publish-v4 gate**
+Status: **DOCUMENTED EXECUTION ORDER — English v4 DB materialization repeatable; multisyllabic retrieval verification patch is the active gate**
 
 ## 1. Why this document exists
 
@@ -269,10 +269,10 @@ Performance changes must reproduce accepted Top-N ordering/result fingerprints. 
 
 ```text
 CURRENT
-English publish-v4 full build + coverage A/B
+English v4 DB repeatability accepted
         |
         v
-English SQLite rebuild + verification
+Close multisyllabic DB retrieval verification
         |
         v
 English retrieval/runtime acceptance
@@ -305,3 +305,29 @@ Dedicated DB/runtime performance phase
 ```
 
 Do not begin final DB-layout optimization before the above ranking/query contracts are sufficiently stable.
+
+## 7. Current v4 DB checkpoint
+
+The accepted publish-v4 source fingerprint is:
+
+```text
+b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+```
+
+The owner v4 DB repeatability gate produced two identical materializations:
+
+```text
+semantic fingerprint             beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37
+forms                             224,478
+default eligible                  123,533
+pronunciations                    375,321
+analyzed pronunciations           339,987
+unresolved pronunciations          35,334
+default-profile pronunciations    173,413
+database bytes                     190,701,568
+database MiB                       181.87
+fingerprints equal                 true
+snapshots equal                    true
+```
+
+Materialization determinism is accepted. Before retrieval/runtime acceptance, one narrow verifier defect must be closed: `idx_en_pron_multi` existed but the old query-plan sampler and equivalence suite did not independently require a non-null `multisyllable_key` channel. The source patch adds that coverage and persists verifier evidence. It requires only a read-only `npm run en:db:verify`, not another DB rebuild.

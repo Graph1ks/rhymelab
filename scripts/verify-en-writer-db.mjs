@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { DatabaseSync } from 'node:sqlite';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import {
   ENGLISH_WRITER_DB_SCHEMA,
   ENGLISH_WRITER_RETRIEVAL_POLICY,
@@ -12,6 +12,7 @@ import {
 const dbPath=resolve(process.argv[2]||'data/local/rhymelab-en-v1.sqlite');
 const reportPath=resolve(process.argv[3]||'data/local/en-writer-db-v1-report.json');
 const report=JSON.parse(await readFile(reportPath,'utf8'));
+const verificationReportPath=resolve(process.argv[4]||'data/local/en-writer-db-verification-v1-report.json');
 const db=new DatabaseSync(dbPath,{readOnly:true});
 
 const scalar=(sql,...args)=>Number(Object.values(db.prepare(sql).get(...args))[0]);
@@ -80,6 +81,7 @@ try{
   const plans=englishRetrievalQueryPlans(db);
   const requiredIndexes={
     exact:'idx_en_pron_exact',
+    multi:'idx_en_pron_multi',
     vowel:'idx_en_pron_vowel',
     family_coda:'idx_en_pron_family_coda',
     coda:'idx_en_pron_coda',
@@ -97,6 +99,14 @@ try{
       multiSample:"SELECT exact_key AS a,COUNT(*) AS result_count FROM en_pronunciation WHERE default_profile_eligible=1 AND exact_key IS NOT NULL GROUP BY exact_key HAVING COUNT(*)>1 ORDER BY result_count DESC,a LIMIT 20",
       indexed:'SELECT id FROM en_pronunciation WHERE exact_key=? AND default_profile_eligible=1 ORDER BY id',
       scan:'SELECT id FROM en_pronunciation NOT INDEXED WHERE exact_key=? AND default_profile_eligible=1 ORDER BY id',
+      args:(row)=>[row.a],
+    },
+    {
+      kind:'multi',
+      sample:"SELECT DISTINCT multisyllable_key AS a FROM en_pronunciation WHERE default_profile_eligible=1 AND multisyllable_key IS NOT NULL ORDER BY a LIMIT 20",
+      multiSample:"SELECT multisyllable_key AS a,COUNT(*) AS result_count FROM en_pronunciation WHERE default_profile_eligible=1 AND multisyllable_key IS NOT NULL GROUP BY multisyllable_key HAVING COUNT(*)>1 ORDER BY result_count DESC,a LIMIT 20",
+      indexed:'SELECT id FROM en_pronunciation WHERE multisyllable_key=? AND default_profile_eligible=1 ORDER BY id',
+      scan:'SELECT id FROM en_pronunciation NOT INDEXED WHERE multisyllable_key=? AND default_profile_eligible=1 ORDER BY id',
       args:(row)=>[row.a],
     },
     {
@@ -171,19 +181,30 @@ try{
   const foreignKeyViolations=db.prepare('PRAGMA foreign_key_check').all();
   if(foreignKeyViolations.length) throw new Error(`English Writer DB foreign-key violations: ${foreignKeyViolations.length}`);
 
-  console.log('PHASE 12B5 ENGLISH WRITER DB VERIFY PASS');
-  console.log(JSON.stringify({
-    schema:ENGLISH_WRITER_DB_SCHEMA,
+  const verificationReport={
+    schema:'rhymelab-en-writer-db-verification-v1',
+    status:'ok',
+    database_schema:ENGLISH_WRITER_DB_SCHEMA,
+    retrieval_policy:ENGLISH_WRITER_RETRIEVAL_POLICY,
+    database:dbPath,
+    build_report:reportPath,
+    source_publish_fingerprint:report.source_publish_fingerprint,
     forms,
     default_eligible_forms:defaultEligible,
     pronunciations,
     analyzed_pronunciations:analyzed,
     unresolved_pronunciations:unresolved,
     default_profile_pronunciations:defaultProfile,
+    retrieval_query_plans:plans,
     retrieval_equivalence:equivalence,
     semantic_fingerprint:semanticFingerprint,
-    database:dbPath,
-  },null,2));
+    foreign_key_violations:foreignKeyViolations.length,
+  };
+  await mkdir(dirname(verificationReportPath),{recursive:true});
+  await writeFile(verificationReportPath,JSON.stringify(verificationReport,null,2)+'\n');
+
+  console.log('PHASE 12B5 ENGLISH WRITER DB VERIFY PASS');
+  console.log(JSON.stringify({...verificationReport,verification_report:verificationReportPath},null,2));
 }finally{
   db.close();
 }

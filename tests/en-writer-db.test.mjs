@@ -95,9 +95,20 @@ test('English Writer DB retrieval plans use dedicated English indexes',()=>{
   const db=new DatabaseSync(':memory:');
   try{
     createEnglishWriterDbStorage(db);
-    insertEnglishPublishRow(prepareEnglishWriterDbInserts(db),fixtureRow());
+    const insert=prepareEnglishWriterDbInserts(db);
+    insertEnglishPublishRow(insert,fixtureRow());
+
+    const multiRow=fixtureRow();
+    multiRow.publish_order=2;
+    multiRow.surface='timing';
+    multiRow.normalized='timing';
+    multiRow.surface_variants=['timing'];
+    multiRow.pronunciations[0].analysis.m='aɪ m';
+    insertEnglishPublishRow(insert,multiRow);
+
     const plans=englishRetrievalQueryPlans(db);
     assert.ok(plans.exact.some((line)=>line.includes('idx_en_pron_exact')));
+    assert.ok(plans.multi.some((line)=>line.includes('idx_en_pron_multi')));
     assert.ok(plans.vowel.some((line)=>line.includes('idx_en_pron_vowel')));
     assert.ok(plans.family_coda.some((line)=>line.includes('idx_en_pron_family_coda')));
     assert.ok(plans.coda.some((line)=>line.includes('idx_en_pron_coda')));

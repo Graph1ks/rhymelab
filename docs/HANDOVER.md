@@ -708,35 +708,44 @@ cold start measured separately
 
 Performance optimization must preserve accepted Top-N/result fingerprints. Eliminate full scans and N+1s before low-level SQLite PRAGMA tuning.
 
-### Current immediate owner gate — publish-v4 repeatable, English DB repeatability next
+### Current immediate owner gate — v4 DB repeatable, multisyllabic verifier completion next
 
-Publish-v4 unchanged-source repeatability passed:
+Owner v4 DB materialization is reproducible:
 
 ```text
-first fingerprint   b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
-second fingerprint  b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
-equal               true
-published           224,478 -> 224,478
-default eligible    123,533 -> 123,533
+source publish fingerprint
+b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+
+DB semantic fingerprint
+beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37
+
+forms                            224,478
+default eligible                 123,533
+pronunciations                   375,321
+analyzed pronunciations          339,987
+unresolved pronunciations         35,334
+default-profile pronunciations   173,413
+SQLite                            181.87 MiB
+database bytes                    190,701,568
+repeat fingerprints equal        true
+repeat snapshots equal           true
 ```
 
-Publish-v4 is accepted as the source snapshot for English SQLite materialization.
+Materialization determinism is accepted.
 
-The DB verifier has now been strengthened to require explicit multi-result indexed-vs-full-scan equivalence in all four indexed retrieval channels. A new owner runner performs two full DB builds plus verification and compares semantic fingerprint, counts and database bytes.
+Review found one narrow retrieval-verifier gap: `idx_en_pron_multi` exists, but the old query-plan sampler could return `multi: []` when its first exact-key sample had no `multisyllable_key`. The previous verifier also omitted a dedicated multisyllabic general/multi-result equivalence channel.
+
+The source patch now requires a dedicated non-null multisyllabic plan, `idx_en_pron_multi`, and both ordinary and explicit multi-result indexed-vs-full-scan equivalence. Verification output is persisted to:
+
+```text
+data/local/en-writer-db-verification-v1-report.json
+```
 
 Next owner command after merge:
 
 ```powershell
 git pull
-npm run en:db:repeatability
+npm run en:db:verify
 ```
 
-Upload:
-
-```text
-data/local/en-writer-db-v1-report.json
-data/local/en-writer-db-repeatability-v1-report.json
-```
-
-Do not begin English ranking until that v4 DB gate is reviewed.
-
+No English DB rebuild is required. Upload `data/local/en-writer-db-verification-v1-report.json`. If it passes, freeze the v4 DB retrieval layer and proceed to English retrieval/runtime acceptance. Ranking comes only after that, with separate Quality/Utility and Diversity calibration.
