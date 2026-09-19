@@ -9,6 +9,7 @@ import { createInterface } from 'node:readline';
 import { DatabaseSync } from 'node:sqlite';
 import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-adapter.mjs';
 import { getPhonologyProfile } from './phonology-profiles.mjs';
+import { optionsForListedForms } from './kaikki-resolver-lib.mjs';
 import {
   isWriterCandidateSurface,
   normalizeEnglishSurface,
@@ -42,6 +43,7 @@ function integerArg(flag,fallback,{min=1,max=1_000_000}={}){
 
 const deDbPath=resolve(argValue('--de-db','data/local/rhymelab-v5.sqlite'));
 const deCoreDir=resolve(argValue('--de-core','data/de/core'));
+const deKaikkiPath=resolve(argValue('--de-kaikki','data/work/de-rhyme-core-v1/downloads/dewiktionary-kaikki-raw.jsonl.gz'));
 const enDbPath=resolve(argValue('--en-db','data/local/rhymelab-en-v1.sqlite'));
 const enRegistryPath=resolve(argValue('--en-registry','sources/en/phase12b-sources-v1.json'));
 const enRawDirArg=argValue('--en-raw-dir',null);
@@ -133,6 +135,9 @@ if(requestedScopes.has('de')){
   }
   deCoreManifest=JSON.parse(await readFile(deCoreManifestPath,'utf8'));
   if(!Array.isArray(deCoreManifest.files)) throw new Error('German core manifest has no files array: '+deCoreManifestPath);
+  if(!existsSync(deKaikkiPath)){
+    throw new Error('Required original German Kaikki source missing: '+deKaikkiPath+'. Pass --de-kaikki <path> to the pinned raw snapshot used for the German build.');
+  }
 }
 
 let enRegistry=null;
@@ -174,6 +179,7 @@ for(const [scope,path] of sourcePaths){
   }
 }
 if(requestedScopes.has('de')){
+  sourceSnapshot.de_source_raw=await fileState(deKaikkiPath);
   sourceSnapshot.de_source_core={
     ...(await fileState(deCoreManifestPath)),
     schema:deCoreManifest.schema||null,
