@@ -915,3 +915,13 @@ Phase 12C MFA confidence calibration is **COMPLETE / REJECTED FOR RUNTIME FALLBA
 
 The next and final planned independent candidate is forced-neural `g2p-en` 2.1.0. Its Apache-2.0 package includes `checkpoint20.npz`, outputs stressed ARPAbet, and documents CMUdict as the training basis. The benchmark calls `G2p.predict()` directly so CMUdict/homograph/POS lookup cannot inflate the result. DeepPhonemizer is deferred because its code license is clear but the pretrained checkpoint license is not separately explicit enough for the intended commercial runtime path.
 
+Phase 12C generated proper-name G2P campaign is **CLOSED / NO RUNTIME PROMOTION**.
+
+Independent forced-neural `g2p-en` 2.1.0 owner evidence completed on the same accepted 600-case proper-name token benchmark. The run forced `G2p.predict()`, bypassed CMUdict/homograph/POS lookup, covered 596/596 model-eligible cases, evaluated all 596 predictions and produced zero invalid pronunciations. Quality: exact phones 64.60%, exact stressed rhyme tail 64.26%, syllable count 93.62%, stress pattern 81.88%, primary stress 91.95%, mean rhyme score 0.891655. Owner report fingerprint: `5511c6e2c83550b753692a64a1485302c88b61b5bc4acecf4a3a8e29937061b6`.
+
+This is materially worse than MFA on the product-critical exact stressed rhyme tail (64.26% vs 71.19%, -6.93pp). MFA was already rejected because confidence gating retained only 1.68% of controls at >=90% exact-tail and 21.94% at >=85%. Therefore no third generated-pronunciation model will be added. The remaining 704,989 unresolved English Entity names stay unresolved.
+
+The g2p-en owner report's `confidence_calibration` block is invalid reporting noise: the candidate has no confidence score and the evaluator coerced `null` to zero before calibration. Primary metrics are unaffected. The evaluator now treats missing confidence as unscored; no owner rerun is required.
+
+Authoritative decision: `docs/ENTITY_G2P_DECISION_V1.md`. Next Phase 12C gate is source-backed Entity pronunciation/runtime integration only.
+
