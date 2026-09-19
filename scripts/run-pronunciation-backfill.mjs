@@ -9,9 +9,9 @@ import { createInterface } from 'node:readline';
 import { DatabaseSync } from 'node:sqlite';
 import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-adapter.mjs';
 import { getPhonologyProfile } from './phonology-profiles.mjs';
-import { optionsForListedForms } from './kaikki-resolver-lib.mjs';
+import { normalizeGerman, optionsForListedForms } from './kaikki-resolver-lib.mjs';
+import { lexicalEvidenceForHeadword, lexicalEvidenceForListedForms } from './en-publish-core.mjs';
 import {
-  isWriterCandidateSurface,
   normalizeEnglishSurface,
   readJson,
 } from './en-writer-source-core.mjs';
@@ -42,7 +42,7 @@ function integerArg(flag,fallback,{min=1,max=1_000_000}={}){
 }
 
 const deDbPath=resolve(argValue('--de-db','data/local/rhymelab-v5.sqlite'));
-const deCoreDir=resolve(argValue('--de-core','data/de/core'));
+const deUsagePath=resolve(argValue('--de-usage','data/de/usage/de-usage.tsv'));
 const deKaikkiPath=resolve(argValue('--de-kaikki','data/work/de-rhyme-core-v1/downloads/dewiktionary-kaikki-raw.jsonl.gz'));
 const enDbPath=resolve(argValue('--en-db','data/local/rhymelab-en-v1.sqlite'));
 const enRegistryPath=resolve(argValue('--en-registry','sources/en/phase12b-sources-v1.json'));
@@ -126,15 +126,10 @@ for(const [scope,path] of sourcePaths){
   }
 }
 
-let deCoreManifest=null;
-let deCoreManifestPath=null;
 if(requestedScopes.has('de')){
-  deCoreManifestPath=join(deCoreDir,'manifest.json');
-  if(!existsSync(deCoreManifestPath)){
-    throw new Error('Required German pre-publish source core missing: '+deCoreManifestPath+'. Build it with npm run de:core or point --de-core at the existing core directory.');
+  if(!existsSync(deUsagePath)){
+    throw new Error('Required German usage-source inventory missing: '+deUsagePath+'. Pass --de-usage <path> to the actual merged usage TSV.');
   }
-  deCoreManifest=JSON.parse(await readFile(deCoreManifestPath,'utf8'));
-  if(!Array.isArray(deCoreManifest.files)) throw new Error('German core manifest has no files array: '+deCoreManifestPath);
   if(!existsSync(deKaikkiPath)){
     throw new Error('Required original German Kaikki source missing: '+deKaikkiPath+'. Pass --de-kaikki <path> to the pinned raw snapshot used for the German build.');
   }
@@ -179,19 +174,8 @@ for(const [scope,path] of sourcePaths){
   }
 }
 if(requestedScopes.has('de')){
+  sourceSnapshot.de_source_usage=await fileState(deUsagePath);
   sourceSnapshot.de_source_raw=await fileState(deKaikkiPath);
-  sourceSnapshot.de_source_core={
-    ...(await fileState(deCoreManifestPath)),
-    schema:deCoreManifest.schema||null,
-    total_forms:Number(deCoreManifest.total_forms||0),
-    files:(deCoreManifest.files||[]).map((row)=>({
-      file:row.file,
-      items:Number(row.items||0),
-      first_processing_order:Number(row.first_processing_order||0),
-      last_processing_order:Number(row.last_processing_order||0),
-      sha256:row.sha256||null,
-    })),
-  };
 }
 if(requestedScopes.has('en')){
   sourceSnapshot.en_source_kaikki={
@@ -351,8 +335,15 @@ async function runScopeScan({
 }
 
 
-async function collectGermanSourceDiff(){
-  const scope='de_source_minus_accepted';
+const DE_SOURCE_WORD_RE=/^\p{L}+(?:[-'’]\p{L}+)*$/u;
+
+function parseTsvHeader(line){
+  const names=String(line||'').replace(/^\uFEFF/u,'').split('\t');
+  return Object.fromEntries(names.map((name,index)=>[name,index]));
+}
+
+async function collectGermanUsageSourceDiff(){
+  const scope='de_usage_source_minus_accepted';
   const saved=workDb.prepare('SELECT * FROM scan_state WHERE scope=?').get(scope)||null;
   if(saved?.status==='complete'){
     console.log('[collect:'+scope+'] already complete · gaps='+Number(saved.source_refs||0).toLocaleString('en-US'));
@@ -366,107 +357,226 @@ async function collectGermanSourceDiff(){
     'LIMIT 1',
   ].join(' '));
 
-  let lastOrder=Number(saved?.last_key||0);
+  let lastRank=Number(saved?.last_key||0);
   let scanned=Number(saved?.scanned||0);
   let refs=Number(saved?.source_refs||0);
   let uniques=Number(saved?.unique_items_added||0);
-  const total=Number(deCoreManifest.total_forms||0);
   const startedAt=Date.now();
-  let transactionOpen=false;
   let batch=0;
+  let transactionOpen=false;
 
   console.log(
-    '[collect:'+scope+'] source core -> accepted DE Writer diff'
-    +' · resume_order='+lastOrder.toLocaleString('en-US')
-    +' · source_forms='+total.toLocaleString('en-US')
+    '[collect:'+scope+'] merged German usage inventory -> accepted DE Writer diff'
+    +' · source='+deUsagePath
+    +' · resume_rank='+lastRank.toLocaleString('en-US')
   );
 
+  const lines=createInterface({input:createReadStream(deUsagePath),crlfDelay:Infinity});
+  let header=null;
   try{
     workDb.exec('BEGIN IMMEDIATE');
     transactionOpen=true;
-    for(const fileInfo of deCoreManifest.files||[]){
+    for await(const line of lines){
       if(stopRequested) break;
-      const fileLast=Number(fileInfo.last_processing_order||0);
-      if(fileLast&&fileLast<=lastOrder) continue;
-      const shardPath=join(deCoreDir,fileInfo.file);
-      const text=await readFile(shardPath,'utf8');
-      for(const line of text.split(/\r?\n/u)){
-        if(stopRequested) break;
-        if(!line) continue;
-        const row=JSON.parse(line);
-        const order=Number(row.processing_order||0);
-        if(!order||order<=lastOrder) continue;
-
-        const surface=String(row.word||row.normalized_form||'').normalize('NFKC').trim();
-        const normalized=String(row.normalized_form||normalizedSurface(surface,'de'));
-        scanned+=1;
-        lastOrder=order;
-        batch+=1;
-
-        if(surface&&!accepted.get(normalized)){
-          const sourcePronunciations=Array.isArray(row.pronunciations)?row.pronunciations.length:0;
-          const result=addWorkReference({
-            scope,
-            sourceDb:deCoreDir,
-            sourceTable:'de-core-v2',
-            sourceKey:String(order),
-            surface,
-            language:'de',
-            context:{
-              reason:sourcePronunciations
-                ?'source_form_not_present_in_accepted_de_writer'
-                :'source_form_without_source_pronunciation',
-              processing_order:order,
-              usage_rank:row.usage_rank==null?null:Number(row.usage_rank),
-              dictionary_status:row.dictionary_status||null,
-              source_entry_count:Number(row.source_entry_count||0),
-              source_pronunciations:sourcePronunciations,
-            },
-          });
-          refs+=result.refAdded;
-          uniques+=result.itemAdded;
+      if(!line) continue;
+      if(!header){
+        header=parseTsvHeader(line);
+        for(const required of ['rank','form','normalized_form']){
+          if(!(required in header)) throw new Error('German usage TSV missing column '+required+': '+deUsagePath);
         }
+        continue;
+      }
+      const cells=line.split('\t');
+      const rank=Number.parseInt(cells[header.rank]||'',10);
+      if(!Number.isInteger(rank)||rank<=lastRank) continue;
+      const surface=String(cells[header.form]||'').normalize('NFKC').trim();
+      const normalized=String(cells[header.normalized_form]||normalizeGerman(surface));
+      scanned+=1;
+      lastRank=rank;
+      batch+=1;
 
-        if(scanned%progressEvery===0){
-          console.log(progressLine({
-            phase:'collect:'+scope,
-            done:scanned,
-            total:Math.max(scanned,total),
-            startedAt,
-            accepted:refs,
-            rejected:scanned-refs,
-            errors:0,
-            extra:'gaps='+refs.toLocaleString('en-US')+' · unique_added='+uniques.toLocaleString('en-US'),
-          }));
-        }
-        if(batch>=commitEvery){
-          upsertScan.run(scope,'running',String(lastOrder),scanned,refs,uniques,now());
-          workDb.exec('COMMIT');
-          transactionOpen=false;
-          workDb.exec('BEGIN IMMEDIATE');
-          transactionOpen=true;
-          batch=0;
-        }
+      if(surface&&DE_SOURCE_WORD_RE.test(surface)&&!accepted.get(normalized)){
+        const result=addWorkReference({
+          scope,
+          sourceDb:deUsagePath,
+          sourceTable:'merged_usage_tsv',
+          sourceKey:String(rank),
+          surface,
+          language:'de',
+          context:{
+            reason:'usage_source_form_without_accepted_de_pronunciation',
+            usage_rank:rank,
+            combined_count:header.combined_count===undefined?null:Number(cells[header.combined_count]||0),
+            source_count:header.source_count===undefined?null:Number(cells[header.source_count]||0),
+          },
+        });
+        refs+=result.refAdded;
+        uniques+=result.itemAdded;
+      }
+
+      if(scanned%progressEvery===0){
+        const elapsed=Math.max(0.001,(Date.now()-startedAt)/1000);
+        console.log(
+          '[collect:'+scope+'] scanned='+scanned.toLocaleString('en-US')
+          +' · rank='+lastRank.toLocaleString('en-US')
+          +' · missing_refs='+refs.toLocaleString('en-US')
+          +' · unique_added='+uniques.toLocaleString('en-US')
+          +' · '+(scanned/elapsed).toFixed(1)+'/s'
+        );
+      }
+      if(batch>=commitEvery){
+        upsertScan.run(scope,'running',String(lastRank),scanned,refs,uniques,now());
+        workDb.exec('COMMIT');
+        transactionOpen=false;
+        workDb.exec('BEGIN IMMEDIATE');
+        transactionOpen=true;
+        batch=0;
       }
     }
-    upsertScan.run(scope,stopRequested?'running':'complete',String(lastOrder),scanned,refs,uniques,now());
+
+    upsertScan.run(scope,stopRequested?'running':'complete',String(lastRank),scanned,refs,uniques,now());
     workDb.exec('COMMIT');
     transactionOpen=false;
   }catch(error){
     if(transactionOpen) workDb.exec('ROLLBACK');
     throw error;
   }finally{
+    lines.close();
     acceptedDb.close();
   }
 
   console.log(
     '[collect:'+scope+'] '+(stopRequested?'checkpointed':'complete')
-    +' · source_scanned='+scanned.toLocaleString('en-US')
-    +' · missing_from_accepted='+refs.toLocaleString('en-US')
+    +' · scanned='+scanned.toLocaleString('en-US')
+    +' · missing_refs='+refs.toLocaleString('en-US')
     +' · unique_added='+uniques.toLocaleString('en-US')
   );
 }
 
+async function collectGermanHeadwordSourceDiff(){
+  const scope='de_wiktionary_headword_source_minus_accepted';
+  const saved=workDb.prepare('SELECT * FROM scan_state WHERE scope=?').get(scope)||null;
+  if(saved?.status==='complete'){
+    console.log('[collect:'+scope+'] already complete · gaps='+Number(saved.source_refs||0).toLocaleString('en-US'));
+    return;
+  }
+
+  const checkpoint=sequentialSourceCheckpoint(saved?.last_key,'germanEntries','headwordCandidates');
+  let rawLine=checkpoint.rawLine;
+  let germanEntries=checkpoint.entries;
+  let headwordCandidates=checkpoint.candidates;
+  let refs=Number(saved?.source_refs||0);
+  let uniques=Number(saved?.unique_items_added||0);
+  const startedAt=Date.now();
+
+  const acceptedDb=openReadOnly(deDbPath);
+  const accepted=acceptedDb.prepare([
+    'SELECT 1 AS ok FROM hot',
+    'WHERE normalized=? AND pronunciation_preferred=1 AND pronunciation_eligible=1',
+    'LIMIT 1',
+  ].join(' '));
+
+  console.log(
+    '[collect:'+scope+'] original German Kaikki headwords -> accepted DE Writer diff'
+    +' · source='+deKaikkiPath
+    +' · resume_raw_line='+rawLine.toLocaleString('en-US')
+  );
+
+  const source=createReadStream(deKaikkiPath);
+  const input=deKaikkiPath.endsWith('.gz')?source.pipe(createGunzip()):source;
+  const lines=createInterface({input,crlfDelay:Infinity});
+  let currentRawLine=0;
+  let batch=0;
+  let transactionOpen=false;
+
+  try{
+    workDb.exec('BEGIN IMMEDIATE');
+    transactionOpen=true;
+    for await(const line of lines){
+      currentRawLine+=1;
+      if(currentRawLine<=rawLine) continue;
+      if(stopRequested) break;
+      if(!line) continue;
+
+      let entry;
+      try{entry=JSON.parse(line);}catch{continue;}
+      rawLine=currentRawLine;
+      if(entry?.lang_code!=='de'||!entry?.word) continue;
+      germanEntries+=1;
+
+      const surface=String(entry.word).normalize('NFKC').trim();
+      if(!DE_SOURCE_WORD_RE.test(surface)||surface.length>80) continue;
+      headwordCandidates+=1;
+      const normalized=normalizeGerman(surface);
+      if(!accepted.get(normalized)){
+        const sourceIpaCount=(entry.sounds||[]).filter((sound)=>sound?.ipa).length;
+        const result=addWorkReference({
+          scope,
+          sourceDb:deKaikkiPath,
+          sourceTable:'wiktextract_headword',
+          sourceKey:normalized,
+          surface,
+          language:'de',
+          context:{
+            reason:'wiktionary_headword_without_accepted_de_pronunciation',
+            source_ipa_count:sourceIpaCount,
+            pos:entry.pos||null,
+          },
+        });
+        refs+=result.refAdded;
+        uniques+=result.itemAdded;
+      }
+
+      batch+=1;
+      if(germanEntries%progressEvery===0){
+        const elapsed=Math.max(0.001,(Date.now()-startedAt)/1000);
+        console.log(
+          '[collect:'+scope+'] de_entries='+germanEntries.toLocaleString('en-US')
+          +' · raw_line='+rawLine.toLocaleString('en-US')
+          +' · candidates='+headwordCandidates.toLocaleString('en-US')
+          +' · missing_refs='+refs.toLocaleString('en-US')
+          +' · unique_added='+uniques.toLocaleString('en-US')
+          +' · '+(germanEntries/elapsed).toFixed(1)+' DE entries/s'
+        );
+      }
+      if(batch>=commitEvery){
+        upsertScan.run(
+          scope,'running',
+          JSON.stringify({rawLine,germanEntries,headwordCandidates}),
+          germanEntries,refs,uniques,now(),
+        );
+        workDb.exec('COMMIT');
+        transactionOpen=false;
+        workDb.exec('BEGIN IMMEDIATE');
+        transactionOpen=true;
+        batch=0;
+      }
+    }
+
+    upsertScan.run(
+      scope,stopRequested?'running':'complete',
+      JSON.stringify({rawLine,germanEntries,headwordCandidates}),
+      germanEntries,refs,uniques,now(),
+    );
+    workDb.exec('COMMIT');
+    transactionOpen=false;
+  }catch(error){
+    if(transactionOpen) workDb.exec('ROLLBACK');
+    throw error;
+  }finally{
+    lines.close();
+    input.destroy();
+    acceptedDb.close();
+  }
+
+  console.log(
+    '[collect:'+scope+'] '+(stopRequested?'checkpointed':'complete')
+    +' · de_entries='+germanEntries.toLocaleString('en-US')
+    +' · headword_candidates='+headwordCandidates.toLocaleString('en-US')
+    +' · missing_refs='+refs.toLocaleString('en-US')
+    +' · unique_added='+uniques.toLocaleString('en-US')
+  );
+}
 
 function sequentialSourceCheckpoint(value,entryKey='entries',candidateKey='candidates'){
   try{
@@ -770,7 +880,8 @@ async function collect(){
   console.log('source fingerprint: '+sourceFingerprint);
 
   if(requestedScopes.has('de')&&!stopRequested){
-    await collectGermanSourceDiff();
+    await collectGermanUsageSourceDiff();
+    if(!stopRequested) await collectGermanHeadwordSourceDiff();
     if(!stopRequested) await collectGermanListedFormSourceDiff();
   }
 
