@@ -8,6 +8,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Added
 
+- Added a deterministic 1000-case source-backed DE/EN query-pronunciation gold-control benchmark, balanced by language and syllable-count bucket, to measure eSpeak-NG pronunciation quality separately from structural analyzer compatibility.
 - Added Total Query Pronunciation v1: unknown normalized single-token queries now receive analyzer-compatible ephemeral DE/EN pronunciation anchors instead of failing solely because their spelling is absent from the lexicon.
 - Added an optional local eSpeak-NG host adapter plus deterministic in-repository DE/EN fallback rules; generated query pronunciations are never canonical lexical facts.
 - Added a deterministic 1000-case unresolved-data sampler, local eSpeak-NG structural/latency benchmark runner, and a separate opt-in-only generated-pronunciation staging SQLite path.
@@ -27,6 +28,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Changed
 
+- Accepted the normalized eSpeak OOV v2 run as structural compatibility evidence at 1012 / 1014 analyzer-compatible cases (99.80%); lexical correctness remains a separate quality gate.
 - eSpeak OOV benchmark evidence is now schema v2 and records raw IPA, normalized IPA, normalization changes, all failures, and exact analyzer errors for forensic review.
 - DE+EN unknown single-token queries now resolve independent DE and EN pronunciation anchors rather than stopping for spelling ambiguity; multi-word Phrase/Mosaic pronunciation rules remain frozen.
 - Generated query pronunciation is visibly marked in the search inspector and uses the existing accepted language-specific retrieval/scoring/ranking paths.
