@@ -16,10 +16,16 @@ export const ENGLISH_US_ARPA_REQUIRED_PHONES=[
 
 function matchValue(text,key){
   const pattern=new RegExp(
-    "['\"]"+key+"['\"]\\s*:\\s*['\"]([^'\"]+)['\"]",
+    "['\"]"+key+"['\"]\\s*:\\s*(['\"])(.*?)\\1",
     'u',
   );
-  return String(text||'').match(pattern)?.[1]||null;
+  return String(text||'').match(pattern)?.[2]||null;
+}
+
+function quotedValues(text){
+  return [...String(text||'').matchAll(/'([^']*)'|"([^"]*)"/gu)]
+    .map((match)=>match[1]??match[2])
+    .filter((value)=>value!=null);
 }
 
 export function inspectMfaEnglishUsArpa(text){
@@ -28,18 +34,15 @@ export function inspectMfaEnglishUsArpa(text){
     /['"]phones['"]\s*:\s*\{([\s\S]*?)\}\s*,\s*['"]graphemes['"]/u
   )?.[1]||'';
   const phones=new Set(
-    [...phoneBlock.matchAll(/['"]([A-Z]+[0-2]?)['"]/gu)]
-      .map((match)=>match[1])
+    quotedValues(phoneBlock)
+      .filter((value)=>/^[A-Z]+[0-2]?$/u.test(value))
   );
   const missingPhones=ENGLISH_US_ARPA_REQUIRED_PHONES
     .filter((phone)=>!phones.has(phone));
   const graphemeBlock=raw.match(
     /['"]graphemes['"]\s*:\s*\{([\s\S]*?)\}\s*,/u
   )?.[1]||'';
-  const graphemes=new Set(
-    [...graphemeBlock.matchAll(/['"]([^'"]+)['"]/gu)]
-      .map((match)=>match[1])
-  );
+  const graphemes=new Set(quotedValues(graphemeBlock));
   const missingGraphemes=ENGLISH_US_ARPA_REQUIRED_GRAPHEMES
     .filter((grapheme)=>!graphemes.has(grapheme));
 
