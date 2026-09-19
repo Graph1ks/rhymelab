@@ -927,7 +927,7 @@ Authoritative decision: `docs/ENTITY_G2P_DECISION_V1.md`. Next Phase 12C gate is
 
 ## Phase 12C accepted main checkpoint — runtime + targeted AI staging
 
-Accepted via PR #112; squash-merged to `main` at `e0ddbfac7cdf7229a7a3049c1426c6fb70783cdf`. The old branch is historical.
+Accepted via PR #112; squash-merged to `main` at `e0ddbfac`. The old branch is historical.
 
 Focused continuation document: `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`.
 
