@@ -1188,13 +1188,12 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_phase12c_g2pen_independent_benchmark",
-    "owner_create_rhymelab_g2pen_miniforge_environment_once",
-    "owner_run_npm_entity_g2p_benchmark_g2pen",
-    "compare_forced_neural_g2pen_to_rejected_mfa_baseline",
-    "if_no_material_exact_tail_gain_stop_g2p_campaign_and_keep_residual_unresolved"
+    "merge_phase12c_close_g2p_campaign",
+    "keep_704989_residual_english_entity_names_unresolved",
+    "materialize_source_backed_entity_pronunciation_runtime_without_generated_g2p",
+    "integrate_entity_channel_into_unified_writer_with_existing_deterministic_ranking_boundaries"
   ],
-  "next_milestone": "PHASE_12C_ENTITY_G2PEN_INDEPENDENT_PROPER_NAME_BENCHMARK",
+  "next_milestone": "PHASE_12C_ENTITY_SOURCE_BACKED_RUNTIME_INTEGRATION",
   "phase_12_english": {
     "status": "COMPLETE_ACCEPTED_FROZEN_PRODUCT_EN",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -3243,7 +3242,7 @@
         "generic_english_to_en_us_promotion": false,
         "mass_g2p": false,
         "g2p_benchmark": {
-          "status": "V1_OWNER_PREP_REJECTED_V2_IMPLEMENTED_OWNER_RERUN_PENDING",
+          "status": "CLOSED_GENERATED_RUNTIME_FALLBACK_REJECTED",
           "contract": "docs/ENTITY_G2P_PROPER_NAME_BENCHMARK_V2.md",
           "v1_owner_result": {
             "status": "REJECTED_SAMPLING_BIAS",
@@ -3259,7 +3258,7 @@
             "reason": "whole Entity surfaces and CMUdict-heavy controls do not represent unknown Entity-name token fallback"
           },
           "v2": {
-            "status": "INPUT_NORMALIZATION_FIX_IMPLEMENTED_OWNER_RERUN_PENDING",
+            "status": "ACCEPTED_CONTROL_FROZEN",
             "policy": "entity-proper-name-token-g2p-benchmark-v2",
             "prepare_command": "npm run entity:g2p:benchmark:prepare",
             "benchmark": "data/local/entity-g2p-proper-name-benchmark-v2.json",
@@ -3289,7 +3288,7 @@
             "command_behavior": "rebuild_v2_benchmark_then_run_mfa_and_evaluate_in_one_owner_command"
           },
           "independent_candidate": {
-            "status": "IMPLEMENTED_OWNER_RUN_PENDING",
+            "status": "OWNER_RUN_COMPLETE_REJECTED_FOR_RUNTIME_FALLBACK",
             "candidate": "g2p-en-neural",
             "package": "g2p-en",
             "package_version": "2.1.0",
@@ -3301,7 +3300,25 @@
             "cmudict_lookup_used": false,
             "command": "npm run entity:g2p:benchmark:g2pen",
             "contract": "docs/ENTITY_G2P_G2PEN_BENCHMARK_V1.md",
-            "runtime_promoted": false
+            "runtime_promoted": false,
+            "owner_evaluation_fingerprint": "5511c6e2c83550b753692a64a1485302c88b61b5bc4acecf4a3a8e29937061b6",
+            "benchmark_fingerprint": "02e0e3a330434676164bb6837793774a3edf69fdb7683b6035fa2cdf979b172a",
+            "model_input_eligible": 596,
+            "model_input_ineligible": 4,
+            "eligible_prediction_coverage_pct": 100,
+            "prediction_rows": 596,
+            "evaluated": 596,
+            "missing": 4,
+            "invalid": 0,
+            "exact_phone_pct": 64.6,
+            "exact_tail_pct": 64.26,
+            "syllable_count_pct": 93.62,
+            "stress_pattern_pct": 81.88,
+            "primary_stress_pct": 91.95,
+            "mean_rhyme_score": 0.891655,
+            "confidence_signal_available": false,
+            "confidence_block_valid": false,
+            "confidence_block_issue": "owner report coerced null g2p_score to zero; evaluator fixed after run; primary metrics unaffected"
           },
           "multilingual_research_candidate": "charsiu_multilingual",
           "charsiu_production_allowed": false,
@@ -3341,7 +3358,7 @@
             "interpretation": "useful_but_not_safe_for_blind_fallback_due_to_28_81pct_non_exact_rhyme_tail"
           },
           "confidence_calibration": {
-            "status": "IMPLEMENTED_OWNER_RERUN_PENDING",
+            "status": "COMPLETE_REJECTED_FOR_RUNTIME_USE",
             "source_signal": "MFA Pynini exported path score",
             "score_direction": "lower_is_better",
             "command": "npm run entity:g2p:benchmark:mfa",
@@ -3372,6 +3389,16 @@
           "deep_phonemizer": {
             "status": "DEFERRED",
             "reason": "pretrained checkpoint license not separately explicit enough for intended commercial runtime promotion path"
+          },
+          "final_decision": {
+            "status": "CLOSED",
+            "contract": "docs/ENTITY_G2P_DECISION_V1.md",
+            "mfa_runtime_fallback": false,
+            "g2p_en_runtime_fallback": false,
+            "third_model_planned": false,
+            "generated_pronunciation_runtime_promoted": false,
+            "unresolved_names_remaining": 704989,
+            "next_phase": "source_backed_entity_runtime_integration"
           }
         },
         "owner_run_pending": false,

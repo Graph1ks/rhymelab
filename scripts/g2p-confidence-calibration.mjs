@@ -1,5 +1,12 @@
 function pct(n,d){return d?Math.round(n*10000/d)/100:0;}
 
+export function hasFiniteG2pScore(value){
+  return value!==null
+    &&value!==''
+    &&value!==undefined
+    &&Number.isFinite(Number(value));
+}
+
 function metrics(rows){
   const total=rows.length;
   const scoreSum=rows.reduce((sum,row)=>sum+Number(row.rhyme_score||0),0);
@@ -21,11 +28,7 @@ export function buildG2pScoreCalibration(
   }={},
 ){
   const scored=outcomes
-    .filter((row)=>
-      row.g2p_score!==null
-      &&row.g2p_score!==''
-      &&Number.isFinite(Number(row.g2p_score))
-    )
+    .filter((row)=>hasFiniteG2pScore(row.g2p_score))
     .map((row)=>({...row,g2p_score:Number(row.g2p_score)}))
     .sort((a,b)=>a.g2p_score-b.g2p_score||String(a.case_id).localeCompare(String(b.case_id),'en'));
 

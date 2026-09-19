@@ -102,7 +102,20 @@
       "local_offline_after_install": true,
       "commercial_use": true,
       "benchmark_policy": "force G2p.predict(word) directly; bypass CMUdict lookup, homograph lookup and POS routing",
-      "runtime_policy": "benchmark only until proper-name v2 evidence passes"
+      "runtime_policy": "rejected for Entity runtime fallback; benchmark evidence retained only",
+      "benchmark_status": "REJECTED_FOR_RUNTIME_FALLBACK",
+      "owner_evaluation_fingerprint": "5511c6e2c83550b753692a64a1485302c88b61b5bc4acecf4a3a8e29937061b6",
+      "model_input_eligible": 596,
+      "prediction_coverage_pct": 100,
+      "evaluated": 596,
+      "exact_phone_pct": 64.6,
+      "exact_tail_pct": 64.26,
+      "syllable_count_pct": 93.62,
+      "stress_pattern_pct": 81.88,
+      "primary_stress_pct": 91.95,
+      "mean_rhyme_score": 0.891655,
+      "confidence_signal_available": false,
+      "owner_report_confidence_block": "invalid_null_to_zero_coercion_fixed_after_owner_run"
     }
   },
   "hard_rules": [
@@ -113,5 +126,13 @@
     "generated pronunciation is evidence, never lexical truth",
     "generic English IPA is not silently relabeled en-US",
     "Charsiu remains research-only until model/data licensing is cleanly pinned"
-  ]
+  ],
+  "g2p_campaign_decision": {
+    "status": "CLOSED_REJECT_GENERATED_RUNTIME_FALLBACK",
+    "contract": "docs/ENTITY_G2P_DECISION_V1.md",
+    "unresolved_names_after_source_expansion": 704989,
+    "generated_pronunciation_runtime_promoted": false,
+    "third_model_planned": false,
+    "decision": "continue Phase 12C with source-backed Entity pronunciation/runtime integration; keep residual unresolved"
+  }
 }
