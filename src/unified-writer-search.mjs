@@ -540,11 +540,15 @@ export function searchUnifiedWriter(
       status: 'query_not_found',
       input: String(input || ''),
       languageBasis,
+      resultLanguageBasis,
       scope,
       capabilities,
       requestedLanguages,
+      resultLanguages,
       activeLanguages,
+      activeResultLanguages,
       unavailableLanguages,
+      unavailableResultLanguages,
       resolvedLanguages,
       warnings,
       query: null,
@@ -674,9 +678,9 @@ export function searchUnifiedWriter(
       : (deWordChannel.reason === enWordChannel.reason
           ? deWordChannel.reason
           : 'no_word_results_for_resolved_language_queries'),
-    rankingPolicy: languageBasis === 'both'
+    rankingPolicy: resultLanguageBasis === 'both'
       ? 'language_channel_rank_interleave_no_cross_language_score_calibration'
-      : (languageBasis === 'en'
+      : (resultLanguageBasis === 'en'
           ? enWordChannel.rankingPolicy
           : deWordChannel.rankingPolicy),
     byLanguage: {
