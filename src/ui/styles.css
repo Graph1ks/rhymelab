@@ -210,7 +210,7 @@ select option,select optgroup{background:#fff;color:var(--ink)}
   overflow-y:auto;
   overscroll-behavior:contain;
 }
-.word-panel{top:var(--word-panel-sticky-top,142px)}
+.word-panel{top:var(--word-panel-sticky-top,152px)}
 
 .search-control-section{min-width:0}
 .search-options-section{margin-bottom:12px}

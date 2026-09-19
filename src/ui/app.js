@@ -175,6 +175,7 @@ function syncResultLanguageControls(){$$('.result-language-option').forEach((but
 function scopeCapability(scope,basis=state.resultLanguage){const languages=basisLanguages(basis),capabilities=state.capabilities;if(!capabilities)return{available:true,partial:false,supportedLanguages:languages};const flag=scope==='phrases'?'phraseMosaic':scope==='entities'?'entityRhymes':'wordWriter';if(scope==='all'){const supportedLanguages=languages.filter((language)=>{const row=capabilities.languages?.[language];return Boolean(row?.wordWriter||row?.phraseMosaic||row?.entityRhymes);});return{available:supportedLanguages.length>0,partial:supportedLanguages.length>0&&supportedLanguages.length<languages.length,supportedLanguages};}const supportedLanguages=languages.filter((language)=>Boolean(capabilities.languages?.[language]?.[flag]));return{available:supportedLanguages.length>0,partial:supportedLanguages.length>0&&supportedLanguages.length<languages.length,supportedLanguages};}
 function syncContextFilters(){const scope=$('#scopeFilter').value;$('#variantFilter')?.classList.toggle('context-hidden',scope==='phrases'||scope==='entities');$('#historicalFilter')?.classList.toggle('context-hidden',scope==='entities');const entityAvailable=Array.isArray(state.capabilities?.entities?.categories)&&state.capabilities.entities.categories.length>0;$('#entityCategoryFilter')?.classList.toggle('context-hidden',!entityAvailable||!(scope==='all'||scope==='entities'));}
 function renderAvailabilityBar(){const node=$('#availabilityBar');if(!node)return;const scopes=[['words',t('words')],['phrases',t('phrases')],['entities',t('entities')]];node.innerHTML=scopes.map(([scope,label])=>{const capability=scopeCapability(scope),status=!capability.available?'unavailable':capability.partial?'partial':'available',languages=capability.supportedLanguages.map((language)=>language.toUpperCase()).join('+')||'—';return`<span class="availability-chip ${status}"><span class="availability-dot" aria-hidden="true"></span><strong>${esc(label)}</strong><small>${esc(languages)}</small></span>`;}).join('');}
+const STICKY_DETAIL_GAP=24;
 const SEARCH_SECTION_CONFIG=Object.freeze({
   searchOptions:{section:'#searchOptionsSection',button:'#searchOptionsToggle',stateKey:'searchOptionsExpanded',storageKey:'rhymelab.searchOptionsExpanded.v2'},
   resultFilters:{section:'#resultFiltersSection',button:'#resultFiltersToggle',stateKey:'resultFiltersExpanded',storageKey:'rhymelab.resultFiltersExpanded.v2'},
@@ -202,7 +203,7 @@ function updateStickyLayout(){
   const cardHeight=Math.ceil(Number(card?.getBoundingClientRect?.()?.height||card?.offsetHeight||coreHeight));
   const occupiedHeight=stickyExpanded?cardHeight:coreHeight;
   root.style.setProperty('--search-sticky-top',`${stickyTop}px`);
-  root.style.setProperty('--word-panel-sticky-top',`${stickyTop+occupiedHeight+14}px`);
+  root.style.setProperty('--word-panel-sticky-top',`${stickyTop+occupiedHeight+STICKY_DETAIL_GAP}px`);
 }
 
 function updateFloatingSearchGeometry(){
@@ -322,7 +323,6 @@ function syncFloatingSearchState(){
 
   const threshold=state.searchAutoCompactThreshold??refreshSearchCompactThreshold();
   if(!Number.isFinite(threshold))return;
-  const focusedInside=Boolean(document.activeElement&&stage.contains?.(document.activeElement));
 
   if(stage.classList.contains('search-auto-compact')){
     updateFloatingSearchGeometry();
@@ -330,7 +330,7 @@ function syncFloatingSearchState(){
     return;
   }
 
-  if(window.scrollY>=threshold&&!focusedInside)enterSearchAutoCompact();
+  if(window.scrollY>=threshold)enterSearchAutoCompact();
 }
 
 function populateEntityCategories(){const select=$('#entityCategory');if(!select)return;const current=select.value||'all',categories=[...(state.capabilities?.entities?.categories||[])].sort((a,b)=>entityCategoryLabel(a).localeCompare(entityCategoryLabel(b),state.lang==='de'?'de':'en',{sensitivity:'base'}));const groups=new Map();for(const category of categories){const [family='other']=String(category).split('.');if(!groups.has(family))groups.set(family,[]);groups.get(family).push(category);}select.innerHTML=`<option value="all">${esc(t('allEntities'))}</option>`+[...groups.entries()].sort(([a],[b])=>humanize(a).localeCompare(humanize(b),state.lang==='de'?'de':'en',{sensitivity:'base'})).map(([family,items])=>`<optgroup label="${esc(humanize(family))}">${items.map((category)=>`<option value="${esc(category)}">${esc(entityCategoryLabel(category))}</option>`).join('')}</optgroup>`).join('');select.value=categories.includes(current)?current:'all';}
