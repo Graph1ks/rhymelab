@@ -66,7 +66,8 @@ The runtime:
 5. applies strict relation tier + anchored <=0.03 phonetic bands;
 6. applies `guarded_commonness_06` only inside those bands;
 7. applies separate Diversity weight `0.08`;
-8. returns the normal product result shape.
+8. uses Product retrieval reservoir profile `en-product-retrieval-reservoir-v1`: exact/multi 1536, broader vowel/family-coda/coda channels 128, merged maximum 3072;
+9. returns the normal product result shape.
 
 No English candidate is passed through German phonology.
 
@@ -200,3 +201,14 @@ Phase 12B11 does not add:
 - performance/SQLite final optimization.
 
 Those remain separate roadmap concerns.
+
+
+## Owner run 1 finding
+
+The first full-data integrated acceptance was deterministic but failed one check only: `english_multisyllabic_nation_station`.
+
+The failure was not a phonology, ranking, database, language-isolation or repeatability failure. The accepted low-level runtime defaults to 128 rows per retrieval channel, while its earlier pair-integration diagnostic intentionally expanded the reservoir to prove `nation -> station`. Reusing 128 unchanged in Product caused the dense `-ation` exact/multisyllabic bucket to truncate before `station`.
+
+The Product profile therefore widens only the precise exact/multisyllabic reservoirs to 1536. The accepted DB verifier measured a maximum bucket of 1430 for each of those channels. The broader vowel/coda reservoirs remain 128.
+
+Rerun the same owner acceptance command after merge. Do not rebuild either DB.
