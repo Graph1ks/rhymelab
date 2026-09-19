@@ -255,16 +255,22 @@ export function fingerprintEnglishWriterDb(db){
 
 export function englishRetrievalQueryPlans(db){
   const sample=db.prepare(`
-    SELECT exact_key,multisyllable_key,vowel_key,vowel_family,coda_class,coda_key
+    SELECT exact_key,vowel_key,vowel_family,coda_class,coda_key
     FROM en_pronunciation
     WHERE default_profile_eligible=1 AND exact_key IS NOT NULL
     ORDER BY id LIMIT 1
   `).get();
   if(!sample) return {};
+  const multiSample=db.prepare(`
+    SELECT multisyllable_key
+    FROM en_pronunciation
+    WHERE default_profile_eligible=1 AND multisyllable_key IS NOT NULL
+    ORDER BY id LIMIT 1
+  `).get();
   const plan=(sql,...args)=>db.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...args).map((row)=>String(row.detail||''));
   return {
     exact:plan('SELECT id FROM en_pronunciation WHERE exact_key=? AND default_profile_eligible=1',sample.exact_key),
-    multi:sample.multisyllable_key?plan('SELECT id FROM en_pronunciation WHERE multisyllable_key=? AND default_profile_eligible=1',sample.multisyllable_key):[],
+    multi:multiSample?plan('SELECT id FROM en_pronunciation WHERE multisyllable_key=? AND default_profile_eligible=1',multiSample.multisyllable_key):[],
     vowel:plan('SELECT id FROM en_pronunciation WHERE vowel_key=? AND default_profile_eligible=1',sample.vowel_key),
     family_coda:plan('SELECT id FROM en_pronunciation WHERE vowel_family=? AND coda_class=? AND default_profile_eligible=1',sample.vowel_family,sample.coda_class),
     coda:plan('SELECT id FROM en_pronunciation WHERE coda_key=? AND default_profile_eligible=1',sample.coda_key),
