@@ -25,21 +25,57 @@
         <a class="primary-nav-link active" href="/" aria-current="page">SEARCH</a>
         <a class="primary-nav-link" href="/pad">RHYMEPAD</a>
       </nav>
-      <form id="searchForm" class="search" role="search">
-        <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-        <input id="searchInput" type="search" autocomplete="off" spellcheck="false" placeholder="Search a word or phrase…" aria-label="Search a word or phrase">
-        <button class="search-button" type="submit" id="searchButton">Search</button>
-      </form>
-      <div class="language-switch" aria-label="Search language basis">
-        <span class="material-symbols-outlined" aria-hidden="true">language</span>
-        <button type="button" data-basis="de" class="basis-option">DE</button>
-        <button type="button" data-basis="en" class="basis-option">EN</button>
-        <button type="button" data-basis="both" class="basis-option">DE+EN</button>
+      <div class="topbar-meta" aria-label="Local runtime">
+        <span class="runtime-dot" aria-hidden="true"></span>
+        <span>LOCAL RUNTIME</span>
       </div>
     </div>
   </header>
 
   <main class="shell">
+    <section class="search-stage" aria-label="Rhyme search">
+      <div class="search-card">
+        <div class="search-mode-grid">
+          <div class="mode-group">
+            <span class="mode-label" data-i18n="languageBasis">Language</span>
+            <div class="segmented language-segmented" role="group" aria-label="Search language basis">
+              <button type="button" data-basis="de" class="basis-option">
+                <strong>DE</strong>
+                <small data-i18n="basisGerman">German</small>
+              </button>
+              <button type="button" data-basis="en" class="basis-option">
+                <strong>EN</strong>
+                <small data-i18n="basisEnglish">English</small>
+              </button>
+              <button type="button" data-basis="both" class="basis-option">
+                <strong>DE+EN</strong>
+                <small data-i18n="basisBoth">Combined</small>
+              </button>
+            </div>
+          </div>
+
+          <div class="mode-group">
+            <span class="mode-label" data-i18n="searchIn">Search in</span>
+            <div class="segmented scope-segmented" role="group" aria-label="Search result scope">
+              <button type="button" data-scope="all" class="scope-option active" data-i18n="scopeAllButton">All</button>
+              <button type="button" data-scope="words" class="scope-option" data-i18n="scopeWords">Words</button>
+              <button type="button" data-scope="phrases" class="scope-option" data-i18n="scopePhrasesShort">Phrases</button>
+              <button type="button" data-scope="entities" class="scope-option" data-i18n="scopeEntities">Entities</button>
+            </div>
+            <input id="scopeFilter" type="hidden" value="all">
+          </div>
+        </div>
+
+        <form id="searchForm" class="search" role="search">
+          <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+          <input id="searchInput" type="search" autocomplete="off" spellcheck="false" placeholder="Search a word, phrase or entity…" aria-label="Search a word, phrase or entity">
+          <button class="search-button" type="submit" id="searchButton">Search</button>
+        </form>
+
+        <div id="availabilityBar" class="availability-bar" aria-live="polite"></div>
+      </div>
+    </section>
+
     <section class="hero" id="emptyState">
       <p class="eyebrow" data-i18n="eyebrow">UNIFIED RHYME WRITER</p>
       <h1 data-i18n="headline">Search words and phrases by sound.</h1>
@@ -60,17 +96,12 @@
             <span id="resultCount" class="result-count"></span>
           </div>
 
-          <div class="controls-grid">
-            <label>
-              <span data-i18n="resultScope">Results</span>
-              <select id="scopeFilter">
-                <option value="all" data-i18n-option="scopeAll">Words + phrases + entities</option>
-                <option value="words" data-i18n-option="scopeWords">Words</option>
-                <option value="phrases" data-i18n-option="scopePhrases">Phrases / Mosaic</option>
-                <option value="entities" data-i18n-option="scopeEntities">Entities</option>
-              </select>
-            </label>
-
+          <details class="filter-drawer" open>
+            <summary>
+              <span data-i18n="filters">Filters</span>
+              <span class="filter-summary-hint" data-i18n="filtersHint">Rhyme, syllables, sorting and vocabulary</span>
+            </summary>
+            <div class="controls-grid">
             <label>
               <span data-i18n="rhymeType">Rhyme type</span>
               <select id="typeFilter">
@@ -104,7 +135,7 @@
               </select>
             </label>
 
-            <label>
+            <label id="variantFilter">
               <span data-i18n="pronunciation">Pronunciation</span>
               <select id="variantMode">
                 <option value="preferred" data-i18n-option="standard">Standard</option>
@@ -112,14 +143,15 @@
               </select>
             </label>
 
-            <label class="check-filter">
+            <label class="check-filter" id="historicalFilter">
               <span data-i18n="vocabulary">Vocabulary</span>
               <span class="checkbox-line">
                 <input id="historicalMode" type="checkbox">
                 <span data-i18n="includeHistorical">Include historical / obsolete</span>
               </span>
             </label>
-          </div>
+            </div>
+          </details>
         </div>
 
         <div id="capabilityNotice" class="status capability-notice hidden"></div>
