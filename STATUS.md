@@ -925,3 +925,13 @@ The g2p-en owner report's `confidence_calibration` block is invalid reporting no
 
 Authoritative decision: `docs/ENTITY_G2P_DECISION_V1.md`. Next Phase 12C gate is source-backed Entity pronunciation/runtime integration only.
 
+## Phase 12C candidate branch checkpoint — runtime + AI staging
+
+Active candidate branch: `phase12c-entity-runtime-ai-staging`.
+
+Focused continuation document: `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`.
+
+Implemented on the branch: source-backed EN Entity runtime and rhyme anchors, DE+EN Entity Writer channel/UI integration, isolated 704,989-row AI pronunciation queue, ZIP importer/staging SQLite/audit, strict ARPAbet analysis/validation, LLM benchmark evaluator, benchmark-v3 explicit review gate, and multilingual runtime verification preserving the frozen DE fingerprint with zero generated accepted EN runtime rows.
+
+Status is **implementation in progress / not merge-ready**. AI acceptance diagnostics, benchmark-v3 review completion, final documentation/consistency review, local checks and GitHub `validate` CI are still required. AI staging remains non-runtime evidence.
+
