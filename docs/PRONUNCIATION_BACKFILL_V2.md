@@ -348,6 +348,8 @@ data/local/pronunciation-espeak-highspeed-v2.json
 
 The test is read-only. It reports cases/second, process-mode/fallback counts, errors and projected hours for the remaining admitted population. The full runner additionally prints a per-window `recent=.../s` rate and cumulative process-mode counts so fallback storms are visible immediately instead of being hidden by the cumulative ETA. A batch size is eligible for the full run only when the run is stable with zero process errors.
 
+IPA analyzer work is also offloaded from the Node main thread into a persistent `worker_threads` pool. The default is **4 analyzer workers**. The high-speed test uses the same pool and records analyzer task/restart/queue metrics for each batch-size run. For a direct control against the old main-thread analyzer, pass `--analyzer-workers 0`.
+
 Custom example:
 
 ```powershell
@@ -401,7 +403,7 @@ After eSpeak completes, run the client fallback only for analyzer-rejected admit
 npm run pronunciation:backfill:client
 ```
 
-The convenience full-chain command still exists and defaults to 4 batched eSpeak workers. `--workers` and `--espeak-batch-size` override those local defaults explicitly:
+The convenience full-chain command still exists and defaults to 4 batched eSpeak workers plus 4 persistent IPA analyzer worker threads. `--workers`, `--espeak-batch-size`, and `--analyzer-workers` override those local defaults explicitly:
 
 ```powershell
 npm run pronunciation:backfill -- --workers 4 --espeak-batch-size 512
