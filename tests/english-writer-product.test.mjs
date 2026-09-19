@@ -353,3 +353,39 @@ test('invalid browser IPA is rejected instead of becoming lexical truth',()=>{
     db.close();
   }
 });
+
+
+test('unified Writer accepts browser-generated multiword IPA as an ephemeral query anchor',()=>{
+  const db=fixtureEnglishDb();
+  try{
+    const result=searchUnifiedWriter(
+      {writerDb:{},englishDb:db},
+      'future rhyme time',
+      {
+        language:'en',
+        resultLanguage:'en',
+        scope:'words',
+        wordLimit:20,
+        queryPronunciations:{
+          en:{
+            ipa:'ˈfjutʃɚ ˈɹaɪm ˈtaɪm',
+            method:'client_token_chain',
+            sourceBacked:false,
+            components:['future','rhyme','time'],
+          },
+        },
+      },
+    );
+    assert.equal(result.status,'ok');
+    assert.equal(result.query.kind,'phrase');
+    assert.equal(result.query.tokenCount,3);
+    assert.equal(result.query.generatedPronunciation,true);
+    assert.equal(result.query.queryPronunciation.policy,'client-total-query-pronunciation-v2');
+    assert.equal(result.query.queryPronunciation.method,'client_token_chain');
+    assert.deepEqual(result.query.queryPronunciation.components,['future','rhyme','time']);
+    assert.ok(result.results.some((row)=>row.normalized==='time'));
+    assert.ok(result.results.some((row)=>row.normalized==='rhyme'));
+  }finally{
+    db.close();
+  }
+});
