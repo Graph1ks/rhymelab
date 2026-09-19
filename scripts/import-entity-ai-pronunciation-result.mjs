@@ -13,6 +13,7 @@ import {
   ENTITY_AI_RESULT_COLUMNS,
   analyzeEntityAiArpabet,
   parseTsv,
+  validateEntityAiArtifactManifest,
   validateEntityAiResultRow,
 } from './entity-ai-pronunciation-core.mjs';
 
@@ -197,15 +198,6 @@ try{
   if(status==='partial'&&!allowPartial){
     throw new Error('Partial artifact rejected. Re-run with --allow-partial only for intentional checkpoint staging.');
   }
-  const declaredSha=String(
-    manifest.results_sha256
-    ||manifest.sha256
-    ||manifest.results_tsv_sha256
-    ||''
-  ).toLocaleLowerCase('en-US');
-  if(declaredSha&&declaredSha!==resultsSha){
-    throw new Error(`results.tsv SHA-256 mismatch: manifest ${declaredSha}, actual ${resultsSha}`);
-  }
 
   const parsed=parseTsv(resultsBuffer.toString('utf8'));
   if(parsed.header.join('\t')!==ENTITY_AI_RESULT_COLUMNS.join('\t')){
@@ -255,14 +247,6 @@ try{
     prepared.push({row,mapping,primary,alternate});
   }
 
-  const inputRows=Number(manifest.input_row_count??manifest.input_rows??prepared.length);
-  const completedRows=Number(manifest.completed_row_count??manifest.completed_rows??parsed.rows.length);
-  const firstId=Number(manifest.first_input_id??manifest.first_id??prepared[0]?.row.id??0);
-  const lastInputId=Number(manifest.last_input_id??manifest.last_id??prepared.at(-1)?.row.id??0);
-  const lastCompletedId=prepared.at(-1)?.row.id??null;
-  const nextUnprocessedId=status==='partial'
-    ?Number(manifest.next_unprocessed_id||((lastCompletedId||0)+1))
-    :null;
 
   if(errors.length){
     throw new Error(
@@ -273,6 +257,23 @@ try{
   if(prepared.length!==parsed.rows.length){
     throw new Error('Prepared row count differs from result row count');
   }
+  const contractCheck=validateEntityAiArtifactManifest(manifest,{
+    resultsSha,
+    resultIds:prepared.map((item)=>item.row.id),
+    decisionCounts:counts,
+  });
+  if(!contractCheck.valid){
+    throw new Error(
+      'Manifest/result contract validation failed: '+contractCheck.errors.join(', ')
+    );
+  }
+  const artifactContract=contractCheck.normalized;
+  const inputRows=artifactContract.input_rows;
+  const completedRows=artifactContract.completed_rows;
+  const firstId=artifactContract.first_input_id;
+  const lastInputId=artifactContract.last_input_id;
+  const lastCompletedId=artifactContract.last_completed_id;
+  const nextUnprocessedId=artifactContract.next_unprocessed_id;
   if(Number.isFinite(completedRows)&&completedRows!==prepared.length){
     throw new Error(`Manifest completed_rows ${completedRows} != results rows ${prepared.length}`);
   }
@@ -290,11 +291,11 @@ try{
   await mkdir(dirname(reportPath),{recursive:true});
   const db=new DatabaseSync(stagingPath);
   try{
+    importAttempt: {
     db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;');
     ensureStorage(db);
 
-    const inputFilename=clean(manifest.selected_input_tsv_filename||manifest.input_filename||manifest.input_file||'');
-    if(!inputFilename) throw new Error('Manifest does not identify selected input TSV filename');
+    const inputFilename=artifactContract.input_filename;
 
     const existing=db.prepare('SELECT * FROM ai_batch WHERE input_filename=?').get(inputFilename);
     if(existing&&!replace){
@@ -306,6 +307,7 @@ try{
           batch_id:Number(existing.batch_id),
         },null,2));
         process.exitCode=0;
+        break importAttempt;
       }else{
         throw new Error(`Batch ${inputFilename} already imported with a different SHA. Use --replace to replace it.`);
       }
@@ -424,6 +426,7 @@ try{
     }catch(error){
       try{db.exec('ROLLBACK');}catch{}
       throw error;
+    }
     }
   }finally{
     db.close();

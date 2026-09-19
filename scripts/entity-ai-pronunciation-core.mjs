@@ -6,6 +6,194 @@ import {
 
 export const ENTITY_AI_PRONUNCIATION_SCHEMA='rhymelab-entity-ai-pronunciation-v1';
 export const ENTITY_AI_RESULT_COLUMNS=Object.freeze(['id','arp','q','f','alt']);
+export const ENTITY_AI_CONFIDENCE_THRESHOLDS=Object.freeze([99,95,90,85,80,75,70,60,50]);
+
+function nestedValue(object,path){
+  let value=object;
+  for(const part of String(path).split('.')){
+    if(value==null||typeof value!=='object'||!(part in value)) return undefined;
+    value=value[part];
+  }
+  return value;
+}
+
+function firstDefined(object,paths){
+  for(const path of paths){
+    const value=nestedValue(object,path);
+    if(value!==undefined) return value;
+  }
+  return undefined;
+}
+
+function strictInteger(value){
+  if(value===null||value===undefined||value==='') return null;
+  const number=Number(value);
+  return Number.isInteger(number)?number:null;
+}
+
+export function classifyEntityAiSurface(value){
+  const text=String(value??'').normalize('NFKC').trim();
+  if(!text) return ['empty_surface'];
+  const chars=[...text];
+  const letters=chars.filter((char)=>/\p{L}/u.test(char));
+  const tags=[
+    /\s/u.test(text)?'multiword':'single_word',
+    chars.every((char)=>char.codePointAt(0)<=0x7f)?'ascii_only':'non_ascii',
+  ];
+  if(/\p{N}/u.test(text)) tags.push('contains_digit');
+  if(/['’ʼ]/u.test(text)) tags.push('contains_apostrophe');
+  if(/[-‐‑‒–—]/u.test(text)) tags.push('contains_hyphen');
+  if(chars.some((char)=>!/[\p{L}\p{N}\s'’ʼ\-‐‑‒–—]/u.test(char))){
+    tags.push('contains_other_punctuation_or_symbol');
+  }
+  if(letters.some((char)=>!/\p{Script=Latin}/u.test(char))){
+    tags.push('contains_non_latin_letter');
+  }
+  if(chars.length>=25) tags.push('length_25_plus');
+  return tags;
+}
+
+export function validateEntityAiArtifactManifest(
+  manifest,
+  {resultsSha,resultIds=[],decisionCounts={C:0,A:0,U:0}}={},
+){
+  const errors=[];
+  const status=String(firstDefined(manifest,['status'])??'');
+  if(!['complete','partial'].includes(status)) errors.push('manifest_status_invalid');
+
+  const inputArchive=String(firstDefined(manifest,['input_archive'])??'');
+  if(inputArchive!=='inputs.zip') errors.push('manifest_input_archive_must_be_inputs_zip');
+
+  const inputFilename=String(firstDefined(manifest,[
+    'selected_input_tsv_filename','selected_input_tsv','input_filename','input_file',
+  ])??'').trim();
+  if(!inputFilename) errors.push('manifest_input_filename_missing');
+
+  const declaredSha=String(firstDefined(manifest,[
+    'results_sha256','results_tsv_sha256','sha256',
+  ])??'').toLocaleLowerCase('en-US');
+  if(!/^[a-f0-9]{64}$/u.test(declaredSha)){
+    errors.push('manifest_results_sha256_missing_or_invalid');
+  }else if(resultsSha&&declaredSha!==String(resultsSha).toLocaleLowerCase('en-US')){
+    errors.push('manifest_results_sha256_mismatch');
+  }
+
+  const configuredStartId=strictInteger(firstDefined(manifest,[
+    'configured_START_ID','configured_start_id','START_ID','start_id',
+  ]));
+  const inputRows=strictInteger(firstDefined(manifest,['input_row_count','input_rows']));
+  const completedRows=strictInteger(firstDefined(manifest,['completed_row_count','completed_rows']));
+  const firstId=strictInteger(firstDefined(manifest,['first_input_id','first_id']));
+  const lastInputId=strictInteger(firstDefined(manifest,['last_input_id','last_id']));
+  const firstCompletedId=strictInteger(firstDefined(manifest,['first_completed_id']));
+  const lastCompletedId=strictInteger(firstDefined(manifest,['last_completed_id']));
+  const nextRaw=firstDefined(manifest,['next_unprocessed_id']);
+  const nextUnprocessedId=nextRaw===null?null:strictInteger(nextRaw);
+
+  for(const [name,value] of Object.entries({
+    configured_start_id:configuredStartId,
+    input_rows:inputRows,
+    completed_rows:completedRows,
+    first_input_id:firstId,
+    last_input_id:lastInputId,
+    first_completed_id:firstCompletedId,
+    last_completed_id:lastCompletedId,
+  })){
+    if(value==null||value<1) errors.push('manifest_'+name+'_missing_or_invalid');
+  }
+
+  const ids=resultIds.map((value)=>strictInteger(value));
+  if(ids.some((value)=>value==null||value<1)) errors.push('result_ids_invalid');
+  if(new Set(ids).size!==ids.length) errors.push('result_ids_duplicate');
+  if(completedRows!=null&&completedRows!==ids.length) errors.push('manifest_completed_rows_mismatch');
+
+  if(firstId!=null&&lastInputId!=null&&inputRows!=null&&lastInputId-firstId+1!==inputRows){
+    errors.push('manifest_input_range_not_contiguous');
+  }
+  if(configuredStartId!=null&&firstId!=null&&configuredStartId!==firstId){
+    errors.push('manifest_start_id_mismatch');
+  }
+  if(ids.length&&firstId!=null){
+    for(let index=0;index<ids.length;index+=1){
+      if(ids[index]!==firstId+index){
+        errors.push('result_ids_not_contiguous_from_batch_start');
+        break;
+      }
+    }
+  }
+  if(ids.length&&firstCompletedId!=null&&ids[0]!==firstCompletedId){
+    errors.push('manifest_first_completed_id_mismatch');
+  }
+  if(ids.length&&lastCompletedId!=null&&ids.at(-1)!==lastCompletedId){
+    errors.push('manifest_last_completed_id_mismatch');
+  }
+
+  if(status==='complete'){
+    if(inputRows!=null&&ids.length!==inputRows) errors.push('complete_result_row_count_mismatch');
+    if(ids.length&&lastInputId!=null&&ids.at(-1)!==lastInputId) errors.push('complete_last_id_mismatch');
+    if(nextRaw!==null) errors.push('complete_next_unprocessed_id_must_be_null');
+  }else if(status==='partial'){
+    if(inputRows!=null&&ids.length>=inputRows) errors.push('partial_result_must_not_cover_full_batch');
+    if(lastCompletedId!=null&&nextUnprocessedId!==lastCompletedId+1){
+      errors.push('partial_next_unprocessed_id_mismatch');
+    }
+  }
+
+  const filename=inputFilename.split(/[\\/]/u).at(-1)||'';
+  const rangeMatch=filename.match(/^batch_\d+_(\d+)-(\d+)\.tsv$/u);
+  if(!rangeMatch){
+    errors.push('manifest_input_filename_range_invalid');
+  }else if(firstId!=null&&lastInputId!=null){
+    if(Number(rangeMatch[1])!==firstId||Number(rangeMatch[2])!==lastInputId){
+      errors.push('manifest_input_filename_range_mismatch');
+    }
+  }
+
+  const manifestCounts={
+    C:strictInteger(firstDefined(manifest,['count_C','C_count','confident_count','counts.C','counts.confident'])),
+    A:strictInteger(firstDefined(manifest,['count_A','A_count','ambiguous_count','counts.A','counts.ambiguous'])),
+    U:strictInteger(firstDefined(manifest,['count_U','U_count','unknown_count','counts.U','counts.unknown'])),
+  };
+  for(const flag of ['C','A','U']){
+    if(manifestCounts[flag]==null||manifestCounts[flag]<0){
+      errors.push('manifest_count_'+flag+'_missing_or_invalid');
+    }else if(Number(decisionCounts[flag]||0)!==manifestCounts[flag]){
+      errors.push('manifest_count_'+flag+'_mismatch');
+    }
+  }
+
+  const zeroCounters={
+    duplicate_id_count:firstDefined(manifest,['duplicate_id_count','duplicate_ids','duplicate_count']),
+    missing_id_count:firstDefined(manifest,['missing_id_count','missing_ids','missing_count']),
+    extra_id_count:firstDefined(manifest,['extra_id_count','extra_ids','extra_count']),
+    invalid_row_count:firstDefined(manifest,['invalid_row_count','invalid_rows','invalid_count']),
+  };
+  for(const [name,raw] of Object.entries(zeroCounters)){
+    const value=strictInteger(raw);
+    if(value==null||value<0) errors.push('manifest_'+name+'_missing_or_invalid');
+    else if(value!==0) errors.push('manifest_'+name+'_must_be_zero');
+  }
+
+  return {
+    valid:errors.length===0,
+    errors:[...new Set(errors)],
+    normalized:{
+      status,
+      input_archive:inputArchive,
+      input_filename:inputFilename,
+      results_sha256:declaredSha,
+      configured_start_id:configuredStartId,
+      input_rows:inputRows,
+      completed_rows:completedRows,
+      first_input_id:firstId,
+      last_input_id:lastInputId,
+      first_completed_id:firstCompletedId,
+      last_completed_id:lastCompletedId,
+      next_unprocessed_id:nextUnprocessedId,
+      counts:manifestCounts,
+    },
+  };
+}
 
 const VOWELS=new Set([
   'AA','AE','AH','AO','AW','AY','EH','ER','EY','IH','IY','OW','OY','UH','UW',
