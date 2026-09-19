@@ -12,7 +12,7 @@ test('MFA ARPA identity accepts official family even when inspect build version 
     .map((phone)=>"'"+phone+"'")
     .join(', ');
   const graphemes=ENGLISH_US_ARPA_REQUIRED_GRAPHEMES
-    .map((grapheme)=>"'"+grapheme+"'")
+    .map((grapheme)=>JSON.stringify(grapheme))
     .join(', ');
   const inspect=`{
     'Archive': {
