@@ -109,20 +109,21 @@ conda activate rhymelab-mfa
 mfa model download g2p english_us_arpa --version 2.0.0a
 ```
 
-Then run the complete owner gate:
+Then run the complete owner gate **inside the Miniforge Prompt with `(rhymelab-mfa)` visibly active**:
 
 ```powershell
 git pull
-conda activate rhymelab-mfa
 npm run entity:g2p:benchmark:mfa
 ```
+
+If the prompt does not begin with `(rhymelab-mfa)`, activate it first with `conda activate rhymelab-mfa`.
 
 The npm command first rebuilds v2, then the runner:
 
 1. requires benchmark schema v2;
 2. requires zero duplicate normalized controls;
 3. verifies MFA is available;
-4. verifies the installed `english_us_arpa` model reports pinned version `2.0.0a`;
+4. verifies the installed `english_us_arpa` model matches the expected Pynini + complete 69-phone ARPA model family; MFA's internal archive `version` string is recorded for provenance but is not required to equal the public release label `2.0.0a`;
 5. generates one pronunciation per token;
 6. converts the generated dictionary to the RhymeLab prediction TSV contract;
 7. evaluates it automatically against explicit proper-name IPA controls.
@@ -149,3 +150,8 @@ The benchmark must establish whether the model preserves the features RhymeLab a
 - accepted English rhyme-analysis score.
 
 Only after v2 evidence is reviewed do we decide whether MFA is useful as a fallback for the remaining 704,989 unresolved English Entity names.
+
+
+### MFA archive-version note
+
+The public model release is documented by MFA as `english_us_arpa` v2.0.0a, ARPA, Pynini, CC BY 4.0. Some current MFA installs report an older internal build metadata string such as `2.0.0rc4.dev19+...` through `mfa model inspect`. RhymeLab therefore verifies stable model-family properties (Pynini + complete 69-phone ARPA inventory) and records the actual inspect string/fingerprint instead of requiring string equality with the public release label.
