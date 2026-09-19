@@ -60,13 +60,16 @@ This is the normal unified product endpoint for the main Writer UI.
 Parameters:
 
 - `q=<text>` — one word or a multi-word query;
-- `language=de|en|both` — requested search-language basis;
-- `scope=all|words|phrases` — one UI/result surface, optionally filtered by result kind;
+- `language=de|en|both` — query-pronunciation language basis; this determines how the input surface is resolved;
+- `result_language=de|en|both` — result-language target; defaults to `language` for backward compatibility;
+- `scope=all|words|phrases|entities` — one UI/result surface, optionally filtered by result kind;
 - `type=<category>` — rhyme/sound-relation filter;
 - `variants=all` — allow stored alternate word pronunciations;
 - `historical=all` — include historical single-word candidates;
 - `word_limit=<n>`, `word_pool=<n>` — bounded frozen Writer-v5 controls;
-- `phrase_limit=<n>`, `phrase_pool=<n>`, `phrase_per_channel=<n>` — bounded Phrase/Mosaic controls.
+- `phrase_limit=<n>`, `phrase_pool=<n>`, `phrase_per_channel=<n>` — bounded Phrase/Mosaic controls;
+- `entity_limit=<n>`, `entity_pool=<n>` — bounded Entity controls;
+- `entity_category=<category|all>` — exact Entity taxonomy filter from the runtime capability list.
 
 German single-word queries reuse the frozen `findWriterRhymes()` path unchanged. Phrase/Mosaic results run through the accepted 11D4 retrieval -> 11E2-v2 ranking -> 11E3 diversification stack.
 
@@ -78,19 +81,46 @@ Multi-word user queries are resolved in this order:
 
 The response keeps Word and Phrase/Mosaic channel orders separate. Numeric scores are not treated as globally calibrated across channels; the unified UI groups both channels in one workspace rather than inventing a cross-channel score.
 
+### Query language vs. result language
+
+Input pronunciation and output language are independent product controls.
+
+Examples:
+
+```text
+language=de&result_language=de
+German query pronunciation -> German results
+
+language=de&result_language=en
+German query pronunciation -> English results
+
+language=de&result_language=both
+German query pronunciation -> German + English results
+```
+
+For the DE -> EN word path, RhymeLab does **not** look up the German spelling as an English word. It resolves the German source-backed pronunciation first, re-analyzes that pronunciation under the accepted English target phonology, then uses the existing indexed English retrieval/scoring/ranking pipeline. The accepted same-language DE and EN paths remain unchanged.
+
+This specifically allows inputs such as `Schwein` to retrieve English candidates from the /aɪn/ rhyme neighborhood without pretending that `Schwein` is an English lexeme.
+
+The reverse EN -> DE word pronunciation bridge is not currently implemented because English source phones cannot be losslessly reinterpreted as German pronunciation without an explicit target-language adaptation policy.
+
+Phrase/Mosaic remains German-only. If `result_language=en` is selected, German Phrase/Mosaic results are excluded rather than mislabeled as English.
+
+Source-backed Entity rhyme channels support DE and EN target profiles independently. Entity categories are exposed by `/api/health` and accepted verbatim by `entity_category`.
+
 ### Language capability
 
-The UI/API contract accepts `de`, `en`, and `both`.
+The UI/API contract accepts `de`, `en`, and `both` for both query basis and result target.
 
-Phase 12B11 integrates the source-backed English single-word Writer behind a local acceptance marker. The normal server opens the English DB only when `data/local/en-product-enabled-v1.json` exists and matches the accepted DB/runtime/ranking contract.
+Phase 12B11 provides the accepted source-backed English single-word Writer behind its local acceptance marker. Phase 12C provides the accepted source-backed multilingual Entity runtime.
 
-- `language=de`: frozen German Writer behavior;
-- `language=en`: English single-word Writer only;
-- `language=both`: independent DE and EN source-backed query resolution, then deterministic per-language channel-rank interleave with no numeric DE/EN score calibration.
+- `language` controls query resolution;
+- `result_language` controls which result-language channels are requested;
+- DE+EN results preserve language-local channel ranks; raw DE/EN scores are not treated as cross-language calibrated;
+- English Phrase/Mosaic remains unavailable;
+- no unknown-query G2P is introduced by this split.
 
-English Phrase/Mosaic and English Entity rhyme remain explicitly unavailable. No German scorer is reused for English and no unknown-query G2P is introduced in this phase.
-
-Run `npm run en:product:accept` once after the Phase 12B11 code is merged. On PASS it writes the local enablement marker automatically; no follow-up code change is required.
+The response includes `counts.searchPool` with bounded candidate-pool counts from the active indexed pipelines. These are truthful current search-pool counts, not a claim that the entire lexical/entity database was exhaustively rescored.
 
 ## `GET /api/stats`
 
@@ -212,9 +242,13 @@ Missing usage is unknown/unranked, not automatically rare.
 
 ## Browser behavior
 
-The browser has one Writer surface for words and Phrase/Mosaic results. There is no separate Phrase Explorer product UI. The main search field accepts a word or multi-word query; `All / Words / Phrases-Mosaic` filters operate inside the same result workspace.
+The browser has one Writer surface for Words, Phrase/Mosaic and Entities. There is no separate Phrase Explorer product UI. The main search field accepts a word or multi-word query; `All / Words / Phrases / Entities` filters operate inside the same result workspace.
 
-The language-basis selector is `DE / EN / DE+EN`. Availability is capability-driven by `/api/health`; unavailable English is surfaced explicitly rather than emulated.
+The UI separates `Query pronunciation: DE / EN / DE+EN` from `Result language: DE / EN / DE+EN`. Availability is capability-driven by `/api/health`.
+
+Entity taxonomy categories are populated from runtime capabilities and may be filtered exactly. Standard unfiltered result browsing uses explicit per-category **More** buttons; automatic endless scrolling is reserved for a selected rhyme/sound relation.
+
+Per-result Source fields are intentionally omitted from the inspector. The UI's Sources dialog lists the active source families in one alphabetized place; durable provenance remains in `DATA_SOURCES.md` and the underlying data records.
 
 German word results keep frozen Writer-v5 server ordering. English word results use `guarded_commonness_06` plus Diversity `0.08` inside anchored <=0.03 phonetic bands. In DE+EN mode the UI preserves language-local channel ranks and does not compare raw DE/EN scores. Phrase/Mosaic results keep accepted 11E2-v2 + 11E3 ordering. Explicit UI sorts operate within each channel.
 
