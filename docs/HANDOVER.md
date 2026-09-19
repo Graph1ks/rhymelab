@@ -1,3 +1,15 @@
+# CURRENT BRANCH HANDOVER — Phase 12C runtime + AI staging
+
+For the current candidate branch `phase12c-entity-runtime-ai-staging`, read this focused handover **before the historical material below**:
+
+```text
+docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md
+```
+
+Current status: implementation is substantial but **not merge-ready**. Source-backed EN Entity runtime, multilingual Entity Writer integration and isolated AI pronunciation staging are implemented; AI acceptance diagnostics, benchmark-v3 review completion, final durable docs and PR/`validate` CI remain pending. Do not give an owner full-data runtime run yet, and do not promote AI staging into runtime.
+
+---
+
 # RhymeLab — Thread Handover
 
 Last updated: 2026-09-18
