@@ -1188,15 +1188,14 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "run_single_npm_en_writer_accept_owner_command",
-    "review_data_local_en_writer_acceptance_v1_report_json",
-    "if_status_candidate_accepted_for_product_integration_implement_selected_quality_and_diversity_policy_directly_in_english_runtime",
-    "then_run_one_integrated_en_de_plus_en_product_acceptance_bundle_with_german_invariance",
+    "implement_guarded_commonness_06_plus_diversity_0_08_in_english_product_runtime",
+    "run_one_integrated_en_de_plus_en_product_acceptance_bundle_with_german_invariance",
+    "keep_acceptance_reports_compact_by_default_and_require_explicit_debug_flag_for_full_query_dumps",
     "keep_entity_and_performance_work_frozen_until_product_en_acceptance"
   ],
-  "next_milestone": "PHASE_12B10_ENGLISH_WRITER_ACCEPTANCE",
+  "next_milestone": "PHASE_12B11_ENGLISH_PRODUCT_INTEGRATION_ACCEPTANCE",
   "phase_12_english": {
-    "status": "ACTIVE_12B10_ENGLISH_WRITER_ACCEPTANCE",
+    "status": "ACTIVE_12B11_ENGLISH_PRODUCT_INTEGRATION_ACCEPTANCE",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
     "source_plan": "docs/ENGLISH_WRITER_SOURCE_PLAN.md",
     "reuse_unified_ui_api_contract": true,
@@ -1277,7 +1276,7 @@
       "historical_obsolete_forms_hidden_by_default_not_deleted",
       "no_broad_g2p_before_source_coverage_diagnostics"
     ],
-    "next_gate": "PHASE_12B10_RUN_CONSOLIDATED_EN_WRITER_ACCEPTANCE",
+    "next_gate": "PHASE_12B11_IMPLEMENT_SELECTED_EN_WRITER_POLICY_AND_RUN_INTEGRATED_PRODUCT_ACCEPTANCE",
     "source_workflow_v1": {
       "status": "OWNER_BOOTSTRAP_AND_FULL_DIAGNOSTIC_SUMMARY_COMPLETE",
       "source_registry": "sources/en/phase12b-sources-v1.json",
@@ -2423,7 +2422,7 @@
       }
     },
     "writer_acceptance_v1": {
-      "status": "IMPLEMENTED_OWNER_RUN_PENDING",
+      "status": "OWNER_EVIDENCE_REVIEWED_CANDIDATE_SELECTED",
       "contract": "docs/ENGLISH_WRITER_ACCEPTANCE_V1.md",
       "command": "npm run en:writer:accept",
       "report": "data/local/en-writer-acceptance-v1-report.json",
@@ -2463,7 +2462,42 @@
         "max_guard_violations": 0
       },
       "product_en_enabled": false,
-      "promotion_requires_status": "candidate_accepted_for_product_integration"
+      "promotion_requires_status": "integrated_product_acceptance_pass",
+      "owner_report": {
+        "report": "data/local/en-writer-acceptance-v1-report.json",
+        "schema": "rhymelab-en-writer-acceptance-v1",
+        "reported_status": "needs_iteration",
+        "semantic_fingerprint": "b1aacf3c2de3f91b9ce740744b15f89c797a24b4dc916f0f72f5d8235ea266cb",
+        "file_bytes": 44256392,
+        "file_mib": 42.21,
+        "selected_queries": 96,
+        "selected_quality": "guarded_commonness_06",
+        "quality_metrics": {
+          "mean_phonetic_drop": 0.001061,
+          "mean_commonness_uplift": 0.035469,
+          "unranked_delta": -62,
+          "guard_violations": 0
+        },
+        "diversity_review": {
+          "selected_weight": 0.08,
+          "selection_basis": "pareto_constrained_review",
+          "near_duplicate_reduction": 0.456853,
+          "repeated_lemma_reduction": 0.387755,
+          "mean_phonetic_drop": 0.000322,
+          "mean_commonness_drop": 0.034878,
+          "guard_violations": 0,
+          "rationale": "0.08 is the only tested positive diversity weight that preserves the <=0.04 commonness-drop guard while materially improving both duplicate dimensions; stronger weights improve diversity slightly but violate the commonness guard"
+        },
+        "accepted_candidate": {
+          "policy_id": "en-writer-guarded-quality-diversity-v1-candidate",
+          "quality_candidate": "guarded_commonness_06",
+          "diversity_weight": 0.08
+        },
+        "decision": "accept_candidate_for_product_integration_without_another_owner_ranking_run"
+      },
+      "report_profile_default": "compact-v1",
+      "compact_report_estimated_from_owner_evidence_bytes": 164921,
+      "debug_report_requires_explicit_flag": "--debug-report <path>"
     }
   },
   "phase_12_entity_lexicon": {
