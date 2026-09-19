@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -13,6 +13,39 @@ function run(args){
     encoding:'utf8',
   });
 }
+
+test('source-map plan validates actual DE local inputs without creating a work database',()=>{
+  const root=mkdtempSync(join(tmpdir(),'rhymelab-backfill-plan-'));
+  try{
+    const acceptedPath=join(root,'accepted.sqlite');
+    const db=new DatabaseSync(acceptedPath);
+    db.exec([
+      'CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);',
+      'CREATE TABLE hot(normalized TEXT,pronunciation_preferred INTEGER,pronunciation_eligible INTEGER);',
+    ].join('\n'));
+    db.close();
+
+    const usagePath=join(root,'de-usage.tsv');
+    writeFileSync(usagePath,'rank\tform\tnormalized_form\n1\tTest\ttest\n');
+    const rawPath=join(root,'de.jsonl.gz');
+    writeFileSync(rawPath,gzipSync(Buffer.from(JSON.stringify({lang_code:'de',word:'Test'})+'\n')));
+    const work=join(root,'should-not-exist.sqlite');
+
+    const result=run([
+      '--phase','plan','--scopes','de',
+      '--de-db',acceptedPath,'--de-usage',usagePath,'--de-kaikki',rawPath,
+      '--work',work,
+    ]);
+    assert.equal(result.status,0,result.stderr||result.stdout);
+    assert.match(result.stdout,/rhymelab-pronunciation-backfill-source-plan-v1/);
+    assert.match(result.stdout,/de_usage_source_minus_accepted/);
+    assert.match(result.stdout,/de_wiktionary_headword_source_minus_accepted/);
+    assert.match(result.stdout,/de_listed_form_source_minus_accepted/);
+    assert.equal(existsSync(work),false);
+  }finally{
+    rmSync(root,{recursive:true,force:true});
+  }
+});
 
 test('DE collection diffs actual usage + Kaikki headword/listed-form sources against accepted Writer DB',()=>{
   const root=mkdtempSync(join(tmpdir(),'rhymelab-backfill-de-'));
