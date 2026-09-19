@@ -1645,11 +1645,15 @@ async function report(){
   );
   const report={
     schema:'rhymelab-pronunciation-backfill-report-v1',
-    status:summary.pending===0?'resolved_or_review_ready':'in_progress',
+    status:(workDb.prepare("SELECT value FROM meta WHERE key='admission_complete'").get()?.value==='1'&&summary.generator_pending===0)
+      ?'resolved_or_review_ready':'in_progress',
     policy:PRONUNCIATION_BACKFILL_POLICY,
     work_database:workPath,
     source_fingerprint:sourceFingerprint,
     source_snapshot:sourceSnapshot,
+    admission_policy:workDb.prepare("SELECT value FROM meta WHERE key='admission_policy'").get()?.value||null,
+    admission_complete:workDb.prepare("SELECT value FROM meta WHERE key='admission_complete'").get()?.value==='1',
+    admission_report:existsSync(admissionReportPath)?admissionReportPath:null,
     summary,
     scan_states:scanStates,
     attempt_counts:attempts,
@@ -1683,9 +1687,10 @@ async function report(){
 
 try{
   if(phase==='all'||phase==='collect') await collect();
+  if(!stopRequested&&(phase==='all'||phase==='admit')) await runAdmission();
   if(!stopRequested&&(phase==='all'||phase==='espeak')) await runEspeak();
   if(!stopRequested&&(phase==='all'||phase==='client')) await runClientResolver();
-  if(phase==='all'||phase==='collect'||phase==='espeak'||phase==='client'||phase==='report') await report();
+  if(phase==='all'||phase==='collect'||phase==='admit'||phase==='espeak'||phase==='client'||phase==='report') await report();
 }finally{
   workDb.exec('PRAGMA wal_checkpoint(TRUNCATE);');
   workDb.close();
