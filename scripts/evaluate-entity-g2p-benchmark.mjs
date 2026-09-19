@@ -21,6 +21,7 @@ const outPath=resolve(
 );
 const modelId=argValue('--model-id',null);
 const modelVersion=argValue('--model-version',null);
+const engineVersion=argValue('--engine-version',null);
 if(!predictionPath) throw new Error('--predictions <tsv> is required');
 
 const benchmark=JSON.parse(await readFile(benchmarkPath,'utf8'));
@@ -144,6 +145,7 @@ const evidence={
   candidate_metadata:{
     model_id:modelId,
     model_version:modelVersion,
+    engine_version:engineVersion,
   },
   benchmark_schema:benchmark.schema||null,
   benchmark_fingerprint:benchmark.semantic_fingerprint||null,
