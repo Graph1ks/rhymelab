@@ -363,7 +363,7 @@ const REQUIRED_CONTROL_GROUPS=[
 
 function assertInteractiveControlSurface(){
   const missingSingles=REQUIRED_SINGLE_CONTROLS.filter((selector)=>!$(selector));
-  const missingGroups=REQUIRED_CONTROL_GROUPS.filter((selector)=>$(selector).length===0);
+  const missingGroups=REQUIRED_CONTROL_GROUPS.filter((selector)=>$$(selector).length===0);
   if(missingSingles.length||missingGroups.length){
     throw new Error(`RhymeLab UI control surface incomplete: ${[...missingSingles,...missingGroups].join(', ')}`);
   }
