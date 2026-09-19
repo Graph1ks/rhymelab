@@ -219,6 +219,7 @@ const server = createServer(async (req, res) => {
         q,
         {
           language: url.searchParams.get('language') || 'de',
+          resultLanguage: url.searchParams.get('result_language') || url.searchParams.get('results_language') || null,
           scope: url.searchParams.get('scope') || 'all',
           type: url.searchParams.get('type') || 'all',
           includeVariants: url.searchParams.get('variants') === 'all',
