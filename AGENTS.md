@@ -22,7 +22,8 @@ Before changing the project in a fresh thread/session, read:
 14. `docs/REPOSITORY_GOVERNANCE.md`
 15. `docs/BENCHMARK.md` for rhyme-quality/ranking work
 16. `docs/API.md` for local API work
-17. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition history
+17. `docs/UI_INTERACTION_CONTRACT.md` for browser UI/control work
+24. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition history
 18. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity history
 19. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` for Phase 12A2 popularity-cut history
 20. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the Phase 12A3 Entity IPA/runtime checkpoint
