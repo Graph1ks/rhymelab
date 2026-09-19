@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { createEnglishWriterDbStorage, insertEnglishPublishRow, prepareEnglishWriterDbInserts } from '../scripts/en-writer-db-core.mjs';
-import { analyzeEnglishPronunciation } from '../scripts/english-phonology.mjs';
+import { analyzeEnglishIpa, analyzeEnglishPronunciation } from '../scripts/english-phonology.mjs';
 import {
   compareStoredEnglishAnalysis,
   englishRuntimeQueryPlans,
   retrieveEnglishRuntimeCandidates,
+  retrieveEnglishRuntimeCandidatesFromAnalysis,
 } from '../scripts/en-writer-runtime-core.mjs';
 
 function compactAnalysis(analysis){
@@ -89,6 +90,7 @@ function fixtureDb(){
   insertEnglishPublishRow(insert,row(2,'rhyme','R AY1 M',{unprofiledAlias:true}));
   insertEnglishPublishRow(insert,row(3,'nation','N EY1 SH AH0 N'));
   insertEnglishPublishRow(insert,row(4,'station','S T EY1 SH AH0 N'));
+  insertEnglishPublishRow(insert,row(5,'wine','W AY1 N'));
   return db;
 }
 
@@ -153,6 +155,21 @@ test('English runtime query plans use all five dedicated pronunciation indexes',
     assert.ok(plans.vowel.some((line)=>line.includes('idx_en_pron_vowel')));
     assert.ok(plans.family_coda.some((line)=>line.includes('idx_en_pron_family_coda')));
     assert.ok(plans.coda.some((line)=>line.includes('idx_en_pron_coda')));
+  }finally{
+    db.close();
+  }
+});
+
+
+test('English indexed retrieval accepts an external phonetic analysis',()=>{
+  const db=fixtureDb();
+  try{
+    const analysis=analyzeEnglishIpa('/ʃvaɪn/',{locale:'en-US',source:'cross_language_test'});
+    const result=retrieveEnglishRuntimeCandidatesFromAnalysis(db,analysis,{channelLimit:32,maxCandidates:64});
+    assert.equal(result.status,'ok');
+    const wine=result.candidates.find((candidate)=>candidate.normalized==='wine');
+    assert.ok(wine);
+    assert.ok(wine.channels.includes('exact'));
   }finally{
     db.close();
   }
