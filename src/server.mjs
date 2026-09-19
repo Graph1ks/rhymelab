@@ -143,11 +143,11 @@ function clientQueryPronunciation(url, language) {
   if (rawComponents) {
     try {
       const parsed = JSON.parse(rawComponents);
-      if (Array.isArray(parsed)) components = parsed.slice(0, 8).map(String);
+      if (Array.isArray(parsed)) components = parsed.slice(0, 64).map(String);
     } catch {}
   }
   return {
-    ipa: ipa.slice(0, 512),
+    ipa: ipa.slice(0, 4096),
     method: String(url.searchParams.get(`query_method_${language}`) || 'client_unknown').slice(0, 80),
     sourceBacked: url.searchParams.get(`query_source_backed_${language}`) === '1',
     components,
