@@ -348,12 +348,17 @@ data/local/pronunciation-espeak-highspeed-v2.json
 
 The test is read-only. It reports cases/second, process-mode/fallback counts, errors and projected hours for the remaining admitted population. The full runner additionally prints a per-window `recent=.../s` rate and cumulative process-mode counts so fallback storms are visible immediately instead of being hidden by the cumulative ETA. A batch size is eligible for the full run only when the run is stable with zero process errors.
 
+IPA normalization/analyzer work is now offloaded from the Node main thread to a persistent `worker_threads` pool. The owner default is **4 eSpeak batch workers + 4 IPA analyzer workers**. The worker pool returns only the compact analyzer fields required by staging persistence and stays alive for the complete resumable eSpeak phase. `--analyzer-workers 0` is an explicit main-thread control mode; it is not the default.
+
 IPA analyzer work is also offloaded from the Node main thread into a persistent `worker_threads` pool. The default is **4 analyzer workers**. The high-speed test uses the same pool and records analyzer task/restart/queue metrics for each batch-size run. For a direct control against the old main-thread analyzer, pass `--analyzer-workers 0`.
 
 Custom example:
 
 ```powershell
 npm run pronunciation:backfill:highspeed:test -- --workers 4 --cases 4096 --batch-sizes 128,256,512,1024
+
+# A/B control against the old main-thread analyzer
+npm run pronunciation:backfill:highspeed:analyzer-control -- --cases 4096 --batch-sizes 128
 ```
 
 The old per-row spawn ladder is retained only as a control:
@@ -394,7 +399,7 @@ npm run pronunciation:backfill:highspeed:test
 Then run eSpeak with four workers and the fastest stable batch size from the v2 report, for example:
 
 ```powershell
-npm run pronunciation:backfill:espeak -- --workers 4 --espeak-batch-size 512
+npm run pronunciation:backfill:espeak -- --workers 4 --espeak-batch-size 512 --analyzer-workers 4
 ```
 
 After eSpeak completes, run the client fallback only for analyzer-rejected admitted rows:
