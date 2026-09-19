@@ -92,6 +92,11 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /syncUiLanguageControls/);
   assert.match(app, /syncViewControls/);
   assert.doesNotThrow(() => new Function(app));
+  assert.doesNotMatch(app, /\$\$\$/);
+  assert.match(app, /function assertInteractiveControlSurface\(/);
+  assert.match(app, /function installInteractiveControls\(/);
+  assert.match(app, /dataset\.rhymelabControls='bound'/);
+  assert.match(app, /dataset\.rhymelabControls='failed'/);
   assert.doesNotMatch(app, /(?<!\$)\$\([^)]*\)\.(?:forEach|map|filter|some|every|find)\b/);
   assert.doesNotMatch(app, /for\s*\([^)]*\bof\s+(?<!\$)\$\([^)]*\)\s*\)/);
   assert.match(app, /englishUnavailable/);
