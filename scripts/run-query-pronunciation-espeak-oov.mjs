@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { inspectEspeakQueryPronunciation } from '../src/query-pronunciation-runtime.mjs';
+import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-adapter.mjs';
 
 export const ESPEAK_OOV_REPORT_SCHEMA='rhymelab-query-pronunciation-espeak-oov-report-v2';
 

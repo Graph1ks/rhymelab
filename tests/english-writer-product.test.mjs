@@ -268,3 +268,88 @@ test('German source pronunciation can retrieve English rhymes without requiring 
     db.close();
   }
 });
+
+
+test('unified Writer accepts browser-generated English IPA only as the query anchor',()=>{
+  const db=fixtureEnglishDb();
+  try{
+    const result=searchUnifiedWriter(
+      {writerDb:{},englishDb:db},
+      'mysterytime',
+      {
+        language:'en',
+        resultLanguage:'en',
+        scope:'words',
+        wordLimit:20,
+        queryPronunciations:{
+          en:{
+            ipa:'ˈtaɪm',
+            method:'client_rules',
+            sourceBacked:false,
+          },
+        },
+      },
+    );
+    assert.equal(result.status,'ok');
+    assert.equal(result.query.surface,'mysterytime');
+    assert.equal(result.query.preferredIpa,'ˈtaɪm');
+    assert.equal(result.query.generatedPronunciation,true);
+    assert.equal(result.query.queryPronunciation.clientOnly,true);
+    assert.equal(result.query.queryPronunciation.hostExecutableRequired,false);
+    assert.equal(result.query.queryPronunciation.canonicalLexicalFact,false);
+    assert.ok(result.results.some((row)=>row.normalized==='time'));
+    assert.ok(result.results.some((row)=>row.normalized==='rhyme'));
+  }finally{
+    db.close();
+  }
+});
+
+
+test('source-backed English query pronunciation wins over supplied browser IPA',()=>{
+  const db=fixtureEnglishDb();
+  try{
+    const result=searchUnifiedWriter(
+      {writerDb:{},englishDb:db},
+      'time',
+      {
+        language:'en',
+        resultLanguage:'en',
+        scope:'words',
+        wordLimit:20,
+        queryPronunciations:{
+          en:{ipa:'ˈwaɪn',method:'client_rules',sourceBacked:false},
+        },
+      },
+    );
+    assert.equal(result.status,'ok');
+    assert.equal(result.query.surface,'time');
+    assert.notEqual(result.query.preferredIpa,'ˈwaɪn');
+    assert.notEqual(result.query.generatedPronunciation,true);
+    assert.ok(result.results.some((row)=>row.normalized==='rhyme'));
+  }finally{
+    db.close();
+  }
+});
+
+test('invalid browser IPA is rejected instead of becoming lexical truth',()=>{
+  const db=fixtureEnglishDb();
+  try{
+    const result=searchUnifiedWriter(
+      {writerDb:{},englishDb:db},
+      'totallyunknownsurface',
+      {
+        language:'en',
+        resultLanguage:'en',
+        scope:'words',
+        queryPronunciations:{
+          en:{ipa:'???',method:'client_rules',sourceBacked:false},
+        },
+      },
+    );
+    assert.equal(result.status,'query_not_found');
+    assert.equal(result.query,null);
+    assert.deepEqual(result.results,[]);
+  }finally{
+    db.close();
+  }
+});

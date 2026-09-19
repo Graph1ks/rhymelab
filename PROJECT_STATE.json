@@ -25,9 +25,10 @@
     "core_search_requires_network": false,
     "core_search_allows_llm_inference": false,
     "core_search_allows_ml_model_inference": false,
-    "unknown_single_token_query_pronunciation": "total-query-pronunciation-v1",
-    "optional_espeak_ng_host_adapter": true,
-    "generated_pronunciation_canonical_persistence": false
+    "unknown_single_token_query_pronunciation": "client-total-query-pronunciation-v1",
+    "optional_espeak_ng_host_adapter": false,
+    "generated_pronunciation_canonical_persistence": false,
+    "query_pronunciation_generation_location": "end_user_client"
   },
   "legacy_control_baseline": {
     "status": "preserved",
@@ -3667,7 +3668,7 @@
     "ai_data_required_for_source_runtime_acceptance": false
   },
   "query_pronunciation": {
-    "status": "STRUCTURAL_V2_ACCEPTED_GOLD_CONTROL_PENDING",
+    "status": "BROWSER_CLIENT_RUNTIME_IMPLEMENTED_BROWSER_TEST_READY",
     "policy": "total-query-pronunciation-v1",
     "scope": "single_token_user_queries_only",
     "single_token_total": true,
@@ -3678,13 +3679,13 @@
     ],
     "both_mode": "resolve_de_and_en_independently",
     "espeak_ng": {
-      "optional_host_tool": true,
+      "role": "development_benchmark_reference_only",
+      "adapter": "scripts/query-pronunciation-espeak-adapter.mjs",
       "bundled": false,
       "runtime_required": false,
-      "network_required": false,
+      "end_user_runtime": false,
       "canonical_lexical_truth": false,
-      "license_boundary": "upstream_GPL_3_or_later_separate_host_executable_only",
-      "adapter_normalization": "espeak-to-rhymelab-ipa-v2"
+      "structural_reference_report_fingerprint": "facd6d15fa6096d33409de274d0271279560c3a728f2f860e9ee24bbff5ff1e5"
     },
     "deterministic_fallback": true,
     "generated_query_ephemeral": true,
@@ -3732,7 +3733,8 @@
       "normalized_v2_normalization_changed": 830,
       "normalized_v2_normalization_changed_pct": 82.02,
       "normalized_v2_structural_evidence_accepted": true,
-      "lexical_correctness_accepted": false
+      "lexical_correctness_accepted": false,
+      "role": "development_espeak_reference_only"
     },
     "generated_staging": {
       "schema": "rhymelab-generated-pronunciation-staging-v1",
@@ -3743,7 +3745,8 @@
       "minimum_report_schema": "rhymelab-query-pronunciation-espeak-oov-report-v2",
       "structural_v2_evidence_accepted": true,
       "owner_staging_materialized": false,
-      "runtime_promotion_blocked": true
+      "runtime_promotion_blocked": true,
+      "separate_from_end_user_query_runtime": true
     },
     "docs": [
       "docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md",
@@ -3765,7 +3768,47 @@
       ],
       "source_backed_only": true,
       "automatic_runtime_promotion": false,
-      "owner_report_fingerprint": null
+      "owner_report_fingerprint": null,
+      "role": "development_espeak_reference_only_not_client_acceptance"
+    },
+    "client_policy": "client-total-query-pronunciation-v1",
+    "execution_location": "end_user_client",
+    "client_module": "src/ui/query-pronunciation-client.mjs",
+    "browser_test_route": "/query-pronunciation-test",
+    "database_reference_lookup_allowed": true,
+    "server_pronunciation_generation": false,
+    "server_accepts_ephemeral_client_ipa": true,
+    "existing_search_pipeline_reused": true,
+    "host_executable_runtime_required": false,
+    "end_user_espeak_ng": false,
+    "end_user_node_child_process": false,
+    "portability_targets": [
+      "browser",
+      "android_webview_or_equivalent",
+      "electron_renderer_or_equivalent"
+    ],
+    "methods": [
+      "client_source_reference_compound",
+      "client_rules",
+      "client_grapheme_fallback"
+    ],
+    "client_quality": {
+      "automated_product_sentinels": [
+        "Vulkanschnecken",
+        "Glutamat",
+        "Winterwolf",
+        "Holladio",
+        "Dragonspawn",
+        "Ironworm",
+        "Baladur"
+      ],
+      "sentinel_languages": [
+        "de",
+        "en"
+      ],
+      "analyzer_compatibility_tested": true,
+      "browser_manual_test_ready": true,
+      "source_backed_gold_benchmark_for_client_pending": true
     }
   }
 }

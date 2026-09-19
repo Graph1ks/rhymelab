@@ -9,8 +9,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 ### Added
 
 - Added a deterministic 1000-case source-backed DE/EN query-pronunciation gold-control benchmark, balanced by language and syllable-count bucket, to measure eSpeak-NG pronunciation quality separately from structural analyzer compatibility.
-- Added Total Query Pronunciation v1: unknown normalized single-token queries now receive analyzer-compatible ephemeral DE/EN pronunciation anchors instead of failing solely because their spelling is absent from the lexicon.
-- Added an optional local eSpeak-NG host adapter plus deterministic in-repository DE/EN fallback rules; generated query pronunciations are never canonical lexical facts.
+- Added Total Query Pronunciation v1 browser fallback: unknown normalized single-token queries now receive ephemeral DE/EN IPA anchors in the end-user client when source-backed lookup misses.
+- Added `/query-pronunciation-test`, which exercises browser IPA generation followed by the unchanged Writer/Phrase/Entity search pipeline.
 - Added a deterministic 1000-case unresolved-data sampler, local eSpeak-NG structural/latency benchmark runner, and a separate opt-in-only generated-pronunciation staging SQLite path.
 - Added independent result-language targeting so a source-resolved German query can request German, English, or combined results without treating the German spelling as an English lexeme.
 - Added runtime-driven Entity category filtering, an alphabetized Sources dialog, bounded search-pool counts, and per-relation More controls for standard browsing.
@@ -30,7 +30,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 - Accepted the normalized eSpeak OOV v2 run as structural compatibility evidence at 1012 / 1014 analyzer-compatible cases (99.80%); lexical correctness remains a separate quality gate.
 - eSpeak OOV benchmark evidence is now schema v2 and records raw IPA, normalized IPA, normalization changes, all failures, and exact analyzer errors for forensic review.
-- DE+EN unknown single-token queries now resolve independent DE and EN pronunciation anchors rather than stopping for spelling ambiguity; multi-word Phrase/Mosaic pronunciation rules remain frozen.
+- DE+EN unknown single-token queries now resolve independent missing DE and EN pronunciation anchors in the end-user client; source-backed anchors remain preferred and multi-word Phrase/Mosaic pronunciation rules remain frozen.
+- eSpeak-NG moved out of `src/` and is benchmark/development-only under `scripts/`; end-user query pronunciation has no host-executable dependency.
 - Generated query pronunciation is visibly marked in the search inspector and uses the existing accepted language-specific retrieval/scoring/ranking paths.
 - Standard unfiltered search now uses explicit per-category More controls; automatic progressive/endless scrolling is reserved for a selected rhyme/sound relation.
 - Entity category dropdown labels are rendered as readable localized subtype names instead of raw taxonomy paths.

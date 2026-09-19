@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RhymeLab Query Pronunciation Test</title>
+  <link rel="stylesheet" href="/query-pronunciation-test/styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">RHYME LAB · BROWSER QUERY TEST</p>
+      <h1>Unknown word → local IPA → existing search</h1>
+      <p class="lede">Only unknown-word pronunciation is generated in the browser. Database lookup, rhyme retrieval, ranking, phrases and entities stay on the existing RhymeLab search path.</p>
+    </header>
+
+    <section class="card">
+      <form id="testForm">
+        <label>
+          <span>Query</span>
+          <input id="query" value="Vulkanschnecken" autocomplete="off" spellcheck="false">
+        </label>
+        <label>
+          <span>Query pronunciation</span>
+          <select id="language">
+            <option value="de">DE</option>
+            <option value="en">EN</option>
+            <option value="both">DE+EN</option>
+          </select>
+        </label>
+        <label>
+          <span>Result language</span>
+          <select id="resultLanguage">
+            <option value="de">DE</option>
+            <option value="en">EN</option>
+            <option value="both">DE+EN</option>
+          </select>
+        </label>
+        <button type="submit">RUN BROWSER SEARCH TEST</button>
+      </form>
+
+      <div class="sentinels" aria-label="Quick test words">
+        <button type="button" data-word="Vulkanschnecken">Vulkanschnecken</button>
+        <button type="button" data-word="Glutamat">Glutamat</button>
+        <button type="button" data-word="Winterwolf">Winterwolf</button>
+        <button type="button" data-word="Holladio">Holladio</button>
+        <button type="button" data-word="Dragonspawn">Dragonspawn</button>
+        <button type="button" data-word="Ironworm">Ironworm</button>
+        <button type="button" data-word="Baladur">Baladur</button>
+        <button type="button" data-word="Madonna">Madonna</button>
+        <button type="button" data-word="Michael Jackson">Michael Jackson</button>
+      </div>
+    </section>
+
+    <section id="summary" class="card status">Ready.</section>
+    <section id="languages" class="language-grid"></section>
+    <section class="card">
+      <h2>Existing search results</h2>
+      <div id="searchMeta" class="meta"></div>
+      <div id="results"></div>
+    </section>
+  </main>
+  <script type="module" src="/query-pronunciation-test/app.js"></script>
+</body>
+</html>
