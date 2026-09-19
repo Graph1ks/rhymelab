@@ -178,6 +178,7 @@ try{
       version:preflight.engineVersion||null,
     },
     workers,
+    analyzer_workers:analyzerWorkers,
     batch_sizes:batchSizes,
     runs,
     fastest_stable_batch_size:fastest?.stable?fastest.batch_size:null,
@@ -194,6 +195,7 @@ try{
   console.log(JSON.stringify({
     schema:report.schema,
     workers:report.workers,
+    analyzer_workers:report.analyzer_workers,
     fastest_stable_batch_size:report.fastest_stable_batch_size,
     fastest_stable_cases_per_second:report.fastest_stable_cases_per_second,
     fastest_stable_projected_pending_hours:report.fastest_stable_projected_pending_hours,
