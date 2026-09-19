@@ -3493,7 +3493,7 @@
         "guarded_entity_writer_ranking_and_metadata_batching",
         "owner_full_data_runtime_and_entity_writer_acceptance",
         "squash_merge_source_backed_phase12c_runtime_after_green_ci",
-        "collect_llm_pronunciation_evidence_for_704989_unresolved_names_in_isolated_staging",
+        "build_targeted_ai_pronunciation_evidence_for_runtime_unresolved_names_within_top_100k_entities",
         "review_benchmark_v3_context_gold_with_independent_evidence",
         "evaluate_ai_staging_quality_without_automatic_promotion_threshold",
         "explicit_separate_runtime_promotion_decision_if_evidence_ever_justifies_it"
@@ -3559,6 +3559,17 @@
         "source_resolved_candidates": 710561,
         "unresolved_after_source_resolution": 704989,
         "note": "source-resolution evidence only; accepted runtime-ready rows must also pass the EN runtime analyzer"
+      },
+      "ai_pronunciation_scope": {
+        "status": "TOP_100K_TARGETED_ONLY",
+        "entity_population": "top_100000_retained_entities_by_accepted_popularity_ordering",
+        "target": "english_names_without_runtime_valid_pronunciation",
+        "include_source_resolved_analyzer_rejects": true,
+        "exact_target_row_count": "MEASURE_OWNER_LOCAL_BEFORE_EXPORT",
+        "long_tail_policy": "LEAVE_UNRESOLVED_BY_DEFAULT",
+        "historical_704989_queue": "RETAIN_AS_IMMUTABLE_REPRODUCIBLE_EVIDENCE_NOT_FUTURE_CAMPAIGN_SCOPE",
+        "new_export_identity_required": true,
+        "automatic_runtime_promotion": false
       }
     },
     "performance_phase": {
