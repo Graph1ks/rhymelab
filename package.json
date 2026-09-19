@@ -149,6 +149,7 @@
     "pronunciation:backfill:admit": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase admit",
     "pronunciation:backfill:espeak": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase espeak",
     "pronunciation:backfill:espeak:highspeed": "node --no-warnings scripts/benchmark-pronunciation-espeak-highspeed.mjs",
-    "pronunciation:backfill:client": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase client"
+    "pronunciation:backfill:client": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase client",
+    "pronunciation:backfill:highspeed:test": "node --no-warnings scripts/benchmark-pronunciation-espeak-highspeed.mjs"
   }
 }
