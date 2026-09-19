@@ -62,6 +62,7 @@ const commitEvery=integerArg('--commit-every',250,{min:1,max:10_000});
 const admissionCommitEvery=integerArg('--admission-commit-every',10000,{min:100,max:100_000});
 const espeakWorkers=integerArg('--workers',4,{min:1,max:32});
 const espeakBatchSize=integerArg('--espeak-batch-size',512,{min:16,max:5000});
+const espeakFrameGroupSize=integerArg('--espeak-frame-group-size',16,{min:1,max:256});
 const analyzerWorkers=integerArg('--analyzer-workers',4,{min:0,max:16});
 const retryErrors=hasFlag('--retry-errors');
 const reset=hasFlag('--reset');
@@ -1383,6 +1384,7 @@ async function runEspeak(){
     +' · admitted_pending='+total.toLocaleString('en-US')
     +' · workers='+espeakWorkers
     +' · batch_per_worker='+espeakBatchSize
+    +' · frame_group='+espeakFrameGroupSize
     +' · analyzer_workers='+analyzerWorkers
     +' · analyzer_mode='+analyzerMode
     +' · by_language='+safeJson(pendingByLanguage)
@@ -1414,6 +1416,7 @@ async function runEspeak(){
         '[espeak:'+language+'] pending='+languageTotal.toLocaleString('en-US')
         +' · workers='+espeakWorkers
         +' · batch_per_worker='+espeakBatchSize
+        +' · frame_group='+espeakFrameGroupSize
         +' · analyzer_workers='+analyzerWorkers
       );
 
@@ -1426,6 +1429,7 @@ async function runEspeak(){
           engineVersion:preflight.engineVersion||null,
           workers:espeakWorkers,
           batchSize:espeakBatchSize,
+          frameGroupSize:espeakFrameGroupSize,
           analyzerPool,
         });
 
@@ -1454,6 +1458,8 @@ async function runEspeak(){
                     process_mode:result.mode,
                     batch_size:result.batch_size,
                     batch_elapsed_ms:Number(result.batch_elapsed_ms||0),
+                    frame_group_size:result.sparse_frame_group_size??espeakFrameGroupSize,
+                    sparse_ambiguous_groups:Number(result.sparse_frame_ambiguous_groups||0),
                     analyzer_mode:result.analyzer_mode||analyzerMode,
                     analyzer_elapsed_ms:Number(result.analyzer_elapsed_ms||0),
                     analyzer_queue_ms:Number(result.analyzer_queue_ms||0),
@@ -1479,6 +1485,8 @@ async function runEspeak(){
                     process_mode:result.mode,
                     batch_size:result.batch_size,
                     batch_elapsed_ms:Number(result.batch_elapsed_ms||0),
+                    frame_group_size:result.sparse_frame_group_size??espeakFrameGroupSize,
+                    sparse_ambiguous_groups:Number(result.sparse_frame_ambiguous_groups||0),
                     analyzer_mode:result.analyzer_mode||analyzerMode,
                     analyzer_elapsed_ms:Number(result.analyzer_elapsed_ms||0),
                     analyzer_queue_ms:Number(result.analyzer_queue_ms||0),
@@ -1513,6 +1521,8 @@ async function runEspeak(){
                   process_mode:result.mode,
                   batch_size:result.batch_size,
                   batch_elapsed_ms:Number(result.batch_elapsed_ms||0),
+                    frame_group_size:result.sparse_frame_group_size??espeakFrameGroupSize,
+                    sparse_ambiguous_groups:Number(result.sparse_frame_ambiguous_groups||0),
                   analyzer_mode:result.analyzer_mode||analyzerMode,
                   analyzer_elapsed_ms:Number(result.analyzer_elapsed_ms||0),
                   analyzer_queue_ms:Number(result.analyzer_queue_ms||0),
@@ -1556,6 +1566,7 @@ async function runEspeak(){
             +' '+languageDone.toLocaleString('en-US')+'/'+languageTotal.toLocaleString('en-US')
             +' · recent='+recentRate.toFixed(1)+'/s'
             +' · batch4='+espeakWorkers+'x'+espeakBatchSize
+            +' · frame='+espeakFrameGroupSize
             +' · analyzer='+analyzerMode
             +(analyzerPool?' '+analyzerWorkers+'w q='+analyzerStats.queued+' active='+analyzerStats.active
               +' restarts='+analyzerStats.worker_restarts:'')
@@ -1571,6 +1582,7 @@ async function runEspeak(){
   upsertMeta.run('espeak_workers_last_run',String(espeakWorkers));
   upsertMeta.run('espeak_process_mode_last_run','batch');
   upsertMeta.run('espeak_batch_size_last_run',String(espeakBatchSize));
+  upsertMeta.run('espeak_frame_group_size_last_run',String(espeakFrameGroupSize));
   upsertMeta.run('espeak_analyzer_workers_last_run',String(analyzerWorkers));
   upsertMeta.run('espeak_analyzer_mode_last_run',analyzerMode);
   upsertMeta.run('updated_at',now());
