@@ -185,6 +185,7 @@ function tsv(value){return String(value??'').replace(/[\t\r\n]/gu,' ');}
 const missingStats=createAgreementStats();
 const missingByScope={};
 const missingByLanguage={};
+const missingByShape={};
 const missingOutcomes=[];
 const esLat=[];
 const clLat=[];
@@ -199,6 +200,7 @@ try{
     const scope=row.sampled_scope||'unknown';
     missingByScope[scope]??=createAgreementStats();
     missingByLanguage[row.language]??=createAgreementStats();
+    missingByShape[row.shape||'unknown']??=createAgreementStats();
     addAgreement(missingStats,{
       espeakAccepted:pair.espeak.accepted,
       clientAccepted:pair.client.accepted,
@@ -210,6 +212,11 @@ try{
       comparison:pair.comparison,
     });
     addAgreement(missingByLanguage[row.language],{
+      espeakAccepted:pair.espeak.accepted,
+      clientAccepted:pair.client.accepted,
+      comparison:pair.comparison,
+    });
+    addAgreement(missingByShape[row.shape||'unknown'],{
       espeakAccepted:pair.espeak.accepted,
       clientAccepted:pair.client.accepted,
       comparison:pair.comparison,
@@ -308,6 +315,7 @@ try{
       metrics:finalizeAgreement(missingStats),
       by_scope:Object.fromEntries(Object.entries(missingByScope).map(([scope,stats])=>[scope,finalizeAgreement(stats)])),
       by_language:Object.fromEntries(Object.entries(missingByLanguage).map(([language,stats])=>[language,finalizeAgreement(stats)])),
+      by_shape:Object.fromEntries(Object.entries(missingByShape).map(([shape,stats])=>[shape,finalizeAgreement(stats)])),
       client_methods:clientMethods,
       interpretation:'Agreement/coverage on unresolved rows is structural evidence, not lexical correctness because these rows have no direct gold.',
     },

@@ -241,7 +241,7 @@ data/local/pronunciation-backfill-v2-audit-sample-1000.json
 data/local/pronunciation-backfill-v2-audit-sample-1000.tsv
 ```
 
-The audit is read-only. It classifies the existing workset by language, scope, token count, source-ref multiplicity, length and surface shape. It does not automatically discard any candidate.
+The audit is read-only. It classifies the existing workset by language, scope, token count, source-ref multiplicity, length and surface shape, and reports the cross-tab `scope × shape` with small per-cell examples. It does not automatically discard any candidate.
 
 The 1000 unresolved cases are deterministic and scope-balanced so every collected source family is represented.
 
@@ -265,7 +265,7 @@ data/local/pronunciation-generator-benchmark-1000-v1.json
 data/local/pronunciation-generator-benchmark-1000-v1.tsv
 ```
 
-The report includes per-scope/per-language coverage, client method breakdown, eSpeak/client IPA agreement, syllable/stress/rhyme-key agreement, held-out reference metrics and latency. Neither benchmark mutates the backfill work DB or canonical runtime DBs.
+The report includes per-scope/per-language/**per-shape** coverage, client method breakdown, eSpeak/client IPA agreement, syllable/stress/rhyme-key agreement, held-out reference metrics and latency. Neither benchmark mutates the backfill work DB or canonical runtime DBs.
 
 If the audit/gold samples already exist and only the generators should be rerun:
 
