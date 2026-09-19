@@ -7,7 +7,7 @@ import {
   guardViolations,
   lexicalSimilarity,
   pageMetrics,
-  qualityComparator,
+  rankQualityRows,
   qualityEvidence,
 } from '../scripts/en-writer-ranking-evidence-core.mjs';
 
@@ -36,9 +36,9 @@ test('English quality comparator does not let commonness jump outside phonetic g
       wordfreq_zipf:6.5,
     },
   ].map((row)=>({...row,evidence:qualityEvidence(row,'query',config)}));
-  rows.sort(qualityComparator(config));
-  assert.equal(rows[0].normalized,'strong');
-  assert.equal(guardViolations(rows,{nearTieBand:0.03}).length,0);
+  const ranked=rankQualityRows(rows,config);
+  assert.equal(ranked[0].normalized,'strong');
+  assert.equal(guardViolations(ranked,{nearTieBand:0.03}).length,0);
 });
 
 test('English diversity suppresses same-lemma concentration without crossing tier boundary',()=>{
@@ -49,7 +49,8 @@ test('English diversity suppresses same-lemma concentration without crossing tie
     {normalized:'gamma',tier:1,lemmas:'["gamma"]',evidence:{utility:0.99,phonetic:0.99,commonness:0.8,lexical_overlap:0}},
   ];
   assert.ok(candidateRedundancy(base[0],base[1])>=0.95);
-  const diversified=diversifyRanked(base,{weight:0.18,limit:4,nearTieBand:0.03});
+  const ranked=rankQualityRows(base,{near_tie_band:0.03});
+  const diversified=diversifyRanked(ranked,{weight:0.18,limit:4});
   assert.equal(diversified[0].normalized,'alpha');
   assert.equal(diversified[1].normalized,'beta');
   assert.equal(diversified[3].normalized,'gamma');
