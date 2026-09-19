@@ -1188,13 +1188,13 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_phase12c_mfa_confidence_calibration",
-    "owner_run_npm_entity_g2p_benchmark_mfa_in_miniforge_prompt_with_rhymelab_mfa_active",
-    "review_score_retention_curve",
-    "accept_score_gated_mfa_only_if_confidence_signal_materially_improves_exact_tail",
-    "otherwise_reject_mfa_runtime_fallback_and_move_to_independent_candidate"
+    "merge_phase12c_g2pen_independent_benchmark",
+    "owner_create_rhymelab_g2pen_miniforge_environment_once",
+    "owner_run_npm_entity_g2p_benchmark_g2pen",
+    "compare_forced_neural_g2pen_to_rejected_mfa_baseline",
+    "if_no_material_exact_tail_gain_stop_g2p_campaign_and_keep_residual_unresolved"
   ],
-  "next_milestone": "PHASE_12C_ENTITY_MFA_CONFIDENCE_CALIBRATION",
+  "next_milestone": "PHASE_12C_ENTITY_G2PEN_INDEPENDENT_PROPER_NAME_BENCHMARK",
   "phase_12_english": {
     "status": "COMPLETE_ACCEPTED_FROZEN_PRODUCT_EN",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -3288,7 +3288,21 @@
             "runtime_promoted": false,
             "command_behavior": "rebuild_v2_benchmark_then_run_mfa_and_evaluate_in_one_owner_command"
           },
-          "independent_candidate": "deep_phonemizer_en_us",
+          "independent_candidate": {
+            "status": "IMPLEMENTED_OWNER_RUN_PENDING",
+            "candidate": "g2p-en-neural",
+            "package": "g2p-en",
+            "package_version": "2.1.0",
+            "model_id": "checkpoint20.npz",
+            "license": "Apache-2.0",
+            "training_basis": "CMUdict",
+            "output": "stressed_arpabet",
+            "neural_path_forced": true,
+            "cmudict_lookup_used": false,
+            "command": "npm run entity:g2p:benchmark:g2pen",
+            "contract": "docs/ENTITY_G2P_G2PEN_BENCHMARK_V1.md",
+            "runtime_promoted": false
+          },
           "multilingual_research_candidate": "charsiu_multilingual",
           "charsiu_production_allowed": false,
           "first_mfa_owner_run": {
@@ -3345,6 +3359,19 @@
               85
             ],
             "generated_runtime_promotion": false
+          },
+          "mfa_final_decision": {
+            "status": "REJECTED_FOR_RUNTIME_FALLBACK",
+            "calibrated_evaluation_fingerprint": "9bc00102d46af55352505389c03fe048083cdd81c966007ab86924d9df233488",
+            "exact_tail_pct": 71.19,
+            "best_10pct_exact_tail_pct": 86.67,
+            "max_retention_at_90pct_exact_tail_pct": 1.68,
+            "max_retention_at_85pct_exact_tail_pct": 21.94,
+            "reason": "confidence score does not isolate a useful high-precision population"
+          },
+          "deep_phonemizer": {
+            "status": "DEFERRED",
+            "reason": "pretrained checkpoint license not separately explicit enough for intended commercial runtime promotion path"
           }
         },
         "owner_run_pending": false,
