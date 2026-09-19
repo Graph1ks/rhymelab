@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon_names=close,language,search,tune&display=block" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon_names=close,expand_more,language,search,tune&display=block" rel="stylesheet">
   <link rel="stylesheet" href="/assets/styles.css">
   <link rel="stylesheet" href="/assets/mobile.css">
 </head>
@@ -42,54 +42,66 @@
   <main class="shell">
     <section class="search-stage" aria-label="Rhyme search">
       <div class="search-card">
-        <div class="search-mode-grid">
-          <div class="mode-group">
-            <span class="mode-label" data-i18n="languageBasis">Query pronunciation</span>
-            <div class="segmented language-segmented" role="group" aria-label="Search language basis">
-              <button type="button" data-basis="de" class="basis-option">
-                <strong>DE</strong>
-                <small data-i18n="basisGerman">German</small>
-              </button>
-              <button type="button" data-basis="en" class="basis-option">
-                <strong>EN</strong>
-                <small data-i18n="basisEnglish">English</small>
-              </button>
-              <button type="button" data-basis="both" class="basis-option">
-                <strong>DE+EN</strong>
-                <small data-i18n="basisBoth">Combined</small>
-              </button>
-            </div>
-          </div>
+        <section id="searchOptionsSection" class="search-control-section search-options-section">
+          <button type="button" id="searchOptionsToggle" class="search-section-toggle" aria-expanded="true" aria-controls="searchOptionsPanel">
+            <span class="material-symbols-outlined search-section-icon" aria-hidden="true">language</span>
+            <span class="search-section-toggle-copy">
+              <strong data-i18n="searchOptions">Search options</strong>
+              <small data-i18n="searchOptionsHint">Query, result language and scope</small>
+            </span>
+            <span class="material-symbols-outlined search-section-chevron" aria-hidden="true">expand_more</span>
+          </button>
+          <div id="searchOptionsPanel" class="search-section-panel">
+            <div class="search-mode-grid">
+              <div class="mode-group">
+                <span class="mode-label" data-i18n="languageBasis">Query pronunciation</span>
+                <div class="segmented language-segmented" role="group" aria-label="Search language basis">
+                  <button type="button" data-basis="de" class="basis-option">
+                    <strong>DE</strong>
+                    <small data-i18n="basisGerman">German</small>
+                  </button>
+                  <button type="button" data-basis="en" class="basis-option">
+                    <strong>EN</strong>
+                    <small data-i18n="basisEnglish">English</small>
+                  </button>
+                  <button type="button" data-basis="both" class="basis-option">
+                    <strong>DE+EN</strong>
+                    <small data-i18n="basisBoth">Combined</small>
+                  </button>
+                </div>
+              </div>
 
-          <div class="mode-group">
-            <span class="mode-label" data-i18n="resultLanguage">Result language</span>
-            <div class="segmented result-language-segmented" role="group" aria-label="Result language">
-              <button type="button" data-result-language="de" class="result-language-option">
-                <strong>DE</strong>
-                <small data-i18n="basisGerman">German</small>
-              </button>
-              <button type="button" data-result-language="en" class="result-language-option">
-                <strong>EN</strong>
-                <small data-i18n="basisEnglish">English</small>
-              </button>
-              <button type="button" data-result-language="both" class="result-language-option">
-                <strong>DE+EN</strong>
-                <small data-i18n="basisBoth">Combined</small>
-              </button>
-            </div>
-          </div>
+              <div class="mode-group">
+                <span class="mode-label" data-i18n="resultLanguage">Result language</span>
+                <div class="segmented result-language-segmented" role="group" aria-label="Result language">
+                  <button type="button" data-result-language="de" class="result-language-option">
+                    <strong>DE</strong>
+                    <small data-i18n="basisGerman">German</small>
+                  </button>
+                  <button type="button" data-result-language="en" class="result-language-option">
+                    <strong>EN</strong>
+                    <small data-i18n="basisEnglish">English</small>
+                  </button>
+                  <button type="button" data-result-language="both" class="result-language-option">
+                    <strong>DE+EN</strong>
+                    <small data-i18n="basisBoth">Combined</small>
+                  </button>
+                </div>
+              </div>
 
-          <div class="mode-group">
-            <span class="mode-label" data-i18n="searchIn">Search in</span>
-            <div class="segmented scope-segmented" role="group" aria-label="Search result scope">
-              <button type="button" data-scope="all" class="scope-option active" data-i18n="scopeAllButton">All</button>
-              <button type="button" data-scope="words" class="scope-option" data-i18n="scopeWords">Words</button>
-              <button type="button" data-scope="phrases" class="scope-option" data-i18n="scopePhrasesShort">Phrases</button>
-              <button type="button" data-scope="entities" class="scope-option" data-i18n="scopeEntities">Entities</button>
+              <div class="mode-group">
+                <span class="mode-label" data-i18n="searchIn">Search in</span>
+                <div class="segmented scope-segmented" role="group" aria-label="Search result scope">
+                  <button type="button" data-scope="all" class="scope-option active" data-i18n="scopeAllButton">All</button>
+                  <button type="button" data-scope="words" class="scope-option" data-i18n="scopeWords">Words</button>
+                  <button type="button" data-scope="phrases" class="scope-option" data-i18n="scopePhrasesShort">Phrases</button>
+                  <button type="button" data-scope="entities" class="scope-option" data-i18n="scopeEntities">Entities</button>
+                </div>
+                <input id="scopeFilter" type="hidden" value="all">
+              </div>
             </div>
-            <input id="scopeFilter" type="hidden" value="all">
           </div>
-        </div>
+        </section>
 
         <form id="searchForm" class="search" role="search">
           <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
@@ -99,87 +111,96 @@
 
         <div id="availabilityBar" class="availability-bar" aria-live="polite"></div>
 
-        <div id="resultsToolbar" class="toolbar-card search-results-toolbar hidden">
-          <div class="toolbar-title">
-            <span class="material-symbols-outlined" aria-hidden="true">tune</span>
-            <strong data-i18n="browse">Browse results</strong>
-            <span id="resultCount" class="result-count"></span>
-            <div class="view-switch" role="group" aria-label="Result layout">
-              <button type="button" class="view-option active" data-view="list" data-i18n="viewList">List</button>
-              <button type="button" class="view-option" data-view="compact" data-i18n="viewCompact">Compact</button>
+        <section id="resultFiltersSection" class="search-control-section result-filters-section hidden">
+          <button type="button" id="resultFiltersToggle" class="search-section-toggle" aria-expanded="true" aria-controls="resultFiltersPanel">
+            <span class="material-symbols-outlined search-section-icon" aria-hidden="true">tune</span>
+            <span class="search-section-toggle-copy">
+              <strong data-i18n="resultFilters">Result filters</strong>
+              <small data-i18n="resultFiltersHint">Rhyme, syllables, sorting and vocabulary</small>
+            </span>
+            <span class="material-symbols-outlined search-section-chevron" aria-hidden="true">expand_more</span>
+          </button>
+          <div id="resultFiltersPanel" class="search-section-panel">
+            <div id="resultsToolbar" class="toolbar-card search-results-toolbar">
+              <div class="toolbar-title">
+                <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                <strong data-i18n="browse">Browse results</strong>
+                <span id="resultCount" class="result-count"></span>
+                <div class="view-switch" role="group" aria-label="Result layout">
+                  <button type="button" class="view-option active" data-view="list" data-i18n="viewList">List</button>
+                  <button type="button" class="view-option" data-view="compact" data-i18n="viewCompact">Compact</button>
+                </div>
+              </div>
+
+              <details class="filter-drawer" open>
+                <summary>
+                  <span data-i18n="filters">Filters</span>
+                  <span class="filter-summary-hint" data-i18n="filtersHint">Rhyme, syllables, sorting and vocabulary</span>
+                </summary>
+                <div class="controls-grid">
+                <label>
+                  <span data-i18n="rhymeType">Rhyme type</span>
+                  <select id="typeFilter">
+                    <option value="all" data-i18n-option="all">All</option>
+                    <option value="multisyllabic_perfect" data-i18n-option="type_multisyllabic_perfect">Multisyllabic perfect</option>
+                    <option value="perfect" data-i18n-option="type_perfect">Perfect rhyme</option>
+                    <option value="multisyllabic_slant" data-i18n-option="type_multisyllabic_slant">Multisyllabic slant</option>
+                    <option value="family" data-i18n-option="type_family">Rhyme family</option>
+                    <option value="slant" data-i18n-option="type_slant">Slant rhyme</option>
+                    <option value="assonance" data-i18n-option="type_assonance">Assonance</option>
+                    <option value="consonance" data-i18n-option="type_consonance">Consonance</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span data-i18n="syllables">Syllables</span>
+                  <select id="syllableFilter">
+                    <option value="all" data-i18n-option="all" selected>All</option>
+                    <option value="same" data-i18n-option="same">Same count</option>
+                    <option value="near1" data-i18n-option="plusMinus1">±1 syllable</option>
+                    <option value="near2" data-i18n-option="plusMinus2">±2 syllables</option>
+                    <option value="near3" data-i18n-option="plusMinus3">±3 syllables</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span data-i18n="sort">Sort</span>
+                  <select id="sortMode">
+                    <option value="recommended" data-i18n-option="recommended">Recommended</option>
+                    <option value="syllables" data-i18n-option="syllableDistance">Syllable distance</option>
+                    <option value="common" data-i18n-option="mostCommon">Most common</option>
+                    <option value="closest" data-i18n-option="closest">Closest rhyme</option>
+                    <option value="alpha" data-i18n-option="alphabetical">A–Z</option>
+                  </select>
+                </label>
+
+                <label id="variantFilter">
+                  <span data-i18n="pronunciation">Pronunciation</span>
+                  <select id="variantMode">
+                    <option value="preferred" data-i18n-option="standard">Standard</option>
+                    <option value="all" data-i18n-option="allVariants">All variants</option>
+                  </select>
+                </label>
+
+                <label id="entityCategoryFilter" class="context-hidden">
+                  <span data-i18n="entityCategory">Entity category</span>
+                  <select id="entityCategory">
+                    <option value="all" data-i18n-option="allEntities">All entities</option>
+                  </select>
+                </label>
+
+                <label class="check-filter" id="historicalFilter">
+                  <span data-i18n="vocabulary">Vocabulary</span>
+                  <span class="checkbox-line">
+                    <input id="historicalMode" type="checkbox">
+                    <span data-i18n="includeHistorical">Include historical / obsolete</span>
+                  </span>
+                </label>
+                </div>
+              </details>
             </div>
           </div>
-
-          <details class="filter-drawer" open>
-            <summary>
-              <span data-i18n="filters">Filters</span>
-              <span class="filter-summary-hint" data-i18n="filtersHint">Rhyme, syllables, sorting and vocabulary</span>
-            </summary>
-            <div class="controls-grid">
-            <label>
-              <span data-i18n="rhymeType">Rhyme type</span>
-              <select id="typeFilter">
-                <option value="all" data-i18n-option="all">All</option>
-                <option value="multisyllabic_perfect" data-i18n-option="type_multisyllabic_perfect">Multisyllabic perfect</option>
-                <option value="perfect" data-i18n-option="type_perfect">Perfect rhyme</option>
-                <option value="multisyllabic_slant" data-i18n-option="type_multisyllabic_slant">Multisyllabic slant</option>
-                <option value="family" data-i18n-option="type_family">Rhyme family</option>
-                <option value="slant" data-i18n-option="type_slant">Slant rhyme</option>
-                <option value="assonance" data-i18n-option="type_assonance">Assonance</option>
-                <option value="consonance" data-i18n-option="type_consonance">Consonance</option>
-              </select>
-            </label>
-
-            <label>
-              <span data-i18n="syllables">Syllables</span>
-              <select id="syllableFilter">
-                <option value="all" data-i18n-option="all" selected>All</option>
-                <option value="same" data-i18n-option="same">Same count</option>
-                <option value="near1" data-i18n-option="plusMinus1">±1 syllable</option>
-                <option value="near2" data-i18n-option="plusMinus2">±2 syllables</option>
-                <option value="near3" data-i18n-option="plusMinus3">±3 syllables</option>
-              </select>
-            </label>
-
-            <label>
-              <span data-i18n="sort">Sort</span>
-              <select id="sortMode">
-                <option value="recommended" data-i18n-option="recommended">Recommended</option>
-                <option value="syllables" data-i18n-option="syllableDistance">Syllable distance</option>
-                <option value="common" data-i18n-option="mostCommon">Most common</option>
-                <option value="closest" data-i18n-option="closest">Closest rhyme</option>
-                <option value="alpha" data-i18n-option="alphabetical">A–Z</option>
-              </select>
-            </label>
-
-            <label id="variantFilter">
-              <span data-i18n="pronunciation">Pronunciation</span>
-              <select id="variantMode">
-                <option value="preferred" data-i18n-option="standard">Standard</option>
-                <option value="all" data-i18n-option="allVariants">All variants</option>
-              </select>
-            </label>
-
-            <label id="entityCategoryFilter" class="context-hidden">
-              <span data-i18n="entityCategory">Entity category</span>
-              <select id="entityCategory">
-                <option value="all" data-i18n-option="allEntities">All entities</option>
-              </select>
-            </label>
-
-            <label class="check-filter" id="historicalFilter">
-              <span data-i18n="vocabulary">Vocabulary</span>
-              <span class="checkbox-line">
-                <input id="historicalMode" type="checkbox">
-                <span data-i18n="includeHistorical">Include historical / obsolete</span>
-              </span>
-            </label>
-            </div>
-          </details>
-        </div>
-
-
-        <button type="button" id="searchFiltersReveal" class="search-filter-reveal" data-i18n="showSearchFilters">Show result search filters</button>
+        </section>
       </div>
     </section>
 
