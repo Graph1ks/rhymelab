@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { requiresShell, resolveCondaTool } from './local-command-resolution.mjs';
+import { prepareG2pEnNeuralCases } from './g2pen-benchmark-core.mjs';
 
 const args=process.argv.slice(2);
 function argValue(flag,fallback=null){
@@ -12,6 +13,9 @@ function argValue(flag,fallback=null){
 
 const benchmarkPath=resolve(
   argValue('--benchmark','data/local/entity-g2p-proper-name-benchmark-v2.json')
+);
+const preparedInputPath=resolve(
+  argValue('--prepared-input','data/work/entity/entity-g2p-g2pen-neural-input-v1.json')
 );
 const predictionsPath=resolve(
   argValue('--predictions','data/local/entity-g2p-g2pen-neural-predictions-v2.tsv')
@@ -43,9 +47,39 @@ function run(command,commandArgs,{capture=false}={}){
   return capture?String(result.stdout||'').trim():'';
 }
 
+await mkdir(dirname(preparedInputPath),{recursive:true});
 await mkdir(dirname(predictionsPath),{recursive:true});
 await mkdir(dirname(metadataPath),{recursive:true});
 await mkdir(dirname(evaluationPath),{recursive:true});
+
+const benchmark=JSON.parse(await readFile(benchmarkPath,'utf8'));
+if(benchmark.schema!=='rhymelab-entity-g2p-proper-name-token-benchmark-v2'){
+  throw new Error('Expected proper-name token benchmark v2.');
+}
+const prepared=prepareG2pEnNeuralCases(benchmark.cases||[]);
+const eligiblePct=(benchmark.cases||[]).length
+  ?Number((prepared.eligible.length*100/(benchmark.cases||[]).length).toFixed(2))
+  :0;
+if(eligiblePct<95){
+  throw new Error(
+    'g2p-en model-input eligibility is only '+eligiblePct+'%. '
+    +'Refusing benchmark.'
+  );
+}
+if(prepared.collisions.length){
+  throw new Error(
+    'g2p-en model-input normalization produced '
+    +prepared.collisions.length+' collision(s).'
+  );
+}
+await writeFile(
+  preparedInputPath,
+  JSON.stringify({
+    schema:'rhymelab-g2pen-neural-input-v1',
+    benchmark_fingerprint:benchmark.semantic_fingerprint||null,
+    cases:prepared.eligible,
+  },null,2)+'\n',
+);
 
 console.log('\nG2P-EN NEURAL PROPER-NAME BENCHMARK: preflight…');
 const pythonVersion=run(
@@ -68,12 +102,19 @@ console.log(JSON.stringify({
   python_version:pythonVersion,
   g2p_en_version:packageVersion,
   neural_path_forced:true,
+  benchmark_cases:(benchmark.cases||[]).length,
+  model_input_eligible:prepared.eligible.length,
+  model_input_ineligible:prepared.ineligible.length,
+  model_input_eligibility_pct:eligiblePct,
+  model_input_collisions:prepared.collisions.length,
+  diacritic_fold_cases:prepared.diacritic_fold_cases,
+  ineligible_sample:prepared.ineligible.slice(0,10),
 },null,2));
 
 console.log('\nG2P-EN NEURAL PROPER-NAME BENCHMARK: predict…');
 run(pythonCommand,[
   'scripts/run-g2pen-neural-benchmark.py',
-  '--benchmark',benchmarkPath,
+  '--input',preparedInputPath,
   '--predictions',predictionsPath,
   '--metadata',metadataPath,
 ]);
@@ -101,13 +142,13 @@ run(process.execPath,[
   '--model-version',metadata.package_version,
   '--model-inspect-fingerprint',metadata.checkpoint_sha256,
   '--engine-version',metadata.package_version,
-  '--model-input-eligible',String(metadata.model_input_eligible),
-  '--model-input-ineligible',String(metadata.model_input_ineligible),
-  '--model-input-collisions','0',
+  '--model-input-eligible',String(prepared.eligible.length),
+  '--model-input-ineligible',String(prepared.ineligible.length),
+  '--model-input-collisions',String(prepared.collisions.length),
   '--eligible-prediction-coverage-pct',String(
     metadata.eligible_prediction_coverage_pct
   ),
-  '--diacritic-fold-cases',String(metadata.diacritic_fold_cases||0),
+  '--diacritic-fold-cases',String(prepared.diacritic_fold_cases),
   '--out',evaluationPath,
 ]);
 
