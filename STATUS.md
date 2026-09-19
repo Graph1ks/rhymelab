@@ -931,9 +931,11 @@ Active candidate branch: `phase12c-entity-runtime-ai-staging`.
 
 Focused continuation document: `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`.
 
-Implemented on the branch: source-backed EN Entity runtime and rhyme anchors, DE+EN Entity Writer channel/UI integration, isolated 704,989-row AI pronunciation queue, ZIP importer/staging SQLite/audit, strict ARPAbet and manifest/batch validation, idempotent identical-result imports, aggregate confidence/category/orthography/problem-population diagnostics, LLM benchmark evaluator, benchmark-v3 explicit review gate, and multilingual runtime verification preserving the frozen DE fingerprint with zero generated accepted EN runtime rows.
+Implemented on the branch: source-backed EN Entity runtime and rhyme anchors, DE+EN Entity Writer channel/UI integration, guarded phonetic-first Entity ranking, deterministic QID/surface diversity, batched category metadata, a full-data Entity Writer acceptance suite, one consolidated owner runner, isolated 704,989-row AI pronunciation queue, ZIP importer/staging SQLite/audit, strict ARPAbet and manifest/batch validation, idempotent identical-result imports, aggregate confidence/category/orthography/problem-population diagnostics, LLM benchmark evaluator, benchmark-v3 explicit review gate, and multilingual runtime verification preserving the frozen DE fingerprint with zero generated accepted EN runtime rows.
 
 Acceptance contracts: `docs/PHASE_12C_ACCEPTANCE.md` and `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md`.
 
-Status is **implementation in progress / not merge-ready**. Draft PR #112 is open and its `validate` gate is green; benchmark-v3 context-gold review remains the substantive merge blocker. AI staging remains non-runtime evidence and no confidence threshold is preselected for promotion.
+Current source-backed gate: **owner full-data acceptance pending**. Run `npm run entity:phase12c:owner` against the local full databases and return `data/local/phase12c-owner-acceptance-v1-report.json`. The suite verifies runtime fingerprints/source-only invariants, DE/EN Entity query coverage, repeatability, provenance, ranking guards, QID/surface diversity and category-query batching, while preserving representative top pages for owner review.
+
+Benchmark-v3 context-gold review and the still-missing AI batch data belong to the separate AI-evidence track. They do **not** block source-backed runtime acceptance or merge. AI staging remains non-runtime evidence, `runtime_promoted=0`, and no confidence threshold is preselected for promotion.
 
