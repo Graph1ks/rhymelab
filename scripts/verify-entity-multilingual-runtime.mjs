@@ -38,6 +38,33 @@ function scalar(sql,...params){
 }
 
 try{
+  const missingEnglishAnalysisCount=scalar(`
+    SELECT COUNT(*) AS c
+    FROM entity_pronunciation p
+    JOIN entity_name n USING(name_id)
+    LEFT JOIN entity_phonetic_analysis a
+      ON a.pronunciation_id=p.pronunciation_id
+     AND a.analyzer_id=?
+    WHERE n.language='en'
+      AND p.locale='en-US'
+      AND p.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+      AND a.pronunciation_id IS NULL
+  `,ENTITY_EN_RUNTIME_ANALYZER);
+  const missingEnglishAnalysisSamples=db.prepare(`
+    SELECT p.pronunciation_id,p.name_id,n.surface,p.ipa,p.source_kind,p.generated,p.review_state
+    FROM entity_pronunciation p
+    JOIN entity_name n USING(name_id)
+    LEFT JOIN entity_phonetic_analysis a
+      ON a.pronunciation_id=p.pronunciation_id
+     AND a.analyzer_id=?
+    WHERE n.language='en'
+      AND p.locale='en-US'
+      AND p.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+      AND a.pronunciation_id IS NULL
+    ORDER BY p.pronunciation_id
+    LIMIT 25
+  `).all(ENTITY_EN_RUNTIME_ANALYZER);
+
   const checks=[
     {
       id:'report_ok',
@@ -78,18 +105,7 @@ try{
     },
     {
       id:'english_runtime_rows_have_analysis',
-      pass:scalar(`
-        SELECT COUNT(*) AS c
-        FROM entity_pronunciation p
-        JOIN entity_name n USING(name_id)
-        LEFT JOIN entity_phonetic_analysis a
-          ON a.pronunciation_id=p.pronunciation_id
-         AND a.analyzer_id=?
-        WHERE n.language='en'
-          AND p.locale='en-US'
-          AND p.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
-          AND a.pronunciation_id IS NULL
-      `,ENTITY_EN_RUNTIME_ANALYZER)===0,
+      pass:missingEnglishAnalysisCount===0,
     },
   ];
   const failed=checks.filter((row)=>!row.pass);
@@ -103,6 +119,8 @@ try{
     en_names_ready:Number(meta('entity_en_names_ready')||0),
     en_analyses:Number(meta('entity_phonetic_analyses_en')||0),
     en_anchors:Number(meta('entity_rhyme_anchors_en')||0),
+    en_runtime_rows_missing_analysis:missingEnglishAnalysisCount,
+    en_runtime_rows_missing_analysis_samples:missingEnglishAnalysisSamples,
   };
   if(outPath){
     await mkdir(dirname(outPath),{recursive:true});
