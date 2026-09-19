@@ -24,6 +24,8 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(html, /data-scope="phrases"[^>]*class="scope-option"/);
   assert.match(html, /data-scope="entities"[^>]*class="scope-option"/);
   assert.match(html, /id="availabilityBar"/);
+  assert.match(html, /id="resultsToolbar"[^>]*search-results-toolbar/);
+  assert.match(html, /id="searchFiltersReveal"/);
   assert.match(html, /data-basis="de"/);
   assert.match(html, /data-basis="en"/);
   assert.match(html, /data-basis="both"/);
@@ -125,6 +127,9 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /rhymelab\.resultView/);
   assert.match(app, /syncUiLanguageControls/);
   assert.match(app, /syncViewControls/);
+  assert.match(app, /function syncFloatingSearchState\(/);
+  assert.match(app, /window\.addEventListener\('scroll'/);
+  assert.match(app, /search-hover-open/);
   const appWithoutImports=app.replace(/^import .*?;\s*$/gm,'');
   assert.doesNotThrow(() => new Function(appWithoutImports));
   assert.doesNotMatch(app, /\$\$\$/);
@@ -195,6 +200,11 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /\.view-switch/);
   assert.match(css, /\.results-compact \.result-items/);
   assert.match(css, /grid-template-columns:repeat\(auto-fill,minmax\(220px,1fr\)\)/);
+  assert.match(css, /\.search-stage\{[\s\S]*?position:sticky/);
+  assert.match(css, /\.search-stage\.search-collapsed \.search-results-toolbar/);
+  assert.match(css, /grid-template-areas:"word word" "type score" "usage syllable"/);
+  assert.match(css, /\.results-compact \.result-title-line strong\{[\s\S]*?white-space:normal/);
+  assert.match(css, /\.results-compact \.result-word code\{[\s\S]*?white-space:normal/);
 
   assert.match(mobileCss, /@media\(max-width:720px\)/);
   assert.match(mobileCss, /\.scope-segmented\{grid-template-columns:repeat\(2/);
@@ -203,4 +213,6 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(mobileCss, /\.result-row \.type-col/);
   assert.match(mobileCss, /\.results-compact \.result-items/);
   assert.match(mobileCss, /\.ui-language-switch/);
+  assert.match(mobileCss, /\.search-stage\{top:60px\}/);
+  assert.match(mobileCss, /\.results-compact \.result-items\{grid-template-columns:1fr!important\}/);
 });
