@@ -1,6 +1,8 @@
 # Pronunciation Backfill V1
 
-Status: **implemented; owner execution pending**
+Status: **SUPERSEDED — do not use for owner execution**
+
+The V1 collector started from already materialized runtime/accepted databases and therefore missed source rows that had been dropped before materialization because pronunciation could not be resolved. The corrected workflow is `docs/PRONUNCIATION_BACKFILL_V2.md` and uses source/stage → accepted diffs.
 
 Policy: `espeak-then-client-resolver-staging-v1`
 
