@@ -65,6 +65,20 @@ Graph1ks Material is governed by `LICENSE` and `COMMERCIAL_LICENSE.md`. Third-pa
 
 All external contributions require explicit CLA acceptance before merge.
 
+## UI interaction regression gate
+
+For browser UI work, `docs/UI_INTERACTION_CONTRACT.md` is authoritative.
+
+Hard requirements:
+
+- syntax/source/CSS assertions alone do **not** prove that a control is interactive;
+- primary controls must have a runtime interaction smoke test that installs handlers and exercises state changes;
+- control binding must preflight required DOM nodes/groups before installing handlers, so initialization cannot silently stop halfway through;
+- UI initialization failures must be visible in the product and console; do not leave a partially bound interface that looks functional;
+- every newly added primary button/segmented control/filter must be added to the control-surface preflight and interaction regression test in the same change;
+- do not use broad CSS active-state selectors that override unrelated control families;
+- after user-reported interaction regressions, preserve the exact failure mode in regression coverage before merge.
+
 ## Hard runtime boundary
 
 RhymeLab is local-only. GitHub is source control/project memory, not runtime. Runtime data lives in local SQLite under `data/local/`; generated bulk data, benchmark queues/reviews/reference labels, reports, and downloaded raw source files remain gitignored.
