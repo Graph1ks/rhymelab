@@ -10,6 +10,13 @@ import { getPhraseBrowserStats, getPhraseDetail, openPhraseBrowserDb, searchPhra
 import { searchUnifiedWriter, unifiedWriterCapabilities } from './unified-writer-search.mjs';
 import { materializeRhymePadV14 } from './rhymepad-v14.mjs';
 import { DEFAULT_ENTITY_DB_PATH, openEntityWriterDb } from './entity-writer-runtime.mjs';
+import {
+  DEFAULT_ENGLISH_PRODUCT_MARKER_PATH,
+  DEFAULT_ENGLISH_WRITER_DB_PATH,
+  getEnglishWord,
+  openEnglishWriterDb,
+  readEnglishProductAcceptanceMarker,
+} from './english-writer-runtime.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
@@ -17,6 +24,10 @@ const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYME
 const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
 const phraseDbPath = resolve(process.env.RHYMELAB_PHRASE_DB || 'data/local/rhymelab-phrases-v1.sqlite');
 const entityDbPath = resolve(process.env.RHYMELAB_ENTITY_DB || DEFAULT_ENTITY_DB_PATH);
+const englishDbPath = resolve(process.env.RHYMELAB_ENGLISH_DB || DEFAULT_ENGLISH_WRITER_DB_PATH);
+const englishMarkerPath = resolve(
+  process.env.RHYMELAB_ENGLISH_ACCEPTANCE_MARKER || DEFAULT_ENGLISH_PRODUCT_MARKER_PATH,
+);
 const uiDir = resolve('src/ui');
 const padUiDir = resolve('src/pad');
 const benchmarkUiDir = resolve('src/benchmark-ui');
@@ -49,6 +60,24 @@ try {
   phraseDbError = error instanceof Error ? error.message : String(error);
   console.warn(`Phrase/Mosaic DB unavailable at ${phraseDbPath}`);
   console.warn('Normal Writer runtime remains available; only the Phrase/Mosaic channel is unavailable.');
+}
+
+let englishDb = null;
+let englishDbError = null;
+const englishMarker = readEnglishProductAcceptanceMarker(englishMarkerPath);
+if (englishMarker.accepted) {
+  try {
+    englishDb = openEnglishWriterDb(englishDbPath, {
+      requireProductAcceptance: true,
+      markerPath: englishMarkerPath,
+    });
+  } catch (error) {
+    englishDbError = error instanceof Error ? error.message : String(error);
+    console.warn(`English Writer DB unavailable at ${englishDbPath}`);
+    console.warn(englishDbError);
+  }
+} else {
+  englishDbError = englishMarker.reason;
 }
 
 let entityDb = null;
@@ -169,7 +198,16 @@ const server = createServer(async (req, res) => {
         entity_database: entityDb ? entityDbPath : null,
         entity_available: Boolean(entityDb),
         entity_error: entityDb ? null : entityDbError,
-        unified_writer: unifiedWriterCapabilities({ writerDb, phraseDb, entityDb }),
+        english_database: englishDb ? englishDbPath : null,
+        english_available: Boolean(englishDb),
+        english_error: englishDb ? null : englishDbError,
+        english_acceptance_marker: englishMarker.accepted ? englishMarkerPath : null,
+        unified_writer: unifiedWriterCapabilities({
+          writerDb,
+          englishDb,
+          phraseDb,
+          entityDb,
+        }),
       });
     }
 
@@ -177,7 +215,7 @@ const server = createServer(async (req, res) => {
       const q = url.searchParams.get('q') || '';
       if (!q.trim()) return json(res, { error: 'q is required' }, 400);
       const result = searchUnifiedWriter(
-        { writerDb, phraseDb, entityDb },
+        { writerDb, englishDb, phraseDb, entityDb },
         q,
         {
           language: url.searchParams.get('language') || 'de',
@@ -242,6 +280,18 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname.startsWith('/api/word/')) {
       const word = decodeURIComponent(url.pathname.slice('/api/word/'.length));
+      const language = String(url.searchParams.get('language') || 'de')
+        .trim().toLocaleLowerCase('en-US');
+      if (language === 'en') {
+        if (!englishDb) {
+          return json(res, {
+            error: 'English Writer runtime is not accepted/enabled locally.',
+            reason: englishDbError,
+          }, 503);
+        }
+        const result = getEnglishWord(englishDb, word);
+        return result ? json(res, result) : json(res, { error: 'Word not found' }, 404);
+      }
       const result = getWord(writerDb, word);
       return result ? json(res, result) : json(res, { error: 'Word not found' }, 404);
     }
@@ -280,6 +330,8 @@ server.listen(port, host, () => {
   console.log(`Unified Writer: http://${host}:${port}`);
   console.log(`Phrase/Mosaic SQLite: ${phraseDb ? phraseDbPath : 'unavailable'}`);
   console.log(`Entity SQLite: ${entityDb ? entityDbPath : 'unavailable'}`);
+  console.log(`English Writer SQLite: ${englishDb ? englishDbPath : 'gated/unavailable'}`);
+  console.log(`English product acceptance: ${englishMarker.accepted ? 'accepted' : englishDbError}`);
 });
 
 function shutdown() {
@@ -288,6 +340,7 @@ function shutdown() {
     try { legacyDb?.close(); } catch {}
     try { phraseDb?.close(); } catch {}
     try { entityDb?.close(); } catch {}
+    try { englishDb?.close(); } catch {}
     process.exit(0);
   });
 }

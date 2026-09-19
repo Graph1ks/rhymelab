@@ -25,7 +25,8 @@ Default paths:
 
 ```text
 Writer v5             data/local/rhymelab-v5.sqlite
-Legacy/control v4     data/local/rhymelab.sqlite
+English Writer         data/local/rhymelab-en-v1.sqlite
+Legacy/control v4      data/local/rhymelab.sqlite
 ```
 
 Writer v5 is required for normal server startup. The legacy v4 DB is optional. If it is unavailable, normal Writer requests continue to work and only explicit `?ranking=legacy` requests fail with a clear control-database error.
@@ -34,6 +35,8 @@ Environment overrides:
 
 ```text
 RHYMELAB_WRITER_DB     Writer v5 database path
+RHYMELAB_ENGLISH_DB    English Writer database path
+RHYMELAB_ENGLISH_ACCEPTANCE_MARKER  English local acceptance marker path
 RHYMELAB_LEGACY_DB     legacy/control v4 database path
 RHYMELAB_DB            compatibility alias for legacy/control v4 path
 RHYMELAB_HOST          bind host, default 127.0.0.1
@@ -77,7 +80,17 @@ The response keeps Word and Phrase/Mosaic channel orders separate. Numeric score
 
 ### Language capability
 
-The UI/API contract accepts `de`, `en`, and `both`. At the current Phase 11E4/F checkpoint only the accepted German phonology/runtime exists. `en` therefore returns an explicit unavailable status; `both` runs German and returns an explicit English-unavailable warning. No German scorer is reused to fake English results. When Phase 12 supplies an accepted English runtime, it plugs into this same endpoint/UI contract.
+The UI/API contract accepts `de`, `en`, and `both`.
+
+Phase 12B11 integrates the source-backed English single-word Writer behind a local acceptance marker. The normal server opens the English DB only when `data/local/en-product-enabled-v1.json` exists and matches the accepted DB/runtime/ranking contract.
+
+- `language=de`: frozen German Writer behavior;
+- `language=en`: English single-word Writer only;
+- `language=both`: independent DE and EN source-backed query resolution, then deterministic per-language channel-rank interleave with no numeric DE/EN score calibration.
+
+English Phrase/Mosaic and English Entity rhyme remain explicitly unavailable. No German scorer is reused for English and no unknown-query G2P is introduced in this phase.
+
+Run `npm run en:product:accept` once after the Phase 12B11 code is merged. On PASS it writes the local enablement marker automatically; no follow-up code change is required.
 
 ## `GET /api/stats`
 
@@ -89,7 +102,12 @@ Prefix/exact surface-form lookup against Writer v5. Historical-only forms are ex
 
 ## `GET /api/word/<word>`
 
-Returns the normalized word entry plus stored pronunciation variants from Writer v5.
+Returns normalized word detail plus stored pronunciation variants.
+
+- default / `?language=de`: Writer v5 German detail;
+- `?language=en`: accepted source-backed en-US English Writer detail.
+
+English detail returns 503 while the local integrated product acceptance marker is absent.
 
 ## `GET /api/rhymes/<word>`
 
@@ -198,7 +216,7 @@ The browser has one Writer surface for words and Phrase/Mosaic results. There is
 
 The language-basis selector is `DE / EN / DE+EN`. Availability is capability-driven by `/api/health`; unavailable English is surfaced explicitly rather than emulated.
 
-Word results keep frozen Writer-v5 server ordering. Phrase/Mosaic results keep accepted 11E2-v2 + 11E3 ordering. Explicit UI sorts operate within each channel.
+German word results keep frozen Writer-v5 server ordering. English word results use `guarded_commonness_06` plus Diversity `0.08` inside anchored <=0.03 phonetic bands. In DE+EN mode the UI preserves language-local channel ranks and does not compare raw DE/EN scores. Phrase/Mosaic results keep accepted 11E2-v2 + 11E3 ordering. Explicit UI sorts operate within each channel.
 
 `ranking=legacy` remains only a debugging/regression control endpoint; the normal unified UI does not use it.
 

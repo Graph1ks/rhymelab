@@ -21,28 +21,35 @@ Read first:
 
 ## Current English checkpoint — 2026-09-19
 
-Phase 12B10 owner evidence is complete and reviewed.
+Phase 12B10 ranking evidence is accepted for integration:
 
 ```text
-owner report fingerprint          b1aacf3c2de3f91b9ce740744b15f89c797a24b4dc916f0f72f5d8235ea266cb
-selected Quality                  guarded_commonness_06
-selected Diversity                0.08
-phonetic guard violations         0
-mean phonetic drop                0.001061
-mean commonness uplift            0.035469
-diversity near-dup reduction      45.6853%
-diversity lemma reduction         38.7755%
-diversity commonness drop         0.034878
+Quality                           guarded_commonness_06
+Diversity                         0.08
+owner ranking report fingerprint  b1aacf3c2de3f91b9ce740744b15f89c797a24b4dc916f0f72f5d8235ea266cb
 ```
 
-The original owner JSON was 44,256,392 bytes because the runner repeated full Top-20 matrices for every query/config/diversity combination. This is fixed: the default acceptance report is now compact, with full matrices available only via explicit `--debug-report <path>`.
+Phase 12B11 product integration code is implemented.
 
-Do **not** request another ranking owner run. Next implementation block:
+```text
+English product runtime           en-writer-product-v1-candidate
+English product policy            en-writer-guarded-quality-diversity-v1-candidate
+English DB                        data/local/rhymelab-en-v1.sqlite
+local enablement marker           data/local/en-product-enabled-v1.json
+owner command                     npm run en:product:accept
+owner report                      data/local/en-product-acceptance-v1-report.json
+```
 
-1. wire `guarded_commonness_06 + diversity 0.08` into the English product runtime;
-2. run one integrated EN / DE+EN product acceptance bundle;
-3. require English repeatability and frozen German invariance;
-4. enable product EN only after that bundle passes.
+The normal server does not open the English DB until the integrated owner acceptance passes. The acceptance command removes any stale marker first, runs two independent DB-open suites, checks frozen German direct-vs-unified equality plus EN/DE+EN product behavior, and writes the marker only on PASS.
+
+After merge, run exactly:
+
+```powershell
+git pull
+npm run en:product:accept
+```
+
+Upload only the compact primary report. If status is `ok`, restart `npm run dev`; EN and DE+EN then activate automatically. Do not request a separate ranking or enablement run.
 
 ## Frozen German baseline
 
