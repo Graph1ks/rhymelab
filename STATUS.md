@@ -6,6 +6,8 @@ RhymeLab's public repository is `Graph1ks/rhymelab`. `main` is protected and the
 
 Current UI/API follow-up separates query-pronunciation language from result language, exposes exact Entity-category filters from runtime capabilities, consolidates source display into one Sources dialog, reports bounded search-pool counts, and uses per-category More controls for standard browsing. DE source-backed input may target EN word results through the accepted English target phonology; same-language accepted ranking/retrieval behavior remains unchanged.
 
+Primary unified-search controls now have an explicit runtime interaction regression gate. A prior partial-initialization bug caused Search to remain bound while later buttons were dead; control binding now preflights the full surface, marks successful binding, fails visibly, and is exercised by simulated click tests before merge.
+
 
 ## Current product/runtime baseline — v0.11.0
 
