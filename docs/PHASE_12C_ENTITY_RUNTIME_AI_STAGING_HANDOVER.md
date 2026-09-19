@@ -107,15 +107,23 @@ The DE Writer, German Phrase/Mosaic behavior and accepted English single-word Wr
 
 ### 3. Local AI pronunciation queue
 
-Implemented a deterministic local export of the **704,989 unresolved English Entity name rows**.
+Implemented historical tooling for a deterministic export of the **704,989 source-unresolved English Entity name rows**.
+
+That full-population queue is no longer the planned collection campaign. The accepted forward policy is:
+
+- consider only the **top 100,000 retained Entities** under the accepted Entity popularity ordering;
+- within that population, target only English names that still lack a runtime-valid pronunciation;
+- analyzer-rejected source candidates are eligible if their Entity is inside the same top-100k population;
+- measure the exact target count locally before generating new batches;
+- leave the long tail unresolved by default.
 
 Important design:
 
 - temporary sequential AI IDs are separate from all RhymeLab runtime/database identities;
-- queue ordering prioritizes preferred and popular Entity names first;
-- batches are split at 10,000 rows;
-- local map preserves the bridge back to RhymeLab IDs;
-- the local ID map must never be treated as user-facing/runtime identity.
+- historical queue artifacts remain immutable evidence and are not renumbered;
+- any new Top-100k campaign must use a new manifest/export identity;
+- local maps preserve the bridge back to RhymeLab IDs;
+- local ID maps must never be treated as user-facing/runtime identity.
 
 Primary file:
 
@@ -140,7 +148,7 @@ data/local/entity-ai-pronunciation-queue-v1/
     ...
 ```
 
-The owner is currently running the LLM annotation campaign externally/in parallel. Do not assume any particular batch is complete unless the owner supplies the result artifact.
+Do not continue a blanket 704,989-row annotation campaign. Future LLM pronunciation collection is limited to the unresolved portion of the accepted Top-100k Entity population unless the owner explicitly changes that policy.
 
 ### 4. AI result importer + isolated staging DB
 
@@ -403,6 +411,8 @@ Measured Entity Writer latency is still follow-up work: the owner acceptance sam
 Remaining source-backed repository work is PR finalization only: keep the final documentation head green, mark PR #112 ready, then squash-merge when authorized.
 
 Benchmark-v3 context-gold review is still required before AI pronunciation evidence can be accepted, but it does not block the independent source-backed runtime merge. The tracked repository intentionally does not contain `data/local/entity-g2p-proper-name-benchmark-v2.json`; do not guess replacement gold from the surface string.
+
+Post-merge AI policy: do not spend annotation effort on the full long tail. Build a fresh targeted export for runtime-unresolved English names belonging to the accepted Top-100k Entity population, preserving historical bulk batches only as reproducible evidence.
 
 ## Immediate next-thread starting procedure
 
