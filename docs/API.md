@@ -41,6 +41,7 @@ RHYMELAB_LEGACY_DB     legacy/control v4 database path
 RHYMELAB_DB            compatibility alias for legacy/control v4 path
 RHYMELAB_HOST          bind host, default 127.0.0.1
 RHYMELAB_PORT          port, default 3030
+RHYMELAB_ESPEAK_COMMAND optional path/name for a separately installed eSpeak-NG executable used only for generated single-token query pronunciation
 ```
 
 ## `GET /api/health`
