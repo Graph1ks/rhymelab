@@ -276,6 +276,10 @@ const insertRef=workDb.prepare([
 const bumpRef=workDb.prepare(
   'UPDATE work_item SET source_ref_count=source_ref_count+1,updated_at=? WHERE item_id=?'
 );
+const deleteUnreferencedItem=workDb.prepare([
+  'DELETE FROM work_item WHERE item_id=?',
+  'AND NOT EXISTS (SELECT 1 FROM source_ref WHERE source_ref.item_id=work_item.item_id)',
+].join(' '));
 const upsertScan=workDb.prepare([
   'INSERT INTO scan_state(scope,status,last_key,scanned,source_refs,unique_items_added,updated_at)',
   'VALUES(?,?,?,?,?,?,?)',
@@ -300,10 +304,18 @@ function addWorkReference({scope,sourceDb,sourceTable,sourceKey,surface,language
     String(surface),
     safeJson(context),
   );
-  if(Number(ref.changes||0)>0) bumpRef.run(now(),Number(item.item_id));
+  const itemWasInserted=Number(inserted.changes||0)>0;
+  const refWasInserted=Number(ref.changes||0)>0;
+  if(refWasInserted){
+    bumpRef.run(now(),Number(item.item_id));
+  }else if(itemWasInserted){
+    // source_ref owns provenance. Never leave a newly-created work item orphaned
+    // when this scope/source_key already belongs to another normalized item.
+    deleteUnreferencedItem.run(Number(item.item_id));
+  }
   return {
-    itemAdded:Number(inserted.changes||0)>0?1:0,
-    refAdded:Number(ref.changes||0)>0?1:0,
+    itemAdded:itemWasInserted&&refWasInserted?1:0,
+    refAdded:refWasInserted?1:0,
   };
 }
 
@@ -1080,25 +1092,30 @@ async function runAdmission(){
   }
 
   const existingPolicy=workDb.prepare("SELECT value FROM meta WHERE key='admission_policy'").get()?.value||null;
-  const existingComplete=workDb.prepare("SELECT value FROM meta WHERE key='admission_complete'").get()?.value||'0';
   if(existingPolicy!==PRONUNCIATION_ADMISSION_POLICY){
     workDb.exec('DELETE FROM admission');
     upsertMeta.run('admission_complete','0');
     upsertMeta.run('admission_last_item_id','0');
   }
-  if(existingPolicy===PRONUNCIATION_ADMISSION_POLICY&&existingComplete==='1'){
-    console.log('[admission] already complete · policy='+PRONUNCIATION_ADMISSION_POLICY);
+
+  const total=scalar(workDb,'SELECT COUNT(*) AS c FROM work_item');
+  let already=scalar(workDb,'SELECT COUNT(*) AS c FROM admission');
+  if(existingPolicy===PRONUNCIATION_ADMISSION_POLICY&&already===total){
+    upsertMeta.run('admission_complete','1');
+    console.log(
+      '[admission] already complete · policy='+PRONUNCIATION_ADMISSION_POLICY
+      +' · decisions='+already.toLocaleString('en-US')
+    );
   }else{
     upsertMeta.run('admission_policy',PRONUNCIATION_ADMISSION_POLICY);
     upsertMeta.run('admission_complete','0');
-    const lastItemId=Number(workDb.prepare("SELECT value FROM meta WHERE key='admission_last_item_id'").get()?.value||0);
-    const total=scalar(workDb,'SELECT COUNT(*) AS c FROM work_item');
-    const already=scalar(workDb,'SELECT COUNT(*) AS c FROM admission');
     const selectRows=workDb.prepare([
       'SELECT w.item_id,w.language,w.surface,w.normalized,w.token_count,w.source_ref_count,',
       "GROUP_CONCAT(DISTINCT sr.scope) AS scopes",
-      'FROM work_item w JOIN source_ref sr ON sr.item_id=w.item_id',
-      'WHERE w.item_id>?',
+      'FROM work_item w',
+      'LEFT JOIN source_ref sr ON sr.item_id=w.item_id',
+      'LEFT JOIN admission a ON a.item_id=w.item_id',
+      'WHERE a.item_id IS NULL',
       'GROUP BY w.item_id',
       'ORDER BY w.item_id',
     ].join(' '));
@@ -1111,20 +1128,21 @@ async function runAdmission(){
     ].join(' '));
 
     let done=already;
-    let currentLast=lastItemId;
+    let currentLast=Number(workDb.prepare('SELECT COALESCE(MAX(item_id),0) AS id FROM admission').get()?.id||0);
     let batch=0;
     const startedAt=Date.now();
     let transactionOpen=false;
     console.log(
       '[admission] policy='+PRONUNCIATION_ADMISSION_POLICY
       +' · total='+total.toLocaleString('en-US')
-      +' · resume_after='+lastItemId.toLocaleString('en-US')
+      +' · existing_decisions='+already.toLocaleString('en-US')
+      +' · missing_decisions='+(total-already).toLocaleString('en-US')
     );
 
     try{
       workDb.exec('BEGIN IMMEDIATE');
       transactionOpen=true;
-      for(const row of selectRows.iterate(lastItemId)){
+      for(const row of selectRows.iterate()){
         if(stopRequested)break;
         const scopes=String(row.scopes||'').split(',').filter(Boolean);
         const decision=evaluatePronunciationAdmission({
@@ -1166,7 +1184,8 @@ async function runAdmission(){
         }
       }
       upsertMeta.run('admission_last_item_id',String(currentLast));
-      upsertMeta.run('admission_complete',stopRequested?'0':'1');
+      const finalDecisionCount=scalar(workDb,'SELECT COUNT(*) AS c FROM admission');
+      upsertMeta.run('admission_complete',!stopRequested&&finalDecisionCount===total?'1':'0');
       upsertMeta.run('updated_at',now());
       workDb.exec('COMMIT');
       transactionOpen=false;
@@ -1232,6 +1251,14 @@ async function runAdmission(){
     policy:PRONUNCIATION_ADMISSION_POLICY,
     work_database:workPath,
     complete:workDb.prepare("SELECT value FROM meta WHERE key='admission_complete'").get()?.value==='1',
+    integrity:{
+      work_items:scalar(workDb,'SELECT COUNT(*) AS c FROM work_item'),
+      admission_decisions:scalar(workDb,'SELECT COUNT(*) AS c FROM admission'),
+      unreferenced_work_items:scalar(workDb,[
+        'SELECT COUNT(*) AS c FROM work_item w',
+        'WHERE NOT EXISTS (SELECT 1 FROM source_ref sr WHERE sr.item_id=w.item_id)',
+      ].join(' ')),
+    },
     by_decision:byDecision,
     by_reason:byReason,
     by_shape_decision:byShapeDecision,
