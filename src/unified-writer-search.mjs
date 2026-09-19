@@ -15,7 +15,7 @@ import {
   searchEnglishWriter,
   searchEnglishWriterFromExternalQuery,
 } from './english-writer-runtime.mjs';
-import { resolveUnknownQueryPronunciation } from './query-pronunciation-runtime.mjs';
+import { getPhonologyProfile } from '../scripts/phonology-profiles.mjs';
 
 export const UNIFIED_WRITER_SCHEMA = 'rhymelab-unified-writer-v1';
 export const UNIFIED_WRITER_POLICY = 'de-unified-word-phrase-writer-v1';
@@ -83,6 +83,71 @@ export function normalizeUnifiedResultScope(value) {
 export function normalizeUnifiedResultLanguage(value, fallback = 'de') {
   const normalized = String(value || fallback || 'de').trim().toLocaleLowerCase('en-US');
   return LANGUAGE_BASES.has(normalized) ? normalized : normalizeUnifiedLanguageBasis(fallback);
+}
+
+function externalClientQueryDetail(input, language, pronunciation = null) {
+  const ipa = String(pronunciation?.ipa || '').trim();
+  if (!ipa) return null;
+  const profile = getPhonologyProfile(language);
+  let analysis;
+  try {
+    analysis = profile.analyzeIpa(ipa);
+  } catch {
+    return null;
+  }
+  const locale = language === 'de' ? 'de-DE' : 'en-US';
+  const surface = String(input || '').normalize('NFKC').trim();
+  const normalized = surface.toLocaleLowerCase(locale);
+  return {
+    kind: 'word',
+    language,
+    surface,
+    normalized,
+    preferredIpa: ipa,
+    ipa,
+    syllableCount: Number(analysis.syllableCount || 0),
+    primaryStressSyllable: Number(analysis.primaryStressSyllable || 0) || null,
+    stressPattern: analysis.stressPattern || null,
+    primaryStressSyllables: Number(analysis.primaryStressSyllable || 0)
+      ? [Number(analysis.primaryStressSyllable)]
+      : [],
+    secondaryStressSyllables: (analysis.syllables || [])
+      .filter((syllable) => Number(syllable.stressLevel || 0) === 1)
+      .map((syllable) => Number(syllable.position)),
+    historical: false,
+    modernEligible: true,
+    lexiconLayer: 'generated_query',
+    partOfSpeech: null,
+    lemma: null,
+    resolvable: true,
+    generatedPronunciation: true,
+    pronunciationProvenance: 'client_generated_query_pronunciation',
+    queryPronunciation: {
+      policy: 'client-total-query-pronunciation-v1',
+      generated: true,
+      sourceBacked: pronunciation?.sourceBacked === true,
+      clientOnly: true,
+      method: pronunciation?.method || 'client_unknown',
+      components: pronunciation?.components || null,
+      language,
+      locale,
+      networkRequiredForGeneration: false,
+      hostExecutableRequired: false,
+      persisted: false,
+      canonicalLexicalFact: false,
+    },
+    pronunciations: [{
+      ipa,
+      preferred: true,
+      source: pronunciation?.sourceBacked
+        ? 'Client composition from source-backed RhymeLab references'
+        : 'Client-generated query pronunciation',
+      locale,
+      register: null,
+      dialect: null,
+      generated: true,
+    }],
+  };
 }
 
 export function unifiedWriterCapabilities({
@@ -291,17 +356,15 @@ export function resolveGermanUnifiedQuery(writerDb, phraseDb, input) {
   const tokens = tokenizePhrase(text);
   if (tokens.length <= 1) {
     const word = getWord(writerDb, text);
-    if (word?.preferredIpa) {
-      return {
-        ...word,
-        kind: 'word',
-        language: 'de',
-        ipa: word.preferredIpa,
-        resolvable: true,
-        pronunciationProvenance: 'writer_v5_preferred',
-      };
-    }
-    return resolveUnknownQueryPronunciation(text, 'de');
+    if (!word?.preferredIpa) return null;
+    return {
+      ...word,
+      kind: 'word',
+      language: 'de',
+      ipa: word.preferredIpa,
+      resolvable: true,
+      pronunciationProvenance: 'writer_v5_preferred',
+    };
   }
 
   const catalogPhrase = exactPhraseQuery(phraseDb, text);
@@ -529,15 +592,27 @@ export function searchUnifiedWriter(
 
   const inputTokens = tokenizePhrase(input);
   const singleTokenQuery = inputTokens.length <= 1;
-  const deQuery = requestedLanguages.includes('de') && capabilities.languages.de.available
+  const clientPronunciations = options.queryPronunciations || {};
+  const sourceDeQuery = requestedLanguages.includes('de') && capabilities.languages.de.available
     ? resolveGermanUnifiedQuery(writerDb, phraseDb, input)
     : null;
-  const enQuery = requestedLanguages.includes('en') && capabilities.languages.en.available
-    ? (
-        getEnglishWord(englishDb, input)
-        || (singleTokenQuery ? resolveUnknownQueryPronunciation(input, 'en') : null)
-      )
+  const sourceEnQuery = requestedLanguages.includes('en') && capabilities.languages.en.available
+    ? getEnglishWord(englishDb, input)
     : null;
+  const deQuery = sourceDeQuery || (
+    requestedLanguages.includes('de')
+    && capabilities.languages.de.available
+    && singleTokenQuery
+      ? externalClientQueryDetail(input, 'de', clientPronunciations.de)
+      : null
+  );
+  const enQuery = sourceEnQuery || (
+    requestedLanguages.includes('en')
+    && capabilities.languages.en.available
+    && singleTokenQuery
+      ? externalClientQueryDetail(input, 'en', clientPronunciations.en)
+      : null
+  );
   const queries = { de: deQuery, en: enQuery };
   const resolvedLanguages = [
     ...(deQuery ? ['de'] : []),
