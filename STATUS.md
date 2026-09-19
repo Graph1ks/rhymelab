@@ -16,6 +16,8 @@ Generated OOV token pronunciations are now persisted in a bounded IndexedDB perf
 
 The prior 1000-case eSpeak-NG run remains **development/reference evidence only**. Its normalized v2 report fingerprint is `facd6d15…ff1e5` with 1012 / 1014 analyzer-compatible outputs (99.80%), but eSpeak-NG is no longer part of the end-user query runtime and lives only under `scripts/`. The current end-user pronunciation implementation is `src/ui/query-pronunciation-client.mjs`; its real browser flow is exercised at `/query-pronunciation-test`. Bulk unresolved Entity pronunciation/materialization remains a separate later problem.
 
+A new owner-only **Pronunciation Backfill V1** staging workflow is implemented for the explicit all-database cleanup pass. It collects represented pronunciation gaps from the German Writer invariant, English forms, unresolved Phrase/Mosaic tokens + phrase surfaces, and DE/EN Entity names into one deduplicated SQLite workset. It then runs the existing eSpeak-NG adapter first and sends only analyzer-rejected eSpeak rows through `client-total-query-pronunciation-v2`. The workflow is batch-checkpointed/resumable, prints rate/ETA/progress continuously, assigns generated quality tiers A/B/C/D/U, and never mutates or auto-promotes into canonical runtime DBs. Owner execution has **not yet been run**. See `docs/PRONUNCIATION_BACKFILL_V1.md`.
+
 
 ## Current product/runtime baseline — v0.11.0
 
