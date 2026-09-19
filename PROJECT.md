@@ -35,7 +35,7 @@ The protected integration branch, CI requirement, merge rules, and public-histor
 ### In scope
 
 - deterministic phonetic rhyme search;
-- total local pronunciation resolution for unknown normalized single-token user queries, with source-backed pronunciation preferred and generated query anchors kept ephemeral;
+- client-side pronunciation resolution for unknown normalized single-token user queries, with source-backed pronunciation preferred and generated query anchors kept ephemeral;
 - accepted German single-word Writer behavior;
 - accepted German phrase/mosaic/phraseology behavior;
 - accepted English single-word Writer behavior;
@@ -67,7 +67,7 @@ External models and online sources may be used during research, source acquisiti
 
 **Data integrity:** pronunciation variants, source provenance, historical/register state, and accepted fingerprints must remain explicit where the relevant schema/contract requires them.
 
-**Portability:** use project-relative paths. Never hardcode private machine/user paths.
+**Portability:** use project-relative paths. Never hardcode private machine/user paths. The unknown-word pronunciation generator must remain portable across browser, Android/WebView-style packaging, and Electron-style packaging without a host executable.
 
 ## Architecture
 
@@ -83,7 +83,7 @@ External models and online sources may be used during research, source acquisiti
 - Keep language-specific phonology explicit; do not route English through German phonology or vice versa.
 - Keep Entity identity language-neutral and pronunciation variants provenance-bearing.
 - AI/LLM pronunciation output is evidence/staging unless a later explicit acceptance gate promotes it.
-- Deterministic non-neural pronunciation generation may be used for unknown **single-token query anchors** only. Generated query anchors are ephemeral and may not be silently promoted into canonical lexical/Entity/Phrase data.
+- Deterministic non-neural pronunciation generation may be used for unknown **single-token query anchors** only. That generation runs in the end-user client (browser-compatible JavaScript) and may consult existing source-backed pronunciation records as references. It must not require Node.js, a local executable, eSpeak-NG, LLM inference, or paid/operator pronunciation compute. Generated query anchors are ephemeral and may not be silently promoted into canonical lexical/Entity/Phrase data. The existing database/retrieval/scoring/ranking stack remains authoritative after the client supplies IPA.
 - Prefer focused changes over broad rewrites of accepted product surfaces.
 - Keep architecture proportional to a solo-developed local product.
 
@@ -193,7 +193,7 @@ Persist decisions and engineering facts, not raw conversations. No continuation-
 
 ## Current priorities
 
-1. Run and review the owner-local 1000-case Total Query Pronunciation benchmark before database-speed optimization or generated-candidate promotion.
+1. Exercise and quality-benchmark the browser/client unknown-word IPA resolver independently from bulk Entity pronunciation work.
 2. Preserve the accepted Phase 11, Phase 12B, and source-backed Phase 12C baselines while fixing concrete regressions.
 3. Improve Entity Writer performance without changing accepted semantics.
 4. Keep targeted Top-100k unresolved-Entity AI pronunciation work isolated as evidence until an explicit later promotion gate.
