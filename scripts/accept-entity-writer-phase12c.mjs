@@ -415,10 +415,15 @@ const report={
   },
 };
 report.semantic_fingerprint=hashJson({
-  ...report,
-  built_at:undefined,
-  semantic_fingerprint:undefined,
-  timing:undefined,
+  schema:report.schema,
+  status:report.status,
+  plan_schema:plan.schema,
+  ranking:report.ranking,
+  coverage:report.coverage,
+  checks:report.checks,
+  repeatability:report.repeatability,
+  semantic_run:semanticProjection(first),
+  safeguards:report.safeguards,
 });
 
 await mkdir(dirname(reportPath),{recursive:true});
