@@ -1081,7 +1081,7 @@ async function runAdmission(){
 
   const existingPolicy=workDb.prepare("SELECT value FROM meta WHERE key='admission_policy'").get()?.value||null;
   const existingComplete=workDb.prepare("SELECT value FROM meta WHERE key='admission_complete'").get()?.value||'0';
-  if(existingPolicy&&existingPolicy!==PRONUNCIATION_ADMISSION_POLICY){
+  if(existingPolicy!==PRONUNCIATION_ADMISSION_POLICY){
     workDb.exec('DELETE FROM admission');
     upsertMeta.run('admission_complete','0');
     upsertMeta.run('admission_last_item_id','0');
