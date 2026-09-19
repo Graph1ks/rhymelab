@@ -67,6 +67,48 @@ npm run entity:multilingual:evidence
 
 Upload only the compact primary report. If it is `evidence_ready`, the next implementation step is one source-backed multilingual Entity runtime pass rather than another coverage micro-gate.
 
+## Active Phase 12C Entity pronunciation source expansion
+
+The consolidated multilingual evidence owner run passed.
+
+```text
+status                     evidence_ready
+fingerprint                1861f29aaf0b029d3ac69c1cd6511a0c0b573c47e325efea75e0a9f42b1ec88a
+EN Entity names            1,415,550
+source-backed ready          459,728  (32.48%)
+unresolved                   955,822
+preferred unresolved         680,348
+P898 inserted evidence            27
+generated G2P                     no
+```
+
+Do not call Entity pronunciation coverage solved.
+
+The next owner command is:
+
+```powershell
+git pull
+npm run entity:pronunciation:expand
+```
+
+It reuses the existing `enwiktionary-kaikki-20260916.jsonl.gz` and pinned CMUdict. If Kaikki is not in the accepted Phase 12B raw directory, pass `--kaikki <path>`; do not redownload it.
+
+Primary report:
+
+```text
+data/local/entity-pronunciation-source-expansion-v1-report.json
+```
+
+The expansion measures direct raw Kaikki proper-name IPA, full raw CMUdict exact matches and improved deterministic name composition. Optional Moby evidence is raw-only. G2P is not executed.
+
+After the expansion report, prepare the proper-name benchmark only if a material unresolved population remains:
+
+```powershell
+npm run entity:g2p:benchmark:prepare
+```
+
+MFA is the primary benchmark candidate; DeepPhonemizer is an independent candidate; Charsiu is research-only pending clean model/data license provenance.
+
 ## Frozen German baseline
 
 Phase 11 German Word + Phrase/Mosaic is **COMPLETE / ACCEPTED / FROZEN**.
