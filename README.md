@@ -69,10 +69,20 @@ RHYMELAB_WRITER_DB   promoted Writer v5 database
 RHYMELAB_LEGACY_DB   optional v4 control database
 RHYMELAB_HOST        bind host, default 127.0.0.1
 RHYMELAB_PORT        port, default 3030
-RHYMELAB_ESPEAK_COMMAND  optional path/name for a separately installed eSpeak-NG executable used only for unknown single-token query pronunciation
 ```
 
 `RHYMELAB_DB` remains a compatibility alias for the legacy/control DB path.
+
+
+### Browser unknown-word pronunciation test
+
+Run the normal development server, then open:
+
+```text
+http://127.0.0.1:3030/query-pronunciation-test
+```
+
+This test keeps the normal database/retrieval/ranking pipeline intact and moves only missing single-token spelling → IPA generation into browser JavaScript.
 
 ## Repository continuity
 
@@ -129,11 +139,11 @@ The major accepted baselines are now:
 - **Phase 12B English single-word Writer:** accepted and frozen; English has its own analyzer/scorer/profile and is not routed through German phonology.
 - **Phase 12C source-backed multilingual Entity runtime:** accepted on `main`; the accepted DE Entity fingerprint is preserved and the accepted EN runtime contains source-backed rows only.
 - **AI Entity pronunciation staging:** isolated evidence only. It is not canonical runtime truth and is not promoted automatically.
-- **Total Query Pronunciation v1:** unknown normalized single-token queries resolve to ephemeral DE/EN pronunciation anchors locally; source-backed pronunciation still wins, eSpeak-NG is optional/not bundled, and deterministic in-repo rules guarantee a fallback.
+- **Total Query Pronunciation v1:** unknown normalized single-token queries resolve to ephemeral DE/EN pronunciation anchors in the end-user client. Source-backed database pronunciation still wins; only a missing query spelling is generated client-side, then the existing Writer/Phrase/Entity search pipeline continues unchanged. eSpeak-NG is benchmark-only and is not an end-user runtime dependency.
 
 Current follow-up work is intentionally narrower:
 
-1. run/review the owner-local 1000-case unresolved Total Query Pronunciation benchmark;
+1. exercise and quality-benchmark the browser/client unknown-word IPA resolver independently from bulk Entity pronunciation work;
 2. improve Entity Writer latency without changing accepted semantics;
 3. continue only the targeted Top-100k unresolved-Entity pronunciation evidence campaign, not the full unresolved long tail;
 4. refine the product/UI without silently changing frozen retrieval, ranking, phonology, or diversity behavior.
