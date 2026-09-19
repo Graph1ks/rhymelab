@@ -214,3 +214,107 @@ test('unified UI control binding preflights the complete interactive surface', a
     assert.match(app,new RegExp(selector.replaceAll('.','\\.')));
   }
 });
+
+
+test('entity result presentation uses concrete taxonomy labels instead of generic Entity', async () => {
+  const app=await readFile('src/ui/app.js','utf8');
+  const testable=app.replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
+  const dom=buildFakeDom();
+  const localStorage=makeStorage();
+
+  const factory=new Function(
+    'document','localStorage','navigator','location','history','fetch','IntersectionObserver',
+    `${testable}\nreturn {state,entityDisplayLabel,resultRow,renderEntityPanel};`,
+  );
+  const runtime=factory(
+    dom.document,
+    localStorage,
+    {language:'en-US'},
+    {href:'http://127.0.0.1:3030/'},
+    {replaceState(){}},
+    async()=>({ok:true,json:async()=>({})}),
+    class {},
+  );
+
+  const rapper={
+    resultKind:'entity',
+    word:'Kendrick Lamar',
+    surface:'Kendrick Lamar',
+    language:'en',
+    ipa:'kɛndrɪk ləmɑr',
+    syllableCount:4,
+    primaryCategory:'person.musician',
+    entityCategories:[
+      {category:'person.musician'},
+      {category:'person.rapper'},
+    ],
+    popularityTier:'A',
+    popularityPercentile:0.99,
+    entityQid:'Q130798',
+    score:0.9,
+  };
+  assert.equal(runtime.entityDisplayLabel(rapper),'Rapper');
+
+  const cases=[
+    ['work.film','Movie'],
+    ['work.video_game','Video Game'],
+    ['group.music_group','Music Group'],
+    ['fictional.character','Character'],
+    ['person.actor','Actor'],
+    ['person.singer','Singer'],
+    ['work.song','Song'],
+    ['work.album','Album'],
+  ];
+  for(const [category,label] of cases){
+    assert.equal(runtime.entityDisplayLabel({
+      resultKind:'entity',
+      primaryCategory:category,
+      entityCategories:[{category}],
+    }),label);
+  }
+
+  assert.equal(runtime.entityDisplayLabel({resultKind:'entity'}),'Named item');
+
+  const rowHtml=runtime.resultRow(rapper,'perfect');
+  assert.match(rowHtml,/EN · Rapper/);
+  assert.doesNotMatch(rowHtml,/>Entity</);
+
+  runtime.renderEntityPanel(rapper,'perfect');
+  const detailHtml=dom.singles.get('#wordPanel').innerHTML;
+  assert.match(detailHtml,/>Rapper</);
+  assert.doesNotMatch(detailHtml,/>Entity</);
+
+  runtime.state.lang='de';
+  assert.equal(runtime.entityDisplayLabel({
+    resultKind:'entity',
+    primaryCategory:'work.video_game',
+    entityCategories:[{category:'work.video_game'}],
+  }),'Videospiel');
+});
+
+test('control-surface preflight rejects a missing required control group', async () => {
+  const app=await readFile('src/ui/app.js','utf8');
+  const testable=app.replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
+  const dom=buildFakeDom();
+  dom.groups.set('.basis-option',[]);
+  const localStorage=makeStorage();
+
+  const factory=new Function(
+    'document','localStorage','navigator','location','history','fetch','IntersectionObserver',
+    `${testable}\nreturn {installInteractiveControls};`,
+  );
+  const runtime=factory(
+    dom.document,
+    localStorage,
+    {language:'en-US'},
+    {href:'http://127.0.0.1:3030/'},
+    {replaceState(){}},
+    async()=>({ok:true,json:async()=>({})}),
+    class {},
+  );
+
+  assert.throws(
+    ()=>runtime.installInteractiveControls(),
+    /RhymeLab UI control surface incomplete: \.basis-option/,
+  );
+});
