@@ -142,7 +142,7 @@ const state={
   resultFiltersExpanded:savedResultFiltersExpanded==null?defaultSearchSectionsExpanded:savedResultFiltersExpanded==='1',
   capabilities:null,pronunciationRevision:null,data:null,visibleCount:60,pageSize:60,sectionPageSize:24,
   sectionVisible:new Map(),query:'',scrollObserver:null,wordCache:new Map(),pronunciationMisses:new Set(),
-  detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null,searchAutoCompactThreshold:null,
+  detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null,searchAutoCompactThreshold:null,stickyPanelOverride:null,
 };
 const esc=(value)=>String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const t=(key)=>I18N[state.lang][key]??I18N.en[key]??key;
@@ -191,13 +191,17 @@ function searchStickyTop(){
 function updateStickyLayout(){
   if(typeof window==='undefined')return;
   const root=document.documentElement;
+  const stage=$('.search-stage');
   const core=$('#searchForm');
   if(!root?.style?.setProperty)return;
   const stickyTop=searchStickyTop();
   const coreRect=core?.getBoundingClientRect?.();
   const coreHeight=Math.ceil(Number(coreRect?.height||core?.offsetHeight||60));
+  const stickyExpanded=Boolean(stage?.classList.contains('search-auto-compact')&&state.stickyPanelOverride);
+  const stageHeight=Math.ceil(Number(stage?.offsetHeight||stage?.getBoundingClientRect?.()?.height||coreHeight));
+  const occupiedHeight=stickyExpanded?stageHeight:coreHeight;
   root.style.setProperty('--search-sticky-top',`${stickyTop}px`);
-  root.style.setProperty('--word-panel-sticky-top',`${stickyTop+coreHeight+14}px`);
+  root.style.setProperty('--word-panel-sticky-top',`${stickyTop+occupiedHeight+14}px`);
 }
 
 function refreshSearchCompactThreshold(){
@@ -221,11 +225,11 @@ function refreshSearchCompactThreshold(){
 function syncSearchSectionControls(){
   const stage=$('.search-stage');
   const autoCompact=stage?.classList.contains('search-auto-compact');
-  for(const config of Object.values(SEARCH_SECTION_CONFIG)){
+  for(const [name,config] of Object.entries(SEARCH_SECTION_CONFIG)){
     const section=$(config.section);
     const button=$(config.button);
     const preferred=Boolean(state[config.stateKey]);
-    const actuallyExpanded=preferred&&!autoCompact;
+    const actuallyExpanded=preferred&&(!autoCompact||state.stickyPanelOverride===name);
     section?.classList.toggle('section-collapsed',!actuallyExpanded);
     button?.classList.toggle('active',actuallyExpanded);
     button?.setAttribute('aria-expanded',String(actuallyExpanded));
@@ -239,7 +243,7 @@ function setSearchSectionExpanded(name,expanded,{persist=true}={}){
   if(!config)return;
   state[config.stateKey]=Boolean(expanded);
   if(persist)localStorage.setItem(config.storageKey,expanded?'1':'0');
-  $('.search-stage')?.classList.remove('search-auto-compact');
+  state.stickyPanelOverride=null;
   syncSearchSectionControls();
 }
 
@@ -248,10 +252,12 @@ function toggleSearchSection(name){
   if(!config)return;
   const stage=$('.search-stage');
   if(stage?.classList.contains('search-auto-compact')){
-    stage.classList.remove('search-auto-compact');
-    if(!state[config.stateKey]){
+    if(state.stickyPanelOverride===name){
+      state.stickyPanelOverride=null;
+    }else{
       state[config.stateKey]=true;
       localStorage.setItem(config.storageKey,'1');
+      state.stickyPanelOverride=name;
     }
     syncSearchSectionControls();
     return;
@@ -263,6 +269,7 @@ function clearSearchAutoCompact(){
   const stage=$('.search-stage');
   if(!stage)return;
   stage.classList.remove('search-auto-compact');
+  state.stickyPanelOverride=null;
   syncSearchSectionControls();
 }
 
@@ -283,6 +290,7 @@ function syncFloatingSearchState(){
   if(stage.classList.contains('search-auto-compact')){
     if(window.scrollY<threshold-24){
       stage.classList.remove('search-auto-compact');
+      state.stickyPanelOverride=null;
       syncSearchSectionControls();
     }
     return;
