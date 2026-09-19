@@ -3487,20 +3487,33 @@
       ]
     },
     "entity_resume": {
-      "status": "ACTIVE_PHASE_12C_SOURCE_BACKED_RUNTIME_PLUS_ISOLATED_AI_STAGING",
+      "status": "ACTIVE_PHASE_12C_OWNER_FULL_DATA_ACCEPTANCE",
       "sequence": [
         "source_backed_multilingual_entity_runtime_repository_acceptance",
-        "multilingual_de_en_entity_writer_channel_repository_acceptance",
+        "guarded_entity_writer_ranking_and_metadata_batching",
+        "owner_full_data_runtime_and_entity_writer_acceptance",
+        "squash_merge_source_backed_phase12c_runtime_after_green_ci",
         "collect_llm_pronunciation_evidence_for_704989_unresolved_names_in_isolated_staging",
         "review_benchmark_v3_context_gold_with_independent_evidence",
         "evaluate_ai_staging_quality_without_automatic_promotion_threshold",
-        "explicit_separate_runtime_promotion_decision_if_evidence_ever_justifies_it",
-        "integrated_de_en_entity_product_acceptance"
+        "explicit_separate_runtime_promotion_decision_if_evidence_ever_justifies_it"
       ],
       "generated_runtime_fallback": "REJECTED_MFA_AND_G2PEN",
       "ai_staging_runtime_truth": false,
       "automatic_ai_promotion": false,
-      "prominence_rule": "prominence_may_reorder_phonetically_near_equivalent_entities_but_must_not_override_materially_worse_rhyme_quality"
+      "prominence_rule": "prominence_may_reorder_phonetically_near_equivalent_entities_but_must_not_override_materially_worse_rhyme_quality",
+      "source_runtime_merge_blocked_by_ai_evidence": false,
+      "benchmark_v3_blocks_source_runtime": false,
+      "benchmark_v3_blocks_ai_evidence_acceptance": true,
+      "entity_ranking": {
+        "status": "CANDIDATE_IMPLEMENTED_OWNER_FULL_DATA_ACCEPTANCE_PENDING",
+        "policy": "entity-writer-ranking-v2-phonetic-band-prominence-v1",
+        "phonetic_band_width": 0.02,
+        "prominence_scope": "same_rhyme_tier_same_phonetic_band_same_syllable_distance",
+        "qid_deduplication": true,
+        "repeated_surface_cap": 2,
+        "category_metadata_batching": true
+      }
     },
     "performance_phase": {
       "status": "DEFERRED_UNTIL_DE_EN_ENTITY_QUERY_CONTRACTS_STABLE",
@@ -3529,7 +3542,7 @@
   },
   "active_candidate_branch": {
     "branch": "phase12c-entity-runtime-ai-staging",
-    "status": "REPOSITORY_ACCEPTANCE_IN_PROGRESS_NOT_MERGE_READY",
+    "status": "OWNER_FULL_DATA_ACCEPTANCE_PENDING",
     "handover": "docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md",
     "implemented": [
       "source_backed_en_entity_runtime_and_phonetic_anchors",
@@ -3545,15 +3558,21 @@
       "strict_ai_manifest_batch_and_sha_validation",
       "idempotent_identical_ai_result_reimport",
       "aggregate_ai_confidence_orthography_problem_population_diagnostics",
-      "durable_phase12c_acceptance_and_ai_staging_contracts"
+      "durable_phase12c_acceptance_and_ai_staging_contracts",
+      "guarded_entity_writer_ranking_v2_phonetic_band_prominence",
+      "entity_qid_and_surface_diversity",
+      "batched_entity_category_metadata_lookup",
+      "full_data_entity_writer_acceptance_suite",
+      "consolidated_phase12c_owner_acceptance_runner"
     ],
     "pending": [
-      "complete_benchmark_v3_context_gold_review_against_local_v2_control_evidence",
+      "run_npm_entity_phase12c_owner_against_full_local_databases",
+      "review_owner_full_data_runtime_and_entity_writer_report",
       "keep_pull_request_validate_green_on_final_head",
-      "squash_merge_only_after_benchmark_review_and_green_ci"
+      "mark_pr_ready_and_squash_merge_after_owner_gate"
     ],
     "ai_runtime_promoted": false,
-    "owner_full_runtime_run_authorized": false,
+    "owner_full_runtime_run_authorized": true,
     "acceptance_doc": "docs/PHASE_12C_ACCEPTANCE.md",
     "ai_staging_contract": "docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md",
     "base_main_sha1": "963e1571794b1fbac07a48ae03d2297ff04e00f7",
@@ -3569,6 +3588,11 @@
         "npm_test_364_of_364",
         "public_readiness_audit"
       ]
-    }
+    },
+    "owner_command": "npm run entity:phase12c:owner",
+    "owner_report": "data/local/phase12c-owner-acceptance-v1-report.json",
+    "benchmark_v3_blocks_source_runtime": false,
+    "benchmark_v3_blocks_ai_evidence_acceptance": true,
+    "ai_data_required_for_source_runtime_acceptance": false
   }
 }
