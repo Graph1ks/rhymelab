@@ -935,7 +935,25 @@ Implemented on the branch: source-backed EN Entity runtime and rhyme anchors, DE
 
 Acceptance contracts: `docs/PHASE_12C_ACCEPTANCE.md` and `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md`.
 
-Current source-backed gate: **owner full-data acceptance pending**. Run `npm run entity:phase12c:owner` against the local full databases and return `data/local/phase12c-owner-acceptance-v1-report.json`. The suite verifies runtime fingerprints/source-only invariants, DE/EN Entity query coverage, repeatability, provenance, ranking guards, QID/surface diversity and category-query batching, while preserving representative top pages for owner review.
+Current source-backed gate: **OWNER FULL-DATA ACCEPTED**.
+
+```text
+owner report                     rhymelab-phase12c-owner-acceptance-v1 / ok
+EN names considered              1,415,550
+EN runtime-ready                   710,500 / 50.19%
+EN unresolved                      705,050 / 49.81%
+EN analyses                        710,500
+EN anchors                       3,552,500
+EN runtime fingerprint
+3f2c520ce99868eda81991e6247c6c93bdf8c78f7805d7ceef2cc2ebd85bb6d8
+DE fingerprint                   preserved
+DE/EN acceptance coverage        100% / 100%
+ranking repeatability            PASS
+Writer semantic fingerprint
+76ac9a32e62fd7b253515569294599012010e9be758db24227a910d893141ae7
+```
+
+The previous 710,561 figure is retained as source-resolution evidence; 710,500 is the accepted runtime-analyzable baseline. Performance is not yet product-target quality: the owner acceptance sample measured roughly 384–403 ms p50 and 1.15–1.22 s p95, so Entity Writer latency optimization remains explicit follow-up work.
 
 Benchmark-v3 context-gold review and the still-missing AI batch data belong to the separate AI-evidence track. They do **not** block source-backed runtime acceptance or merge. AI staging remains non-runtime evidence, `runtime_promoted=0`, and no confidence threshold is preselected for promotion.
 
