@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import {
   ENTITY_EN_PHONETIC_RUNTIME,
@@ -21,6 +21,8 @@ const dbPath=resolve(argValue('--entities','data/local/rhymelab-entities-v1.sqli
 const reportPath=resolve(
   argValue('--report','data/local/entity-multilingual-runtime-v1-report.json')
 );
+const outArg=argValue('--out',null);
+const outPath=outArg?resolve(outArg):null;
 if(!existsSync(dbPath)) throw new Error(`Entity database missing: ${dbPath}`);
 if(!existsSync(reportPath)) throw new Error(`Multilingual runtime report missing: ${reportPath}`);
 
@@ -102,7 +104,11 @@ try{
     en_analyses:Number(meta('entity_phonetic_analyses_en')||0),
     en_anchors:Number(meta('entity_rhyme_anchors_en')||0),
   };
-  console.log(JSON.stringify(summary,null,2));
+  if(outPath){
+    await mkdir(dirname(outPath),{recursive:true});
+    await writeFile(outPath,JSON.stringify(summary,null,2)+'\n','utf8');
+  }
+  console.log(JSON.stringify({...summary,report:outPath},null,2));
   if(failed.length) process.exitCode=1;
 }finally{
   db.close();
