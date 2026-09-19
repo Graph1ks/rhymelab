@@ -78,6 +78,64 @@ const textPatterns = [
 
 const findings = [];
 
+const requiredRepositoryFiles = [
+  'PROJECT.md',
+  'CHANGELOG.md',
+  '.editorconfig',
+  '.gitattributes',
+];
+
+for (const requiredPath of requiredRepositoryFiles) {
+  if (!tracked.includes(requiredPath)) {
+    findings.push(`${requiredPath}: required repository-governance file is missing`);
+  }
+}
+
+function readTrackedText(path) {
+  if (!tracked.includes(path)) return '';
+  try {
+    return readFileSync(path, 'utf8');
+  } catch {
+    findings.push(`${path}: required policy file is not readable`);
+    return '';
+  }
+}
+
+const projectText = readTrackedText('PROJECT.md');
+for (const marker of [
+  '**Collaboration mode:** owner-controlled / solo-dev',
+  '**Changelog:** enabled',
+  '**Required production cost target:** zero.',
+  '## QA / merge gate',
+]) {
+  if (projectText && !projectText.includes(marker)) {
+    findings.push(`PROJECT.md: missing required project-contract marker: ${marker}`);
+  }
+}
+
+const changelogText = readTrackedText('CHANGELOG.md');
+if (changelogText && !changelogText.includes('## Unreleased')) {
+  findings.push('CHANGELOG.md: missing Unreleased section');
+}
+
+const unresolvedTemplatePatterns = [
+  /<project-name>/i,
+  /<one sentence describing/i,
+  /<project-specific/i,
+  /\bYYYY-MM-DD\b/,
+];
+
+for (const policyPath of ['PROJECT.md', 'CHANGELOG.md']) {
+  const text = readTrackedText(policyPath);
+  if (!text) continue;
+  for (const pattern of unresolvedTemplatePatterns) {
+    if (pattern.test(text)) {
+      findings.push(`${policyPath}: unresolved repository-template placeholder`);
+      break;
+    }
+  }
+}
+
 for (const path of tracked) {
   if (blockedPathPatterns.some((pattern) => pattern.test(path))) {
     findings.push(`${path}: blocked tracked path/file type`);
