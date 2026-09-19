@@ -3487,7 +3487,7 @@
       ]
     },
     "entity_resume": {
-      "status": "ACTIVE_PHASE_12C_OWNER_FULL_DATA_ACCEPTANCE",
+      "status": "PHASE_12C_SOURCE_BACKED_OWNER_ACCEPTED_PR_FINALIZATION",
       "sequence": [
         "source_backed_multilingual_entity_runtime_repository_acceptance",
         "guarded_entity_writer_ranking_and_metadata_batching",
@@ -3506,13 +3506,59 @@
       "benchmark_v3_blocks_source_runtime": false,
       "benchmark_v3_blocks_ai_evidence_acceptance": true,
       "entity_ranking": {
-        "status": "CANDIDATE_IMPLEMENTED_OWNER_FULL_DATA_ACCEPTANCE_PENDING",
+        "status": "ACCEPTED_FULL_DATA_REPEATABLE",
         "policy": "entity-writer-ranking-v2-phonetic-band-prominence-v1",
         "phonetic_band_width": 0.02,
         "prominence_scope": "same_rhyme_tier_same_phonetic_band_same_syllable_distance",
         "qid_deduplication": true,
         "repeated_surface_cap": 2,
         "category_metadata_batching": true
+      },
+      "owner_full_data_acceptance": {
+        "status": "ACCEPTED",
+        "built_at": "2026-09-19T13:07:27.378Z",
+        "command": "npm run entity:phase12c:owner",
+        "report": "data/local/phase12c-owner-acceptance-v1-report.json",
+        "english_names_considered": 1415550,
+        "english_runtime_ready": 710500,
+        "english_runtime_ready_pct": 50.19,
+        "english_unresolved": 705050,
+        "english_unresolved_pct": 49.81,
+        "english_phonetic_analyses": 710500,
+        "english_rhyme_anchors": 3552500,
+        "english_runtime_fingerprint": "3f2c520ce99868eda81991e6247c6c93bdf8c78f7805d7ceef2cc2ebd85bb6d8",
+        "de_runtime_fingerprint": "38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3",
+        "generated_g2p_used": false,
+        "llm_annotation_used": false,
+        "ai_staging_runtime_promoted": false,
+        "writer_coverage": {
+          "de_resolved_fraction": 1,
+          "de_nonempty_entity_fraction": 1,
+          "en_resolved_fraction": 1,
+          "en_nonempty_entity_fraction": 1
+        },
+        "writer_repeatable": true,
+        "writer_semantic_fingerprint": "76ac9a32e62fd7b253515569294599012010e9be758db24227a910d893141ae7",
+        "timing_ms": {
+          "run_1": {
+            "p50": 384.274,
+            "p95": 1146.857,
+            "max": 1487.707
+          },
+          "run_2": {
+            "p50": 403.45,
+            "p95": 1221.21,
+            "max": 1579.879
+          }
+        },
+        "performance_target_met": false,
+        "performance_followup_required": true
+      },
+      "source_resolution_baseline": {
+        "names_considered": 1415550,
+        "source_resolved_candidates": 710561,
+        "unresolved_after_source_resolution": 704989,
+        "note": "source-resolution evidence only; accepted runtime-ready rows must also pass the EN runtime analyzer"
       }
     },
     "performance_phase": {
