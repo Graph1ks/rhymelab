@@ -91,24 +91,34 @@ async function englishRuntimeFingerprint(db){
       ORDER BY n.entity_id,n.name_id,p.pronunciation_id
     `),
     db.prepare(`
-      SELECT pronunciation_id,analyzer_id,phonemes,syllables,syllable_count,
-        primary_stress,secondary_stress,stress_pattern,vowel_sequence,
-        consonant_sequence,rhyme_tail,rhyme_signature
-      FROM entity_phonetic_analysis
-      WHERE analyzer_id=?
-      ORDER BY pronunciation_id
+      SELECT a.pronunciation_id,a.analyzer_id,a.phonemes,a.syllables,a.syllable_count,
+        a.primary_stress,a.secondary_stress,a.stress_pattern,a.vowel_sequence,
+        a.consonant_sequence,a.rhyme_tail,a.rhyme_signature
+      FROM entity_phonetic_analysis a
+      JOIN entity_pronunciation p USING(pronunciation_id)
+      JOIN entity_name n USING(name_id)
+      WHERE a.analyzer_id=?
+        AND n.language='en'
+        AND p.locale='en-US'
+        AND p.review_state IN (${reviewStates})
+      ORDER BY a.pronunciation_id
     `),
     db.prepare(`
-      SELECT analyzer_id,channel,anchor_key,pronunciation_id
-      FROM entity_rhyme_anchor
-      WHERE analyzer_id=?
-      ORDER BY channel,anchor_key,pronunciation_id
+      SELECT a.analyzer_id,a.channel,a.anchor_key,a.pronunciation_id
+      FROM entity_rhyme_anchor a
+      JOIN entity_pronunciation p USING(pronunciation_id)
+      JOIN entity_name n USING(name_id)
+      WHERE a.analyzer_id=?
+        AND n.language='en'
+        AND p.locale='en-US'
+        AND p.review_state IN (${reviewStates})
+      ORDER BY a.channel,a.anchor_key,a.pronunciation_id
     `),
   ];
   const argsList=[
     ENTITY_RUNTIME_REVIEW_STATES,
-    [ENTITY_EN_RUNTIME_ANALYZER],
-    [ENTITY_EN_RUNTIME_ANALYZER],
+    [ENTITY_EN_RUNTIME_ANALYZER,...ENTITY_RUNTIME_REVIEW_STATES],
+    [ENTITY_EN_RUNTIME_ANALYZER,...ENTITY_RUNTIME_REVIEW_STATES],
   ];
   for(let i=0;i<feeds.length;i+=1){
     hash.update('[');
@@ -167,7 +177,10 @@ try{
   const preferredExists=entityDb.prepare(`
     SELECT 1 AS yes
     FROM entity_pronunciation
-    WHERE name_id=? AND locale='en-US' AND preferred=1
+    WHERE name_id=?
+      AND locale='en-US'
+      AND preferred=1
+      AND review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
     LIMIT 1
   `);
   const insertPronunciation=entityDb.prepare(`
@@ -176,6 +189,67 @@ try{
       generated,model_id,confidence,review_state
     ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
   `);
+  const existingRuntimeRows=entityDb.prepare(`
+    SELECT p.pronunciation_id,p.name_id,p.ipa,p.generated,p.source_kind,p.review_state,n.surface
+    FROM entity_pronunciation p
+    JOIN entity_name n USING(name_id)
+    WHERE n.language='en'
+      AND p.locale='en-US'
+      AND p.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+    ORDER BY p.pronunciation_id
+  `).all();
+  const quarantineRuntimeRow=entityDb.prepare(`
+    UPDATE entity_pronunciation
+    SET review_state=?
+    WHERE pronunciation_id=?
+  `);
+  const deleteRuntimeAnchors=entityDb.prepare(`
+    DELETE FROM entity_rhyme_anchor
+    WHERE pronunciation_id=? AND analyzer_id=?
+  `);
+  const deleteRuntimeAnalysis=entityDb.prepare(`
+    DELETE FROM entity_phonetic_analysis
+    WHERE pronunciation_id=? AND analyzer_id=?
+  `);
+
+  let quarantinedExisting=0;
+  const quarantineSamples=[];
+  entityDb.exec('BEGIN');
+  try{
+    for(const row of existingRuntimeRows){
+      let reason=null;
+      if(Number(row.generated||0)!==0){
+        reason='generated_runtime_row';
+      }else{
+        try{
+          analyzeEntityPronunciation(row.ipa,'en');
+        }catch{
+          reason='unanalysable_runtime_ipa';
+        }
+      }
+      if(!reason) continue;
+      deleteRuntimeAnchors.run(row.pronunciation_id,ENTITY_EN_RUNTIME_ANALYZER);
+      deleteRuntimeAnalysis.run(row.pronunciation_id,ENTITY_EN_RUNTIME_ANALYZER);
+      quarantineRuntimeRow.run(
+        reason==='generated_runtime_row'?'rejected_runtime_policy':'rejected_runtime_analysis',
+        row.pronunciation_id,
+      );
+      quarantinedExisting+=1;
+      if(quarantineSamples.length<25){
+        quarantineSamples.push({
+          pronunciation_id:Number(row.pronunciation_id),
+          name_id:Number(row.name_id),
+          surface:row.surface,
+          source_kind:row.source_kind,
+          reason,
+        });
+      }
+    }
+    entityDb.exec('COMMIT');
+  }catch(error){
+    try{entityDb.exec('ROLLBACK');}catch{}
+    throw error;
+  }
 
   let inserted=0;
   let existingCount=0;
@@ -333,8 +407,11 @@ try{
               pronunciation.pronunciation_id,
             ).changes||0);
           }
-        }catch{
+        }catch(error){
           rejected+=1;
+          throw new Error(
+            `English runtime analysis failed for pronunciation ${pronunciation.pronunciation_id}: ${error?.message||error}`
+          );
         }
       }
 
@@ -362,12 +439,26 @@ try{
     throw error;
   }
 
-  const totalAnalyses=Number(entityDb.prepare(
-    'SELECT COUNT(*) AS c FROM entity_phonetic_analysis WHERE analyzer_id=?'
-  ).get(ENTITY_EN_RUNTIME_ANALYZER).c||0);
-  const totalAnchors=Number(entityDb.prepare(
-    'SELECT COUNT(*) AS c FROM entity_rhyme_anchor WHERE analyzer_id=?'
-  ).get(ENTITY_EN_RUNTIME_ANALYZER).c||0);
+  const totalAnalyses=Number(entityDb.prepare(`
+    SELECT COUNT(*) AS c
+    FROM entity_phonetic_analysis a
+    JOIN entity_pronunciation p USING(pronunciation_id)
+    JOIN entity_name n USING(name_id)
+    WHERE a.analyzer_id=?
+      AND n.language='en'
+      AND p.locale='en-US'
+      AND p.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+  `).get(ENTITY_EN_RUNTIME_ANALYZER).c||0);
+  const totalAnchors=Number(entityDb.prepare(`
+    SELECT COUNT(*) AS c
+    FROM entity_rhyme_anchor a
+    JOIN entity_pronunciation p USING(pronunciation_id)
+    JOIN entity_name n USING(name_id)
+    WHERE a.analyzer_id=?
+      AND n.language='en'
+      AND p.locale='en-US'
+      AND p.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+  `).get(ENTITY_EN_RUNTIME_ANALYZER).c||0);
   const readyNames=Number(entityDb.prepare(`
     SELECT COUNT(DISTINCT n.name_id) AS c
     FROM entity_name n
@@ -417,6 +508,8 @@ try{
       names_ready:readyNames,
       inserted_this_run:inserted,
       existing_before_run:existingCount,
+      quarantined_existing_runtime_rows:quarantinedExisting,
+      quarantine_samples:quarantineSamples,
       unresolved_names:Math.max(0,names.length-readyNames),
       phonetic_analyses:totalAnalyses,
       analyses_resumed:resumed,
