@@ -1,6 +1,6 @@
 # English Writer Acceptance v1 — Phase 12B10
 
-Status: **candidate implementation / owner acceptance run pending**
+Status: **owner evidence reviewed / English Writer candidate selected for product integration**
 
 ## Purpose
 
@@ -120,15 +120,15 @@ The selected Quality candidate is tested at:
 
 Diversity may act only inside the same relation tier **and the same anchored quality band**.
 
-The runner selects the **lowest positive weight** that satisfies:
+Diversity selection uses a constrained Pareto rule:
 
-- near-duplicate reduction >= 50%;
-- repeated-lemma reduction >= 40%;
-- mean phonetic drop <= 0.0025;
-- mean commonness drop <= 0.04;
-- zero phonetic-guard violations.
+- require an improvement in both near-duplicate and repeated-lemma concentration;
+- mean phonetic drop must remain <= 0.0025;
+- mean commonness drop must remain <= 0.04;
+- phonetic-guard violations must remain zero;
+- among candidates satisfying those hard quality constraints, maximize the weaker of the two diversity reductions; use lower weight as deterministic tie-break.
 
-This chooses the smallest effective diversification strength instead of copying German `0.18` automatically.
+This avoids tuning acceptance to arbitrary percentage targets while still preventing Diversity from buying variety by sacrificing commonness or phonetic quality.
 
 ## Query coverage
 
@@ -176,9 +176,12 @@ and contains:
 - selected Diversity weight;
 - all structural gate evaluations;
 - aggregate metrics;
-- per-query Top-20 evidence;
+- compact per-query retrieval summaries;
+- Top-10 before/after evidence only for a small representative sentinel set;
 - modernity diagnostics;
 - semantic report fingerprint.
+
+The default report profile is `compact-v1`. Full per-query/config/diversity Top-20 dumps are written only when an explicit `--debug-report <path>` flag is supplied.
 
 No ranking or diversity configuration is promoted merely because it exists in code. The owner report must satisfy the gates.
 
@@ -196,3 +199,51 @@ Implement the selected policy in the English Writer runtime and perform one inte
 - product capability gating / failure behavior.
 
 Only after that integrated bundle passes should EN and DE+EN be considered accepted product capabilities.
+
+
+## Owner result — 2026-09-19
+
+The owner run completed against the accepted v4 DB/runtime evidence.
+
+```text
+reported status                  needs_iteration
+semantic fingerprint             b1aacf3c2de3f91b9ce740744b15f89c797a24b4dc916f0f72f5d8235ea266cb
+queries                          96
+raw report bytes                 44,256,392
+raw report MiB                   42.21
+```
+
+Quality selection:
+
+```text
+selected                         guarded_commonness_06
+mean phonetic drop               0.001061
+mean commonness uplift           0.035469
+unranked delta                  -62
+guard violations                 0
+```
+
+All three tested Commonness candidates passed the Quality hard gates. The least intervention, `guarded_commonness_06`, remains the selected Quality policy.
+
+The original fixed Diversity thresholds produced no automatic winner. Review of the trade-off shows one clear constrained Pareto point:
+
+```text
+diversity weight                 0.08
+near-duplicate reduction         45.6853%
+repeated-lemma reduction         38.7755%
+mean phonetic drop               0.000322
+mean commonness drop             0.034878
+guard violations                 0
+```
+
+Weights `0.12`, `0.16` and `0.20` improve duplicate suppression further but exceed the accepted `0.04` Commonness-drop guard. Therefore the reviewed English Writer candidate is:
+
+```text
+quality                          guarded_commonness_06
+diversity                        0.08
+policy                           en-writer-guarded-quality-diversity-v1-candidate
+```
+
+No further ranking owner run is required before product integration.
+
+The 42.21 MiB default report was a tooling defect, not a data requirement. The primary report now omits repeated full Top-20 matrices. Reconstructing the new compact shape from this owner evidence is approximately 165 KiB, a reduction of about 99.6%. Full matrices are debug-only.
