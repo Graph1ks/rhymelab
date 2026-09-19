@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { createReadStream, createWriteStream, existsSync } from 'node:fs';
 import { once } from 'node:events';
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { createGunzip } from 'node:zlib';
 import { createInterface } from 'node:readline';
@@ -11,10 +11,7 @@ import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-ad
 import { getPhonologyProfile } from './phonology-profiles.mjs';
 import { normalizeGerman, optionsForListedForms } from './kaikki-resolver-lib.mjs';
 import { lexicalEvidenceForHeadword, lexicalEvidenceForListedForms } from './en-publish-core.mjs';
-import {
-  normalizeEnglishSurface,
-  readJson,
-} from './en-writer-source-core.mjs';
+import { readJson } from './en-writer-source-core.mjs';
 import {
   resolveUnknownClientPronunciation,
   tokenizeClientPronunciationInput,
@@ -151,16 +148,6 @@ if(requestedScopes.has('en')){
   }
 }
 
-if(reset){
-  for(const path of [workPath,workPath+'-wal',workPath+'-shm',reportPath,reviewPath,allPath]){
-    await rm(path,{force:true});
-  }
-}
-
-await mkdir(dirname(workPath),{recursive:true});
-await mkdir(dirname(reportPath),{recursive:true});
-await mkdir(dirname(reviewPath),{recursive:true});
-
 const sourceSnapshot={};
 for(const [scope,path] of sourcePaths){
   const db=openReadOnly(path);
@@ -225,6 +212,16 @@ if(phase==='plan'){
   },null,2));
   process.exit(0);
 }
+
+if(reset){
+  for(const path of [workPath,workPath+'-wal',workPath+'-shm',reportPath,reviewPath,allPath]){
+    await rm(path,{force:true});
+  }
+}
+
+await mkdir(dirname(workPath),{recursive:true});
+await mkdir(dirname(reportPath),{recursive:true});
+await mkdir(dirname(reviewPath),{recursive:true});
 
 const workDb=new DatabaseSync(workPath);
 createPronunciationBackfillStorage(workDb);
