@@ -16,7 +16,7 @@
       "source_id": "cmudict-en-us-74790861",
       "reuse_existing_registry": "sources/en/phase12b-sources-v1.json",
       "role": "full_raw_exact_en_us_name_and_token_pronunciation",
-      "commit": "74790861f652b15e4ac49015a90074ad62a27690",
+      "commit": "74790861f652…",
       "license_id": "CMUdict-BSD-style",
       "commercial_use": true,
       "new_download_required": false
