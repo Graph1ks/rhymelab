@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { existsSync } from 'node:fs';
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { createWriteStream, existsSync } from 'node:fs';
+import { once } from 'node:events';
+import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { DatabaseSync } from 'node:sqlite';
@@ -748,18 +749,26 @@ async function writeTsv(path,whereClause){
     'final_status','quality_tier','quality_reason','final_method','ipa','syllable_count','primary_stress',
     'stress_pattern','last_error',
   ];
-  const lines=[header.join('\t')];
-  const rows=workDb.prepare([
-    'SELECT item_id,language,surface,normalized,source_ref_count,espeak_status,client_status,final_status,',
-    'quality_tier,quality_reason,final_method,ipa,syllable_count,primary_stress,stress_pattern,last_error',
-    'FROM work_item',
-    whereClause?'WHERE '+whereClause:'',
-    'ORDER BY language,normalized,item_id',
-  ].join(' ')).iterate();
-  for(const row of rows){
-    lines.push(header.map((key)=>tsvCell(row[key])).join('\t'));
+  const stream=createWriteStream(path,{encoding:'utf8'});
+  const write=async(line)=>{
+    if(!stream.write(line+'\n')) await once(stream,'drain');
+  };
+  try{
+    await write(header.join('\t'));
+    const rows=workDb.prepare([
+      'SELECT item_id,language,surface,normalized,source_ref_count,espeak_status,client_status,final_status,',
+      'quality_tier,quality_reason,final_method,ipa,syllable_count,primary_stress,stress_pattern,last_error',
+      'FROM work_item',
+      whereClause?'WHERE '+whereClause:'',
+      'ORDER BY language,normalized,item_id',
+    ].join(' ')).iterate();
+    for(const row of rows){
+      await write(header.map((key)=>tsvCell(row[key])).join('\t'));
+    }
+  }finally{
+    stream.end();
+    await once(stream,'finish');
   }
-  await writeFile(path,lines.join('\n')+'\n','utf8');
 }
 
 async function report(){
