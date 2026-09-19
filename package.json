@@ -152,6 +152,7 @@
     "pronunciation:backfill:client": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase client",
     "pronunciation:backfill:highspeed:test": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs",
     "pronunciation:backfill:highspeed:spawn": "node --no-warnings scripts/benchmark-pronunciation-espeak-highspeed.mjs",
-    "pronunciation:backfill:highspeed:batch": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs"
+    "pronunciation:backfill:highspeed:batch": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs",
+    "pronunciation:backfill:highspeed:analyzer-control": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs --analyzer-workers 0"
   }
 }

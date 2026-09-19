@@ -10,6 +10,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-adapter.mjs';
 import { getPhonologyProfile } from './phonology-profiles.mjs';
 import { mapEspeakBatchWorkers } from './pronunciation-espeak-batch.mjs';
+import { PronunciationIpaAnalyzerPool } from './pronunciation-ipa-analyzer-pool.mjs';
 import { PRONUNCIATION_ADMISSION_POLICY, evaluatePronunciationAdmission } from './pronunciation-backfill-admission-core.mjs';
 import { normalizeGerman, optionsForListedForms } from './kaikki-resolver-lib.mjs';
 import { lexicalEvidenceForHeadword, lexicalEvidenceForListedForms } from './en-publish-core.mjs';
@@ -61,6 +62,7 @@ const commitEvery=integerArg('--commit-every',250,{min:1,max:10_000});
 const admissionCommitEvery=integerArg('--admission-commit-every',10000,{min:100,max:100_000});
 const espeakWorkers=integerArg('--workers',4,{min:1,max:32});
 const espeakBatchSize=integerArg('--espeak-batch-size',512,{min:16,max:5000});
+const analyzerWorkers=integerArg('--analyzer-workers',4,{min:0,max:16});
 const retryErrors=hasFlag('--retry-errors');
 const reset=hasFlag('--reset');
 const exportAll=hasFlag('--export-all');
@@ -1374,13 +1376,15 @@ async function runEspeak(){
       'GROUP BY w.language ORDER BY w.language',
     ].join(' ')).all().map((row)=>[String(row.language),Number(row.c)]),
   );
+  const analyzerMode=analyzerWorkers>0?'worker_threads':'main_thread';
   console.log(
     '[espeak] engine='+(preflight.engineVersion||preflight.engine||'eSpeak-NG')
     +' · command='+(resolvedCommand||'auto-detect')
     +' · admitted_pending='+total.toLocaleString('en-US')
     +' · workers='+espeakWorkers
     +' · batch_per_worker='+espeakBatchSize
-    +' · mode=batch'
+    +' · analyzer_workers='+analyzerWorkers
+    +' · analyzer_mode='+analyzerMode
     +' · by_language='+safeJson(pendingByLanguage)
   );
 
@@ -1396,149 +1400,187 @@ async function runEspeak(){
   const startedAt=Date.now();
   let recentStartedAt=startedAt;
   let recentDone=0;
+  const analyzerPool=analyzerWorkers>0
+    ?new PronunciationIpaAnalyzerPool({workers:analyzerWorkers})
+    :null;
 
-  for(const language of ['de','en']){
-    if(stopRequested)break;
-    const languageTotal=Number(pendingByLanguage[language]||0);
-    if(!languageTotal)continue;
-    let languageDone=0;
-    console.log(
-      '[espeak:'+language+'] pending='+languageTotal.toLocaleString('en-US')
-      +' · workers='+espeakWorkers
-      +' · batch_per_worker='+espeakBatchSize
-    );
+  try{
+    for(const language of ['de','en']){
+      if(stopRequested)break;
+      const languageTotal=Number(pendingByLanguage[language]||0);
+      if(!languageTotal)continue;
+      let languageDone=0;
+      console.log(
+        '[espeak:'+language+'] pending='+languageTotal.toLocaleString('en-US')
+        +' · workers='+espeakWorkers
+        +' · batch_per_worker='+espeakBatchSize
+        +' · analyzer_workers='+analyzerWorkers
+      );
 
-    while(!stopRequested){
-      const rows=batchQuery.all(language,batchWindow);
-      if(!rows.length)break;
+      while(!stopRequested){
+        const rows=batchQuery.all(language,batchWindow);
+        if(!rows.length)break;
 
-      const processed=await mapEspeakBatchWorkers(rows,language,{
-        command:resolvedCommand,
-        engineVersion:preflight.engineVersion||null,
-        workers:espeakWorkers,
-        batchSize:espeakBatchSize,
-      });
+        const processed=await mapEspeakBatchWorkers(rows,language,{
+          command:resolvedCommand,
+          engineVersion:preflight.engineVersion||null,
+          workers:espeakWorkers,
+          batchSize:espeakBatchSize,
+          analyzerPool,
+        });
 
-      workDb.exec('BEGIN IMMEDIATE');
-      try{
-        for(const result of processed){
-          const row=result.row;
-          processModes[result.mode||'unknown']=(processModes[result.mode||'unknown']||0)+1;
-          try{
-            if(result.error)throw result.error;
-            const inspected=result.inspected;
-            if(inspected?.status==='accepted'){
-              const quality=classifyEspeakResolution(inspected);
-              const a=rowAnalysisFields(inspected.analysis);
-              updateEspeakAccepted.run(
-                quality.qualityTier,quality.qualityReason,quality.method,
-                inspected.ipa,inspected.rawIpa||null,a.syllableCount,a.primaryStress,a.stressPattern,
-                a.exactTailKey,a.vowelKey,a.codaKey,inspected.engine||'espeak-ng',
-                inspected.engineVersion||preflight.engineVersion||null,now(),Number(row.item_id),
-              );
+        workDb.exec('BEGIN IMMEDIATE');
+        try{
+          for(const result of processed){
+            const row=result.row;
+            processModes[result.mode||'unknown']=(processModes[result.mode||'unknown']||0)+1;
+            try{
+              if(result.error)throw result.error;
+              const inspected=result.inspected;
+              if(inspected?.status==='accepted'){
+                const quality=classifyEspeakResolution(inspected);
+                const a=rowAnalysisFields(inspected.analysis);
+                updateEspeakAccepted.run(
+                  quality.qualityTier,quality.qualityReason,quality.method,
+                  inspected.ipa,inspected.rawIpa||null,a.syllableCount,a.primaryStress,a.stressPattern,
+                  a.exactTailKey,a.vowelKey,a.codaKey,inspected.engine||'espeak-ng',
+                  inspected.engineVersion||preflight.engineVersion||null,now(),Number(row.item_id),
+                );
+                insertAttempt.run(
+                  Number(row.item_id),'espeak','accepted',quality.qualityReason,result.elapsed,
+                  safeJson({
+                    normalization_changed:String(inspected.rawIpa||'')!==String(inspected.ipa||''),
+                    workers:espeakWorkers,
+                    process_mode:result.mode,
+                    batch_size:result.batch_size,
+                    batch_elapsed_ms:Number(result.batch_elapsed_ms||0),
+                    analyzer_mode:result.analyzer_mode||analyzerMode,
+                    analyzer_elapsed_ms:Number(result.analyzer_elapsed_ms||0),
+                    analyzer_queue_ms:Number(result.analyzer_queue_ms||0),
+                    analyzer_roundtrip_ms:Number(result.analyzer_roundtrip_ms||0),
+                    analyzer_worker:result.analyzer_worker??null,
+                  }),
+                  now(),
+                );
+                accepted+=1;
+              }else if(inspected?.status==='rejected'){
+                const reason=inspected.analyzerError||'analyzer_rejected_espeak_ipa';
+                updateEspeakRejected.run(
+                  inspected.rawIpa||null,inspected.engine||'espeak-ng',
+                  inspected.engineVersion||preflight.engineVersion||null,
+                  reason,now(),Number(row.item_id),
+                );
+                insertAttempt.run(
+                  Number(row.item_id),'espeak','rejected',reason,result.elapsed,
+                  safeJson({
+                    normalized_ipa:inspected.ipa||null,
+                    attempts:inspected.attempts||[],
+                    workers:espeakWorkers,
+                    process_mode:result.mode,
+                    batch_size:result.batch_size,
+                    batch_elapsed_ms:Number(result.batch_elapsed_ms||0),
+                    analyzer_mode:result.analyzer_mode||analyzerMode,
+                    analyzer_elapsed_ms:Number(result.analyzer_elapsed_ms||0),
+                    analyzer_queue_ms:Number(result.analyzer_queue_ms||0),
+                    analyzer_roundtrip_ms:Number(result.analyzer_roundtrip_ms||0),
+                    analyzer_worker:result.analyzer_worker??null,
+                  }),
+                  now(),
+                );
+                rejected+=1;
+              }else{
+                const reason='espeak_process_unavailable';
+                updateEspeakError.run(reason,now(),Number(row.item_id));
+                insertAttempt.run(
+                  Number(row.item_id),'espeak','error',reason,result.elapsed,
+                  safeJson({
+                    attempts:inspected?.attempts||[],
+                    workers:espeakWorkers,
+                    process_mode:result.mode,
+                    batch_size:result.batch_size,
+                    analyzer_mode:result.analyzer_mode||analyzerMode,
+                  }),now(),
+                );
+                errors+=1;
+              }
+            }catch(error){
+              const message=String(error?.message||error);
+              updateEspeakError.run(message,now(),Number(row.item_id));
               insertAttempt.run(
-                Number(row.item_id),'espeak','accepted',quality.qualityReason,result.elapsed,
+                Number(row.item_id),'espeak','error',message,result.elapsed,
                 safeJson({
-                  normalization_changed:String(inspected.rawIpa||'')!==String(inspected.ipa||''),
                   workers:espeakWorkers,
                   process_mode:result.mode,
                   batch_size:result.batch_size,
                   batch_elapsed_ms:Number(result.batch_elapsed_ms||0),
-                }),
-                now(),
-              );
-              accepted+=1;
-            }else if(inspected?.status==='rejected'){
-              const reason=inspected.analyzerError||'analyzer_rejected_espeak_ipa';
-              updateEspeakRejected.run(
-                inspected.rawIpa||null,inspected.engine||'espeak-ng',
-                inspected.engineVersion||preflight.engineVersion||null,
-                reason,now(),Number(row.item_id),
-              );
-              insertAttempt.run(
-                Number(row.item_id),'espeak','rejected',reason,result.elapsed,
-                safeJson({
-                  normalized_ipa:inspected.ipa||null,
-                  attempts:inspected.attempts||[],
-                  workers:espeakWorkers,
-                  process_mode:result.mode,
-                  batch_size:result.batch_size,
-                  batch_elapsed_ms:Number(result.batch_elapsed_ms||0),
-                }),
-                now(),
-              );
-              rejected+=1;
-            }else{
-              const reason='espeak_process_unavailable';
-              updateEspeakError.run(reason,now(),Number(row.item_id));
-              insertAttempt.run(
-                Number(row.item_id),'espeak','error',reason,result.elapsed,
-                safeJson({
-                  attempts:inspected?.attempts||[],
-                  workers:espeakWorkers,
-                  process_mode:result.mode,
-                  batch_size:result.batch_size,
+                  analyzer_mode:result.analyzer_mode||analyzerMode,
+                  analyzer_elapsed_ms:Number(result.analyzer_elapsed_ms||0),
+                  analyzer_queue_ms:Number(result.analyzer_queue_ms||0),
+                  analyzer_roundtrip_ms:Number(result.analyzer_roundtrip_ms||0),
+                  analyzer_worker:result.analyzer_worker??null,
+                  stderr:result.stderr||null,
+                  cardinality_mismatch:result.cardinality_mismatch||null,
                 }),now(),
               );
               errors+=1;
             }
-          }catch(error){
-            const message=String(error?.message||error);
-            updateEspeakError.run(message,now(),Number(row.item_id));
-            insertAttempt.run(
-              Number(row.item_id),'espeak','error',message,result.elapsed,
-              safeJson({
-                workers:espeakWorkers,
-                process_mode:result.mode,
-                batch_size:result.batch_size,
-                batch_elapsed_ms:Number(result.batch_elapsed_ms||0),
-                stderr:result.stderr||null,
-                cardinality_mismatch:result.cardinality_mismatch||null,
-              }),now(),
-            );
-            errors+=1;
+            done+=1;
+            languageDone+=1;
           }
-          done+=1;
-          languageDone+=1;
+          workDb.exec('COMMIT');
+        }catch(error){
+          workDb.exec('ROLLBACK');
+          throw error;
         }
-        workDb.exec('COMMIT');
-      }catch(error){
-        workDb.exec('ROLLBACK');
-        throw error;
-      }
 
-      const progressNow=Date.now();
-      const recentSeconds=Math.max(0.001,(progressNow-recentStartedAt)/1000);
-      const recentRate=(done-recentDone)/recentSeconds;
-      recentStartedAt=progressNow;
-      recentDone=done;
-      const modeSummary=Object.entries(processModes)
-        .map(([mode,count])=>mode+':'+count.toLocaleString('en-US'))
-        .join(',');
-      console.log(progressLine({
-        phase:'espeak:'+language,
-        done,
-        total,
-        startedAt,
-        accepted,rejected,errors,
-        extra:'lang='+language
-          +' '+languageDone.toLocaleString('en-US')+'/'+languageTotal.toLocaleString('en-US')
-          +' · recent='+recentRate.toFixed(1)+'/s'
-          +' · batch4='+espeakWorkers+'x'+espeakBatchSize
-          +' · modes='+modeSummary,
-      }));
+        const progressNow=Date.now();
+        const recentSeconds=Math.max(0.001,(progressNow-recentStartedAt)/1000);
+        const recentRate=(done-recentDone)/recentSeconds;
+        recentStartedAt=progressNow;
+        recentDone=done;
+        const modeSummary=Object.entries(processModes)
+          .map(([mode,count])=>mode+':'+count.toLocaleString('en-US'))
+          .join(',');
+        const analyzerStats=analyzerPool?.stats()||{
+          queued:0,
+          active:0,
+          worker_restarts:0,
+        };
+        console.log(progressLine({
+          phase:'espeak:'+language,
+          done,
+          total,
+          startedAt,
+          accepted,rejected,errors,
+          extra:'lang='+language
+            +' '+languageDone.toLocaleString('en-US')+'/'+languageTotal.toLocaleString('en-US')
+            +' · recent='+recentRate.toFixed(1)+'/s'
+            +' · batch4='+espeakWorkers+'x'+espeakBatchSize
+            +' · analyzer='+analyzerMode
+            +(analyzerPool?' '+analyzerWorkers+'w q='+analyzerStats.queued+' active='+analyzerStats.active
+              +' restarts='+analyzerStats.worker_restarts:'')
+            +' · modes='+modeSummary,
+        }));
+      }
     }
+  }finally{
+    await analyzerPool?.close();
   }
 
   upsertMeta.run('espeak_last_run_at',now());
   upsertMeta.run('espeak_workers_last_run',String(espeakWorkers));
   upsertMeta.run('espeak_process_mode_last_run','batch');
   upsertMeta.run('espeak_batch_size_last_run',String(espeakBatchSize));
+  upsertMeta.run('espeak_analyzer_workers_last_run',String(analyzerWorkers));
+  upsertMeta.run('espeak_analyzer_mode_last_run',analyzerMode);
   upsertMeta.run('updated_at',now());
   console.log(progressLine({
     phase:'espeak',done,total,startedAt,accepted,rejected,errors,
     extra:(stopRequested?'checkpointed · ':'complete · ')
-      +'mode=batch · workers='+espeakWorkers+' · batch_per_worker='+espeakBatchSize,
+      +'mode=batch · workers='+espeakWorkers
+      +' · batch_per_worker='+espeakBatchSize
+      +' · analyzer='+analyzerMode
+      +(analyzerWorkers>0?'('+analyzerWorkers+'w)':''),
   }));
 }
 

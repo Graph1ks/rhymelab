@@ -7,6 +7,7 @@ import { performance } from 'node:perf_hooks';
 import { DatabaseSync } from 'node:sqlite';
 import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-adapter.mjs';
 import { mapEspeakBatchWorkers } from './pronunciation-espeak-batch.mjs';
+import { PronunciationIpaAnalyzerPool } from './pronunciation-ipa-analyzer-pool.mjs';
 import { PRONUNCIATION_ADMISSION_POLICY } from './pronunciation-backfill-admission-core.mjs';
 
 const args=process.argv.slice(2);
@@ -38,6 +39,7 @@ const outPath=resolve(argValue('--out','data/local/pronunciation-espeak-highspee
 const command=argValue('--command',process.env.RHYMELAB_ESPEAK_COMMAND||null);
 const cases=intArg('--cases',2048,{min:128,max:20000});
 const workers=intArg('--workers',4,{min:1,max:32});
+const analyzerWorkers=intArg('--analyzer-workers',4,{min:0,max:16});
 const batchSizes=parseBatchSizes(argValue('--batch-sizes','64,128,256,512'));
 
 if(!existsSync(workPath))throw new Error('Backfill work database missing: '+workPath);
@@ -94,12 +96,27 @@ try{
     +' · command='+(resolvedCommand||'auto-detect')
     +' · sample='+sample.length
     +' · workers='+workers
+    +' · analyzer_workers='+analyzerWorkers
     +' · admitted_total='+admittedTotal.toLocaleString('en-US')
     +' · pending='+pendingTotal.toLocaleString('en-US')
   );
 
+  const analyzerPool=analyzerWorkers>0
+    ?new PronunciationIpaAnalyzerPool({workers:analyzerWorkers})
+    :null;
+  if(analyzerPool){
+    await Promise.all(Array.from({length:analyzerWorkers},()=>analyzerPool.analyze({
+      surface:sample[0].surface,
+      language:sample[0].language,
+      rawIpa:preflight.rawIpa,
+      engineCommand:resolvedCommand,
+      engineVersion:preflight.engineVersion||null,
+    })));
+  }
   const runs=[];
+  try{
   for(const batchSize of batchSizes){
+    const statsBefore=analyzerPool?.stats()||null;
     const started=performance.now();
     const outcomes=[];
     for(const language of ['de','en']){
@@ -110,6 +127,7 @@ try{
         engineVersion:preflight.engineVersion||null,
         workers,
         batchSize,
+        analyzerPool,
       }));
     }
     const elapsedMs=performance.now()-started;
@@ -125,8 +143,20 @@ try{
     }
     const casesPerSecond=sample.length/Math.max(.001,elapsedMs/1000);
     const stable=errors===0;
+    const statsAfter=analyzerPool?.stats()||null;
+    const analyzerDelta=statsAfter&&statsBefore?{
+      submitted:statsAfter.submitted-statsBefore.submitted,
+      completed:statsAfter.completed-statsBefore.completed,
+      failed:statsAfter.failed-statsBefore.failed,
+      worker_restarts:statsAfter.worker_restarts-statsBefore.worker_restarts,
+      analyzer_elapsed_ms:Number((statsAfter.analyzer_elapsed_ms-statsBefore.analyzer_elapsed_ms).toFixed(3)),
+      queue_elapsed_ms:Number((statsAfter.queue_elapsed_ms-statsBefore.queue_elapsed_ms).toFixed(3)),
+    }:null;
     const run={
       workers,
+      analyzer_workers:analyzerWorkers,
+      analyzer_mode:analyzerPool?'worker_threads':'main_thread',
+      analyzer:analyzerDelta,
       batch_size:batchSize,
       cases:sample.length,
       accepted,
@@ -143,10 +173,15 @@ try{
       '[highspeed-v2] workers='+workers
       +' · batch='+batchSize
       +' · '+run.cases_per_second.toFixed(1)+'/s'
+      +' · analyzer='+(analyzerPool?analyzerWorkers+'w':'main')
       +' · errors='+errors
       +' · projected='+run.projected_pending_hours.toFixed(2)+'h'
       +' · modes='+JSON.stringify(modes)
     );
+  }
+
+  }finally{
+    await analyzerPool?.close();
   }
 
   const stableRuns=runs.filter((run)=>run.stable);
@@ -168,6 +203,8 @@ try{
       version:preflight.engineVersion||null,
     },
     workers,
+    analyzer_workers:analyzerWorkers,
+    analyzer_mode:analyzerPool?'worker_threads':'main_thread',
     batch_sizes:batchSizes,
     runs,
     fastest_stable_batch_size:fastest?.stable?fastest.batch_size:null,
@@ -184,6 +221,8 @@ try{
   console.log(JSON.stringify({
     schema:report.schema,
     workers:report.workers,
+    analyzer_workers:report.analyzer_workers,
+    analyzer_mode:report.analyzer_mode,
     fastest_stable_batch_size:report.fastest_stable_batch_size,
     fastest_stable_cases_per_second:report.fastest_stable_cases_per_second,
     fastest_stable_projected_pending_hours:report.fastest_stable_projected_pending_hours,
