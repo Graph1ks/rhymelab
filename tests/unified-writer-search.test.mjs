@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT,
   normalizeUnifiedLanguageBasis,
+  normalizeUnifiedResultLanguage,
   normalizeUnifiedResultScope,
   unifiedWriterCapabilities,
 } from '../src/unified-writer-search.mjs';
@@ -14,6 +15,14 @@ test('unified Writer normalizes language bases deterministically', () => {
   assert.equal(normalizeUnifiedLanguageBasis('both'), 'both');
   assert.equal(normalizeUnifiedLanguageBasis('unsupported'), 'de');
   assert.equal(normalizeUnifiedLanguageBasis(''), 'de');
+});
+
+test('unified Writer normalizes result language independently from query language', () => {
+  assert.equal(normalizeUnifiedResultLanguage('de', 'en'), 'de');
+  assert.equal(normalizeUnifiedResultLanguage('EN', 'de'), 'en');
+  assert.equal(normalizeUnifiedResultLanguage('both', 'de'), 'both');
+  assert.equal(normalizeUnifiedResultLanguage('', 'en'), 'en');
+  assert.equal(normalizeUnifiedResultLanguage('unsupported', 'de'), 'de');
 });
 
 test('unified Writer normalizes result scope deterministically', () => {

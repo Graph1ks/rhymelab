@@ -2,6 +2,8 @@
 
 Durable project identity, solo-dev repository mode, architecture boundaries, cost/licensing/contribution policy, and QA expectations now live in `PROJECT.md`. Read it immediately after `AGENTS.md`; current technical continuation remains in the focused Phase 12C handover below.
 
+Current UI/API follow-up: query-pronunciation language and result language are now separate contracts. A source-backed DE query may request EN word results by re-analyzing the resolved source pronunciation under the accepted English target phonology and then using the existing indexed English retrieval/scoring/ranking stack; accepted same-language paths are unchanged. Entity category filters are populated from runtime capabilities. Standard unfiltered browsing uses per-section More buttons, while endless scrolling is limited to an explicitly selected rhyme/sound relation. Individual result inspectors no longer repeat source labels; the UI has one alphabetized Sources dialog. EN -> DE word bridging remains intentionally unimplemented pending an explicit target-pronunciation adaptation policy.
+
 For the accepted Phase 12C state on current `main`, read this focused handover **before the historical material below**:
 
 ```text

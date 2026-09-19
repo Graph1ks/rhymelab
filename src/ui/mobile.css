@@ -24,10 +24,10 @@
   .search-card{padding:12px;border-radius:17px}
   .search-mode-grid{gap:10px;margin-bottom:10px}
   .mode-label{margin-bottom:6px}
-  .basis-option,.scope-option{min-height:46px;padding:7px 9px}
-  .basis-option{grid-template-columns:1fr;gap:1px;text-align:center}
-  .basis-option strong{font-size:12px}
-  .basis-option small{font-size:9px}
+  .basis-option,.result-language-option,.scope-option{min-height:46px;padding:7px 9px}
+  .basis-option,.result-language-option{grid-template-columns:1fr;gap:1px;text-align:center}
+  .basis-option strong,.result-language-option strong{font-size:12px}
+  .basis-option small,.result-language-option small{font-size:9px}
   .scope-segmented{grid-template-columns:repeat(2,minmax(0,1fr))}
   .search-card .search{height:56px}
   .search-card .search input{font-size:16px;padding:0 10px}
@@ -67,7 +67,7 @@
   .brand>span:not(.brand-mark){display:none}
   .primary-nav-link{font-size:9px;padding:0 8px}
   .search-card{padding:10px}
-  .language-segmented{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .language-segmented,.result-language-segmented{grid-template-columns:repeat(3,minmax(0,1fr))}
   .scope-segmented{grid-template-columns:repeat(2,minmax(0,1fr))}
   .search-card .search{height:auto;min-height:56px;grid-template-columns:auto 1fr}
   .search-card .search-button{grid-column:1/-1;min-height:46px;border-left:0;border-top:1px solid var(--line)}
@@ -81,6 +81,7 @@
   .view-switch{order:4;margin-left:0;width:100%;justify-content:stretch}
   .view-option{flex:1;min-height:38px}
   .result-count{max-width:55%}
+  .topbar-button{min-height:34px;padding:0 7px;font-size:9px}
   .ui-language-switch{padding:2px}
   .ui-lang-option{min-height:34px;padding:0 7px}
   .word-heading{display:block}

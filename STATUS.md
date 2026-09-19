@@ -4,6 +4,9 @@ Last updated: 2026-09-19
 
 RhymeLab's public repository is `Graph1ks/rhymelab`. `main` is protected and the required public CI check is `validate`.
 
+Current UI/API follow-up separates query-pronunciation language from result language, exposes exact Entity-category filters from runtime capabilities, consolidates source display into one Sources dialog, reports bounded search-pool counts, and uses per-category More controls for standard browsing. DE source-backed input may target EN word results through the accepted English target phonology; same-language accepted ranking/retrieval behavior remains unchanged.
+
+
 ## Current product/runtime baseline — v0.11.0
 
 The normal local UI/API now uses the accepted materialized German Writer runtime by default:

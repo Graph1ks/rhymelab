@@ -26,6 +26,7 @@
         <a class="primary-nav-link" href="/pad" data-i18n="navRhymePad">RHYMEPAD</a>
       </nav>
       <div class="topbar-actions">
+        <button type="button" id="sourcesButton" class="topbar-button" data-i18n="sources">Sources</button>
         <div class="ui-language-switch" role="group" aria-label="Interface language">
           <button type="button" class="ui-lang-option" data-ui-lang="de" aria-label="Deutsch">DE</button>
           <button type="button" class="ui-lang-option" data-ui-lang="en" aria-label="English">EN</button>
@@ -43,7 +44,7 @@
       <div class="search-card">
         <div class="search-mode-grid">
           <div class="mode-group">
-            <span class="mode-label" data-i18n="languageBasis">Language</span>
+            <span class="mode-label" data-i18n="languageBasis">Query pronunciation</span>
             <div class="segmented language-segmented" role="group" aria-label="Search language basis">
               <button type="button" data-basis="de" class="basis-option">
                 <strong>DE</strong>
@@ -54,6 +55,24 @@
                 <small data-i18n="basisEnglish">English</small>
               </button>
               <button type="button" data-basis="both" class="basis-option">
+                <strong>DE+EN</strong>
+                <small data-i18n="basisBoth">Combined</small>
+              </button>
+            </div>
+          </div>
+
+          <div class="mode-group">
+            <span class="mode-label" data-i18n="resultLanguage">Result language</span>
+            <div class="segmented result-language-segmented" role="group" aria-label="Result language">
+              <button type="button" data-result-language="de" class="result-language-option">
+                <strong>DE</strong>
+                <small data-i18n="basisGerman">German</small>
+              </button>
+              <button type="button" data-result-language="en" class="result-language-option">
+                <strong>EN</strong>
+                <small data-i18n="basisEnglish">English</small>
+              </button>
+              <button type="button" data-result-language="both" class="result-language-option">
                 <strong>DE+EN</strong>
                 <small data-i18n="basisBoth">Combined</small>
               </button>
@@ -156,6 +175,13 @@
               </select>
             </label>
 
+            <label id="entityCategoryFilter" class="context-hidden">
+              <span data-i18n="entityCategory">Entity category</span>
+              <select id="entityCategory">
+                <option value="all" data-i18n-option="allEntities">All entities</option>
+              </select>
+            </label>
+
             <label class="check-filter" id="historicalFilter">
               <span data-i18n="vocabulary">Vocabulary</span>
               <span class="checkbox-line">
@@ -179,6 +205,18 @@
       <aside class="word-panel" id="wordPanel"></aside>
     </section>
   </main>
+
+  <dialog id="sourcesDialog" class="sources-dialog" aria-labelledby="sourcesTitle">
+    <div class="sources-dialog-header">
+      <div>
+        <span class="mode-label" data-i18n="sources">Sources</span>
+        <h2 id="sourcesTitle" data-i18n="sourcesTitle">RhymeLab Sources</h2>
+      </div>
+      <button type="button" id="sourcesClose" class="dialog-close" aria-label="Close" data-i18n-aria-label="close">×</button>
+    </div>
+    <p class="sources-intro" data-i18n="sourcesIntro">Active source families used by the current RhymeLab data and runtime pipelines.</p>
+    <div id="sourcesList" class="sources-list"></div>
+  </dialog>
 
   <script type="module" src="/assets/app.js"></script>
 </body>

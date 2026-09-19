@@ -17,6 +17,7 @@ import {
   englishWriterCapabilities,
   getEnglishWord,
   searchEnglishWriter,
+  searchEnglishWriterFromExternalQuery,
 } from '../src/english-writer-runtime.mjs';
 import {
   searchUnifiedWriter,
@@ -103,6 +104,8 @@ function fixtureEnglishDb(){
   insertEnglishPublishRow(insert,publishRow(4,'prime','P R AY1 M',{rank:1630,zipf:4.81}));
   insertEnglishPublishRow(insert,publishRow(5,'nation','N EY1 SH AH0 N',{rank:1389,zipf:4.88}));
   insertEnglishPublishRow(insert,publishRow(6,'station','S T EY1 SH AH0 N',{rank:1700,zipf:4.7}));
+  insertEnglishPublishRow(insert,publishRow(7,'wine','W AY1 N',{rank:2650,zipf:4.5}));
+  insertEnglishPublishRow(insert,publishRow(8,'shine','SH AY1 N',{rank:4100,zipf:4.2}));
   const meta=db.prepare('INSERT INTO meta(key,value) VALUES(?,?)');
   const values={
     schema:ACCEPTED_ENGLISH_DB_SCHEMA,
@@ -238,6 +241,29 @@ test('English-only product mode reports Phrase/Mosaic as unavailable instead of 
     assert.equal(result.channels.phrases.available,false);
     assert.equal(result.channels.phrases.reason,'english_phrase_mosaic_not_implemented');
     assert.deepEqual(result.results,[]);
+  }finally{
+    db.close();
+  }
+});
+
+
+test('German source pronunciation can retrieve English rhymes without requiring an English spelling lookup',()=>{
+  const db=fixtureEnglishDb();
+  try{
+    const result=searchEnglishWriterFromExternalQuery(db,{
+      kind:'word',
+      language:'de',
+      surface:'Schwein',
+      normalized:'schwein',
+      preferredIpa:'ʃvaɪ̯n',
+      syllableCount:1,
+    },{limit:20});
+    assert.ok(result);
+    assert.equal(result.crossLanguageQuery.sourceLanguage,'de');
+    assert.equal(result.crossLanguageQuery.targetLanguage,'en');
+    assert.equal(result.writerRetrieval.crossLanguage,true);
+    assert.ok(result.results.some((row)=>row.normalized==='wine'));
+    assert.ok(result.results.some((row)=>row.normalized==='shine'));
   }finally{
     db.close();
   }

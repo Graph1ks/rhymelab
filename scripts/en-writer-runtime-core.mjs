@@ -232,6 +232,79 @@ export function retrieveEnglishRuntimeCandidates(db,surface,options={}){
   };
 }
 
+export function retrieveEnglishRuntimeCandidatesFromAnalysis(db,analysis,options={}){
+  if(!analysis?.exactTailKey&&!analysis?.vowelKey&&!analysis?.codaKey){
+    return {
+      policy:ENGLISH_RUNTIME_RETRIEVAL_POLICY,
+      status:'query_pronunciation_unresolved',
+      pronunciations:[],
+      channel_limit:Math.max(1,Number(options.channelLimit||DEFAULT_ENGLISH_RUNTIME_CHANNEL_LIMIT)),
+      channel_limits:{},
+      max_candidates:Math.max(1,Number(options.maxCandidates||DEFAULT_ENGLISH_RUNTIME_MAX_CANDIDATES)),
+      candidates:[],
+      channel_counts:Object.fromEntries(CHANNELS.map(({kind})=>[kind,0])),
+    };
+  }
+
+  const channelLimit=Math.max(1,Number(options.channelLimit||DEFAULT_ENGLISH_RUNTIME_CHANNEL_LIMIT));
+  const channelLimits=Object.fromEntries(
+    CHANNELS.map(({kind})=>[
+      kind,
+      Math.max(1,Number(options.channelLimits?.[kind]??channelLimit)),
+    ])
+  );
+  const maxCandidates=Math.max(1,Number(options.maxCandidates||DEFAULT_ENGLISH_RUNTIME_MAX_CANDIDATES));
+  const statements=options.statements||prepareEnglishRuntimeStatements(db);
+  const queryPronunciation={
+    pronunciation_id:-1,
+    form_id:-1,
+    exact_key:analysis.exactTailKey||null,
+    multisyllable_key:analysis.multisyllableKey||null,
+    vowel_key:analysis.vowelKey||null,
+    vowel_family:analysis.vowelFamilyKey??null,
+    coda_key:analysis.codaKey??null,
+    coda_class:englishCoarseCodaClass(analysis.codaKey||''),
+  };
+
+  const merged=new Map();
+  const channelCounts=Object.fromEntries(CHANNELS.map(({kind})=>[kind,0]));
+  for(const {kind} of CHANNELS){
+    const args=argsForChannel(kind,queryPronunciation,-1,channelLimits[kind]);
+    if(!args) continue;
+    const rows=statements[kind].all(...args);
+    channelCounts[kind]+=rows.length;
+    for(const row of rows){
+      let item=merged.get(row.pronunciation_id);
+      if(!item){
+        item={...row,channels:[],query_pronunciation_ids:[]};
+        merged.set(row.pronunciation_id,item);
+      }
+      if(!item.channels.includes(kind)) item.channels.push(kind);
+      if(!item.query_pronunciation_ids.includes(-1)) item.query_pronunciation_ids.push(-1);
+    }
+  }
+
+  const priority=new Map(CHANNELS.map(({kind},index)=>[kind,index]));
+  const candidates=[...merged.values()]
+    .sort((a,b)=>{
+      const ap=Math.min(...a.channels.map((kind)=>priority.get(kind)??99));
+      const bp=Math.min(...b.channels.map((kind)=>priority.get(kind)??99));
+      return ap-bp||a.pronunciation_id-b.pronunciation_id;
+    })
+    .slice(0,maxCandidates);
+
+  return {
+    policy:ENGLISH_RUNTIME_RETRIEVAL_POLICY,
+    status:'ok',
+    pronunciations:[queryPronunciation],
+    channel_limit:channelLimit,
+    channel_limits:channelLimits,
+    max_candidates:maxCandidates,
+    candidates,
+    channel_counts:channelCounts,
+  };
+}
+
 export function analyzeStoredEnglishRuntimePronunciation(row){
   const locale=row.locale_us?'en-US':(row.locale_gb?'en-GB':null);
   return analyzeEnglishPronunciation(row.raw,{

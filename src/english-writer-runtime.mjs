@@ -9,7 +9,9 @@ import {
   prepareEnglishRuntimeStatements,
   resolveEnglishRuntimeQuery,
   retrieveEnglishRuntimeCandidates,
+  retrieveEnglishRuntimeCandidatesFromAnalysis,
 } from '../scripts/en-writer-runtime-core.mjs';
+import { analyzeEnglishIpa } from '../scripts/english-phonology.mjs';
 import {
   ENGLISH_QUALITY_CANDIDATES,
   ENGLISH_WRITER_RANKING_V2_POLICY,
@@ -474,3 +476,119 @@ export function searchEnglishWriter(db,surface,options={}){
     groups:groupsFor(results),
   };
 }
+
+function normalizeExternalEnglishIpa(value){
+  return String(value??'')
+    .normalize('NFC')
+    .replaceAll('̯','')
+    .trim();
+}
+
+export function searchEnglishWriterFromExternalQuery(db,queryDetail,options={}){
+  const sourceIpa=normalizeExternalEnglishIpa(queryDetail?.preferredIpa||queryDetail?.ipa||'');
+  if(!sourceIpa) return null;
+
+  let queryAnalysis;
+  try{
+    queryAnalysis=analyzeEnglishIpa(sourceIpa,{
+      locale:'en-US',
+      source:'cross_language_query_bridge',
+    });
+  }catch{
+    return null;
+  }
+
+  const limit=clampInteger(options.limit,250,1,250);
+  const requestedType=RHYME_TYPES.includes(String(options.type||''))
+    ?String(options.type)
+    :'all';
+  const statements=options.statements||prepareEnglishRuntimeStatements(db);
+  const retrieval=retrieveEnglishRuntimeCandidatesFromAnalysis(db,queryAnalysis,{
+    statements,
+    channelLimit:DEFAULT_ENGLISH_RUNTIME_CHANNEL_LIMIT,
+    channelLimits:ENGLISH_PRODUCT_CHANNEL_LIMITS,
+    maxCandidates:ENGLISH_PRODUCT_MAX_CANDIDATES,
+  });
+  if(retrieval.status!=='ok') return null;
+
+  const analysisCache=new Map();
+  const analysisFor=(row)=>{
+    if(!analysisCache.has(row.pronunciation_id)){
+      analysisCache.set(row.pronunciation_id,analyzeStoredEnglishRuntimePronunciation(row));
+    }
+    return analysisCache.get(row.pronunciation_id);
+  };
+
+  const byNormalized=new Map();
+  for(const candidate of retrieval.candidates){
+    const score=scoreEnglishRhymeAnalyses(queryAnalysis,analysisFor(candidate));
+    const tier=relationTier(score);
+    if(tier>=99) continue;
+    const scored={...candidate,score,tier};
+    if(!matchesRequestedType(scored,requestedType)) continue;
+    const current=byNormalized.get(scored.normalized);
+    if(betterScoredCandidate(scored,current)) byNormalized.set(scored.normalized,scored);
+  }
+
+  const queryNormalized=String(queryDetail?.normalized||queryDetail?.surface||'')
+    .normalize('NFKC')
+    .trim()
+    .toLocaleLowerCase('en-US');
+  const withEvidence=[...byNormalized.values()].map((row)=>({
+    ...row,
+    evidence:qualityEvidence(row,queryNormalized,QUALITY_CONFIG),
+  }));
+  const qualityRanked=rankQualityRows(withEvidence,QUALITY_CONFIG);
+  const diversified=diversifyRanked(qualityRanked,{
+    weight:ENGLISH_WRITER_DIVERSITY_WEIGHT,
+    limit:Math.min(limit,qualityRanked.length),
+  });
+  const results=diversified.slice(0,limit)
+    .map((row,index)=>productResult(row,queryDetail,index));
+
+  return {
+    schema:'rhymelab-en-writer-product-v1',
+    language:'en',
+    status:'ok',
+    query:queryDetail,
+    requestedType,
+    crossLanguageQuery:{
+      sourceLanguage:queryDetail?.language||null,
+      targetLanguage:'en',
+      sourceIpa,
+      policy:'source-pronunciation-to-target-phonology-v1',
+    },
+    rankingPolicy:ENGLISH_WRITER_PRODUCT_POLICY,
+    rankingEvidencePolicy:ENGLISH_WRITER_RANKING_V2_POLICY,
+    qualityCandidate:ENGLISH_WRITER_QUALITY_ID,
+    diversityWeight:ENGLISH_WRITER_DIVERSITY_WEIGHT,
+    writerRuntime:{
+      id:ENGLISH_WRITER_PRODUCT_RUNTIME,
+      databaseSchema:ACCEPTED_ENGLISH_DB_SCHEMA,
+      databaseFingerprint:ACCEPTED_ENGLISH_DB_FINGERPRINT,
+      publishFingerprint:ACCEPTED_ENGLISH_PUBLISH_FINGERPRINT,
+      retrievalPolicy:ENGLISH_RUNTIME_RETRIEVAL_POLICY,
+      defaultProfile:'en-US',
+    },
+    writerRetrieval:{
+      policy:retrieval.policy,
+      profile:ENGLISH_PRODUCT_RETRIEVAL_PROFILE,
+      channelLimit:retrieval.channel_limit,
+      channelLimits:retrieval.channel_limits,
+      maxCandidates:retrieval.max_candidates,
+      channelCounts:retrieval.channel_counts,
+      queryPronunciations:1,
+      pronunciationCandidates:retrieval.candidates.length,
+      normalizedCandidates:byNormalized.size,
+      crossLanguage:true,
+    },
+    selection:{
+      mode:'english_writer_ranked_cross_language_query',
+      limit,
+      returned:results.length,
+    },
+    results,
+    groups:groupsFor(results),
+  };
+}
+
