@@ -1,6 +1,6 @@
 # Total Query Pronunciation v1
 
-Status: **implemented product/runtime baseline; first 1000-case owner run completed; normalized v2 rerun pending**  
+Status: **implemented product/runtime baseline; normalized v2 structural benchmark accepted; source-backed gold controls pending**  
 Policy: `total-query-pronunciation-v1`
 
 ## Goal
@@ -164,7 +164,63 @@ This v1 report is diagnostic only and must not be used for generated-pronunciati
 
 The accepted DE/EN analyzers remain unchanged. The fix belongs exclusively in the eSpeak adapter.
 
-A normalized v2 owner rerun is required before any generated-pronunciation staging DB is built.
+The normalized v2 owner rerun is now complete and is accepted as **structural/analyzer compatibility evidence**:
+
+```text
+v2 report fingerprint
+facd6d15fa6096d33409de274d0271279560c3a728f2f860e9ee24bbff5ff1e5
+
+cases                         1014
+database unresolved cases     1000
+product sentinel cases          14
+accepted                       1012
+failed                            2
+coverage                       99.80%
+normalization changed          830 / 82.02%
+p50                            81.832 ms
+p95                            96.699 ms
+max                           165.763 ms
+
+DE phrase unresolved          200 / 200 100%
+DE preferred Entity           200 / 200 100%
+DE Entity alias               200 / 200 100%
+EN preferred Entity           200 / 200 100%
+EN Entity alias               198 / 200  99%
+product sentinels              14 / 14  100%
+```
+
+The two remaining failures are non-Latin Entity aliases for which eSpeak-NG emitted no IPA:
+`夢境` and `זבולון קוורטין`. They are not analyzer-symbol failures.
+
+The v2 result proves that the adapter now converts eSpeak-NG 1.52.0 output into the accepted RhymeLab analyzer inventories with near-total structural coverage. It does **not** establish lexical pronunciation correctness for unresolved spellings.
+
+Generated-pronunciation staging may now consume the v2 report as isolated, non-canonical evidence. Runtime/candidate-overlay promotion remains blocked on pronunciation-quality evidence.
+
+## Source-backed pronunciation-quality controls
+
+Scripts:
+
+- `scripts/sample-query-pronunciation-gold.mjs`
+- `scripts/run-query-pronunciation-espeak-gold.mjs`
+
+Owner command:
+
+```bash
+npm run query:gold:benchmark
+```
+
+Default sample:
+
+- 1000 source-backed lexical controls;
+- 500 German + 500 English;
+- deterministic, fingerprinted selection;
+- balanced across 1-, 2-, 3-, and 4+-syllable buckets;
+- German controls from accepted non-historical dictionary pronunciations in `rhymelab-v5.sqlite`;
+- English controls from accepted default-profile source-backed pronunciations in `rhymelab-en-v1.sqlite`.
+
+The evaluation records prediction coverage, exact phones, exact rhyme tail, syllable count, stress pattern, primary-stress position, mean accepted language-specific rhyme score, latency, and mismatch examples.
+
+These controls are a proxy quality benchmark over known source-backed pronunciations. They are **not direct gold for the unresolved OOV rows**, and the report contains no automatic runtime-promotion threshold.
 
 ## Generated pronunciation staging
 
@@ -204,8 +260,8 @@ When enabled in a later accepted overlay, generated candidates may participate i
 
 Before that checkbox is activated:
 
-1. run the 1000-case owner benchmark;
-2. add held-out source-backed gold controls;
+1. preserve the accepted 1000-case v2 structural report;
+2. run held-out source-backed gold controls;
 3. audit category/language failure distributions;
 4. define generated-candidate ranking penalties or isolation semantics;
 5. prove canonical database fingerprints are unchanged;
@@ -240,6 +296,5 @@ Implemented now:
 
 Pending owner-local evidence:
 
-- normalized v2 eSpeak-NG coverage and latency report on the already fingerprinted 1000-case sample;
-- held-out pronunciation-quality benchmark;
+- source-backed DE/EN pronunciation-quality control benchmark;
 - any promotion of generated candidate data.
