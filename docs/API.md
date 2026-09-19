@@ -41,7 +41,6 @@ RHYMELAB_LEGACY_DB     legacy/control v4 database path
 RHYMELAB_DB            compatibility alias for legacy/control v4 path
 RHYMELAB_HOST          bind host, default 127.0.0.1
 RHYMELAB_PORT          port, default 3030
-RHYMELAB_ESPEAK_COMMAND optional path/name for a separately installed eSpeak-NG executable used only for generated single-token query pronunciation
 ```
 
 ## `GET /api/health`
@@ -74,18 +73,33 @@ Parameters:
 
 ### Unknown single-token query pronunciation
 
-For a normalizable single-token query that has no source-backed pronunciation in a requested query language, the Writer API generates an **ephemeral query pronunciation** rather than returning `query_not_found` for that reason alone.
+The API itself does **not** run a pronunciation generator or host executable.
 
-Resolution order:
+The product flow is:
 
-1. source-backed local pronunciation;
-2. optional separately installed local eSpeak-NG host executable, analyzer-gated;
-3. deterministic RhymeLab language rules;
-4. deterministic grapheme fallback.
+1. the normal Writer request attempts the existing source-backed query lookup;
+2. the browser/client identifies any missing requested-language query anchor;
+3. only that missing spelling is resolved to IPA by the end-user client;
+4. the browser retries the same Writer endpoint with the generated IPA;
+5. the server validates that IPA through the existing accepted language analyzer and uses it only as an ephemeral query anchor;
+6. normal Word/Phrase/Entity retrieval, scoring and ranking continue unchanged.
 
-Generated query metadata includes `generatedPronunciation=true` and a `queryPronunciation` object describing policy, method, engine, language and persistence boundary. Generated query pronunciations are not written to the accepted DE/EN/Entity/Phrase databases and are not lexical facts.
+Optional client-anchor parameters:
 
-`language=both` resolves DE and EN query anchors independently. This total-resolution contract applies to **single-token input only**. Accepted multi-word Phrase/Mosaic pronunciation rules remain unchanged.
+- `query_ipa_de=<ipa>`
+- `query_ipa_en=<ipa>`
+- `query_method_de=<method>`
+- `query_method_en=<method>`
+- `query_source_backed_de=1`
+- `query_source_backed_en=1`
+- `query_components_de=<json-array>`
+- `query_components_en=<json-array>`
+
+A real source-backed query pronunciation always wins over supplied client IPA.
+
+Generated query metadata includes `generatedPronunciation=true` and `queryPronunciation.clientOnly=true`. Client-generated pronunciations are not persisted and are not lexical facts.
+
+`language=both` may therefore use a source-backed pronunciation for one language and a client-generated pronunciation only for the missing language. This total-resolution fallback applies to **single-token input only**. Accepted multi-word Phrase/Mosaic pronunciation rules remain unchanged.
 
 
 German single-word queries reuse the frozen `findWriterRhymes()` path unchanged. Phrase/Mosaic results run through the accepted 11D4 retrieval -> 11E2-v2 ranking -> 11E3 diversification stack.
@@ -135,7 +149,7 @@ Phase 12B11 provides the accepted source-backed English single-word Writer behin
 - `result_language` controls which result-language channels are requested;
 - DE+EN results preserve language-local channel ranks; raw DE/EN scores are not treated as cross-language calibrated;
 - English Phrase/Mosaic remains unavailable;
-- unknown normalized single-token queries use `total-query-pronunciation-v1`: source-backed lookup first, then a deterministic ephemeral language-specific query pronunciation; multi-word Phrase/Mosaic behavior is unchanged.
+- unknown normalized single-token queries use `total-query-pronunciation-v1`: source-backed lookup first, then browser/client-generated ephemeral IPA only for missing language anchors; multi-word Phrase/Mosaic behavior is unchanged.
 
 The response includes `counts.searchPool` with bounded candidate-pool counts from the active indexed pipelines. These are truthful current search-pool counts, not a claim that the entire lexical/entity database was exhaustively rescored.
 
