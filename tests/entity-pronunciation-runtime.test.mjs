@@ -106,6 +106,16 @@ test('entity name pronunciation composition requires every token to resolve', ()
   assert.equal(unresolved.ipa, null);
 });
 
+test('entity pronunciation helpers can reuse the accepted English profile without German phonology', () => {
+  const analyzed=analyzeEntityPronunciation('ˈtaɪm','en');
+  assert.equal(analyzed.analyzerId,'en-pron-v1-candidate');
+  assert.equal(analyzed.language,'en');
+  assert.equal(analyzed.analysis.exactTailKey,'aɪm');
+  const anchors=entityRetrievalAnchors(analyzed.analysis,'en');
+  assert.ok(anchors.some((row)=>row.channel==='exact_tail'&&row.key==='aɪm'));
+  assert.ok(anchors.some((row)=>row.channel==='final_nucleus_coda'));
+});
+
 test('entity phonetic runtime exposes indexed Rapper and Musician categories', () => {
   const { db, ipa } = buildEntityRuntimeDb();
   try {
