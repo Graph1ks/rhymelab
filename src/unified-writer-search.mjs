@@ -104,8 +104,8 @@ export function unifiedWriterCapabilities({
         available: Boolean(writerDb),
         wordWriter: Boolean(writerDb),
         phraseMosaic: Boolean(writerDb && phraseDb && phraseAccepted),
-        entityRhymes: Boolean(writerDb && entityCapability.available),
-        entityReason: entityCapability.reason,
+        entityRhymes: Boolean(writerDb && entityCapability.languages?.de?.available),
+        entityReason: entityCapability.languages?.de?.reason || entityCapability.reason,
         phraseReason: !phraseDb
           ? 'phrase_database_unavailable'
           : !phraseTablesReady
@@ -120,7 +120,11 @@ export function unifiedWriterCapabilities({
           available: Boolean(english.available),
           wordWriter: Boolean(english.wordWriter),
           phraseMosaic: false,
-          entityRhymes: false,
+          entityRhymes: Boolean(
+            english.available
+            && entityCapability.languages?.en?.available
+          ),
+          entityReason: entityCapability.languages?.en?.reason || null,
           reason: english.reason,
           runtime: english.productRuntime,
           policy: english.productPolicy,
@@ -525,7 +529,7 @@ export function searchUnifiedWriter(
         words: { available: true, reason: 'query_not_found', results: [] },
         phrases: { available: Boolean(phraseDb), reason: 'query_not_found', results: [] },
         entities: {
-          available: Boolean(capabilities.entities?.available),
+          available: Boolean(capabilities.entities?.multilingualAvailable),
           reason: 'query_not_found',
           results: [],
         },
@@ -661,30 +665,84 @@ export function searchUnifiedWriter(
     }
   }
 
-  let entityChannel = {
-    available: false,
-    reason: includeEntities
-      ? capabilities.entities?.reason || 'entity_runtime_unavailable'
-      : 'scope_excludes_entities',
-    results: [],
-  };
-  if (
-    includeEntities
-    && requestedLanguages.includes('de')
-    && deQuery
-    && capabilities.languages.de?.entityRhymes
-  ) {
-    entityChannel = searchEntityRhymes(entityDb, deQuery, {
-      language: 'de',
-      category: options.entityCategory || 'all',
-      type: options.type || 'all',
-      limit: clampInteger(options.entityLimit, 100, 1, 250),
-      poolLimit: clampInteger(options.entityPoolLimit, 192, 16, 512),
-    });
+  const emptyEntityLanguageChannel=(language,reason)=>({
+    available:false,
+    reason,
+    language,
+    results:[],
+  });
+  let deEntityChannel=emptyEntityLanguageChannel(
+    'de',
+    includeEntities?'german_entity_runtime_unavailable':'scope_excludes_entities',
+  );
+  let enEntityChannel=emptyEntityLanguageChannel(
+    'en',
+    includeEntities?'english_entity_runtime_unavailable':'scope_excludes_entities',
+  );
+
+  if(includeEntities&&requestedLanguages.includes('de')){
+    if(deQuery&&capabilities.languages.de?.entityRhymes){
+      deEntityChannel=searchEntityRhymes(entityDb,deQuery,{
+        language:'de',
+        category:options.entityCategory||'all',
+        type:options.type||'all',
+        limit:clampInteger(options.entityLimit,100,1,250),
+        poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
+      });
+    }else{
+      deEntityChannel=emptyEntityLanguageChannel(
+        'de',
+        deQuery
+          ?capabilities.languages.de?.entityReason||'german_entity_runtime_unavailable'
+          :'german_query_not_found',
+      );
+    }
   }
 
+  if(includeEntities&&requestedLanguages.includes('en')){
+    if(enQuery&&capabilities.languages.en?.entityRhymes){
+      enEntityChannel=searchEntityRhymes(entityDb,enQuery,{
+        language:'en',
+        category:options.entityCategory||'all',
+        type:options.type||'all',
+        limit:clampInteger(options.entityLimit,100,1,250),
+        poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
+      });
+    }else{
+      enEntityChannel=emptyEntityLanguageChannel(
+        'en',
+        enQuery
+          ?capabilities.languages.en?.entityReason||'english_entity_runtime_unavailable'
+          :'english_query_not_found',
+      );
+    }
+  }
+
+  const entityResults=[
+    ...(deEntityChannel.results||[]),
+    ...(enEntityChannel.results||[]),
+  ].sort((a,b)=>
+    Number(a.channelRank||0)-Number(b.channelRank||0)
+    ||(a.language===b.language?0:a.language==='de'?-1:1)
+    ||String(a.normalized||'').localeCompare(String(b.normalized||''),'en')
+  );
+
+  const entityChannel={
+    available:Boolean(deEntityChannel.available||enEntityChannel.available),
+    reason:entityResults.length
+      ?null
+      :deEntityChannel.reason===enEntityChannel.reason
+        ?deEntityChannel.reason
+        :'no_entity_results_for_resolved_language_queries',
+    policy:'language_local_entity_channels_no_cross_language_score_calibration',
+    byLanguage:{
+      de:deEntityChannel,
+      en:enEntityChannel,
+    },
+    results:entityResults,
+  };
+
   const phraseResults = phraseChannel.results || [];
-  const entityResults = entityChannel.results || [];
   const results = [
     ...wordResults,
     ...phraseResults,
