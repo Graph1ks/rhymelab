@@ -86,6 +86,21 @@ The test suite includes `tests/ui-control-interaction.test.mjs` for runtime cont
 
 A real-browser visual/click smoke remains required when geometry, layering, pointer interception, browser-native controls, scrolling or responsive behavior could differ from the simulated DOM. If no real browser was available during implementation, that limitation must be stated rather than claiming visual interaction acceptance.
 
+## Entity presentation semantics
+
+The cultural-Entity result channel is a retrieval/data concept, not a user-facing item type.
+
+For an individual Entity result:
+
+- never display the generic word `Entity` / `Entität` as its visible item-type badge, primary category, or popularity subtitle;
+- display the most specific available accepted taxonomy category instead, for example `Rapper`, `Singer`, `Actor`, `Music Group`, `Character`, `Movie`, `Video Game`, `Album`, `Song`, `Car Brand`, or `Company`;
+- when an item has multiple categories, a more specific category must win over broad person buckets such as `Artist` or `Musician`;
+- category labels must be rendered through the UI category-label map, not by exposing raw taxonomy codes such as `person.rapper`;
+- if a malformed/legacy result has no category at all, use the neutral fallback `Named item` / `Eigenname`, never `Entity` / `Entität`;
+- the channel/filter name `Entities` may remain as the name of the result family because it describes the collection rather than an individual result.
+
+Regression coverage must include representative person, group, work, fictional-character and fallback cases.
+
 ## Change discipline
 
 Do not redesign or reparent stable controls merely to achieve visual consistency. Preserve existing behavior first, then make the smallest scoped UI change that satisfies the request.

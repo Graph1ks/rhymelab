@@ -8,6 +8,8 @@ Current UI/API follow-up separates query-pronunciation language from result lang
 
 Primary unified-search controls now have an explicit runtime interaction regression gate. A prior partial-initialization bug caused Search to remain bound while later buttons were dead; control binding now preflights the full surface, marks successful binding, fails visibly, and is exercised by simulated click tests before merge.
 
+Entity result presentation now treats `entity` as an internal result-family concept only. Individual Entity cards/detail panels must show the concrete accepted taxonomy subtype (for example Rapper, Actor, Music Group, Movie, Video Game or Character); raw category paths and generic `Entity` labels are not valid item-type presentation.
+
 
 ## Current product/runtime baseline — v0.11.0
 

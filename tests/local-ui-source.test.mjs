@@ -97,6 +97,8 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /function installInteractiveControls\(/);
   assert.match(app, /dataset\.rhymelabControls='bound'/);
   assert.match(app, /dataset\.rhymelabControls='failed'/);
+  assert.match(app, /missingGroups=REQUIRED_CONTROL_GROUPS\.filter\(\(selector\)=>\$\$\(selector\)\.length===0\)/);
+  assert.doesNotMatch(app, /missingGroups=REQUIRED_CONTROL_GROUPS\.filter\(\(selector\)=>\$\(selector\)\.length===0\)/);
   assert.doesNotMatch(app, /(?<!\$)\$\([^)]*\)\.(?:forEach|map|filter|some|every|find)\b/);
   assert.doesNotMatch(app, /for\s*\([^)]*\bof\s+(?<!\$)\$\([^)]*\)\s*\)/);
   assert.match(app, /englishUnavailable/);
@@ -111,6 +113,16 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /RhymeLab curated modern lexicon/);
   assert.match(app, /QRank/);
   assert.match(app, /Wikidata/);
+  assert.match(app, /ENTITY_CATEGORY_LABELS/);
+  assert.match(app, /'person\.rapper':\{en:'Rapper'/);
+  assert.match(app, /'group\.music_group':\{en:'Music Group'/);
+  assert.match(app, /'work\.film':\{en:'Movie'/);
+  assert.match(app, /'work\.video_game':\{en:'Video Game'/);
+  assert.match(app, /'fictional\.character':\{en:'Character'/);
+  assert.match(app, /function entityDisplayLabel\(/);
+  assert.match(app, /entityCategoryLabel\(category\)/);
+  assert.doesNotMatch(app, /· \$\{t\('entity'\)\}/);
+  assert.doesNotMatch(app, /layer-badge modern">\$\{t\('entity'\)\}/);
   assert.doesNotMatch(app, /<span class="meta-label">\$\{t\('source'\)\}/);
   assert.match(app, /UNIFIED RHYME WRITER/);
   assert.match(app, /VEREINHEITLICHTER REIM-WRITER/);
