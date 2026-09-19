@@ -179,6 +179,10 @@ test('EN collection scans publish-eligible Wiktionary lexical candidates absent 
     const workDb=new DatabaseSync(work,{readOnly:true});
     const items=workDb.prepare('SELECT language,normalized,surface FROM work_item ORDER BY normalized').all().map((row)=>({...row}));
     const state=workDb.prepare("SELECT status,source_refs FROM scan_state WHERE scope='en_wiktionary_lexical_source_minus_accepted'").get();
+    const orphanCount=Number(workDb.prepare([
+      'SELECT COUNT(*) AS c FROM work_item w',
+      'WHERE NOT EXISTS (SELECT 1 FROM source_ref sr WHERE sr.item_id=w.item_id)',
+    ].join(' ')).get()?.c||0);
     workDb.close();
 
     assert.deepEqual(items,[
@@ -187,10 +191,6 @@ test('EN collection scans publish-eligible Wiktionary lexical candidates absent 
       {language:'en',normalized:'listedmissing',surface:'listedmissing'},
       {language:'en',normalized:'missingword',surface:'missingword'},
     ]);
-    const orphanCount=Number(workDb.prepare([
-      'SELECT COUNT(*) AS c FROM work_item w',
-      'WHERE NOT EXISTS (SELECT 1 FROM source_ref sr WHERE sr.item_id=w.item_id)',
-    ].join(' ')).get()?.c||0);
     assert.equal(orphanCount,0);
     assert.equal(state.status,'complete');
     assert.equal(Number(state.source_refs),4);
