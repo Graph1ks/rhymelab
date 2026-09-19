@@ -3,7 +3,6 @@ import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { readdir, readFile, stat, writeFile, mkdir } from 'node:fs/promises';
 import { createGunzip } from 'node:zlib';
-import { createInterface } from 'node:readline';
 import { dirname, extname, relative, resolve, sep } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -102,25 +101,26 @@ async function readPrefix(path,limit=maxTextBytes){
   return Buffer.concat(chunks).subarray(0,limit);
 }
 
-async function sampleGzipLines(path,maxLines=maxSampleLines){
+async function readGzipPrefix(path,limit=maxTextBytes){
   const source=createReadStream(path);
   const gunzip=createGunzip();
   const input=source.pipe(gunzip);
-  const rl=createInterface({input,crlfDelay:Infinity});
-  const lines=[];
+  const chunks=[];
+  let total=0;
   try{
-    for await(const line of rl){
-      if(!line.trim()) continue;
-      lines.push(line);
-      if(lines.length>=maxLines) break;
+    for await(const chunk of input){
+      const remaining=Math.max(0,limit-total);
+      if(!remaining) break;
+      chunks.push(Buffer.from(chunk).subarray(0,remaining));
+      total+=Math.min(chunk.length,remaining);
+      if(total>=limit) break;
     }
   }finally{
-    rl.close();
     input.destroy();
     gunzip.destroy();
     source.destroy();
   }
-  return lines;
+  return Buffer.concat(chunks,total);
 }
 
 function inspectDelimitedLines(lines,delimiter){
@@ -153,7 +153,8 @@ async function inspectTextLike(path,extension){
   let compressed=false;
   if(extension.endsWith('.gz')){
     compressed=true;
-    lines=await sampleGzipLines(path,maxSampleLines);
+    const prefix=(await readGzipPrefix(path)).toString('utf8');
+    lines=prefix.split(/\r?\n/u).filter((line)=>line.length).slice(0,maxSampleLines);
   }else{
     const prefix=(await readPrefix(path)).toString('utf8');
     lines=prefix.split(/\r?\n/u).filter((line)=>line.length).slice(0,maxSampleLines);
@@ -317,14 +318,14 @@ async function walk(dir,out){
     const path=resolve(dir,entry.name);
     if(path===output) continue;
     if(entry.isSymbolicLink()){
-      out.push({path,symlink:true});
+      console.log('[data-inventory] skip symlink '+relPath(path));
       continue;
     }
     if(entry.isDirectory()){
       await walk(path,out);
       continue;
     }
-    if(entry.isFile()) out.push({path,symlink:false});
+    if(entry.isFile()) out.push({path});
   }
 }
 
