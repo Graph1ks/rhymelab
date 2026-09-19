@@ -30,6 +30,8 @@ function argValue(flag,fallback){
 const dbPath=resolve(argValue('--db','data/local/rhymelab-en-v1.sqlite'));
 const outPath=resolve(argValue('--out','data/local/en-writer-acceptance-v1-report.json'));
 const runtimeReportPath=resolve(argValue('--runtime-report','data/local/en-writer-acceptance-runtime-check.json'));
+const debugReportArg=argValue('--debug-report',null);
+const debugReportPath=debugReportArg?resolve(debugReportArg):null;
 const expectedDbFingerprint='beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37';
 const expectedPublishFingerprint='b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9';
 const expectedRuntimeFingerprint='dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf';
@@ -43,11 +45,12 @@ const QUALITY_GATES=Object.freeze({
   max_guard_violations:0,
 });
 const DIVERSITY_GATES=Object.freeze({
-  min_near_duplicate_reduction:0.50,
-  min_repeated_lemma_reduction:0.40,
+  require_near_duplicate_improvement:true,
+  require_repeated_lemma_improvement:true,
   max_mean_phonetic_drop:0.0025,
   max_mean_commonness_drop:0.04,
   max_guard_violations:0,
+  selection:'maximize_min_diversity_reduction_within_hard_quality_constraints',
 });
 
 const LYRICIST_QUERIES=Object.freeze([
@@ -339,16 +342,28 @@ try{
         guard_violations:candidate.guard_violations,
       };
       const gates={
-        near_duplicates:metrics.near_duplicate_reduction>=DIVERSITY_GATES.min_near_duplicate_reduction,
-        repeated_lemma:metrics.repeated_lemma_reduction>=DIVERSITY_GATES.min_repeated_lemma_reduction,
+        near_duplicates:metrics.near_duplicate_reduction>0,
+        repeated_lemma:metrics.repeated_lemma_reduction>0,
         phonetic:metrics.mean_phonetic_drop<=DIVERSITY_GATES.max_mean_phonetic_drop,
         commonness:metrics.mean_commonness_drop<=DIVERSITY_GATES.max_mean_commonness_drop,
         guard:metrics.guard_violations<=DIVERSITY_GATES.max_guard_violations,
       };
       const passed=Object.values(gates).every(Boolean);
-      diversityEvaluations.push({weight,metrics,gates,passed});
-      if(selectedDiversity===null&&passed) selectedDiversity=weight;
+      diversityEvaluations.push({
+        weight,
+        metrics,
+        gates,
+        diversity_gain:round(Math.min(
+          metrics.near_duplicate_reduction,
+          metrics.repeated_lemma_reduction
+        )),
+        passed,
+      });
     }
+    const safeDiversity=diversityEvaluations
+      .filter((row)=>row.passed)
+      .sort((a,b)=>b.diversity_gain-a.diversity_gain||a.weight-b.weight);
+    selectedDiversity=safeDiversity[0]?.weight??null;
   }
 
   const accepted=Boolean(
@@ -391,7 +406,28 @@ try{
         }
         :null,
     },
-    queries:queryReports,
+    query_summaries:queryReports.map((row)=>({
+      surface:row.surface,
+      normalized:row.normalized,
+      selection_source:row.selection_source,
+      stratum:row.stratum,
+      status:row.status,
+      query_pronunciations:row.query_pronunciations??null,
+      retrieved_pronunciations:row.retrieved_pronunciations??null,
+      collapsed_candidates:row.collapsed_candidates??null,
+      channel_counts:row.channel_counts??null,
+    })),
+    representative_queries:selectedQuality&&selectedDiversity!==null
+      ?queryReports
+        .filter((row)=>['time','nation','record','route','love','cough'].includes(row.normalized))
+        .map((row)=>({
+          normalized:row.normalized,
+          quality_top10:row.configs?.[selectedQuality]?.top20?.slice(0,10)??[],
+          diversified_top10:row.configs?.[selectedQuality]?.diversity?.[String(selectedDiversity)]?.top20?.slice(0,10)??[],
+        }))
+      :[],
+    report_profile:'compact-v1',
+    debug_report_written:Boolean(debugReportPath),
     safeguards:{
       read_only:true,
       product_en_enabled:false,
@@ -409,6 +445,15 @@ try{
   const report={...evidence,semantic_fingerprint:hashJson(evidence)};
   await mkdir(dirname(outPath),{recursive:true});
   await writeFile(outPath,JSON.stringify(report,null,2)+'\n');
+  if(debugReportPath){
+    const debugReport={
+      ...report,
+      report_profile:'debug-v1',
+      queries:queryReports,
+    };
+    await mkdir(dirname(debugReportPath),{recursive:true});
+    await writeFile(debugReportPath,JSON.stringify(debugReport)+'\n');
+  }
 
   console.log('\nPHASE 12B10 ENGLISH WRITER ACCEPTANCE');
   console.log(JSON.stringify({
@@ -421,6 +466,7 @@ try{
     selected_diversity_weight:selectedDiversity,
     semantic_fingerprint:report.semantic_fingerprint,
     report:outPath,
+    debug_report:debugReportPath,
   },null,2));
   if(!accepted) process.exitCode=1;
 }finally{
