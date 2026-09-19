@@ -40,6 +40,7 @@ const command=argValue('--command',process.env.RHYMELAB_ESPEAK_COMMAND||null);
 const cases=intArg('--cases',2048,{min:128,max:20000});
 const workers=intArg('--workers',4,{min:1,max:32});
 const analyzerWorkers=intArg('--analyzer-workers',4,{min:0,max:16});
+const frameGroupSize=intArg('--espeak-frame-group-size',16,{min:1,max:256});
 const batchSizes=parseBatchSizes(argValue('--batch-sizes','64,128,256,512'));
 
 if(!existsSync(workPath))throw new Error('Backfill work database missing: '+workPath);
@@ -97,6 +98,7 @@ try{
     +' · sample='+sample.length
     +' · workers='+workers
     +' · analyzer_workers='+analyzerWorkers
+    +' · frame_group='+frameGroupSize
     +' · admitted_total='+admittedTotal.toLocaleString('en-US')
     +' · pending='+pendingTotal.toLocaleString('en-US')
   );
@@ -127,6 +129,7 @@ try{
         engineVersion:preflight.engineVersion||null,
         workers,
         batchSize,
+        frameGroupSize,
         analyzerPool,
       }));
     }
@@ -157,6 +160,7 @@ try{
       analyzer_workers:analyzerWorkers,
       analyzer_mode:analyzerPool?'worker_threads':'main_thread',
       analyzer:analyzerDelta,
+      frame_group_size:frameGroupSize,
       batch_size:batchSize,
       cases:sample.length,
       accepted,
@@ -174,6 +178,7 @@ try{
       +' · batch='+batchSize
       +' · '+run.cases_per_second.toFixed(1)+'/s'
       +' · analyzer='+(analyzerPool?analyzerWorkers+'w':'main')
+      +' · frame='+frameGroupSize
       +' · errors='+errors
       +' · projected='+run.projected_pending_hours.toFixed(2)+'h'
       +' · modes='+JSON.stringify(modes)
@@ -205,6 +210,8 @@ try{
     workers,
     analyzer_workers:analyzerWorkers,
     analyzer_mode:analyzerPool?'worker_threads':'main_thread',
+    framing_policy:'shape-aware-sparse-boundary-v2',
+    frame_group_size:frameGroupSize,
     batch_sizes:batchSizes,
     runs,
     fastest_stable_batch_size:fastest?.stable?fastest.batch_size:null,
@@ -223,6 +230,7 @@ try{
     workers:report.workers,
     analyzer_workers:report.analyzer_workers,
     analyzer_mode:report.analyzer_mode,
+    frame_group_size:report.frame_group_size,
     fastest_stable_batch_size:report.fastest_stable_batch_size,
     fastest_stable_cases_per_second:report.fastest_stable_cases_per_second,
     fastest_stable_projected_pending_hours:report.fastest_stable_projected_pending_hours,

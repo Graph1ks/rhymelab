@@ -153,6 +153,7 @@
     "pronunciation:backfill:highspeed:test": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs",
     "pronunciation:backfill:highspeed:spawn": "node --no-warnings scripts/benchmark-pronunciation-espeak-highspeed.mjs",
     "pronunciation:backfill:highspeed:batch": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs",
-    "pronunciation:backfill:highspeed:analyzer-control": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs --analyzer-workers 0"
+    "pronunciation:backfill:highspeed:analyzer-control": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs --analyzer-workers 0",
+    "pronunciation:backfill:framing:test": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs --workers 4 --analyzer-workers 4 --cases 4096 --batch-sizes 128 --espeak-frame-group-size 16"
   }
 }

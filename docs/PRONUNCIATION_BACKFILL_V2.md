@@ -348,6 +348,16 @@ data/local/pronunciation-espeak-highspeed-v2.json
 
 The test is read-only. It reports cases/second, process-mode/fallback counts, errors and projected hours for the remaining admitted population. The full runner additionally prints a per-window `recent=.../s` rate and cumulative process-mode counts so fallback storms are visible immediately instead of being hidden by the cumulative ETA. A batch size is eligible for the full run only when the run is stable with zero process errors.
 
+Framing V2 avoids synthesizing a spoken boundary token after every complex row. `clean_single` / `joined_lexeme` rows stay on the plain line-batch path. Other admitted shapes use **sparse boundary groups** (default: 16 rows per marker). A sparse group whose output still has ambiguous line cardinality is the only group re-run through dense per-row framing; all unambiguous groups are retained from the first sparse pass. A whole batch therefore uses at most one sparse pass plus one dense rescue pass in the normal recovery path, instead of paying one boundary token for every complex row. `--espeak-frame-group-size` controls the sparse group size.
+
+For the current owner workset, the focused read-only regression benchmark is:
+
+```powershell
+npm run pronunciation:backfill:framing:test
+```
+
+This tests 4 eSpeak workers, 4 analyzer workers, batch size 128 and sparse frame groups of 16 against the **currently pending** admitted rows.
+
 IPA normalization/analyzer work is offloaded from the Node main thread to a persistent `worker_threads` pool. The owner default is **4 eSpeak batch workers + 4 IPA analyzer workers**. The pool stays alive for the complete resumable eSpeak phase and returns only the compact analyzer fields required by staging persistence. The high-speed test uses the same pool and records analyzer task/restart/queue metrics for each batch-size run. For a direct control against the old main-thread analyzer, pass `--analyzer-workers 0`.
 
 Custom example:
@@ -397,7 +407,7 @@ npm run pronunciation:backfill:highspeed:test
 Then run eSpeak with four workers and the fastest stable batch size from the v2 report, for example:
 
 ```powershell
-npm run pronunciation:backfill:espeak -- --workers 4 --espeak-batch-size 512 --analyzer-workers 4
+npm run pronunciation:backfill:espeak -- --workers 4 --espeak-batch-size 128 --espeak-frame-group-size 16 --analyzer-workers 4 --analyzer-workers 4
 ```
 
 After eSpeak completes, run the client fallback only for analyzer-rejected admitted rows:
