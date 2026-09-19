@@ -1,6 +1,6 @@
 # English Writer DB v1 — Phase 12B5
 
-Status: **v4 DB materialization repeatability accepted / multisyllabic retrieval verification patch pending**
+Status: **v4 DB materialization + indexed retrieval verification accepted**
 
 ## Purpose
 
@@ -218,3 +218,28 @@ npm run en:db:verify
 ```
 
 This is a read-only verification pass against the already materialized v4 DB.
+
+## Full five-channel verification — ACCEPTED
+
+The owner read-only verifier pass after the multisyllabic fix closed the final DB retrieval gap:
+
+```text
+exact         20 general + 20 multi-result   0 mismatches
+multi         20 general + 20 multi-result   0 mismatches
+vowel         20 general + 20 multi-result   0 mismatches
+family+coda   20 general + 20 multi-result   0 mismatches
+coda          20 general + 20 multi-result   0 mismatches
+
+max observed multi-result sizes
+exact          1,430
+multi          1,430
+vowel          4,043
+family+coda    1,593
+coda          28,690
+
+foreign-key violations  0
+DB fingerprint
+beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37
+```
+
+All five query plans use their dedicated indexes. Phase 12B5 storage/indexed-retrieval verification is closed. The next phase is the read-only English retrieval runtime diagnostic in `docs/ENGLISH_RETRIEVAL_RUNTIME_V1.md`.

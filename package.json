@@ -109,6 +109,7 @@
     "en:pronunciation:fallback:diagnose": "node --no-warnings scripts/diagnose-en-pronunciation-fallback.mjs",
     "en:coverage:wordlist": "node --no-warnings scripts/audit-en-wordlist-coverage.mjs",
     "en:pronunciation:inflection:diagnose": "node --no-warnings scripts/diagnose-en-inflection-composition.mjs",
-    "en:db:repeatability": "node --no-warnings scripts/repeat-en-writer-db.mjs"
+    "en:db:repeatability": "node --no-warnings scripts/repeat-en-writer-db.mjs",
+    "en:runtime:diagnose": "node --no-warnings scripts/diagnose-en-retrieval-runtime.mjs"
   }
 }

@@ -524,7 +524,7 @@ npm run en:publish:repeatability
 
 No final English Writer row count or broad G2P policy is accepted in 12B4.
 
-### 12B5 — English Writer DB — V4 REPEATABILITY PASS / MULTISYLLABIC VERIFY PATCH PENDING
+### 12B5 — English Writer DB — ACCEPTED / CLOSED
 
 Contract: `docs/ENGLISH_WRITER_DB_V1.md`.
 
@@ -600,45 +600,32 @@ Require:
 - repeated DB-open fingerprint stability;
 - unchanged frozen German Writer/Phrase behavior.
 
-### Current English DB gate — MATERIALIZATION REPEATABLE, MULTISYLLABIC VERIFY PATCH NEXT
+### Current English gate — READ-ONLY RETRIEVAL RUNTIME DIAGNOSTIC
 
-Owner v4 DB repeatability passed:
+The v4 DB storage/indexed-retrieval gate is accepted. Full owner verification confirms dedicated indexes and zero general/multi-result equivalence mismatches across exact, multisyllabic, vowel, family+coda and coda channels.
+
+Accepted DB fingerprint:
 
 ```text
-source publish fingerprint  b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
-DB semantic fingerprint     beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37
-forms                       224,478
-default eligible            123,533
-pronunciations              375,321
-analyzed                    339,987
-unresolved                   35,334
-default-profile             173,413
-SQLite                       181.87 MiB
-repeat fingerprints equal   true
-repeat snapshots equal      true
-repeat database bytes       190,701,568 / 190,701,568
+beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37
 ```
 
-The DB materialization is deterministic and accepted.
-
-Review found one narrow verifier gap before the retrieval layer can be frozen: the schema already has `idx_en_pron_multi`, but the old plan sampler could return `multi: []` when its first exact-key sample had no `multisyllable_key`. The old verifier therefore did not independently require or compare the multisyllabic retrieval channel.
-
-The source patch now:
-
-- samples a dedicated non-null `multisyllable_key`;
-- requires `idx_en_pron_multi` in the query plan;
-- checks indexed-vs-full-scan equivalence for multisyllabic keys;
-- checks explicit multi-result equivalence for multisyllabic keys;
-- persists verifier evidence to `data/local/en-writer-db-verification-v1-report.json`.
+The next candidate layer is defined in `docs/ENGLISH_RETRIEVAL_RUNTIME_V1.md`.
 
 Next owner command after merge:
 
 ```powershell
 git pull
-npm run en:db:verify
+npm run en:runtime:diagnose
 ```
 
-No DB rebuild is required. After this verify passes, proceed to English retrieval/runtime acceptance, then English Quality/Commonness/Writer-Utility calibration, then separate Diversity/Redundancy calibration.
+Upload:
+
+```text
+data/local/en-retrieval-runtime-v1-report.json
+```
+
+This gate is read-only and candidate-only. It must not enable product EN or introduce final commonness/Writer Utility/Diversity ranking.
 ### 12B7 — product integration
 
 Only after the English runtime gate is credible:
@@ -661,7 +648,7 @@ A new thread should begin by reading:
 6. `ROADMAP.md`
 7. `PROJECT_STATE.json`
 
-Then run the **updated English DB verifier once** via `npm run en:db:verify` and review `data/local/en-writer-db-verification-v1-report.json`. No DB rebuild is required. After the multisyllabic channel passes, continue with English retrieval/runtime acceptance before ranking.
+Then run the **English retrieval runtime diagnostic** via `npm run en:runtime:diagnose` and review `data/local/en-retrieval-runtime-v1-report.json`. DB storage/indexed retrieval is already accepted; do not rebuild it unless source policy changes.
 
 Do not reopen Entity work first.
 
