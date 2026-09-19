@@ -35,6 +35,7 @@ The protected integration branch, CI requirement, merge rules, and public-histor
 ### In scope
 
 - deterministic phonetic rhyme search;
+- total local pronunciation resolution for unknown normalized single-token user queries, with source-backed pronunciation preferred and generated query anchors kept ephemeral;
 - accepted German single-word Writer behavior;
 - accepted German phrase/mosaic/phraseology behavior;
 - accepted English single-word Writer behavior;
@@ -82,6 +83,7 @@ External models and online sources may be used during research, source acquisiti
 - Keep language-specific phonology explicit; do not route English through German phonology or vice versa.
 - Keep Entity identity language-neutral and pronunciation variants provenance-bearing.
 - AI/LLM pronunciation output is evidence/staging unless a later explicit acceptance gate promotes it.
+- Deterministic non-neural pronunciation generation may be used for unknown **single-token query anchors** only. Generated query anchors are ephemeral and may not be silently promoted into canonical lexical/Entity/Phrase data.
 - Prefer focused changes over broad rewrites of accepted product surfaces.
 - Keep architecture proportional to a solo-developed local product.
 
@@ -191,7 +193,8 @@ Persist decisions and engineering facts, not raw conversations. No continuation-
 
 ## Current priorities
 
-1. Preserve the accepted Phase 11, Phase 12B, and source-backed Phase 12C baselines while fixing concrete regressions.
-2. Improve Entity Writer performance without changing accepted semantics.
-3. Keep targeted Top-100k unresolved-Entity AI pronunciation work isolated as evidence until an explicit later promotion gate.
-4. Continue product/UI refinement without silently changing canonical retrieval/ranking behavior.
+1. Run and review the owner-local 1000-case Total Query Pronunciation benchmark before database-speed optimization or generated-candidate promotion.
+2. Preserve the accepted Phase 11, Phase 12B, and source-backed Phase 12C baselines while fixing concrete regressions.
+3. Improve Entity Writer performance without changing accepted semantics.
+4. Keep targeted Top-100k unresolved-Entity AI pronunciation work isolated as evidence until an explicit later promotion gate.
+5. Continue product/UI refinement without silently changing canonical retrieval/ranking behavior.
