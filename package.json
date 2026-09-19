@@ -141,6 +141,10 @@
     "pronunciation:backfill:report": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase report",
     "data:inventory": "node --no-warnings scripts/report-local-data-inventory.mjs",
     "data:inventory:full": "node --no-warnings scripts/report-local-data-inventory.mjs --row-counts --hash",
-    "pronunciation:backfill:plan": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase plan"
+    "pronunciation:backfill:plan": "node --no-warnings scripts/run-pronunciation-backfill.mjs --phase plan",
+    "pronunciation:backfill:audit": "node --no-warnings scripts/audit-pronunciation-backfill.mjs",
+    "pronunciation:backfill:benchmark:prepare": "npm run pronunciation:backfill:audit -- --sample-size 1000 && npm run query:gold:sample -- --size 1000",
+    "pronunciation:backfill:benchmark:run": "node --no-warnings scripts/benchmark-pronunciation-generators.mjs",
+    "pronunciation:backfill:benchmark": "npm run pronunciation:backfill:benchmark:prepare && npm run pronunciation:backfill:benchmark:run"
   }
 }

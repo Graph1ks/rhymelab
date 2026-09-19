@@ -18,6 +18,9 @@ The prior 1000-case eSpeak-NG run remains **development/reference evidence only*
 
 Owner-only **Pronunciation Backfill V2** now supersedes the initial V1 collector. The owner-local inventory has been consumed and the source map is closed against the files actually present locally: DE usage TSV + raw German Kaikki, raw English Kaikki through the existing lexical-candidate policy, and the pronunciation-independent Phrase/Entity catalogs. The absent `data/de/core/` stage is no longer required. `npm run pronunciation:backfill:plan` performs a no-write path/preflight check before collection.
 
+Owner full-data Backfill V2 collection is now complete: 6,033,818 unique language+normalized work items from 6,200,338 source refs. Scope refs: DE listed forms 2,684,371; DE usage 1,255,600; EN lexical candidates 885,993; Entity EN 705,050; Entity DE 626,716; DE Wiktionary headwords 28,299; phrase surfaces 8,415; phrase unresolved tokens 5,894. No generator has run yet; all 6,033,818 remain pending. Before any full eSpeak pass, run the read-only structural audit and deterministic 1000-case generator benchmark documented in `docs/PRONUNCIATION_BACKFILL_V2.md`.
+
+
 
 ## Current product/runtime baseline — v0.11.0
 
