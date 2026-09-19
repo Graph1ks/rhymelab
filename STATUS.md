@@ -20,6 +20,9 @@ Owner-only **Pronunciation Backfill V2** now supersedes the initial V1 collector
 
 Owner full-data Backfill V2 collection is now complete: 6,033,818 unique language+normalized work items from 6,200,338 source refs. Scope refs: DE listed forms 2,684,371; DE usage 1,255,600; EN lexical candidates 885,993; Entity EN 705,050; Entity DE 626,716; DE Wiktionary headwords 28,299; phrase surfaces 8,415; phrase unresolved tokens 5,894. No generator has run yet; all 6,033,818 remain pending. Before any full eSpeak pass, run the read-only structural audit and deterministic 1000-case generator benchmark documented in `docs/PRONUNCIATION_BACKFILL_V2.md`.
 
+The owner 1000-case calibration now favors eSpeak-NG as the primary generator: held-out controls showed higher exact rhyme-tail, syllable/stress and mean-rhyme quality overall, especially in English, while the client remains fallback. The raw workset also contains substantial target-mismatch/source-noise. Backfill therefore now requires `source-aware-pronunciation-admission-v1` before eSpeak. Only admitted rows enter bulk generation; review/noise rows remain provenance-preserving staging evidence. eSpeak execution now supports bounded async process workers plus a read-only local throughput ladder before the full run.
+
+
 
 
 ## Current product/runtime baseline — v0.11.0
