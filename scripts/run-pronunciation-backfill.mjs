@@ -768,6 +768,7 @@ async function runClientResolver(){
       workDb.exec('ROLLBACK');
       throw error;
     }
+    }
   }finally{
     referenceLookup.close();
   }
