@@ -3487,12 +3487,12 @@
       ]
     },
     "entity_resume": {
-      "status": "PHASE_12C_SOURCE_BACKED_OWNER_ACCEPTED_PR_FINALIZATION",
+      "status": "PHASE_12C_SOURCE_BACKED_MERGED_TO_MAIN_PERFORMANCE_AND_TOP100K_AI_NEXT",
       "sequence": [
+        "source_backed_phase12c_runtime_accepted_on_main",
         "source_backed_multilingual_entity_runtime_repository_acceptance",
         "guarded_entity_writer_ranking_and_metadata_batching",
         "owner_full_data_runtime_and_entity_writer_acceptance",
-        "squash_merge_source_backed_phase12c_runtime_after_green_ci",
         "build_targeted_ai_pronunciation_evidence_for_runtime_unresolved_names_within_top_100k_entities",
         "review_benchmark_v3_context_gold_with_independent_evidence",
         "evaluate_ai_staging_quality_without_automatic_promotion_threshold",
@@ -3570,7 +3570,18 @@
         "historical_704989_queue": "RETAIN_AS_IMMUTABLE_REPRODUCIBLE_EVIDENCE_NOT_FUTURE_CAMPAIGN_SCOPE",
         "new_export_identity_required": true,
         "automatic_runtime_promotion": false
-      }
+      },
+      "merged_to_main": {
+        "accepted": true,
+        "pr": 112,
+        "merge_method": "squash",
+        "merge_commit": "e0ddbfac7cdf7229a7a3049c1426c6fb70783cdf",
+        "merged_at": "2026-09-19T13:16:40Z"
+      },
+      "next_engineering_focus": [
+        "entity_writer_performance_optimization_preserving_accepted_semantics",
+        "targeted_top_100k_entity_ai_pronunciation_export_and_evidence"
+      ]
     },
     "performance_phase": {
       "status": "DEFERRED_UNTIL_DE_EN_ENTITY_QUERY_CONTRACTS_STABLE",
