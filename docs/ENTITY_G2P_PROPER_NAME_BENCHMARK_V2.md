@@ -1,6 +1,6 @@
 # Phase 12C — Proper-Name G2P Benchmark v2
 
-Status: **IMPLEMENTED / owner v2 preparation pending**
+Status: **MFA FULL BASELINE COMPLETE / confidence calibration pending**
 
 ## Why v1 was rejected before running G2P
 
@@ -172,3 +172,36 @@ Therefore the RhymeLab runner never sends display-case Entity spelling directly 
 The runner records model-input eligibility, diacritic-fold counts, input collisions and prediction coverage. It refuses to emit a quality evaluation when fewer than 95% of model-eligible cases receive a mapped prediction.
 
 The first owner MFA execution prior to this fix generated only 13 mapped predictions for 600 controls and is rejected as a runner defect. Its quality metrics are not model evidence.
+
+
+## Valid MFA full-coverage baseline
+
+Owner evidence after model-input normalization:
+
+```text
+benchmark cases                  600
+model-input eligible             599
+eligible prediction coverage     100%
+prediction rows                  599
+evaluated                        597
+invalid                            2
+missing                            1
+exact phones                   70.35%
+exact stressed rhyme tail      71.19%
+syllable count                 95.98%
+stress pattern                 80.57%
+primary stress                 94.14%
+mean rhyme score             0.913040
+semantic fingerprint
+b6c3943f90a90a2938bcd3ce74ccecc95eedc67712fe751a6dda0266b2c91b5a
+```
+
+This baseline rejects **unconditional** MFA runtime promotion. Exact-tail accuracy is the key RhymeLab risk and remains materially below source-backed quality.
+
+### Confidence calibration
+
+MFA/Pynini already exposes a path score. RhymeLab now requests `--export_scores` for the same single-best pronunciation and records that score in the prediction TSV.
+
+The evaluator treats lower Pynini path score as better and reports deterministic retained-quality points for the lowest-score 10%, 25%, 50%, 75%, 90% and 100% of scored/evaluable controls. It also reports the largest retained subset, if any, that reaches at least 90% exact-tail and at least 85% exact-tail.
+
+This is a benchmark-only confidence experiment. No generated pronunciation is persisted or promoted by it.
