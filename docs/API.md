@@ -52,6 +52,8 @@ Returns local runtime status including:
 - whether the legacy/control DB is available;
 - the legacy DB path/error when applicable;
 - `unified_writer` language/channel capabilities, including whether German Word Writer and Phrase/Mosaic are ready and whether an English runtime is installed.
+- `query_pronunciation_revision` — SHA-256 revision of the active pronunciation/search DB file state plus DB metadata; the browser uses it once per app session to validate persistent generated-pronunciation cache rows.
+- `query_pronunciation_cache` — cache schema/revalidation metadata.
 
 ## `GET /api/writer?q=<word-or-phrase>`
 
@@ -97,7 +99,7 @@ Optional client-anchor parameters:
 
 A real source-backed query pronunciation always wins over supplied client IPA.
 
-Generated query metadata includes `generatedPronunciation=true` and `queryPronunciation.clientOnly=true`. Client-generated pronunciations are not persisted and are not lexical facts.
+Generated query metadata includes `generatedPronunciation=true` and `queryPronunciation.clientOnly=true`. The composed query anchor is not persisted as lexical truth. Generated **token pronunciations** may be retained in the browser's revision-/policy-gated IndexedDB performance cache; they remain non-canonical and are invalidated when `query_pronunciation_revision` or the client resolver policy changes.
 
 `language=both` may therefore use source-backed pronunciation for one language and client-generated pronunciation only for the missing language. Multi-word input is supported: the client composes a complete ephemeral phrase IPA from source-backed and generated token pronunciations.
 
