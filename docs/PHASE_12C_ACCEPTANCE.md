@@ -1,6 +1,6 @@
 # Phase 12C — Entity Runtime + AI Staging Acceptance
 
-Status: **OWNER FULL-DATA ACCEPTANCE PENDING**
+Status: **SOURCE-BACKED OWNER FULL-DATA ACCEPTED — PR FINALIZATION**
 
 Branch: `phase12c-entity-runtime-ai-staging`
 
@@ -17,7 +17,7 @@ The second track is evidence staging only. It is not runtime truth and it is not
 
 - DE Entity runtime fingerprint: `38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3`.
 - accepted English Writer product remains frozen;
-- source-backed English Entity expansion baseline remains 710,561 ready / 704,989 unresolved;
+- source-backed English Entity source-resolution baseline was 710,561 candidate-ready / 704,989 unresolved; the accepted runtime-analyzable full-data baseline is 710,500 ready / 705,050 unresolved;
 - MFA and forced-neural g2p-en runtime fallback remain rejected;
 - accepted EN Entity runtime rows must remain source-backed with `generated=0`;
 - AI staging promotion remains disabled;
@@ -50,6 +50,46 @@ data/local/phase12c-owner-acceptance-v1-report.json
 ```
 
 The owner gate is intentionally local because the full Entity, English Writer and source-expansion databases are gitignored.
+
+## Accepted owner full-data evidence — 2026-09-19
+
+The consolidated owner gate completed successfully on the full local databases:
+
+```text
+schema                         rhymelab-phase12c-owner-acceptance-v1
+status                         ok
+materialize runtime            PASS
+verify runtime                 PASS
+accept Entity Writer           PASS
+
+English names considered       1,415,550
+English runtime-ready            710,500 / 50.19%
+English unresolved               705,050 / 49.81%
+English phonetic analyses        710,500
+English rhyme anchors          3,552,500
+English runtime fingerprint
+3f2c520ce99868eda81991e6247c6c93bdf8c78f7805d7ceef2cc2ebd85bb6d8
+
+DE runtime fingerprint
+38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3
+```
+
+The 61-row difference from the earlier 710,561 source-resolution count is intentional: a source-backed pronunciation is not runtime-ready unless the accepted English runtime analyzer can also analyze it. Invalid/unanalysable source rows remain unresolved rather than being forced into runtime.
+
+Entity Writer full-data acceptance also passed:
+
+```text
+DE query resolved fraction      1.00
+DE nonempty Entity fraction     1.00
+EN query resolved fraction      1.00
+EN nonempty Entity fraction     1.00
+ranking policy                  entity-writer-ranking-v2-phonetic-band-prominence-v1
+repeatability                   PASS
+Writer semantic fingerprint
+76ac9a32e62fd7b253515569294599012010e9be758db24227a910d893141ae7
+```
+
+Performance was measured but was not an acceptance gate for this source-backed correctness/ranking pass. The owner run observed roughly 384–403 ms p50 and 1.15–1.22 s p95 across the 22-query acceptance sample. Runtime latency optimization therefore remains explicit follow-up work; these measurements must not be presented as meeting the separate ~100 ms product target.
 
 ## AI staging gate
 
@@ -126,11 +166,12 @@ The final branch head must be green before merge. CI validates the repository/to
 
 Benchmark-v3 and missing AI staging data are **not** merge blockers for the source-backed track.
 
-Remaining source-backed blockers are:
+The source-backed owner gate is accepted. Remaining PR-finalization steps are:
 
-1. run `npm run entity:phase12c:owner` against the owner's full local databases;
-2. review the returned compact report and representative Entity pages;
-3. keep GitHub `validate` green on the final branch head;
-4. mark PR #112 ready and squash-merge once the owner gate is accepted.
+1. keep GitHub `validate` green on the final documentation head;
+2. mark PR #112 ready for review;
+3. squash-merge the source-backed Phase 12C branch when the repository finalization step is authorized.
+
+Entity Writer latency optimization remains follow-up work and does not alter the accepted source/provenance/ranking boundary.
 
 AI evidence can arrive days later and continues through its separate staging/benchmark gate without reopening the accepted source-backed runtime boundary.
