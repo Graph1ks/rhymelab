@@ -34,7 +34,7 @@ function shouldFrame(row){
   return Boolean(shape)&&!['clean_single','joined_lexeme'].includes(shape);
 }
 
-function boundaryRawIpa(command,language,explicit=null){
+function resolveBoundaryRawIpa(command,language,explicit=null){
   if(explicit)return rawLine(explicit);
   const code=normalizeLanguage(language);
   const key=String(command||'auto')+'\u0000'+code;
@@ -161,7 +161,7 @@ async function processFramedChunk(rows,language,{
 }={}){
   const code=normalizeLanguage(language);
   const voice=code==='de'?'de':'en-us';
-  const markerIpa=boundaryRawIpa(command,code,boundaryIpa);
+  const markerIpa=resolveBoundaryRawIpa(command,code,boundaryIpa);
   const input=[];
   for(const row of rows){
     const surface=inputLine(row.surface);
@@ -360,7 +360,7 @@ export async function mapEspeakBatchWorkers(rows,language,{
     }
   }
   const size=Math.max(1,Number(batchSize)||512);
-  const markerIpa=boundaryRawIpa(command,code,boundaryRawIpa);
+  const markerIpa=resolveBoundaryRawIpa(command,code,boundaryRawIpa);
   const chunks=buildChunks(list,size);
   const processed=await mapConcurrent(
     chunks,
