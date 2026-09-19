@@ -161,7 +161,8 @@ Resolution order is strict:
 
 1. eSpeak-NG;
 2. only rows rejected by the accepted analyzer go to the client resolver;
-3. eSpeak executable/process unavailability is a **workflow failure**, not a reason to silently route the whole workset to the client resolver.
+3. the client resolver gets the same source-backed DE/EN Writer-word lookup role used by the browser flow, so exact known tokens and bounded two-part source compositions are preferred before local spelling rules;
+4. eSpeak executable/process unavailability is a **workflow failure**, not a reason to silently route the whole workset to the client resolver.
 
 The project does not bundle eSpeak-NG.
 
