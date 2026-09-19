@@ -925,9 +925,9 @@ The g2p-en owner report's `confidence_calibration` block is invalid reporting no
 
 Authoritative decision: `docs/ENTITY_G2P_DECISION_V1.md`. Next Phase 12C gate is source-backed Entity pronunciation/runtime integration only.
 
-## Phase 12C candidate branch checkpoint — runtime + AI staging
+## Phase 12C accepted main checkpoint — runtime + targeted AI staging
 
-Active candidate branch: `phase12c-entity-runtime-ai-staging`.
+Accepted via PR #112; squash-merged to `main` at `e0ddbfac7cdf7229a7a3049c1426c6fb70783cdf`. The old branch is historical.
 
 Focused continuation document: `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`.
 
@@ -954,6 +954,8 @@ Writer semantic fingerprint
 ```
 
 The previous 710,561 figure is retained as source-resolution evidence; 710,500 is the accepted runtime-analyzable baseline. Performance is not yet product-target quality: the owner acceptance sample measured roughly 384–403 ms p50 and 1.15–1.22 s p95, so Entity Writer latency optimization remains explicit follow-up work.
+
+No source-backed Phase 12C merge work remains. Current engineering follow-up is Entity Writer performance optimization plus a separate targeted Top-100k unresolved-Entity pronunciation campaign.
 
 Benchmark-v3 context-gold review and AI pronunciation evidence belong to the separate AI-evidence track. They do **not** block source-backed runtime acceptance or merge. AI staging remains non-runtime evidence, `runtime_promoted=0`, and no confidence threshold is preselected for promotion.
 
