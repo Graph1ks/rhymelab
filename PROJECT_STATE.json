@@ -30,7 +30,9 @@
     "generated_pronunciation_canonical_persistence": false,
     "query_pronunciation_generation_location": "end_user_client",
     "unknown_query_pronunciation": "client-total-query-pronunciation-v2",
-    "multiword_client_query_pronunciation": true
+    "multiword_client_query_pronunciation": true,
+    "query_pronunciation_cache": "rhymelab-query-pronunciation-cache-v1",
+    "query_pronunciation_cache_revalidation": "health_revision_once_per_app_session"
   },
   "legacy_control_baseline": {
     "status": "preserved",
@@ -3752,7 +3754,8 @@
     },
     "docs": [
       "docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md",
-      "docs/QUERY_PRONUNCIATION_TOTAL_V1.md"
+      "docs/QUERY_PRONUNCIATION_TOTAL_V1.md",
+      "docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md"
     ],
     "gold_control": {
       "status": "IMPLEMENTED_OWNER_RUN_PENDING",
@@ -3816,6 +3819,33 @@
     "max_client_tokens": 64,
     "token_resolution": "source_backed_first_generate_only_missing",
     "multiword_composition": "space_joined_token_ipa_ephemeral_query_anchor",
-    "regression_sentinel": "heute abend große gangbang party"
+    "regression_sentinel": "heute abend große gangbang party",
+    "generated_token_cache": {
+      "status": "IMPLEMENTED",
+      "schema": "rhymelab-query-pronunciation-cache-v1",
+      "storage": "IndexedDB",
+      "database": "rhymelab-query-pronunciation",
+      "store": "generated_pronunciations",
+      "max_entries": 10000,
+      "persistence": "browser_profile",
+      "canonical_lexical_truth": false,
+      "exact_source_backed_rows_cached_as_generated": false,
+      "revision_source": "GET /api/health -> query_pronunciation_revision",
+      "revision_policy": "sha256_active_db_file_state_plus_meta_rows",
+      "revalidation": "once_per_app_session_before_cache_use",
+      "cache_key": "language + normalized spelling",
+      "validity_requires": [
+        "language_match",
+        "normalized_spelling_match",
+        "client_resolver_policy_match",
+        "database_revision_match"
+      ],
+      "stale_entry_policy": "ignore_and_delete",
+      "health_revision_unavailable_policy": "disable_persistent_cache_fail_closed",
+      "resolver_policy": "client-total-query-pronunciation-v2",
+      "handover": "docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md"
+    },
+    "generated_token_cache_persisted": true,
+    "generated_token_cache_canonical": false
   }
 }

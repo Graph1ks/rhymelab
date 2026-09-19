@@ -196,8 +196,31 @@ async function findTwoPartReferenceCompound(normalized,language,lookupReference)
   return null;
 }
 
-async function resolveClientTokenPronunciation(surface,language,lookupReference){
+async function resolveClientTokenPronunciation(
+  surface,
+  language,
+  {
+    lookupReference=null,
+    lookupCachedPronunciation=null,
+    storeCachedPronunciation=null,
+  }={},
+){
   const normalized=normalizeClientSurface(surface,language);
+
+  if(typeof lookupCachedPronunciation==='function'){
+    const cached=await lookupCachedPronunciation(normalized,language);
+    if(cached?.ipa){
+      return {
+        ...cached,
+        language,
+        surface:String(surface),
+        normalized,
+        clientOnly:true,
+        cacheHit:true,
+      };
+    }
+  }
+
   if(typeof lookupReference==='function'){
     const exact=await lookupReference(normalized,language);
     const exactDetail=sourceReferenceDetail(surface,language,exact);
@@ -208,15 +231,30 @@ async function resolveClientTokenPronunciation(surface,language,lookupReference)
       language,
       lookupReference,
     );
-    if(compound)return compound;
+    if(compound){
+      if(typeof storeCachedPronunciation==='function'){
+        await storeCachedPronunciation(compound);
+      }
+      return compound;
+    }
   }
-  return generateClientIpa(surface,language);
+
+  const generated=generateClientIpa(surface,language);
+  if(typeof storeCachedPronunciation==='function'){
+    await storeCachedPronunciation(generated);
+  }
+  return generated;
 }
 
 export async function resolveUnknownClientPronunciation(
   surface,
   language,
-  {lookupReference=null,maxTokens=CLIENT_QUERY_MAX_TOKENS}={},
+  {
+    lookupReference=null,
+    lookupCachedPronunciation=null,
+    storeCachedPronunciation=null,
+    maxTokens=CLIENT_QUERY_MAX_TOKENS,
+  }={},
 ){
   const code=normalizeLanguage(language);
   const normalized=normalizeClientSurface(surface,code);
@@ -227,12 +265,18 @@ export async function resolveUnknownClientPronunciation(
     throw new RangeError(`Query pronunciation exceeds ${maxTokens} tokens`);
   }
 
+  const tokenOptions={
+    lookupReference,
+    lookupCachedPronunciation,
+    storeCachedPronunciation,
+  };
+
   if(tokens.length<=1){
-    return resolveClientTokenPronunciation(tokens[0]||surface,code,lookupReference);
+    return resolveClientTokenPronunciation(tokens[0]||surface,code,tokenOptions);
   }
 
   const resolved=await Promise.all(
-    tokens.map((token)=>resolveClientTokenPronunciation(token,code,lookupReference)),
+    tokens.map((token)=>resolveClientTokenPronunciation(token,code,tokenOptions)),
   );
   const generatedTokens=resolved
     .filter((token)=>!token.sourceBacked)

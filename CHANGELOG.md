@@ -8,6 +8,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Added
 
+- Added a bounded IndexedDB cache for generated client query pronunciations, keyed by language/spelling and gated by resolver policy plus the current active-database revision.
+- Added `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md` as the focused fresh-thread continuation contract for client query pronunciation, cache revalidation and browser verification.
 - Added a deterministic 1000-case source-backed DE/EN query-pronunciation gold-control benchmark, balanced by language and syllable-count bucket, to measure eSpeak-NG pronunciation quality separately from structural analyzer compatibility.
 - Added browser/client Total Query Pronunciation for unknown words and partially unresolved multi-word queries. Word chains are resolved token-by-token from source-backed DB pronunciation plus local deterministic fallback and recomposed into one ephemeral query IPA.
 - Added `/query-pronunciation-test`, which exercises browser IPA generation followed by the unchanged Writer/Phrase/Entity search pipeline.
@@ -28,6 +30,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Changed
 
+- Query pronunciation cache reuse now requires the once-per-session `/api/health` database revision; DB or resolver updates invalidate stale generated pronunciations while source-backed database pronunciation remains authoritative.
 - Accepted the normalized eSpeak OOV v2 run as structural compatibility evidence at 1012 / 1014 analyzer-compatible cases (99.80%); lexical correctness remains a separate quality gate.
 - eSpeak OOV benchmark evidence is now schema v2 and records raw IPA, normalized IPA, normalization changes, all failures, and exact analyzer errors for forensic review.
 - DE+EN queries now resolve independent missing DE and EN pronunciation anchors in the end-user client for both single words and word chains; source-backed phrase/token pronunciation remains preferred and candidate pronunciation data stays frozen.

@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async () => {
-  const [html, app, clientPronunciation, queryTest, css, mobileCss, server] = await Promise.all([
+  const [html, app, clientPronunciation, pronunciationCache, queryTest, css, mobileCss, server] = await Promise.all([
     readFile('src/ui/index.html', 'utf8'),
     readFile('src/ui/app.js', 'utf8'),
     readFile('src/ui/query-pronunciation-client.mjs', 'utf8'),
+    readFile('src/ui/query-pronunciation-cache.mjs', 'utf8'),
     readFile('src/query-pronunciation-test/app.js', 'utf8'),
     readFile('src/ui/styles.css', 'utf8'),
     readFile('src/ui/mobile.css', 'utf8'),
@@ -71,6 +72,16 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /resolveMissingQueryPronunciations/);
   assert.match(app, /query_ipa_\$\{language\}/);
   assert.match(app, /lookupSourceBackedWord/);
+  assert.match(app, /readGeneratedPronunciationCache/);
+  assert.match(app, /writeGeneratedPronunciationCache/);
+  assert.match(app, /query_pronunciation_revision/);
+  assert.match(app, /state\.pronunciationRevision/);
+  assert.match(pronunciationCache, /indexedDB/);
+  assert.match(pronunciationCache, /databaseRevision/);
+  assert.match(pronunciationCache, /QUERY_PRONUNCIATION_CACHE_MAX_ENTRIES=10000/);
+  assert.doesNotMatch(pronunciationCache, /localStorage/);
+  assert.match(queryTest, /readGeneratedPronunciationCache/);
+  assert.match(queryTest, /persistent cache hits/);
   assert.match(clientPronunciation, /client-total-query-pronunciation-v2/);
   assert.match(clientPronunciation, /client_source_reference_compound/);
   assert.match(clientPronunciation, /client_token_chain/);
@@ -85,6 +96,9 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(server, /query_ipa_\$\{language\}/);
   assert.match(server, /queryPronunciations:/);
   assert.match(server, /\/query-pronunciation-test/);
+  assert.match(server, /query_pronunciation_revision/);
+  assert.match(server, /databaseRevisionPart/);
+  assert.match(server, /queryPronunciationRevision/);
   assert.match(server, /resultLanguage: url\.searchParams\.get\('result_language'\)/);
   assert.match(app, /\/api\/phrases\/detail/);
   assert.match(app, /language:state\.basis/);

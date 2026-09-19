@@ -82,7 +82,7 @@ Run the normal development server, then open:
 http://127.0.0.1:3030/query-pronunciation-test
 ```
 
-This test keeps the normal database/retrieval/ranking pipeline intact and moves only missing query pronunciation into browser JavaScript. Multi-word queries are resolved token-by-token: existing DB pronunciations are reused and only missing token pronunciations are generated locally.
+This test keeps the normal database/retrieval/ranking pipeline intact and moves only missing query pronunciation into browser JavaScript. Multi-word queries are resolved token-by-token: existing DB pronunciations are reused and only missing token pronunciations are generated locally. Generated OOV token pronunciations are cached in IndexedDB across reloads, but only after the app's initial health/DB revision check; DB or resolver updates invalidate stale cache entries.
 
 ## Repository continuity
 
@@ -158,6 +158,7 @@ Authoritative current-state documents:
 - `docs/ENGLISH_WRITER_SOURCE_PLAN.md`
 - `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md`
 - `docs/QUERY_PRONUNCIATION_TOTAL_V1.md`
+- `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md`
 
 ## Data and provenance
 

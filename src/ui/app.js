@@ -1,4 +1,5 @@
-import { resolveUnknownClientPronunciation } from './query-pronunciation-client.mjs';
+import { CLIENT_QUERY_PRONUNCIATION_POLICY, resolveUnknownClientPronunciation } from './query-pronunciation-client.mjs';
+import { readGeneratedPronunciationCache, writeGeneratedPronunciationCache } from './query-pronunciation-cache.mjs';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -123,7 +124,7 @@ const SOURCE_CATALOG=Object.freeze([
   {name:'wordfreq',detail:{en:'English commonness/ranking evidence; never lexical truth.',de:'Englische Häufigkeits-/Ranking-Evidenz; keine lexikalische Wahrheit.'}},
 ]);
 
-const savedBasis=localStorage.getItem('rhymelab.searchBasis');const savedResultLanguage=localStorage.getItem('rhymelab.resultLanguage');const savedUiLanguage=localStorage.getItem('rhymelab.language');const savedResultView=localStorage.getItem('rhymelab.resultView');const detectedUiLanguage=String(navigator.language||'en').toLocaleLowerCase('en-US').startsWith('de')?'de':'en';const initialBasis=['de','en','both'].includes(savedBasis)?savedBasis:'de';const state={lang:['de','en'].includes(savedUiLanguage)?savedUiLanguage:detectedUiLanguage,basis:initialBasis,resultLanguage:['de','en','both'].includes(savedResultLanguage)?savedResultLanguage:initialBasis,view:['list','compact'].includes(savedResultView)?savedResultView:'list',capabilities:null,data:null,visibleCount:60,pageSize:60,sectionPageSize:24,sectionVisible:new Map(),query:'',scrollObserver:null,wordCache:new Map(),pronunciationMisses:new Set(),detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null};
+const savedBasis=localStorage.getItem('rhymelab.searchBasis');const savedResultLanguage=localStorage.getItem('rhymelab.resultLanguage');const savedUiLanguage=localStorage.getItem('rhymelab.language');const savedResultView=localStorage.getItem('rhymelab.resultView');const detectedUiLanguage=String(navigator.language||'en').toLocaleLowerCase('en-US').startsWith('de')?'de':'en';const initialBasis=['de','en','both'].includes(savedBasis)?savedBasis:'de';const state={lang:['de','en'].includes(savedUiLanguage)?savedUiLanguage:detectedUiLanguage,basis:initialBasis,resultLanguage:['de','en','both'].includes(savedResultLanguage)?savedResultLanguage:initialBasis,view:['list','compact'].includes(savedResultView)?savedResultView:'list',capabilities:null,pronunciationRevision:null,data:null,visibleCount:60,pageSize:60,sectionPageSize:24,sectionVisible:new Map(),query:'',scrollObserver:null,wordCache:new Map(),pronunciationMisses:new Set(),detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null};
 const esc=(value)=>String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const t=(key)=>I18N[state.lang][key]??I18N.en[key]??key;
 const number=(value)=>Number(value).toLocaleString(state.lang==='de'?'de-DE':'en-US');
@@ -282,7 +283,7 @@ function renderCapabilityNotice(warnings=[]){
   node.classList.toggle('hidden',messages.length===0);
 }
 
-async function loadCapabilities(){try{const response=await fetch('/api/health');if(!response.ok)return;const health=await response.json();state.capabilities=health.unified_writer||null;syncCapabilityControls();applyLanguage();renderCapabilityNotice();}catch{}}
+async function loadCapabilities(){try{const response=await fetch('/api/health');if(!response.ok)return;const health=await response.json();state.capabilities=health.unified_writer||null;state.pronunciationRevision=health.query_pronunciation_revision||null;syncCapabilityControls();applyLanguage();renderCapabilityNotice();}catch{}}
 
 async function lookupSourceBackedWord(surface,language){
   const key=wordCacheKey(language,surface);
@@ -302,6 +303,24 @@ async function lookupSourceBackedWord(surface,language){
     }
   }catch{}
   return null;
+}
+
+async function lookupPersistentGeneratedPronunciation(surface,language){
+  if(!state.pronunciationRevision)return null;
+  return readGeneratedPronunciationCache({
+    surface,
+    language,
+    policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
+    databaseRevision:state.pronunciationRevision,
+  });
+}
+
+async function storePersistentGeneratedPronunciation(detail){
+  if(!state.pronunciationRevision)return false;
+  return writeGeneratedPronunciationCache(
+    detail,
+    state.pronunciationRevision,
+  );
 }
 
 async function resolveMissingQueryPronunciations(data){
@@ -329,6 +348,10 @@ async function resolveMissingQueryPronunciations(data){
       {
         lookupReference:(surface,referenceLanguage)=>
           lookupSourceBackedWord(surface,referenceLanguage),
+        lookupCachedPronunciation:(surface,referenceLanguage)=>
+          lookupPersistentGeneratedPronunciation(surface,referenceLanguage),
+        storeCachedPronunciation:(detail)=>
+          storePersistentGeneratedPronunciation(detail),
       },
     );
   }

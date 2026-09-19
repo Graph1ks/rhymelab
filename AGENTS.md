@@ -31,6 +31,7 @@ Before changing the project in a fresh thread/session, read:
 23. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for accepted/frozen Phase 12B English Writer history
 24. `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md` for the unknown user-query pronunciation fallback contract
 25. `docs/QUERY_PRONUNCIATION_TOTAL_V1.md` for the active client-side total query-pronunciation runtime for words and word chains plus benchmark/staging boundaries
+26. `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md` for the current client resolver, persistent cache/revalidation contract, browser test, and fresh-thread continuation
 
 ## Operating model — solo-dev / owner-controlled
 
@@ -89,7 +90,7 @@ Do not introduce hosted/provider runtime, remote database bindings, telemetry, a
 
 RhymeLab core rhyme retrieval, scoring, writer ranking and result diversification must remain deterministic and locally executable on ordinary consumer hardware. Do not introduce LLM inference, machine-learning model inference, neural ranking, hosted ranking/search services, or a network dependency into the core search path. External models may be used only as optional benchmark/reference evidence; they must never be required to build, run, reproduce, or explain core search results.
 
-A narrow pronunciation exception is active for **user query anchors**: when source-backed lookup cannot fully pronounce the query, deterministic non-neural pronunciation generation runs in the **end-user client** and may create ephemeral DE/EN query IPA for one word or an arbitrary word chain. Each token may use source-backed DB/API pronunciation when available; only missing token pronunciations are generated locally. The client generator must not depend on Node.js, `child_process`, a host executable, eSpeak-NG, an LLM, or a paid/runtime pronunciation service. The supplied IPA is validated by the existing accepted analyzer and then enters the unchanged retrieval/scoring/ranking path. eSpeak-NG is benchmark/development evidence under `scripts/` only. This exception must never affect candidate ranking, canonical database rows, Entity bulk materialization, or accepted Phrase/Mosaic pronunciation.
+A narrow pronunciation exception is active for **user query anchors**: when source-backed lookup cannot fully pronounce the query, deterministic non-neural pronunciation generation runs in the **end-user client** and may create ephemeral DE/EN query IPA for one word or an arbitrary word chain. Each token may use source-backed DB/API pronunciation when available; only missing token pronunciations are generated locally. Generated token pronunciations may be retained only in the revision-gated non-canonical IndexedDB cache defined by `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md`; current source-backed DB state and resolver policy must invalidate stale cache entries. The client generator must not depend on Node.js, `child_process`, a host executable, eSpeak-NG, an LLM, or a paid/runtime pronunciation service. The supplied IPA is validated by the existing accepted analyzer and then enters the unchanged retrieval/scoring/ranking path. eSpeak-NG is benchmark/development evidence under `scripts/` only. This exception must never affect candidate ranking, canonical database rows, Entity bulk materialization, or accepted Phrase/Mosaic pronunciation.
 
 ## Durable product decisions
 
@@ -104,7 +105,7 @@ A narrow pronunciation exception is active for **user query anchors**: when sour
 - Curated modern pronunciations may overlay dictionary forms while dictionary alternatives remain available.
 - Historical-only vocabulary is hidden by default and explicitly opt-in.
 - Do not invent lexical, pronunciation, phraseological, source, license, or benchmark facts.
-- Unknown or partially unresolved **user queries, including multi-word chains**, use client Total Query Pronunciation: source-backed query/token pronunciation is preferred, missing token pronunciations are generated deterministically in the end-user client, and the resulting ephemeral DE/EN phrase/word anchor re-enters the existing RhymeLab database/retrieval/ranking path. Generated query anchors are not lexical facts and must never be silently persisted/promoted.
+- Unknown or partially unresolved **user queries, including multi-word chains**, use client Total Query Pronunciation: source-backed query/token pronunciation is preferred, missing token pronunciations are generated deterministically in the end-user client, and the resulting ephemeral DE/EN phrase/word anchor re-enters the existing RhymeLab database/retrieval/ranking path. Generated token pronunciation may persist only as revision-/policy-gated non-canonical performance cache; generated query anchors are not lexical facts and must never be silently promoted into accepted data.
 - Public web visibility alone does not make a source legally/reproducibly ingestible.
 - External-model reference labels are evidence, not human-expert gold.
 - Protect accepted exact-rhyme behavior unless strong evidence requires otherwise.
