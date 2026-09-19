@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildG2pScoreCalibration } from '../scripts/g2p-confidence-calibration.mjs';
+import {
+  buildG2pScoreCalibration,
+  hasFiniteG2pScore,
+} from '../scripts/g2p-confidence-calibration.mjs';
 
 test('G2P score calibration treats lower Pynini score as better and reports retained quality',()=>{
   const rows=[
@@ -28,4 +31,13 @@ test('G2P score calibration ignores rows without finite scores',()=>{
   ],{retentionFractions:[1]});
   assert.equal(report.scored_cases,1);
   assert.equal(report.retention_points[0].retained,1);
+});
+
+
+test('missing confidence values are not coerced to zero',()=>{
+  assert.equal(hasFiniteG2pScore(null),false);
+  assert.equal(hasFiniteG2pScore(undefined),false);
+  assert.equal(hasFiniteG2pScore(''),false);
+  assert.equal(hasFiniteG2pScore('0'),true);
+  assert.equal(hasFiniteG2pScore(0),true);
 });
