@@ -137,7 +137,7 @@ try{
   check('same_open_repeatability',repeatabilityMismatches===0,{mismatches:repeatabilityMismatches});
 
   function pairCheck(id,leftSurface,rightSurface,requiredChannel,expectedType){
-    const left=retrieveEnglishRuntimeCandidates(db,leftSurface,{statements});
+    const left=retrieveEnglishRuntimeCandidates(db,leftSurface,{statements,channelLimit:2048,maxCandidates:4096});
     const target=left.candidates.filter((row)=>row.normalized===rightSurface);
     const hasChannel=target.some((row)=>row.channels.includes(requiredChannel));
     let best=null;
