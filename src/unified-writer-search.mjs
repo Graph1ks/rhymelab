@@ -1,5 +1,8 @@
 import { getWord } from './local-engine.mjs';
-import { findWriterRhymes } from './writer-search.mjs';
+import {
+  findWriterRhymes,
+  findWriterRhymesFromExternalQuery,
+} from './writer-search.mjs';
 import { tokenizePhrase } from '../scripts/phrase-catalog-core.mjs';
 import { retrievePhraseMosaicCandidatesV2 } from '../scripts/phrase-mosaic-retrieval-v2-core.mjs';
 import { enrichPhraseMosaicCandidates } from '../scripts/phrase-mosaic-ranking-evidence-core.mjs';
@@ -12,6 +15,7 @@ import {
   searchEnglishWriter,
   searchEnglishWriterFromExternalQuery,
 } from './english-writer-runtime.mjs';
+import { resolveUnknownQueryPronunciation } from './query-pronunciation-runtime.mjs';
 
 export const UNIFIED_WRITER_SCHEMA = 'rhymelab-unified-writer-v1';
 export const UNIFIED_WRITER_POLICY = 'de-unified-word-phrase-writer-v1';
@@ -287,15 +291,17 @@ export function resolveGermanUnifiedQuery(writerDb, phraseDb, input) {
   const tokens = tokenizePhrase(text);
   if (tokens.length <= 1) {
     const word = getWord(writerDb, text);
-    if (!word?.preferredIpa) return null;
-    return {
-      ...word,
-      kind: 'word',
-      language: 'de',
-      ipa: word.preferredIpa,
-      resolvable: true,
-      pronunciationProvenance: 'writer_v5_preferred',
-    };
+    if (word?.preferredIpa) {
+      return {
+        ...word,
+        kind: 'word',
+        language: 'de',
+        ipa: word.preferredIpa,
+        resolvable: true,
+        pronunciationProvenance: 'writer_v5_preferred',
+      };
+    }
+    return resolveUnknownQueryPronunciation(text, 'de');
   }
 
   const catalogPhrase = exactPhraseQuery(phraseDb, text);
@@ -521,11 +527,16 @@ export function searchUnifiedWriter(
     };
   }
 
+  const inputTokens = tokenizePhrase(input);
+  const singleTokenQuery = inputTokens.length <= 1;
   const deQuery = requestedLanguages.includes('de') && capabilities.languages.de.available
     ? resolveGermanUnifiedQuery(writerDb, phraseDb, input)
     : null;
   const enQuery = requestedLanguages.includes('en') && capabilities.languages.en.available
-    ? getEnglishWord(englishDb, input)
+    ? (
+        getEnglishWord(englishDb, input)
+        || (singleTokenQuery ? resolveUnknownQueryPronunciation(input, 'en') : null)
+      )
     : null;
   const queries = { de: deQuery, en: enQuery };
   const resolvedLanguages = [
@@ -585,22 +596,31 @@ export function searchUnifiedWriter(
       ? 'scope_excludes_words'
       : !targetGermanWords
         ? 'result_language_excludes_german'
-        : deQuery
+        : deQuery?.kind === 'phrase'
           ? 'multiword_query_uses_phrase_mosaic_channel'
-          : enQuery
-            ? 'cross_language_english_to_german_words_not_implemented'
+          : (deQuery?.preferredIpa || enQuery?.preferredIpa)
+            ? null
             : 'query_not_found',
     results: [],
   };
-  if (includeWords && targetGermanWords && deQuery?.kind === 'word') {
-    const wordResult = findWriterRhymes(writerDb, deQuery.surface, {
+  if (includeWords && targetGermanWords && capabilities.languages.de.wordWriter) {
+    const queryOptions = {
       limit: clampInteger(options.wordLimit, 250, 1, 250),
       poolLimit: clampInteger(options.wordPoolLimit, 800, 50, 800),
       includeVariants: options.includeVariants === true,
       includeHistorical: options.includeHistorical === true,
       type: options.type || 'all',
       ensureTypeCoverage: false,
-    });
+    };
+    const wordResult = deQuery?.kind === 'word'
+      ? (
+          deQuery.generatedPronunciation
+            ? findWriterRhymesFromExternalQuery(writerDb, deQuery, queryOptions)
+            : findWriterRhymes(writerDb, deQuery.surface, queryOptions)
+        )
+      : (!deQuery && enQuery?.preferredIpa)
+        ? findWriterRhymesFromExternalQuery(writerDb, enQuery, queryOptions)
+        : null;
     deWordChannel = wordResult
       ? {
           available: true,
@@ -609,11 +629,19 @@ export function searchUnifiedWriter(
           writerRuntime: wordResult.writerRuntime,
           writerRetrieval: wordResult.writerRetrieval,
           writerMorphology: wordResult.writerMorphology,
+          crossLanguageQuery: !deQuery && enQuery ? {
+            sourceLanguage: enQuery.language || 'en',
+            targetLanguage: 'de',
+            sourceIpa: enQuery.preferredIpa || enQuery.ipa,
+            policy: 'source-pronunciation-to-target-phonology-v1',
+          } : null,
           results: wordResult.results.map(wordProductResult),
         }
       : {
           available: true,
-          reason: 'query_not_found',
+          reason: deQuery?.kind === 'phrase'
+            ? 'multiword_query_uses_phrase_mosaic_channel'
+            : 'query_pronunciation_not_supported_by_german_profile',
           results: [],
         };
   }
@@ -630,16 +658,18 @@ export function searchUnifiedWriter(
     results: [],
   };
   if (includeWords && targetEnglishWords && capabilities.languages.en.wordWriter) {
+    const englishOptions = {
+      limit: clampInteger(options.wordLimit, 250, 1, 250),
+      type: options.type || 'all',
+    };
     const wordResult = enQuery
-      ? searchEnglishWriter(englishDb, enQuery.surface, {
-          limit: clampInteger(options.wordLimit, 250, 1, 250),
-          type: options.type || 'all',
-        })
+      ? (
+          enQuery.generatedPronunciation
+            ? searchEnglishWriterFromExternalQuery(englishDb, enQuery, englishOptions)
+            : searchEnglishWriter(englishDb, enQuery.surface, englishOptions)
+        )
       : deQuery?.preferredIpa
-        ? searchEnglishWriterFromExternalQuery(englishDb, deQuery, {
-            limit: clampInteger(options.wordLimit, 250, 1, 250),
-            type: options.type || 'all',
-          })
+        ? searchEnglishWriterFromExternalQuery(englishDb, deQuery, englishOptions)
         : null;
     enWordChannel = wordResult
       ? {
