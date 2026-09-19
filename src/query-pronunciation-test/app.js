@@ -1,9 +1,24 @@
-import { resolveUnknownClientPronunciation } from '/assets/query-pronunciation-client.mjs';
+import {
+  CLIENT_QUERY_PRONUNCIATION_POLICY,
+  resolveUnknownClientPronunciation,
+} from '/assets/query-pronunciation-client.mjs';
+import {
+  readGeneratedPronunciationCache,
+  writeGeneratedPronunciationCache,
+} from '/assets/query-pronunciation-cache.mjs';
 
 const $=(selector)=>document.querySelector(selector);
 const $$=(selector)=>[...document.querySelectorAll(selector)];
 const sourceCache=new Map();
 const missCache=new Set();
+let pronunciationRevision=null;
+const healthReady=fetch('/api/health')
+  .then((response)=>response.ok?response.json():null)
+  .then((health)=>{
+    pronunciationRevision=health?.query_pronunciation_revision||null;
+    return health;
+  })
+  .catch(()=>null);
 
 function languagesFor(value){
   return value==='both'?['de','en']:[value];
@@ -102,6 +117,7 @@ function renderResults(data){
 }
 
 async function run(){
+  await healthReady;
   const query=$('#query').value.trim();
   const language=$('#language').value;
   const resultLanguage=$('#resultLanguage').value;
@@ -120,6 +136,15 @@ async function run(){
     if(data?.queries?.[code]?.preferredIpa)continue;
     generated[code]=await resolveUnknownClientPronunciation(query,code,{
       lookupReference,
+      lookupCachedPronunciation:(surface,language)=>
+        readGeneratedPronunciationCache({
+          surface,
+          language,
+          policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
+          databaseRevision:pronunciationRevision,
+        }),
+      storeCachedPronunciation:(detail)=>
+        writeGeneratedPronunciationCache(detail,pronunciationRevision),
     });
     if(generated[code]?.ipa)attachGenerated(params,code,generated[code]);
   }
@@ -131,7 +156,10 @@ async function run(){
   const elapsed=performance.now()-started;
   renderLanguageCards(query,requested,data,generated);
   renderResults(data);
-  $('#summary').innerHTML=`<strong>${response.ok?'PASS':'FAIL'}</strong> · HTTP ${response.status} · ${elapsed.toFixed(1)} ms · local generation used for ${Object.keys(generated).length} language(s).`;
+  const cacheHits=Object.values(generated)
+    .flatMap((row)=>row?.tokens||[row])
+    .filter((row)=>row?.cacheHit).length;
+  $('#summary').innerHTML=`<strong>${response.ok?'PASS':'FAIL'}</strong> · HTTP ${response.status} · ${elapsed.toFixed(1)} ms · local generation used for ${Object.keys(generated).length} language(s) · persistent cache hits ${cacheHits}.`;
 }
 
 $('#testForm').addEventListener('submit',(event)=>{
