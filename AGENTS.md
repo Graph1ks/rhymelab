@@ -6,28 +6,44 @@ This repository is the authoritative engineering/project memory for RhymeLab. Re
 
 Before changing the project in a fresh thread/session, read:
 
-1. `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — current branch handover for Phase 12C runtime + AI staging
-2. `docs/PHASE_12C_ACCEPTANCE.md` — current repository acceptance gate and remaining blockers
-3. `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` — isolated AI evidence/import/audit contract
-4. `docs/HANDOVER.md`
-5. `docs/PHASE_11_ACCEPTANCE.md`
+1. `PROJECT.md` — durable product identity, repository mode, architecture/cost/license/contribution boundaries
+2. `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — current Phase 12C continuation context
+3. `docs/PHASE_12C_ACCEPTANCE.md` — accepted source-backed Phase 12C contract
+4. `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` — isolated AI evidence/import/audit contract
+5. `docs/HANDOVER.md`
 6. `STATUS.md`
 7. `PROJECT_STATE.json`
-8. `ROADMAP.md`
-9. `DATA_SOURCES.md`
-10. `docs/WRITER_SEARCH_ACCEPTANCE.md`
-11. `docs/PHRASE_MOSAIC_PLAN.md`
-12. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
-13. `docs/REPOSITORY_GOVERNANCE.md`
-14. `docs/BENCHMARK.md` for rhyme-quality/ranking work
-15. `docs/API.md` for local API work
-16. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition history
-17. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity history
-18. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` for Phase 12A2 popularity-cut history
-19. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the Phase 12A3 Entity IPA/runtime checkpoint
-20. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the frozen Phase 12A boundary resumed by Phase 12C
-21. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for accepted/frozen Phase 12B English Writer history
-22. `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md` for the unknown user-query pronunciation fallback contract
+8. `docs/PHASE_11_ACCEPTANCE.md`
+9. `ROADMAP.md`
+10. `DATA_SOURCES.md`
+11. `docs/WRITER_SEARCH_ACCEPTANCE.md`
+12. `docs/PHRASE_MOSAIC_PLAN.md`
+13. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
+14. `docs/REPOSITORY_GOVERNANCE.md`
+15. `docs/BENCHMARK.md` for rhyme-quality/ranking work
+16. `docs/API.md` for local API work
+17. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition history
+18. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity history
+19. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` for Phase 12A2 popularity-cut history
+20. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the Phase 12A3 Entity IPA/runtime checkpoint
+21. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the frozen Phase 12A boundary resumed by Phase 12C
+22. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for accepted/frozen Phase 12B English Writer history
+23. `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md` for the unknown user-query pronunciation fallback contract
+
+## Operating model — solo-dev / owner-controlled
+
+RhymeLab is a public **owner-controlled solo-dev project**, not a community-governed development project.
+
+Default engineering behavior:
+
+- make routine, reversible engineering decisions and complete coherent work without artificial approval checkpoints;
+- escalate changes that are destructive, expensive to reverse, materially alter product scope, change licensing/security/privacy boundaries, or introduce required external services;
+- keep the required production path zero-cost: do not add mandatory paid software, APIs, SaaS, subscriptions, hosted databases, or metered services without an explicit owner decision;
+- Issues and Discussions are feedback/inbox channels, not an automatic AI-agent backlog;
+- do not proactively scan, triage, reply to, prioritize, close, or implement community Issues/Discussions unless the owner explicitly asks for that work;
+- unsolicited external pull requests are not accepted; code/documentation contributions require explicit owner authorization and the existing CLA rules;
+- persist durable engineering decisions and project facts, not raw user/AI conversations, private discussions, or unrelated sensitive conversational content;
+- prefer focused changes over process ceremony, while preserving the repository's acceptance, provenance, licensing, security, and CI gates.
 
 ## Public-repository guardrails
 

@@ -18,3 +18,28 @@ data/raw/
 data/work/
 data/local/
 data/de/
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs / temporary files
+*.log
+logs/
+tmp/
+temp/
+.cache/
+*.tmp
+
+# Common local credential containers
+*.jks
+*.keystore
+
+# OS metadata
+Thumbs.db
+Desktop.ini
+
+# Additional test output
+.nyc_output/

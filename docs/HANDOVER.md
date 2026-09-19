@@ -1,5 +1,7 @@
 # CURRENT BRANCH HANDOVER — Phase 12C runtime + AI staging
 
+Durable project identity, solo-dev repository mode, architecture boundaries, cost/licensing/contribution policy, and QA expectations now live in `PROJECT.md`. Read it immediately after `AGENTS.md`; current technical continuation remains in the focused Phase 12C handover below.
+
 For the accepted Phase 12C state on current `main`, read this focused handover **before the historical material below**:
 
 ```text
