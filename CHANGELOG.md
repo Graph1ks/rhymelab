@@ -19,12 +19,15 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Fixed
 
+- Normalized eSpeak-NG IPA adapter output before frozen DE/EN analysis: Unicode format joiners are removed and observed eSpeak-specific long-vowel variants are mapped into existing accepted analyzer inventories.
+- Prevented the first 1000-case eSpeak report format from being staged after the benchmark exposed adapter-induced false rejects and corrupted diphthong/syllable analysis.
 - Restored primary unified-search control interaction after PR #117 accidentally used an undefined `$$$` selector helper in three event-binding lines, causing partial UI initialization after the Search submit handler.
 - Corrected the required control-group preflight to use the multi-element selector helper so missing button groups fail initialization visibly instead of passing the preflight.
 - Entity result cards and detail panels now display concrete taxonomy types such as Rapper, Actor, Music Group, Movie, Video Game, Character, Album or Song instead of the generic Entity label.
 
 ### Changed
 
+- eSpeak OOV benchmark evidence is now schema v2 and records raw IPA, normalized IPA, normalization changes, all failures, and exact analyzer errors for forensic review.
 - DE+EN unknown single-token queries now resolve independent DE and EN pronunciation anchors rather than stopping for spelling ambiguity; multi-word Phrase/Mosaic pronunciation rules remain frozen.
 - Generated query pronunciation is visibly marked in the search inspector and uses the existing accepted language-specific retrieval/scoring/ranking paths.
 - Standard unfiltered search now uses explicit per-category More controls; automatic progressive/endless scrolling is reserved for a selected rhyme/sound relation.
