@@ -708,44 +708,47 @@ cold start measured separately
 
 Performance optimization must preserve accepted Top-N/result fingerprints. Eliminate full scans and N+1s before low-level SQLite PRAGMA tuning.
 
-### Current immediate owner gate — v4 DB repeatable, multisyllabic verifier completion next
+### Current immediate owner gate — English retrieval runtime diagnostic
 
-Owner v4 DB materialization is reproducible:
+The v4 English DB storage and indexed-retrieval gate is now accepted.
+
+Accepted DB:
 
 ```text
-source publish fingerprint
-b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
-
-DB semantic fingerprint
+semantic fingerprint
 beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37
 
 forms                            224,478
 default eligible                 123,533
 pronunciations                   375,321
-analyzed pronunciations          339,987
-unresolved pronunciations         35,334
 default-profile pronunciations   173,413
 SQLite                            181.87 MiB
-database bytes                    190,701,568
-repeat fingerprints equal        true
-repeat snapshots equal           true
 ```
 
-Materialization determinism is accepted.
-
-Review found one narrow retrieval-verifier gap: `idx_en_pron_multi` exists, but the old query-plan sampler could return `multi: []` when its first exact-key sample had no `multisyllable_key`. The previous verifier also omitted a dedicated multisyllabic general/multi-result equivalence channel.
-
-The source patch now requires a dedicated non-null multisyllabic plan, `idx_en_pron_multi`, and both ordinary and explicit multi-result indexed-vs-full-scan equivalence. Verification output is persisted to:
+Final read-only DB verification passed across all five channels:
 
 ```text
-data/local/en-writer-db-verification-v1-report.json
+exact         20 + 20 multi-result   0 mismatches
+multi         20 + 20 multi-result   0 mismatches
+vowel         20 + 20 multi-result   0 mismatches
+family+coda   20 + 20 multi-result   0 mismatches
+coda          20 + 20 multi-result   0 mismatches
+foreign keys                         0 violations
 ```
+
+The next candidate layer is read-only bounded English runtime retrieval. It is not wired into the product API/UI and applies no final Writer ranking.
 
 Next owner command after merge:
 
 ```powershell
 git pull
-npm run en:db:verify
+npm run en:runtime:diagnose
 ```
 
-No English DB rebuild is required. Upload `data/local/en-writer-db-verification-v1-report.json`. If it passes, freeze the v4 DB retrieval layer and proceed to English retrieval/runtime acceptance. Ranking comes only after that, with separate Quality/Utility and Diversity calibration.
+Upload:
+
+```text
+data/local/en-retrieval-runtime-v1-report.json
+```
+
+If the diagnostic passes, the next gate is independent-open runtime repeatability. Only then begin English phonetic/commonness/Writer-Utility calibration, followed separately by Diversity/Redundancy.
