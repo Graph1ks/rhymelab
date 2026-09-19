@@ -50,3 +50,32 @@
 .context-hidden{display:none!important}
 select,.checkbox-line{min-height:44px}
 .checkbox-line input{width:18px;height:18px}
+
+
+/* Interaction fixes: interface language, result layout and compact tiles */
+.topbar-actions{justify-self:end;display:flex;align-items:center;gap:10px}
+.ui-language-switch,.view-switch{display:flex;align-items:center;gap:3px;padding:3px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.45)}
+.ui-lang-option,.view-option{min-height:32px;border:0;border-radius:7px;background:transparent;color:var(--muted);padding:0 9px;font-family:var(--mono);font-size:10px;font-weight:650;letter-spacing:.06em}
+.ui-lang-option:hover,.view-option:hover{background:rgba(255,255,255,.7);color:var(--ink)}
+.ui-lang-option.active,.view-option.active{background:var(--surface-strong);color:var(--accent-ink);box-shadow:0 1px 5px rgba(35,31,24,.08)}
+.ui-lang-option:focus-visible,.view-option:focus-visible{outline:3px solid rgba(49,84,213,.22);outline-offset:2px}
+.toolbar-title{flex-wrap:wrap}
+.view-switch{margin-left:10px}
+.result-count{margin-left:auto}
+.result-items{min-width:0}
+.results-compact .channel-block{margin-bottom:20px}
+.results-compact .result-section{overflow:visible;background:transparent;border:0;box-shadow:none}
+.results-compact .result-section-header{border:1px solid var(--line);border-radius:12px 12px 0 0;background:var(--surface);padding:11px 13px}
+.results-compact .result-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;padding:8px;border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;background:rgba(251,250,246,.55)}
+.results-compact .result-row{min-width:0;min-height:96px;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"word score" "type syllable";gap:8px 10px;align-content:center;padding:11px 12px;border:1px solid #dfdbd2!important;border-radius:11px;background:var(--surface-strong)}
+.results-compact .result-row:hover,.results-compact .result-row:focus-visible{background:#f6f4ee}
+.results-compact .result-word{grid-area:word}
+.results-compact .type-col{grid-area:type}
+.results-compact .syllable-col{grid-area:syllable;text-align:right}
+.results-compact .usage-col{display:none}
+.results-compact .score{grid-area:score;align-self:start}
+.results-compact .result-title-line{align-items:flex-start}
+.results-compact .result-word strong{font-size:15px}
+.results-compact .result-word .sub{font-size:10px}
+.results-compact .badge{font-size:9px}
+.scroll-sentinel:not(.hidden){border:1px dashed var(--line-strong);border-radius:14px;background:rgba(255,255,255,.3);margin-top:10px}
