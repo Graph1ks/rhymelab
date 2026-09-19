@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-19
 
-Status: **DOCUMENTED EXECUTION ORDER — English v4 DB storage/indexed retrieval accepted; runtime diagnostic is the active gate**
+Status: **DOCUMENTED EXECUTION ORDER — English runtime diagnostic passed; bundled repeatability + ranking/diversity evidence is the active gate**
 
 ## 1. Why this document exists
 
@@ -269,20 +269,17 @@ Performance changes must reproduce accepted Top-N ordering/result fingerprints. 
 
 ```text
 CURRENT
-English v4 DB storage/indexed retrieval accepted
+English runtime diagnostic accepted
         |
         v
-English read-only retrieval runtime diagnostic
+Single bundled evidence run
+  - independent-open runtime repeatability
+  - usage-stratified query sampling
+  - Quality/Commonness candidate sweep
+  - Diversity weight sweep
         |
         v
-English runtime repeatability / acceptance
-        |
-        v
-English ranking benchmark
-  - phonetic thresholds
-  - commonness
-  - QUALITY utility
-  - DIVERSITY / redundancy
+One focused English Writer candidate acceptance pass
         |
         v
 Product EN capability acceptance
@@ -332,4 +329,4 @@ snapshots equal                    true
 
 Materialization determinism is accepted. The subsequent persisted verifier pass also closed the multisyllabic gap: all five channels use their dedicated indexes, each passed 20 deterministic general and 20 explicit multi-result indexed-vs-full-scan samples with zero mismatches, and foreign-key violations are zero. DB storage/indexed retrieval is therefore closed.
 
-The active gate is now the read-only runtime candidate layer in `docs/ENGLISH_RETRIEVAL_RUNTIME_V1.md`. Run `npm run en:runtime:diagnose`; do not enable product EN or begin final Writer ranking until runtime diagnostic and independent-open repeatability are accepted.
+The read-only runtime diagnostic passed with semantic fingerprint `dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf`. The active gate is now `docs/ENGLISH_ACCEPTANCE_BUNDLE_V1.md`: run `npm run en:acceptance:bundle` once to combine independent-open repeatability, commonness/quality candidate evidence and diversity evidence. Do not enable product EN until one focused candidate acceptance pass is completed after bundle review.

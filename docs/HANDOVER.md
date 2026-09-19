@@ -708,47 +708,49 @@ cold start measured separately
 
 Performance optimization must preserve accepted Top-N/result fingerprints. Eliminate full scans and N+1s before low-level SQLite PRAGMA tuning.
 
-### Current immediate owner gate — English retrieval runtime diagnostic
+### Current immediate owner gate — bundled English acceptance evidence
 
-The v4 English DB storage and indexed-retrieval gate is now accepted.
-
-Accepted DB:
+The owner Phase 12B8 runtime diagnostic passed completely.
 
 ```text
-semantic fingerprint
-beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37
-
-forms                            224,478
-default eligible                 123,533
-pronunciations                   375,321
-default-profile pronunciations   173,413
-SQLite                            181.87 MiB
+status                         ok
+runtime semantic fingerprint   dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf
+DB fingerprint                 beca46fccb27eed4349c988b726928a464c216b9e59f2640e4925effdc9e6e37
+publish fingerprint            b921d5350cb14badd9ddf2a65f989ee6eb2c3f03add434e592c674d759c595a9
+stored reanalysis              200 / 200
+default-profile leakage        0
+same-open repeatability        0 mismatches
+failed checks                  0
 ```
 
-Final read-only DB verification passed across all five channels:
+Protected runtime sentinels also pass:
 
-```text
-exact         20 + 20 multi-result   0 mismatches
-multi         20 + 20 multi-result   0 mismatches
-vowel         20 + 20 multi-result   0 mismatches
-family+coda   20 + 20 multi-result   0 mismatches
-coda          20 + 20 multi-result   0 mismatches
-foreign keys                         0 violations
-```
+- `time -> rhyme` perfect;
+- `nation -> station` multisyllabic perfect through `multi`;
+- `record` stress variants;
+- `route` alternate pronunciations;
+- 20 derived-inflection reanalysis samples.
 
-The next candidate layer is read-only bounded English runtime retrieval. It is not wired into the product API/UI and applies no final Writer ranking.
-
-Next owner command after merge:
+To avoid the previous micro-gate cadence, the next four evidence steps are bundled into one owner command:
 
 ```powershell
 git pull
-npm run en:runtime:diagnose
+npm run en:acceptance:bundle
 ```
 
-Upload:
+The bundle performs:
+
+1. three independent runtime diagnostic DB opens and fingerprint comparison;
+2. deterministic query selection across usage/commonness strata;
+3. one-pass comparison of `phonetic_control`, `de_architecture_control` and `conservative_commonness` Quality candidates;
+4. one-pass Diversity sweep at weights `0`, `0.10`, `0.18`, `0.26` on the same pools.
+
+Primary upload:
 
 ```text
-data/local/en-retrieval-runtime-v1-report.json
+data/local/en-acceptance-bundle-v1-report.json
 ```
 
-If the diagnostic passes, the next gate is independent-open runtime repeatability. Only then begin English phonetic/commonness/Writer-Utility calibration, followed separately by Diversity/Redundancy.
+Do not upload the intermediate repeatability run files unless requested.
+
+After bundle review, choose/adjust one candidate and run one focused acceptance pass. Do not return to one-command-per-micro-gate unless a real failure requires isolation.
