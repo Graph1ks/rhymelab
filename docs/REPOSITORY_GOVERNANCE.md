@@ -2,6 +2,17 @@
 
 This document defines the public GitHub governance policy for `Graph1ks/rhymelab`.
 
+## Operating model
+
+RhymeLab is a public **owner-controlled / solo-dev** repository. Public visibility provides source access under the repository's actual license terms; it does not create community governance or an open contribution queue.
+
+- Pull-request creation is collaborators-only.
+- Unsolicited external code contributions are not accepted.
+- Explicitly authorized external contributions remain subject to CONTRIBUTING.md and CLA.md.
+- Issues are feedback/input channels and do not become automatic owner or AI-agent work.
+- AI/agent work on Issues or Discussions requires an explicit owner request.
+- Repository mode, cost policy, licensing posture, and durable architecture boundaries are defined in PROJECT.md.
+
 ## Public history boundary
 
 The public repository was created on 2026-09-17 from a sanitized parentless root commit. Pre-public commits, branches, pull requests, personal commit metadata, and private-development history remain outside the public repository.
