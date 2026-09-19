@@ -4,6 +4,10 @@ import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import {
+  ENTITY_AI_CONFIDENCE_THRESHOLDS,
+  classifyEntityAiSurface,
+} from './entity-ai-pronunciation-core.mjs';
 
 const args=process.argv.slice(2);
 function argValue(flag,fallback=null){
@@ -28,6 +32,40 @@ function hashRows(statement){
   const hash=createHash('sha256');
   for(const row of statement.iterate()) hash.update(JSON.stringify(row)).update('\n');
   return hash.digest('hex');
+}
+function newPopulation(){
+  return {rows:0,confident:0,ambiguous:0,unknown:0,alternate:0,confidence_sum:0};
+}
+function addPopulation(map,key,row){
+  const name=String(key||'unknown');
+  const current=map.get(name)||newPopulation();
+  current.rows+=1;
+  if(row.decision==='C') current.confident+=1;
+  else if(row.decision==='A') current.ambiguous+=1;
+  else if(row.decision==='U') current.unknown+=1;
+  if(row.alternate_arpabet) current.alternate+=1;
+  current.confidence_sum+=Number(row.confidence||0);
+  map.set(name,current);
+}
+function finalizePopulation(map,total,{numericKey=false}={}){
+  return [...map.entries()]
+    .map(([key,value])=>({
+      ...(numericKey?{threshold:Number(key)}:{population:key}),
+      rows:value.rows,
+      pct:pct(value.rows,total),
+      confident:value.confident,
+      ambiguous:value.ambiguous,
+      unknown:value.unknown,
+      alternate:value.alternate,
+      mean_confidence:value.rows
+        ?Number((value.confidence_sum/value.rows).toFixed(2))
+        :0,
+    }))
+    .sort((a,b)=>
+      numericKey
+        ?b.threshold-a.threshold
+        :b.rows-a.rows||String(a.population).localeCompare(String(b.population),'en')
+    );
 }
 
 try{
@@ -92,6 +130,62 @@ try{
     mean_confidence:Number(Number(row.mean_confidence||0).toFixed(2)),
   }));
 
+  const thresholdPopulations=new Map(
+    ENTITY_AI_CONFIDENCE_THRESHOLDS.map((threshold)=>[String(threshold),newPopulation()])
+  );
+  const orthographyPopulations=new Map();
+  const unresolvedReasonPopulations=new Map();
+  const popularityTierPopulations=new Map();
+  const problemPopulations=new Map();
+
+  const diagnosticRows=db.prepare(
+    'SELECT surface,confidence,decision,alternate_arpabet,popularity_tier,unresolved_reason '+
+    'FROM ai_pronunciation ORDER BY ai_id'
+  );
+  for(const row of diagnosticRows.iterate()){
+    for(const threshold of ENTITY_AI_CONFIDENCE_THRESHOLDS){
+      if(Number(row.confidence)>=threshold){
+        addPopulation(thresholdPopulations,String(threshold),row);
+      }
+    }
+    const tags=classifyEntityAiSurface(row.surface);
+    for(const tag of tags) addPopulation(orthographyPopulations,tag,row);
+    addPopulation(
+      unresolvedReasonPopulations,
+      row.unresolved_reason||'unresolved_reason_missing',
+      row,
+    );
+    addPopulation(
+      popularityTierPopulations,
+      row.popularity_tier||'popularity_tier_missing',
+      row,
+    );
+
+    if(row.decision==='U') addPopulation(problemPopulations,'decision_unknown',row);
+    if(row.decision==='A') addPopulation(problemPopulations,'decision_ambiguous',row);
+    if(Number(row.confidence)<50) addPopulation(problemPopulations,'confidence_below_50',row);
+    if(row.alternate_arpabet) addPopulation(problemPopulations,'alternate_present',row);
+    for(const tag of [
+      'multiword',
+      'non_ascii',
+      'contains_non_latin_letter',
+      'contains_digit',
+      'contains_other_punctuation_or_symbol',
+      'length_25_plus',
+    ]){
+      if(tags.includes(tag)) addPopulation(problemPopulations,tag,row);
+    }
+  }
+
+  const confidenceThresholds=finalizePopulation(
+    thresholdPopulations,
+    imported,
+    {numericKey:true},
+  ).map((row)=>({...row,retained_pct:row.pct}));
+  const orthography=finalizePopulation(orthographyPopulations,imported);
+  const unresolvedReasons=finalizePopulation(unresolvedReasonPopulations,imported);
+  const popularityTiers=finalizePopulation(popularityTierPopulations,imported);
+  const problemPopulationsFinal=finalizePopulation(problemPopulations,imported);
   const batchRows=rows(`
     SELECT batch_id,input_filename,status,input_rows,completed_rows,first_id,last_input_id,
       last_completed_id,next_unprocessed_id,confident_count,ambiguous_count,unknown_count,
@@ -135,7 +229,16 @@ try{
     validation:{valid,invalid:imported-valid},
     decisions:{confident,ambiguous,unknown,alternate},
     confidence_buckets:confidenceBuckets,
+    confidence_thresholds:{
+      purpose:'staging_selectivity_only_not_runtime_quality_or_promotion_threshold',
+      preselected_threshold:null,
+      thresholds:confidenceThresholds,
+    },
     categories,
+    orthography_populations:orthography,
+    unresolved_reason_populations:unresolvedReasons,
+    popularity_tier_populations:popularityTiers,
+    problem_populations:problemPopulationsFinal,
     batch_status:batchRows,
     semantic_fingerprint:fingerprint,
     safeguards:{
