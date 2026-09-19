@@ -1,6 +1,7 @@
 import { tokenizePhrase } from './phrase-catalog-core.mjs';
 import { getPhonologyProfile } from './phonology-profiles.mjs';
 import { coarseCodaClass } from './german-rhyme-features.mjs';
+import { englishCoarseCodaClass } from './en-writer-db-core.mjs';
 
 export const ENTITY_PRONUNCIATION_POLICY = 'entity-pronunciation-source-composition-v1';
 export const ENTITY_PHONETIC_RUNTIME = 'entity-phonetic-runtime-de-v1';
@@ -111,7 +112,10 @@ export function entityRetrievalAnchors(analysis, language = 'de') {
   add('vowel_sequence', analysis?.vowelKey);
   add('vowel_family', analysis?.vowelFamilyKey);
   if (final?.nucleus) {
-    add('final_nucleus_coda', `${final.nucleus}|${coarseCodaClass(final.coda || [])}`);
+    const codaClass=language==='en'
+      ?englishCoarseCodaClass((final.coda||[]).join(' '))
+      :coarseCodaClass(final.coda||[]);
+    add('final_nucleus_coda', `${final.nucleus}|${codaClass}`);
     add('final_nucleus', final.nucleus);
   }
   for (const entry of profile.writerRetrievalKeys?.(analysis) || []) {
