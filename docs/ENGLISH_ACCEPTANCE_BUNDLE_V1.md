@@ -1,6 +1,6 @@
 # English Acceptance Bundle v1 — Phase 12B9
 
-Status: **candidate evidence bundle / owner run pending**
+Status: **owner evidence complete / reviewed / superseded by Phase 12B10 acceptance**
 
 ## Why this exists
 
@@ -145,3 +145,35 @@ The bundle remains:
 - broad G2P disabled;
 - ranking not promoted;
 - diversity not promoted.
+
+## Owner result and decision
+
+The owner bundle completed successfully as evidence:
+
+```text
+status                        evidence_ready
+semantic fingerprint          d68ae5f883c9b4d007811573e94493d0bfe389a5c08144da3e63bb9195769c14
+runtime repeatability         3 / 3 PASS
+runtime fingerprint           dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf
+queries                       37
+```
+
+The bundle did **not** produce a safe promotable Commonness candidate.
+
+```text
+phonetic control guard violations          0
+DE-architecture control guard violations  30
+conservative Commonness guard violations  30
+
+Top-20 unranked rows
+phonetic control                           119
+DE-architecture control                    197
+conservative Commonness                    218
+```
+
+Root causes:
+
+1. pairwise near-tie comparison was non-transitive;
+2. raw English spelling overlap was too aggressive as a utility penalty.
+
+Decision: keep this report as evidence only. Do not promote either v1 Commonness candidate. Phase 12B10 replaces the pairwise comparator with anchored phonetic bands and moves raw spelling overlap to diagnostics only. See `docs/ENGLISH_WRITER_ACCEPTANCE_V1.md`.
