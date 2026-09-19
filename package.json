@@ -111,6 +111,7 @@
     "en:pronunciation:inflection:diagnose": "node --no-warnings scripts/diagnose-en-inflection-composition.mjs",
     "en:db:repeatability": "node --no-warnings scripts/repeat-en-writer-db.mjs",
     "en:runtime:diagnose": "node --no-warnings scripts/diagnose-en-retrieval-runtime.mjs",
-    "en:acceptance:bundle": "node --no-warnings scripts/run-en-acceptance-bundle.mjs"
+    "en:acceptance:bundle": "node --no-warnings scripts/run-en-acceptance-bundle.mjs",
+    "en:writer:accept": "node --no-warnings scripts/run-en-writer-acceptance.mjs"
   }
 }
