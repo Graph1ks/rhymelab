@@ -1,8 +1,8 @@
 # Phase 12B — English Single-Word Writer Source Plan
 
-Last updated: 2026-09-18
+Last updated: 2026-09-19
 
-Status: **ACTIVE / 12B6 V3 COVERAGE REVIEW COMPLETE / STRATIFIED LONG-TAIL REVIEW CURRENT**
+Status: **PHASE 12B COMPLETE / ENGLISH PRODUCT ACCEPTED AND FROZEN**
 
 
 ## Implementation checkpoint — 2026-09-18
@@ -600,40 +600,24 @@ Require:
 - repeated DB-open fingerprint stability;
 - unchanged frozen German Writer/Phrase behavior.
 
-### Current English gate — OWNER INTEGRATED PRODUCT ACCEPTANCE
+### Current English gate — COMPLETE / ACCEPTED
 
-The selected single-word English Writer policy is implemented in the unified product candidate:
+Phase 12B11 passed integrated Product acceptance.
 
 ```text
 runtime                           en-writer-product-v1-candidate
 policy                            en-writer-guarded-quality-diversity-v1-candidate
 Quality                           guarded_commonness_06
 Diversity                         0.08
-language modes                    DE / EN / DE+EN
+retrieval                         en-product-retrieval-reservoir-v1
+acceptance fingerprint            c889adf2253f3b149d6363f2063b40717b79a4f0cf24a06c953a599a66613ca6
+repeatability suite fingerprint   26a6e97ddf3f17fcf6721e4487f136badd4838edce13b2020d376dbacc48115d
+failed checks                     0
 ```
 
-English remains locally gated until the full-data integrated command passes:
+The local enablement marker was written and `DE / EN / DE+EN` single-word Product capability is accepted. Frozen German Writer behavior remained invariant.
 
-```powershell
-git pull
-npm run en:product:accept
-```
-
-Primary report:
-
-```text
-data/local/en-product-acceptance-v1-report.json
-```
-
-PASS automatically writes:
-
-```text
-data/local/en-product-enabled-v1.json
-```
-
-The next server restart then enables English without another code change.
-
-The integrated gate protects frozen German Writer output, verifies EN sentinel behavior and source-backed variants, checks DE+EN composition/repeatability, keeps EN Phrase/Mosaic and EN Entity disabled, and does not add unknown-query G2P.
+Phase 12B is closed. The active project gate is Phase 12C multilingual Entity pronunciation evidence. Do not rerun English ranking/product acceptance unless a later regression specifically invalidates it.
 
 ### 12B7 — product integration
 
@@ -657,9 +641,7 @@ A new thread should begin by reading:
 6. `ROADMAP.md`
 7. `PROJECT_STATE.json`
 
-Then continue from the selected English Writer candidate (`guarded_commonness_06`, Diversity `0.08`) and implement the integrated EN / DE+EN product acceptance block. Do not rerun ranking acceptance unless the product integration changes ranking semantics.
-
-Do not reopen Entity work first.
+Then continue from the accepted English Product checkpoint and the active Phase 12C Entity gate. Do not rerun English ranking/product acceptance unless a later change invalidates its semantics.
 
 ## Research sources reviewed 2026-09-18
 
