@@ -96,11 +96,14 @@ try{
     +' · command='+(resolvedCommand||'auto-detect')
     +' · sample='+sample.length
     +' · workers='+workers
+    +' · analyzer_workers='+analyzerWorkers
     +' · admitted_total='+admittedTotal.toLocaleString('en-US')
     +' · pending='+pendingTotal.toLocaleString('en-US')
   );
 
+  const analyzerPool=new PronunciationIpaAnalyzerPool({workers:analyzerWorkers});
   const runs=[];
+  try{
   for(const batchSize of batchSizes){
     const started=performance.now();
     const outcomes=[];
@@ -112,6 +115,7 @@ try{
         engineVersion:preflight.engineVersion||null,
         workers,
         batchSize,
+        analyzerPool,
       }));
     }
     const elapsedMs=performance.now()-started;
@@ -149,6 +153,10 @@ try{
       +' · projected='+run.projected_pending_hours.toFixed(2)+'h'
       +' · modes='+JSON.stringify(modes)
     );
+  }
+
+  }finally{
+    await analyzerPool.close();
   }
 
   const stableRuns=runs.filter((run)=>run.stable);
