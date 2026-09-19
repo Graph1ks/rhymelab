@@ -67,47 +67,48 @@ npm run entity:multilingual:evidence
 
 Upload only the compact primary report. If it is `evidence_ready`, the next implementation step is one source-backed multilingual Entity runtime pass rather than another coverage micro-gate.
 
-## Active Phase 12C Entity pronunciation source expansion
+## Active Phase 12C — proper-name G2P benchmark
 
-The consolidated multilingual evidence owner run passed.
+Entity pronunciation source expansion is **accepted**.
 
 ```text
-status                     evidence_ready
-fingerprint                1861f29aaf0b029d3ac69c1cd6511a0c0b573c47e325efea75e0a9f42b1ec88a
-EN Entity names            1,415,550
-source-backed ready          459,728  (32.48%)
-unresolved                   955,822
-preferred unresolved         680,348
-P898 inserted evidence            27
-generated G2P                     no
+report status                 evidence_ready
+semantic fingerprint          fdabce67cc53ef7028402b7a92b6538a61663477a41adf81905c80218f0b949d
+source index fingerprint      eab125329a5a99897b1cf7508243ce5659e9cdd56cd59a9b32d144a83d8e74c9
+
+EN Entity names               1,415,550
+baseline ready                  459,728   32.48%
+expanded ready                  710,561   50.20%
+absolute gain                   250,833
+
+preferred names               1,062,694
+expanded preferred ready        558,036   52.51%
+preferred gain                  175,690
+
+incremental direct ready         10,255
+improved composition ready      240,578
+remaining unresolved            704,989
+preferred unresolved            504,658
+generated G2P used                   no
 ```
 
-Do not call Entity pronunciation coverage solved.
+Interpretation: raw Kaikki/CMUdict direct recovery helps, but the large win is deterministic composition over the accepted + expanded source inventory. Moby was absent; it remains optional and does not justify another blocking source gate.
 
-The next owner command is:
+The next owner action is now:
 
 ```powershell
 git pull
-npm run entity:pronunciation:expand
-```
-
-It reuses the existing `enwiktionary-kaikki-20260916.jsonl.gz` and pinned CMUdict. If Kaikki is not in the accepted Phase 12B raw directory, pass `--kaikki <path>`; do not redownload it.
-
-Primary report:
-
-```text
-data/local/entity-pronunciation-source-expansion-v1-report.json
-```
-
-The expansion measures direct raw Kaikki proper-name IPA, full raw CMUdict exact matches and improved deterministic name composition. Optional Moby evidence is raw-only. G2P is not executed.
-
-After the expansion report, prepare the proper-name benchmark only if a material unresolved population remains:
-
-```powershell
 npm run entity:g2p:benchmark:prepare
 ```
 
-MFA is the primary benchmark candidate; DeepPhonemizer is an independent candidate; Charsiu is research-only pending clean model/data license provenance.
+Outputs:
+
+```text
+data/local/entity-g2p-proper-name-benchmark-v1.json
+data/local/entity-g2p-proper-name-benchmark-v1-input.tsv
+```
+
+Do not run generated pronunciations over the 704,989 unresolved names yet. Benchmark MFA English-US first on the real source-backed proper-name control set; DeepPhonemizer is the independent comparison. Charsiu remains research-only until exact model/data licensing is clean.
 
 ## Frozen German baseline
 
