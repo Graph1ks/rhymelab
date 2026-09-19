@@ -12,6 +12,9 @@ import {
   DEFAULT_ENGLISH_PRODUCT_MARKER_PATH,
   DEFAULT_ENGLISH_WRITER_DB_PATH,
   ENGLISH_PRODUCT_MARKER_SCHEMA,
+  ENGLISH_PRODUCT_RETRIEVAL_PROFILE,
+  ENGLISH_PRODUCT_CHANNEL_LIMITS,
+  ENGLISH_PRODUCT_MAX_CANDIDATES,
   ENGLISH_WRITER_DIVERSITY_WEIGHT,
   ENGLISH_WRITER_PRODUCT_POLICY,
   ENGLISH_WRITER_PRODUCT_RUNTIME,
@@ -159,6 +162,9 @@ function runSuite(){
         ranking_policy:result.channels.words?.byLanguage?.en?.rankingPolicy||null,
         quality_candidate:result.channels.words?.byLanguage?.en?.qualityCandidate||null,
         diversity_weight:result.channels.words?.byLanguage?.en?.diversityWeight??null,
+        retrieval_profile:result.channels.words?.byLanguage?.en?.writerRetrieval?.profile||null,
+        retrieval_channel_limits:result.channels.words?.byLanguage?.en?.writerRetrieval?.channelLimits||null,
+        retrieval_max_candidates:result.channels.words?.byLanguage?.en?.writerRetrieval?.maxCandidates??null,
         language_leakage:result.results.filter((row)=>row.language!=='en').length,
         top12:compactTop(result.results,12),
         targets:{
@@ -266,6 +272,18 @@ const checks=[
       &&Number(first.capabilities.en_diversity_weight)===ENGLISH_WRITER_DIVERSITY_WEIGHT,
   },
   {
+    id:'english_product_retrieval_profile_exact',
+    pass:first.english.every((row)=>
+      row.retrieval_profile===ENGLISH_PRODUCT_RETRIEVAL_PROFILE
+      &&Number(row.retrieval_channel_limits?.exact)===ENGLISH_PRODUCT_CHANNEL_LIMITS.exact
+      &&Number(row.retrieval_channel_limits?.multi)===ENGLISH_PRODUCT_CHANNEL_LIMITS.multi
+      &&Number(row.retrieval_channel_limits?.vowel)===ENGLISH_PRODUCT_CHANNEL_LIMITS.vowel
+      &&Number(row.retrieval_channel_limits?.family_coda)===ENGLISH_PRODUCT_CHANNEL_LIMITS.family_coda
+      &&Number(row.retrieval_channel_limits?.coda)===ENGLISH_PRODUCT_CHANNEL_LIMITS.coda
+      &&Number(row.retrieval_max_candidates)===ENGLISH_PRODUCT_MAX_CANDIDATES
+    ),
+  },
+  {
     id:'english_database_fingerprint_exact',
     pass:first.capabilities.en_database_fingerprint===ACCEPTED_ENGLISH_DB_FINGERPRINT
       &&first.capabilities.en_publish_fingerprint===ACCEPTED_ENGLISH_PUBLISH_FINGERPRINT,
@@ -338,6 +356,9 @@ const evidence={
   ranking_evidence_policy:ENGLISH_WRITER_RANKING_V2_POLICY,
   product_runtime:ENGLISH_WRITER_PRODUCT_RUNTIME,
   product_policy:ENGLISH_WRITER_PRODUCT_POLICY,
+  product_retrieval_profile:ENGLISH_PRODUCT_RETRIEVAL_PROFILE,
+  product_channel_limits:ENGLISH_PRODUCT_CHANNEL_LIMITS,
+  product_max_candidates:ENGLISH_PRODUCT_MAX_CANDIDATES,
   quality_candidate:ENGLISH_WRITER_QUALITY_ID,
   diversity_weight:ENGLISH_WRITER_DIVERSITY_WEIGHT,
   german_database:germanDbPath,
@@ -382,6 +403,7 @@ if(status==='ok'){
     ranking_evidence_policy:ENGLISH_WRITER_RANKING_V2_POLICY,
     product_runtime:ENGLISH_WRITER_PRODUCT_RUNTIME,
     product_policy:ENGLISH_WRITER_PRODUCT_POLICY,
+    product_retrieval_profile:ENGLISH_PRODUCT_RETRIEVAL_PROFILE,
     quality_candidate:ENGLISH_WRITER_QUALITY_ID,
     diversity_weight:ENGLISH_WRITER_DIVERSITY_WEIGHT,
     acceptance_report_fingerprint:semanticFingerprint,
