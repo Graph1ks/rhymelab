@@ -641,6 +641,36 @@ const updateClientError=workDb.prepare([
   "UPDATE work_item SET client_status='error',last_error=?,updated_at=? WHERE item_id=?",
 ].join(' '));
 
+function openClientReferenceLookup(){
+  const deDb=existsSync(deDbPath)?openReadOnly(deDbPath):null;
+  const enDb=existsSync(enDbPath)?openReadOnly(enDbPath):null;
+  const deStatement=deDb?.prepare([
+    'SELECT surface,normalized,ipa AS preferredIpa',
+    'FROM hot',
+    'WHERE normalized=? AND pronunciation_preferred=1 AND pronunciation_eligible=1 AND historical=0',
+    'ORDER BY usage_rank IS NULL,usage_rank,pronunciation_rank,id',
+    'LIMIT 1',
+  ].join(' '))||null;
+  const enStatement=enDb?.prepare([
+    'SELECT f.surface,f.normalized,p.phonemes AS preferredIpa',
+    'FROM en_form f JOIN en_pronunciation p ON p.form_id=f.id',
+    'WHERE f.normalized=? AND f.default_eligible=1 AND p.default_profile_eligible=1',
+    'ORDER BY p.id',
+    'LIMIT 1',
+  ].join(' '))||null;
+  return {
+    lookup(surface,language){
+      const normalized=normalizedSurface(surface,language);
+      if(language==='de') return deStatement?.get(normalized)||null;
+      return enStatement?.get(normalized)||null;
+    },
+    close(){
+      deDb?.close();
+      enDb?.close();
+    },
+  };
+}
+
 async function runClientResolver(){
   console.log('\n=== PRONUNCIATION BACKFILL · CLIENT RESOLVER FALLBACK ===');
   const condition=retryErrors
@@ -653,12 +683,14 @@ async function runClientResolver(){
   }
   console.log('[client] pending='+total.toLocaleString('en-US')+' · policy=client-total-query-pronunciation-v2');
 
+  const referenceLookup=openClientReferenceLookup();
   const batchQuery=workDb.prepare(
     'SELECT item_id,language,surface,normalized FROM work_item WHERE '+condition+' ORDER BY item_id LIMIT ?'
   );
   let done=0,accepted=0,rejected=0,errors=0;
   const startedAt=Date.now();
 
+  try{
   while(!stopRequested){
     const rows=batchQuery.all(commitEvery);
     if(!rows.length) break;
@@ -668,7 +700,7 @@ async function runClientResolver(){
         if(stopRequested) break;
         const started=performance.now();
         try{
-          const detail=await resolveUnknownClientPronunciation(row.surface,row.language);
+          const detail=await resolveUnknownClientPronunciation(row.surface,row.language,{\n            lookupReference:(surface,language)=>referenceLookup.lookup(surface,language),\n          });
           if(!detail?.ipa){
             const reason='client_resolver_empty';
             updateClientRejected.run(reason,reason,now(),Number(row.item_id));
@@ -734,6 +766,9 @@ async function runClientResolver(){
       workDb.exec('ROLLBACK');
       throw error;
     }
+  }
+  }finally{
+    referenceLookup.close();
   }
   upsertMeta.run('client_last_run_at',now());
   upsertMeta.run('updated_at',now());
