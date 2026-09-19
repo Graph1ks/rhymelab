@@ -114,6 +114,9 @@
     "en:acceptance:bundle": "node --no-warnings scripts/run-en-acceptance-bundle.mjs",
     "en:writer:accept": "node --no-warnings scripts/run-en-writer-acceptance.mjs",
     "en:product:accept": "node --no-warnings scripts/accept-en-product-integration.mjs",
-    "entity:multilingual:evidence": "node --no-warnings scripts/run-entity-multilingual-pronunciation-evidence.mjs"
+    "entity:multilingual:evidence": "node --no-warnings scripts/run-entity-multilingual-pronunciation-evidence.mjs",
+    "entity:pronunciation:expand": "node --no-warnings scripts/run-entity-pronunciation-source-expansion.mjs",
+    "entity:g2p:benchmark:prepare": "node --no-warnings scripts/prepare-entity-g2p-benchmark.mjs",
+    "entity:g2p:benchmark:evaluate": "node --no-warnings scripts/evaluate-entity-g2p-benchmark.mjs"
   }
 }

@@ -1188,14 +1188,14 @@
     "phrase_mosaic_query_diagnostics_v2_candidate_report": "data/local/phrase-mosaic-query-diagnostics-v2-candidate-report.json"
   },
   "next_actions": [
-    "merge_phase12c_multilingual_entity_evidence_bundle",
-    "owner_run_npm_entity_multilingual_evidence_once",
-    "review_single_compact_multilingual_entity_evidence_report",
-    "then_implement_source_backed_de_en_entity_runtime_in_one_pass",
-    "then_calibrate_entity_prominence_and_diversity_before_integrated_de_en_entity_acceptance",
+    "merge_phase12c_entity_pronunciation_source_expansion",
+    "owner_run_npm_entity_pronunciation_expand_once",
+    "review_single_compact_source_expansion_report",
+    "prepare_proper_name_g2p_benchmark_only_for_remaining_unresolved_population",
+    "then_implement_source_backed_multilingual_entity_runtime_and_only_benchmarked_generated_fallbacks",
     "keep_final_performance_optimization_deferred_until_entity_query_contract_is_stable"
   ],
-  "next_milestone": "PHASE_12C_ENTITY_MULTILINGUAL_PRONUNCIATION_EVIDENCE",
+  "next_milestone": "PHASE_12C_ENTITY_PRONUNCIATION_SOURCE_EXPANSION",
   "phase_12_english": {
     "status": "COMPLETE_ACCEPTED_FROZEN_PRODUCT_EN",
     "roadmap": "Phase 12B — English phonology + single-word profile + benchmark",
@@ -2592,7 +2592,7 @@
     }
   },
   "phase_12_entity_lexicon": {
-    "status": "ACTIVE_PHASE_12C_MULTILINGUAL_PRONUNCIATION_EVIDENCE",
+    "status": "ACTIVE_PHASE_12C_ENTITY_PRONUNCIATION_SOURCE_EXPANSION",
     "plan": "docs/ENTITY_LEXICON_PLAN.md",
     "database": "data/local/rhymelab-entities-v1.sqlite",
     "runtime_local_only": true,
@@ -2701,12 +2701,13 @@
       "phonetic_analyses": 0
     },
     "current_gate": [
-      "run_one_consolidated_entity_multilingual_evidence_bundle",
-      "preserve_hybrid_v2_fingerprint_337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201",
-      "preserve_de_entity_runtime_fingerprint_38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3",
-      "materialize_p898_as_source_evidence_only_in_this_gate",
-      "measure_exact_and_bounded_en_us_entity_name_recovery_against_accepted_english_db",
-      "no_broad_g2p",
+      "reuse_existing_raw_kaikki_proper_name_ipa",
+      "reuse_full_pinned_cmudict_direct_entity_lookup",
+      "improve_deterministic_entity_name_composition",
+      "optional_moby_raw_secondary_evidence",
+      "measure_remaining_unresolved_before_any_g2p",
+      "prepare_mfa_deepphonemizer_charsiu_benchmark_boundary",
+      "no_mass_g2p",
       "no_entity_population_retune"
     ],
     "staging_v1": {
@@ -3063,7 +3064,7 @@
       }
     },
     "pronunciation_runtime_v1": {
-      "status": "ACTIVE_CONSOLIDATED_MULTILINGUAL_EVIDENCE_GATE",
+      "status": "MULTILINGUAL_EVIDENCE_ACCEPTED_SOURCE_EXPANSION_ACTIVE",
       "contract": "docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md",
       "entity_schema": "rhymelab-entity-catalog-v1",
       "catalog_command": "npm run entity:catalog:materialize",
@@ -3194,8 +3195,64 @@
         "p898_runtime_promotion": false,
         "english_entity_runtime_promotion": false,
         "broad_g2p": false,
-        "owner_run_pending": true,
-        "next_after_evidence": "implement_source_backed_multilingual_entity_runtime_in_one_pass"
+        "owner_run_pending": false,
+        "next_after_evidence": "source_expansion_before_multilingual_runtime_promotion",
+        "status": "EVIDENCE_READY",
+        "owner_result": {
+          "status": "evidence_ready",
+          "semantic_fingerprint": "1861f29aaf0b029d3ac69c1cd6511a0c0b573c47e325efea75e0a9f42b1ec88a",
+          "retained_entities": 1077644,
+          "de_runtime_fingerprint": "38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3",
+          "p898_inserted_pronunciations": 27,
+          "p898_runtime_eligible_rows": 0,
+          "english_names": 1415550,
+          "english_preferred_names": 1062694,
+          "english_exact_source_backed": 67098,
+          "english_bounded_token_composition": 392630,
+          "english_source_backed_ready": 459728,
+          "english_source_backed_ready_pct": 32.48,
+          "english_preferred_source_backed_ready": 382346,
+          "english_preferred_source_backed_ready_pct": 35.98,
+          "english_unresolved": 955822,
+          "english_preferred_unresolved": 680348,
+          "generated_g2p_used": false,
+          "failed_checks": []
+        }
+      },
+      "source_expansion_v1": {
+        "status": "IMPLEMENTED_OWNER_RUN_PENDING",
+        "contract": "docs/ENTITY_PRONUNCIATION_SOURCE_EXPANSION_V1.md",
+        "registry": "sources/entity/entity-pronunciation-expansion-v1.json",
+        "policy": "entity-pronunciation-source-expansion-v1",
+        "command": "npm run entity:pronunciation:expand",
+        "report": "data/local/entity-pronunciation-source-expansion-v1-report.json",
+        "sidecar": "data/work/entity/entity-pronunciation-source-expansion-v1.sqlite",
+        "reuses_existing_kaikki": true,
+        "reuses_existing_cmudict": true,
+        "raw_kaikki_proper_names": true,
+        "raw_cmudict_exact": true,
+        "optional_moby_raw_evidence": true,
+        "composition_max_units": 8,
+        "composition_rules": [
+          "whitespace_components",
+          "hyphen_components",
+          "ampersand_to_and",
+          "title_separators",
+          "roman_numerals_i_to_xx",
+          "small_integers_0_to_20"
+        ],
+        "source_runtime_promotion": false,
+        "generic_english_to_en_us_promotion": false,
+        "mass_g2p": false,
+        "g2p_benchmark": {
+          "prepare_command": "npm run entity:g2p:benchmark:prepare",
+          "evaluate_command": "npm run entity:g2p:benchmark:evaluate",
+          "primary_candidate": "mfa_english_us_g2p_v2_2_1",
+          "independent_candidate": "deep_phonemizer_en_us",
+          "multilingual_research_candidate": "charsiu_multilingual",
+          "charsiu_production_allowed": false,
+          "benchmark_only_until_source_expansion_review": true
+        }
       }
     },
     "deferred_checkpoint": "docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md",
@@ -3255,12 +3312,16 @@
       ]
     },
     "entity_resume": {
-      "status": "ACTIVE_CONSOLIDATED_MULTILINGUAL_EVIDENCE_GATE",
+      "status": "ACTIVE_SOURCE_EXPANSION_BEFORE_G2P",
       "sequence": [
-        "single_owner_multilingual_evidence_bundle_including_p898_and_de_invariance",
-        "measure_exact_accepted_en_writer_and_bounded_token_composition_coverage",
-        "implement_source_backed_de_en_entity_pronunciation_runtime_in_one_pass",
-        "benchmark_proper_name_g2p_only_if_residual_high_value_gaps_justify_it",
+        "accepted_multilingual_evidence_complete",
+        "raw_kaikki_proper_name_ipa_plus_raw_cmudict_plus_improved_composition",
+        "measure_residual_unresolved_population",
+        "prepare_real_entity_proper_name_g2p_control_set",
+        "benchmark_mfa_and_independent_candidate_only_on_residual_need",
+        "keep_charsiu_research_only_until_license_provenance_clean",
+        "implement_source_backed_multilingual_entity_runtime",
+        "add_only_benchmarked_generated_fallback_if_needed",
         "calibrate_entity_phonetic_prominence_and_diversity_ranking",
         "integrated_de_en_entity_product_acceptance"
       ],

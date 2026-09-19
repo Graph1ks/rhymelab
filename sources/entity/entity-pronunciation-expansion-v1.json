@@ -1,0 +1,78 @@
+{
+  "schema": "rhymelab-entity-pronunciation-expansion-sources-v1",
+  "id": "phase12c-entity-pronunciation-expansion-v1",
+  "updated": "2026-09-19",
+  "purpose": "Zero-cost local/offline Entity pronunciation source expansion and bounded G2P benchmark preparation",
+  "sources": {
+    "kaikki_proper_names": {
+      "source_id": "enwiktionary-kaikki-raw-20260916",
+      "reuse_existing_registry": "sources/en/phase12b-sources-v1.json",
+      "expected_local_filename": "enwiktionary-kaikki-20260916.jsonl.gz",
+      "role": "proper_name_and_name_token_source_backed_ipa",
+      "production_policy": "US-tagged parseable IPA may become en-US Entity evidence; unqualified/other-profiled IPA remains provenance-bearing evidence and is not silently relabeled en-US",
+      "new_download_required": false
+    },
+    "cmudict_raw": {
+      "source_id": "cmudict-en-us-74790861",
+      "reuse_existing_registry": "sources/en/phase12b-sources-v1.json",
+      "role": "full_raw_exact_en_us_name_and_token_pronunciation",
+      "commit": "74790861f652…",
+      "license_id": "CMUdict-BSD-style",
+      "commercial_use": true,
+      "new_download_required": false
+    },
+    "moby_pronunciator": {
+      "source_id": "moby-pronunciator-ii",
+      "name": "Moby Pronunciator II",
+      "role": "optional_secondary_exact_pronunciation_evidence",
+      "homepage_url": "https://www.gutenberg.org/ebooks/3205",
+      "upstream_data_url": "https://www.gutenberg.org/files/3205/files/mpron.txt",
+      "default_local_path": "data/raw/entity/moby-pronunciation-v1/mpron.txt",
+      "format": "moby_ascii_pronunciation",
+      "license_id": "public-domain-grant-by-author-2001",
+      "commercial_use": true,
+      "required": false,
+      "runtime_policy": "raw evidence only until its ASCII phone mapping is separately validated against accepted English controls",
+      "notes": [
+        "The Moby documentation states that the documentation, software and database are Public Domain material by grant from the author, January 2001.",
+        "Do not treat the Project Gutenberg wrapper/trademark terms as the pronunciation database license.",
+        "The source is optional because the existing Kaikki and CMUdict artifacts must be exhausted first."
+      ]
+    }
+  },
+  "g2p_benchmark_candidates": {
+    "mfa_english_us": {
+      "role": "primary_generated_pronunciation_candidate_after_source_expansion",
+      "model": "English (US) MFA G2P model v2.2.1",
+      "architecture": "phonetisaurus",
+      "model_license": "CC-BY-4.0",
+      "commercial_use": true,
+      "local_offline": true,
+      "runtime_policy": "build-time benchmark candidate only until proper-name controls pass; generated provenance mandatory"
+    },
+    "deep_phonemizer_en_us": {
+      "role": "independent_generated_pronunciation_benchmark_candidate",
+      "project": "axelspringer/DeepPhonemizer",
+      "code_license": "MIT",
+      "local_offline": true,
+      "production_policy": "benchmark adapter allowed; pin and audit the exact pretrained checkpoint license before any production promotion"
+    },
+    "charsiu_multilingual": {
+      "role": "multilingual_research_candidate_for_residual_international_names",
+      "project": "lingjzhu/CharsiuG2P",
+      "code_license": "MIT",
+      "local_offline": true,
+      "production_allowed": false,
+      "reason": "upstream README explicitly says some collected pronunciation datasets have unspecified licenses; exact model/data provenance must be audited before production use"
+    }
+  },
+  "hard_rules": [
+    "zero paid services",
+    "no network dependency in product runtime",
+    "reuse existing Kaikki and CMUdict artifacts before any new acquisition",
+    "no mass G2P before source expansion coverage is measured",
+    "generated pronunciation is evidence, never lexical truth",
+    "generic English IPA is not silently relabeled en-US",
+    "Charsiu remains research-only until model/data licensing is cleanly pinned"
+  ]
+}

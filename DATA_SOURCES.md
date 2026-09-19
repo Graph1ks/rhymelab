@@ -260,6 +260,50 @@ Current boundary: CMUdict supplies North American English pronunciation evidence
 
 CMUdict remains incomplete for arbitrary global proper names; its measured recovery ceiling is evidence for source planning, not a claim of universal name coverage.
 
+### Phase 12C Entity pronunciation source expansion — ACTIVE
+
+Contract:
+
+`docs/ENTITY_PRONUNCIATION_SOURCE_EXPANSION_V1.md`
+
+Registry:
+
+`sources/entity/entity-pronunciation-expansion-v1.json`
+
+The expansion reuses the existing raw English Kaikki/Wiktextract snapshot and the existing pinned CMUdict artifact. No redownload is required for either source.
+
+**Raw English Wiktionary proper-name IPA — USE WITH CONDITIONS**
+
+The normal English Writer publish cut intentionally excludes or suppresses many proper-name-only surfaces. Phase 12C therefore scans explicit English proper-name records directly from the existing raw Kaikki file for Entity use.
+
+US-tagged parseable IPA may supply `en-US` Entity evidence. en-GB stays en-GB. Tagless/unqualified English IPA stays generic `en` evidence and is not silently promoted to en-US.
+
+**Full raw CMUdict Entity lookup — USE**
+
+The full pinned CMUdict snapshot may resolve Entity names/tokens even when those names are not part of the accepted Writer lexical population. CMUdict remains en-US pronunciation evidence and is analyzed only through the accepted English profile.
+
+**Moby Pronunciator II — OPTIONAL SECONDARY EVIDENCE**
+
+The Moby Pronunciator II documentation states that its documentation, software and database were placed in the Public Domain by grant from the author in January 2001.
+
+The legacy Moby ASCII phone notation is not treated as accepted IPA/ARPAbet in Phase 12C. Exact matches are stored only as secondary raw evidence until its phone mapping is benchmarked against accepted English controls. The source is optional and is not required for the primary owner expansion run.
+
+**MFA English (US) G2P — SELECTED BENCHMARK CANDIDATE, NOT YET RUNTIME**
+
+The selected benchmark target is English (US) MFA G2P model v2.2.1, architecture Phonetisaurus, licensed CC BY 4.0. It is local/offline-capable and commercially usable with attribution.
+
+Generated output remains benchmark evidence only until the proper-name benchmark passes. Generated pronunciation must remain provenance-bearing and must never be relabeled as attested source truth.
+
+**DeepPhonemizer — SECOND INDEPENDENT BENCHMARK CANDIDATE**
+
+The upstream project code is MIT. Before any pretrained checkpoint is promoted beyond benchmark use, the exact model artifact and its license must be pinned separately.
+
+**CharsiuG2P — RESEARCH-ONLY MULTILINGUAL CANDIDATE**
+
+The upstream code is MIT, but the project explicitly notes that some collected pronunciation datasets have unspecified licenses. No Charsiu model may enter the commercial production pipeline until the exact model/data provenance is audited and cleanly pinned.
+
+The source-expansion owner run performs no generated G2P. Only names still unresolved after Kaikki + CMUdict + deterministic composition become candidates for the later proper-name G2P benchmark.
+
 ### gruut — RESEARCH / FALLBACK CANDIDATE
 
 gruut provides offline DE/EN lexicons and G2P functionality under permissive code licensing, but the upstream repository is archived.
