@@ -294,24 +294,47 @@ async function search(word){
   }
 }
 
-$('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();search($('#searchInput').value);});
-$$$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{const language=button.dataset.uiLang;if(!['de','en'].includes(language))return;state.lang=language;localStorage.setItem('rhymelab.language',language);applyLanguage();}));
-$$('.view-option').forEach((button)=>button.addEventListener('click',()=>{const view=button.dataset.view;if(!['list','compact'].includes(view))return;state.view=view;localStorage.setItem('rhymelab.resultView',view);syncViewControls();if(state.data)render();}));
-$$$('.basis-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.basis=['de','en','both'].includes(button.dataset.basis)?button.dataset.basis:'de';localStorage.setItem('rhymelab.searchBasis',state.basis);syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
-$$('.result-language-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.resultLanguage=['de','en','both'].includes(button.dataset.resultLanguage)?button.dataset.resultLanguage:'de';localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);state.sectionVisible.clear();syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
-$$$('.scope-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;setScope(button.dataset.scope,{rerun:true});renderCapabilityNotice();}));
-['typeFilter','variantMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{if(state.query)search(state.query);else renderCapabilityNotice();}));
-['syllableFilter','sortMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{state.visibleCount=state.pageSize;state.sectionVisible.clear();if(state.data)render();}));
-$('#historicalMode').addEventListener('change',()=>{if(state.query)search(state.query);});
-$('#entityCategory').addEventListener('change',()=>{state.sectionVisible.clear();if(state.query)search(state.query);});
-$('#sourcesButton').addEventListener('click',()=>{$('#sourcesDialog').showModal();});
-$('#sourcesClose').addEventListener('click',()=>{$('#sourcesDialog').close();});
-$('#sourcesDialog').addEventListener('click',(event)=>{if(event.target===$('#sourcesDialog'))$('#sourcesDialog').close();});
-$('#results').addEventListener('click',(event)=>{const button=event.target.closest('[data-more-section]');if(!button)return;const key=button.dataset.moreSection,current=state.sectionVisible.get(key)||state.sectionPageSize;state.sectionVisible.set(key,current+state.sectionPageSize);render();});
-$('#results').addEventListener('pointerover',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;inspectResult(resultByKey(row.dataset.resultKey),row.dataset.displayType);});
-$('#results').addEventListener('pointerout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
-$('#results').addEventListener('focusin',(event)=>{const row=event.target.closest('.result-row');if(row)inspectResult(resultByKey(row.dataset.resultKey),row.dataset.displayType);});
-$('#results').addEventListener('focusout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
+const REQUIRED_SINGLE_CONTROLS=[
+  '#searchForm','#searchInput','#scopeFilter','#typeFilter','#variantMode','#syllableFilter','#sortMode',
+  '#historicalMode','#entityCategory','#sourcesButton','#sourcesClose','#sourcesDialog','#results',
+];
+const REQUIRED_CONTROL_GROUPS=[
+  '.ui-lang-option','.view-option','.basis-option','.result-language-option','.scope-option',
+];
+
+function assertInteractiveControlSurface(){
+  const missingSingles=REQUIRED_SINGLE_CONTROLS.filter((selector)=>!$(selector));
+  const missingGroups=REQUIRED_CONTROL_GROUPS.filter((selector)=>$(selector).length===0);
+  if(missingSingles.length||missingGroups.length){
+    throw new Error(`RhymeLab UI control surface incomplete: ${[...missingSingles,...missingGroups].join(', ')}`);
+  }
+}
+
+function installInteractiveControls(){
+  assertInteractiveControlSurface();
+
+  $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();search($('#searchInput').value);});
+  $$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{const language=button.dataset.uiLang;if(!['de','en'].includes(language))return;state.lang=language;localStorage.setItem('rhymelab.language',language);applyLanguage();}));
+  $$('.view-option').forEach((button)=>button.addEventListener('click',()=>{const view=button.dataset.view;if(!['list','compact'].includes(view))return;state.view=view;localStorage.setItem('rhymelab.resultView',view);syncViewControls();if(state.data)render();}));
+  $$('.basis-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.basis=['de','en','both'].includes(button.dataset.basis)?button.dataset.basis:'de';localStorage.setItem('rhymelab.searchBasis',state.basis);syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
+  $$('.result-language-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.resultLanguage=['de','en','both'].includes(button.dataset.resultLanguage)?button.dataset.resultLanguage:'de';localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);state.sectionVisible.clear();syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
+  $$('.scope-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;setScope(button.dataset.scope,{rerun:true});renderCapabilityNotice();}));
+  ['typeFilter','variantMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{if(state.query)search(state.query);else renderCapabilityNotice();}));
+  ['syllableFilter','sortMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{state.visibleCount=state.pageSize;state.sectionVisible.clear();if(state.data)render();}));
+  $('#historicalMode').addEventListener('change',()=>{if(state.query)search(state.query);});
+  $('#entityCategory').addEventListener('change',()=>{state.sectionVisible.clear();if(state.query)search(state.query);});
+  $('#sourcesButton').addEventListener('click',()=>{$('#sourcesDialog').showModal();});
+  $('#sourcesClose').addEventListener('click',()=>{$('#sourcesDialog').close();});
+  $('#sourcesDialog').addEventListener('click',(event)=>{if(event.target===$('#sourcesDialog'))$('#sourcesDialog').close();});
+  $('#results').addEventListener('click',(event)=>{const button=event.target.closest('[data-more-section]');if(!button)return;const key=button.dataset.moreSection,current=state.sectionVisible.get(key)||state.sectionPageSize;state.sectionVisible.set(key,current+state.sectionPageSize);render();});
+  $('#results').addEventListener('pointerover',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;inspectResult(resultByKey(row.dataset.resultKey),row.dataset.displayType);});
+  $('#results').addEventListener('pointerout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
+  $('#results').addEventListener('focusin',(event)=>{const row=event.target.closest('.result-row');if(row)inspectResult(resultByKey(row.dataset.resultKey),row.dataset.displayType);});
+  $('#results').addEventListener('focusout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
+
+  document.documentElement.dataset.rhymelabControls='bound';
+}
+
 async function bootstrap(){
   const initialUrl=new URL(location.href);
   const initialBasis=initialUrl.searchParams.get('lang');
@@ -340,4 +363,24 @@ async function bootstrap(){
     await search(initial);
   }
 }
-bootstrap();
+function reportUiInitializationFailure(error){
+  document.documentElement.dataset.rhymelabControls='failed';
+  console.error('RhymeLab UI initialization failed',error);
+  const existing=$('#uiRuntimeFailure');
+  if(existing)return;
+  const banner=document.createElement('div');
+  banner.id='uiRuntimeFailure';
+  banner.className='ui-runtime-failure';
+  banner.setAttribute('role','alert');
+  banner.textContent='RhymeLab UI controls failed to initialize. Reload after updating the local app; check the browser console if the problem persists.';
+  const shell=$('.shell');
+  if(shell)shell.prepend(banner);
+  else document.body.prepend(banner);
+}
+
+async function initializeUi(){
+  installInteractiveControls();
+  await bootstrap();
+}
+
+initializeUi().catch(reportUiInitializationFailure);
