@@ -1,6 +1,6 @@
 # Phase 12C — Entity Runtime + AI Pronunciation Staging Handover
 
-Status: **OWNER FULL-DATA ACCEPTANCE PENDING**
+Status: **SOURCE-BACKED OWNER FULL-DATA ACCEPTED — PR FINALIZATION**
 
 Branch:
 
@@ -34,8 +34,10 @@ Do not regress or reopen these without concrete evidence:
 - accepted English Writer product remains frozen;
 - accepted source expansion:
   - English Entity names: 1,415,550
-  - source-backed ready: 710,561 / 50.20%
+  - source-resolution candidates: 710,561 / 50.20%
   - unresolved after source expansion: 704,989 / 49.80%
+  - accepted runtime-analyzable full-data baseline: 710,500 / 50.19%
+  - accepted runtime unresolved: 705,050 / 49.81%
 - MFA generated-G2P runtime fallback: rejected;
 - forced-neural g2p-en runtime fallback: rejected;
 - generated pronunciation rows must remain **zero** in the source-backed Entity runtime unless a later explicit acceptance changes that boundary.
@@ -375,18 +377,32 @@ The repository acceptance pass subsequently tightened the AI staging boundary:
 - Entity category metadata is loaded in batches instead of one SQL query per candidate;
 - `npm run entity:phase12c:owner` now materializes, verifies and evaluates the full owner-local source-backed runtime and emits one compact acceptance report.
 
-## What is NOT finished
+## Accepted full-data checkpoint — 2026-09-19
 
-Do not call this work accepted or merge-ready yet.
+The consolidated owner gate is **PASS** across materialization, multilingual verification and Entity Writer acceptance.
 
-Remaining source-backed work:
+Accepted evidence:
 
-1. run `npm run entity:phase12c:owner` against the owner's full local databases;
-2. review the compact full-data report and representative Entity result pages;
-3. keep PR #112's required `validate` check green on the final head;
-4. mark the PR ready and squash-merge after the owner gate is accepted.
+- EN Entity names considered: 1,415,550;
+- EN runtime-ready/analyzed: 710,500;
+- EN unresolved: 705,050;
+- EN rhyme anchors: 3,552,500;
+- EN runtime fingerprint: `3f2c520ce99868eda81991e6247c6c93bdf8c78f7805d7ceef2cc2ebd85bb6d8`;
+- DE fingerprint preserved exactly;
+- generated G2P used: false;
+- LLM annotation used: false;
+- AI staging runtime promoted: false;
+- DE/EN Entity query coverage: 100% resolved and 100% nonempty in the acceptance plan;
+- ranking policy `entity-writer-ranking-v2-phonetic-band-prominence-v1` accepted and repeatable;
+- Writer semantic fingerprint: `76ac9a32e62fd7b253515569294599012010e9be758db24227a910d893141ae7`.
 
-Benchmark-v3 context-gold review is still required before AI pronunciation evidence can be accepted, but it no longer blocks the independent source-backed runtime merge. The tracked repository intentionally does not contain `data/local/entity-g2p-proper-name-benchmark-v2.json`; do not guess replacement gold from the surface string.
+The earlier 710,561 figure remains source-resolution evidence, not the accepted runtime-ready count. Sixty-one source-backed candidates do not satisfy the runtime analyzer and therefore remain unresolved.
+
+Measured Entity Writer latency is still follow-up work: the owner acceptance sample observed approximately 384–403 ms p50 and 1.15–1.22 s p95. Do not describe Phase 12C as having met the separate ~100 ms product latency target.
+
+Remaining source-backed repository work is PR finalization only: keep the final documentation head green, mark PR #112 ready, then squash-merge when authorized.
+
+Benchmark-v3 context-gold review is still required before AI pronunciation evidence can be accepted, but it does not block the independent source-backed runtime merge. The tracked repository intentionally does not contain `data/local/entity-g2p-proper-name-benchmark-v2.json`; do not guess replacement gold from the surface string.
 
 ## Immediate next-thread starting procedure
 
