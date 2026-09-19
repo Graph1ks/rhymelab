@@ -53,7 +53,7 @@
       "local_offline": true,
       "direct_rhymelab_notation": "arpabet",
       "install_command": "mfa model download g2p english_us_arpa --version 2.0.0a",
-      "runtime_policy": "build-time benchmark candidate only until corrected proper-name token controls pass; generated provenance mandatory",
+      "runtime_policy": "rejected for Entity runtime fallback; benchmark evidence retained only",
       "selection_reason": "ARPA output is directly compatible with the accepted RhymeLab English analyzer and avoids an extra MFA-phone-set conversion layer",
       "inspect_validation": {
         "public_release_label": "2.0.0a",
@@ -61,6 +61,15 @@
         "required_phone_set": "complete_69_phone_ARPA",
         "internal_archive_version_string": "record_only_not_release_label_gate",
         "reason": "MFA model inspect may expose an internal build metadata version that differs from the public model release label"
+      },
+      "benchmark_status": "REJECTED_FOR_RUNTIME_FALLBACK",
+      "full_evaluation_fingerprint": "9bc00102d46af55352505389c03fe048083cdd81c966007ab86924d9df233488",
+      "exact_tail_pct": 71.19,
+      "confidence_gate": {
+        "best_10pct_exact_tail_pct": 86.67,
+        "max_retention_at_90pct_exact_tail_pct": 1.68,
+        "max_retention_at_85pct_exact_tail_pct": 21.94,
+        "decision": "confidence_score_not_selective_enough_for_useful_runtime_fallback"
       }
     },
     "deep_phonemizer_en_us": {
@@ -68,7 +77,10 @@
       "project": "axelspringer/DeepPhonemizer",
       "code_license": "MIT",
       "local_offline": true,
-      "production_policy": "benchmark adapter allowed; pin and audit the exact pretrained checkpoint license before any production promotion"
+      "production_policy": "benchmark adapter allowed; pin and audit the exact pretrained checkpoint license before any production promotion",
+      "status": "DEFERRED_NOT_SELECTED_FOR_NEXT_GATE",
+      "checkpoint_license_status": "not_separately_explicit_upstream",
+      "reason": "code is MIT but pretrained checkpoint licensing is not separately explicit enough for a commercial runtime promotion path; avoid adding another ambiguous model dependency"
     },
     "charsiu_multilingual": {
       "role": "multilingual_research_candidate_for_residual_international_names",
@@ -77,6 +89,20 @@
       "local_offline": true,
       "production_allowed": false,
       "reason": "upstream README explicitly says some collected pronunciation datasets have unspecified licenses; exact model/data provenance must be audited before production use"
+    },
+    "g2p_en_neural": {
+      "role": "independent_generated_pronunciation_benchmark_candidate_after_mfa_rejection",
+      "project": "Kyubyong/g2p",
+      "package": "g2p-en",
+      "package_version": "2.1.0",
+      "code_and_bundled_checkpoint_license": "Apache-2.0",
+      "bundled_model": "g2p_en/checkpoint20.npz",
+      "training_basis": "CMU Pronouncing Dictionary",
+      "output": "stressed ARPAbet",
+      "local_offline_after_install": true,
+      "commercial_use": true,
+      "benchmark_policy": "force G2p.predict(word) directly; bypass CMUdict lookup, homograph lookup and POS routing",
+      "runtime_policy": "benchmark only until proper-name v2 evidence passes"
     }
   },
   "hard_rules": [
