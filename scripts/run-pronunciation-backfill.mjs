@@ -1,12 +1,20 @@
 #!/usr/bin/env node
-import { createWriteStream, existsSync } from 'node:fs';
+import { createReadStream, createWriteStream, existsSync } from 'node:fs';
 import { once } from 'node:events';
-import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { createGunzip } from 'node:zlib';
+import { createInterface } from 'node:readline';
 import { DatabaseSync } from 'node:sqlite';
 import { inspectEspeakQueryPronunciation } from './query-pronunciation-espeak-adapter.mjs';
 import { getPhonologyProfile } from './phonology-profiles.mjs';
+import { optionsForListedForms } from './kaikki-resolver-lib.mjs';
+import {
+  isWriterCandidateSurface,
+  normalizeEnglishSurface,
+  readJson,
+} from './en-writer-source-core.mjs';
 import {
   resolveUnknownClientPronunciation,
   tokenizeClientPronunciationInput,
@@ -34,13 +42,17 @@ function integerArg(flag,fallback,{min=1,max=1_000_000}={}){
 }
 
 const deDbPath=resolve(argValue('--de-db','data/local/rhymelab-v5.sqlite'));
+const deCoreDir=resolve(argValue('--de-core','data/de/core'));
+const deKaikkiPath=resolve(argValue('--de-kaikki','data/work/de-rhyme-core-v1/downloads/dewiktionary-kaikki-raw.jsonl.gz'));
 const enDbPath=resolve(argValue('--en-db','data/local/rhymelab-en-v1.sqlite'));
+const enRegistryPath=resolve(argValue('--en-registry','sources/en/phase12b-sources-v1.json'));
+const enRawDirArg=argValue('--en-raw-dir',null);
 const phraseDbPath=resolve(argValue('--phrases','data/local/rhymelab-phrases-v1.sqlite'));
 const entityDbPath=resolve(argValue('--entities','data/local/rhymelab-entities-v1.sqlite'));
-const workPath=resolve(argValue('--work','data/local/pronunciation-backfill-v1.sqlite'));
-const reportPath=resolve(argValue('--report','data/local/pronunciation-backfill-v1-report.json'));
-const reviewPath=resolve(argValue('--review-tsv','data/local/pronunciation-backfill-v1-review.tsv'));
-const allPath=resolve(argValue('--all-tsv','data/local/pronunciation-backfill-v1-all.tsv'));
+const workPath=resolve(argValue('--work','data/local/pronunciation-backfill-v2.sqlite'));
+const reportPath=resolve(argValue('--report','data/local/pronunciation-backfill-v2-report.json'));
+const reviewPath=resolve(argValue('--review-tsv','data/local/pronunciation-backfill-v2-review.tsv'));
+const allPath=resolve(argValue('--all-tsv','data/local/pronunciation-backfill-v2-all.tsv'));
 const command=argValue('--command',process.env.RHYMELAB_ESPEAK_COMMAND||null);
 const phase=String(argValue('--phase','all')).trim().toLowerCase();
 const progressEvery=integerArg('--progress-every',1000,{min:1,max:1_000_000});
@@ -104,13 +116,43 @@ function scalar(db,sql,...params){
 }
 
 const sourcePaths=[];
-if(requestedScopes.has('de')) sourcePaths.push(['de',deDbPath]);
-if(requestedScopes.has('en')) sourcePaths.push(['en',enDbPath]);
-if(requestedScopes.has('phrases')) sourcePaths.push(['phrases',phraseDbPath]);
-if(requestedScopes.has('entities')) sourcePaths.push(['entities',entityDbPath]);
+if(requestedScopes.has('de')) sourcePaths.push(['de_accepted',deDbPath]);
+if(requestedScopes.has('en')) sourcePaths.push(['en_accepted',enDbPath]);
+if(requestedScopes.has('phrases')) sourcePaths.push(['phrases_catalog',phraseDbPath]);
+if(requestedScopes.has('entities')) sourcePaths.push(['entities_catalog',entityDbPath]);
 for(const [scope,path] of sourcePaths){
   if(!existsSync(path)){
     throw new Error('Required '+scope+' database missing: '+path+'; narrow --scopes explicitly if this database should be excluded.');
+  }
+}
+
+let deCoreManifest=null;
+let deCoreManifestPath=null;
+if(requestedScopes.has('de')){
+  deCoreManifestPath=join(deCoreDir,'manifest.json');
+  if(!existsSync(deCoreManifestPath)){
+    throw new Error('Required German pre-publish source core missing: '+deCoreManifestPath+'. Build it with npm run de:core or point --de-core at the existing core directory.');
+  }
+  deCoreManifest=JSON.parse(await readFile(deCoreManifestPath,'utf8'));
+  if(!Array.isArray(deCoreManifest.files)) throw new Error('German core manifest has no files array: '+deCoreManifestPath);
+  if(!existsSync(deKaikkiPath)){
+    throw new Error('Required original German Kaikki source missing: '+deKaikkiPath+'. Pass --de-kaikki <path> to the pinned raw snapshot used for the German build.');
+  }
+}
+
+let enRegistry=null;
+let enKaikkiSource=null;
+let enRawDir=null;
+let enKaikkiPath=null;
+if(requestedScopes.has('en')){
+  if(!existsSync(enRegistryPath)) throw new Error('English source registry missing: '+enRegistryPath);
+  enRegistry=await readJson(enRegistryPath);
+  enRawDir=resolve(enRawDirArg||enRegistry.local_raw_directory||'data/raw/en/phase12b-20260918');
+  enKaikkiSource=Object.values(enRegistry.sources||{}).find((source)=>String(source.source_id||'').startsWith('enwiktionary-kaikki'));
+  if(!enKaikkiSource) throw new Error('English source registry has no Kaikki/Wiktextract source.');
+  enKaikkiPath=resolve(enRawDir,enKaikkiSource.local_filename);
+  if(!existsSync(enKaikkiPath)){
+    throw new Error('Required original English Kaikki source missing: '+enKaikkiPath+'. Run npm run en:sources:bootstrap or point --en-raw-dir at the pinned source directory.');
   }
 }
 
@@ -135,6 +177,29 @@ for(const [scope,path] of sourcePaths){
   }finally{
     db.close();
   }
+}
+if(requestedScopes.has('de')){
+  sourceSnapshot.de_source_raw=await fileState(deKaikkiPath);
+  sourceSnapshot.de_source_core={
+    ...(await fileState(deCoreManifestPath)),
+    schema:deCoreManifest.schema||null,
+    total_forms:Number(deCoreManifest.total_forms||0),
+    files:(deCoreManifest.files||[]).map((row)=>({
+      file:row.file,
+      items:Number(row.items||0),
+      first_processing_order:Number(row.first_processing_order||0),
+      last_processing_order:Number(row.last_processing_order||0),
+      sha256:row.sha256||null,
+    })),
+  };
+}
+if(requestedScopes.has('en')){
+  sourceSnapshot.en_source_kaikki={
+    ...(await fileState(enKaikkiPath)),
+    registry:enRegistry.id||null,
+    source_id:enKaikkiSource.source_id||null,
+    snapshot:enKaikkiSource.snapshot||null,
+  };
 }
 const sourceFingerprint=hashJson(sourceSnapshot);
 
@@ -285,82 +350,432 @@ async function runScopeScan({
   );
 }
 
+
+async function collectGermanSourceDiff(){
+  const scope='de_source_minus_accepted';
+  const saved=workDb.prepare('SELECT * FROM scan_state WHERE scope=?').get(scope)||null;
+  if(saved?.status==='complete'){
+    console.log('[collect:'+scope+'] already complete · gaps='+Number(saved.source_refs||0).toLocaleString('en-US'));
+    return;
+  }
+
+  const acceptedDb=openReadOnly(deDbPath);
+  const accepted=acceptedDb.prepare([
+    'SELECT 1 AS ok FROM hot',
+    'WHERE normalized=? AND pronunciation_preferred=1 AND pronunciation_eligible=1',
+    'LIMIT 1',
+  ].join(' '));
+
+  let lastOrder=Number(saved?.last_key||0);
+  let scanned=Number(saved?.scanned||0);
+  let refs=Number(saved?.source_refs||0);
+  let uniques=Number(saved?.unique_items_added||0);
+  const total=Number(deCoreManifest.total_forms||0);
+  const startedAt=Date.now();
+  let transactionOpen=false;
+  let batch=0;
+
+  console.log(
+    '[collect:'+scope+'] source core -> accepted DE Writer diff'
+    +' · resume_order='+lastOrder.toLocaleString('en-US')
+    +' · source_forms='+total.toLocaleString('en-US')
+  );
+
+  try{
+    workDb.exec('BEGIN IMMEDIATE');
+    transactionOpen=true;
+    for(const fileInfo of deCoreManifest.files||[]){
+      if(stopRequested) break;
+      const fileLast=Number(fileInfo.last_processing_order||0);
+      if(fileLast&&fileLast<=lastOrder) continue;
+      const shardPath=join(deCoreDir,fileInfo.file);
+      const text=await readFile(shardPath,'utf8');
+      for(const line of text.split(/\r?\n/u)){
+        if(stopRequested) break;
+        if(!line) continue;
+        const row=JSON.parse(line);
+        const order=Number(row.processing_order||0);
+        if(!order||order<=lastOrder) continue;
+
+        const surface=String(row.word||row.normalized_form||'').normalize('NFKC').trim();
+        const normalized=String(row.normalized_form||normalizedSurface(surface,'de'));
+        scanned+=1;
+        lastOrder=order;
+        batch+=1;
+
+        if(surface&&!accepted.get(normalized)){
+          const sourcePronunciations=Array.isArray(row.pronunciations)?row.pronunciations.length:0;
+          const result=addWorkReference({
+            scope,
+            sourceDb:deCoreDir,
+            sourceTable:'de-core-v2',
+            sourceKey:String(order),
+            surface,
+            language:'de',
+            context:{
+              reason:sourcePronunciations
+                ?'source_form_not_present_in_accepted_de_writer'
+                :'source_form_without_source_pronunciation',
+              processing_order:order,
+              usage_rank:row.usage_rank==null?null:Number(row.usage_rank),
+              dictionary_status:row.dictionary_status||null,
+              source_entry_count:Number(row.source_entry_count||0),
+              source_pronunciations:sourcePronunciations,
+            },
+          });
+          refs+=result.refAdded;
+          uniques+=result.itemAdded;
+        }
+
+        if(scanned%progressEvery===0){
+          console.log(progressLine({
+            phase:'collect:'+scope,
+            done:scanned,
+            total:Math.max(scanned,total),
+            startedAt,
+            accepted:refs,
+            rejected:scanned-refs,
+            errors:0,
+            extra:'gaps='+refs.toLocaleString('en-US')+' · unique_added='+uniques.toLocaleString('en-US'),
+          }));
+        }
+        if(batch>=commitEvery){
+          upsertScan.run(scope,'running',String(lastOrder),scanned,refs,uniques,now());
+          workDb.exec('COMMIT');
+          transactionOpen=false;
+          workDb.exec('BEGIN IMMEDIATE');
+          transactionOpen=true;
+          batch=0;
+        }
+      }
+    }
+    upsertScan.run(scope,stopRequested?'running':'complete',String(lastOrder),scanned,refs,uniques,now());
+    workDb.exec('COMMIT');
+    transactionOpen=false;
+  }catch(error){
+    if(transactionOpen) workDb.exec('ROLLBACK');
+    throw error;
+  }finally{
+    acceptedDb.close();
+  }
+
+  console.log(
+    '[collect:'+scope+'] '+(stopRequested?'checkpointed':'complete')
+    +' · source_scanned='+scanned.toLocaleString('en-US')
+    +' · missing_from_accepted='+refs.toLocaleString('en-US')
+    +' · unique_added='+uniques.toLocaleString('en-US')
+  );
+}
+
+
+function sequentialSourceCheckpoint(value,entryKey='entries',candidateKey='candidates'){
+  try{
+    const parsed=JSON.parse(String(value||'{}'));
+    return {
+      rawLine:Number(parsed.rawLine||0),
+      entries:Number(parsed[entryKey]||0),
+      candidates:Number(parsed[candidateKey]||0),
+    };
+  }catch{
+    return {rawLine:0,entries:0,candidates:0};
+  }
+}
+
+async function collectGermanListedFormSourceDiff(){
+  const scope='de_listed_form_source_minus_accepted';
+  const saved=workDb.prepare('SELECT * FROM scan_state WHERE scope=?').get(scope)||null;
+  if(saved?.status==='complete'){
+    console.log('[collect:'+scope+'] already complete · gaps='+Number(saved.source_refs||0).toLocaleString('en-US'));
+    return;
+  }
+
+  const checkpoint=sequentialSourceCheckpoint(saved?.last_key,'germanEntries','listedCandidates');
+  let rawLine=checkpoint.rawLine;
+  let germanEntries=checkpoint.entries;
+  let listedCandidates=checkpoint.candidates;
+  let refs=Number(saved?.source_refs||0);
+  let uniques=Number(saved?.unique_items_added||0);
+  const startedAt=Date.now();
+
+  const acceptedDb=openReadOnly(deDbPath);
+  const accepted=acceptedDb.prepare([
+    'SELECT 1 AS ok FROM hot',
+    'WHERE normalized=? AND pronunciation_preferred=1 AND pronunciation_eligible=1',
+    'LIMIT 1',
+  ].join(' '));
+
+  console.log(
+    '[collect:'+scope+'] original German Kaikki listed forms -> accepted DE Writer diff'
+    +' · source='+deKaikkiPath
+    +' · resume_raw_line='+rawLine.toLocaleString('en-US')
+  );
+  if(rawLine>0){
+    console.log(
+      '[collect:'+scope+'] gzip source is sequential: resume re-decompresses the prefix to raw line '
+      +rawLine.toLocaleString('en-US')
+      +' but does not redo committed gap rows or any pronunciation generation.'
+    );
+  }
+
+  const source=createReadStream(deKaikkiPath);
+  const input=deKaikkiPath.endsWith('.gz')?source.pipe(createGunzip()):source;
+  const lines=createInterface({input,crlfDelay:Infinity});
+  let currentRawLine=0;
+  let batch=0;
+  let transactionOpen=false;
+
+  try{
+    workDb.exec('BEGIN IMMEDIATE');
+    transactionOpen=true;
+    for await(const line of lines){
+      currentRawLine+=1;
+      if(currentRawLine<=rawLine) continue;
+      if(stopRequested) break;
+      if(!line) continue;
+      let entry;
+      try{entry=JSON.parse(line);}catch{continue;}
+      if(entry?.lang_code!=='de') continue;
+
+      germanEntries+=1;
+      for(const listed of optionsForListedForms(entry)){
+        const surface=String(listed?.candidateSurface||'').normalize('NFKC').trim();
+        if(!surface) continue;
+        const normalized=normalizedSurface(surface,'de');
+        listedCandidates+=1;
+        if(accepted.get(normalized)) continue;
+        const option=listed?.option||{};
+        const result=addWorkReference({
+          scope,
+          sourceDb:deKaikkiPath,
+          sourceTable:'wiktextract_listed_form',
+          sourceKey:normalized,
+          surface,
+          language:'de',
+          context:{
+            reason:'source_listed_form_not_in_accepted_de_writer',
+            source_record_key:option.sourceRecordKey||null,
+            candidate_ipa_count:Array.isArray(option.candidateIpas)?option.candidateIpas.length:0,
+            form_features:Array.isArray(option.formFeatures)?option.formFeatures:[],
+            lemma:option.lemma||null,
+            pos:option.pos||null,
+          },
+        });
+        refs+=result.refAdded;
+        uniques+=result.itemAdded;
+      }
+
+      rawLine=currentRawLine;
+      batch+=1;
+      if(germanEntries%progressEvery===0){
+        const elapsed=Math.max(0.001,(Date.now()-startedAt)/1000);
+        console.log(
+          '[collect:'+scope+'] german_entries='+germanEntries.toLocaleString('en-US')
+          +' · raw_line='+rawLine.toLocaleString('en-US')
+          +' · listed_candidates='+listedCandidates.toLocaleString('en-US')
+          +' · missing_unique_refs='+refs.toLocaleString('en-US')
+          +' · unique_added='+uniques.toLocaleString('en-US')
+          +' · '+(germanEntries/elapsed).toFixed(1)+' German entries/s'
+        );
+      }
+      if(batch>=commitEvery){
+        upsertScan.run(
+          scope,'running',
+          JSON.stringify({rawLine,germanEntries,listedCandidates}),
+          germanEntries,refs,uniques,now(),
+        );
+        workDb.exec('COMMIT');
+        transactionOpen=false;
+        workDb.exec('BEGIN IMMEDIATE');
+        transactionOpen=true;
+        batch=0;
+      }
+    }
+    upsertScan.run(
+      scope,stopRequested?'running':'complete',
+      JSON.stringify({rawLine,germanEntries,listedCandidates}),
+      germanEntries,refs,uniques,now(),
+    );
+    workDb.exec('COMMIT');
+    transactionOpen=false;
+  }catch(error){
+    if(transactionOpen) workDb.exec('ROLLBACK');
+    throw error;
+  }finally{
+    lines.close();
+    input.destroy();
+    acceptedDb.close();
+  }
+
+  console.log(
+    '[collect:'+scope+'] '+(stopRequested?'checkpointed':'complete')
+    +' · german_entries='+germanEntries.toLocaleString('en-US')
+    +' · listed_candidates='+listedCandidates.toLocaleString('en-US')
+    +' · missing_unique_refs='+refs.toLocaleString('en-US')
+    +' · unique_added='+uniques.toLocaleString('en-US')
+  );
+}
+
+function englishCheckpoint(value){
+  try{
+    const parsed=JSON.parse(String(value||'{}'));
+    return {
+      rawLine:Number(parsed.rawLine||0),
+      englishEntries:Number(parsed.englishEntries||0),
+      candidateSurfaces:Number(parsed.candidateSurfaces||0),
+    };
+  }catch{
+    return {rawLine:0,englishEntries:0,candidateSurfaces:0};
+  }
+}
+
+async function collectEnglishSourceDiff(){
+  const scope='en_source_minus_accepted';
+  const saved=workDb.prepare('SELECT * FROM scan_state WHERE scope=?').get(scope)||null;
+  if(saved?.status==='complete'){
+    console.log('[collect:'+scope+'] already complete · gaps='+Number(saved.source_refs||0).toLocaleString('en-US'));
+    return;
+  }
+
+  const checkpoint=englishCheckpoint(saved?.last_key);
+  let rawLine=checkpoint.rawLine;
+  let englishEntries=checkpoint.englishEntries;
+  let candidateSurfaces=checkpoint.candidateSurfaces;
+  let refs=Number(saved?.source_refs||0);
+  let uniques=Number(saved?.unique_items_added||0);
+  const startedAt=Date.now();
+
+  const acceptedDb=openReadOnly(enDbPath);
+  const accepted=acceptedDb.prepare([
+    'SELECT 1 AS ok',
+    'FROM en_form f JOIN en_pronunciation p ON p.form_id=f.id',
+    "WHERE f.normalized=? AND p.analysis_status='ok' AND p.locale_us=1",
+    'LIMIT 1',
+  ].join(' '));
+
+  console.log(
+    '[collect:'+scope+'] original Kaikki/Wiktextract -> accepted EN Writer diff'
+    +' · source='+enKaikkiPath
+    +' · resume_raw_line='+rawLine.toLocaleString('en-US')
+  );
+  if(rawLine>0){
+    console.log(
+      '[collect:'+scope+'] gzip source is sequential: resume re-decompresses the prefix to raw line '
+      +rawLine.toLocaleString('en-US')
+      +' but does not redo DB inserts or any eSpeak/client work.'
+    );
+  }
+
+  const input=createReadStream(enKaikkiPath).pipe(createGunzip());
+  const lines=createInterface({input,crlfDelay:Infinity});
+  let currentRawLine=0;
+  let batch=0;
+  let transactionOpen=false;
+
+  const maybeAdd=(surface,kind,sourceRecord)=>{
+    const normalized=normalizeEnglishSurface(surface);
+    if(!normalized||!isWriterCandidateSurface(normalized)) return;
+    candidateSurfaces+=1;
+    if(accepted.get(normalized)) return;
+    const result=addWorkReference({
+      scope,
+      sourceDb:enKaikkiPath,
+      sourceTable:'wiktextract',
+      sourceKey:normalized,
+      surface:String(surface),
+      language:'en',
+      context:{
+        reason:'source_candidate_not_in_accepted_en_writer',
+        evidence_kind:kind,
+        source_record:sourceRecord,
+      },
+    });
+    refs+=result.refAdded;
+    uniques+=result.itemAdded;
+  };
+
+  try{
+    workDb.exec('BEGIN IMMEDIATE');
+    transactionOpen=true;
+    for await(const line of lines){
+      currentRawLine+=1;
+      if(currentRawLine<=rawLine) continue;
+      if(stopRequested) break;
+      if(!line) continue;
+      let entry;
+      try{entry=JSON.parse(line);}catch{continue;}
+      if(entry?.lang_code!=='en') continue;
+
+      englishEntries+=1;
+      const sourceRecord=String(entry.word||'')+'#'+englishEntries;
+      maybeAdd(entry.word,'wiktionary_headword',sourceRecord);
+      for(const form of entry.forms||[]){
+        if(!form?.form) continue;
+        maybeAdd(form.form,'wiktionary_listed_form',sourceRecord);
+      }
+
+      rawLine=currentRawLine;
+      batch+=1;
+      if(englishEntries%progressEvery===0){
+        const elapsed=Math.max(0.001,(Date.now()-startedAt)/1000);
+        console.log(
+          '[collect:'+scope+'] english_entries='+englishEntries.toLocaleString('en-US')
+          +' · raw_line='+rawLine.toLocaleString('en-US')
+          +' · candidate_occurrences='+candidateSurfaces.toLocaleString('en-US')
+          +' · missing_unique_refs='+refs.toLocaleString('en-US')
+          +' · unique_added='+uniques.toLocaleString('en-US')
+          +' · '+(englishEntries/elapsed).toFixed(1)+' English entries/s'
+        );
+      }
+      if(batch>=commitEvery){
+        upsertScan.run(
+          scope,'running',
+          JSON.stringify({rawLine,englishEntries,candidateSurfaces}),
+          englishEntries,refs,uniques,now(),
+        );
+        workDb.exec('COMMIT');
+        transactionOpen=false;
+        workDb.exec('BEGIN IMMEDIATE');
+        transactionOpen=true;
+        batch=0;
+      }
+    }
+    upsertScan.run(
+      scope,stopRequested?'running':'complete',
+      JSON.stringify({rawLine,englishEntries,candidateSurfaces}),
+      englishEntries,refs,uniques,now(),
+    );
+    workDb.exec('COMMIT');
+    transactionOpen=false;
+  }catch(error){
+    if(transactionOpen) workDb.exec('ROLLBACK');
+    throw error;
+  }finally{
+    lines.close();
+    input.destroy();
+    acceptedDb.close();
+  }
+
+  console.log(
+    '[collect:'+scope+'] '+(stopRequested?'checkpointed':'complete')
+    +' · english_entries='+englishEntries.toLocaleString('en-US')
+    +' · candidate_occurrences='+candidateSurfaces.toLocaleString('en-US')
+    +' · missing_unique_refs='+refs.toLocaleString('en-US')
+    +' · unique_added='+uniques.toLocaleString('en-US')
+  );
+}
+
 async function collect(){
   console.log('\n=== PRONUNCIATION BACKFILL · COLLECT ===');
   console.log('workset: '+workPath);
   console.log('source fingerprint: '+sourceFingerprint);
 
   if(requestedScopes.has('de')&&!stopRequested){
-    const db=openReadOnly(deDbPath);
-    try{
-      const total=scalar(db,[
-        'SELECT COUNT(*) AS c FROM (',
-        ' SELECT publish_order FROM hot GROUP BY publish_order',
-        ' HAVING SUM(CASE WHEN pronunciation_preferred=1 THEN 1 ELSE 0 END)=0',
-        ')',
-      ].join(' '));
-      await runScopeScan({
-        scope:'de_writer_missing_preferred',
-        total,
-        rows:(lastKey)=>db.prepare([
-          'SELECT publish_order AS source_key,MIN(surface) AS surface,MIN(normalized) AS normalized',
-          'FROM hot',
-          'WHERE publish_order>?',
-          'GROUP BY publish_order',
-          'HAVING SUM(CASE WHEN pronunciation_preferred=1 THEN 1 ELSE 0 END)=0',
-          'ORDER BY publish_order',
-        ].join(' ')).iterate(Number(lastKey||0)),
-        map:(row)=>({
-          scope:'de_writer_missing_preferred',
-          sourceDb:deDbPath,
-          sourceTable:'hot',
-          sourceKey:row.source_key,
-          checkpointKey:row.source_key,
-          surface:row.surface||row.normalized,
-          language:'de',
-          context:{reason:'missing_preferred_pronunciation_in_runtime_db'},
-        }),
-      });
-    }finally{ db.close(); }
+    await collectGermanSourceDiff();
+    if(!stopRequested) await collectGermanListedFormSourceDiff();
   }
 
   if(requestedScopes.has('en')&&!stopRequested){
-    const db=openReadOnly(enDbPath);
-    try{
-      const missingWhere=[
-        'NOT EXISTS (',
-        " SELECT 1 FROM en_pronunciation p WHERE p.form_id=f.id AND p.analysis_status='ok'",
-        ')',
-      ].join(' ');
-      const total=scalar(db,'SELECT COUNT(*) AS c FROM en_form f WHERE '+missingWhere);
-      await runScopeScan({
-        scope:'en_form_no_analyzed_pronunciation',
-        total,
-        rows:(lastKey)=>db.prepare([
-          'SELECT f.id AS source_key,f.surface,f.normalized,f.default_eligible,f.historical_only,',
-          'f.proper_name_only,f.wordfreq_rank,f.exclusion_reasons',
-          'FROM en_form f',
-          'WHERE f.id>? AND '+missingWhere,
-          'ORDER BY f.id',
-        ].join(' ')).iterate(Number(lastKey||0)),
-        map:(row)=>({
-          scope:'en_form_no_analyzed_pronunciation',
-          sourceDb:enDbPath,
-          sourceTable:'en_form',
-          sourceKey:row.source_key,
-          checkpointKey:row.source_key,
-          surface:row.surface||row.normalized,
-          language:'en',
-          context:{
-            default_eligible:Boolean(row.default_eligible),
-            historical_only:Boolean(row.historical_only),
-            proper_name_only:Boolean(row.proper_name_only),
-            wordfreq_rank:row.wordfreq_rank==null?null:Number(row.wordfreq_rank),
-            exclusion_reasons:row.exclusion_reasons,
-          },
-        }),
-      });
-    }finally{ db.close(); }
+    await collectEnglishSourceDiff();
   }
 
   if(requestedScopes.has('phrases')&&!stopRequested){
