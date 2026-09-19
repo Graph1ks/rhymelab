@@ -116,3 +116,18 @@ test('eSpeak benchmark inspection preserves rejected raw IPA and analyzer error'
   assert.equal(inspected.ipa,'???');
   assert.match(inspected.analyzerError,/Unsupported English IPA symbol/);
 });
+
+
+test('product runtime contains no eSpeak or child_process query pronunciation dependency',async()=>{
+  const [server,unified,app]=await Promise.all([
+    readFile('src/server.mjs','utf8'),
+    readFile('src/unified-writer-search.mjs','utf8'),
+    readFile('src/ui/app.js','utf8'),
+  ]);
+  const productSource=[server,unified,app].join('\n');
+  assert.doesNotMatch(productSource,/node:child_process|spawnSync|RHYMELAB_ESPEAK|tryEspeakQueryPronunciation|inspectEspeakQueryPronunciation/);
+  await assert.rejects(
+    readFile('src/query-pronunciation-runtime.mjs','utf8'),
+    /ENOENT/,
+  );
+});
