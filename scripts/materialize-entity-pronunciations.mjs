@@ -96,7 +96,8 @@ async function runtimeFingerprint(db) {
         SELECT COUNT(*) AS c
         FROM entity_pronunciation p
         JOIN entity_name n USING(name_id)
-        WHERE p.review_state IN ('accepted','reviewed','accepted_source_composition')
+        WHERE p.locale='de-DE'
+          AND p.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
       `).get().c || 0),
       statement: db.prepare(`
         SELECT n.entity_id,n.name_id,n.surface,n.language,
@@ -104,7 +105,8 @@ async function runtimeFingerprint(db) {
           p.source_kind,p.source_record,p.generated,p.model_id,p.review_state
         FROM entity_pronunciation p
         JOIN entity_name n USING(name_id)
-        WHERE p.review_state IN ('accepted','reviewed','accepted_source_composition')
+        WHERE p.locale='de-DE'
+          AND p.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
         ORDER BY n.entity_id,n.name_id,p.pronunciation_id
       `),
       args: [],
