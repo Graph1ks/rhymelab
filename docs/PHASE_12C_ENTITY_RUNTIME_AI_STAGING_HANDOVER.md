@@ -8,7 +8,7 @@ Historical implementation branch:
 phase12c-entity-runtime-ai-staging
 ```
 
-Accepted source-backed implementation was squash-merged to `main` via PR #112 at commit `e0ddbfac7cdf7229a7a3049c1426c6fb70783cdf`.
+Accepted source-backed implementation was squash-merged to `main` via PR #112 at commit `e0ddbfac`.
 
 Base when this workstream started (Git SHA-1):
 
