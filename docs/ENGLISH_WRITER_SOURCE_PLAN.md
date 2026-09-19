@@ -600,30 +600,34 @@ Require:
 - repeated DB-open fingerprint stability;
 - unchanged frozen German Writer/Phrase behavior.
 
-### Current English gate — BUNDLED ACCEPTANCE EVIDENCE
+### Current English gate — CONSOLIDATED WRITER ACCEPTANCE
 
-The owner read-only runtime diagnostic passed with zero failed checks and semantic fingerprint:
+Phase 12B9 bundle evidence is complete:
 
 ```text
-dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf
+bundle fingerprint             d68ae5f883c9b4d007811573e94493d0bfe389a5c08144da3e63bb9195769c14
+runtime repeatability          3 / 3 PASS
+runtime fingerprint            dc4de5383325ee3b0d03ca6d77b8282bb0986e19c8e12567c2022a8aa3f29fcf
 ```
 
-To reduce iteration latency, independent-open runtime repeatability, Quality/Commonness evidence and Diversity evidence are now collected in one pass.
+Do not promote the v1 Commonness candidates. Both produced 30 phonetic-guard violations because pairwise near-tie comparison was non-transitive. Raw spelling overlap also behaved poorly as an English utility penalty and increased unranked Top-20 concentration.
+
+Phase 12B10 contract: `docs/ENGLISH_WRITER_ACCEPTANCE_V1.md`.
 
 Next owner command after merge:
 
 ```powershell
 git pull
-npm run en:acceptance:bundle
+npm run en:writer:accept
 ```
 
 Primary output:
 
 ```text
-data/local/en-acceptance-bundle-v1-report.json
+data/local/en-writer-acceptance-v1-report.json
 ```
 
-Review this one report to choose or adjust a single English Writer candidate. Then run one focused acceptance pass. Do not split these diagnostics back into separate owner gates unless the bundle exposes a real failure.
+The runner uses anchored <=0.03 phonetic bands, Commonness only inside those bands, spelling overlap as diagnostic evidence only, deterministic lyricist + stratified queries, and one-pass automatic selection of the lowest safe Commonness and Diversity strengths.
 ### 12B7 — product integration
 
 Only after the English runtime gate is credible:
@@ -646,7 +650,7 @@ A new thread should begin by reading:
 6. `ROADMAP.md`
 7. `PROJECT_STATE.json`
 
-Then run the **bundled English acceptance evidence** via `npm run en:acceptance:bundle` and review `data/local/en-acceptance-bundle-v1-report.json`. DB storage/indexed retrieval and the first runtime diagnostic are already accepted.
+Then run the **consolidated English Writer acceptance** via `npm run en:writer:accept` and review `data/local/en-writer-acceptance-v1-report.json`. Publish, DB storage/indexed retrieval, runtime diagnostic and runtime repeatability are already accepted.
 
 Do not reopen Entity work first.
 
