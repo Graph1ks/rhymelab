@@ -427,7 +427,7 @@ try{
         }))
       :[],
     report_profile:'compact-v1',
-    debug_report_written:Boolean(debugReportPath),
+    debug_report_available:true,
     safeguards:{
       read_only:true,
       product_en_enabled:false,
