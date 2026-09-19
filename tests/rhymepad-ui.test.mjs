@@ -66,8 +66,10 @@ test('RhymePad live suggestions use RhymeLab at full accepted result depth', () 
   assert.match(padApp, /lyricWords\(\)\.has\(candidate\)/);
   assert.match(padApp, /rhymeLabDeepResults/);
   assert.match(padCss, /html\[data-mode="rhyme"\] \.rhymeLabDeepResults\{display:block\}/);
-  assert.match(padApp, /basis === 'en'/);
-  assert.match(padApp, /original RhymePad phonetic fallback stays active/);
+  assert.match(padApp, /function languageBasis\(\)/);
+  assert.match(padApp, /if \(language === 'de' \|\| language === 'en'\) return language/);
+  assert.match(padApp, /language: basis/);
+  assert.doesNotMatch(padApp, /original RhymePad phonetic fallback stays active/);
   assert.doesNotMatch(padApp, /candidateBank/);
   assert.doesNotMatch(padApp, /Math\.random/);
 });
