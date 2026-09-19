@@ -143,6 +143,12 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /const defaultSearchSectionsExpanded=true/);
   assert.match(app, /searchAutoCompactThreshold/);
   assert.match(app, /stickyPanelOverride/);
+  assert.match(app, /function enterSearchAutoCompact\(/);
+  assert.match(app, /function exitSearchAutoCompact\(/);
+  assert.match(app, /function updateFloatingSearchGeometry\(/);
+  assert.match(app, /stage\.style\.height=\`\$\{reserveHeight\}px\`/);
+  assert.match(app, /--search-fixed-left/);
+  assert.match(app, /--search-fixed-width/);
   assert.match(app, /window\.scrollY>=threshold/);
   assert.match(app, /window\.addEventListener\('scroll'/);
   assert.match(app, /window\.addEventListener\('resize'/);
@@ -218,8 +224,12 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /\.results-compact \.result-items/);
   assert.match(css, /grid-template-columns:repeat\(auto-fill,minmax\(220px,1fr\)\)/);
   assert.match(css, /\.search-stage\{[\s\S]*?position:relative/);
-  assert.match(css, /\.search-stage\.search-auto-compact\{[\s\S]*?position:sticky/);
+  assert.match(css, /\.search-stage\.search-auto-compact \.search-card\{[\s\S]*?position:fixed/);
   assert.match(css, /top:var\(--search-sticky-top,68px\)/);
+  assert.match(css, /left:var\(--search-fixed-left,0\)/);
+  assert.match(css, /width:var\(--search-fixed-width,100%\)/);
+  assert.match(css, /overscroll-behavior:contain/);
+  assert.doesNotMatch(css, /\.search-stage\.search-auto-compact\{[\s\S]{0,120}?position:sticky/);
   assert.match(css, /\.word-panel\{top:var\(--word-panel-sticky-top,142px\)\}/);
   assert.match(css, /\.search-core-toggle/);
   assert.match(css, /grid-template-columns:auto minmax\(0,1fr\) auto 68px 68px/);
