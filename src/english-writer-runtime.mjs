@@ -4,7 +4,6 @@ import { resolve } from 'node:path';
 import { scoreEnglishRhymeAnalyses } from '../scripts/english-rhyme-features.mjs';
 import {
   DEFAULT_ENGLISH_RUNTIME_CHANNEL_LIMIT,
-  DEFAULT_ENGLISH_RUNTIME_MAX_CANDIDATES,
   ENGLISH_RUNTIME_RETRIEVAL_POLICY,
   analyzeStoredEnglishRuntimePronunciation,
   prepareEnglishRuntimeStatements,
