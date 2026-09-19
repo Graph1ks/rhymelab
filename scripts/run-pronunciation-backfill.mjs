@@ -344,82 +344,283 @@ async function runScopeScan({
   );
 }
 
+
+async function collectGermanSourceDiff(){
+  const scope='de_source_minus_accepted';
+  const saved=workDb.prepare('SELECT * FROM scan_state WHERE scope=?').get(scope)||null;
+  if(saved?.status==='complete'){
+    console.log('[collect:'+scope+'] already complete · gaps='+Number(saved.source_refs||0).toLocaleString('en-US'));
+    return;
+  }
+
+  const acceptedDb=openReadOnly(deDbPath);
+  const accepted=acceptedDb.prepare([
+    'SELECT 1 AS ok FROM hot',
+    'WHERE normalized=? AND pronunciation_preferred=1 AND pronunciation_eligible=1',
+    'LIMIT 1',
+  ].join(' '));
+
+  let lastOrder=Number(saved?.last_key||0);
+  let scanned=Number(saved?.scanned||0);
+  let refs=Number(saved?.source_refs||0);
+  let uniques=Number(saved?.unique_items_added||0);
+  const total=Number(deCoreManifest.total_forms||0);
+  const startedAt=Date.now();
+  let transactionOpen=false;
+  let batch=0;
+
+  console.log(
+    '[collect:'+scope+'] source core -> accepted DE Writer diff'
+    +' · resume_order='+lastOrder.toLocaleString('en-US')
+    +' · source_forms='+total.toLocaleString('en-US')
+  );
+
+  try{
+    workDb.exec('BEGIN IMMEDIATE');
+    transactionOpen=true;
+    for(const fileInfo of deCoreManifest.files||[]){
+      if(stopRequested) break;
+      const fileLast=Number(fileInfo.last_processing_order||0);
+      if(fileLast&&fileLast<=lastOrder) continue;
+      const shardPath=join(deCoreDir,fileInfo.file);
+      const text=await readFile(shardPath,'utf8');
+      for(const line of text.split(/\r?\n/u)){
+        if(stopRequested) break;
+        if(!line) continue;
+        const row=JSON.parse(line);
+        const order=Number(row.processing_order||0);
+        if(!order||order<=lastOrder) continue;
+
+        const surface=String(row.word||row.normalized_form||'').normalize('NFKC').trim();
+        const normalized=String(row.normalized_form||normalizedSurface(surface,'de'));
+        scanned+=1;
+        lastOrder=order;
+        batch+=1;
+
+        if(surface&&!accepted.get(normalized)){
+          const sourcePronunciations=Array.isArray(row.pronunciations)?row.pronunciations.length:0;
+          const result=addWorkReference({
+            scope,
+            sourceDb:deCoreDir,
+            sourceTable:'de-core-v2',
+            sourceKey:String(order),
+            surface,
+            language:'de',
+            context:{
+              reason:sourcePronunciations
+                ?'source_form_not_present_in_accepted_de_writer'
+                :'source_form_without_source_pronunciation',
+              processing_order:order,
+              usage_rank:row.usage_rank==null?null:Number(row.usage_rank),
+              dictionary_status:row.dictionary_status||null,
+              source_entry_count:Number(row.source_entry_count||0),
+              source_pronunciations:sourcePronunciations,
+            },
+          });
+          refs+=result.refAdded;
+          uniques+=result.itemAdded;
+        }
+
+        if(scanned%progressEvery===0){
+          console.log(progressLine({
+            phase:'collect:'+scope,
+            done:scanned,
+            total:Math.max(scanned,total),
+            startedAt,
+            accepted:refs,
+            rejected:scanned-refs,
+            errors:0,
+            extra:'gaps='+refs.toLocaleString('en-US')+' · unique_added='+uniques.toLocaleString('en-US'),
+          }));
+        }
+        if(batch>=commitEvery){
+          upsertScan.run(scope,'running',String(lastOrder),scanned,refs,uniques,now());
+          workDb.exec('COMMIT');
+          transactionOpen=false;
+          workDb.exec('BEGIN IMMEDIATE');
+          transactionOpen=true;
+          batch=0;
+        }
+      }
+    }
+    upsertScan.run(scope,stopRequested?'running':'complete',String(lastOrder),scanned,refs,uniques,now());
+    workDb.exec('COMMIT');
+    transactionOpen=false;
+  }catch(error){
+    if(transactionOpen) workDb.exec('ROLLBACK');
+    throw error;
+  }finally{
+    acceptedDb.close();
+  }
+
+  console.log(
+    '[collect:'+scope+'] '+(stopRequested?'checkpointed':'complete')
+    +' · source_scanned='+scanned.toLocaleString('en-US')
+    +' · missing_from_accepted='+refs.toLocaleString('en-US')
+    +' · unique_added='+uniques.toLocaleString('en-US')
+  );
+}
+
+function englishCheckpoint(value){
+  try{
+    const parsed=JSON.parse(String(value||'{}'));
+    return {
+      rawLine:Number(parsed.rawLine||0),
+      englishEntries:Number(parsed.englishEntries||0),
+      candidateSurfaces:Number(parsed.candidateSurfaces||0),
+    };
+  }catch{
+    return {rawLine:0,englishEntries:0,candidateSurfaces:0};
+  }
+}
+
+async function collectEnglishSourceDiff(){
+  const scope='en_source_minus_accepted';
+  const saved=workDb.prepare('SELECT * FROM scan_state WHERE scope=?').get(scope)||null;
+  if(saved?.status==='complete'){
+    console.log('[collect:'+scope+'] already complete · gaps='+Number(saved.source_refs||0).toLocaleString('en-US'));
+    return;
+  }
+
+  const checkpoint=englishCheckpoint(saved?.last_key);
+  let rawLine=checkpoint.rawLine;
+  let englishEntries=checkpoint.englishEntries;
+  let candidateSurfaces=checkpoint.candidateSurfaces;
+  let refs=Number(saved?.source_refs||0);
+  let uniques=Number(saved?.unique_items_added||0);
+  const startedAt=Date.now();
+
+  const acceptedDb=openReadOnly(enDbPath);
+  const accepted=acceptedDb.prepare([
+    'SELECT 1 AS ok',
+    'FROM en_form f JOIN en_pronunciation p ON p.form_id=f.id',
+    'WHERE f.normalized=? AND f.default_eligible=1 AND p.default_profile_eligible=1',
+    'LIMIT 1',
+  ].join(' '));
+
+  console.log(
+    '[collect:'+scope+'] original Kaikki/Wiktextract -> accepted EN Writer diff'
+    +' · source='+enKaikkiPath
+    +' · resume_raw_line='+rawLine.toLocaleString('en-US')
+  );
+  if(rawLine>0){
+    console.log(
+      '[collect:'+scope+'] gzip source is sequential: resume re-decompresses the prefix to raw line '
+      +rawLine.toLocaleString('en-US')
+      +' but does not redo DB inserts or any eSpeak/client work.'
+    );
+  }
+
+  const input=createReadStream(enKaikkiPath).pipe(createGunzip());
+  const lines=createInterface({input,crlfDelay:Infinity});
+  let currentRawLine=0;
+  let batch=0;
+  let transactionOpen=false;
+
+  const maybeAdd=(surface,kind,sourceRecord)=>{
+    const normalized=normalizeEnglishSurface(surface);
+    if(!normalized||!isWriterCandidateSurface(normalized)) return;
+    candidateSurfaces+=1;
+    if(accepted.get(normalized)) return;
+    const result=addWorkReference({
+      scope,
+      sourceDb:enKaikkiPath,
+      sourceTable:'wiktextract',
+      sourceKey:normalized,
+      surface:String(surface),
+      language:'en',
+      context:{
+        reason:'source_candidate_not_in_accepted_en_writer',
+        evidence_kind:kind,
+        source_record:sourceRecord,
+      },
+    });
+    refs+=result.refAdded;
+    uniques+=result.itemAdded;
+  };
+
+  try{
+    workDb.exec('BEGIN IMMEDIATE');
+    transactionOpen=true;
+    for await(const line of lines){
+      currentRawLine+=1;
+      if(currentRawLine<=rawLine) continue;
+      if(stopRequested) break;
+      if(!line) continue;
+      let entry;
+      try{entry=JSON.parse(line);}catch{continue;}
+      if(entry?.lang_code!=='en') continue;
+
+      englishEntries+=1;
+      const sourceRecord=String(entry.word||'')+'#'+englishEntries;
+      maybeAdd(entry.word,'wiktionary_headword',sourceRecord);
+      for(const form of entry.forms||[]){
+        if(!form?.form) continue;
+        maybeAdd(form.form,'wiktionary_listed_form',sourceRecord);
+      }
+
+      rawLine=currentRawLine;
+      batch+=1;
+      if(englishEntries%progressEvery===0){
+        const elapsed=Math.max(0.001,(Date.now()-startedAt)/1000);
+        console.log(
+          '[collect:'+scope+'] english_entries='+englishEntries.toLocaleString('en-US')
+          +' · raw_line='+rawLine.toLocaleString('en-US')
+          +' · candidate_occurrences='+candidateSurfaces.toLocaleString('en-US')
+          +' · missing_unique_refs='+refs.toLocaleString('en-US')
+          +' · unique_added='+uniques.toLocaleString('en-US')
+          +' · '+(englishEntries/elapsed).toFixed(1)+' English entries/s'
+        );
+      }
+      if(batch>=commitEvery){
+        upsertScan.run(
+          scope,'running',
+          JSON.stringify({rawLine,englishEntries,candidateSurfaces}),
+          englishEntries,refs,uniques,now(),
+        );
+        workDb.exec('COMMIT');
+        transactionOpen=false;
+        workDb.exec('BEGIN IMMEDIATE');
+        transactionOpen=true;
+        batch=0;
+      }
+    }
+    upsertScan.run(
+      scope,stopRequested?'running':'complete',
+      JSON.stringify({rawLine,englishEntries,candidateSurfaces}),
+      englishEntries,refs,uniques,now(),
+    );
+    workDb.exec('COMMIT');
+    transactionOpen=false;
+  }catch(error){
+    if(transactionOpen) workDb.exec('ROLLBACK');
+    throw error;
+  }finally{
+    lines.close();
+    input.destroy();
+    acceptedDb.close();
+  }
+
+  console.log(
+    '[collect:'+scope+'] '+(stopRequested?'checkpointed':'complete')
+    +' · english_entries='+englishEntries.toLocaleString('en-US')
+    +' · candidate_occurrences='+candidateSurfaces.toLocaleString('en-US')
+    +' · missing_unique_refs='+refs.toLocaleString('en-US')
+    +' · unique_added='+uniques.toLocaleString('en-US')
+  );
+}
+
 async function collect(){
   console.log('\n=== PRONUNCIATION BACKFILL · COLLECT ===');
   console.log('workset: '+workPath);
   console.log('source fingerprint: '+sourceFingerprint);
 
   if(requestedScopes.has('de')&&!stopRequested){
-    const db=openReadOnly(deDbPath);
-    try{
-      const total=scalar(db,[
-        'SELECT COUNT(*) AS c FROM (',
-        ' SELECT publish_order FROM hot GROUP BY publish_order',
-        ' HAVING SUM(CASE WHEN pronunciation_preferred=1 THEN 1 ELSE 0 END)=0',
-        ')',
-      ].join(' '));
-      await runScopeScan({
-        scope:'de_writer_missing_preferred',
-        total,
-        rows:(lastKey)=>db.prepare([
-          'SELECT publish_order AS source_key,MIN(surface) AS surface,MIN(normalized) AS normalized',
-          'FROM hot',
-          'WHERE publish_order>?',
-          'GROUP BY publish_order',
-          'HAVING SUM(CASE WHEN pronunciation_preferred=1 THEN 1 ELSE 0 END)=0',
-          'ORDER BY publish_order',
-        ].join(' ')).iterate(Number(lastKey||0)),
-        map:(row)=>({
-          scope:'de_writer_missing_preferred',
-          sourceDb:deDbPath,
-          sourceTable:'hot',
-          sourceKey:row.source_key,
-          checkpointKey:row.source_key,
-          surface:row.surface||row.normalized,
-          language:'de',
-          context:{reason:'missing_preferred_pronunciation_in_runtime_db'},
-        }),
-      });
-    }finally{ db.close(); }
+    await collectGermanSourceDiff();
   }
 
   if(requestedScopes.has('en')&&!stopRequested){
-    const db=openReadOnly(enDbPath);
-    try{
-      const missingWhere=[
-        'NOT EXISTS (',
-        " SELECT 1 FROM en_pronunciation p WHERE p.form_id=f.id AND p.analysis_status='ok'",
-        ')',
-      ].join(' ');
-      const total=scalar(db,'SELECT COUNT(*) AS c FROM en_form f WHERE '+missingWhere);
-      await runScopeScan({
-        scope:'en_form_no_analyzed_pronunciation',
-        total,
-        rows:(lastKey)=>db.prepare([
-          'SELECT f.id AS source_key,f.surface,f.normalized,f.default_eligible,f.historical_only,',
-          'f.proper_name_only,f.wordfreq_rank,f.exclusion_reasons',
-          'FROM en_form f',
-          'WHERE f.id>? AND '+missingWhere,
-          'ORDER BY f.id',
-        ].join(' ')).iterate(Number(lastKey||0)),
-        map:(row)=>({
-          scope:'en_form_no_analyzed_pronunciation',
-          sourceDb:enDbPath,
-          sourceTable:'en_form',
-          sourceKey:row.source_key,
-          checkpointKey:row.source_key,
-          surface:row.surface||row.normalized,
-          language:'en',
-          context:{
-            default_eligible:Boolean(row.default_eligible),
-            historical_only:Boolean(row.historical_only),
-            proper_name_only:Boolean(row.proper_name_only),
-            wordfreq_rank:row.wordfreq_rank==null?null:Number(row.wordfreq_rank),
-            exclusion_reasons:row.exclusion_reasons,
-          },
-        }),
-      });
-    }finally{ db.close(); }
+    await collectEnglishSourceDiff();
   }
 
   if(requestedScopes.has('phrases')&&!stopRequested){
