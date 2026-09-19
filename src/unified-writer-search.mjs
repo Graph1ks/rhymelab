@@ -699,7 +699,9 @@ export function searchUnifiedWriter(
     if (!resultLanguages.includes('de')) {
       phraseChannel = {
         available: false,
-        reason: 'result_language_excludes_german_phrases',
+        reason: requestedLanguages.includes('de')
+          ? 'result_language_excludes_german_phrases'
+          : 'english_phrase_mosaic_not_implemented',
         results: [],
       };
     } else if (!requestedLanguages.includes('de')) {
