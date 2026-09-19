@@ -225,6 +225,54 @@ Examples:
 
 Resolution continues to report count, percentage, throughput, ETA and accepted/rejected/error totals.
 
+## Pre-eSpeak audit and generator comparison
+
+After collection completes, run the structural audit before starting the multi-million-row generator pass:
+
+```powershell
+npm run pronunciation:backfill:audit
+```
+
+Outputs:
+
+```text
+data/local/pronunciation-backfill-v2-audit.json
+data/local/pronunciation-backfill-v2-audit-sample-1000.json
+data/local/pronunciation-backfill-v2-audit-sample-1000.tsv
+```
+
+The audit is read-only. It classifies the existing workset by language, scope, token count, source-ref multiplicity, length and surface shape. It does not automatically discard any candidate.
+
+The 1000 unresolved cases are deterministic and scope-balanced so every collected source family is represented.
+
+For the eSpeak-NG vs in-house client resolver comparison:
+
+```powershell
+npm run pronunciation:backfill:benchmark
+```
+
+This performs two separate evaluations:
+
+1. the same 1000 unresolved backfill cases through both generators;
+2. a separate 1000-case source-backed lexical control set through both generators.
+
+The unresolved set measures coverage and analyzer-level agreement only; it has no direct lexical gold. The source-backed control set is the quality calibration. On the gold controls the client resolver's exact-surface lookup is blocked, while component lookup remains available, so it cannot simply return the held-out reference pronunciation.
+
+Benchmark outputs:
+
+```text
+data/local/pronunciation-generator-benchmark-1000-v1.json
+data/local/pronunciation-generator-benchmark-1000-v1.tsv
+```
+
+The report includes per-scope/per-language coverage, client method breakdown, eSpeak/client IPA agreement, syllable/stress/rhyme-key agreement, held-out reference metrics and latency. Neither benchmark mutates the backfill work DB or canonical runtime DBs.
+
+If the audit/gold samples already exist and only the generators should be rerun:
+
+```powershell
+npm run pronunciation:backfill:benchmark:run
+```
+
 ## Owner commands
 
 The owner-local inventory has now been consumed and the default source adapters above are mapped to the actual local files. A new inventory run is **not** required for this backfill unless the local data layout changes.
