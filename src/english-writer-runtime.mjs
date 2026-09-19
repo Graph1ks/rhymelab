@@ -105,6 +105,7 @@ export function readEnglishProductAcceptanceMarker(
     ['ranking_evidence_policy',ENGLISH_WRITER_RANKING_V2_POLICY],
     ['product_runtime',ENGLISH_WRITER_PRODUCT_RUNTIME],
     ['product_policy',ENGLISH_WRITER_PRODUCT_POLICY],
+    ['product_retrieval_profile',ENGLISH_PRODUCT_RETRIEVAL_PROFILE],
     ['quality_candidate',ENGLISH_WRITER_QUALITY_ID],
   ];
   for(const [key,expected] of checks){
