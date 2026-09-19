@@ -22,7 +22,7 @@ Before changing the project in a fresh thread/session, read:
 14. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity work
 15. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` for Phase 12A2 popularity-cut history
 16. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the deferred Phase 12A3 Entity IPA/runtime checkpoint
-17. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the frozen Entity boundary
+17. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the resumed Phase 12C Entity boundary and frozen baselines
 18. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for the active Phase 12B English Writer work
 19. `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md` for the unknown user-query pronunciation fallback contract
 
@@ -198,7 +198,9 @@ English implementation rules:
 - core runtime remains deterministic/local/offline;
 - do not start Phase 13 cross-language rhyme during Phase 12B.
 
-The current implementation gate is **Phase 12B11 owner integrated English product acceptance**. The selected `guarded_commonness_06` + Diversity `0.08` policy is now wired into `src/english-writer-runtime.mjs` and the unified `DE / EN / DE+EN` Writer path. English remains locally gated by `data/local/en-product-enabled-v1.json`; the normal server opens the EN DB only after `npm run en:product:accept` passes and writes that marker. The single owner acceptance command checks accepted EN fingerprints/policy, frozen German direct-vs-unified equivalence, EN sentinels, DE+EN composition, explicit EN Phrase/Mosaic non-availability, unknown-query no-fake-pronunciation behavior, and two independent-open suite repeatability. On PASS the marker auto-enables EN on the next server restart, so no follow-up enablement PR is required. Keep acceptance reports compact.
+Phase 12B11 English Product is **ACCEPTED / FROZEN**. Owner integrated acceptance passed with semantic fingerprint `c889adf2253f3b149d6363f2063b40717b79a4f0cf24a06c953a599a66613ca6`; all checks passed, German direct-vs-unified Writer invariance passed, `nation -> station` is preserved as multisyllabic-perfect, independent-open repeatability passed, and the local `data/local/en-product-enabled-v1.json` marker was written. The accepted English product uses `guarded_commonness_06`, Diversity `0.08`, and retrieval profile `en-product-retrieval-reservoir-v1`. Do not reopen English ranking/retrieval micro-gates without a concrete regression.
+
+The current implementation gate is **Phase 12C consolidated multilingual Entity pronunciation evidence**. Run one owner bundle, `npm run entity:multilingual:evidence`, instead of separate P898 / CMUdict / English-coverage micro-gates. It must preserve Hybrid-v2 population fingerprint `337c4c122cb015c053b8cae53710cd0248ed47295c66b4db8f273a799d8cf201` and frozen DE Entity runtime fingerprint `38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3`, materialize P898 as evidence-only, and measure exact + bounded source-backed en-US Entity-name recovery against the accepted English DB. No broad G2P, no Entity population retune, and no performance phase yet. Keep the owner report compact.
 
 The classic 20260914 full-dump path is retired. The owner explicitly rejected further staging/comparison against the 103 GB dump and may delete it. Do not redownload it, require it, benchmark against it, or spend more time on BZip2/WSL/full-dump throughput. The only active Phase 12A2 acquisition path is the implemented build-time QLever selective exporter/stager.
 

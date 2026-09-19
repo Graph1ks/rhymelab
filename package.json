@@ -113,6 +113,7 @@
     "en:runtime:diagnose": "node --no-warnings scripts/diagnose-en-retrieval-runtime.mjs",
     "en:acceptance:bundle": "node --no-warnings scripts/run-en-acceptance-bundle.mjs",
     "en:writer:accept": "node --no-warnings scripts/run-en-writer-acceptance.mjs",
-    "en:product:accept": "node --no-warnings scripts/accept-en-product-integration.mjs"
+    "en:product:accept": "node --no-warnings scripts/accept-en-product-integration.mjs",
+    "entity:multilingual:evidence": "node --no-warnings scripts/run-entity-multilingual-pronunciation-evidence.mjs"
   }
 }

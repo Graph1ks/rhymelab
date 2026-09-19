@@ -1,6 +1,6 @@
 # English Product Integration v1 — Phase 12B11
 
-Status: **implemented / owner integrated acceptance pending**
+Status: **ACCEPTED / FROZEN**
 
 ## Goal
 
@@ -87,7 +87,7 @@ Phrase/Mosaic returns:
 english_phrase_mosaic_not_implemented
 ```
 
-English Entity rhyme remains unavailable until the deferred multilingual Entity phase.
+English Entity rhyme remains unavailable in the accepted Phase 12B11 surface; Phase 12C now builds that multilingual Entity capability separately.
 
 ### DE+EN
 
@@ -211,4 +211,14 @@ The failure was not a phonology, ranking, database, language-isolation or repeat
 
 The Product profile therefore widens only the precise exact/multisyllabic reservoirs to 1536. The accepted DB verifier measured a maximum bucket of 1430 for each of those channels. The broader vowel/coda reservoirs remain 128.
 
-Rerun the same owner acceptance command after merge. Do not rebuild either DB.
+Owner run 2 passed after the reservoir fix.
+
+```text
+status                         ok
+semantic fingerprint           c889adf2253f3b149d6363f2063b40717b79a4f0cf24a06c953a599a66613ca6
+repeatability suite fingerprint 26a6e97ddf3f17fcf6721e4487f136badd4838edce13b2020d376dbacc48115d
+failed checks                  0
+enablement marker              data/local/en-product-enabled-v1.json
+```
+
+The English Product is frozen at this checkpoint. Do not rerun the acceptance bundle unless a later change touches its product semantics.

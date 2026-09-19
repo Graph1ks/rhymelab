@@ -19,62 +19,53 @@ Read first:
 7. `PROJECT_STATE.json`
 8. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` only for the frozen Entity boundary
 
-## Current English checkpoint — 2026-09-19
+## Current checkpoint — 2026-09-19
 
-Phase 12B10 ranking evidence is accepted for integration:
-
-```text
-Quality                           guarded_commonness_06
-Diversity                         0.08
-owner ranking report fingerprint  b1aacf3c2de3f91b9ce740744b15f89c797a24b4dc916f0f72f5d8235ea266cb
-```
-
-Phase 12B11 product integration code is implemented.
-
-Owner integrated acceptance run 1 was **not accepted** because exactly one sentinel failed:
+English Product Phase 12B11 is **accepted and frozen**.
 
 ```text
-failed check    english_multisyllabic_nation_station
-all other checks PASS
-suite repeatability PASS
-German invariance PASS
-EN leakage violations 0
+product runtime                    en-writer-product-v1-candidate
+product policy                     en-writer-guarded-quality-diversity-v1-candidate
+Quality                            guarded_commonness_06
+Diversity                          0.08
+retrieval profile                  en-product-retrieval-reservoir-v1
+product acceptance fingerprint     c889adf2253f3b149d6363f2063b40717b79a4f0cf24a06c953a599a66613ca6
+repeatability suite fingerprint    26a6e97ddf3f17fcf6721e4487f136badd4838edce13b2020d376dbacc48115d
+enablement marker                  data/local/en-product-enabled-v1.json
 ```
 
-Diagnosis: product retrieval still used the low-level 128-row/channel diagnostic bound. `station` is a valid multisyllabic-perfect candidate for `nation`, but can fall outside that slice in the dense `-ation` bucket.
+All integrated checks passed, including frozen German direct-vs-unified equivalence, EN language isolation, `time -> rhyme`, `nation -> station`, `record` stress variants, `route` alternates, DE+EN composition, unknown-query no-fake-pronunciation behavior, and independent-open repeatability.
 
-The fix keeps broad channels bounded while widening only precise channels:
+Do not reopen English acceptance. Phase 12C Entity work is now active.
+
+The next step is deliberately consolidated rather than split into P898 / CMUdict / EN / token-composition micro-gates:
 
 ```text
-profile       en-product-retrieval-reservoir-v1
-exact         1536
-multi         1536
-vowel          128
-family_coda    128
-coda           128
-merged max    3072
+command  npm run entity:multilingual:evidence
+report   data/local/entity-multilingual-pronunciation-evidence-v1-report.json
 ```
 
+That one command:
 
-```text
-English product runtime           en-writer-product-v1-candidate
-English product policy            en-writer-guarded-quality-diversity-v1-candidate
-English DB                        data/local/rhymelab-en-v1.sqlite
-local enablement marker           data/local/en-product-enabled-v1.json
-owner command                     npm run en:product:accept
-owner report                      data/local/en-product-acceptance-v1-report.json
-```
+1. runs the existing Entity pronunciation owner workflow;
+2. preserves the accepted 1,077,644-entity Hybrid-v2 population;
+3. requires DE Entity runtime fingerprint `38199d5b872c3fd2a20839490005f43d76ac6baaecfe657b1026d3d94efd66b3`;
+4. materializes Wikidata P898 as source evidence only;
+5. validates the accepted English DB/enablement marker/profile;
+6. audits every searchable English Entity name for exact accepted en-US pronunciation;
+7. attempts bounded source-backed token composition up to 6 tokens;
+8. emits aggregate coverage/source/unresolved diagnostics only.
 
-The normal server does not open the English DB until the integrated owner acceptance passes. The acceptance command removes any stale marker first, runs two independent DB-open suites, checks frozen German direct-vs-unified equality plus EN/DE+EN product behavior, and writes the marker only on PASS.
+It does **not** promote English Entity runtime rows, does not promote generic P898 language evidence to a regional locale, does not use broad G2P, and does not retune Entity popularity.
 
 After merge, run exactly:
 
 ```powershell
 git pull
-npm run en:product:accept
+npm run entity:multilingual:evidence
 ```
 
-Upload only the compact primary report. If status is `ok`, restart `npm run dev`; EN and DE+EN then activate automatically. Do not request a separate ranking or enablement run.
+Upload only the compact primary report. If it is `evidence_ready`, the next implementation step is one source-backed multilingual Entity runtime pass rather than another coverage micro-gate.
 
 ## Frozen German baseline
 
