@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-19
 
-Status: **DOCUMENTED EXECUTION ORDER — English v4 DB materialization repeatable; multisyllabic retrieval verification patch is the active gate**
+Status: **DOCUMENTED EXECUTION ORDER — English v4 DB storage/indexed retrieval accepted; runtime diagnostic is the active gate**
 
 ## 1. Why this document exists
 
@@ -269,13 +269,13 @@ Performance changes must reproduce accepted Top-N ordering/result fingerprints. 
 
 ```text
 CURRENT
-English v4 DB repeatability accepted
+English v4 DB storage/indexed retrieval accepted
         |
         v
-Close multisyllabic DB retrieval verification
+English read-only retrieval runtime diagnostic
         |
         v
-English retrieval/runtime acceptance
+English runtime repeatability / acceptance
         |
         v
 English ranking benchmark
@@ -330,4 +330,6 @@ fingerprints equal                 true
 snapshots equal                    true
 ```
 
-Materialization determinism is accepted. Before retrieval/runtime acceptance, one narrow verifier defect must be closed: `idx_en_pron_multi` existed but the old query-plan sampler and equivalence suite did not independently require a non-null `multisyllable_key` channel. The source patch adds that coverage and persists verifier evidence. It requires only a read-only `npm run en:db:verify`, not another DB rebuild.
+Materialization determinism is accepted. The subsequent persisted verifier pass also closed the multisyllabic gap: all five channels use their dedicated indexes, each passed 20 deterministic general and 20 explicit multi-result indexed-vs-full-scan samples with zero mismatches, and foreign-key violations are zero. DB storage/indexed retrieval is therefore closed.
+
+The active gate is now the read-only runtime candidate layer in `docs/ENGLISH_RETRIEVAL_RUNTIME_V1.md`. Run `npm run en:runtime:diagnose`; do not enable product EN or begin final Writer ranking until runtime diagnostic and independent-open repeatability are accepted.
