@@ -10,6 +10,10 @@ Primary unified-search controls now have an explicit runtime interaction regress
 
 Entity result presentation now treats `entity` as an internal result-family concept only. Individual Entity cards/detail panels must show the concrete accepted taxonomy subtype (for example Rapper, Actor, Music Group, Movie, Video Game or Character); raw category paths and generic `Entity` labels are not valid item-type presentation.
 
+Total Query Pronunciation v1 is implemented for **single-token** unknown user queries. Source-backed pronunciation remains first priority; a miss now receives a deterministic ephemeral DE/EN pronunciation anchor, optionally through a separately installed local eSpeak-NG executable and otherwise through the in-repository deterministic fallback. Generated query anchors are analyzer-gated, never canonical lexical facts, and feed the existing Writer/Phrase/Entity retrieval stacks rather than a new scorer.
+
+A deterministic **1000-case unresolved local-data benchmark workflow** is implemented but has not yet been run against the owner's gitignored full local databases. The sample is balanced across unresolved DE phrase tokens plus DE/EN preferred Entity names and aliases. The seven product sentinels `Vulkanschnecken`, `Glutamat`, `Winterwolf`, `Holladio`, `Dragonspawn`, `Ironworm`, and `Baladur` are evaluated in both DE and EN in addition to the 1000 database rows. Generated bulk pronunciations remain staging-only / opt-in-only; the ~700k unresolved Entity long tail is not being materialized into canonical runtime in this milestone.
+
 
 ## Current product/runtime baseline — v0.11.0
 
