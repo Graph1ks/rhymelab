@@ -86,21 +86,20 @@ The model remains build-time benchmark evidence only.
 
 ## Owner workflow
 
-After the v2 fix merges:
+The standalone preparation command remains available for diagnostics:
 
 ```powershell
-git pull
 npm run entity:g2p:benchmark:prepare
 ```
 
-Expected files:
+It writes:
 
 ```text
 data/local/entity-g2p-proper-name-benchmark-v2.json
 data/local/entity-g2p-proper-name-benchmark-v2-input.tsv
 ```
 
-Review the compact JSON before running MFA.
+The normal owner gate does not require a separate review/upload between preparation and MFA.
 
 One-time MFA setup, if MFA is not already installed:
 
@@ -110,13 +109,15 @@ conda activate rhymelab-mfa
 mfa model download g2p english_us_arpa --version 2.0.0a
 ```
 
-Then run the complete benchmark:
+Then run the complete owner gate:
 
 ```powershell
+git pull
+conda activate rhymelab-mfa
 npm run entity:g2p:benchmark:mfa
 ```
 
-The runner:
+The npm command first rebuilds v2, then the runner:
 
 1. requires benchmark schema v2;
 2. requires zero duplicate normalized controls;
