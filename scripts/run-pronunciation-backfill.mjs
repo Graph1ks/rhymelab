@@ -467,6 +467,154 @@ async function collectGermanSourceDiff(){
   );
 }
 
+
+function sequentialSourceCheckpoint(value,entryKey='entries',candidateKey='candidates'){
+  try{
+    const parsed=JSON.parse(String(value||'{}'));
+    return {
+      rawLine:Number(parsed.rawLine||0),
+      entries:Number(parsed[entryKey]||0),
+      candidates:Number(parsed[candidateKey]||0),
+    };
+  }catch{
+    return {rawLine:0,entries:0,candidates:0};
+  }
+}
+
+async function collectGermanListedFormSourceDiff(){
+  const scope='de_listed_form_source_minus_accepted';
+  const saved=workDb.prepare('SELECT * FROM scan_state WHERE scope=?').get(scope)||null;
+  if(saved?.status==='complete'){
+    console.log('[collect:'+scope+'] already complete · gaps='+Number(saved.source_refs||0).toLocaleString('en-US'));
+    return;
+  }
+
+  const checkpoint=sequentialSourceCheckpoint(saved?.last_key,'germanEntries','listedCandidates');
+  let rawLine=checkpoint.rawLine;
+  let germanEntries=checkpoint.entries;
+  let listedCandidates=checkpoint.candidates;
+  let refs=Number(saved?.source_refs||0);
+  let uniques=Number(saved?.unique_items_added||0);
+  const startedAt=Date.now();
+
+  const acceptedDb=openReadOnly(deDbPath);
+  const accepted=acceptedDb.prepare([
+    'SELECT 1 AS ok FROM hot',
+    'WHERE normalized=? AND pronunciation_preferred=1 AND pronunciation_eligible=1',
+    'LIMIT 1',
+  ].join(' '));
+
+  console.log(
+    '[collect:'+scope+'] original German Kaikki listed forms -> accepted DE Writer diff'
+    +' · source='+deKaikkiPath
+    +' · resume_raw_line='+rawLine.toLocaleString('en-US')
+  );
+  if(rawLine>0){
+    console.log(
+      '[collect:'+scope+'] gzip source is sequential: resume re-decompresses the prefix to raw line '
+      +rawLine.toLocaleString('en-US')
+      +' but does not redo committed gap rows or any pronunciation generation.'
+    );
+  }
+
+  const source=createReadStream(deKaikkiPath);
+  const input=deKaikkiPath.endsWith('.gz')?source.pipe(createGunzip()):source;
+  const lines=createInterface({input,crlfDelay:Infinity});
+  let currentRawLine=0;
+  let batch=0;
+  let transactionOpen=false;
+
+  try{
+    workDb.exec('BEGIN IMMEDIATE');
+    transactionOpen=true;
+    for await(const line of lines){
+      currentRawLine+=1;
+      if(currentRawLine<=rawLine) continue;
+      if(stopRequested) break;
+      if(!line) continue;
+      let entry;
+      try{entry=JSON.parse(line);}catch{continue;}
+      if(entry?.lang_code!=='de') continue;
+
+      germanEntries+=1;
+      for(const listed of optionsForListedForms(entry)){
+        const surface=String(listed?.candidateSurface||'').normalize('NFKC').trim();
+        if(!surface) continue;
+        const normalized=normalizedSurface(surface,'de');
+        listedCandidates+=1;
+        if(accepted.get(normalized)) continue;
+        const option=listed?.option||{};
+        const result=addWorkReference({
+          scope,
+          sourceDb:deKaikkiPath,
+          sourceTable:'wiktextract_listed_form',
+          sourceKey:normalized,
+          surface,
+          language:'de',
+          context:{
+            reason:'source_listed_form_not_in_accepted_de_writer',
+            source_record_key:option.sourceRecordKey||null,
+            candidate_ipa_count:Array.isArray(option.candidateIpas)?option.candidateIpas.length:0,
+            form_features:Array.isArray(option.formFeatures)?option.formFeatures:[],
+            lemma:option.lemma||null,
+            pos:option.pos||null,
+          },
+        });
+        refs+=result.refAdded;
+        uniques+=result.itemAdded;
+      }
+
+      rawLine=currentRawLine;
+      batch+=1;
+      if(germanEntries%progressEvery===0){
+        const elapsed=Math.max(0.001,(Date.now()-startedAt)/1000);
+        console.log(
+          '[collect:'+scope+'] german_entries='+germanEntries.toLocaleString('en-US')
+          +' · raw_line='+rawLine.toLocaleString('en-US')
+          +' · listed_candidates='+listedCandidates.toLocaleString('en-US')
+          +' · missing_unique_refs='+refs.toLocaleString('en-US')
+          +' · unique_added='+uniques.toLocaleString('en-US')
+          +' · '+(germanEntries/elapsed).toFixed(1)+' German entries/s'
+        );
+      }
+      if(batch>=commitEvery){
+        upsertScan.run(
+          scope,'running',
+          JSON.stringify({rawLine,germanEntries,listedCandidates}),
+          germanEntries,refs,uniques,now(),
+        );
+        workDb.exec('COMMIT');
+        transactionOpen=false;
+        workDb.exec('BEGIN IMMEDIATE');
+        transactionOpen=true;
+        batch=0;
+      }
+    }
+    upsertScan.run(
+      scope,stopRequested?'running':'complete',
+      JSON.stringify({rawLine,germanEntries,listedCandidates}),
+      germanEntries,refs,uniques,now(),
+    );
+    workDb.exec('COMMIT');
+    transactionOpen=false;
+  }catch(error){
+    if(transactionOpen) workDb.exec('ROLLBACK');
+    throw error;
+  }finally{
+    lines.close();
+    input.destroy();
+    acceptedDb.close();
+  }
+
+  console.log(
+    '[collect:'+scope+'] '+(stopRequested?'checkpointed':'complete')
+    +' · german_entries='+germanEntries.toLocaleString('en-US')
+    +' · listed_candidates='+listedCandidates.toLocaleString('en-US')
+    +' · missing_unique_refs='+refs.toLocaleString('en-US')
+    +' · unique_added='+uniques.toLocaleString('en-US')
+  );
+}
+
 function englishCheckpoint(value){
   try{
     const parsed=JSON.parse(String(value||'{}'));
@@ -500,7 +648,7 @@ async function collectEnglishSourceDiff(){
   const accepted=acceptedDb.prepare([
     'SELECT 1 AS ok',
     'FROM en_form f JOIN en_pronunciation p ON p.form_id=f.id',
-    'WHERE f.normalized=? AND f.default_eligible=1 AND p.default_profile_eligible=1',
+    "WHERE f.normalized=? AND p.analysis_status='ok' AND p.locale_us=1",
     'LIMIT 1',
   ].join(' '));
 
@@ -623,6 +771,7 @@ async function collect(){
 
   if(requestedScopes.has('de')&&!stopRequested){
     await collectGermanSourceDiff();
+    if(!stopRequested) await collectGermanListedFormSourceDiff();
   }
 
   if(requestedScopes.has('en')&&!stopRequested){
