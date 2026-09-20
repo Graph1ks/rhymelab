@@ -1,6 +1,6 @@
 # Public-facing status
 
-Last updated: 2026-09-19
+Last updated: 2026-09-20
 
 RhymeLab's public repository is `Graph1ks/rhymelab`. `main` is protected and the required public CI check is `validate`.
 
@@ -38,6 +38,14 @@ Owner full-data Backfill V2 collection is complete: 6,033,818 unique language+no
 
 
 
+
+## Serving-v1 performance candidate
+
+The owner-preview path `npm run dev:serving` now targets the one-file `data/local/rhymelab-serving-v1.sqlite` Product adapter. Expensive unified-search channels execute through five persistent `worker_threads` (DE Words, EN Words, DE Phrase/Mosaic, DE Entities, EN Entities), each with its own read-only connection. Worker creation/DB opening happens before measured requests; workers are reused across requests.
+
+The synchronous `searchUnifiedWriter()` implementation remains the semantic reference. CI fixture coverage requires the parallel Serving response to deep-equal the serial response for the same request. The Serving hotpath benchmark and Product Acceptance timing now measure the parallel path; the benchmark retains `--serial` as a diagnostic control.
+
+This step deliberately adds **no cross-request search/result/scoring/analysis cache**. Caching is deferred until the already-planned Serving-v1 and worker-parallelization work is finished and measured.
 
 ## Current product/runtime baseline — v0.11.0
 
