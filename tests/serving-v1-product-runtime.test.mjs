@@ -30,7 +30,8 @@ import {
   materializedWriterRuntimeState,
   resolveMaterializedWriterMorphologyBatch,
 } from '../src/writer-materialized-runtime.mjs';
-import {unifiedWriterCapabilities} from '../src/unified-writer-search.mjs';
+import {searchUnifiedWriter,unifiedWriterCapabilities} from '../src/unified-writer-search.mjs';
+import {createServingV1ParallelWriterRuntime} from '../src/unified-writer-parallel.mjs';
 import {getPhonologyProfile} from '../scripts/phonology-profiles.mjs';
 import {analyzeGermanIpa} from '../scripts/german-ipa.mjs';
 
@@ -397,6 +398,51 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       assert.equal(capabilities.languages.de.phraseMosaic,true);
       assert.equal(capabilities.languages.de.entityRhymes,true);
       assert.equal(capabilities.languages.en.wordWriter,true);
+
+      const parallel=createServingV1ParallelWriterRuntime(path);
+      try{
+        await parallel.ready();
+        const parallelOptions={
+          language:'de',
+          resultLanguage:'de',
+          scope:'all',
+          type:'all',
+          wordLimit:10,
+          wordPoolLimit:50,
+          phraseLimit:10,
+          phrasePoolLimit:16,
+          phrasePerChannelLimit:4,
+          entityLimit:10,
+          entityPoolLimit:16,
+        };
+        const serialCore=searchUnifiedWriter(
+          runtime.coreDatabases,
+          'Zeit',
+          parallelOptions,
+        );
+        const parallelCore=await parallel.search(
+          'Zeit',
+          parallelOptions,
+          {generatedOverlay:false},
+        );
+        assert.deepEqual(parallelCore,serialCore);
+
+        const serialAll=searchUnifiedWriter(
+          runtime.allDatabases,
+          'Zeit',
+          parallelOptions,
+        );
+        const parallelAll=await parallel.search(
+          'Zeit',
+          parallelOptions,
+          {generatedOverlay:true},
+        );
+        assert.deepEqual(parallelAll,serialAll);
+        assert.equal(parallel.health().workers,5);
+        assert.equal(parallel.health().caching,false);
+      }finally{
+        await parallel.close();
+      }
 
       const generatedOnlyCount=runtime.allDb.prepare(`
         SELECT COUNT(*) c FROM entity_pronunciation WHERE source_kind='espeak_ng_generated_secondary'
