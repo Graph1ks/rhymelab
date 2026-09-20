@@ -118,6 +118,7 @@ export function createServingV1ProductStorage(db){
       multisyllable_key TEXT,
       vowel_key TEXT,
       vowel_family TEXT,
+      stressed_family TEXT,
       coda_key TEXT,
       coda_class TEXT
     );
@@ -134,6 +135,9 @@ export function createServingV1ProductStorage(db){
     CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_family
       ON runtime_de_candidate(vowel_family,syllable_count,usage_rank,source_order)
       WHERE vowel_family IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_stressed_family
+      ON runtime_de_candidate(stressed_family,syllable_count,usage_rank,source_order)
+      WHERE stressed_family IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_family_coda
       ON runtime_de_candidate(vowel_family,coda_class,syllable_count,usage_rank,source_order)
       WHERE vowel_family IS NOT NULL;
