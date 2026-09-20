@@ -184,8 +184,10 @@ export function getWord(db, word) {
     stress: preferred.stress,
     primaryStressSyllable: preferred.primary_stress,
     preferredIpa: preferred.ipa,
-    generatedPronunciation,
-    pronunciationProvenance:generatedPronunciation?'generated_optin_overlay':'source_backed',
+    ...(generatedPronunciation?{
+      generatedPronunciation:true,
+      pronunciationProvenance:'generated_optin_overlay',
+    }:{}),
     pronunciations: rows.map((row) => ({
       ipa: row.ipa,
       preferred: Boolean(row.pronunciation_preferred),
