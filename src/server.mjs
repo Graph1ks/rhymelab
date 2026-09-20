@@ -25,6 +25,7 @@ import {
   DEFAULT_GENERATED_PHRASE_DB_PATH,
   DEFAULT_GENERATED_WRITER_DB_PATH,
   openGeneratedOptinRuntime,
+  selectGeneratedOptinDatabases,
 } from './generated-optin-runtime.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
@@ -140,10 +141,17 @@ function generatedOptinRequested(url){
   return url.searchParams.get('generated')==='1';
 }
 
+function requestRuntimeSelection(url){
+  return selectGeneratedOptinDatabases(
+    canonicalRuntimeDatabases,
+    generatedOptinRuntime,
+    generatedOptinRequested(url),
+  );
+}
+
 function requestRuntimeDatabases(url){
-  if(!generatedOptinRequested(url))return canonicalRuntimeDatabases;
-  if(!generatedOptinRuntime.available)return null;
-  return generatedOptinRuntime.databases;
+  const selection=requestRuntimeSelection(url);
+  return selection.available?selection.databases:null;
 }
 
 function databaseRevisionPart(db,path){
