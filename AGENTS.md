@@ -36,6 +36,7 @@ Before changing the project in a fresh thread/session, read:
 28. `docs/LOCAL_DATA_INVENTORY.md` before changing local source-path assumptions or full-data backfill adapters
 29. `docs/SERVING_V1.md` before changing the experimental unified Serving-v1 identity/dedupe build, Core authority, resume/promotion behavior, or later Serving-v1 runtime promotion
 30. `docs/SERVING_V1_RUNTIME_MATERIALIZATION.md` before changing Serving-v1 runtime targets, unified retrieval keys, precomputed morphology/Phrase evidence, retrieval equivalence, or runtime-materialization promotion
+31. `docs/SERVING_V1_PRODUCT_ADAPTER.md` before changing the one-DB Product compatibility layer, Product metadata build, semantic/ordering acceptance, latency switch gates, or final Serving runtime promotion
 
 ## Operating model — solo-dev / owner-controlled
 
