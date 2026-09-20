@@ -9,10 +9,12 @@ import {DatabaseSync} from 'node:sqlite';
 import {createServingV1Storage} from '../scripts/serving-v1-core.mjs';
 import {createServingV1RuntimeStorage} from '../scripts/serving-v1-runtime-core.mjs';
 import {
+  SERVING_V1_PRODUCT_REVISION,
   SERVING_V1_PRODUCT_SCHEMA,
   servingV1ProductInvariantReport,
 } from '../scripts/serving-v1-product-core.mjs';
 import {openServingV1ProductRuntime} from '../src/serving-v1-product-runtime.mjs';
+import {searchEntityRhymes} from '../src/entity-writer-runtime.mjs';
 
 function meta(db,schema){
   db.exec('CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);');
@@ -28,21 +30,42 @@ function createDe(path){
     meta(db,'rhymelab-local-db-v5');
     db.exec(`
       CREATE TABLE hot(
-        id INTEGER PRIMARY KEY,normalized TEXT,ipa TEXT,phonemes TEXT,stress TEXT,
-        pronunciation_eligible INTEGER,pronunciation_flags TEXT,usage_score REAL,
-        usage_source_count INTEGER,gender TEXT,entity_kind TEXT,lexical_tags TEXT,
+        id INTEGER PRIMARY KEY,surface TEXT,normalized TEXT,ipa TEXT,phonemes TEXT,stress TEXT,
+        pronunciation_eligible INTEGER,pronunciation_flags TEXT,usage_rank INTEGER,usage_score REAL,
+        usage_count INTEGER,usage_source_count INTEGER,lemma TEXT,pos TEXT,gender TEXT,lexicon_layer TEXT,
+        entity_kind TEXT,historical INTEGER,lexical_tags TEXT,pronunciation_preferred INTEGER,
         pronunciation_source TEXT,pronunciation_source_order INTEGER,pronunciation_evidence INTEGER,
         pronunciation_tags TEXT,pronunciation_raw_tags TEXT,locale TEXT,dialect TEXT,
         pronunciation_register TEXT,rhyme_tail TEXT,final_tail TEXT,vowels TEXT,consonants TEXT,
         coda_class TEXT,rhyme_syllables INTEGER,pronunciation_rank INTEGER
       );
     `);
-    const ins=db.prepare('INSERT INTO hot VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    ins.run(1,'zeit','tsaɪt','t s aɪ t','1',1,'[]',6.0,3,'f',null,'["common"]',
-      'German Wiktionary',1,2,'[]','[]','de-DE',null,null,'aɪt','aɪt','aɪ','t','COR-STOP',1,1);
-    ins.run(2,'krankenscheindrucker','kʁaŋk','k ʁ a ŋ k','1',1,'["generated","secondary_opt_in"]',
-      null,null,null,null,'[]','eSpeak-NG Backfill V2',99,0,'["generated"]','["generated"]',
-      'de-DE',null,null,'aŋk','aŋk','a','k','DOR-STOP',1,1);
+    const ins=db.prepare(`
+      INSERT INTO hot(
+        id,surface,normalized,ipa,phonemes,stress,pronunciation_eligible,pronunciation_flags,
+        usage_rank,usage_score,usage_count,usage_source_count,lemma,pos,gender,lexicon_layer,
+        entity_kind,historical,lexical_tags,pronunciation_preferred,pronunciation_source,
+        pronunciation_source_order,pronunciation_evidence,pronunciation_tags,pronunciation_raw_tags,
+        locale,dialect,pronunciation_register,rhyme_tail,final_tail,vowels,consonants,coda_class,
+        rhyme_syllables,pronunciation_rank
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `);
+    ins.run(
+      1,'Zeit','zeit','tsaɪt','t s aɪ t','1',1,'[]',
+      1,6.0,10,3,'zeit','noun','f','dictionary',null,0,'["common"]',1,
+      'German Wiktionary',1,2,'[]','[]','de-DE',null,null,'aɪt','aɪt','aɪ','t','COR-STOP',1,1
+    );
+    ins.run(
+      2,'Krankenscheindrucker','krankenscheindrucker','kʁaŋk','k ʁ a ŋ k','1',1,
+      '["generated","secondary_opt_in"]',null,null,null,null,'krankenscheindrucker','noun',null,
+      'dictionary',null,0,'[]',1,'eSpeak-NG Backfill V2',99,0,'["generated"]','["generated"]',
+      'de-DE',null,null,'aŋk','aŋk','a','k','DOR-STOP',1,1
+    );
+    ins.run(
+      3,'A-Zeit','zeit','tsaɪt','t s aɪ t','1',1,'[]',
+      1,6.0,10,3,'WRONG_LEMMA','noun','f','dictionary',null,0,'[]',1,
+      'German Wiktionary',1,1,'[]','[]','de-DE',null,null,'aɪt','aɪt','aɪ','t','COR-STOP',1,1
+    );
   }finally{db.close();}
 }
 function createEn(path){
@@ -112,23 +135,72 @@ function createEntity(path){
         model_id TEXT,confidence REAL,review_state TEXT
       );
       CREATE TABLE entity_phonetic_analysis(
-        pronunciation_id INTEGER,analyzer_id TEXT,phonemes TEXT,stress_pattern TEXT
+        pronunciation_id INTEGER,analyzer_id TEXT,phonemes TEXT,syllables TEXT,syllable_count INTEGER,
+        primary_stress INTEGER,secondary_stress TEXT,stress_pattern TEXT,vowel_sequence TEXT,
+        consonant_sequence TEXT,rhyme_tail TEXT,rhyme_signature TEXT
       );
       CREATE TABLE entity_rhyme_anchor(
         analyzer_id TEXT,channel TEXT,anchor_key TEXT,pronunciation_id INTEGER
       );
     `);
+
     db.prepare('INSERT INTO entity VALUES(?,?,?,?,?,?)').run(1,'Q1','person.musician',0.9,0.9,'A');
     db.prepare('INSERT INTO entity_category VALUES(?,?,?,?,?,?,?,?)')
       .run(1,'person.musician',0.9,1,0.9,'A',0,1);
     db.prepare('INSERT INTO entity_name VALUES(?,?,?,?,?,?,?,?,?,?,?)')
       .run(1,1,'Zeit','zeit','de','auto','label',1,1,'wikidata','Q1');
-    db.prepare('INSERT INTO entity_pronunciation VALUES(?,?,?,?,?,?,?,?,?,?,?,?)')
-      .run(1,1,'de-DE','source','tsaɪt',1,'wikidata_p898','Q1',0,null,1,'accepted_source_backed');
-    db.prepare('INSERT INTO entity_phonetic_analysis VALUES(?,?,?,?)')
-      .run(1,'de-ipa-v2','["t","s","aɪ","t"]','1');
-    db.prepare('INSERT INTO entity_rhyme_anchor VALUES(?,?,?,?)')
-      .run('de-ipa-v2','writer_secondary_anchor','aɪ-t',1);
+
+    const pronunciation=db.prepare('INSERT INTO entity_pronunciation VALUES(?,?,?,?,?,?,?,?,?,?,?,?)');
+    const analysis=db.prepare('INSERT INTO entity_phonetic_analysis VALUES(?,?,?,?,?,?,?,?,?,?,?,?)');
+    const anchor=db.prepare('INSERT INTO entity_rhyme_anchor VALUES(?,?,?,?)');
+
+    pronunciation.run(1,1,'de-DE','source','tsaɪt',1,'wikidata_p898','Q1',0,null,1,'accepted_source_backed');
+    analysis.run(
+      1,'de-ipa-v2','["t","s","aɪ","t"]',
+      '[{"position":1,"onset":["t","s"],"nucleus":"aɪ","coda":["t"],"stressLevel":2}]',
+      1,1,'[]','1','aɪ','t','aɪ t','aɪt'
+    );
+    anchor.run('de-ipa-v2','writer_secondary_anchor','aɪ-t',1);
+
+    // Same Entity name + same Serving pronunciation identity, but a distinct source occurrence.
+    // Product-v2 must preserve this source ID and its own anchor membership.
+    pronunciation.run(
+      2,1,'de-DE','variant','tsaɪt',0,'espeak_ng_generated_secondary','generated:Q1',1,
+      'espeak-ng',0.9,'accepted'
+    );
+    analysis.run(
+      2,'de-ipa-v2','["t","s","aɪ","t"]',
+      '[{"position":1,"onset":["t","s"],"nucleus":"aɪ","coda":["t"],"stressLevel":2}]',
+      1,1,'[]','1','aɪ','t','aɪ t','aɪt'
+    );
+    anchor.run('de-ipa-v2','writer_secondary_anchor_context','ctx-aɪ-t',2);
+
+    // Eligible and analyzed, but intentionally anchorless: diagnostic only, not an invariant failure.
+    pronunciation.run(
+      4,1,'de-DE','alternate','tsaɪt',0,'manual_source','manual:Q1',0,
+      null,0.8,'reviewed'
+    );
+    analysis.run(
+      4,'de-ipa-v2','["t","s","aɪ","t"]',
+      '[{"position":1,"onset":["t","s"],"nucleus":"aɪ","coda":["t"],"stressLevel":2}]',
+      1,1,'[]','1','aɪ','t','aɪ t','aɪt'
+    );
+
+    db.prepare('INSERT INTO entity VALUES(?,?,?,?,?,?)').run(2,'Q2','work.album',0.8,0.8,'B');
+    db.prepare('INSERT INTO entity_category VALUES(?,?,?,?,?,?,?,?)')
+      .run(2,'work.album',0.8,1,0.8,'B',0,1);
+    db.prepare('INSERT INTO entity_name VALUES(?,?,?,?,?,?,?,?,?,?,?)')
+      .run(2,2,'Krankenscheindrucker','krankenscheindrucker','de','auto','label',1,1,'generated','Q2');
+    pronunciation.run(
+      3,2,'de-DE','generated','kʁaŋk',1,'espeak_ng_generated_secondary','generated:Q2',1,
+      'espeak-ng',0.9,'accepted'
+    );
+    analysis.run(
+      3,'de-ipa-v2','["k","ʁ","a","ŋ","k"]',
+      '[{"position":1,"onset":["k","ʁ"],"nucleus":"a","coda":["ŋ","k"],"stressLevel":2}]',
+      1,1,'[]','1','a','ŋ k','a ŋ k','aŋk'
+    );
+    anchor.run('de-ipa-v2','exact_tail','aŋk',3);
   }finally{db.close();}
 }
 
@@ -247,6 +319,10 @@ test('Product metadata builder plans read-only, checkpoints, resumes and atomica
     const plan=run([...common,'--plan']);
     assert.equal(plan.status,0,plan.stderr||plan.stdout);
     assert.equal(existsSync(work),false);
+    const planJson=JSON.parse(plan.stdout);
+    const planned=Object.fromEntries(planJson.stages.map((stage)=>[stage.stage,stage.source_rows]));
+    assert.equal(Number(planned['09_entity_analysis']),4);
+    assert.equal(Number(planned['10_entity_occurrence_anchors']),4);
 
     const paused=run([...common,'--pause-after-stage','01_de_profiles']);
     assert.equal(paused.status,0,paused.stderr||paused.stdout);
@@ -264,8 +340,17 @@ test('Product metadata builder plans read-only, checkpoints, resumes and atomica
     try{
       const m=Object.fromEntries(promoted.prepare('SELECT key,value FROM meta').all().map(r=>[r.key,r.value]));
       assert.equal(m.product_adapter_schema,SERVING_V1_PRODUCT_SCHEMA);
+      assert.equal(m.product_adapter_revision,SERVING_V1_PRODUCT_REVISION);
       assert.equal(m.product_adapter_status,'complete');
-      assert.equal(servingV1ProductInvariantReport(promoted).ok,true);
+      assert.equal(m.product_adapter_identity_revision,'canonical-phoneme-stress-v3');
+      const invariants=servingV1ProductInvariantReport(promoted);
+      assert.equal(invariants.ok,true);
+      assert.equal(invariants.entity_pronunciations_without_occurrence_anchor,1);
+      assert.equal(invariants.entity_source_occurrence_integrity_verified,true);
+      assert.equal(invariants.eligible_source_entity_occurrences_without_product_mapping,0);
+      assert.equal(invariants.product_entity_occurrences_without_eligible_source_mapping,0);
+      assert.equal(invariants.eligible_source_entity_anchors_without_exact_product_mapping,0);
+      assert.equal(invariants.product_entity_anchors_without_eligible_source_mapping,0);
     }finally{promoted.close();}
 
     const runtime=openServingV1ProductRuntime(serving);
@@ -273,6 +358,65 @@ test('Product metadata builder plans read-only, checkpoints, resumes and atomica
       assert.equal(runtime.allDb.prepare("SELECT COUNT(*) c FROM hot").get().c,2);
       assert.equal(runtime.coreDb.prepare("SELECT COUNT(*) c FROM hot").get().c,1);
       assert.equal(runtime.allDb.prepare("SELECT COUNT(*) c FROM entity_rhyme_anchor WHERE channel='writer_secondary_anchor'").get().c,1);
+      assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_de_surface_profile').get().c,2);
+      const zeitProfile=runtime.allDb.prepare(
+        "SELECT source_hot_id,display_surface,lemma FROM runtime_de_surface_profile WHERE surface_id=1"
+      ).get();
+      assert.deepEqual(
+        {source_hot_id:Number(zeitProfile.source_hot_id),display_surface:zeitProfile.display_surface,lemma:zeitProfile.lemma},
+        {source_hot_id:1,display_surface:'Zeit',lemma:'zeit'},
+      );
+
+      assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_entity_analysis').get().c,4);
+      assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence').get().c,3);
+      const occurrences=runtime.allDb.prepare(`
+        SELECT product_pronunciation_id,serving_pronunciation_id,source_kind,generated
+        FROM runtime_entity_pronunciation
+        ORDER BY product_pronunciation_id
+      `).all().map((row)=>({
+        product_pronunciation_id:Number(row.product_pronunciation_id),
+        serving_pronunciation_id:Number(row.serving_pronunciation_id),
+        source_kind:row.source_kind,
+        generated:Number(row.generated),
+      }));
+      assert.deepEqual(occurrences,[
+        {product_pronunciation_id:1,serving_pronunciation_id:1,source_kind:'wikidata_p898',generated:0},
+        {product_pronunciation_id:2,serving_pronunciation_id:1,source_kind:'serving_core_absorbed',generated:0},
+        {product_pronunciation_id:3,serving_pronunciation_id:2,source_kind:'espeak_ng_generated_secondary',generated:1},
+        {product_pronunciation_id:4,serving_pronunciation_id:1,source_kind:'manual_source',generated:0},
+      ]);
+
+      const occurrenceAnchors=runtime.allDb.prepare(`
+        SELECT product_pronunciation_id,channel,anchor_key
+        FROM runtime_entity_anchor_occurrence
+        ORDER BY product_pronunciation_id,channel,anchor_key
+      `).all().map((row)=>({
+        product_pronunciation_id:Number(row.product_pronunciation_id),
+        channel:row.channel,
+        anchor_key:row.anchor_key,
+      }));
+      assert.deepEqual(occurrenceAnchors,[
+        {product_pronunciation_id:1,channel:'writer_secondary_anchor',anchor_key:'aɪ-t'},
+        {product_pronunciation_id:2,channel:'writer_secondary_anchor_context',anchor_key:'ctx-aɪ-t'},
+        {product_pronunciation_id:3,channel:'exact_tail',anchor_key:'aŋk'},
+      ]);
+
+      const generatedOnly=searchEntityRhymes(
+        runtime.allDb,
+        {surface:'Bank',preferredIpa:'kʁaŋk'},
+        {language:'de',generatedOnly:true,limit:10,poolLimit:16},
+      );
+      assert.equal(generatedOnly.available,true);
+      assert.deepEqual(generatedOnly.results.map((row)=>row.entityQid),['Q2']);
+      assert.equal(generatedOnly.results[0].generatedPronunciation,true);
+
+      const coreOnly=searchEntityRhymes(
+        runtime.coreDb,
+        {surface:'Bank',preferredIpa:'kʁaŋk'},
+        {language:'de',limit:10,poolLimit:16},
+      );
+      assert.equal(coreOnly.available,true);
+      assert.equal(coreOnly.results.some((row)=>row.entityQid==='Q2'),false);
     }finally{runtime.close();}
   }finally{
     await rm(root,{recursive:true,force:true});

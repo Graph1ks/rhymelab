@@ -15,6 +15,7 @@ import {
   SERVING_V1_PRODUCT_REVISION,
   SERVING_V1_PRODUCT_SCHEMA,
   createServingV1ProductStorage,
+  resetServingV1ProductStorage,
   servingV1ProductInvariantReport,
   servingV1ProductSummary,
 } from './serving-v1-product-core.mjs';
@@ -40,7 +41,7 @@ const servingPath=resolve(value('--serving','data/local/rhymelab-serving-v1.sqli
 const workPath=resolve(value('--work','data/local/rhymelab-serving-v1.product-building.sqlite'));
 const copyStatePath=resolve(value('--copy-state',workPath+'.copy-state.json'));
 const reportPath=resolve(value('--report','data/local/rhymelab-serving-v1-product-report.json'));
-const backupPath=resolve(value('--backup','data/local/rhymelab-serving-v1.pre-product.sqlite'));
+const backupPath=resolve(value('--backup','data/local/rhymelab-serving-v1.pre-product-v2.sqlite'));
 
 const now=()=>new Date().toISOString();
 const hash=(v)=>createHash('sha256').update(String(v)).digest('hex');
@@ -542,18 +543,20 @@ function entityPronStage(path){
         SELECT source_id,name_id,serving_pronunciation_id,source_priority,locale,pronunciation_role,
           ipa,preferred,effective_source_kind,source_record,effective_generated,model_id,confidence,review_state
         FROM (${rows}) r WHERE 1
-        ON CONFLICT(name_id,serving_pronunciation_id) DO UPDATE SET
-          source_priority=MIN(runtime_entity_pronunciation.source_priority,excluded.source_priority),
-          locale=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.locale ELSE runtime_entity_pronunciation.locale END,
-          pronunciation_role=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.pronunciation_role ELSE runtime_entity_pronunciation.pronunciation_role END,
-          ipa=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.ipa ELSE runtime_entity_pronunciation.ipa END,
-          preferred=MAX(runtime_entity_pronunciation.preferred,excluded.preferred),
-          source_kind=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.source_kind ELSE runtime_entity_pronunciation.source_kind END,
-          source_record=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.source_record ELSE runtime_entity_pronunciation.source_record END,
-          generated=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.generated ELSE runtime_entity_pronunciation.generated END,
-          model_id=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.model_id ELSE runtime_entity_pronunciation.model_id END,
-          confidence=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.confidence ELSE runtime_entity_pronunciation.confidence END,
-          review_state=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.review_state ELSE runtime_entity_pronunciation.review_state END;
+        ON CONFLICT(product_pronunciation_id) DO UPDATE SET
+          name_id=excluded.name_id,
+          serving_pronunciation_id=excluded.serving_pronunciation_id,
+          source_priority=excluded.source_priority,
+          locale=excluded.locale,
+          pronunciation_role=excluded.pronunciation_role,
+          ipa=excluded.ipa,
+          preferred=excluded.preferred,
+          source_kind=excluded.source_kind,
+          source_record=excluded.source_record,
+          generated=excluded.generated,
+          model_id=excluded.model_id,
+          confidence=excluded.confidence,
+          review_state=excluded.review_state;
       `);
     },
   };
@@ -628,6 +631,275 @@ function entityWriterAnchorStage(path){
   };
 }
 
+function deSurfaceProfileStage(path){
+  const filter=(last,upper)=>`h.id>${last} AND h.id<=${upper} AND h.pronunciation_eligible=1`;
+  return {
+    name:'08_de_surface_profiles',label:'DE legacy-equivalent surface metadata',path,
+    total(db){attach(db,path);try{return scalar(db,'SELECT COUNT(*) c FROM src.hot WHERE pronunciation_eligible=1');}finally{detach(db);}},
+    max(db){attach(db,path);try{return scalar(db,'SELECT COALESCE(MAX(id),0) c FROM src.hot WHERE pronunciation_eligible=1');}finally{detach(db);}},
+    range(db,last,upper){return scalar(db,`SELECT COUNT(*) c FROM src.hot h WHERE ${filter(last,upper)}`);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT INTO runtime_de_surface_profile(
+          surface_id,source_hot_id,display_surface,usage_rank,usage_score,usage_count,usage_source_count,
+          lemma,part_of_speech,gender,lexicon_layer,entity_kind,historical,lexical_tags_json,
+          selection_usage_rank_missing,selection_pronunciation_preferred,selection_pronunciation_rank,selection_ipa
+        )
+        SELECT
+          s.surface_id,h.id,h.surface,h.usage_rank,h.usage_score,h.usage_count,h.usage_source_count,
+          h.lemma,h.pos,h.gender,h.lexicon_layer,h.entity_kind,h.historical,h.lexical_tags,
+          CASE WHEN h.usage_rank IS NULL THEN 1 ELSE 0 END,
+          h.pronunciation_preferred,h.pronunciation_rank,h.ipa
+        FROM src.hot h
+        JOIN surface s ON s.language='de' AND s.normalized=h.normalized
+        WHERE ${filter(last,upper)}
+        ON CONFLICT(surface_id) DO UPDATE SET
+          source_hot_id=excluded.source_hot_id,
+          display_surface=excluded.display_surface,
+          usage_rank=excluded.usage_rank,
+          usage_score=excluded.usage_score,
+          usage_count=excluded.usage_count,
+          usage_source_count=excluded.usage_source_count,
+          lemma=excluded.lemma,
+          part_of_speech=excluded.part_of_speech,
+          gender=excluded.gender,
+          lexicon_layer=excluded.lexicon_layer,
+          entity_kind=excluded.entity_kind,
+          historical=excluded.historical,
+          lexical_tags_json=excluded.lexical_tags_json,
+          selection_usage_rank_missing=excluded.selection_usage_rank_missing,
+          selection_pronunciation_preferred=excluded.selection_pronunciation_preferred,
+          selection_pronunciation_rank=excluded.selection_pronunciation_rank,
+          selection_ipa=excluded.selection_ipa
+        WHERE
+          excluded.selection_usage_rank_missing < runtime_de_surface_profile.selection_usage_rank_missing
+          OR (
+            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
+            AND COALESCE(excluded.usage_rank,9223372036854775807)
+              < COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+          )
+          OR (
+            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
+            AND COALESCE(excluded.usage_rank,9223372036854775807)
+              = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND excluded.selection_pronunciation_preferred
+              > runtime_de_surface_profile.selection_pronunciation_preferred
+          )
+          OR (
+            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
+            AND COALESCE(excluded.usage_rank,9223372036854775807)
+              = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND excluded.selection_pronunciation_preferred
+              = runtime_de_surface_profile.selection_pronunciation_preferred
+            AND COALESCE(excluded.selection_pronunciation_rank,9223372036854775807)
+              < COALESCE(runtime_de_surface_profile.selection_pronunciation_rank,9223372036854775807)
+          )
+          OR (
+            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
+            AND COALESCE(excluded.usage_rank,9223372036854775807)
+              = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND excluded.selection_pronunciation_preferred
+              = runtime_de_surface_profile.selection_pronunciation_preferred
+            AND COALESCE(excluded.selection_pronunciation_rank,9223372036854775807)
+              = COALESCE(runtime_de_surface_profile.selection_pronunciation_rank,9223372036854775807)
+            AND excluded.source_hot_id < runtime_de_surface_profile.source_hot_id
+          );
+      `);
+    },
+  };
+}
+
+function entityAnalysisStage(path){
+  const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
+  const eligible=`
+    ep.review_state IN (${accepted})
+    AND n.searchable=1 AND n.language IN ('de','en')
+    AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+  `;
+  return {
+    name:'09_entity_analysis',label:'Entity precomputed phonetic analyses',path,
+    total(db){
+      attach(db,path);
+      try{return scalar(db,`
+        SELECT COUNT(*) c
+        FROM src.entity_pronunciation ep
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ${eligible}
+      `);}finally{detach(db);}
+    },
+    max(db){
+      attach(db,path);
+      try{return scalar(db,`
+        SELECT COALESCE(MAX(ep.pronunciation_id),0) c
+        FROM src.entity_pronunciation ep
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ${eligible}
+      `);}finally{detach(db);}
+    },
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c
+      FROM src.entity_pronunciation ep
+      JOIN src.entity_name n ON n.name_id=ep.name_id
+      WHERE ${eligible}
+        AND ep.pronunciation_id>${last} AND ep.pronunciation_id<=${upper}
+    `);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR REPLACE INTO runtime_entity_analysis(
+          product_pronunciation_id,analyzer_id,phonemes_json,syllables_json,syllable_count,
+          primary_stress,secondary_stress_json,stress_pattern,vowel_sequence,consonant_sequence,
+          rhyme_tail,rhyme_signature
+        )
+        SELECT
+          ep.product_pronunciation_id,epa.analyzer_id,epa.phonemes,epa.syllables,epa.syllable_count,
+          epa.primary_stress,epa.secondary_stress,epa.stress_pattern,epa.vowel_sequence,
+          epa.consonant_sequence,epa.rhyme_tail,epa.rhyme_signature
+        FROM runtime_entity_pronunciation ep
+        JOIN runtime_entity_name n USING(name_id)
+        JOIN src.entity_phonetic_analysis epa
+          ON epa.pronunciation_id=ep.product_pronunciation_id
+         AND epa.analyzer_id=CASE n.language
+           WHEN 'en' THEN 'en-pron-v1-candidate'
+           ELSE 'de-ipa-v2'
+         END
+        WHERE ep.product_pronunciation_id>${last}
+          AND ep.product_pronunciation_id<=${upper};
+      `);
+    },
+  };
+}
+
+function entityOccurrenceAnchorStage(path){
+  const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
+  const eligible=`
+    ep.review_state IN (${accepted})
+    AND n.searchable=1 AND n.language IN ('de','en')
+    AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+  `;
+  return {
+    name:'10_entity_occurrence_anchors',label:'Entity occurrence-level retrieval anchors',path,
+    total(db){
+      attach(db,path);
+      try{return scalar(db,`
+        SELECT COUNT(*) c
+        FROM src.entity_pronunciation ep
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ${eligible}
+      `);}finally{detach(db);}
+    },
+    max(db){
+      attach(db,path);
+      try{return scalar(db,`
+        SELECT COALESCE(MAX(ep.pronunciation_id),0) c
+        FROM src.entity_pronunciation ep
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ${eligible}
+      `);}finally{detach(db);}
+    },
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c
+      FROM src.entity_pronunciation ep
+      JOIN src.entity_name n ON n.name_id=ep.name_id
+      WHERE ${eligible}
+        AND ep.pronunciation_id>${last} AND ep.pronunciation_id<=${upper}
+    `);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR IGNORE INTO runtime_entity_anchor_occurrence(
+          analyzer_id,channel,anchor_key,product_pronunciation_id
+        )
+        SELECT a.analyzer_id,a.channel,a.anchor_key,ep.product_pronunciation_id
+        FROM runtime_entity_pronunciation ep
+        JOIN runtime_entity_name n USING(name_id)
+        JOIN src.entity_rhyme_anchor a
+          ON a.pronunciation_id=ep.product_pronunciation_id
+         AND a.analyzer_id=CASE n.language
+           WHEN 'en' THEN 'en-pron-v1-candidate'
+           ELSE 'de-ipa-v2'
+         END
+        WHERE ep.product_pronunciation_id>${last}
+          AND ep.product_pronunciation_id<=${upper};
+      `);
+    },
+  };
+}
+
+function entityOccurrenceIntegrity(db,path){
+  const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
+  const eligible=`
+    ep.review_state IN (${accepted})
+    AND n.searchable=1 AND n.language IN ('de','en')
+    AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+  `;
+  attach(db,path);
+  try{
+    const sourceOccurrencesMissing=scalar(db,`
+      SELECT COUNT(*) c
+      FROM src.entity_pronunciation ep
+      JOIN src.entity_name n ON n.name_id=ep.name_id
+      WHERE ${eligible}
+        AND NOT EXISTS(
+          SELECT 1
+          FROM runtime_entity_pronunciation rp
+          WHERE rp.product_pronunciation_id=ep.pronunciation_id
+            AND rp.name_id=ep.name_id
+        )
+    `);
+    const productOccurrencesExtra=scalar(db,`
+      SELECT COUNT(*) c
+      FROM runtime_entity_pronunciation rp
+      WHERE NOT EXISTS(
+        SELECT 1
+        FROM src.entity_pronunciation ep
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ep.pronunciation_id=rp.product_pronunciation_id
+          AND ep.name_id=rp.name_id
+          AND ${eligible}
+      )
+    `);
+    const sourceAnchorsMissing=scalar(db,`
+      SELECT COUNT(*) c
+      FROM src.entity_rhyme_anchor a
+      JOIN src.entity_pronunciation ep ON ep.pronunciation_id=a.pronunciation_id
+      JOIN src.entity_name n ON n.name_id=ep.name_id
+      WHERE ${eligible}
+        AND a.analyzer_id=${entityAnalyzerSql('n.language')}
+        AND NOT EXISTS(
+          SELECT 1
+          FROM runtime_entity_anchor_occurrence pa
+          WHERE pa.product_pronunciation_id=ep.pronunciation_id
+            AND pa.analyzer_id=a.analyzer_id
+            AND pa.channel=a.channel
+            AND pa.anchor_key=a.anchor_key
+        )
+    `);
+    const productAnchorsExtra=scalar(db,`
+      SELECT COUNT(*) c
+      FROM runtime_entity_anchor_occurrence pa
+      WHERE NOT EXISTS(
+        SELECT 1
+        FROM src.entity_rhyme_anchor a
+        JOIN src.entity_pronunciation ep ON ep.pronunciation_id=a.pronunciation_id
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ep.pronunciation_id=pa.product_pronunciation_id
+          AND a.analyzer_id=pa.analyzer_id
+          AND a.channel=pa.channel
+          AND a.anchor_key=pa.anchor_key
+          AND ${eligible}
+          AND a.analyzer_id=${entityAnalyzerSql('n.language')}
+      )
+    `);
+    return {
+      sourceOccurrencesMissing,
+      productOccurrencesExtra,
+      sourceAnchorsMissing,
+      productAnchorsExtra,
+    };
+  }finally{
+    detach(db);
+  }
+}
+
 function stageDefinitions(paths){
   return [
     deProfileStage(paths.deGenerated),
@@ -637,17 +909,29 @@ function stageDefinitions(paths){
     entityNameStage(paths.entityGenerated),
     entityPronStage(paths.entityGenerated),
     entityWriterAnchorStage(paths.entityGenerated),
+    deSurfaceProfileStage(paths.deGenerated),
+    entityAnalysisStage(paths.entityGenerated),
+    entityOccurrenceAnchorStage(paths.entityGenerated),
   ];
 }
 
 async function context(){
   if(!existsSync(servingPath))throw new Error('Serving-v1 DB missing: '+servingPath);
   const contract=readContract(servingPath);
+  const currentRevision=contract.meta.product_adapter_revision||null;
   if(contract.meta.product_adapter_schema===SERVING_V1_PRODUCT_SCHEMA
     &&contract.meta.product_adapter_status==='complete'
+    &&currentRevision===SERVING_V1_PRODUCT_REVISION
     &&!replace){
-    return {contract,alreadyComplete:true};
+    return {contract,alreadyComplete:true,upgradeFrom:null};
   }
+  const upgradeFrom=
+    contract.meta.product_adapter_schema===SERVING_V1_PRODUCT_SCHEMA
+    &&contract.meta.product_adapter_status==='complete'
+    &&currentRevision
+    &&currentRevision!==SERVING_V1_PRODUCT_REVISION
+      ?currentRevision
+      :null;
   const actual=await validateSources(contract.snapshot);
   const paths=Object.fromEntries(Object.entries(actual).map(([k,v])=>[k,v.path]));
   const fingerprint=hash(JSON.stringify({
@@ -656,7 +940,7 @@ async function context(){
     identity_revision:SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
     inputs:actual,
   }));
-  return {contract,actual,paths,fingerprint,alreadyComplete:false};
+  return {contract,actual,paths,fingerprint,alreadyComplete:false,upgradeFrom};
 }
 
 async function plan(db,stages){
@@ -739,11 +1023,37 @@ async function main(){
     if(m.runtime_semantic_fingerprint!==ctx.contract.meta.runtime_semantic_fingerprint){
       throw new Error('Product work DB does not match current runtime semantic fingerprint. Use --reset.');
     }
-    if(m.product_adapter_revision&&m.product_adapter_revision!==SERVING_V1_PRODUCT_REVISION){
-      throw new Error('Product adapter build revision changed. Use --reset.');
+    const upgrading=Boolean(
+      ctx.upgradeFrom
+      &&m.product_adapter_revision===ctx.upgradeFrom
+      &&m.product_adapter_status==='complete'
+    );
+    if(m.product_adapter_revision
+      &&m.product_adapter_revision!==SERVING_V1_PRODUCT_REVISION
+      &&!upgrading){
+      throw new Error('Product adapter build revision changed unexpectedly. Use --reset.');
     }
-    if(m.product_adapter_source_fingerprint&&m.product_adapter_source_fingerprint!==ctx.fingerprint){
+    if(m.product_adapter_source_fingerprint
+      &&m.product_adapter_source_fingerprint!==ctx.fingerprint
+      &&!upgrading){
       throw new Error('Product adapter source fingerprint changed. Use --reset.');
+    }
+    if(upgrading){
+      console.log('[serving-product] upgrading '+ctx.upgradeFrom+' -> '+SERVING_V1_PRODUCT_REVISION);
+      resetServingV1ProductStorage(db);
+      db.prepare(`
+        DELETE FROM meta
+        WHERE key IN (
+          'product_adapter_completed_at',
+          'product_adapter_semantic_fingerprint',
+          'product_adapter_summary_json',
+          'product_adapter_invariants_json',
+          'product_adapter_entity_source_occurrences_missing',
+          'product_adapter_entity_product_occurrences_extra',
+          'product_adapter_entity_source_anchors_missing',
+          'product_adapter_entity_product_anchors_extra'
+        )
+      `).run();
     }
 
     for(const [key,val] of Object.entries({
@@ -857,6 +1167,14 @@ async function main(){
       putMeta(db,'product_adapter_updated_at',now());
       return;
     }
+
+    const entityIntegrity=entityOccurrenceIntegrity(db,ctx.paths.entityGenerated);
+    for(const [key,val] of Object.entries({
+      product_adapter_entity_source_occurrences_missing:entityIntegrity.sourceOccurrencesMissing,
+      product_adapter_entity_product_occurrences_extra:entityIntegrity.productOccurrencesExtra,
+      product_adapter_entity_source_anchors_missing:entityIntegrity.sourceAnchorsMissing,
+      product_adapter_entity_product_anchors_extra:entityIntegrity.productAnchorsExtra,
+    }))putMeta(db,key,val);
 
     console.log('[serving-product] finalizing indexes/statistics…');
     db.exec('ANALYZE; PRAGMA optimize;');

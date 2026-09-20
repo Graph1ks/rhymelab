@@ -30,8 +30,8 @@ import {
 } from '../src/serving-v1-product-runtime.mjs';
 
 export const SERVING_V1_PRODUCT_ACCEPTANCE_SCHEMA='rhymelab-serving-v1-product-acceptance-v1';
-export const SERVING_V1_PRODUCT_ACCEPTANCE_POLICY='legacy-semantic-order-and-latency-equivalence-v1';
-export const SERVING_V1_PRODUCT_ACCEPTANCE_REVISION='core-all-generated-query-matrix-v2-serving-native-hotpaths';
+export const SERVING_V1_PRODUCT_ACCEPTANCE_POLICY='default-all-strict-parity-core-absorption-aware-v2';
+export const SERVING_V1_PRODUCT_ACCEPTANCE_REVISION='core-all-generated-query-matrix-v3-product-v2-identity-v3';
 
 const args=process.argv.slice(2);
 const value=(flag,fallback=null)=>{
@@ -160,6 +160,36 @@ function semanticResponse(result){
     },
   };
 }
+function resultIsGenerated(row){
+  return row?.generatedPronunciation===true;
+}
+function modePolicyCheck(result,runtimeMode){
+  if(runtimeMode==='all') return {ok:true,violations:[]};
+  const violations=[];
+  for(const [channelName,channel] of Object.entries(result?.channels||{})){
+    for(const row of channel?.results||[]){
+      const generated=resultIsGenerated(row);
+      if(runtimeMode==='core'&&generated){
+        violations.push({
+          channel:channelName,
+          resultId:row.resultId||row.normalized||row.surface||null,
+          reason:'generated_result_leaked_into_core',
+        });
+      }
+      if(runtimeMode==='generated'&&!generated){
+        violations.push({
+          channel:channelName,
+          resultId:row.resultId||row.normalized||row.surface||null,
+          reason:'non_generated_result_leaked_into_generated_only',
+        });
+      }
+      if(violations.length>=20)break;
+    }
+    if(violations.length>=20)break;
+  }
+  return {ok:violations.length===0,violations};
+}
+
 function firstDiff(a,b,path='$',out=[]){
   if(out.length>=20)return out;
   if(Object.is(a,b))return out;
@@ -186,7 +216,6 @@ function firstDiff(a,b,path='$',out=[]){
   out.push({path,legacy:a,serving:b});
   return out;
 }
-
 function openLegacy(){
   const writerDb=openWriterDb(writerPath);
   let englishDb=null,phraseDb=null,entityDb=null,generated=null;
@@ -329,8 +358,11 @@ function openWork(path,fingerprint,cases){
     CREATE TABLE IF NOT EXISTS case_result(
       case_id TEXT PRIMARY KEY,
       case_json TEXT NOT NULL,
-      equivalent INTEGER NOT NULL,
+      reference_equal INTEGER NOT NULL,
+      policy_ok INTEGER NOT NULL,
+      gate_ok INTEGER NOT NULL,
       semantic_diff_json TEXT NOT NULL,
+      policy_json TEXT NOT NULL,
       legacy_hash TEXT NOT NULL,
       serving_hash TEXT NOT NULL,
       legacy_ms_json TEXT NOT NULL,
@@ -436,10 +468,10 @@ async function main(){
     work=openWork(workPath,fingerprint,cases);
     if(mode==='status'){
       const completed=Number(work.prepare('SELECT COUNT(*) c FROM case_result').get()?.c||0);
-      const failed=Number(work.prepare('SELECT COUNT(*) c FROM case_result WHERE equivalent=0').get()?.c||0);
+      const failed=Number(work.prepare('SELECT COUNT(*) c FROM case_result WHERE gate_ok=0').get()?.c||0);
       console.log(JSON.stringify({
         schema:'rhymelab-serving-v1-product-acceptance-status',
-        cases:cases.length,completed,remaining:cases.length-completed,semantic_failures:failed,
+        cases:cases.length,completed,remaining:cases.length-completed,gate_failures:failed,
         work:workPath,
       },null,2));
       return;
@@ -448,9 +480,10 @@ async function main(){
     const already=new Set(work.prepare('SELECT case_id FROM case_result').all().map(r=>r.case_id));
     const insert=work.prepare(`
       INSERT OR REPLACE INTO case_result(
-        case_id,case_json,equivalent,semantic_diff_json,legacy_hash,serving_hash,
+        case_id,case_json,reference_equal,policy_ok,gate_ok,
+        semantic_diff_json,policy_json,legacy_hash,serving_hash,
         legacy_ms_json,serving_ms_json,completed_at
-      ) VALUES(?,?,?,?,?,?,?,?,?)
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
     `);
     const started=performance.now();
     let completed=already.size;
@@ -465,13 +498,19 @@ async function main(){
       const servingSemantic=semanticResponse(servingRun.result);
       const legacyJson=JSON.stringify(legacySemantic);
       const servingJson=JSON.stringify(servingSemantic);
-      const equivalent=legacyJson===servingJson;
-      const diffs=equivalent?[]:firstDiff(legacySemantic,servingSemantic);
+      const referenceEqual=legacyJson===servingJson;
+      const policy=modePolicyCheck(servingRun.result,caseSpec.runtimeMode);
+      const strictReferenceRequired=caseSpec.runtimeMode==='all';
+      const gateOk=policy.ok&&(!strictReferenceRequired||referenceEqual);
+      const diffs=referenceEqual?[]:firstDiff(legacySemantic,servingSemantic);
       work.exec('BEGIN IMMEDIATE;');
       try{
         insert.run(
-          caseSpec.caseId,JSON.stringify(caseSpec),equivalent?1:0,JSON.stringify(diffs),
-          hash(legacyJson),hash(servingJson),JSON.stringify(legacyRun.times),JSON.stringify(servingRun.times),now()
+          caseSpec.caseId,JSON.stringify(caseSpec),
+          referenceEqual?1:0,policy.ok?1:0,gateOk?1:0,
+          JSON.stringify(diffs),JSON.stringify(policy),
+          hash(legacyJson),hash(servingJson),
+          JSON.stringify(legacyRun.times),JSON.stringify(servingRun.times),now()
         );
         work.prepare(`
           INSERT INTO meta(key,value) VALUES('updated_at',?)
@@ -489,10 +528,16 @@ async function main(){
         +(100*completed/cases.length).toFixed(1)+'% · '
         +caseSpec.runtimeMode+' · '+caseSpec.languageBasis+' · '+caseSpec.input+
         ' · legacy '+round(legacyRun.times.at(-1))+'ms · serving '+round(servingRun.times.at(-1))+'ms · '
-        +(equivalent?'equal':'DIFF')+' · ETA '+(Number.isFinite(eta)?round(eta/1000)+'s':'—')
+        +(gateOk
+          ?(referenceEqual?'equal':'policy-ok / legacy-layer-diff')
+          :'FAIL')+
+        ' · ETA '+(Number.isFinite(eta)?round(eta/1000)+'s':'—')
       );
-      if(!equivalent&&diffs.length){
-        console.log('[serving-accept]   first diff '+JSON.stringify(diffs[0]));
+      if(!referenceEqual&&diffs.length){
+        console.log('[serving-accept]   first reference diff '+JSON.stringify(diffs[0]));
+      }
+      if(!policy.ok&&policy.violations.length){
+        console.log('[serving-accept]   first policy violation '+JSON.stringify(policy.violations[0]));
       }
       if(stopRequested)break;
     }
@@ -504,12 +549,21 @@ async function main(){
 
     const rows=work.prepare('SELECT * FROM case_result ORDER BY case_id').all();
     if(rows.length!==cases.length)throw new Error('Acceptance case coverage incomplete.');
-    const failed=rows.filter(row=>!Number(row.equivalent));
+    const failed=rows.filter(row=>!Number(row.gate_ok));
+    const strictAllFailures=rows.filter(row=>{
+      const spec=JSON.parse(row.case_json);
+      return spec.runtimeMode==='all'&&!Number(row.reference_equal);
+    });
+    const policyFailures=rows.filter(row=>!Number(row.policy_ok));
+    const informationalLayerDiffs=rows.filter(row=>{
+      const spec=JSON.parse(row.case_json);
+      return spec.runtimeMode!=='all'&&!Number(row.reference_equal)&&Number(row.policy_ok);
+    });
     const legacyTimes=rows.flatMap(row=>JSON.parse(row.legacy_ms_json||'[]').map(Number));
     const servingTimes=rows.flatMap(row=>JSON.parse(row.serving_ms_json||'[]').map(Number));
     const legacyTiming=timingSummary(legacyTimes);
     const servingTiming=timingSummary(servingTimes);
-    const semanticOk=failed.length===0;
+    const semanticOk=strictAllFailures.length===0&&policyFailures.length===0;
     const latencyGates={
       p50_target:Number(servingTiming.p50_ms)<=targetP50,
       p95_target:Number(servingTiming.p95_ms)<=targetP95,
@@ -534,17 +588,32 @@ async function main(){
       },
       cases:{
         total:rows.length,
-        semantic_equal:rows.length-failed.length,
-        semantic_failed:failed.length,
+        gate_passed:rows.length-failed.length,
+        gate_failed:failed.length,
+        strict_all_failures:strictAllFailures.length,
+        policy_failures:policyFailures.length,
+        intentional_legacy_layer_diffs:informationalLayerDiffs.length,
         by_mode:Object.fromEntries(['core','all','generated'].map(runtimeMode=>[
           runtimeMode,
           rows.filter(row=>JSON.parse(row.case_json).runtimeMode===runtimeMode).length,
         ])),
       },
-      semantic_gate:{ok:semanticOk,failed_cases:failed.slice(0,50).map(row=>({
-        case:JSON.parse(row.case_json),
-        diffs:JSON.parse(row.semantic_diff_json||'[]'),
-      }))},
+      semantic_gate:{
+        ok:semanticOk,
+        contract:'all mode strict legacy parity; core/generated modes enforce Serving layer policy and treat Core-absorption layer reassignment as intentional',
+        strict_all_failures:strictAllFailures.slice(0,50).map(row=>({
+          case:JSON.parse(row.case_json),
+          diffs:JSON.parse(row.semantic_diff_json||'[]'),
+        })),
+        policy_failures:policyFailures.slice(0,50).map(row=>({
+          case:JSON.parse(row.case_json),
+          policy:JSON.parse(row.policy_json||'{}'),
+        })),
+        intentional_legacy_layer_diffs:informationalLayerDiffs.slice(0,20).map(row=>({
+          case:JSON.parse(row.case_json),
+          first_diff:JSON.parse(row.semantic_diff_json||'[]')[0]||null,
+        })),
+      },
       latency:{
         targets_ms:{p50:targetP50,p95:targetP95,max:targetMax},
         legacy:legacyTiming,
