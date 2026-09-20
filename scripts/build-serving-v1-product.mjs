@@ -253,11 +253,11 @@ function deProfileStage(path){
       `);
       db.exec(`
         INSERT INTO runtime_pronunciation_profile(
-          pronunciation_id,source_priority,source,source_order,evidence_count,tags_json,raw_tags_json,
+          pronunciation_id,source_priority,source,source_order,pronunciation_rank,evidence_count,tags_json,raw_tags_json,
           flags_json,locale,dialect,register,rhyme_tail,final_tail,vowels,consonants,coda_class,
           rhyme_syllables,default_profile_eligible
         )
-        SELECT pronunciation_id,source_priority,effective_source,pronunciation_source_order,
+        SELECT pronunciation_id,source_priority,effective_source,pronunciation_source_order,pronunciation_rank,
           pronunciation_evidence,pronunciation_tags,pronunciation_raw_tags,effective_flags,
           locale,dialect,pronunciation_register,rhyme_tail,final_tail,vowels,consonants,coda_class,
           rhyme_syllables,1
@@ -267,6 +267,7 @@ function deProfileStage(path){
           source_priority=MIN(runtime_pronunciation_profile.source_priority,excluded.source_priority),
           source=CASE WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.source ELSE runtime_pronunciation_profile.source END,
           source_order=CASE WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.source_order ELSE runtime_pronunciation_profile.source_order END,
+          pronunciation_rank=CASE WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.pronunciation_rank ELSE runtime_pronunciation_profile.pronunciation_rank END,
           evidence_count=CASE WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.evidence_count ELSE runtime_pronunciation_profile.evidence_count END,
           tags_json=CASE WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.tags_json ELSE runtime_pronunciation_profile.tags_json END,
           raw_tags_json=CASE WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.raw_tags_json ELSE runtime_pronunciation_profile.raw_tags_json END,
