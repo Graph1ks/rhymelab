@@ -139,6 +139,7 @@ test('runtime health exposes corpus model identity',()=>{
   assert.equal(health.available,true);
   assert.equal(health.policy,MARKOV_MODEL_POLICY);
   assert.equal(health.accepted_sentences,fixtureSentences.length);
+  assert.equal(health.lyric_profile,'rhymelab-lyric-shape-v1');
   runtime.close();
 });
 
