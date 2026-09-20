@@ -269,7 +269,7 @@ export function phraseMosaicV2QueryAnchors(queryAnalysis) {
   });
 }
 
-function candidateSelectSql(whereClause) {
+function candidateSelectSql(whereClause,{generatedOnly=false}={}) {
   return [
     'SELECT a.window_id,a.exact_tail_key,a.vowel_key,a.final_nucleus,a.final_coda_key,',
     'a.final_coda_class,a.syllable_count AS anchor_syllable_count,',
@@ -282,10 +282,13 @@ function candidateSelectSql(whereClause) {
     ' JOIN phrase p ON p.phrase_id=w.phrase_id',
     ' JOIN phrase_pronunciation pp ON pp.phrase_pronunciation_id=w.phrase_pronunciation_id',
     ' WHERE ' + whereClause,
+    generatedOnly
+      ? " AND EXISTS(SELECT 1 FROM phrase_pronunciation_token ppt WHERE ppt.phrase_pronunciation_id=w.phrase_pronunciation_id AND ppt.pronunciation_source='eSpeak-NG Backfill V2')"
+      : '',
   ].join('');
 }
 
-function familyCandidateSelectSql() {
+function familyCandidateSelectSql({generatedOnly=false}={}) {
   return [
     'SELECT a.window_id,a.exact_tail_key,a.vowel_key,a.final_nucleus,a.final_coda_key,',
     'a.final_coda_class,a.syllable_count AS anchor_syllable_count,',
@@ -299,6 +302,9 @@ function familyCandidateSelectSql() {
     ' JOIN phrase p ON p.phrase_id=w.phrase_id',
     ' JOIN phrase_pronunciation pp ON pp.phrase_pronunciation_id=w.phrase_pronunciation_id',
     ' WHERE f.vowel_family_key=? AND f.final_coda_class=? AND f.syllable_count=?',
+    generatedOnly
+      ? " AND EXISTS(SELECT 1 FROM phrase_pronunciation_token ppt WHERE ppt.phrase_pronunciation_id=w.phrase_pronunciation_id AND ppt.pronunciation_source='eSpeak-NG Backfill V2')"
+      : '',
     ' ORDER BY f.window_id LIMIT ?',
   ].join('');
 }
@@ -378,26 +384,28 @@ export function retrievePhraseMosaicCandidatesV2(db, queryIpa, options = {}) {
     2048,
   );
   const includeWeakUnrelated = options.includeWeakUnrelated === true;
+  const generatedOnly = options.generatedOnly === true;
   const queryAnalysis = analyzeGermanIpa(queryIpa);
   const queryAnchors = phraseMosaicV2QueryAnchors(queryAnalysis);
   const matches = new Map();
 
   const exactStmt = db.prepare(
-    candidateSelectSql('a.exact_tail_key=? AND a.syllable_count=?')
+    candidateSelectSql('a.exact_tail_key=? AND a.syllable_count=?',{generatedOnly})
     + ' ORDER BY a.window_id LIMIT ?'
   );
   const vowelCodaStmt = db.prepare(
-    candidateSelectSql('a.vowel_key=? AND a.final_coda_key=? AND a.syllable_count=?')
+    candidateSelectSql('a.vowel_key=? AND a.final_coda_key=? AND a.syllable_count=?',{generatedOnly})
     + ' ORDER BY a.window_id LIMIT ?'
   );
   const vowelStmt = db.prepare(
-    candidateSelectSql('a.vowel_key=? AND a.syllable_count=?')
+    candidateSelectSql('a.vowel_key=? AND a.syllable_count=?',{generatedOnly})
     + ' ORDER BY a.window_id LIMIT ?'
   );
-  const familyStmt = db.prepare(familyCandidateSelectSql());
+  const familyStmt = db.prepare(familyCandidateSelectSql({generatedOnly}));
   const finalStmt = db.prepare(
     candidateSelectSql(
-      'a.final_nucleus=? AND a.final_coda_class=? AND a.syllable_count BETWEEN ? AND ?'
+      'a.final_nucleus=? AND a.final_coda_class=? AND a.syllable_count BETWEEN ? AND ?',
+      {generatedOnly},
     ) + ' ORDER BY a.syllable_count,a.window_id LIMIT ?'
   );
 
@@ -545,6 +553,7 @@ export function retrievePhraseMosaicCandidatesV2(db, queryIpa, options = {}) {
       channelsPerAnchor: 5,
       maximumRawRowsBeforeDedup: queryAnchors.length * 5 * perChannelLimit,
       includeWeakUnrelated,
+      generatedOnly,
     },
     retrieval: {
       queryAnchorCount: queryAnchors.length,

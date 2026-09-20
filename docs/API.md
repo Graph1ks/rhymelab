@@ -71,7 +71,9 @@ Parameters:
 - `word_limit=<n>`, `word_pool=<n>` — bounded frozen Writer-v5 controls;
 - `phrase_limit=<n>`, `phrase_pool=<n>`, `phrase_per_channel=<n>` — bounded Phrase/Mosaic controls;
 - `entity_limit=<n>`, `entity_pool=<n>` — bounded Entity controls;
-- `entity_category=<category|all>` — exact Entity taxonomy filter from the runtime capability list.
+- `entity_category=<category|all>` — exact Entity taxonomy filter from the runtime capability list;
+- `generated=1` — opt into the accepted augmented runtime bundle;
+- `generated_only=1` — route to the augmented bundle and restrict DE Word, EN Word, Phrase/Mosaic and Entity candidate retrieval to the generated opt-in provenance before ranking/limits.
 
 ### Unknown / partially unresolved query pronunciation
 
@@ -155,6 +157,19 @@ Phase 12B11 provides the accepted source-backed English single-word Writer behin
 - unknown normalized single-token queries use `total-query-pronunciation-v1`: source-backed lookup first, then browser/client-generated ephemeral IPA only for missing language anchors; multi-word Phrase/Mosaic behavior is unchanged.
 
 The response includes `counts.searchPool` with bounded candidate-pool counts from the active indexed pipelines. These are truthful current search-pool counts, not a claim that the entire lexical/entity database was exhaustively rescored.
+
+## `GET /api/dataset-stats`
+
+Returns the live local pronunciation-record inventory used by the main UI Stats dialog. Counts are split into `Core`, `Generated`, and `Total` for:
+
+- German Word Writer pronunciations;
+- English Word Writer pronunciations;
+- Phrase/Mosaic pronunciations;
+- Entity pronunciations.
+
+`Core` is the canonical/default runtime inventory. `Generated` is the accepted opt-in overlay provenance only. `Total` is the augmented runtime population. The endpoint reports pronunciation records, not unique lexical surfaces.
+
+The server computes the snapshot lazily from the opened local databases and caches it for the lifetime of the process. It does not rebuild or mutate any database.
 
 ## `GET /api/stats`
 
@@ -279,6 +294,8 @@ Missing usage is unknown/unranked, not automatically rare.
 The browser has one Writer surface for Words, Phrase/Mosaic and Entities. There is no separate Phrase Explorer product UI. The main search field accepts a word or multi-word query; `All / Words / Phrases / Entities` filters operate inside the same result workspace.
 
 The UI separates `Query pronunciation: DE / EN / DE+EN` from `Result language: DE / EN / DE+EN`. Availability is capability-driven by `/api/health`.
+
+Generated data remains default OFF and is not persisted across app restarts. The `Generated only` checkbox implies generated opt-in and applies provenance filtering inside each retrieval channel before ranking and result limits. The top-bar Stats dialog reads `/api/dataset-stats` and labels the canonical/default inventory as `Core`.
 
 Entity taxonomy categories are populated from runtime capabilities and may be filtered exactly. Standard unfiltered result browsing uses explicit per-category **More** buttons; automatic endless scrolling is reserved for a selected rhyme/sound relation.
 

@@ -288,6 +288,7 @@ export function searchEntityRhymes(db, query, options = {}) {
     :'all';
   const limit=clampInteger(options.limit,100,1,250);
   const perChannelLimit=clampInteger(options.poolLimit,192,16,512);
+  const generatedOnly=options.generatedOnly===true;
   const queryNormalized=profile.normalizeSurface(query?.surface||query?.word||'');
   const anchors=entityRetrievalAnchors(queryAnalysis,language);
   const byPronunciation=new Map();
@@ -309,6 +310,7 @@ export function searchEntityRhymes(db, query, options = {}) {
       AND p.locale=?
       AND n.language=?
       AND p.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+      AND (?=0 OR p.source_kind='espeak_ng_generated_secondary')
       AND (?='all' OR EXISTS(
         SELECT 1 FROM entity_category ec
         WHERE ec.entity_id=e.entity_id AND ec.category=?
@@ -324,6 +326,7 @@ export function searchEntityRhymes(db, query, options = {}) {
       anchor.key,
       languageCapability.locale,
       language,
+      generatedOnly?1:0,
       category,
       category,
       perChannelLimit,

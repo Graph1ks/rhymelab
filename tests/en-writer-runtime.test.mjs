@@ -7,6 +7,7 @@ import {
   analyzeStoredEnglishRuntimePronunciation,
   compareStoredEnglishAnalysis,
   englishRuntimeQueryPlans,
+  prepareEnglishRuntimeStatements,
   retrieveEnglishRuntimeCandidates,
   retrieveEnglishRuntimeCandidatesFromAnalysis,
 } from '../scripts/en-writer-runtime-core.mjs';
@@ -29,14 +30,14 @@ function compactAnalysis(analysis){
   };
 }
 
-function row(id,surface,arpabet,{unprofiledAlias=false}={}){
-  const analysis=analyzeEnglishPronunciation(arpabet,{notation:'arpabet',locale:'en-US',source:'cmudict'});
+function row(id,surface,arpabet,{unprofiledAlias=false,source='cmudict',tags=[]}={}){
+  const analysis=analyzeEnglishPronunciation(arpabet,{notation:'arpabet',locale:'en-US',source});
   const pronunciations=[{
-    source:'cmudict',
+    source,
     notation:'arpabet',
     raw:arpabet,
     locales:['en-US'],
-    tags:[],
+    tags,
     evidence_count:1,
     analysis_status:'ok',
     analysis:compactAnalysis(analysis),
@@ -92,6 +93,7 @@ function fixtureDb(){
   insertEnglishPublishRow(insert,row(3,'nation','N EY1 SH AH0 N'));
   insertEnglishPublishRow(insert,row(4,'station','S T EY1 SH AH0 N'));
   insertEnglishPublishRow(insert,row(5,'wine','W AY1 N'));
+  insertEnglishPublishRow(insert,row(6,'chime','CH AY1 M',{source:'espeak_ng_generated_secondary',tags:['generated','secondary_opt_in']}));
   return db;
 }
 
@@ -126,6 +128,20 @@ test('English runtime retrieval is bounded and deterministic',()=>{
       a.candidates.map((row)=>row.pronunciation_id),
       b.candidates.map((row)=>row.pronunciation_id)
     );
+  }finally{
+    db.close();
+  }
+});
+
+test('English generated-only retrieval excludes Core candidate pronunciations before ranking',()=>{
+  const db=fixtureDb();
+  try{
+    const statements=prepareEnglishRuntimeStatements(db,{generatedOnly:true});
+    const result=retrieveEnglishRuntimeCandidates(db,'time',{statements,channelLimit:32,maxCandidates:64});
+    assert.equal(result.status,'ok');
+    assert.ok(result.candidates.some((candidate)=>candidate.normalized==='chime'));
+    assert.equal(result.candidates.some((candidate)=>candidate.normalized==='rhyme'),false);
+    assert.ok(result.candidates.every((candidate)=>candidate.source==='espeak_ng_generated_secondary'));
   }finally{
     db.close();
   }

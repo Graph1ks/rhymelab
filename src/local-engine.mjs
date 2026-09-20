@@ -215,7 +215,7 @@ export function getWord(db, word) {
   };
 }
 
-function candidatePool(db, queryRow, poolLimit, includeVariants = false, includeHistorical = false) {
+function candidatePool(db, queryRow, poolLimit, includeVariants = false, includeHistorical = false, generatedOnly = false) {
   const candidates = new Map();
   const add = (rows) => {
     for (const row of rows) {
@@ -226,35 +226,36 @@ function candidatePool(db, queryRow, poolLimit, includeVariants = false, include
   const limit = clampLimit(poolLimit, 350, 800);
   const preferred = includeVariants ? '' : ' AND pronunciation_preferred=1';
   const historical = includeHistorical ? '' : ' AND historical=0';
+  const generated = generatedOnly ? " AND pronunciation_flags LIKE '%secondary_opt_in%'" : '';
   const order = ' ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank LIMIT ?';
 
-  add(db.prepare(`SELECT * FROM hot WHERE exact_key=?${preferred}${historical}${order}`)
+  add(db.prepare(`SELECT * FROM hot WHERE exact_key=?${preferred}${historical}${generated}${order}`)
     .all(queryRow.exact_key, queryRow.syllable_count, limit));
 
   if (queryRow.multisyllable_key) {
-    add(db.prepare(`SELECT * FROM hot WHERE multisyllable_key=?${preferred}${historical}${order}`)
+    add(db.prepare(`SELECT * FROM hot WHERE multisyllable_key=?${preferred}${historical}${generated}${order}`)
       .all(queryRow.multisyllable_key, queryRow.syllable_count, limit));
   }
 
-  add(db.prepare(`SELECT * FROM hot WHERE vowel_key=?${preferred}${historical}${order}`)
+  add(db.prepare(`SELECT * FROM hot WHERE vowel_key=?${preferred}${historical}${generated}${order}`)
     .all(queryRow.vowel_key, queryRow.syllable_count, limit));
 
-  add(db.prepare(`SELECT * FROM hot WHERE vowel_family=?${preferred}${historical}${order}`)
+  add(db.prepare(`SELECT * FROM hot WHERE vowel_family=?${preferred}${historical}${generated}${order}`)
     .all(queryRow.vowel_family, queryRow.syllable_count, limit));
 
   const stressedFamily = String(queryRow.vowel_family || '').split('-')[0];
   if (stressedFamily) {
     const lower = `${stressedFamily}-`;
     const upper = `${stressedFamily}.`;
-    add(db.prepare(`SELECT * FROM hot WHERE (vowel_family=? OR (vowel_family>=? AND vowel_family<?))${preferred}${historical}${order}`)
+    add(db.prepare(`SELECT * FROM hot WHERE (vowel_family=? OR (vowel_family>=? AND vowel_family<?))${preferred}${historical}${generated}${order}`)
       .all(stressedFamily, lower, upper, queryRow.syllable_count, limit));
   }
 
-  add(db.prepare(`SELECT * FROM hot WHERE vowel_family=? AND coda_class=?${preferred}${historical}${order}`)
+  add(db.prepare(`SELECT * FROM hot WHERE vowel_family=? AND coda_class=?${preferred}${historical}${generated}${order}`)
     .all(queryRow.vowel_family, queryRow.coda_class, queryRow.syllable_count, limit));
 
   if (queryRow.coda_key) {
-    add(db.prepare(`SELECT * FROM hot WHERE coda_key=?${preferred}${historical}${order}`)
+    add(db.prepare(`SELECT * FROM hot WHERE coda_key=?${preferred}${historical}${generated}${order}`)
       .all(queryRow.coda_key, queryRow.syllable_count, limit));
   }
 
@@ -277,6 +278,10 @@ function resultFromRow(row, score, queryRow, profile) {
     ? Math.min(...relationTypes.map((type) => RHYME_TIER.get(type) ?? 99))
     : 99;
   const tier = primaryType ? (RHYME_TIER.get(primaryType) ?? 99) : fallbackTier;
+  const pronunciationFlags=parseJsonArray(row.pronunciation_flags);
+  const generatedPronunciation=
+    pronunciationFlags.includes('generated')
+    ||String(row.pronunciation_source||'').toLocaleLowerCase('en-US').includes('espeak');
   return {
     language: profile.language,
     word: row.surface,
@@ -287,6 +292,11 @@ function resultFromRow(row, score, queryRow, profile) {
     locale: row.locale,
     dialect: row.dialect,
     register: row.pronunciation_register,
+    ...(generatedPronunciation?{
+      pronunciationSource:row.pronunciation_source||null,
+      pronunciationFlags,
+      generatedPronunciation:true,
+    }:{}),
     usageRank: row.usage_rank,
     usageScore: row.usage_score,
     usageCount: row.usage_count,
@@ -461,7 +471,14 @@ export function findRhymes(db, word, options = {}) {
     try { queryAnalysis = profile.analyzeIpa(queryRow.ipa); }
     catch { continue; }
 
-    for (const candidate of candidatePool(db, queryRow, options.poolLimit, includeVariants, includeHistorical)) {
+    for (const candidate of candidatePool(
+      db,
+      queryRow,
+      options.poolLimit,
+      includeVariants,
+      includeHistorical,
+      options.generatedOnly===true,
+    )) {
       let candidateAnalysis;
       try { candidateAnalysis = profile.analyzeIpa(candidate.ipa); }
       catch { continue; }

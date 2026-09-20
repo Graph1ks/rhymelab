@@ -158,6 +158,52 @@ test('entity phonetic runtime exposes indexed Rapper and Musician categories', (
 });
 
 
+test('entity generated-only retrieval excludes Core pronunciations before ranking', () => {
+  const { db, ipa } = buildEntityRuntimeDb();
+  try {
+    const name=db.prepare(`SELECT name_id FROM entity_name WHERE surface='Kendrick Lamar' AND language='de' LIMIT 1`).get();
+    assert.ok(name?.name_id);
+    const inserted=db.prepare(`
+      INSERT INTO entity_pronunciation(
+        name_id,locale,pronunciation_role,ipa,preferred,source_kind,
+        generated,confidence,review_state
+      ) VALUES(?,?,?,?,0,'espeak_ng_generated_secondary',1,1,'accepted')
+    `).run(name.name_id,'de-DE','de-DE',ipa);
+    const pronunciationId=Number(inserted.lastInsertRowid);
+    const analyzed=analyzeEntityPronunciation(ipa,'de');
+    const row=analyzed.row;
+    db.prepare(`
+      INSERT INTO entity_phonetic_analysis(
+        pronunciation_id,analyzer_id,phonemes,syllables,syllable_count,
+        primary_stress,secondary_stress,stress_pattern,vowel_sequence,
+        consonant_sequence,rhyme_tail,rhyme_signature
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+    `).run(
+      pronunciationId,analyzed.analyzerId,row.phonemes,row.syllables,row.syllableCount,
+      row.primaryStress,row.secondaryStress,row.stressPattern,row.vowelSequence,
+      row.consonantSequence,row.rhymeTail,row.rhymeSignature,
+    );
+    const insertAnchor=db.prepare(`
+      INSERT INTO entity_rhyme_anchor(analyzer_id,channel,anchor_key,pronunciation_id)
+      VALUES(?,?,?,?)
+    `);
+    for(const retrievalAnchor of entityRetrievalAnchors(analyzed.analysis,'de')){
+      insertAnchor.run(analyzed.analyzerId,retrievalAnchor.channel,retrievalAnchor.key,pronunciationId);
+    }
+
+    const result=searchEntityRhymes(db,{
+      surface:'Testwort',preferredIpa:ipa,syllableCount:4,
+    },{
+      language:'de',category:'person.rapper',limit:20,generatedOnly:true,
+    });
+    assert.ok(result.results.length>0);
+    assert.ok(result.results.every((entry)=>entry.pronunciationSource==='espeak_ng_generated_secondary'));
+    assert.ok(result.results.every((entry)=>entry.generatedPronunciation===true));
+  }finally{
+    db.close();
+  }
+});
+
 test('entity pronunciation materializer exposes progress and resumable checkpoints', () => {
   assert.match(materializerSource, /const CHECKPOINT_EVERY = 10000/);
   assert.match(materializerSource, /const PROGRESS_EVERY = 5000/);

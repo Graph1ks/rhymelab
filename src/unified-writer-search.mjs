@@ -506,6 +506,7 @@ function searchGermanPhraseChannel(phraseDb, query, options = {}) {
     {
       perChannelLimit: clampInteger(options.phrasePerChannelLimit, 128, 1, 512),
       maxCandidates: clampInteger(options.phrasePoolLimit, 512, 1, 2048),
+      generatedOnly:options.generatedOnly===true,
     },
   );
   const enriched = enrichPhraseMosaicCandidates(
@@ -581,6 +582,7 @@ export function searchUnifiedWriter(
     entityDb,
     generatedOverlay,
   });
+  const generatedOnly=options.generatedOnly===true&&generatedOverlay===true;
   const requestedLanguages = languageBasis === 'both'
     ? ['de', 'en']
     : [languageBasis];
@@ -724,6 +726,7 @@ export function searchUnifiedWriter(
       includeHistorical: options.includeHistorical === true,
       type: options.type || 'all',
       ensureTypeCoverage: false,
+      generatedOnly,
     };
     const wordResult = deQuery?.preferredIpa
       ? (
@@ -772,6 +775,7 @@ export function searchUnifiedWriter(
     const englishOptions = {
       limit: clampInteger(options.wordLimit, 250, 1, 250),
       type: options.type || 'all',
+      generatedOnly,
     };
     const wordResult = enQuery
       ? (
@@ -863,6 +867,7 @@ export function searchUnifiedWriter(
         ? searchGermanPhraseChannel(phraseDb, deQuery, {
             ...options,
             generatedOverlay,
+            generatedOnly,
           })
         : {
             available: false,
@@ -896,6 +901,7 @@ export function searchUnifiedWriter(
         type:options.type||'all',
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
+        generatedOnly,
       });
     }else{
       deEntityChannel=emptyEntityLanguageChannel(
@@ -916,6 +922,7 @@ export function searchUnifiedWriter(
         type:options.type||'all',
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
+        generatedOnly,
       });
     }else{
       enEntityChannel=emptyEntityLanguageChannel(
@@ -971,6 +978,7 @@ export function searchUnifiedWriter(
     languageBasis,
     resultLanguageBasis,
     scope,
+    generatedOnly,
     capabilities,
     requestedLanguages,
     resultLanguages,

@@ -79,6 +79,12 @@ function buildFakeDom(){
   put('#historicalMode');
   put('#generatedMode');
   put('#generatedFilter');
+  put('#generatedOnlyMode');
+  put('#generatedOnlyFilter');
+  put('#statsButton');
+  put('#statsClose');
+  put('#statsDialog');
+  put('#statsContent');
   put('#entityCategory',new FakeElement({value:'all'}));
   put('#entityCategoryFilter');
   put('#variantFilter');
@@ -219,6 +225,24 @@ test('unified UI primary controls bind and change state at runtime', async () =>
   assert.equal(runtime.state.view,'compact');
   assert.equal(localStorage.getItem('rhymelab.resultView'),'compact');
   assert.equal(dom.view[1].classList.contains('active'),true);
+
+  runtime.state.generatedCapability={available:true};
+  dom.singles.get('#generatedOnlyMode').checked=true;
+  dom.singles.get('#generatedOnlyMode').dispatch('change');
+  assert.equal(runtime.state.generatedOnly,true);
+  assert.equal(runtime.state.generatedOptIn,true);
+  assert.equal(dom.singles.get('#generatedMode').checked,true);
+
+  dom.singles.get('#generatedMode').checked=false;
+  dom.singles.get('#generatedMode').dispatch('change');
+  assert.equal(runtime.state.generatedOptIn,false);
+  assert.equal(runtime.state.generatedOnly,false);
+  assert.equal(dom.singles.get('#generatedOnlyMode').checked,false);
+
+  dom.singles.get('#statsButton').dispatch('click');
+  assert.equal(dom.singles.get('#statsDialog').open,true);
+  dom.singles.get('#statsClose').dispatch('click');
+  assert.equal(dom.singles.get('#statsDialog').open,false);
 });
 
 test('unified UI control binding preflights the complete interactive surface', async () => {
@@ -237,7 +261,8 @@ test('unified UI control binding preflights the complete interactive surface', a
     assert.match(app,new RegExp(selector.replaceAll('.','\\.')));
   }
   for(const selector of [
-    '#resultsToolbar','#searchOptionsToggle','#resultFiltersToggle','#generatedMode',
+    '#resultsToolbar','#searchOptionsToggle','#resultFiltersToggle','#generatedMode','#generatedOnlyMode',
+    '#statsButton','#statsDialog','#statsContent',
     '#searchOptionsSection','#resultFiltersSection','#searchStageAnchor','.search-stage',
   ]){
     assert.match(app,new RegExp(selector.replaceAll('.','\\.').replace('#','\\#')));
@@ -246,6 +271,7 @@ test('unified UI control binding preflights the complete interactive surface', a
   assert.match(app,/rhymelab\.resultFiltersExpanded\.v2/);
   assert.match(app,/const defaultSearchSectionsExpanded=true/);
   assert.match(app,/generated:state\.generatedOptIn\?'1':'0'/);
+  assert.match(app,/generated_only:state\.generatedOnly\?'1':'0'/);
   assert.doesNotMatch(app,/localStorage\.(?:getItem|setItem)\(['"]rhymelab\.generated/);
 });
 

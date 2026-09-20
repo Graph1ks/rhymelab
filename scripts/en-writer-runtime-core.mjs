@@ -62,8 +62,9 @@ function rowProjection(){
   `;
 }
 
-export function prepareEnglishRuntimeStatements(db){
+export function prepareEnglishRuntimeStatements(db,{generatedOnly=false}={}){
   const base=rowProjection();
+  const generated=generatedOnly?" AND p.source='espeak_ng_generated_secondary'":'';
   return {
     query:db.prepare(`
       ${base}
@@ -78,6 +79,7 @@ export function prepareEnglishRuntimeStatements(db){
         AND p.default_profile_eligible=1
         AND f.default_eligible=1
         AND p.form_id<>?
+        ${generated}
       ORDER BY p.id
       LIMIT ?
     `),
@@ -87,6 +89,7 @@ export function prepareEnglishRuntimeStatements(db){
         AND p.default_profile_eligible=1
         AND f.default_eligible=1
         AND p.form_id<>?
+        ${generated}
       ORDER BY p.id
       LIMIT ?
     `),
@@ -96,6 +99,7 @@ export function prepareEnglishRuntimeStatements(db){
         AND p.default_profile_eligible=1
         AND f.default_eligible=1
         AND p.form_id<>?
+        ${generated}
       ORDER BY p.id
       LIMIT ?
     `),
@@ -106,6 +110,7 @@ export function prepareEnglishRuntimeStatements(db){
         AND p.default_profile_eligible=1
         AND f.default_eligible=1
         AND p.form_id<>?
+        ${generated}
       ORDER BY p.id
       LIMIT ?
     `),
@@ -115,6 +120,7 @@ export function prepareEnglishRuntimeStatements(db){
         AND p.default_profile_eligible=1
         AND f.default_eligible=1
         AND p.form_id<>?
+        ${generated}
       ORDER BY p.id
       LIMIT ?
     `),

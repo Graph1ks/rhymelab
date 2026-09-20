@@ -37,7 +37,9 @@ function fixtureDb() {
       syllable_count INTEGER NOT NULL,
       pronunciation_preferred INTEGER NOT NULL,
       historical INTEGER NOT NULL,
-      usage_rank INTEGER
+      usage_rank INTEGER,
+      pronunciation_flags TEXT NOT NULL DEFAULT '[]',
+      pronunciation_source TEXT
     );
   `);
   createWriterAnchorStorage(db);
@@ -153,6 +155,32 @@ test('indexed writer-anchor lookup is candidate-equivalent to the validation-tim
       limit: 800,
     }).map((hit) => Number(hit.id));
     assert.ok(protectedIds.includes(2), 'Hochzeitsreise must remain in the right-edge candidate universe');
+  } finally {
+    db.close();
+  }
+});
+
+test('generated-only writer anchor lookup excludes Core candidates before ranking', () => {
+  const db = fixtureDb();
+  try {
+    const query = row(1, 'arbeitsweise', 'ˈaʁbaɪ̯t͡sˌvaɪ̯zə', 1000);
+    const core = row(2, 'hochzeitsreise', 'ˈhɔxt͡saɪ̯t͡sˌʁaɪ̯zə', 2000);
+    const generated = row(3, 'notfallweise', 'ˈnoːtˌfalvaɪ̯zə', 3000);
+    const insert = db.prepare(
+      'INSERT INTO hot(id,normalized,ipa,vowel_key,syllable_count,pronunciation_preferred,historical,usage_rank) VALUES(?,?,?,?,?,1,0,?)'
+    );
+    for (const entry of [query, core, generated]) {
+      insert.run(entry.id,entry.normalized,entry.ipa,entry.vowelKey,entry.syllables,entry.usageRank);
+      insertWriterCandidateSuffixRows(db,entry.id,entry.ipa);
+    }
+    db.prepare("UPDATE hot SET pronunciation_flags='[\"generated\",\"secondary_opt_in\"]',pronunciation_source='eSpeak-NG Backfill V2' WHERE id=3").run();
+    const key=writerQueryAnchorKeys(query.ipa).find((entry)=>entry.key==='aɪ-ə')?.key;
+    assert.ok(key);
+    const all=lookupWriterAnchorRows(db,key,{queryNormalized:query.normalized,querySyllables:query.syllables,limit:800});
+    const only=lookupWriterAnchorRows(db,key,{queryNormalized:query.normalized,querySyllables:query.syllables,generatedOnly:true,limit:800});
+    assert.ok(all.some((entry)=>entry.id===2));
+    assert.ok(all.some((entry)=>entry.id===3));
+    assert.deepEqual(only.map((entry)=>entry.id),[3]);
   } finally {
     db.close();
   }

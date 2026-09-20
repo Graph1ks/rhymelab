@@ -26,6 +26,7 @@
         <a class="primary-nav-link" href="/pad" data-i18n="navRhymePad">RHYMEPAD</a>
       </nav>
       <div class="topbar-actions">
+        <button type="button" id="statsButton" class="topbar-button" data-i18n="stats">Stats</button>
         <button type="button" id="sourcesButton" class="topbar-button" data-i18n="sources">Sources</button>
         <div class="ui-language-switch" role="group" aria-label="Interface language">
           <button type="button" class="ui-lang-option" data-ui-lang="de" aria-label="Deutsch">DE</button>
@@ -95,10 +96,16 @@
 
               <div class="mode-group generated-optin-group">
                 <span class="mode-label" data-i18n="generatedData">Generated data</span>
-                <label class="checkbox-line generated-optin-line" id="generatedFilter">
-                  <input id="generatedMode" type="checkbox" disabled>
-                  <span data-i18n="includeGenerated">Include generated pronunciation data</span>
-                </label>
+                <div class="generated-optin-stack">
+                  <label class="checkbox-line generated-optin-line" id="generatedFilter">
+                    <input id="generatedMode" type="checkbox" disabled>
+                    <span data-i18n="includeGenerated">Include generated pronunciation data</span>
+                  </label>
+                  <label class="checkbox-line generated-optin-line generated-only-line" id="generatedOnlyFilter">
+                    <input id="generatedOnlyMode" type="checkbox" disabled>
+                    <span data-i18n="generatedOnly">Generated only</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -223,6 +230,18 @@
       <aside class="word-panel" id="wordPanel"></aside>
     </section>
   </main>
+
+  <dialog id="statsDialog" class="sources-dialog stats-dialog" aria-labelledby="statsTitle">
+    <div class="sources-dialog-header">
+      <div>
+        <span class="mode-label" data-i18n="stats">Stats</span>
+        <h2 id="statsTitle" data-i18n="statsTitle">Dataset stats</h2>
+      </div>
+      <button type="button" id="statsClose" class="dialog-close" aria-label="Close" data-i18n-aria-label="close">×</button>
+    </div>
+    <p class="sources-intro" data-i18n="statsIntro">Available searchable pronunciation records in this local installation.</p>
+    <div id="statsContent" class="stats-content" aria-live="polite"></div>
+  </dialog>
 
   <dialog id="sourcesDialog" class="sources-dialog" aria-labelledby="sourcesTitle">
     <div class="sources-dialog-header">

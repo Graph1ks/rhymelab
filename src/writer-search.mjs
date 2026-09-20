@@ -173,8 +173,10 @@ function collectRightEdgeCandidates(db, queryAnalysis, queryNormalized, querySyl
   const runtimeState = materializedWriterRuntimeState(db);
   const includeVariants = options.includeVariants === true;
   const includeHistorical = options.includeHistorical === true;
+  const generatedOnly = options.generatedOnly === true;
   const preferred = includeVariants ? '' : ' AND pronunciation_preferred=1';
   const historical = includeHistorical ? '' : ' AND historical=0';
+  const generated = generatedOnly ? " AND pronunciation_flags LIKE '%secondary_opt_in%'" : '';
   const perChannelLimit = Math.max(50, Math.min(800, Number.parseInt(String(options.poolLimit ?? 800), 10) || 800));
   const byWord = new Map();
 
@@ -185,6 +187,7 @@ function collectRightEdgeCandidates(db, queryAnalysis, queryNormalized, querySyl
           querySyllables,
           includeVariants,
           includeHistorical,
+          generatedOnly,
           limit: perChannelLimit,
         })
       : db.prepare(`
@@ -192,7 +195,7 @@ function collectRightEdgeCandidates(db, queryAnalysis, queryNormalized, querySyl
           WHERE vowel_key LIKE ?
             AND normalized != ?
             AND ABS(syllable_count-?) <= 1
-            ${preferred}${historical}
+            ${preferred}${historical}${generated}
           ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank, id
           LIMIT ?
         `).all(`%${entry.key}`, queryNormalized, querySyllables, querySyllables, perChannelLimit);

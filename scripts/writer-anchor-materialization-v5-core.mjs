@@ -86,9 +86,11 @@ export function lookupWriterAnchorRows(db, anchorKey, options = {}) {
   const querySyllables = Number(options.querySyllables || 0);
   const includeVariants = options.includeVariants === true;
   const includeHistorical = options.includeHistorical === true;
+  const generatedOnly = options.generatedOnly === true;
   const limit = Math.max(1, Math.min(800, Number(options.limit || 800)));
   const preferred = includeVariants ? '' : ' AND h.pronunciation_preferred=1';
   const historical = includeHistorical ? '' : ' AND h.historical=0';
+  const generated = generatedOnly ? " AND h.pronunciation_flags LIKE '%secondary_opt_in%'" : '';
 
   return db.prepare(`
     SELECT h.*
@@ -97,7 +99,7 @@ export function lookupWriterAnchorRows(db, anchorKey, options = {}) {
     WHERE a.anchor_key=?
       AND h.normalized != ?
       AND ABS(h.syllable_count-?) <= 1
-      ${preferred}${historical}
+      ${preferred}${historical}${generated}
     ORDER BY ABS(h.syllable_count-?), h.usage_rank IS NULL, h.usage_rank, h.id
     LIMIT ?
   `).all(
