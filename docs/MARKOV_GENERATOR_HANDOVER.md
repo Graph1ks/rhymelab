@@ -23,7 +23,9 @@ Repository state is authoritative. Do not reconstruct current design from old ch
 Current main checkpoint at handover creation:
 
 ```text
-Serving-v1 Product preview          implemented
+Serving-v1 canonical/default DB     data/local/rhymelab-serving-v1.sqlite
+RhymeLab/RhymePad default runtime   Serving-v1
+legacy split DB bundle              archive-only explicit opt-in
 persistent parallel workers         implemented
 Generated product default           ON / explicit opt-out
 cross-request runtime caching       intentionally deferred
@@ -118,7 +120,7 @@ The pathological current case remains `Arbeitsweise` at roughly 371 ms median in
 
 **Stop further Serving-v1 micro-optimization for now.**
 
-Do not continue optimizing merely because the current Master/Developer preview misses the historical 100/250 ms target.
+Do not continue optimizing merely because the current Master/Developer runtime misses the historical 100/250 ms target.
 
 Reason:
 
@@ -132,7 +134,7 @@ Reason:
 
 Current expectation:
 
-- **Lite:** should be substantially faster than the current Master preview. It has only 50k Core Words and no Phrase/Entity/Generated/Markov channels. It is not expected to feel slow on ordinary queries.
+- **Lite:** should be substantially faster than the current Master runtime. It has only 50k Core Words and no Phrase/Entity/Generated/Markov channels. It is not expected to feel slow on ordinary queries.
 - **Standard:** should be materially faster than the Master Word path because the Core Word population is capped at 250k. Phrase and Entity channels remain, so exact latency depends strongly on the eventual Entity distribution/closure.
 - **Full:** should still benefit from the 400k Core + 200k Generated Word cut and a smaller shipping working set, but it retains Phrase/Entity and adds Markov. It may still expose noticeable delay on expensive DE outliers.
 - **Worst-case CPU-heavy queries:** database reduction alone cannot eliminate Writer scoring/diversity/feature-preparation costs. Reopen optimization only if measured shipping-tier latency justifies it.
