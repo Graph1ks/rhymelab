@@ -405,7 +405,7 @@ export function searchEnglishWriter(db,surface,options={}){
   const requestedType=RHYME_TYPES.includes(String(options.type||''))
     ?String(options.type)
     :'all';
-  const statements=options.statements||prepareEnglishRuntimeStatements(db);
+  const statements=options.statements||prepareEnglishRuntimeStatements(db,{generatedOnly:options.generatedOnly===true});
   const retrieval=retrieveEnglishRuntimeCandidates(db,surface,{
     statements,
     channelLimit:DEFAULT_ENGLISH_RUNTIME_CHANNEL_LIMIT,
@@ -517,7 +517,7 @@ export function searchEnglishWriterFromExternalQuery(db,queryDetail,options={}){
   const requestedType=RHYME_TYPES.includes(String(options.type||''))
     ?String(options.type)
     :'all';
-  const statements=options.statements||prepareEnglishRuntimeStatements(db);
+  const statements=options.statements||prepareEnglishRuntimeStatements(db,{generatedOnly:options.generatedOnly===true});
   const retrieval=retrieveEnglishRuntimeCandidatesFromAnalysis(db,queryAnalysis,{
     statements,
     channelLimit:DEFAULT_ENGLISH_RUNTIME_CHANNEL_LIMIT,
