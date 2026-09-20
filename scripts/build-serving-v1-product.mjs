@@ -6,6 +6,7 @@ import {dirname,resolve} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {DatabaseSync} from 'node:sqlite';
 import {getPhonologyProfile} from './phonology-profiles.mjs';
+import {createPhraseRankingEvidenceResolver} from './phrase-mosaic-ranking-evidence-core.mjs';
 import {
   SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
   entityAnalyzerSql,
@@ -1054,6 +1055,36 @@ function deWriterHotpathStage(path){
   };
 }
 
+
+function phraseEvidenceHotpathStage(path){
+  return {
+    name:'16_phrase_ranking_evidence',label:'Phrase precomputed ranking evidence',path,
+    total(db){return scalar(db,'SELECT COUNT(*) c FROM runtime_phrase');},
+    max(db){return scalar(db,'SELECT COALESCE(MAX(runtime_phrase_id),0) c FROM runtime_phrase');},
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c FROM runtime_phrase
+      WHERE runtime_phrase_id>${last} AND runtime_phrase_id<=${upper}
+    `);},
+    run(db,last,upper){
+      const resolveEvidence=createPhraseRankingEvidenceResolver(db);
+      const rows=db.prepare(`
+        SELECT runtime_phrase_id,source_phrase_id
+        FROM runtime_phrase
+        WHERE runtime_phrase_id>? AND runtime_phrase_id<=?
+        ORDER BY runtime_phrase_id
+      `).all(last,upper);
+      const insert=db.prepare(`
+        INSERT OR REPLACE INTO runtime_phrase_ranking_evidence(runtime_phrase_id,evidence_json)
+        VALUES(?,?)
+      `);
+      for(const row of rows){
+        const evidence=resolveEvidence(row.source_phrase_id,row.runtime_phrase_id);
+        insert.run(row.runtime_phrase_id,JSON.stringify(evidence));
+      }
+    },
+  };
+}
+
 function entityOccurrenceIntegrity(db,path){
   const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
   const eligible=`
@@ -1147,6 +1178,7 @@ function stageDefinitions(paths){
     entityRankedAnchorStage(paths.entityGenerated),
     deAnalysisHotpathStage(paths.deGenerated),
     deWriterHotpathStage(paths.deGenerated),
+    phraseEvidenceHotpathStage(paths.phraseGenerated),
   ];
 }
 
