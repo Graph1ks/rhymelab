@@ -999,6 +999,69 @@ function verifyParity(label,basePath,augPath){
   }finally{base.close();aug.close()}
 }
 
+const activeDomainCoverage={
+  de_word:Number(workDb.prepare(`
+    SELECT COUNT(*) AS c FROM work_item w JOIN admission a USING(item_id)
+    WHERE ${activeWhere}
+      AND EXISTS(
+        SELECT 1 FROM source_ref sr WHERE sr.item_id=w.item_id
+        AND sr.scope IN (
+          'de_usage_source_minus_accepted',
+          'de_wiktionary_headword_source_minus_accepted',
+          'de_listed_form_source_minus_accepted',
+          'phrase_unresolved_token'
+        )
+      )
+  `).get()?.c||0),
+  en_word:Number(workDb.prepare(`
+    SELECT COUNT(*) AS c FROM work_item w JOIN admission a USING(item_id)
+    WHERE ${activeWhere}
+      AND EXISTS(
+        SELECT 1 FROM source_ref sr WHERE sr.item_id=w.item_id
+        AND sr.scope='en_wiktionary_lexical_source_minus_accepted'
+      )
+  `).get()?.c||0),
+  phrase_surface:Number(workDb.prepare(`
+    SELECT COUNT(*) AS c FROM work_item w JOIN admission a USING(item_id)
+    WHERE ${activeWhere}
+      AND EXISTS(
+        SELECT 1 FROM source_ref sr WHERE sr.item_id=w.item_id
+        AND sr.scope='phrase_surface_unresolved'
+      )
+  `).get()?.c||0),
+  entity:Number(workDb.prepare(`
+    SELECT COUNT(*) AS c FROM work_item w JOIN admission a USING(item_id)
+    WHERE ${activeWhere}
+      AND EXISTS(
+        SELECT 1 FROM source_ref sr WHERE sr.item_id=w.item_id
+        AND sr.scope IN ('entity_de_no_source_pronunciation','entity_en_no_source_pronunciation')
+      )
+  `).get()?.c||0),
+};
+const unclassifiedActive=Number(workDb.prepare(`
+  SELECT COUNT(*) AS c FROM work_item w JOIN admission a USING(item_id)
+  WHERE ${activeWhere}
+    AND NOT EXISTS(
+      SELECT 1 FROM source_ref sr
+      WHERE sr.item_id=w.item_id
+        AND sr.scope IN (
+          'de_usage_source_minus_accepted',
+          'de_wiktionary_headword_source_minus_accepted',
+          'de_listed_form_source_minus_accepted',
+          'phrase_unresolved_token',
+          'en_wiktionary_lexical_source_minus_accepted',
+          'phrase_surface_unresolved',
+          'entity_de_no_source_pronunciation',
+          'entity_en_no_source_pronunciation'
+        )
+    )
+`).get()?.c||0);
+if(unclassifiedActive){
+  throw new Error(
+    'Base-parity materialization has '+unclassifiedActive+' active eSpeak A/B items with no canonical domain mapping.'
+  );
+}
+
 const de=await buildGerman();
 const en=await buildEnglish();
 const phrases=await buildPhrases();
@@ -1039,6 +1102,8 @@ const report={
     deferred_tsv:deferredPath,
   },
   active_espeak_ab:activeCount,
+  active_domain_coverage:activeDomainCoverage,
+  unclassified_active:unclassifiedActive,
   deferred:{
     total:deferredRows.length,
     by_bucket:Object.fromEntries(
