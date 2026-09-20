@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { analyzeGermanIpa } from '../scripts/german-ipa.mjs';
+import { prepareGermanRhymeAnalysis } from '../scripts/german-rhyme-features.mjs';
 import {
   eligibleGermanRhymeAnchorPositions,
   germanRightEdgeVowelSuffixKeys,
@@ -53,5 +54,24 @@ test('prepared German anchor scorer preserves exact Writer scoring semantics',()
         scoreGermanRhymeAnalysesWithAnchors(analyses[i],analyses[j]),
       );
     }
+  }
+});
+
+
+test('primary anchor preparation is reused as an exact fallback',()=>{
+  for(const ipa of [
+    'ˈliːbə',
+    'ˈaʁbaɪ̯t͡sˌvaɪ̯zə',
+    'ˈhɔxt͡saɪ̯t͡sˌʁaɪ̯zə',
+    'naxt',
+  ]){
+    const analysis=analyzeGermanIpa(ipa);
+    const prepared=prepareGermanRhymeAnchorAnalysis(analysis);
+    const primary=prepared.anchors.find(
+      (anchor)=>anchor.position===prepared.primaryPosition
+    );
+    assert.ok(primary);
+    assert.strictEqual(prepared.fallback,primary.prepared);
+    assert.deepEqual(prepared.fallback,prepareGermanRhymeAnalysis(analysis));
   }
 });
