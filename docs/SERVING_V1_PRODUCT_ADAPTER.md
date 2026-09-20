@@ -110,6 +110,26 @@ The compatibility views cover:
 
 The DE materialized Writer path uses the Phase-2 `runtime_key` index directly for right-edge retrieval and `runtime_surface_morphology` directly for morphology consensus.
 
+### Persistent parallel product execution
+
+The Serving-v1 Product path uses five long-lived channel workers:
+
+```text
+words_de
+words_en
+phrases_de
+entities_de
+entities_en
+```
+
+The workers are created once, before the preview server or benchmark begins accepting measured work. Each worker owns one read-only connection to the same Serving-v1 file and runs the existing synchronous channel implementation unchanged. Core/All selection changes only the connection-local compatibility views between requests; workers are not spawned per request.
+
+For `scope=all`, eligible channels execute concurrently. The parent merges channel-local results using the same deterministic language/channel ordering rules as `searchUnifiedWriter()`. Regression coverage compares the parallel response directly against the synchronous reference response on the Serving fixture.
+
+The hotpath benchmark and Product Acceptance latency measurement both use this persistent-worker path by default. `scripts/benchmark-serving-v1-hotpaths.mjs --serial` remains available as the synchronous diagnostic reference.
+
+**No cross-request search caching is introduced by this layer.** There is no result cache, score cache, analysis cache or prepared-feature cache shared between requests. Caching is intentionally deferred until after the existing Serving-v1/parallelization plan is completed and measured.
+
 ## Build workflow
 
 ### Read-only plan
@@ -168,7 +188,7 @@ A non-default product preview is available on `main`:
 npm run dev:serving
 ```
 
-It routes the normal browser UI and primary local API through this adapter using the same Serving-v1 file for DE Words, EN Words, Phrase/Mosaic and Entities. Core mode remains the preview default; the existing Generated UI toggle switches to the adapter's All connection. This preview is explicitly for owner hands-on testing and does not satisfy or bypass the final Product Acceptance switch gate.
+It routes the normal browser UI and primary local API through this adapter using the same Serving-v1 file for DE Words, EN Words, Phrase/Mosaic and Entities. The five result channels above run through persistent workers rather than serially on the server thread. Core mode remains the preview default; the existing Generated UI toggle switches the worker connections to the adapter's All mode. This preview is explicitly for owner hands-on testing and does not satisfy or bypass the final Product Acceptance switch gate.
 
 ## Retrieval equivalence hardening
 

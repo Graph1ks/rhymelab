@@ -4,12 +4,14 @@ import {dirname,resolve} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {openServingV1ProductRuntime} from '../src/serving-v1-product-runtime.mjs';
 import {searchUnifiedWriter} from '../src/unified-writer-search.mjs';
+import {createServingV1ParallelWriterRuntime} from '../src/unified-writer-parallel.mjs';
 
 const args=process.argv.slice(2);
 const value=(flag,fallback=null)=>{
   const i=args.indexOf(flag);
   return i>=0?(args[i+1]||fallback):fallback;
 };
+const has=(flag)=>args.includes(flag);
 const intArg=(flag,fallback,min,max)=>{
   const n=Number.parseInt(String(value(flag,fallback)),10);
   return Math.max(min,Math.min(max,Number.isFinite(n)?n:fallback));
@@ -25,6 +27,7 @@ const repeats=intArg('--repeats',1,1,5);
 const targetP50=numberArg('--target-p50-ms',100);
 const targetP95=numberArg('--target-p95-ms',250);
 const targetMax=numberArg('--target-max-ms',1500);
+const serial=has('--serial');
 
 const CASES=Object.freeze([
   ['de','Arbeitsweise'],['de','Liebe'],['de','Freiheit'],['de','Musik'],['de','Zeit'],
@@ -50,8 +53,10 @@ function summary(values){
   };
 }
 
-const runtime=openServingV1ProductRuntime(servingPath);
+const runtime=serial?openServingV1ProductRuntime(servingPath):null;
+const parallel=serial?null:createServingV1ParallelWriterRuntime(servingPath);
 try{
+  if(parallel)await parallel.ready();
   const rows=[];
   for(const spec of CASES){
     for(let repeat=0;repeat<repeats;repeat++){
@@ -67,7 +72,9 @@ try{
         profileStages:true,
       };
       const started=performance.now();
-      const result=searchUnifiedWriter(runtime.allDatabases,spec.input,options);
+      const result=serial
+        ?searchUnifiedWriter(runtime.allDatabases,spec.input,options)
+        :await parallel.search(spec.input,options,{generatedOverlay:true});
       const elapsed=performance.now()-started;
       rows.push({
         input:spec.input,
@@ -103,6 +110,8 @@ try{
     serving:servingPath,
     repeats,
     targets_ms:{p50:targetP50,p95:targetP95,max:targetMax},
+    execution:serial?'serial-reference':'persistent-worker-threads-v1',
+    worker_channels:serial?[]:parallel.health().channels,
     timing,
     stages,
     gates,
@@ -115,5 +124,6 @@ try{
   },null,2));
   if(report.status!=='accepted')process.exitCode=2;
 }finally{
-  runtime.close();
+  try{await parallel?.close();}catch{}
+  try{runtime?.close();}catch{}
 }
