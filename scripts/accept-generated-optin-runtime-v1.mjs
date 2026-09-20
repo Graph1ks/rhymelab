@@ -319,10 +319,10 @@ try{
     failed_gates:failed,
   };
   report.semantic_fingerprint=sha(report);
-  await mkdir(dirname(outPath),{recursive:true});
-  await writeFile(outPath,JSON.stringify(report,null,2)+'\n','utf8');
+  let marker=null;
   if(!failed.length){
-    const marker={
+    report.enablement_marker=markerOutPath;
+    marker={
       schema:GENERATED_OPTIN_MARKER_SCHEMA,
       status:'accepted',
       policy:GENERATED_OPTIN_RUNTIME_POLICY,
@@ -330,9 +330,12 @@ try{
       acceptance_report_fingerprint:report.semantic_fingerprint,
       acceptance_report:outPath,
     };
+  }
+  await mkdir(dirname(outPath),{recursive:true});
+  await writeFile(outPath,JSON.stringify(report,null,2)+'\n','utf8');
+  if(marker){
     await mkdir(dirname(markerOutPath),{recursive:true});
     await writeFile(markerOutPath,JSON.stringify(marker,null,2)+'\n','utf8');
-    report.enablement_marker=markerOutPath;
   }
   console.log(JSON.stringify({...report,report:outPath},null,2));
   if(failed.length){
