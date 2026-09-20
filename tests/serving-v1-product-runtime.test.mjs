@@ -63,7 +63,7 @@ function pron(db,{id,surfaceId,core=false,generated=false,ipa,phonemes,stress='1
       target_id,target_kind,language,pronunciation_id,syllable_count,
       canonical_available,generated_available,canonical_preferred,generated_preferred
     )
-    SELECT ?, 'pronunciation',s.language,?,?,?,?,?,?,?
+    SELECT ?, 'pronunciation',s.language,?,?,?,?,?,?
     FROM surface s WHERE s.surface_id=?
   `).run(id,id,syllables,core?1:0,generated?1:0,core?1:0,generated?1:0,surfaceId);
 }
