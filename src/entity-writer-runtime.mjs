@@ -310,7 +310,7 @@ export function searchEntityRhymes(db, query, options = {}) {
       AND p.locale=?
       AND n.language=?
       AND p.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
-      AND (?=0 OR p.generated=1)
+      AND (?=0 OR p.source_kind='espeak_ng_generated_secondary')
       AND (?='all' OR EXISTS(
         SELECT 1 FROM entity_category ec
         WHERE ec.entity_id=e.entity_id AND ec.category=?
