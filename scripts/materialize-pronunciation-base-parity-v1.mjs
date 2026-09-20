@@ -861,7 +861,7 @@ async function buildEntities(){
   await cloneBase(entityBasePath,entityOutPath);
   const db=new DatabaseSync(entityOutPath);
   db.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;');
-  const refs=workDb.prepare(`
+  const entityRefSql=`
     SELECT sr.item_id,sr.scope,CAST(sr.source_key AS INTEGER) AS name_id,
            w.language,w.surface,w.ipa,w.raw_ipa,w.quality_tier,w.quality_reason,w.engine,w.engine_version
     FROM source_ref sr
@@ -873,7 +873,11 @@ async function buildEntities(){
       AND w.final_method='espeak_ng'
       AND w.quality_tier IN ('A','B')
     ORDER BY sr.item_id,sr.source_key
-  `).all();
+  `;
+  const entityTargetCount=Number(workDb.prepare(
+    'SELECT COUNT(*) AS c FROM ('+entityRefSql+')'
+  ).get()?.c||0);
+  const refs=workDb.prepare(entityRefSql);
   const name=db.prepare('SELECT name_id,language,surface FROM entity_name WHERE name_id=?');
   const eligibleExisting=db.prepare(`
     SELECT 1 AS ok FROM entity_pronunciation
@@ -904,8 +908,9 @@ async function buildEntities(){
   let inserted=0,skippedSourceBacked=0;
   db.exec('BEGIN');
   try{
-    for(let index=0;index<refs.length;index+=1){
-      const row=refs[index];
+    let index=0;
+    for(const row of refs.iterate()){
+      index+=1;
       const n=name.get(Number(row.name_id));
       if(!n)throw new Error('Entity source reference points to missing name_id='+row.name_id);
       const language=String(row.language);
@@ -943,16 +948,16 @@ async function buildEntities(){
         insertAnchor.run(analyzed.analyzerId,anchor.channel,anchor.key,pronunciationId);
       }
       inserted+=1;
-      if((index+1)%progressEvery===0){
+      if(index%progressEvery===0){
         db.exec('COMMIT');db.exec('BEGIN');
-        console.log('[base-parity:entity] '+(index+1).toLocaleString('en-US')+'/'+refs.length.toLocaleString('en-US'));
+        console.log('[base-parity:entity] '+index.toLocaleString('en-US')+'/'+entityTargetCount.toLocaleString('en-US'));
       }
     }
     db.exec('COMMIT');
   }catch(error){try{db.exec('ROLLBACK')}catch{};throw error}
   db.exec('ANALYZE; PRAGMA optimize;');
   db.close();
-  return {targets:refs.length,inserted,skipped_source_backed:skippedSourceBacked};
+  return {targets:entityTargetCount,inserted,skipped_source_backed:skippedSourceBacked};
 }
 
 function tableCounts(path,tables){
