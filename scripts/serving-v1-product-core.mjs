@@ -216,8 +216,8 @@ export function servingV1ProductInvariantReport(db){
     JOIN surface s USING(surface_id)
     WHERE p.eligible=1
       AND EXISTS(
-        SELECT 1 FROM surface_role r
-        WHERE r.surface_id=s.surface_id AND r.role='lexical'
+        SELECT 1 FROM pronunciation_origin o
+        WHERE o.pronunciation_id=p.pronunciation_id AND o.domain='word'
       )
       AND NOT EXISTS(
         SELECT 1 FROM runtime_pronunciation_profile pp
