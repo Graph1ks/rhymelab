@@ -470,6 +470,14 @@ function entityPronStage(path){
     AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
   `;
   const mapped=(last,upper)=>`
+    WITH analysis AS (
+      SELECT
+        pronunciation_id,
+        MIN(NULLIF(phonemes,'')) AS phonemes,
+        MIN(stress_pattern) AS stress_pattern
+      FROM src.entity_phonetic_analysis
+      GROUP BY pronunciation_id
+    )
     SELECT
       ep.pronunciation_id source_id,n.name_id,n.language,n.normalized,sp.pronunciation_id serving_pronunciation_id,
       CASE
@@ -489,16 +497,15 @@ function entityPronStage(path){
     FROM src.entity_pronunciation ep
     JOIN src.entity_name n ON n.name_id=ep.name_id
     JOIN runtime_entity_name rn ON rn.name_id=n.name_id
-    LEFT JOIN src.entity_phonetic_analysis epa ON epa.pronunciation_id=ep.pronunciation_id
+    LEFT JOIN analysis epa ON epa.pronunciation_id=ep.pronunciation_id
     JOIN surface s ON s.language=n.language AND s.normalized=n.normalized
     JOIN pronunciation sp
       ON sp.surface_id=s.surface_id
      AND sp.identity_key=(
-       COALESCE(NULLIF(MIN(epa.phonemes),''),ep.ipa)
-       ||'|stress:'||COALESCE(MIN(epa.stress_pattern),'')
+       COALESCE(epa.phonemes,ep.ipa)
+       ||'|stress:'||COALESCE(epa.stress_pattern,'')
      )
     WHERE ${filter(last,upper)}
-    GROUP BY ep.pronunciation_id
   `;
   return {
     name:'06_entity_pronunciations',label:'Entity pronunciation occurrences',path,
@@ -592,21 +599,28 @@ function entityWriterAnchorStage(path){
     `);},
     run(db,last,upper){
       db.exec(`
-        WITH mapped AS (
+        WITH analysis AS (
+          SELECT
+            pronunciation_id,
+            MIN(NULLIF(phonemes,'')) AS phonemes,
+            MIN(stress_pattern) AS stress_pattern
+          FROM src.entity_phonetic_analysis
+          GROUP BY pronunciation_id
+        ),
+        mapped AS (
           SELECT
             ep.pronunciation_id source_id,sp.pronunciation_id serving_pronunciation_id
           FROM src.entity_pronunciation ep
           JOIN src.entity_name n ON n.name_id=ep.name_id
-          LEFT JOIN src.entity_phonetic_analysis epa ON epa.pronunciation_id=ep.pronunciation_id
+          LEFT JOIN analysis epa ON epa.pronunciation_id=ep.pronunciation_id
           JOIN surface s ON s.language=n.language AND s.normalized=n.normalized
           JOIN pronunciation sp
             ON sp.surface_id=s.surface_id
            AND sp.identity_key=(
-             COALESCE(NULLIF(MIN(epa.phonemes),''),ep.ipa)
-             ||'|stress:'||COALESCE(MIN(epa.stress_pattern),'')
+             COALESCE(epa.phonemes,ep.ipa)
+             ||'|stress:'||COALESCE(epa.stress_pattern,'')
            )
           WHERE ${filter(last,upper)}
-          GROUP BY ep.pronunciation_id
         )
         INSERT OR IGNORE INTO runtime_entity_writer_anchor(
           analyzer_id,channel,anchor_key,serving_pronunciation_id
