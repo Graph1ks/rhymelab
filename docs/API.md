@@ -90,6 +90,18 @@ Returns local runtime status including:
 
 This is the normal unified product endpoint for the main Writer UI.
 
+### Surface consolidation
+
+Product-visible Word/Entity results are consolidated by `language + normalized surface`.
+
+- If a Word/Core result and one or more Entity results share a surface, the Word result remains the visible carrier and keeps its lexical/Core pronunciation and Writer ranking fields.
+- Entity taxonomy categories and distinct QIDs are attached as `entityCategories`, `entityQids`, and `entityIdentities`.
+- Multiple same-name Entity rows collapse to one visible Entity surface when no Word result is present.
+- Alternate pronunciations are retained in `surfacePronunciations` rather than emitted as duplicate cards.
+- Phrase/Mosaic results are not merged into lexical surfaces because their displayed IPA may represent a matched mosaic span rather than the full phrase.
+
+The response `counts.surfaceAggregation` block reports pre/post consolidation row counts. Search-pool counts remain retrieval diagnostics and are not reduced by presentation consolidation.
+
 Parameters:
 
 - `q=<text>` — one word or a multi-word query;
