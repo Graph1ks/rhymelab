@@ -85,14 +85,16 @@ export function consonantFeatures(symbol) {
 
 export function vowelSimilarity(a, b) {
   if (a === b) return 1;
-  const x = vowelFeatures(a), y = vowelFeatures(b);
-  if (!x.known || !y.known) return 0.25;
-  if (x.height === 5 || y.height === 5) return x.height === y.height ? 0.72 : 0.08;
-  const height = Math.abs(x.height - y.height) / 4;
-  const backness = Math.abs(x.backness - y.backness) / 2;
-  const rounded = x.rounded === y.rounded ? 0 : 1;
-  const length = x.long === y.long ? 0 : 1;
-  const diph = x.diphthong === y.diphthong ? 0 : 1;
+  const x = VOWELS[a], y = VOWELS[b];
+  if (!x || !y) return 0.25;
+  const [xHeight,xBackness,xRounded,xLong,xDiphthong]=x;
+  const [yHeight,yBackness,yRounded,yLong,yDiphthong]=y;
+  if (xHeight === 5 || yHeight === 5) return xHeight === yHeight ? 0.72 : 0.08;
+  const height = Math.abs(xHeight - yHeight) / 4;
+  const backness = Math.abs(xBackness - yBackness) / 2;
+  const rounded = xRounded === yRounded ? 0 : 1;
+  const length = xLong === yLong ? 0 : 1;
+  const diph = xDiphthong === yDiphthong ? 0 : 1;
   return clamp01(1 - (0.34*height + 0.26*backness + 0.14*rounded + 0.10*length + 0.16*diph));
 }
 
@@ -104,18 +106,29 @@ export function germanRelationVowelSimilarity(a, b) {
 
 export function consonantSimilarity(a, b) {
   if (a === b) return 1;
-  const x = consonantFeatures(a), y = consonantFeatures(b);
-  if (!x.known || !y.known) return 0.2;
-  const place = Math.min(1, Math.abs((PLACE_GROUP[x.place] ?? 2) - (PLACE_GROUP[y.place] ?? 2)) / 2.5);
-  const manner = Math.min(1, Math.abs((MANNER_GROUP[x.manner] ?? 2) - (MANNER_GROUP[y.manner] ?? 2)) / 2.5);
-  const voiced = x.voiced === y.voiced ? 0 : 1;
-  const sibilant = x.sibilant === y.sibilant ? 0 : 1;
+  const x = CONSONANTS[a], y = CONSONANTS[b];
+  if (!x || !y) return 0.2;
+  const [xPlace,xManner,xVoiced,xSibilant]=x;
+  const [yPlace,yManner,yVoiced,ySibilant]=y;
+  const place = Math.min(1, Math.abs((PLACE_GROUP[xPlace] ?? 2) - (PLACE_GROUP[yPlace] ?? 2)) / 2.5);
+  const manner = Math.min(1, Math.abs((MANNER_GROUP[xManner] ?? 2) - (MANNER_GROUP[yManner] ?? 2)) / 2.5);
+  const voiced = xVoiced === yVoiced ? 0 : 1;
+  const sibilant = xSibilant === ySibilant ? 0 : 1;
   return clamp01(1 - (0.36*place + 0.38*manner + 0.18*voiced + 0.08*sibilant));
 }
 
 function sequenceSimilarity(a, b, tokenSimilarity) {
   if (!a.length && !b.length) return EMPTY_CONSONANT_MATCH;
+  if (!a.length || !b.length) return 0;
   const m = a.length, n = b.length;
+  if (m===n) {
+    let exact=true;
+    for(let index=0;index<m;index++){
+      if(a[index]!==b[index]){exact=false;break;}
+    }
+    if(exact)return 1;
+  }
+  if(m===1&&n===1)return clamp01(tokenSimilarity(a[0],b[0]));
   const previous=Array.from({length:n+1},(_,index)=>index);
   const current=new Array(n+1).fill(0);
   for(let i=1;i<=m;i++){
@@ -164,10 +177,38 @@ export function featureVectorForAnalysis(analysis) {
 function symbols(items) { return items.map((x) => x.symbol); }
 function relationPayload(relations) { return { relations, relationTypes: matchedRelationTypes(relations) }; }
 
-function hasExactCodaAnchor(a, b) {
-  const left = new Set(a.rhyme.flatMap((syllable) => symbols(syllable.coda)));
+const PREPARED_FAST_FEATURES=new WeakMap();
+
+function fastFeaturesForVector(vector){
+  const rhyme=vector?.rhyme||[];
+  const vowelSymbols=rhyme.map((syllable)=>syllable?.nucleus?.symbol).filter(Boolean);
+  const consonantSymbols=rhyme.flatMap((syllable,index)=>[
+    ...(index===0?[]:(syllable?.onset||[]).map((item)=>item.symbol).filter(Boolean)),
+    ...(syllable?.coda||[]).map((item)=>item.symbol).filter(Boolean),
+  ]);
+  return {
+    vowelSymbols,
+    consonantSymbols,
+    stressLevels:rhyme.map((syllable)=>syllable.stress),
+    codaSymbols:rhyme.map((syllable)=>symbols(syllable.coda)),
+    onsetSymbols:rhyme.map((syllable)=>symbols(syllable.onset)),
+    codaSymbolSet:new Set(rhyme.flatMap((syllable)=>symbols(syllable.coda))),
+  };
+}
+
+function preparedFastFeatures(prepared){
+  let fast=PREPARED_FAST_FEATURES.get(prepared);
+  if(!fast){
+    fast=fastFeaturesForVector(prepared?.vector);
+    if(prepared&&typeof prepared==='object')PREPARED_FAST_FEATURES.set(prepared,fast);
+  }
+  return fast;
+}
+
+function hasExactCodaAnchor(aFast, bFast) {
+  const left=aFast.codaSymbolSet;
   if (!left.size) return false;
-  return b.rhyme.some((syllable) => symbols(syllable.coda).some((symbol) => left.has(symbol)));
+  return bFast.codaSymbols.some((syllable) => syllable.some((symbol) => left.has(symbol)));
 }
 
 function classifyPrimaryRhyme(va, vb, { overall, vowel, codaAnchor }) {
@@ -191,12 +232,14 @@ function classifyPrimaryRhyme(va, vb, { overall, vowel, codaAnchor }) {
 }
 
 export function prepareGermanRhymeAnalysis(analysis){
-  return {
+  const prepared={
     analysis,
     vector:featureVectorForAnalysis(analysis),
     exactTailKey:analysis?.exactTailKey||null,
     stressedSyllableCount:Number(analysis?.stressedSyllableCount||0),
   };
+  PREPARED_FAST_FEATURES.set(prepared,fastFeaturesForVector(prepared.vector));
+  return prepared;
 }
 
 export function scorePreparedGermanRhymeAnalyses(preparedA,preparedB) {
@@ -208,11 +251,19 @@ export function scorePreparedGermanRhymeAnalyses(preparedA,preparedB) {
   );
   const va=preparedA.vector;
   const vb=preparedB.vector;
+  const fastA=preparedFastFeatures(preparedA);
+  const fastB=preparedFastFeatures(preparedB);
   const relations = classifySoundRelations(va, vb, {
     vowelSimilarity: germanRelationVowelSimilarity,
     consonantSimilarity,
     exactRhyme,
     thresholds: GERMAN_RELATION_THRESHOLDS,
+    preparedSymbols:{
+      vowelsA:fastA.vowelSymbols,
+      vowelsB:fastB.vowelSymbols,
+      consonantsA:fastA.consonantSymbols,
+      consonantsB:fastB.consonantSymbols,
+    },
   });
 
   if (exactRhyme) {
@@ -238,17 +289,17 @@ export function scorePreparedGermanRhymeAnalyses(preparedA,preparedB) {
     vowelScores.push(postStressReducedPair
       ? germanRelationVowelSimilarity(x.nucleus.symbol, y.nucleus.symbol)
       : vowelSimilarity(x.nucleus.symbol, y.nucleus.symbol));
-    codaScores.push(sequenceSimilarity(symbols(x.coda), symbols(y.coda), consonantSimilarity));
-    onsetScores.push(sequenceSimilarity(symbols(x.onset), symbols(y.onset), consonantSimilarity));
+    codaScores.push(sequenceSimilarity(fastA.codaSymbols[xIndex], fastB.codaSymbols[yIndex], consonantSimilarity));
+    onsetScores.push(sequenceSimilarity(fastA.onsetSymbols[xIndex], fastB.onsetSymbols[yIndex], consonantSimilarity));
   }
   const vowel = mean(vowelScores);
   const coda = mean(codaScores);
   const onset = mean(onsetScores);
-  const stress = stressSimilarity(va.rhyme.map((x) => x.stress), vb.rhyme.map((x) => x.stress));
+  const stress = stressSimilarity(fastA.stressLevels, fastB.stressLevels);
   const syllable = 1 - Math.min(1, Math.abs(va.rhymeSyllableCount-vb.rhymeSyllableCount) / Math.max(va.rhymeSyllableCount,vb.rhymeSyllableCount,1));
   const consonance = 0.8*coda + 0.2*onset;
   const overall = clamp01(0.48*vowel + 0.30*coda + 0.10*stress + 0.08*syllable + 0.04*onset);
-  const codaAnchor = hasExactCodaAnchor(va, vb);
+  const codaAnchor = hasExactCodaAnchor(fastA, fastB);
   const type = classifyPrimaryRhyme(va, vb, { overall, vowel, codaAnchor });
   return { overall, type, vowel, coda, stress, syllable, onset, consonance, codaAnchor, ...relationPayload(relations) };
 }

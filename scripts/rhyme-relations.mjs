@@ -25,6 +25,14 @@ function sequenceSimilarity(a, b, tokenSimilarity) {
   if (!a.length || !b.length) return 0;
   const m=a.length;
   const n=b.length;
+  if(m===n){
+    let exact=true;
+    for(let index=0;index<m;index++){
+      if(a[index]!==b[index]){exact=false;break;}
+    }
+    if(exact)return 1;
+  }
+  if(m===1&&n===1)return clamp01(tokenSimilarity(a[0],b[0]));
   const previous=Array.from({length:n+1},(_,index)=>index);
   const current=new Array(n+1).fill(0);
   for(let i=1;i<=m;i++){
@@ -95,10 +103,11 @@ export function classifySoundRelations(vectorA, vectorB, options = {}) {
   };
   const exactRhyme = options.exactRhyme === true;
 
-  const vowelsA = vowelSymbols(vectorA);
-  const vowelsB = vowelSymbols(vectorB);
-  const consonantsA = consonantSymbols(vectorA);
-  const consonantsB = consonantSymbols(vectorB);
+  const preparedSymbols=options.preparedSymbols||null;
+  const vowelsA = preparedSymbols?.vowelsA || vowelSymbols(vectorA);
+  const vowelsB = preparedSymbols?.vowelsB || vowelSymbols(vectorB);
+  const consonantsA = preparedSymbols?.consonantsA || consonantSymbols(vectorA);
+  const consonantsB = preparedSymbols?.consonantsB || consonantSymbols(vectorB);
 
   const stressedNucleus = vowelsA.length && vowelsB.length
     ? clamp01(vowelSimilarity(vowelsA[0], vowelsB[0]))
