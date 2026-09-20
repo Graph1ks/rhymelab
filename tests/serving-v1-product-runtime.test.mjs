@@ -126,6 +126,21 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
           selection_usage_rank_missing,selection_pronunciation_preferred,selection_pronunciation_rank,selection_ipa
         ) VALUES(1,1,'Zeit',1,6.0,10,2,'zeit','noun','f','dictionary',NULL,0,'[]',0,1,1,'tsaɪt')
       `).run();
+      db.prepare(`
+        INSERT INTO runtime_de_word_occurrence(
+          id,serving_pronunciation_id,source_generated,genuine_generated,publish_order,surface,normalized,
+          usage_rank,usage_score,usage_count,usage_source_count,lemma,pos,gender,lexicon_layer,entity_kind,
+          historical,lexical_tags,ipa,phonemes,syllable_count,stress,primary_stress,rhyme_tail,final_tail,
+          vowels,consonants,exact_key,multisyllable_key,vowel_key,vowel_family,coda_key,coda_class,
+          rhyme_syllables,pronunciation_rank,pronunciation_preferred,pronunciation_eligible,
+          pronunciation_evidence,pronunciation_source_order,pronunciation_source,pronunciation_tags,
+          pronunciation_raw_tags,pronunciation_flags,locale,dialect,pronunciation_register
+        ) VALUES(
+          1,1,0,0,1,'Zeit','zeit',1,6.0,10,2,'zeit','noun','f','dictionary',NULL,
+          0,'[]','tsaɪt','t s aɪ t',1,'1',1,'aɪt','aɪt','aɪ','t','tail',NULL,'aɪ','AI','t','COR-STOP',
+          1,1,1,1,2,1,'German Wiktionary','[]','[]','[]','de-DE',NULL,NULL
+        )
+      `).run();
 
       surface(db,{id:2,language:'de',normalized:'krankenscheindrucker',surface:'Krankenscheindrucker',generated:true});
       pron(db,{id:2,surfaceId:2,generated:true,ipa:'kʁaŋk',phonemes:'k ʁ a ŋ k',coda:'k'});
@@ -137,6 +152,23 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
           selection_usage_rank_missing,selection_pronunciation_preferred,selection_pronunciation_rank,selection_ipa
         ) VALUES(2,2,'Krankenscheindrucker',NULL,NULL,NULL,NULL,'krankenscheindrucker','noun',NULL,'dictionary',NULL,0,'[]',1,1,1,'kʁaŋk')
       `).run();
+      db.prepare(`
+        INSERT INTO runtime_de_word_occurrence(
+          id,serving_pronunciation_id,source_generated,genuine_generated,publish_order,surface,normalized,
+          usage_rank,usage_score,usage_count,usage_source_count,lemma,pos,gender,lexicon_layer,entity_kind,
+          historical,lexical_tags,ipa,phonemes,syllable_count,stress,primary_stress,rhyme_tail,final_tail,
+          vowels,consonants,exact_key,multisyllable_key,vowel_key,vowel_family,coda_key,coda_class,
+          rhyme_syllables,pronunciation_rank,pronunciation_preferred,pronunciation_eligible,
+          pronunciation_evidence,pronunciation_source_order,pronunciation_source,pronunciation_tags,
+          pronunciation_raw_tags,pronunciation_flags,locale,dialect,pronunciation_register
+        ) VALUES(
+          2,2,1,1,2,'Krankenscheindrucker','krankenscheindrucker',NULL,NULL,NULL,NULL,
+          'krankenscheindrucker','noun',NULL,'dictionary',NULL,0,'[]','kʁaŋk','k ʁ a ŋ k',1,'1',1,
+          'aŋk','aŋk','a','k','tail',NULL,'a','A','k','DOR-STOP',1,1,1,1,0,99,'eSpeak-NG Backfill V2',
+          '["generated"]','["generated"]','["generated","secondary_opt_in"]','de-DE',NULL,NULL
+        )
+      `).run();
+      db.prepare("INSERT INTO runtime_de_writer_anchor_occurrence VALUES('aɪ-k',2)").run();
       db.prepare("INSERT INTO runtime_key(language,channel,key_value) VALUES('de','writer_right_edge','aɪ-k')").run();
       const keyId=Number(db.prepare("SELECT key_id FROM runtime_key WHERE channel='writer_right_edge'").get().key_id);
       db.prepare('INSERT INTO runtime_key_member(key_id,target_id) VALUES(?,?)').run(keyId,2);
@@ -150,10 +182,42 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       surface(db,{id:3,language:'en',normalized:'time',surface:'time',core:true,usageRank:1});
       pron(db,{id:3,surfaceId:3,core:true,ipa:'taɪm',phonemes:'t aɪ m'});
       lexicalProfile(db,{surfaceId:3,pronunciationId:3,language:'en',source:'cmudict',zipf:6.1});
+      db.prepare(`
+        INSERT INTO runtime_en_form_occurrence(
+          id,surface,normalized,surface_variants,poses,lemmas,relation_kinds,lexical_tags,evidence_kinds,
+          current_evidence_count,historical_evidence_count,proper_name_evidence_count,common_lexical_evidence_count,
+          historical_only,proper_name_only,analyzed_en_us,default_eligible,exclusion_reasons,esdb_min_size,
+          esdb_regions,esdb_pos_classes,esdb_archaic,esdb_uncommon,esdb_invalid,wordfreq_rank,wordfreq_zipf
+        ) VALUES(3,'time','time','["time"]','["noun"]','["time"]','[]','[]','[]',1,0,0,1,0,0,1,1,'[]',NULL,'[]','[]',0,0,0,1,6.1)
+      `).run();
+      db.prepare(`
+        INSERT INTO runtime_en_pronunciation_occurrence(
+          id,serving_pronunciation_id,source_generated,genuine_generated,form_id,source,notation,raw,locales,
+          locale_us,locale_gb,source_attested_unprofiled,tags,evidence_count,analysis_status,phonemes,
+          syllable_count,stress,primary_stress,rhyme_tail,final_tail,exact_key,multisyllable_key,vowel_key,
+          vowel_family,coda_key,coda_class,rhyme_syllables,rhotic,default_profile_eligible
+        ) VALUES(3,3,0,0,3,'cmudict','ipa','taɪm','["en-US"]',1,0,0,'[]',1,'ok','t aɪ m',1,'1',1,'tail','tail','tail',NULL,'aɪ','AI','m','m',1,0,1)
+      `).run();
 
       surface(db,{id:4,language:'en',normalized:'chime',surface:'chime',generated:true});
       pron(db,{id:4,surfaceId:4,generated:true,ipa:'tʃaɪm',phonemes:'tʃ aɪ m'});
       lexicalProfile(db,{surfaceId:4,pronunciationId:4,language:'en',generated:true,source:'espeak_ng_generated_secondary',zipf:3.1});
+      db.prepare(`
+        INSERT INTO runtime_en_form_occurrence(
+          id,surface,normalized,surface_variants,poses,lemmas,relation_kinds,lexical_tags,evidence_kinds,
+          current_evidence_count,historical_evidence_count,proper_name_evidence_count,common_lexical_evidence_count,
+          historical_only,proper_name_only,analyzed_en_us,default_eligible,exclusion_reasons,esdb_min_size,
+          esdb_regions,esdb_pos_classes,esdb_archaic,esdb_uncommon,esdb_invalid,wordfreq_rank,wordfreq_zipf
+        ) VALUES(4,'chime','chime','["chime"]','["noun"]','["chime"]','[]','[]','[]',1,0,0,1,0,0,1,1,'[]',NULL,'[]','[]',0,0,0,4,3.1)
+      `).run();
+      db.prepare(`
+        INSERT INTO runtime_en_pronunciation_occurrence(
+          id,serving_pronunciation_id,source_generated,genuine_generated,form_id,source,notation,raw,locales,
+          locale_us,locale_gb,source_attested_unprofiled,tags,evidence_count,analysis_status,phonemes,
+          syllable_count,stress,primary_stress,rhyme_tail,final_tail,exact_key,multisyllable_key,vowel_key,
+          vowel_family,coda_key,coda_class,rhyme_syllables,rhotic,default_profile_eligible
+        ) VALUES(4,4,1,1,4,'espeak_ng_generated_secondary','ipa','tʃaɪm','["en-US"]',1,0,0,'["generated"]',1,'ok','tʃ aɪ m',1,'1',1,'tail','tail','tail',NULL,'aɪ','AI','m','m',1,0,1)
+      `).run();
       db.prepare("INSERT INTO runtime_key(language,channel,key_value) VALUES('en','exact_tail','tail')").run();
       const enKeyId=Number(db.prepare("SELECT key_id FROM runtime_key WHERE language='en' AND channel='exact_tail'").get().key_id);
       db.prepare('INSERT INTO runtime_key_member(key_id,target_id) VALUES(?,?)').run(enKeyId,4);
