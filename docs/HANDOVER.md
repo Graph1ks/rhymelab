@@ -987,3 +987,8 @@ npm run pronunciation:secondary:materialize
 ```
 
 Expected primary report: `data/local/pronunciation-base-parity-v1-report.json`. Runtime/UI checkbox integration remains a separate step; default search stays canonical-only.
+
+
+## Current continuation pointer — Generated Base-Parity owner run
+
+Use `docs/PRONUNCIATION_BASE_PARITY_HANDOVER.md` as the focused continuation document for the current owner run. The owner has already started `npm run pronunciation:secondary:materialize`; do not ask for a restart unless the resulting report/error makes it necessary. Primary artifact: `data/local/pronunciation-base-parity-v1-report.json`. Only after that report passes every hard parity gate should runtime/UI checkbox integration begin.

@@ -987,3 +987,6 @@ Updated AI collection policy: do **not** annotate the complete 704,989/705,050 u
 Owner result is complete: 3,365,814 eSpeak A/B rows form the active generated population. They remain **second-class, user-opt-in-only** and must never enter default search automatically. Client B (292), Client C (2,161), Client D (60), and U (25) remain explicitly deferred for later review.
 
 The earlier bespoke Secondary V1 sidecar is superseded. Generated rows must now be represented with **exactly the same persistent SQLite schema as the regular base dataset for their domain — no reduced schema and no extra Etymology/Senses sidecar**. The materializer builds augmented copies of the canonical DE Writer, EN Writer, Phrase and Entity databases, inserts/rebuilds generated data through their existing tables/materializers, and hard-fails on any persistent schema mismatch. Canonical DBs remain untouched. See `docs/PRONUNCIATION_BASE_PARITY_V1.md`.
+
+
+Current immediate gate: owner is running `npm run pronunciation:secondary:materialize` for Generated Pronunciation Base-Parity V1. Focused continuation document: `docs/PRONUNCIATION_BASE_PARITY_HANDOVER.md`. Await `data/local/pronunciation-base-parity-v1-report.json` or a failure log; do not start runtime/UI opt-in integration before the materialization report passes exact DE/EN/Phrase/Entity schema-parity and coverage gates.
