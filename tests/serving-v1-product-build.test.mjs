@@ -30,42 +30,46 @@ function createDe(path){
     meta(db,'rhymelab-local-db-v5');
     db.exec(`
       CREATE TABLE hot(
-        id INTEGER PRIMARY KEY,surface TEXT,normalized TEXT,ipa TEXT,phonemes TEXT,stress TEXT,
-        pronunciation_eligible INTEGER,pronunciation_flags TEXT,usage_rank INTEGER,usage_score REAL,
-        usage_count INTEGER,usage_source_count INTEGER,lemma TEXT,pos TEXT,gender TEXT,lexicon_layer TEXT,
-        entity_kind TEXT,historical INTEGER,lexical_tags TEXT,pronunciation_preferred INTEGER,
-        pronunciation_source TEXT,pronunciation_source_order INTEGER,pronunciation_evidence INTEGER,
-        pronunciation_tags TEXT,pronunciation_raw_tags TEXT,locale TEXT,dialect TEXT,
-        pronunciation_register TEXT,rhyme_tail TEXT,final_tail TEXT,vowels TEXT,consonants TEXT,
-        coda_class TEXT,rhyme_syllables INTEGER,pronunciation_rank INTEGER
+        id INTEGER PRIMARY KEY,publish_order INTEGER,surface TEXT,normalized TEXT,
+        usage_rank INTEGER,usage_score REAL,usage_count INTEGER,usage_source_count INTEGER,
+        lemma TEXT,pos TEXT,gender TEXT,lexicon_layer TEXT,entity_kind TEXT,historical INTEGER,
+        lexical_tags TEXT,ipa TEXT,phonemes TEXT,syllable_count INTEGER,stress TEXT,primary_stress INTEGER,
+        rhyme_tail TEXT,final_tail TEXT,vowels TEXT,consonants TEXT,exact_key TEXT,multisyllable_key TEXT,
+        vowel_key TEXT,vowel_family TEXT,coda_key TEXT,coda_class TEXT,rhyme_syllables INTEGER,
+        pronunciation_rank INTEGER,pronunciation_preferred INTEGER,pronunciation_eligible INTEGER,
+        pronunciation_evidence INTEGER,pronunciation_source_order INTEGER,pronunciation_source TEXT,
+        pronunciation_tags TEXT,pronunciation_raw_tags TEXT,pronunciation_flags TEXT,
+        locale TEXT,dialect TEXT,pronunciation_register TEXT
       );
+      CREATE TABLE writer_anchor(
+        anchor_key TEXT NOT NULL,pronunciation_id INTEGER NOT NULL,
+        PRIMARY KEY(anchor_key,pronunciation_id)
+      ) WITHOUT ROWID;
     `);
     const ins=db.prepare(`
-      INSERT INTO hot(
-        id,surface,normalized,ipa,phonemes,stress,pronunciation_eligible,pronunciation_flags,
-        usage_rank,usage_score,usage_count,usage_source_count,lemma,pos,gender,lexicon_layer,
-        entity_kind,historical,lexical_tags,pronunciation_preferred,pronunciation_source,
-        pronunciation_source_order,pronunciation_evidence,pronunciation_tags,pronunciation_raw_tags,
-        locale,dialect,pronunciation_register,rhyme_tail,final_tail,vowels,consonants,coda_class,
-        rhyme_syllables,pronunciation_rank
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      INSERT INTO hot VALUES(
+        ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+      )
     `);
     ins.run(
-      1,'Zeit','zeit','tsaɪt','t s aɪ t','1',1,'[]',
-      1,6.0,10,3,'zeit','noun','f','dictionary',null,0,'["common"]',1,
-      'German Wiktionary',1,2,'[]','[]','de-DE',null,null,'aɪt','aɪt','aɪ','t','COR-STOP',1,1
+      1,1,'Zeit','zeit',1,6.0,10,3,'zeit','noun','f','dictionary',null,0,'["common"]',
+      'tsaɪt','t s aɪ t',1,'1',1,'aɪt','aɪt','aɪ','t','aɪt',null,'aɪ','AI','t','COR-STOP',1,
+      1,1,1,2,1,'German Wiktionary','[]','[]','[]','de-DE',null,null
     );
     ins.run(
-      2,'Krankenscheindrucker','krankenscheindrucker','kʁaŋk','k ʁ a ŋ k','1',1,
-      '["generated","secondary_opt_in"]',null,null,null,null,'krankenscheindrucker','noun',null,
-      'dictionary',null,0,'[]',1,'eSpeak-NG Backfill V2',99,0,'["generated"]','["generated"]',
-      'de-DE',null,null,'aŋk','aŋk','a','k','DOR-STOP',1,1
+      2,2,'Krankenscheindrucker','krankenscheindrucker',null,null,null,null,
+      'krankenscheindrucker','noun',null,'dictionary',null,0,'[]',
+      'kʁaŋk','k ʁ a ŋ k',1,'1',1,'aŋk','aŋk','a','k','aŋk',null,'a','A','k','DOR-STOP',1,
+      1,1,1,0,99,'eSpeak-NG Backfill V2','["generated"]','["generated"]',
+      '["generated","secondary_opt_in"]','de-DE',null,null
     );
     ins.run(
-      3,'A-Zeit','zeit','tsaɪt','t s aɪ t','1',1,'[]',
-      1,6.0,10,3,'WRONG_LEMMA','noun','f','dictionary',null,0,'[]',1,
-      'German Wiktionary',1,1,'[]','[]','de-DE',null,null,'aɪt','aɪt','aɪ','t','COR-STOP',1,1
+      3,1,'A-Zeit','zeit',1,6.0,10,3,'WRONG_LEMMA','noun','f','dictionary',null,0,'[]',
+      'tsaɪt','t s aɪ t',1,'1',1,'aɪt','aɪt','aɪ','t','aɪt',null,'aɪ','AI','t','COR-STOP',1,
+      1,1,1,1,1,'German Wiktionary','[]','[]','[]','de-DE',null,null
     );
+    db.prepare('INSERT INTO writer_anchor VALUES(?,?)').run('aɪ',1);
+    db.prepare('INSERT INTO writer_anchor VALUES(?,?)').run('a',2);
   }finally{db.close();}
 }
 function createEn(path){
@@ -74,23 +78,31 @@ function createEn(path){
     meta(db,'rhymelab-en-writer-db-v1-candidate');
     db.exec(`
       CREATE TABLE en_form(
-        id INTEGER PRIMARY KEY,normalized TEXT,surface_variants TEXT,poses TEXT,lemmas TEXT,
-        relation_kinds TEXT,lexical_tags TEXT,evidence_kinds TEXT,esdb_archaic INTEGER,
-        esdb_uncommon INTEGER,wordfreq_zipf REAL,default_eligible INTEGER
+        id INTEGER PRIMARY KEY,surface TEXT,normalized TEXT,surface_variants TEXT,poses TEXT,lemmas TEXT,
+        relation_kinds TEXT,lexical_tags TEXT,evidence_kinds TEXT,current_evidence_count INTEGER,
+        historical_evidence_count INTEGER,proper_name_evidence_count INTEGER,common_lexical_evidence_count INTEGER,
+        historical_only INTEGER,proper_name_only INTEGER,analyzed_en_us INTEGER,default_eligible INTEGER,
+        exclusion_reasons TEXT,esdb_min_size INTEGER,esdb_regions TEXT,esdb_pos_classes TEXT,
+        esdb_archaic INTEGER,esdb_uncommon INTEGER,esdb_invalid INTEGER,wordfreq_rank INTEGER,wordfreq_zipf REAL
       );
       CREATE TABLE en_pronunciation(
-        id INTEGER PRIMARY KEY,form_id INTEGER,source TEXT,raw TEXT,phonemes TEXT,stress TEXT,
-        analysis_status TEXT,tags TEXT,evidence_count INTEGER,locales TEXT,locale_us INTEGER,
-        locale_gb INTEGER,source_attested_unprofiled INTEGER,rhyme_tail TEXT,final_tail TEXT,
-        vowel_key TEXT,coda_key TEXT,coda_class TEXT,rhyme_syllables INTEGER,rhotic INTEGER,
-        default_profile_eligible INTEGER
+        id INTEGER PRIMARY KEY,form_id INTEGER,source TEXT,notation TEXT,raw TEXT,locales TEXT,
+        locale_us INTEGER,locale_gb INTEGER,source_attested_unprofiled INTEGER,tags TEXT,evidence_count INTEGER,
+        analysis_status TEXT,phonemes TEXT,syllable_count INTEGER,stress TEXT,primary_stress INTEGER,
+        rhyme_tail TEXT,final_tail TEXT,exact_key TEXT,multisyllable_key TEXT,vowel_key TEXT,vowel_family TEXT,
+        coda_key TEXT,coda_class TEXT,rhyme_syllables INTEGER,rhotic INTEGER,default_profile_eligible INTEGER
       );
     `);
-    db.prepare('INSERT INTO en_form VALUES(?,?,?,?,?,?,?,?,?,?,?,?)')
-      .run(1,'time','["time"]','["noun"]','["time"]','[]','[]','[]',0,0,6.5,1);
-    db.prepare('INSERT INTO en_pronunciation VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-      .run(1,1,'cmudict','T AY1 M','t aɪ m','1','ok','[]',3,'["en-US"]',1,0,0,
-        'aɪm','aɪm','aɪ','m','COR-NAS',1,0,1);
+    db.prepare('INSERT INTO en_form VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      .run(
+        1,'time','time','["time"]','["noun"]','["time"]','[]','[]','[]',
+        1,0,0,1,0,0,1,1,'[]',null,'[]','[]',0,0,0,1,6.5
+      );
+    db.prepare('INSERT INTO en_pronunciation VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      .run(
+        1,1,'cmudict','arpabet','T AY1 M','["en-US"]',1,0,0,'[]',3,'ok',
+        't aɪ m',1,'1',1,'aɪm','aɪm','aɪm',null,'aɪ','AI','m','COR-NAS',1,0,1
+      );
   }finally{db.close();}
 }
 function createPhrase(path){
@@ -355,8 +367,16 @@ test('Product metadata builder plans read-only, checkpoints, resumes and atomica
 
     const runtime=openServingV1ProductRuntime(serving);
     try{
-      assert.equal(runtime.allDb.prepare("SELECT COUNT(*) c FROM hot").get().c,2);
-      assert.equal(runtime.coreDb.prepare("SELECT COUNT(*) c FROM hot").get().c,1);
+      assert.equal(runtime.allDb.prepare("SELECT COUNT(*) c FROM hot").get().c,3);
+      assert.equal(runtime.coreDb.prepare("SELECT COUNT(*) c FROM hot").get().c,2);
+      assert.deepEqual(
+        runtime.allDb.prepare("SELECT id,surface FROM hot ORDER BY id").all().map((row)=>[Number(row.id),row.surface]),
+        [[1,'Zeit'],[2,'Krankenscheindrucker'],[3,'A-Zeit']],
+      );
+      assert.deepEqual(
+        runtime.coreDb.prepare("SELECT id,surface FROM hot ORDER BY id").all().map((row)=>[Number(row.id),row.surface]),
+        [[1,'Zeit'],[3,'A-Zeit']],
+      );
       assert.equal(runtime.allDb.prepare("SELECT COUNT(*) c FROM entity_rhyme_anchor WHERE channel='writer_secondary_anchor'").get().c,1);
       assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_de_surface_profile').get().c,2);
       const zeitProfile=runtime.allDb.prepare(
