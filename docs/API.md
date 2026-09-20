@@ -2,6 +2,24 @@
 
 RhymeLab exposes a localhost-only HTTP API from `src/server.mjs` at `http://127.0.0.1:3030`.
 
+### Serving-v1 product preview
+
+The accepted multi-database runtime remains the default for `npm run dev`. To exercise the current one-file Serving-v1 Product adapter through the **real RhymeLab browser UI and normal API routes**, run:
+
+```powershell
+npm run dev:serving
+```
+
+This opens `data/local/rhymelab-serving-v1.sqlite` with separate read-only Core and All connections. The browser stays at `http://127.0.0.1:3030/`; no alternate UI is used. The normal Generated checkbox switches requests from the Core connection to the All connection, while Generated only keeps using the existing provenance filter inside the unified Writer pipeline.
+
+Override the preview database path with:
+
+```text
+RHYMELAB_SERVING_V1_DB  Serving-v1 Product database path
+```
+
+Equivalent direct startup is `node src/server.mjs --serving-v1` or `RHYMELAB_PRODUCT_RUNTIME=serving-v1`. This is a product-preview route on `main`, **not** the final default-runtime promotion; `npm run dev` and `npm start` remain on the accepted bundle until the Product Acceptance switch gate passes.
+
 ## Current runtime — v0.11.0
 
 Normal API/UI requests use the promoted Writer runtime:

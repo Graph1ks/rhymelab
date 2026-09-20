@@ -162,6 +162,14 @@ data/local/rhymelab-serving-v1.pre-product.sqlite
 
 The Product builder still does **not** rewire `npm start`.
 
+A non-default product preview is available on `main`:
+
+```powershell
+npm run dev:serving
+```
+
+It routes the normal browser UI and primary local API through this adapter using the same Serving-v1 file for DE Words, EN Words, Phrase/Mosaic and Entities. Core mode remains the preview default; the existing Generated UI toggle switches to the adapter's All connection. This preview is explicitly for owner hands-on testing and does not satisfy or bypass the final Product Acceptance switch gate.
+
 ## Retrieval equivalence hardening
 
 The Phase-2 retrieval harness now requires DE Generated Writer samples to come from actually populated genuine Generated-only Serving keys.
@@ -266,7 +274,7 @@ ready_for_product_runtime_switch = true
 
 Phase 3 does not yet:
 
-- make Serving-v1 the default `npm start` runtime;
+- make Serving-v1 the default `npm start` runtime; `npm run dev:serving` is an explicit owner preview only;
 - remove the legacy runtime opening code;
 - flip the UI Generated checkbox default;
 - delete source/legacy DB artifacts;

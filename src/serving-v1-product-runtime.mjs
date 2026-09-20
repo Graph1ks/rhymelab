@@ -75,7 +75,7 @@ function dropCompatibilityViews(db){
     'hot','en_form','en_pronunciation',
     'entity','entity_category','entity_name','entity_pronunciation',
     'entity_phonetic_analysis','entity_rhyme_anchor',
-    'phrase','phrase_pronunciation','phrase_pronunciation_token',
+    'phrase','phrase_source','phrase_token','phrase_pronunciation','phrase_pronunciation_token',
     'phrase_mosaic_window','phrase_mosaic_retrieval_anchor','phrase_mosaic_retrieval_v2_anchor',
     'phrase_snapshot','phrase_usage_evidence','phrase_attestation','serving_runtime_connection',
   ]){
@@ -310,6 +310,23 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
     JOIN surface s USING(surface_id)
     WHERE ${phraseAvailability}
     GROUP BY rp.source_phrase_id;
+
+    CREATE TEMP VIEW phrase_source AS
+    SELECT
+      'serving-v1' AS source_id,
+      'Serving-v1 Product Preview' AS name,
+      'runtime compatibility' AS role,
+      'mixed-source-provenance' AS license_id;
+
+    CREATE TEMP VIEW phrase_token AS
+    SELECT
+      CAST(NULL AS TEXT) AS phrase_id,
+      CAST(NULL AS INTEGER) AS token_index,
+      CAST(NULL AS TEXT) AS surface,
+      CAST(NULL AS TEXT) AS normalized,
+      CAST(NULL AS TEXT) AS lexical_state,
+      CAST(NULL AS INTEGER) AS lexical_form_id
+    WHERE 0;
 
     CREATE TEMP VIEW phrase_pronunciation AS
     SELECT

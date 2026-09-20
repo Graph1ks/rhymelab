@@ -31,9 +31,27 @@ import {
   openGeneratedOptinRuntime,
   selectGeneratedOptinDatabases,
 } from './generated-optin-runtime.mjs';
+import {
+  DEFAULT_SERVING_V1_PRODUCT_DB_PATH,
+  SERVING_V1_PRODUCT_RUNTIME,
+  openServingV1ProductRuntime,
+  servingV1ProductRuntimeState,
+} from './serving-v1-product-runtime.mjs';
+import {
+  isServingV1Preview,
+  resolveServerRuntimeMode,
+} from './server-runtime-mode.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
+const serverRuntimeMode=resolveServerRuntimeMode({
+  argv:process.argv.slice(2),
+  env:process.env,
+});
+const servingV1Preview=isServingV1Preview(serverRuntimeMode);
+const servingV1DbPath=resolve(
+  process.env.RHYMELAB_SERVING_V1_DB||DEFAULT_SERVING_V1_PRODUCT_DB_PATH,
+);
 const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYMELAB_DB || 'data/local/rhymelab.sqlite');
 const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
 const phraseDbPath = resolve(process.env.RHYMELAB_PHRASE_DB || 'data/local/rhymelab-phrases-v1.sqlite');
@@ -66,14 +84,18 @@ const benchmarkUiDir = resolve('src/benchmark-ui');
 const queryPronunciationTestDir = resolve('src/query-pronunciation-test');
 const writerQueryTiming=createRollingQueryTiming(100);
 
-let writerDb;
-try {
-  writerDb = openWriterDb(writerDbPath);
-} catch (error) {
-  console.error(`Cannot open promoted Writer v5 database at ${writerDbPath}`);
-  console.error('Build it with: npm run writer:v5:rebuild');
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
+let writerDb=null;
+let writerDbError=null;
+if(!servingV1Preview){
+  try {
+    writerDb = openWriterDb(writerDbPath);
+  } catch (error) {
+    writerDbError=error instanceof Error?error.message:String(error);
+    console.error(`Cannot open promoted Writer v5 database at ${writerDbPath}`);
+    console.error('Build it with: npm run writer:v5:rebuild');
+    console.error(writerDbError);
+    process.exit(1);
+  }
 }
 
 let legacyDb = null;
@@ -88,69 +110,107 @@ try {
 
 let phraseDb = null;
 let phraseDbError = null;
-try {
-  phraseDb = openPhraseBrowserDb(phraseDbPath);
-} catch (error) {
-  phraseDbError = error instanceof Error ? error.message : String(error);
-  console.warn(`Phrase/Mosaic DB unavailable at ${phraseDbPath}`);
-  console.warn('Normal Writer runtime remains available; only the Phrase/Mosaic channel is unavailable.');
+if(!servingV1Preview){
+  try {
+    phraseDb = openPhraseBrowserDb(phraseDbPath);
+  } catch (error) {
+    phraseDbError = error instanceof Error ? error.message : String(error);
+    console.warn(`Phrase/Mosaic DB unavailable at ${phraseDbPath}`);
+    console.warn('Normal Writer runtime remains available; only the Phrase/Mosaic channel is unavailable.');
+  }
 }
 
 let englishDb = null;
 let englishDbError = null;
 const englishMarker = readEnglishProductAcceptanceMarker(englishMarkerPath);
-if (englishMarker.accepted) {
-  try {
-    englishDb = openEnglishWriterDb(englishDbPath, {
-      requireProductAcceptance: true,
-      markerPath: englishMarkerPath,
-    });
-  } catch (error) {
-    englishDbError = error instanceof Error ? error.message : String(error);
-    console.warn(`English Writer DB unavailable at ${englishDbPath}`);
-    console.warn(englishDbError);
+if(!servingV1Preview){
+  if (englishMarker.accepted) {
+    try {
+      englishDb = openEnglishWriterDb(englishDbPath, {
+        requireProductAcceptance: true,
+        markerPath: englishMarkerPath,
+      });
+    } catch (error) {
+      englishDbError = error instanceof Error ? error.message : String(error);
+      console.warn(`English Writer DB unavailable at ${englishDbPath}`);
+      console.warn(englishDbError);
+    }
+  } else {
+    englishDbError = englishMarker.reason;
   }
-} else {
-  englishDbError = englishMarker.reason;
 }
 
 let entityDb = null;
 let entityDbError = null;
-try {
-  entityDb = openEntityWriterDb(entityDbPath);
-} catch (error) {
-  entityDbError = error instanceof Error ? error.message : String(error);
-  console.warn(`Entity DB unavailable at ${entityDbPath}`);
-  console.warn('Normal Writer runtime remains available; only the Entity rhyme channel is unavailable.');
+if(!servingV1Preview){
+  try {
+    entityDb = openEntityWriterDb(entityDbPath);
+  } catch (error) {
+    entityDbError = error instanceof Error ? error.message : String(error);
+    console.warn(`Entity DB unavailable at ${entityDbPath}`);
+    console.warn('Normal Writer runtime remains available; only the Entity rhyme channel is unavailable.');
+  }
 }
 
-const generatedOptinRuntime=openGeneratedOptinRuntime({
-  reportPath:generatedOptinReportPath,
-  acceptanceMarkerPath:generatedOptinMarkerPath,
-  requireRuntimeAcceptance:true,
-  writerPath:generatedWriterDbPath,
-  englishPath:generatedEnglishDbPath,
-  phrasePath:generatedPhraseDbPath,
-  entityPath:generatedEntityDbPath,
-  englishMarkerPath,
-});
-if(!generatedOptinRuntime.available){
+let servingV1Runtime=null;
+let servingV1State=null;
+if(servingV1Preview){
+  try{
+    servingV1Runtime=openServingV1ProductRuntime(servingV1DbPath);
+    servingV1State=servingV1ProductRuntimeState(servingV1Runtime.coreDb);
+  }catch(error){
+    console.error(`Cannot open Serving-v1 Product database at ${servingV1DbPath}`);
+    console.error('Build it with: npm run serving:v1:product:build');
+    console.error(error instanceof Error?error.message:String(error));
+    process.exit(1);
+  }
+}
+
+const generatedOptinRuntime=servingV1Preview
+  ?{
+      available:false,
+      reason:'serving_v1_preview_uses_same_database_all_mode',
+      databases:null,
+      close(){},
+    }
+  :openGeneratedOptinRuntime({
+      reportPath:generatedOptinReportPath,
+      acceptanceMarkerPath:generatedOptinMarkerPath,
+      requireRuntimeAcceptance:true,
+      writerPath:generatedWriterDbPath,
+      englishPath:generatedEnglishDbPath,
+      phrasePath:generatedPhraseDbPath,
+      entityPath:generatedEntityDbPath,
+      englishMarkerPath,
+    });
+if(!servingV1Preview&&!generatedOptinRuntime.available){
   console.warn('Generated opt-in runtime unavailable: '+generatedOptinRuntime.reason);
   if(generatedOptinRuntime.error)console.warn(generatedOptinRuntime.error);
 }
 
-const canonicalRuntimeDatabases={
+const acceptedRuntimeDatabases={
   writerDb,
   englishDb,
   phraseDb,
   entityDb,
   generatedOverlay:false,
 };
+const canonicalRuntimeDatabases=servingV1Preview
+  ?servingV1Runtime.coreDatabases
+  :acceptedRuntimeDatabases;
+const activeGeneratedRuntime=servingV1Preview
+  ?{
+      available:true,
+      reason:null,
+      databases:servingV1Runtime.allDatabases,
+      close(){},
+    }
+  :generatedOptinRuntime;
 
 let datasetStatsCache=null;
 function runtimeDatasetStats(){
   if(!datasetStatsCache){
-    datasetStatsCache=generatedOptinDatasetStats(canonicalRuntimeDatabases,generatedOptinRuntime);
+    datasetStatsCache=generatedOptinDatasetStats(canonicalRuntimeDatabases,activeGeneratedRuntime);
   }
   return datasetStatsCache;
 }
@@ -166,7 +226,7 @@ function generatedOptinRequested(url){
 function requestRuntimeSelection(url){
   return selectGeneratedOptinDatabases(
     canonicalRuntimeDatabases,
-    generatedOptinRuntime,
+    activeGeneratedRuntime,
     generatedOptinRequested(url),
   );
 }
@@ -205,20 +265,67 @@ function databaseBundleRevision({writerDb,englishDb,phraseDb,entityDb},paths){
     .digest('hex');
 }
 
-const queryPronunciationRevision=databaseBundleRevision(canonicalRuntimeDatabases,{
-  writer:writerDbPath,
-  english:englishDbPath,
-  phrase:phraseDbPath,
-  entity:entityDbPath,
-});
-const generatedQueryPronunciationRevision=generatedOptinRuntime.available
-  ?databaseBundleRevision(generatedOptinRuntime.databases,{
+const canonicalRuntimePaths=servingV1Preview
+  ?{
+      writer:servingV1DbPath,
+      english:servingV1DbPath,
+      phrase:servingV1DbPath,
+      entity:servingV1DbPath,
+    }
+  :{
+      writer:writerDbPath,
+      english:englishDbPath,
+      phrase:phraseDbPath,
+      entity:entityDbPath,
+    };
+const generatedRuntimePaths=servingV1Preview
+  ?canonicalRuntimePaths
+  :{
       writer:generatedWriterDbPath,
       english:generatedEnglishDbPath,
       phrase:generatedPhraseDbPath,
       entity:generatedEntityDbPath,
-    })
+    };
+const queryPronunciationRevision=databaseBundleRevision(
+  canonicalRuntimeDatabases,
+  canonicalRuntimePaths,
+);
+const generatedQueryPronunciationRevision=activeGeneratedRuntime.available
+  ?databaseBundleRevision(activeGeneratedRuntime.databases,generatedRuntimePaths)
   :null;
+
+function generatedRuntimeHealth(){
+  if(servingV1Preview){
+    return {
+      available:true,
+      reason:null,
+      report:null,
+      acceptance_marker:null,
+      report_fingerprint:servingV1State?.productSemanticFingerprint||null,
+      active_espeak_ab:null,
+      deferred_total:null,
+      phrase_surface_deferred:null,
+      query_pronunciation_revision:generatedQueryPronunciationRevision,
+      default_enabled:false,
+      mode:'serving-v1-all',
+      single_database:true,
+    };
+  }
+  return {
+    available:generatedOptinRuntime.available,
+    reason:generatedOptinRuntime.available ? null : generatedOptinRuntime.reason,
+    report:generatedOptinRuntime.available ? generatedOptinRuntime.reportPath : generatedOptinReportPath,
+    acceptance_marker:generatedOptinMarkerPath,
+    report_fingerprint:generatedOptinRuntime.available ? generatedOptinRuntime.reportFingerprint : null,
+    active_espeak_ab:generatedOptinRuntime.available ? generatedOptinRuntime.activeEspeakAB : 0,
+    deferred_total:generatedOptinRuntime.available ? generatedOptinRuntime.deferredTotal : 0,
+    phrase_surface_deferred:generatedOptinRuntime.available ? generatedOptinRuntime.phraseSurfaceDeferred : 0,
+    query_pronunciation_revision:generatedQueryPronunciationRevision,
+    default_enabled:false,
+    mode:'generated-optin-bundle',
+    single_database:false,
+  };
+}
 
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
 const padHtml = Buffer.from(materializeRhymePadV14().html);
@@ -342,46 +449,39 @@ const server = createServer(async (req, res) => {
       return json(res, {
         status: 'ok',
         mode: 'local',
-        package_runtime: 'writer-v5-default',
-        writer_database: writerDbPath,
-        writer_runtime: WRITER_RUNTIME_ID,
+        package_runtime: servingV1Preview ? 'serving-v1-product-preview' : 'writer-v5-default',
+        writer_database: canonicalRuntimeDatabases.writerDb ? canonicalRuntimePaths.writer : null,
+        writer_runtime: servingV1Preview ? SERVING_V1_PRODUCT_RUNTIME : WRITER_RUNTIME_ID,
+        serving_v1_preview: servingV1Preview ? {
+          enabled:true,
+          database:servingV1DbPath,
+          state:servingV1State,
+        } : {
+          enabled:false,
+        },
         legacy_database: legacyDb ? legacyDbPath : null,
         legacy_available: Boolean(legacyDb),
         legacy_error: legacyDb ? null : legacyDbError,
-        phrase_database: phraseDb ? phraseDbPath : null,
-        phrase_available: Boolean(phraseDb),
-        phrase_error: phraseDb ? null : phraseDbError,
-        entity_database: entityDb ? entityDbPath : null,
-        entity_available: Boolean(entityDb),
-        entity_error: entityDb ? null : entityDbError,
-        english_database: englishDb ? englishDbPath : null,
-        english_available: Boolean(englishDb),
-        english_error: englishDb ? null : englishDbError,
-        english_acceptance_marker: englishMarker.accepted ? englishMarkerPath : null,
+        phrase_database: canonicalRuntimeDatabases.phraseDb ? canonicalRuntimePaths.phrase : null,
+        phrase_available: Boolean(canonicalRuntimeDatabases.phraseDb),
+        phrase_error: canonicalRuntimeDatabases.phraseDb ? null : phraseDbError,
+        entity_database: canonicalRuntimeDatabases.entityDb ? canonicalRuntimePaths.entity : null,
+        entity_available: Boolean(canonicalRuntimeDatabases.entityDb),
+        entity_error: canonicalRuntimeDatabases.entityDb ? null : entityDbError,
+        english_database: canonicalRuntimeDatabases.englishDb ? canonicalRuntimePaths.english : null,
+        english_available: Boolean(canonicalRuntimeDatabases.englishDb),
+        english_error: canonicalRuntimeDatabases.englishDb ? null : englishDbError,
+        english_acceptance_marker: servingV1Preview
+          ? null
+          : (englishMarker.accepted ? englishMarkerPath : null),
         query_pronunciation_revision: queryPronunciationRevision,
         query_pronunciation_cache: {
           schema: 'rhymelab-query-pronunciation-cache-v1',
           revision: queryPronunciationRevision,
           revalidation: 'health_revision_once_per_app_session',
         },
-        generated_optin: {
-          available: generatedOptinRuntime.available,
-          reason: generatedOptinRuntime.available ? null : generatedOptinRuntime.reason,
-          report: generatedOptinRuntime.available ? generatedOptinRuntime.reportPath : generatedOptinReportPath,
-          acceptance_marker: generatedOptinMarkerPath,
-          report_fingerprint: generatedOptinRuntime.available ? generatedOptinRuntime.reportFingerprint : null,
-          active_espeak_ab: generatedOptinRuntime.available ? generatedOptinRuntime.activeEspeakAB : 0,
-          deferred_total: generatedOptinRuntime.available ? generatedOptinRuntime.deferredTotal : 0,
-          phrase_surface_deferred: generatedOptinRuntime.available ? generatedOptinRuntime.phraseSurfaceDeferred : 0,
-          query_pronunciation_revision: generatedQueryPronunciationRevision,
-          default_enabled: false,
-        },
-        unified_writer: unifiedWriterCapabilities({
-          writerDb,
-          englishDb,
-          phraseDb,
-          entityDb,
-        }),
+        generated_optin: generatedRuntimeHealth(),
+        unified_writer: unifiedWriterCapabilities(canonicalRuntimeDatabases),
       });
     }
 
@@ -396,7 +496,7 @@ const server = createServer(async (req, res) => {
       if(!runtimeDatabases){
         return json(res,{
           error:'Generated opt-in runtime is unavailable.',
-          reason:generatedOptinRuntime.reason,
+          reason:activeGeneratedRuntime.reason,
         },503);
       }
       const searchStarted=performance.now();
@@ -436,14 +536,14 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/phrases/stats') {
       const runtimeDatabases=requestRuntimeDatabases(url);
-      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:generatedOptinRuntime.reason},503);
+      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:activeGeneratedRuntime.reason},503);
       if (!runtimeDatabases.phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
       return json(res, getPhraseBrowserStats(runtimeDatabases.phraseDb));
     }
 
     if (url.pathname === '/api/phrases/search') {
       const runtimeDatabases=requestRuntimeDatabases(url);
-      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:generatedOptinRuntime.reason},503);
+      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:activeGeneratedRuntime.reason},503);
       if (!runtimeDatabases.phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
       return json(res, {
         results: searchPhrases(runtimeDatabases.phraseDb, {
@@ -458,7 +558,7 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/phrases/detail') {
       const runtimeDatabases=requestRuntimeDatabases(url);
-      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:generatedOptinRuntime.reason},503);
+      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:activeGeneratedRuntime.reason},503);
       if (!runtimeDatabases.phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
       const result = getPhraseDetail(runtimeDatabases.phraseDb, url.searchParams.get('id') || '');
       return result ? json(res, result) : json(res, { error: 'Phrase not found' }, 404);
@@ -466,14 +566,21 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/stats') {
       const runtimeDatabases=requestRuntimeDatabases(url);
-      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:generatedOptinRuntime.reason},503);
+      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:activeGeneratedRuntime.reason},503);
       return json(res, getStats(runtimeDatabases.writerDb));
     }
 
     if (url.pathname === '/api/search') {
+      const runtimeDatabases=requestRuntimeDatabases(url);
+      if(!runtimeDatabases){
+        return json(res,{
+          error:'Generated opt-in runtime is unavailable.',
+          reason:activeGeneratedRuntime.reason,
+        },503);
+      }
       return json(res, {
         results: searchWords(
-          writerDb,
+          runtimeDatabases.writerDb,
           url.searchParams.get('q') || '',
           url.searchParams.get('limit'),
           { includeHistorical: url.searchParams.get('historical') === 'all' },
@@ -483,7 +590,7 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname.startsWith('/api/word/')) {
       const runtimeDatabases=requestRuntimeDatabases(url);
-      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:generatedOptinRuntime.reason},503);
+      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:activeGeneratedRuntime.reason},503);
       const word = decodeURIComponent(url.pathname.slice('/api/word/'.length));
       const language = String(url.searchParams.get('language') || 'de')
         .trim().toLocaleLowerCase('en-US');
@@ -513,7 +620,7 @@ const server = createServer(async (req, res) => {
         coverageFloor: url.searchParams.get('coverage_floor'),
       };
       const runtimeDatabases=requestRuntimeDatabases(url);
-      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:generatedOptinRuntime.reason},503);
+      if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:activeGeneratedRuntime.reason},503);
       const runtime = selectRhymeRuntimeDatabases({ writerDb:runtimeDatabases.writerDb, legacyDb }, url.searchParams);
       const result = runtime.mode === 'legacy'
         ? findRhymes(runtime.database, word, options)
@@ -531,15 +638,22 @@ server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymePad workspace: http://${host}:${port}/pad`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
-  console.log(`Writer v5 SQLite: ${writerDbPath}`);
-  console.log(`Writer runtime: ${WRITER_RUNTIME_ID}`);
+  if(servingV1Preview){
+    console.log(`Product runtime: Serving-v1 preview`);
+    console.log(`Serving-v1 SQLite: ${servingV1DbPath}`);
+    console.log(`Serving-v1 runtime: ${SERVING_V1_PRODUCT_RUNTIME}`);
+    console.log('Generated opt-in: Serving-v1 all-mode (default OFF)');
+  }else{
+    console.log(`Writer v5 SQLite: ${writerDbPath}`);
+    console.log(`Writer runtime: ${WRITER_RUNTIME_ID}`);
+    console.log(`Phrase/Mosaic SQLite: ${phraseDb ? phraseDbPath : 'unavailable'}`);
+    console.log(`Entity SQLite: ${entityDb ? entityDbPath : 'unavailable'}`);
+    console.log(`English Writer SQLite: ${englishDb ? englishDbPath : 'gated/unavailable'}`);
+    console.log(`English product acceptance: ${englishMarker.accepted ? 'accepted' : englishDbError}`);
+    console.log(`Generated opt-in runtime: ${generatedOptinRuntime.available ? 'available (default OFF)' : 'unavailable: '+generatedOptinRuntime.reason}`);
+  }
   console.log(`Legacy/control SQLite: ${legacyDb ? legacyDbPath : 'unavailable'}`);
   console.log(`Unified Writer: http://${host}:${port}`);
-  console.log(`Phrase/Mosaic SQLite: ${phraseDb ? phraseDbPath : 'unavailable'}`);
-  console.log(`Entity SQLite: ${entityDb ? entityDbPath : 'unavailable'}`);
-  console.log(`English Writer SQLite: ${englishDb ? englishDbPath : 'gated/unavailable'}`);
-  console.log(`English product acceptance: ${englishMarker.accepted ? 'accepted' : englishDbError}`);
-  console.log(`Generated opt-in runtime: ${generatedOptinRuntime.available ? 'available (default OFF)' : 'unavailable: '+generatedOptinRuntime.reason}`);
 });
 
 function shutdown() {
@@ -550,6 +664,7 @@ function shutdown() {
     try { entityDb?.close(); } catch {}
     try { englishDb?.close(); } catch {}
     try { generatedOptinRuntime.close(); } catch {}
+    try { servingV1Runtime?.close(); } catch {}
     process.exit(0);
   });
 }
