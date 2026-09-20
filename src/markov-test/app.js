@@ -1,6 +1,7 @@
 import {
   MARKOV_GENERATOR_POLICY,
   compactWriterRows,
+  markovMaterialKind,
   summarizePool,
 } from '/markov-test/markov-core.mjs';
 import {installMarkovControls} from '/markov-test/markov-controls.mjs';
@@ -104,8 +105,9 @@ async function fetchCandidatePool(target,settings){
   }
   if(!response.ok)throw new Error(data?.error||data?.reason||`Writer request failed (${response.status})`);
   const rows=(data?.results||[]).filter((row)=>{
-    if(row?.resultKind==='phrase'&&!settings.allowPhrases)return false;
-    if(row?.resultKind==='entity'&&!settings.allowEntities)return false;
+    const kind=markovMaterialKind(row);
+    if(kind==='phrase'&&!settings.allowPhrases)return false;
+    if(kind==='entity'&&!settings.allowEntities)return false;
     return true;
   });
   return {rows,data};
@@ -215,7 +217,7 @@ function renderHero(candidate,{animate=true}={}){
       ${scoreBar('Context join',candidate.scores.boundary)}
       ${scoreBar('Tail fit',candidate.scores.tailFit)}
       ${scoreBar('Internal echo',candidate.scores.echo)}
-      ${scoreBar('Length fit',candidate.scores.lengthFit)}
+      ${scoreBar(`Length ${candidate.scores.actualLength}/${candidate.scores.targetLength}`,candidate.scores.lengthFit)}
     </div>`;
   $('#copySentence')?.addEventListener('click',async()=>{
     try{await navigator.clipboard?.writeText(candidate.sentence);$('#copySentence').textContent='COPIED ✓';setTimeout(()=>{if($('#copySentence'))$('#copySentence').textContent='COPY LINE';},900);}
