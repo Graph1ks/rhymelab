@@ -1,7 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { analyzeGermanIpa } from '../scripts/german-ipa.mjs';
-import { coarseCodaClass, consonantSimilarity, featureVectorForAnalysis, scoreGermanRhymeAnalyses, vowelSimilarity } from '../scripts/german-rhyme-features.mjs';
+import {
+  coarseCodaClass,
+  consonantSimilarity,
+  featureVectorForAnalysis,
+  prepareGermanRhymeAnalysis,
+  scoreGermanRhymeAnalyses,
+  scorePreparedGermanRhymeAnalyses,
+  vowelSimilarity,
+} from '../scripts/german-rhyme-features.mjs';
 
 test('German vowel similarity respects height/backness/rounding and length', () => {
   assert.equal(vowelSimilarity('iː', 'iː'), 1);
@@ -108,4 +116,22 @@ test('coarse coda classes bucket phonologically related final consonants', () =>
   assert.equal(coarseCodaClass(['t']), coarseCodaClass(['d']));
   assert.equal(coarseCodaClass(['k']), coarseCodaClass(['g']));
   assert.notEqual(coarseCodaClass(['t']), coarseCodaClass(['m']));
+});
+
+
+test('prepared German scorer is exactly equivalent to the compatibility scorer',()=>{
+  const ipas=[
+    '[haʊ̯s]','[maʊ̯s]','[ˈliːbə]','[zoˈliːdə]','[kɪnt]','[mɪt]',
+    '[ˈaʁbaɪ̯t͡sˌvaɪ̯zə]','[ˈhɔxt͡saɪ̯t͡sˌʁaɪ̯zə]','[naxt]','[zuːxt]',
+  ];
+  const analyses=ipas.map(analyzeGermanIpa);
+  const prepared=analyses.map(prepareGermanRhymeAnalysis);
+  for(let i=0;i<analyses.length;i++){
+    for(let j=0;j<analyses.length;j++){
+      assert.deepEqual(
+        scorePreparedGermanRhymeAnalyses(prepared[i],prepared[j]),
+        scoreGermanRhymeAnalyses(analyses[i],analyses[j]),
+      );
+    }
+  }
 });

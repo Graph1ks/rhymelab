@@ -582,6 +582,7 @@ export function searchUnifiedWriter(
   const profileStages=options.profileStages===true;
   const profileStarted=performance.now();
   const stageTimings={};
+  const performanceCounters={};
   const timed=(name,fn)=>{
     if(!profileStages)return fn();
     const started=performance.now();
@@ -744,6 +745,7 @@ export function searchUnifiedWriter(
       type: options.type || 'all',
       ensureTypeCoverage: false,
       generatedOnly,
+      profileStages,
     };
     const wordResult = timed('words_de',()=>deQuery?.preferredIpa
       ? (
@@ -754,6 +756,19 @@ export function searchUnifiedWriter(
       : (!deQuery && enQuery?.preferredIpa)
         ? findWriterRhymesFromExternalQuery(writerDb, enQuery, queryOptions)
         : null);
+    if(profileStages&&wordResult?.performanceProfile?.stages_ms){
+      for(const [name,value] of Object.entries(wordResult.performanceProfile.stages_ms)){
+        stageTimings['words_de_'+name]=Number(value);
+      }
+    }
+    const wordPerformanceCounters=profileStages
+      ?(wordResult?.performanceProfile?.counters||{})
+      :{};
+    if(profileStages){
+      for(const [name,value] of Object.entries(wordPerformanceCounters)){
+        performanceCounters['words_de_'+name]=Number(value);
+      }
+    }
     deWordChannel = wordResult
       ? {
           available: true,
@@ -1024,6 +1039,7 @@ export function searchUnifiedWriter(
     ...(profileStages?{
       performanceProfile:{
         stages_ms:stageTimings,
+        counters:performanceCounters,
         total_ms:Number((performance.now()-profileStarted).toFixed(3)),
       },
     }:{}),

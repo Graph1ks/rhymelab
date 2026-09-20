@@ -1,8 +1,14 @@
 import { analyzeGermanIpa } from './german-ipa.mjs';
-import { scoreGermanRhymeAnalyses } from './german-rhyme-features.mjs';
+import {
+  prepareGermanRhymeAnalysis,
+  scoreGermanRhymeAnalyses,
+  scorePreparedGermanRhymeAnalyses,
+} from './german-rhyme-features.mjs';
 import {
   germanRightEdgeVowelSuffixKeys,
+  prepareGermanRhymeAnchorAnalysis,
   scoreGermanRhymeAnalysesWithAnchors,
+  scorePreparedGermanRhymeAnalysesWithAnchors,
 } from './german-rhyme-anchors.mjs';
 import {
   analyzeEnglishArpabet,
@@ -42,8 +48,12 @@ const PROFILES=new Map([
     relationPolicyVersion:'rhyme-relations-v2',
     writerAnchorPolicyVersion:'de-right-edge-anchors-v1',
     analyzeIpa:analyzeGermanIpa,
+    prepareAnalysis:prepareGermanRhymeAnalysis,
     scoreAnalyses:scoreGermanRhymeAnalyses,
+    scorePreparedAnalyses:scorePreparedGermanRhymeAnalyses,
+    prepareWriterAnalysis:prepareGermanRhymeAnchorAnalysis,
     scoreWriterAnalyses:scoreGermanRhymeAnalysesWithAnchors,
+    scorePreparedWriterAnalyses:scorePreparedGermanRhymeAnalysesWithAnchors,
     writerRetrievalKeys:germanRightEdgeVowelSuffixKeys,
     normalizeSurface(value){
       return String(value??'')

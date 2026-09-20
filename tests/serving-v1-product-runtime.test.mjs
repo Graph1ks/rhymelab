@@ -16,6 +16,7 @@ import {
   servingV1ProductRuntimeState,
 } from '../src/serving-v1-product-runtime.mjs';
 import {getWord} from '../src/local-engine.mjs';
+import {findWriterRhymes} from '../src/writer-search.mjs';
 import {getEnglishWord,searchEnglishWriter} from '../src/english-writer-runtime.mjs';
 import {searchEntityRhymes} from '../src/entity-writer-runtime.mjs';
 import {retrievePhraseMosaicCandidatesV2} from '../scripts/phrase-mosaic-retrieval-v2-core.mjs';
@@ -270,6 +271,22 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       const generatedDe=getWord(runtime.allDb,'Krankenscheindrucker');
       assert.equal(generatedDe.surface,'Krankenscheindrucker');
       assert.equal(generatedDe.generatedPronunciation,true);
+
+      const profiledDe=findWriterRhymes(runtime.allDb,'Zeit',{
+        limit:10,poolLimit:50,profileStages:true,
+      });
+      assert.equal(profiledDe.status??'ok','ok');
+      assert.ok(profiledDe.performanceProfile);
+      assert.ok(Number.isFinite(
+        profiledDe.performanceProfile.stages_ms.analysis_feature_preparation_ms
+      ));
+      assert.ok(Number.isFinite(
+        profiledDe.performanceProfile.stages_ms.writer_phonetic_scoring_ms
+      ));
+      assert.ok(
+        profiledDe.performanceProfile.counters.scoring_calls
+        >=profiledDe.performanceProfile.counters.unique_scoring_pairs
+      );
 
       assert.equal(getEnglishWord(runtime.coreDb,'chime'),null);
       assert.equal(getEnglishWord(runtime.allDb,'chime').generatedPronunciation,true);

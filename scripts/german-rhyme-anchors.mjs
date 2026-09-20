@@ -1,4 +1,8 @@
-import { scoreGermanRhymeAnalyses } from './german-rhyme-features.mjs';
+import {
+  prepareGermanRhymeAnalysis,
+  scoreGermanRhymeAnalyses,
+  scorePreparedGermanRhymeAnalyses,
+} from './german-rhyme-features.mjs';
 
 function uniqueSorted(values) {
   return [...new Set(values)].sort((a, b) => a - b);
@@ -117,49 +121,79 @@ function scorePriority(score) {
   return { tier, overall: Number(score?.overall || 0) };
 }
 
-export function scoreGermanRhymeAnalysesWithAnchors(a, b) {
-  const leftAnchors = eligibleGermanRhymeAnchorPositions(a);
-  const rightAnchors = eligibleGermanRhymeAnchorPositions(b);
-  const candidates = [];
+export function prepareGermanRhymeAnchorAnalysis(analysis){
+  const primaryPosition=Number(analysis?.primaryStressSyllable||1);
+  const anchors=eligibleGermanRhymeAnchorPositions(analysis).map((position)=>{
+    const anchored=germanAnalysisAtRhymeAnchor(analysis,position);
+    return {
+      position,
+      tailSyllables:Math.max(
+        0,
+        Number(analysis?.syllables?.length||0)-position+1,
+      ),
+      kind:position===primaryPosition?'primary':'secondary',
+      prepared:prepareGermanRhymeAnalysis(anchored),
+    };
+  });
+  return {
+    analysis,
+    primaryPosition,
+    anchors,
+    fallback:prepareGermanRhymeAnalysis(analysis),
+  };
+}
 
-  for (const leftPosition of leftAnchors) {
-    const left = germanAnalysisAtRhymeAnchor(a, leftPosition);
-    for (const rightPosition of rightAnchors) {
-      const right = germanAnalysisAtRhymeAnchor(b, rightPosition);
-      const leftTail = left.syllables.length - leftPosition + 1;
-      const rightTail = right.syllables.length - rightPosition + 1;
-      if (Math.abs(leftTail - rightTail) > 1) continue;
-      const score = scoreGermanRhymeAnalyses(left, right);
+export function scorePreparedGermanRhymeAnalysesWithAnchors(preparedA,preparedB) {
+  const candidates=[];
+
+  for(const leftAnchor of preparedA.anchors){
+    for(const rightAnchor of preparedB.anchors){
+      if(Math.abs(leftAnchor.tailSyllables-rightAnchor.tailSyllables)>1)continue;
+      const score=scorePreparedGermanRhymeAnalyses(
+        leftAnchor.prepared,
+        rightAnchor.prepared,
+      );
       candidates.push({
         ...score,
-        anchor: {
-          queryPosition: leftPosition,
-          candidatePosition: rightPosition,
-          queryTailSyllables: leftTail,
-          candidateTailSyllables: rightTail,
-          queryAnchorKind: leftPosition === Number(a.primaryStressSyllable || 1) ? 'primary' : 'secondary',
-          candidateAnchorKind: rightPosition === Number(b.primaryStressSyllable || 1) ? 'primary' : 'secondary',
+        anchor:{
+          queryPosition:leftAnchor.position,
+          candidatePosition:rightAnchor.position,
+          queryTailSyllables:leftAnchor.tailSyllables,
+          candidateTailSyllables:rightAnchor.tailSyllables,
+          queryAnchorKind:leftAnchor.kind,
+          candidateAnchorKind:rightAnchor.kind,
         },
       });
     }
   }
 
-  candidates.sort((x, y) => {
-    const aPriority = scorePriority(x);
-    const bPriority = scorePriority(y);
-    return aPriority.tier - bPriority.tier
-      || bPriority.overall - aPriority.overall
-      || Number(x.anchor.queryPosition !== Number(a.primaryStressSyllable || 1))
-        - Number(y.anchor.queryPosition !== Number(a.primaryStressSyllable || 1));
+  candidates.sort((x,y)=>{
+    const aPriority=scorePriority(x);
+    const bPriority=scorePriority(y);
+    return aPriority.tier-bPriority.tier
+      ||bPriority.overall-aPriority.overall
+      ||Number(x.anchor.queryPosition!==preparedA.primaryPosition)
+        -Number(y.anchor.queryPosition!==preparedA.primaryPosition);
   });
 
-  const best = candidates[0] || scoreGermanRhymeAnalyses(a, b);
+  const best=candidates[0]||scorePreparedGermanRhymeAnalyses(
+    preparedA.fallback,
+    preparedB.fallback,
+  );
   return {
     ...best,
-    anchorCandidates: candidates.map((candidate) => ({
-      type: candidate.type,
-      overall: Number(candidate.overall.toFixed(4)),
-      anchor: candidate.anchor,
+    anchorCandidates:candidates.map((candidate)=>({
+      type:candidate.type,
+      overall:Number(candidate.overall.toFixed(4)),
+      anchor:candidate.anchor,
     })),
   };
 }
+
+export function scoreGermanRhymeAnalysesWithAnchors(a,b) {
+  return scorePreparedGermanRhymeAnalysesWithAnchors(
+    prepareGermanRhymeAnchorAnalysis(a),
+    prepareGermanRhymeAnchorAnalysis(b),
+  );
+}
+

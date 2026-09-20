@@ -4,7 +4,9 @@ import { analyzeGermanIpa } from '../scripts/german-ipa.mjs';
 import {
   eligibleGermanRhymeAnchorPositions,
   germanRightEdgeVowelSuffixKeys,
+  prepareGermanRhymeAnchorAnalysis,
   scoreGermanRhymeAnalysesWithAnchors,
+  scorePreparedGermanRhymeAnalysesWithAnchors,
 } from '../scripts/german-rhyme-anchors.mjs';
 
 test('German compounds expose explicit secondary-stress right-edge anchors', () => {
@@ -32,4 +34,24 @@ test('primary-stress-only words keep the existing scorer behavior', () => {
   const score = scoreGermanRhymeAnalysesWithAnchors(query, candidate);
   assert.equal(score.anchor.queryPosition, 1);
   assert.equal(score.anchor.candidatePosition, 1);
+});
+
+
+test('prepared German anchor scorer preserves exact Writer scoring semantics',()=>{
+  const analyses=[
+    analyzeGermanIpa('ˈaʁbaɪ̯t͡sˌvaɪ̯zə'),
+    analyzeGermanIpa('ˈhɔxt͡saɪ̯t͡sˌʁaɪ̯zə'),
+    analyzeGermanIpa('ˈliːbə'),
+    analyzeGermanIpa('ˈtriːbə'),
+    analyzeGermanIpa('naxt'),
+  ];
+  const prepared=analyses.map(prepareGermanRhymeAnchorAnalysis);
+  for(let i=0;i<analyses.length;i++){
+    for(let j=0;j<analyses.length;j++){
+      assert.deepEqual(
+        scorePreparedGermanRhymeAnalysesWithAnchors(prepared[i],prepared[j]),
+        scoreGermanRhymeAnalysesWithAnchors(analyses[i],analyses[j]),
+      );
+    }
+  }
 });
