@@ -14,6 +14,7 @@ import {
 import {
   lexicalEvidenceForHeadword,
   lexicalEvidenceForListedForms,
+  isEnglishPublishSurface,
   finalizeEsdbEvidence,
   mergeEsdbEvidence,
 } from './en-publish-core.mjs';
@@ -185,6 +186,9 @@ async function materializeBase(){
 
 async function materializePhonetics(){
   if(metaGet.get('phonetics_complete')?.value==='1')return;
+  try{outDb.exec("ATTACH DATABASE '"+workPath.replaceAll("'","''")+"' AS source_work")}catch(error){
+    if(!String(error?.message||error).includes('already in use'))throw error;
+  }
   const selectMissing=outDb.prepare(`
     SELECT f.item_id,f.language,f.surface,w.raw_ipa,w.ipa
     FROM secondary_form f
@@ -194,9 +198,6 @@ async function materializePhonetics(){
     ORDER BY f.item_id
     LIMIT ?
   `);
-  try{outDb.exec("ATTACH DATABASE '"+workPath.replaceAll("'","''")+"' AS source_work")}catch(error){
-    if(!String(error?.message||error).includes('already in use'))throw error;
-  }
 
   const insert=outDb.prepare(`
     INSERT OR REPLACE INTO secondary_pronunciation(
@@ -447,7 +448,9 @@ async function enrichEnglishUsageAndEsdb(registry,rawDir){
   for await(const line of esdbLines){
     const parsed=parseEsdbLine(line);
     if(!parsed)continue;
-    for(const normalized of parsed.forms||[]){
+    for(const surface of parsed.forms||[]){
+      const normalized=normalizeEnglishSurface(surface);
+      if(!normalized||!isEnglishPublishSurface(normalized))continue;
       const target=targetByLangNorm.get('en',normalized);
       if(!target)continue;
       esdbTarget.set(normalized,mergeEsdbEvidence(esdbTarget.get(normalized),parsed));
@@ -466,11 +469,13 @@ async function enrichEnglishUsageAndEsdb(registry,rawDir){
   const rows=parseWordfreqCBpack(decoded);
   const updateUsage=outDb.prepare("UPDATE secondary_form SET wordfreq_rank=?,wordfreq_zipf=? WHERE language='en' AND normalized=?");
   let rank=0;
+  const seen=new Set();
   outDb.exec('BEGIN IMMEDIATE');
   try{
     for(const item of rows){
       const normalized=normalizeEnglishSurface(item.word);
-      if(!normalized)continue;
+      if(!normalized||!isEnglishPublishSurface(normalized)||seen.has(normalized))continue;
+      seen.add(normalized);
       rank+=1;
       updateUsage.run(rank,Number(item.zipf),normalized);
     }
