@@ -154,7 +154,7 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
         ) VALUES('core:w1',1,'w1',0,2,2,0,4,4,0,1,2,1,0,0,'b aɪ','aɪ-a','10','z ə','tail-reise','ə','OPEN','AI-A',1,0)
       `).run();
       db.prepare("INSERT INTO runtime_phrase_usage VALUES(1,'deu_news_2024_1M',1,1,1,1)").run();
-      db.prepare("INSERT INTO runtime_phrase_attestation VALUES(1,1,'["modern"]')").run();
+      db.prepare('INSERT INTO runtime_phrase_attestation VALUES(?,?,?)').run(1,1,'["modern"]');
 
       db.prepare("INSERT INTO runtime_entity_identity VALUES(1,'Q1','group.music_group',0.9,0.9,'A')").run();
       db.prepare("INSERT INTO runtime_entity_category VALUES(1,'group.music_group',0.9,1,0.9,'A',0,1)").run();
