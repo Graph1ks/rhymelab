@@ -24,14 +24,14 @@ rhymelab-markov-model-v1
 
 ## Architecture in one sentence
 
-Private owner lyrics contributed only **aggregate songwriting structure**; the actual distributable Markov transition model is built from RhymeLab's existing Phrase/Mosaic catalog.
+Private owner lyrics contributed only **aggregate songwriting structure**; the actual distributable Markov transition model is built from the canonical Serving-v1 database.
 
 ```text
 private lyrics
     ↓ one-time aggregate analysis only
 public lyric-shape profile
     +
-RhymeLab Phrase/Mosaic catalog
+Serving-v1 Phrase/Mosaic runtime
     ↓
 forward + reverse transition model
     +
@@ -88,7 +88,7 @@ The old automatic three-million-Leipzig-sentence build is gone.
 The default model source is now the already-materialized RhymeLab German Phrase/Mosaic database:
 
 ```text
-data/local/rhymelab-phrases-v1.sqlite
+data/local/rhymelab-serving-v1.sqlite
 ```
 
 Eligible source rows are:
@@ -112,10 +112,11 @@ npm run markov:model:build
 npm run markov:model:status
 ```
 
-If `data/local/rhymelab-phrases-v1.sqlite` is missing:
+If `data/local/rhymelab-serving-v1.sqlite` is missing or invalid:
 
 ```bash
-npm run phrase:catalog:bootstrap
+npm run serving:v1:product:status
+npm run serving:v1:product:build
 npm run markov:model:build
 npm run markov:model:status
 ```
@@ -124,7 +125,7 @@ The normal user does **not** provide a corpus or private lyric file.
 
 The default build:
 
-1. reads the existing Phrase/Mosaic catalog;
+1. reads Phrase/Mosaic runtime rows from the canonical Serving-v1 database;
 2. exports eligible phrases to `data/work/markov-v1/rhymelab-phrase-lines.txt`;
 3. retains two-word and longer phrase transitions;
 4. builds/resumes the compact forward/reverse transition SQLite;
@@ -247,7 +248,7 @@ Implemented and covered:
 
 Still pending product acceptance:
 
-- owner build against the full local Phrase/Mosaic catalog;
+- owner build against the full local Serving-v1 Phrase/Mosaic runtime;
 - resulting model row counts, bytes and semantic fingerprint;
 - generation latency;
 - representative human quality review;
