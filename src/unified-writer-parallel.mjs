@@ -1,3 +1,4 @@
+import {performance} from 'node:perf_hooks';
 import {Worker} from 'node:worker_threads';
 import {
   normalizeUnifiedResultLanguage,
