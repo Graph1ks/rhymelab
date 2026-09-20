@@ -558,3 +558,104 @@ function scoreCandidate(backward,tail,echo,tokenRows,options,runtime){
   const pressure=clamp(options.rhymePressure/100);
   const target=Math.max(4,Number(options.targetTokens)||10);
   const actual=tokenRows.reduce((sum,row)=>sum+(row.kind==='seed'?normalizeSeedTokens(row.text,options.language).length:tokenizeSurface(row.text,{language:options.language}).length),0);
+  const lengthFit=clamp(1-Math.abs(actual-target)/target);
+  const transitionScore=clamp(Math.sqrt(backward.transitionNaturalness));
+  const startScore=String(options.seedText||'').trim()?clamp(Math.sqrt(backward.boundary)):backward.reachedStart?1:0.35;
+  const tailFit=clamp(Math.pow(Math.max(terminalTailFit(runtime,tail.candidate.tokens),1e-6),0.35));
+  const naturalness=clamp(transitionScore*0.46+startScore*0.24+tailFit*0.16+tail.candidate.usage*0.14);
+  const rhyme=clamp(tail.phonetic*0.78+(echo.echoScore||0)*0.22);
+  const naturalWeight=0.38+naturalControl*0.36;
+  const rhymeWeight=0.2+pressure*0.34;
+  const lengthWeight=0.12;
+  const supportWeight=0.08;
+  const utility=clamp((
+    naturalness*naturalWeight
+    +rhyme*rhymeWeight
+    +lengthFit*lengthWeight
+    +tail.modelSupport*supportWeight
+  )/(naturalWeight+rhymeWeight+lengthWeight+supportWeight));
+  return {
+    utility,
+    naturalness,
+    rhyme,
+    transition:transitionScore,
+    boundary:startScore,
+    tailFit,
+    echo:echo.echoScore||0,
+    echoNaturalness:echo.echoNaturalness||0,
+    lengthFit,
+    actualLength:actual,
+  };
+}
+
+export function generateCorpusMarkovCandidates(runtime,{
+  rows=[],
+  language='de',
+  seedText='',
+  target='',
+  seed=1337,
+  targetTokens=10,
+  rhymePressure=65,
+  naturalness=72,
+  weirdness=38,
+  mode='balanced',
+  allowEntities=true,
+  allowPhrases=true,
+  count=8,
+  attempts=48,
+}={}){
+  if(!runtime?.available)throw new Error('Markov corpus model is unavailable. Run: npm run markov:model:build');
+  if(language!==runtime.language)throw new Error(`Markov corpus model language ${runtime.language} cannot generate ${language}.`);
+  const options={language,seedText,target,seed,targetTokens,rhymePressure,naturalness,weirdness,mode,allowEntities,allowPhrases};
+  const pool=normalizedWriterPool(rows,options);
+  if(!pool.length)return [];
+  const desired=Math.max(1,Math.min(12,Number(count)||8));
+  const tries=Math.max(desired,Math.min(128,Number(attempts)||48));
+  const generated=[];
+  const seenSentences=new Set();
+  const usedTails=new Set();
+  for(let attempt=0;attempt<tries;attempt+=1){
+    const seedMaterial=[MARKOV_MODEL_POLICY,runtime.meta.semantic_fingerprint||'',language,seedText,target,seed,targetTokens,rhymePressure,naturalness,weirdness,mode,attempt].join('|');
+    const random=createSeededRandom(seedMaterial);
+    let tail=chooseTail(runtime,pool,random,options,usedTails);
+    if(!tail){
+      usedTails.clear();
+      tail=chooseTail(runtime,pool,random,options,usedTails);
+    }
+    if(!tail)break;
+    usedTails.add(tail.candidate.key);
+    const backward=generateBackwardPrefix(runtime,tail,random,options);
+    if(!backward.prefix.length&&String(seedText||'').trim()==='')continue;
+    if(String(seedText||'').trim()&&Number(naturalness)>=70&&backward.boundary<=0)continue;
+    let tokenRows=buildTokenRows(runtime,backward,tail,options);
+    const echo=maybeInjectEcho(runtime,tokenRows,pool,tail,random,options);
+    tokenRows=echo.rows;
+    const sentence=formatTokens(tokenRows,language);
+    if(!sentence||seenSentences.has(sentence))continue;
+    seenSentences.add(sentence);
+    const scores=scoreCandidate(backward,tail,echo,tokenRows,options,runtime);
+    generated.push({
+      id:`mk-${hashString(`${seedMaterial}|${sentence}`).toString(16)}`,
+      sentence,
+      tokens:tokenRows,
+      scores,
+      sourceCounts:sourceCounts(tokenRows),
+      model:{
+        policy:MARKOV_MODEL_POLICY,
+        runtime:MARKOV_GENERATOR_RUNTIME,
+        schema:runtime.meta.schema,
+        order:Number(runtime.meta.order||MARKOV_MODEL_ORDER),
+        language,
+        fingerprint:runtime.meta.semantic_fingerprint||null,
+        sourceSentences:Number(runtime.meta.source_sentences||0),
+      },
+      seed:Number(seed)||0,
+      mode,
+      tail:{surface:tail.candidate.surface,kind:tail.candidate.kind,score:tail.phonetic,modelSupport:tail.modelSupport},
+    });
+  }
+  return generated
+    .sort((a,b)=>b.scores.utility-a.scores.utility||b.scores.naturalness-a.scores.naturalness||b.scores.rhyme-a.scores.rhyme||a.sentence.localeCompare(b.sentence))
+    .slice(0,desired)
+    .map((row,index)=>({...row,rank:index+1}));
+}
