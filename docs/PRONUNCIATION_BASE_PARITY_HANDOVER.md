@@ -100,6 +100,26 @@ Primary acceptance artifact:
 
 `data/local/pronunciation-base-parity-v1-report.json`
 
+### Resume after the observed EN serializer failure
+
+The owner run reached the English source scan and then failed at the first EN form write with:
+
+```text
+TypeError: (values || []).map is not a function
+```
+
+Cause: the base-parity JSON-list serializer assumed arrays, while canonical EN assembly keeps several lexical collections as `Set` instances.
+
+After the fix is merged, **do not restart from DE**. Continue with:
+
+```powershell
+npm run pronunciation:secondary:materialize -- --resume-from en
+```
+
+The resume path preserves the completed augmented DE Writer database only after both SQLite `quick_check` and exact persistent schema parity against the canonical DE Writer database pass. EN/Phrase/Entity outputs are rebuilt from the failed stage onward.
+
+The already-completed EN Kaikki/ESDB scan cannot be recovered from this specific crashed process because its scan evidence was held in SQLite `TEMP` tables. Therefore the EN source scan must run again once, but the completed DE materialization and Writer V5 rebuild are not repeated.
+
 ## Expected outputs
 
 ```text
