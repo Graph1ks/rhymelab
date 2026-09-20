@@ -408,6 +408,7 @@ export function searchEntityRhymes(db, query, options = {}) {
       pronunciationSource:row.source_kind,
       pronunciationSourceRecord:row.source_record,
       pronunciationGenerated:Boolean(row.generated),
+      generatedPronunciation:Boolean(row.generated),
       pronunciationModelId:row.model_id,
       pronunciationConfidence:row.confidence==null?null:Number(row.confidence),
       pronunciationReviewState:row.review_state,
