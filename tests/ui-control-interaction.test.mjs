@@ -181,7 +181,7 @@ test('unified UI primary controls bind and change state at runtime', async () =>
 
   const factory=new Function(
     'document','localStorage','navigator','location','history','fetch','IntersectionObserver',
-    `${testable}\nreturn {state,installInteractiveControls,renderRuntimeTiming};`,
+    `${testable}\nreturn {state,installInteractiveControls,renderRuntimeTiming,syncGeneratedOptinControl};`,
   );
   const runtime=factory(
     dom.document,
@@ -192,6 +192,11 @@ test('unified UI primary controls bind and change state at runtime', async () =>
     async()=>({ok:true,json:async()=>({})}),
     class {},
   );
+
+  assert.equal(runtime.state.generatedOptIn,true);
+  runtime.state.generatedCapability={available:true};
+  runtime.syncGeneratedOptinControl();
+  assert.equal(dom.singles.get('#generatedMode').checked,true);
 
   runtime.installInteractiveControls();
   assert.equal(dom.document.documentElement.dataset.rhymelabControls,'bound');
