@@ -23,22 +23,23 @@ export const DEFAULT_RELATION_THRESHOLDS = Object.freeze({
 function sequenceSimilarity(a, b, tokenSimilarity) {
   if (!a.length && !b.length) return 1;
   if (!a.length || !b.length) return 0;
-  const m = a.length;
-  const n = b.length;
-  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-  for (let i = 1; i <= m; i += 1) dp[i][0] = i;
-  for (let j = 1; j <= n; j += 1) dp[0][j] = j;
-  for (let i = 1; i <= m; i += 1) {
-    for (let j = 1; j <= n; j += 1) {
-      const substitution = 1 - clamp01(tokenSimilarity(a[i - 1], b[j - 1]));
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + substitution,
+  const m=a.length;
+  const n=b.length;
+  const previous=Array.from({length:n+1},(_,index)=>index);
+  const current=new Array(n+1).fill(0);
+  for(let i=1;i<=m;i++){
+    current[0]=i;
+    for(let j=1;j<=n;j++){
+      const substitution=1-clamp01(tokenSimilarity(a[i-1],b[j-1]));
+      current[j]=Math.min(
+        previous[j]+1,
+        current[j-1]+1,
+        previous[j-1]+substitution,
       );
     }
+    for(let j=0;j<=n;j++)previous[j]=current[j];
   }
-  return clamp01(1 - dp[m][n] / Math.max(m, n));
+  return clamp01(1-previous[n]/Math.max(m,n));
 }
 
 function coverage(a, b) {
