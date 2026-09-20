@@ -919,18 +919,17 @@ export function findRhymes(db, word, options = {}) {
         {syllable_count:row._querySyllableCount},
         profile,
       );
+      const publicFull=stripInternalResultFields(full);
       const analysis=analysisCache.get(String(row._pronunciationId));
       const prepared=preparedCache.get(String(row._pronunciationId));
-      if(analysis)RESULT_ANALYSIS_CACHE.set(full,analysis);
-      if(prepared)RESULT_PREPARED_ANALYSIS_CACHE.set(full,prepared);
-      return stripInternalResultFields(full);
+      if(analysis)RESULT_ANALYSIS_CACHE.set(publicFull,analysis);
+      if(prepared)RESULT_PREPARED_ANALYSIS_CACHE.set(publicFull,prepared);
+      return publicFull;
     });
     if(metrics){
       metrics.selected_result_hydration_ms+=performance.now()-richStarted;
       metrics.rich_results_hydrated+=richRows.length;
     }
-  }else{
-    results=results.map(stripInternalResultFields);
   }
 
   const selection=selected.selection;
