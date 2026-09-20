@@ -51,6 +51,29 @@ Default engineering behavior:
 - persist durable engineering decisions and project facts, not raw user/AI conversations, private discussions, or unrelated sensitive conversational content;
 - prefer focused changes over process ceremony, while preserving the repository's acceptance, provenance, licensing, security, and CI gates.
 
+## Long-running local data/build job standard
+
+Any owner-local workflow that may process large datasets, run for more than a trivial interactive duration, or create a materialized/runtime artifact must be designed as a resumable build pipeline by default.
+
+Hard requirements:
+
+- provide a read-only plan/preflight mode when the job can materially affect time, disk usage, or downstream artifacts;
+- split work into deterministic named stages and bounded transactional batches;
+- persist checkpoints in machine-readable local state, normally SQLite, so a crash, process exit, reboot, or ordinary rerun does not discard completed work;
+- rerunning the normal build command must resume safely from the last committed checkpoint without requiring special recovery steps;
+- handle SIGINT/SIGTERM cooperatively: finish or roll back the current transaction, persist a paused/error state, close databases, and retain reusable work;
+- print useful console progress for active stages: stage name, processed/total rows where known, percentage, throughput, batch duration, and ETA when meaningful;
+- expose a status/inspection command for incomplete work;
+- fingerprint or otherwise bind the work state to its source inputs and build semantics; refuse to combine changed inputs or changed build logic with stale checkpoints;
+- write expensive/incomplete output to a distinct work artifact and promote only after validation; prefer atomic rename/swap for final promotion;
+- never destroy the last known-good promoted artifact implicitly; replacement/reset/destructive operations require explicit flags and should preserve or restore the previous artifact when practical;
+- run integrity/invariant checks before promotion and emit a machine-readable final report with source/build fingerprints, stage status, counts, timing, and safety invariants;
+- keep source-of-truth databases immutable unless the workflow's explicit accepted contract says otherwise;
+- make reset semantics narrow: resetting an incomplete build must not delete canonical/source inputs or an already promoted artifact;
+- test pause/resume, stale-checkpoint rejection, invariants, and promotion behavior on small fixtures in CI whenever the workflow is part of repository tooling.
+
+For genuinely small one-shot scripts where checkpointing would add more complexity than the entire job, keep the implementation simple; the burden is on the change to establish that the workflow is trivial rather than silently omitting resumability from a large-data job.
+
 ## Public-repository guardrails
 
 The public repository starts from a sanitized root commit. Do not add references that expose the pre-public private Git history, branches, pull requests, personal email addresses, local user/profile paths, credentials, private URLs, or internal-only artifacts.
