@@ -707,13 +707,38 @@ function deSurfaceProfileStage(path){
 }
 
 function entityAnalysisStage(path){
+  const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
+  const eligible=`
+    ep.review_state IN (${accepted})
+    AND n.searchable=1 AND n.language IN ('de','en')
+    AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+  `;
   return {
     name:'09_entity_analysis',label:'Entity precomputed phonetic analyses',path,
-    total(db){return scalar(db,'SELECT COUNT(*) c FROM runtime_entity_pronunciation');},
-    max(db){return scalar(db,'SELECT COALESCE(MAX(product_pronunciation_id),0) c FROM runtime_entity_pronunciation');},
+    total(db){
+      attach(db,path);
+      try{return scalar(db,`
+        SELECT COUNT(*) c
+        FROM src.entity_pronunciation ep
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ${eligible}
+      `);}finally{detach(db);}
+    },
+    max(db){
+      attach(db,path);
+      try{return scalar(db,`
+        SELECT COALESCE(MAX(ep.pronunciation_id),0) c
+        FROM src.entity_pronunciation ep
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ${eligible}
+      `);}finally{detach(db);}
+    },
     range(db,last,upper){return scalar(db,`
-      SELECT COUNT(*) c FROM runtime_entity_pronunciation
-      WHERE product_pronunciation_id>${last} AND product_pronunciation_id<=${upper}
+      SELECT COUNT(*) c
+      FROM src.entity_pronunciation ep
+      JOIN src.entity_name n ON n.name_id=ep.name_id
+      WHERE ${eligible}
+        AND ep.pronunciation_id>${last} AND ep.pronunciation_id<=${upper}
     `);},
     run(db,last,upper){
       db.exec(`
@@ -742,13 +767,38 @@ function entityAnalysisStage(path){
 }
 
 function entityOccurrenceAnchorStage(path){
+  const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
+  const eligible=`
+    ep.review_state IN (${accepted})
+    AND n.searchable=1 AND n.language IN ('de','en')
+    AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+  `;
   return {
     name:'10_entity_occurrence_anchors',label:'Entity occurrence-level retrieval anchors',path,
-    total(db){return scalar(db,'SELECT COUNT(*) c FROM runtime_entity_pronunciation');},
-    max(db){return scalar(db,'SELECT COALESCE(MAX(product_pronunciation_id),0) c FROM runtime_entity_pronunciation');},
+    total(db){
+      attach(db,path);
+      try{return scalar(db,`
+        SELECT COUNT(*) c
+        FROM src.entity_pronunciation ep
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ${eligible}
+      `);}finally{detach(db);}
+    },
+    max(db){
+      attach(db,path);
+      try{return scalar(db,`
+        SELECT COALESCE(MAX(ep.pronunciation_id),0) c
+        FROM src.entity_pronunciation ep
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ${eligible}
+      `);}finally{detach(db);}
+    },
     range(db,last,upper){return scalar(db,`
-      SELECT COUNT(*) c FROM runtime_entity_pronunciation
-      WHERE product_pronunciation_id>${last} AND product_pronunciation_id<=${upper}
+      SELECT COUNT(*) c
+      FROM src.entity_pronunciation ep
+      JOIN src.entity_name n ON n.name_id=ep.name_id
+      WHERE ${eligible}
+        AND ep.pronunciation_id>${last} AND ep.pronunciation_id<=${upper}
     `);},
     run(db,last,upper){
       db.exec(`
