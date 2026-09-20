@@ -278,3 +278,143 @@ export function markovModelHealth(runtime){
     order:Number(runtime.meta.order||MARKOV_MODEL_ORDER),
     source_manifest:runtime.meta.source_manifest||null,
     source_sentences:Number(runtime.meta.source_sentences||0),
+    accepted_sentences:Number(runtime.meta.accepted_sentences||0),
+    semantic_fingerprint:runtime.meta.semantic_fingerprint||null,
+    tokens:runtime.stats.tokens,
+    retained_states:runtime.stats.retainedStates,
+    transitions:runtime.stats.transitions,
+  };
+}
+
+function candidateModelSupport(runtime,candidate){
+  const supports=candidate.tokens.map((token)=>runtime.tokenSupport(token.norm));
+  if(!supports.length)return 0;
+  const tokenSupport=supports.reduce((sum,value)=>sum+value,0)/supports.length;
+  let terminal=0;
+  if(candidate.tokens.length===1){
+    const terminalChoices=runtime.choicesWithBackoff('reverse',[candidate.tokens[0].norm,END_TOKEN],{limit:8});
+    terminal=terminalChoices.rows.length?0.75:0;
+  }else{
+    const pair=candidate.tokens.slice(0,2).map((token)=>token.norm);
+    terminal=runtime.choicesWithBackoff('reverse',pair,{limit:8}).rows.length?0.8:0;
+  }
+  return clamp(tokenSupport*0.72+terminal*0.28);
+}
+
+function weightedChoice(rows,random){
+  if(!rows.length)return null;
+  const total=rows.reduce((sum,row)=>sum+Math.max(0,row.weight),0);
+  if(total<=0)return rows[0];
+  let point=random()*total;
+  for(const row of rows){
+    point-=Math.max(0,row.weight);
+    if(point<=0)return row;
+  }
+  return rows.at(-1);
+}
+
+function chooseTail(runtime,pool,random,options,usedKeys){
+  const pressure=clamp(options.rhymePressure/100);
+  const natural=clamp(options.naturalness/100);
+  const weird=clamp(options.weirdness/100);
+  const rows=[];
+  for(const candidate of pool){
+    if(usedKeys.has(candidate.key))continue;
+    const modelSupport=candidateModelSupport(runtime,candidate);
+    if(natural>=0.72&&modelSupport<0.2)continue;
+    const phonetic=modeScore(candidate.raw,options.mode);
+    const kindBonus=candidate.kind==='phrase'&&options.mode==='mosaic'?0.12:0;
+    const utility=clamp(
+      phonetic*(0.42+pressure*0.46)
+      +candidate.usage*(0.12+natural*0.22)
+      +modelSupport*(0.16+natural*0.32)
+      +kindBonus,
+    );
+    rows.push({candidate,phonetic,modelSupport,utility});
+  }
+  if(!rows.length)return null;
+  rows.sort((a,b)=>b.utility-a.utility||b.phonetic-a.phonetic||a.candidate.surface.localeCompare(b.candidate.surface));
+  const depth=Math.max(1,Math.min(rows.length,Math.round(2+weird*14)));
+  const shortlist=rows.slice(0,depth).map((row,index)=>({
+    ...row,
+    weight:Math.pow(Math.max(0.001,row.utility),2.5-natural*1.3)/(1+index*0.12),
+  }));
+  return weightedChoice(shortlist,random);
+}
+
+function nextReverseToken(runtime,context,random,options,{allowStart=true,seen}={}){
+  const natural=clamp(options.naturalness/100);
+  const weird=clamp(options.weirdness/100);
+  const result=runtime.choicesWithBackoff('reverse',context,{limit:64});
+  if(!result.rows.length)return {token:null,probability:0,contextLen:0};
+  const rows=[];
+  for(const row of result.rows){
+    if(row.token===END_TOKEN)continue;
+    if(row.token===START_TOKEN&&!allowStart)continue;
+    const repetitions=seen?.get(row.token)||0;
+    if(repetitions>=2&&!isPunctuationToken(row.token))continue;
+    const probability=row.count/Math.max(1,result.total);
+    const support=runtime.tokenSupport(row.token);
+    const repeatPenalty=repetitions?0.32*repetitions:0;
+    const score=Math.max(1e-8,probability*(0.6+natural*0.8)+support*(0.06+natural*0.2)-repeatPenalty);
+    rows.push({token:row.token,probability,score,count:row.count});
+  }
+  if(!rows.length)return {token:null,probability:0,contextLen:result.contextLen};
+  rows.sort((a,b)=>b.score-a.score||b.count-a.count||a.token.localeCompare(b.token));
+  const depth=Math.max(1,Math.min(rows.length,Math.round(1+weird*12+(1-natural)*5)));
+  const temperature=0.5+(1-natural)*0.8+weird*0.35;
+  const shortlist=rows.slice(0,depth).map((row)=>({
+    ...row,
+    weight:Math.pow(Math.max(row.score,1e-8),1/temperature),
+  }));
+  const chosen=weightedChoice(shortlist,random)||shortlist[0];
+  return {...chosen,contextLen:result.contextLen};
+}
+
+function normalizeSeedTokens(seedText,language){
+  return tokenizeSurface(seedText,{language,maximumTokens:32}).map((row)=>row.norm);
+}
+
+function boundaryFit(runtime,seedTokens,prefixTokens){
+  if(!seedTokens.length||!prefixTokens.length)return 1;
+  const context=seedTokens.slice(-MARKOV_MODEL_ORDER);
+  let current=[...context];
+  let log=0;
+  let count=0;
+  for(const token of prefixTokens.slice(0,Math.min(3,prefixTokens.length))){
+    const detail=runtime.transitionProbability('forward',current,token);
+    if(detail.probability<=0)return 0;
+    log+=Math.log(detail.probability);
+    count+=1;
+    current.push(token);
+    if(current.length>MARKOV_MODEL_ORDER)current.shift();
+  }
+  return count?Math.exp(log/count):0;
+}
+
+function terminalTailFit(runtime,tailTokens){
+  const norms=tailTokens.map((row)=>row.norm);
+  if(!norms.length)return 0;
+  let sequence=[...norms,END_TOKEN];
+  let log=0;
+  let count=0;
+  for(let index=1;index<sequence.length;index+=1){
+    const context=sequence.slice(Math.max(0,index-MARKOV_MODEL_ORDER),index);
+    const detail=runtime.transitionProbability('forward',context,sequence[index]);
+    if(detail.probability>0){log+=Math.log(detail.probability);count+=1;}
+    else {log+=Math.log(1e-5);count+=1;}
+  }
+  return count?Math.exp(log/count):0;
+}
+
+function generateBackwardPrefix(runtime,tail,random,options){
+  const seedTokens=normalizeSeedTokens(options.seedText,options.language);
+  const target=Math.max(4,Math.min(28,Number(options.targetTokens)||10));
+  const targetPrefix=Math.max(1,target-seedTokens.length-tail.candidate.tokens.length);
+  const maxPrefix=Math.max(targetPrefix+4,Math.ceil(targetPrefix*(1.25+clamp(options.weirdness/100)*0.25)));
+  const minPrefix=Math.max(1,Math.floor(targetPrefix*0.55));
+  const suffix=tail.candidate.tokens.map((row)=>row.norm);
+  if(suffix.length===1)suffix.push(END_TOKEN);
+  const prefix=[];
+  const probs=[];
+  const seen=new Map(tail.candidate.tokens.map((row)=>[row.norm,1]));
