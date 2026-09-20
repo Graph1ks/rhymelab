@@ -315,6 +315,10 @@ function productResult(row,queryDetail,index){
   const lemmas=parseJsonArray(row.lemmas);
   const poses=parseJsonArray(row.poses);
   const lexicalTags=parseJsonArray(row.lexical_tags);
+  const pronunciationTags=parseJsonArray(row.tags);
+  const generatedPronunciation=
+    pronunciationTags.includes('generated')
+    ||String(row.source||'').includes('generated_secondary');
   return {
     resultKind:'word',
     language:'en',
@@ -328,6 +332,8 @@ function productResult(row,queryDetail,index){
     pronunciationPreferred:true,
     pronunciationRank:1,
     pronunciationSource:row.source,
+    pronunciationTags,
+    generatedPronunciation,
     pronunciationNotation:row.notation,
     locale:pronunciationLocale(row),
     dialect:null,
