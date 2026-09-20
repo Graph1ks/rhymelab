@@ -358,3 +358,105 @@ async function runPass2(){
             const k2=`reverse\u00022\u0002${s2}\u0002${previous}`;
             counts.set(k2,(counts.get(k2)||0)+1);
           }
+        }
+      }
+      if(batchAccepted>=batchSentences){
+        flushTransitions(counts,sourceIndex,source.code,lineNumber,accepted);
+        batchAccepted=0;
+        console.log(`    ${accepted.toLocaleString('en-US')} accepted · line ${lineNumber.toLocaleString('en-US')}`);
+      }
+    }
+    if(counts.size||lineNumber>resumeLine)flushTransitions(counts,sourceIndex,source.code,lineNumber,accepted);
+  }
+  writeMeta(db,{transitions_complete:'1'});
+}
+
+function pruneTransitions(){
+  if(readMeta(db).transitions_pruned==='1')return;
+  console.log(`Prune transitions to top ${topK} per state/direction/order…`);
+  db.exec('BEGIN');
+  try{
+    db.prepare(`
+      DELETE FROM transition
+      WHERE (direction,context_len,state_key,next_token) IN (
+        SELECT direction,context_len,state_key,next_token
+        FROM (
+          SELECT direction,context_len,state_key,next_token,
+            ROW_NUMBER() OVER (
+              PARTITION BY direction,context_len,state_key
+              ORDER BY count DESC,next_token
+            ) AS rn
+          FROM transition
+        )
+        WHERE rn>?
+      )
+    `).run(topK);
+    db.exec('COMMIT');
+  }catch(error){db.exec('ROLLBACK');throw error;}
+  writeMeta(db,{transitions_pruned:'1'});
+}
+
+async function promote(){
+  const scanRows=db.prepare("SELECT accepted_sentences FROM build_checkpoint WHERE phase='scan'").all();
+  const acceptedSentences=scanRows.reduce((sum,row)=>sum+Number(row.accepted_sentences||0),0);
+  const sourceSentences=sourceRows.reduce((sum,row)=>sum+Number(row.manifest?.sentences||0),0);
+  const retainedStates=Number(db.prepare('SELECT COUNT(*) AS n FROM state_count WHERE retained=1').get()?.n||0);
+  writeMeta(db,{source_sentences:sourceSentences,accepted_sentences:acceptedSentences,retained_states:retainedStates});
+  db.exec('ANALYZE; PRAGMA optimize;');
+  const fingerprint=semanticFingerprint(db);
+  const builtAt=new Date().toISOString();
+  writeMeta(db,{semantic_fingerprint:fingerprint,built_at:builtAt,build_status:'complete'});
+  db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+  const statsBefore=modelStats(db);
+  db.close();
+
+  const temp=`${outPath}.tmp`;
+  const previous=`${outPath}.previous`;
+  await rm(temp,{force:true});
+  await copyFile(workPath,temp);
+  const finalDb=new DatabaseSync(temp);
+  try{
+    finalDb.exec('PRAGMA journal_mode=DELETE; DROP TABLE IF EXISTS build_checkpoint; DROP TABLE IF EXISTS state_count; VACUUM; ANALYZE; PRAGMA optimize;');
+    const meta=readMeta(finalDb);
+    if(meta.schema!==MARKOV_MODEL_SCHEMA||meta.policy!==MARKOV_MODEL_POLICY)throw new Error('Promoted Markov model metadata mismatch');
+    const stats=modelStats(finalDb);
+    if(stats.transitions<1||stats.forwardTransitions<1||stats.reverseTransitions<1)throw new Error('Promoted Markov model has incomplete transition tables');
+  }finally{finalDb.close();}
+  await rm(previous,{force:true});
+  if(await exists(outPath))await rename(outPath,previous);
+  try{await rename(temp,outPath);}catch(error){if(await exists(previous))await rename(previous,outPath);throw error;}
+  await rm(previous,{force:true});
+  const outBytes=(await stat(outPath)).size;
+  const report={
+    schema:'rhymelab-markov-model-build-report-v1',
+    status:'ok',
+    built_at:builtAt,
+    model_schema:MARKOV_MODEL_SCHEMA,
+    policy:MARKOV_MODEL_POLICY,
+    language:'de',
+    order:MARKOV_MODEL_ORDER,
+    source_manifest:manifest.id,
+    config,
+    config_fingerprint:configFingerprint,
+    sources:sourceRows.map((row)=>({code:row.code,path:row.path,bytes:row.bytes,genre:row.manifest?.genre??null,year:row.manifest?.year??null,parent_archive_sha256:row.manifest?.sha256??null})),
+    accepted_sentences:acceptedSentences,
+    semantic_fingerprint:fingerprint,
+    database:outPath,
+    database_bytes:outBytes,
+    work_database:workPath,
+    stats:statsBefore,
+  };
+  await writeFile(reportPath,`${JSON.stringify(report,null,2)}\n`,'utf8');
+  console.log(JSON.stringify({...report,database_human_bytes:human(outBytes)},null,2));
+}
+
+try{
+  await runPass1();
+  finalizeCensus();
+  await runPass2();
+  pruneTransitions();
+  await promote();
+}catch(error){
+  try{db.close();}catch{}
+  throw error;
+}
