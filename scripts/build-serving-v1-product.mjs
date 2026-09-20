@@ -1005,6 +1005,55 @@ function deAnalysisHotpathStage(path){
   };
 }
 
+
+function deWriterHotpathStage(path){
+  return {
+    name:'15_de_writer_key_candidates',label:'DE bounded writer-key candidates',path,
+    total(db){return scalar(db,`
+      SELECT COUNT(*) c
+      FROM runtime_key k
+      JOIN runtime_key_member km USING(key_id)
+      JOIN runtime_target t ON t.target_id=km.target_id
+      JOIN runtime_de_candidate c ON c.pronunciation_id=t.pronunciation_id
+      WHERE k.language='de' AND k.channel='writer_right_edge' AND t.target_kind='pronunciation'
+    `);},
+    max(db){return scalar(db,`
+      SELECT COALESCE(MAX(t.target_id),0) c
+      FROM runtime_key k
+      JOIN runtime_key_member km USING(key_id)
+      JOIN runtime_target t ON t.target_id=km.target_id
+      JOIN runtime_de_candidate c ON c.pronunciation_id=t.pronunciation_id
+      WHERE k.language='de' AND k.channel='writer_right_edge' AND t.target_kind='pronunciation'
+    `);},
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c
+      FROM runtime_key k
+      JOIN runtime_key_member km USING(key_id)
+      JOIN runtime_target t ON t.target_id=km.target_id
+      JOIN runtime_de_candidate c ON c.pronunciation_id=t.pronunciation_id
+      WHERE k.language='de' AND k.channel='writer_right_edge' AND t.target_kind='pronunciation'
+        AND t.target_id>${last} AND t.target_id<=${upper}
+    `);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR IGNORE INTO runtime_de_writer_candidate(
+          key_value,pronunciation_id,syllable_count,usage_rank,historical,
+          core_preferred,all_preferred,canonical_available,generated_available,generated_only,source_order
+        )
+        SELECT
+          k.key_value,c.pronunciation_id,c.syllable_count,c.usage_rank,c.historical,
+          c.core_preferred,c.all_preferred,c.canonical_available,c.generated_available,c.generated_only,c.source_order
+        FROM runtime_key k
+        JOIN runtime_key_member km USING(key_id)
+        JOIN runtime_target t ON t.target_id=km.target_id AND t.target_kind='pronunciation'
+        JOIN runtime_de_candidate c ON c.pronunciation_id=t.pronunciation_id
+        WHERE k.language='de' AND k.channel='writer_right_edge'
+          AND t.target_id>${last} AND t.target_id<=${upper};
+      `);
+    },
+  };
+}
+
 function entityOccurrenceIntegrity(db,path){
   const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
   const eligible=`
@@ -1097,6 +1146,7 @@ function stageDefinitions(paths){
     enHotpathCandidateStage(paths.enGenerated),
     entityRankedAnchorStage(paths.entityGenerated),
     deAnalysisHotpathStage(paths.deGenerated),
+    deWriterHotpathStage(paths.deGenerated),
   ];
 }
 
