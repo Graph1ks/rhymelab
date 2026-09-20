@@ -263,11 +263,18 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       db.prepare("INSERT INTO runtime_entity_identity VALUES(1,'Q1','group.music_group',0.9,0.9,'A')").run();
       db.prepare("INSERT INTO runtime_entity_category VALUES(1,'group.music_group',0.9,1,0.9,'A',0,1)").run();
       db.prepare("INSERT INTO runtime_entity_name VALUES(1,1,1,'Zeit','zeit','de','auto','label',1,1,'wikidata','Q1')").run();
+      db.prepare("INSERT INTO runtime_entity_name VALUES(2,1,1,'Zeit','zeit','en','auto','label',1,1,'wikidata','Q1')").run();
       db.prepare(`
         INSERT INTO runtime_entity_pronunciation(
           product_pronunciation_id,name_id,serving_pronunciation_id,source_priority,locale,
           pronunciation_role,ipa,preferred,source_kind,source_record,generated,review_state
         ) VALUES(1,1,1,10,'de-DE','source','tsaɪt',1,'wikidata_p898','Q1',0,'accepted_source_backed')
+      `).run();
+      db.prepare(`
+        INSERT INTO runtime_entity_pronunciation(
+          product_pronunciation_id,name_id,serving_pronunciation_id,source_priority,locale,
+          pronunciation_role,ipa,preferred,source_kind,source_record,generated,review_state
+        ) VALUES(2,1,1,20,'de-DE','source','tsaɪt',0,'serving_core_absorbed','generated:Q1',0,'accepted')
       `).run();
       db.prepare("INSERT INTO runtime_entity_writer_anchor VALUES('de-ipa-v2','writer_secondary_anchor','aɪ-t',1)").run();
       db.prepare(`
@@ -281,15 +288,30 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
           1,1,'[]','2','aɪ','t','aɪ t','aɪt'
         )
       `).run();
+      db.prepare(`
+        INSERT INTO runtime_entity_analysis(
+          product_pronunciation_id,analyzer_id,phonemes_json,syllables_json,syllable_count,
+          primary_stress,secondary_stress_json,stress_pattern,vowel_sequence,consonant_sequence,
+          rhyme_tail,rhyme_signature
+        ) VALUES(
+          2,'de-ipa-v2','["t","s","aɪ","t"]',
+          '[{"position":1,"onset":["t","s"],"nucleus":"aɪ","coda":["t"],"stressLevel":2}]',
+          1,1,'[]','2','aɪ','t','aɪ t','aɪt'
+        )
+      `).run();
       db.prepare("INSERT INTO runtime_entity_anchor_occurrence VALUES('de-ipa-v2','exact_tail','aɪt',1)").run();
       db.prepare("INSERT INTO runtime_entity_anchor_occurrence VALUES('de-ipa-v2','writer_secondary_anchor','aɪ-t',1)").run();
+      db.prepare("INSERT INTO runtime_entity_anchor_occurrence VALUES('de-ipa-v2','exact_tail','aɪt',2)").run();
+      db.prepare("INSERT INTO runtime_entity_anchor_occurrence VALUES('de-ipa-v2','writer_secondary_anchor','aɪ-t',2)").run();
       db.prepare(`
         INSERT INTO runtime_entity_anchor_ranked(
           analyzer_id,channel,anchor_key,product_pronunciation_id,language,locale,
           canonical_available,generated_available,popularity_score,name_preferred,qid,name_id
         ) VALUES
           ('de-ipa-v2','exact_tail','aɪt',1,'de','de-DE',1,0,0.9,1,'Q1',1),
-          ('de-ipa-v2','writer_secondary_anchor','aɪ-t',1,'de','de-DE',1,0,0.9,1,'Q1',1)
+          ('de-ipa-v2','writer_secondary_anchor','aɪ-t',1,'de','de-DE',1,0,0.9,1,'Q1',1),
+          ('de-ipa-v2','exact_tail','aɪt',2,'de','de-DE',1,0,0.9,0,'Q1',1),
+          ('de-ipa-v2','writer_secondary_anchor','aɪ-t',2,'de','de-DE',1,0,0.9,0,'Q1',1)
       `).run();
     }finally{db.close();}
 
@@ -297,6 +319,19 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
     try{
       assert.equal(servingV1ProductRuntimeState(runtime.coreDb).available,true);
       assert.equal(servingV1ProductRuntimeState(runtime.allDb).available,true);
+
+      assert.equal(
+        Number(runtime.allDb.prepare(
+          'SELECT COUNT(*) c FROM temp.serving_entity_ambiguous_name'
+        ).get().c),
+        2,
+      );
+      assert.deepEqual(
+        runtime.allDb.prepare(
+          'SELECT pronunciation_id,source_kind FROM entity_pronunciation ORDER BY pronunciation_id'
+        ).all().map((row)=>[Number(row.pronunciation_id),row.source_kind]),
+        [[1,'wikidata_p898']],
+      );
 
       assert.equal(getWord(runtime.coreDb,'Krankenscheindrucker'),null);
       const generatedDe=getWord(runtime.allDb,'Krankenscheindrucker');
@@ -374,10 +409,19 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       assert.equal(phraseDetail.canonical,'bei klarer Reise');
       assert.deepEqual(phraseDetail.tokens,[]);
 
-      const entitySearch=searchEntityRhymes(runtime.coreDb,getWord(runtime.coreDb,'Zeit'),{
+      const entitySearch=searchEntityRhymes(runtime.coreDb,{
+        surface:'Testwort',
+        preferredIpa:'tsaɪt',
+        syllableCount:1,
+        language:'de',
+      },{
         language:'de',limit:10,poolLimit:16,profileStages:true,
       });
       assert.equal(entitySearch.available,true);
+      assert.deepEqual(
+        entitySearch.results.map((row)=>row.pronunciationSource),
+        ['wikidata_p898'],
+      );
       assert.ok(Number.isFinite(
         entitySearch.performanceProfile.stages_ms.anchor_lookup_ms
       ));

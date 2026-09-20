@@ -90,6 +90,39 @@ function buildEntityRuntimeDb() {
   return { db, ipa };
 }
 
+function insertGeneratedDeEntityPronunciation(db,nameId,ipa){
+  const inserted=db.prepare(`
+    INSERT INTO entity_pronunciation(
+      name_id,locale,pronunciation_role,ipa,preferred,source_kind,
+      generated,confidence,review_state
+    ) VALUES(?,?,?,?,0,'espeak_ng_generated_secondary',1,1,'accepted')
+  `).run(nameId,'de-DE','de-DE',ipa);
+  const pronunciationId=Number(inserted.lastInsertRowid);
+  const analyzed=analyzeEntityPronunciation(ipa,'de');
+  const row=analyzed.row;
+  db.prepare(`
+    INSERT INTO entity_phonetic_analysis(
+      pronunciation_id,analyzer_id,phonemes,syllables,syllable_count,
+      primary_stress,secondary_stress,stress_pattern,vowel_sequence,
+      consonant_sequence,rhyme_tail,rhyme_signature
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+  `).run(
+    pronunciationId,analyzed.analyzerId,row.phonemes,row.syllables,row.syllableCount,
+    row.primaryStress,row.secondaryStress,row.stressPattern,row.vowelSequence,
+    row.consonantSequence,row.rhymeTail,row.rhymeSignature,
+  );
+  const insertAnchor=db.prepare(`
+    INSERT INTO entity_rhyme_anchor(analyzer_id,channel,anchor_key,pronunciation_id)
+    VALUES(?,?,?,?)
+  `);
+  for(const retrievalAnchor of entityRetrievalAnchors(analyzed.analysis,'de')){
+    insertAnchor.run(
+      analyzed.analyzerId,retrievalAnchor.channel,retrievalAnchor.key,pronunciationId
+    );
+  }
+  return pronunciationId;
+}
+
 test('entity name pronunciation composition requires every token to resolve', () => {
   const details = new Map([
     ['Kendrick', { surface: 'Kendrick', preferredIpa: 'ˈkɛndʁɪk', syllableCount: 2, preferredPronunciationId: 1 }],
@@ -158,47 +191,77 @@ test('entity phonetic runtime exposes indexed Rapper and Musician categories', (
 });
 
 
-test('entity generated-only retrieval excludes Core pronunciations before ranking', () => {
+test('cross-locale-identical Entity labels do not create a German generated pronunciation channel', () => {
   const { db, ipa } = buildEntityRuntimeDb();
   try {
-    const name=db.prepare(`SELECT name_id FROM entity_name WHERE surface='Kendrick Lamar' AND language='de' LIMIT 1`).get();
-    assert.ok(name?.name_id);
-    const inserted=db.prepare(`
-      INSERT INTO entity_pronunciation(
-        name_id,locale,pronunciation_role,ipa,preferred,source_kind,
-        generated,confidence,review_state
-      ) VALUES(?,?,?,?,0,'espeak_ng_generated_secondary',1,1,'accepted')
-    `).run(name.name_id,'de-DE','de-DE',ipa);
-    const pronunciationId=Number(inserted.lastInsertRowid);
-    const analyzed=analyzeEntityPronunciation(ipa,'de');
-    const row=analyzed.row;
-    db.prepare(`
-      INSERT INTO entity_phonetic_analysis(
-        pronunciation_id,analyzer_id,phonemes,syllables,syllable_count,
-        primary_stress,secondary_stress,stress_pattern,vowel_sequence,
-        consonant_sequence,rhyme_tail,rhyme_signature
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
-    `).run(
-      pronunciationId,analyzed.analyzerId,row.phonemes,row.syllables,row.syllableCount,
-      row.primaryStress,row.secondaryStress,row.stressPattern,row.vowelSequence,
-      row.consonantSequence,row.rhymeTail,row.rhymeSignature,
-    );
-    const insertAnchor=db.prepare(`
-      INSERT INTO entity_rhyme_anchor(analyzer_id,channel,anchor_key,pronunciation_id)
-      VALUES(?,?,?,?)
-    `);
-    for(const retrievalAnchor of entityRetrievalAnchors(analyzed.analysis,'de')){
-      insertAnchor.run(analyzed.analyzerId,retrievalAnchor.channel,retrievalAnchor.key,pronunciationId);
-    }
+    const names=db.prepare(`
+      SELECT n.name_id,n.language,n.normalized
+      FROM entity_name n
+      JOIN entity e USING(entity_id)
+      WHERE e.qid='Q130798' AND n.surface='Kendrick Lamar'
+      ORDER BY n.language
+    `).all();
+    assert.deepEqual(names.map((row)=>row.language),['de','en']);
+    assert.equal(names[0].normalized,names[1].normalized);
 
-    const result=searchEntityRhymes(db,{
+    const deName=names.find((row)=>row.language==='de');
+    insertGeneratedDeEntityPronunciation(db,deName.name_id,ipa);
+
+    const generated=searchEntityRhymes(db,{
       surface:'Testwort',preferredIpa:ipa,syllableCount:4,
     },{
       language:'de',category:'person.rapper',limit:20,generatedOnly:true,
     });
-    assert.ok(result.results.length>0);
-    assert.ok(result.results.every((entry)=>entry.pronunciationSource==='espeak_ng_generated_secondary'));
-    assert.ok(result.results.every((entry)=>entry.generatedPronunciation===true));
+    assert.equal(generated.results.length,0);
+
+    const sourceBacked=searchEntityRhymes(db,{
+      surface:'Testwort',preferredIpa:ipa,syllableCount:4,
+    },{
+      language:'de',category:'person.rapper',limit:20,
+    });
+    assert.ok(sourceBacked.results.some((entry)=>
+      entry.word==='Kendrick Lamar'
+      &&entry.pronunciationSource==='fixture_source'
+      &&entry.generatedPronunciation!==true
+    ));
+  }finally{
+    db.close();
+  }
+});
+
+test('locale-distinct Entity labels remain eligible for generated German pronunciation', () => {
+  const { db, ipa } = buildEntityRuntimeDb();
+  try {
+    const entity=db.prepare("SELECT entity_id FROM entity WHERE qid='Q130798'").get();
+    assert.ok(entity?.entity_id);
+    const nameInsert=db.prepare(`
+      INSERT INTO entity_name(
+        entity_id,surface,normalized,language,script,name_kind,preferred,
+        searchable,source_kind,source_record
+      ) VALUES(?,?,?,?,?,?,?,?,?,?)
+    `).run(
+      entity.entity_id,
+      'Kendrick Lokal',
+      'kendrick lokal',
+      'de',
+      'Latn',
+      'alias',
+      0,
+      1,
+      'fixture_label',
+      'fixture:de-only',
+    );
+    const nameId=Number(nameInsert.lastInsertRowid);
+    insertGeneratedDeEntityPronunciation(db,nameId,ipa);
+
+    const generated=searchEntityRhymes(db,{
+      surface:'Testwort',preferredIpa:ipa,syllableCount:4,
+    },{
+      language:'de',category:'person.rapper',limit:20,generatedOnly:true,
+    });
+    assert.deepEqual(generated.results.map((entry)=>entry.word),['Kendrick Lokal']);
+    assert.equal(generated.results[0].pronunciationSource,'espeak_ng_generated_secondary');
+    assert.equal(generated.results[0].generatedPronunciation,true);
   }finally{
     db.close();
   }

@@ -73,6 +73,10 @@ Distinct QIDs remain distinct even when they share a Surface/pronunciation.
 
 A source eSpeak Entity pronunciation that maps onto a canonical Serving pronunciation is stored as Core-compatible metadata, not as Generated.
 
+Entity label language is kept as search/display metadata and is not treated as standalone pronunciation-language evidence. When one QID has the same normalized searchable name in both DE and EN label locales, derived pronunciation sources (`espeak_ng_generated_secondary`, German Writer token composition, or `serving_core_absorbed`) are excluded from language-specific Product occurrences. Direct/source-backed pronunciation evidence is retained.
+
+Existing Serving files are protected immediately at runtime: each Core/All connection materializes the ambiguous Entity `name_id` set into a connection-local TEMP table with an integer primary key. Entity anchor lookup consults that set before its bounded candidate limit. A future Product rebuild applies the same rule during materialization, so the ambiguous derived occurrences and their dependent analyses/anchors are not copied into the Product layer.
+
 ### `runtime_entity_writer_anchor`
 
 Phase 2 deliberately compacted Entity Writer anchors into one `entity_writer_right_edge` channel.
@@ -305,7 +309,7 @@ Phase 3 does not yet:
 
 - make Serving-v1 the default `npm start` runtime; `npm run dev:serving` is an explicit owner preview only;
 - remove the legacy runtime opening code;
-- flip the UI Generated checkbox default;
+- change the already-established Generated-default/opt-out policy;
 - delete source/legacy DB artifacts;
 - claim the 80–100 ms objective has been achieved.
 

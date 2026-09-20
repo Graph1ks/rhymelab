@@ -7,6 +7,9 @@ import {
 } from '../scripts/serving-v1-product-core.mjs';
 import { getPhonologyProfile } from '../scripts/phonology-profiles.mjs';
 import {
+  entityPronunciationRoutingSql,
+} from '../scripts/entity-pronunciation-routing-core.mjs';
+import {
   ENTITY_WRITER_RANKING_POLICY,
   rankAndDiversifyEntityRows,
 } from './entity-writer-ranking.mjs';
@@ -173,6 +176,12 @@ function runtimeLanguageState(db,tablesReady,language){
   if(servingProduct){
     const mode=servingConnectionMode(db)||'all';
     const availability=servingAvailabilitySql(mode,'sp');
+    const routing=entityPronunciationRoutingSql({
+      pronunciationAlias:'ep',
+      nameAlias:'n',
+      nameTable:'runtime_entity_name',
+      ambiguousNameTable:'temp.serving_entity_ambiguous_name',
+    });
     let availableRow=null;
     try{
       availableRow=db.prepare(`
@@ -181,6 +190,7 @@ function runtimeLanguageState(db,tablesReady,language){
         JOIN runtime_entity_name n USING(name_id)
         JOIN pronunciation sp ON sp.pronunciation_id=ep.serving_pronunciation_id
         WHERE n.language=? AND ${availability}
+          AND ${routing}
         LIMIT 1
       `).get(code);
     }catch{}
@@ -438,6 +448,17 @@ export function searchEntityRhymes(db, query, options = {}) {
   const servingGenerated=generatedOnly
     ?' AND sp.canonical_available=0 AND sp.generated_available=1'
     :'';
+  const legacyRouting=entityPronunciationRoutingSql({
+    pronunciationAlias:'p',
+    nameAlias:'n',
+    nameTable:'entity_name',
+  });
+  const servingRouting=entityPronunciationRoutingSql({
+    pronunciationAlias:'ep',
+    nameAlias:'n',
+    nameTable:'runtime_entity_name',
+    ambiguousNameTable:'temp.serving_entity_ambiguous_name',
+  });
   const servingRankAvailability=servingMode==='core'
     ?'ra.canonical_available=1'
     :'(ra.canonical_available=1 OR ra.generated_available=1)';
@@ -461,6 +482,7 @@ export function searchEntityRhymes(db, query, options = {}) {
       AND p.locale=?
       AND n.language=?
       AND p.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+      AND ${legacyRouting}
       AND (?=0 OR p.source_kind='espeak_ng_generated_secondary')
       AND (?='all' OR EXISTS(
         SELECT 1 FROM entity_category ec
@@ -473,12 +495,16 @@ export function searchEntityRhymes(db, query, options = {}) {
     SELECT
       ra.product_pronunciation_id AS pronunciation_id
     FROM runtime_entity_anchor_ranked ra
+    JOIN runtime_entity_pronunciation ep
+      ON ep.product_pronunciation_id=ra.product_pronunciation_id
+    JOIN runtime_entity_name n USING(name_id)
     WHERE ra.analyzer_id=?
       AND ra.channel=?
       AND ra.anchor_key=?
       AND ra.locale=?
       AND ra.language=?
       AND ${servingRankAvailability}
+      AND ${servingRouting}
       ${servingRankGenerated}
     ORDER BY
       ra.popularity_score DESC,ra.name_preferred DESC,
@@ -554,6 +580,7 @@ export function searchEntityRhymes(db, query, options = {}) {
       AND n.language=?
       AND ep.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
       AND ${servingAvailability}
+      AND ${servingRouting}
       ${servingGenerated}
       AND (?='all' OR EXISTS(
         SELECT 1 FROM runtime_entity_category ec

@@ -8,6 +8,9 @@ import {
 import {
   SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
 } from '../scripts/serving-v1-pronunciation-identity.mjs';
+import {
+  entityPronunciationRoutingSql,
+} from '../scripts/entity-pronunciation-routing-core.mjs';
 
 export const DEFAULT_SERVING_V1_PRODUCT_DB_PATH=resolve('data/local/rhymelab-serving-v1.sqlite');
 export const SERVING_V1_PRODUCT_RUNTIME='serving-v1-single-db-product-candidate';
@@ -81,6 +84,7 @@ function dropCompatibilityViews(db){
   ]){
     db.exec(`DROP VIEW IF EXISTS temp.${name};`);
   }
+  db.exec('DROP TABLE IF EXISTS temp.serving_entity_ambiguous_name;');
 }
 
 export function installServingV1CompatibilityViews(db,{mode='all'}={}){
@@ -93,6 +97,35 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
     ?'rp.canonical_available=1'
     :'(rp.canonical_available=1 OR rp.generated_available=1)';
   const entityAvailability=availability(mode,'sp');
+
+  // Entity label locale is not pronunciation-language evidence. Materialize the
+  // ambiguous cross-locale name IDs once per long-lived Serving connection so
+  // the hotpath needs only an INTEGER PRIMARY KEY lookup instead of a correlated
+  // self-join for every anchor candidate.
+  db.exec(`
+    CREATE TEMP TABLE serving_entity_ambiguous_name(
+      name_id INTEGER PRIMARY KEY
+    ) WITHOUT ROWID;
+    INSERT OR IGNORE INTO serving_entity_ambiguous_name(name_id)
+    SELECT a.name_id
+    FROM runtime_entity_name a
+    JOIN runtime_entity_name b
+      ON b.entity_id=a.entity_id
+     AND b.normalized=a.normalized
+     AND b.searchable=1
+     AND b.language=CASE a.language
+       WHEN 'de' THEN 'en'
+       WHEN 'en' THEN 'de'
+       ELSE ''
+     END
+    WHERE a.searchable=1 AND a.language IN ('de','en');
+  `);
+  const entityRouting=entityPronunciationRoutingSql({
+    pronunciationAlias:'ep',
+    nameAlias:'n',
+    nameTable:'runtime_entity_name',
+    ambiguousNameTable:'temp.serving_entity_ambiguous_name',
+  });
 
   db.exec(`
     CREATE TEMP VIEW serving_runtime_connection AS
@@ -256,6 +289,7 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
       FROM runtime_entity_pronunciation ep
       JOIN pronunciation sp ON sp.pronunciation_id=ep.serving_pronunciation_id
       WHERE ep.name_id=n.name_id AND ${entityAvailability}
+        AND ${entityRouting}
     );
 
     CREATE TEMP VIEW entity_pronunciation AS
@@ -264,8 +298,10 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
       ep.name_id,ep.locale,ep.pronunciation_role,ep.ipa,ep.preferred,ep.source_kind,
       ep.source_record,ep.generated,ep.model_id,ep.confidence,ep.review_state
     FROM runtime_entity_pronunciation ep
+    JOIN runtime_entity_name n USING(name_id)
     JOIN pronunciation sp ON sp.pronunciation_id=ep.serving_pronunciation_id
-    WHERE ${entityAvailability};
+    WHERE ${entityAvailability}
+      AND ${entityRouting};
 
     CREATE TEMP VIEW entity_phonetic_analysis AS
     SELECT
@@ -283,16 +319,20 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
       ea.rhyme_signature
     FROM runtime_entity_analysis ea
     JOIN runtime_entity_pronunciation ep USING(product_pronunciation_id)
+    JOIN runtime_entity_name n USING(name_id)
     JOIN pronunciation sp ON sp.pronunciation_id=ep.serving_pronunciation_id
-    WHERE ${entityAvailability};
+    WHERE ${entityAvailability}
+      AND ${entityRouting};
 
     CREATE TEMP VIEW entity_rhyme_anchor AS
     SELECT
       a.analyzer_id,a.channel,a.anchor_key,a.product_pronunciation_id AS pronunciation_id
     FROM runtime_entity_anchor_occurrence a
     JOIN runtime_entity_pronunciation ep USING(product_pronunciation_id)
+    JOIN runtime_entity_name n USING(name_id)
     JOIN pronunciation sp ON sp.pronunciation_id=ep.serving_pronunciation_id
-    WHERE ${entityAvailability};
+    WHERE ${entityAvailability}
+      AND ${entityRouting};
 
     CREATE TEMP VIEW phrase AS
     SELECT

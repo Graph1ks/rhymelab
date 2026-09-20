@@ -8,6 +8,9 @@ import {DatabaseSync} from 'node:sqlite';
 import {getPhonologyProfile} from './phonology-profiles.mjs';
 import {createPhraseRankingEvidenceResolver} from './phrase-mosaic-ranking-evidence-core.mjs';
 import {
+  entityPronunciationRoutingSql,
+} from './entity-pronunciation-routing-core.mjs';
+import {
   SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
   entityAnalyzerSql,
   entityIdentityKeySql,
@@ -49,6 +52,11 @@ const now=()=>new Date().toISOString();
 const hash=(v)=>createHash('sha256').update(String(v)).digest('hex');
 const quote=(v)=>"'"+String(v).replaceAll("'","''")+"'";
 const scalar=(db,sql)=>Number(db.prepare(sql).get()?.c||0);
+const sourceEntityPronunciationRoutingSql=entityPronunciationRoutingSql({
+  pronunciationAlias:'ep',
+  nameAlias:'n',
+  nameTable:'src.entity_name',
+});
 const count=(n)=>Number(n||0).toLocaleString('en-US');
 const duration=(ms)=>{
   if(!Number.isFinite(ms)||ms<0)return '—';
@@ -495,6 +503,7 @@ function entityPronStage(path){
     AND ep.review_state IN (${accepted})
     AND n.searchable=1 AND n.language IN ('de','en')
     AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+    AND ${sourceEntityPronunciationRoutingSql}
   `;
   const mapped=(last,upper)=>`
     SELECT
@@ -533,6 +542,7 @@ function entityPronStage(path){
       WHERE ep.review_state IN (${accepted})
         AND n.searchable=1 AND n.language IN ('de','en')
         AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+    AND ${sourceEntityPronunciationRoutingSql}
     `);}finally{detach(db);}},
     max(db){attach(db,path);try{return scalar(db,`
       SELECT COALESCE(MAX(ep.pronunciation_id),0) c
@@ -540,6 +550,7 @@ function entityPronStage(path){
       WHERE ep.review_state IN (${accepted})
         AND n.searchable=1 AND n.language IN ('de','en')
         AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+    AND ${sourceEntityPronunciationRoutingSql}
     `);}finally{detach(db);}},
     range(db,last,upper){return scalar(db,`
       SELECT COUNT(*) c FROM src.entity_pronunciation ep
@@ -583,6 +594,7 @@ function entityWriterAnchorStage(path){
     AND ep.review_state IN (${accepted})
     AND n.searchable=1 AND n.language IN ('de','en')
     AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+    AND ${sourceEntityPronunciationRoutingSql}
   `;
   return {
     name:'07_entity_writer_anchors',label:'Entity writer subchannel anchors',path,
@@ -592,6 +604,7 @@ function entityWriterAnchorStage(path){
       WHERE ep.review_state IN (${accepted})
         AND n.searchable=1 AND n.language IN ('de','en')
         AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+    AND ${sourceEntityPronunciationRoutingSql}
         AND EXISTS(
           SELECT 1 FROM src.entity_rhyme_anchor a
           WHERE a.pronunciation_id=ep.pronunciation_id AND a.channel LIKE 'writer_%'
@@ -603,6 +616,7 @@ function entityWriterAnchorStage(path){
       WHERE ep.review_state IN (${accepted})
         AND n.searchable=1 AND n.language IN ('de','en')
         AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+    AND ${sourceEntityPronunciationRoutingSql}
         AND EXISTS(
           SELECT 1 FROM src.entity_rhyme_anchor a
           WHERE a.pronunciation_id=ep.pronunciation_id AND a.channel LIKE 'writer_%'
@@ -729,6 +743,7 @@ function entityAnalysisStage(path){
     ep.review_state IN (${accepted})
     AND n.searchable=1 AND n.language IN ('de','en')
     AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+    AND ${sourceEntityPronunciationRoutingSql}
   `;
   return {
     name:'09_entity_analysis',label:'Entity precomputed phonetic analyses',path,
@@ -789,6 +804,7 @@ function entityOccurrenceAnchorStage(path){
     ep.review_state IN (${accepted})
     AND n.searchable=1 AND n.language IN ('de','en')
     AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+    AND ${sourceEntityPronunciationRoutingSql}
   `;
   return {
     name:'10_entity_occurrence_anchors',label:'Entity occurrence-level retrieval anchors',path,
@@ -951,6 +967,7 @@ function entityRankedAnchorStage(path){
     ep.review_state IN (${accepted})
     AND n.searchable=1 AND n.language IN ('de','en')
     AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+    AND ${sourceEntityPronunciationRoutingSql}
   `;
   return {
     name:'13_entity_ranked_anchors',label:'Entity bounded ranked anchor lookup',path,
@@ -1148,6 +1165,7 @@ function entityOccurrenceIntegrity(db,path){
     ep.review_state IN (${accepted})
     AND n.searchable=1 AND n.language IN ('de','en')
     AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+    AND ${sourceEntityPronunciationRoutingSql}
   `;
   attach(db,path);
   try{

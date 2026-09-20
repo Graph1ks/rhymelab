@@ -102,6 +102,14 @@ Product-visible Word/Entity results are consolidated by `language + normalized s
 
 The response `counts.surfaceAggregation` block reports pre/post consolidation row counts. Search-pool counts remain retrieval diagnostics and are not reduced by presentation consolidation.
 
+### Entity language / pronunciation routing
+
+For Entities, `entity_name.language` is the language of the source/search label, **not by itself a claim about how the proper name or title is pronounced**. Wikidata commonly exposes the same unchanged proper name or work title as both a German and English label.
+
+If the same QID has the same normalized searchable name in both DE and EN label locales, RhymeLab treats that name as cross-locale ambiguous. Derived pronunciation sources — generated eSpeak IPA, German Writer token composition, and Generated pronunciation absorbed into a canonical Serving identity — are excluded from language-specific Entity rhyme channels unless stronger pronunciation-language evidence exists. Direct/source-backed pronunciations remain eligible. Localized titles whose DE and EN surfaces differ are unaffected.
+
+This rule is applied before the Entity candidate limit. Serving workers materialize the ambiguous `name_id` set once in a connection-local TEMP primary-key table, so ambiguous rows cannot crowd valid candidates out of a bounded anchor lookup.
+
 Parameters:
 
 - `q=<text>` — one word or a multi-word query;
