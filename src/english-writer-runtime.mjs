@@ -12,6 +12,7 @@ import {
   retrieveEnglishRuntimeCandidatesFromAnalysis,
 } from '../scripts/en-writer-runtime-core.mjs';
 import { analyzeEnglishIpa } from '../scripts/english-phonology.mjs';
+import { SERVING_V1_PRODUCT_SCHEMA } from '../scripts/serving-v1-product-core.mjs';
 import {
   ENGLISH_QUALITY_CANDIDATES,
   ENGLISH_WRITER_RANKING_V2_POLICY,
@@ -135,6 +136,24 @@ export function englishWriterDatabaseState(db){
     };
   }
   const schema=metaValue(db,'schema');
+  const servingProduct=
+    schema==='rhymelab-serving-v1'
+    &&metaValue(db,'runtime_status')==='complete'
+    &&metaValue(db,'product_adapter_schema')===SERVING_V1_PRODUCT_SCHEMA
+    &&metaValue(db,'product_adapter_status')==='complete';
+  if(servingProduct){
+    return {
+      available:true,
+      reason:null,
+      schema,
+      semanticFingerprint:metaValue(db,'product_adapter_semantic_fingerprint'),
+      publishFingerprint:ACCEPTED_ENGLISH_PUBLISH_FINGERPRINT,
+      language:'en',
+      defaultLocale:'en-US',
+      retrievalPolicy:'serving-v1-unified-runtime-keys',
+      servingV1:true,
+    };
+  }
   const semanticFingerprint=metaValue(db,'semantic_fingerprint');
   const publishFingerprint=metaValue(db,'publish_fingerprint');
   const language=metaValue(db,'language');
