@@ -378,6 +378,10 @@ function entityKeyStage(name,label,path,generated){
     AND en.searchable=1
     AND en.language IN ('de','en')
     AND ep.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+    AND (
+      (en.language='de' AND ep.locale='de-DE')
+      OR (en.language='en' AND ep.locale='en-US')
+    )
     ${marker}
   `;
   const select=(last,upper)=>`
@@ -413,7 +417,12 @@ function entityKeyStage(name,label,path,generated){
       a.anchor_key key_value,
       m.target_id
     FROM mapped m
-    JOIN src.entity_rhyme_anchor a ON a.pronunciation_id=m.source_id
+    JOIN src.entity_rhyme_anchor a
+      ON a.pronunciation_id=m.source_id
+     AND a.analyzer_id=CASE m.language
+       WHEN 'en' THEN 'en-pron-v1-candidate'
+       ELSE 'de-ipa-v2'
+     END
   `;
   return {
     name,label,path,
@@ -426,6 +435,10 @@ function entityKeyStage(name,label,path,generated){
         WHERE en.searchable=1
           AND en.language IN ('de','en')
           AND ep.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+          AND (
+            (en.language='de' AND ep.locale='de-DE')
+            OR (en.language='en' AND ep.locale='en-US')
+          )
           ${marker}
       `).get()?.c||0);}
       finally{detach(db);}
@@ -439,6 +452,10 @@ function entityKeyStage(name,label,path,generated){
         WHERE en.searchable=1
           AND en.language IN ('de','en')
           AND ep.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+          AND (
+            (en.language='de' AND ep.locale='de-DE')
+            OR (en.language='en' AND ep.locale='en-US')
+          )
           ${marker}
       `).get()?.m||0);}
       finally{detach(db);}
@@ -496,12 +513,12 @@ function phraseStage(name,label,path,generated){
       const rows=mapped(last,upper);
       db.exec(`
         INSERT OR IGNORE INTO runtime_phrase(
-          source_layer,source_phrase_id,source_phrase_pronunciation_id,
+          source_layer,source_phrase_id,source_phrase_pronunciation_id,source_surface,
           surface_id,pronunciation_id,canonical_available,generated_available,
           phrase_types_json,historical_state,modern_eligible
         )
         SELECT
-          '${layer}',r.phrase_id,r.phrase_pronunciation_id,
+          '${layer}',r.phrase_id,r.phrase_pronunciation_id,r.canonical,
           r.surface_id,r.pronunciation_id,r.canonical_available,r.generated_available,
           r.phrase_types_json,r.historical_state,r.modern_eligible
         FROM (${rows}) r;
@@ -728,9 +745,8 @@ function phraseEvidenceStage(){
     },
     run(db,last,upper){
       const phrases=db.prepare(`
-        SELECT rp.*,s.display_surface
+        SELECT rp.*
         FROM runtime_phrase rp
-        JOIN surface s USING(surface_id)
         WHERE rp.runtime_phrase_id>? AND rp.runtime_phrase_id<=?
         ORDER BY rp.runtime_phrase_id
       `).all(last,upper);
@@ -787,7 +803,7 @@ function phraseEvidenceStage(){
           }catch{}
         }
         const styleTags=[...tags].sort((a,b)=>a.localeCompare(b,'de'));
-        const safety=classifyPhraseSurfaceSafety(phrase.display_surface,{
+        const safety=classifyPhraseSurfaceSafety(phrase.source_surface,{
           historicalState:phrase.historical_state,
           modernEligible:Boolean(phrase.modern_eligible),
         });
@@ -899,6 +915,58 @@ async function main(){
     return;
   }
 
+  if(mode==='plan'){
+    const db=new DatabaseSync(servingPath,{readOnly:true});
+    try{
+      db.exec('PRAGMA query_only=ON;');
+      const stages=stageDefinitions(context.paths);
+      const plan=[];
+      let phraseSourceRows=0;
+      for(const stage of stages){
+        if(stage.name==='11_phrase_evidence'){
+          plan.push({
+            stage:stage.name,
+            label:stage.label,
+            source_rows_estimate:phraseSourceRows,
+            source:'serving-v1 runtime phrases after phrase stages',
+          });
+          continue;
+        }
+        const sourceRows=stage.total(db);
+        if(stage.name==='08_phrase_core_runtime'||stage.name==='09_phrase_generated_runtime'){
+          phraseSourceRows+=sourceRows;
+        }
+        plan.push({
+          stage:stage.name,
+          label:stage.label,
+          source_rows:sourceRows,
+          max_source_id:stage.max(db),
+          source:stage.path||'serving-v1',
+        });
+      }
+      console.log(JSON.stringify({
+        schema:'rhymelab-serving-v1-runtime-plan',
+        policy:SERVING_V1_RUNTIME_POLICY,
+        revision:SERVING_V1_RUNTIME_REVISION,
+        serving_semantic_fingerprint:context.contract.meta.semantic_fingerprint,
+        runtime_source_fingerprint:context.runtimeSourceFingerprint,
+        batch_size:batchSize,
+        serving:servingPath,
+        work:workPath,
+        stages:plan,
+        safety:{
+          read_only_plan:true,
+          current_runtime_rewired:false,
+          source_databases_mutated:false,
+          base_serving_preserved_until_success:true,
+          resumable:true,
+          atomic_promotion:true,
+        },
+      },null,2));
+    }finally{db.close();}
+    return;
+  }
+
   if(mode==='status'){
     const candidate=existsSync(workPath)?workPath:servingPath;
     const db=new DatabaseSync(candidate,{readOnly:true});
@@ -961,27 +1029,6 @@ async function main(){
 
     const stages=stageDefinitions(context.paths);
     const plan=await planFor(db,stages);
-    if(mode==='plan'){
-      console.log(JSON.stringify({
-        schema:'rhymelab-serving-v1-runtime-plan',
-        policy:SERVING_V1_RUNTIME_POLICY,
-        revision:SERVING_V1_RUNTIME_REVISION,
-        serving_semantic_fingerprint:context.contract.meta.semantic_fingerprint,
-        runtime_source_fingerprint:context.runtimeSourceFingerprint,
-        batch_size:batchSize,
-        serving:servingPath,
-        work:workPath,
-        stages:plan,
-        safety:{
-          current_runtime_rewired:false,
-          source_databases_mutated:false,
-          base_serving_preserved_until_success:true,
-          resumable:true,
-          atomic_promotion:true,
-        },
-      },null,2));
-      return;
-    }
 
     console.log(
       '[serving-v1-runtime] stages='+stages.length+
