@@ -27,10 +27,10 @@
       <aside class="control-panel" aria-label="Markov generator controls">
         <div class="panel-head">
           <div>
-            <p class="micro">CONSTRAINED MARKOV · LIVE DB POOL</p>
+            <p class="micro">CORPUS MARKOV · LIVE RHYME POOL</p>
             <h2>Feed the machine</h2>
           </div>
-          <span class="live-dot">LOCAL</span>
+          <span id="modelState" class="live-dot" data-tone="neutral">MODEL…</span>
         </div>
 
         <form id="markovForm">
@@ -84,9 +84,9 @@
               <small>Natural language ←→ phonetic obsession</small>
             </label>
             <label class="range-field">
-              <span><b>Naturalness</b><output data-range-value="naturalness">76%</output></span>
-              <input id="naturalness" type="range" min="0" max="100" value="76">
-              <small>How hard transition probability guards the line.</small>
+              <span><b>Naturalness</b><output data-range-value="naturalness">82%</output></span>
+              <input id="naturalness" type="range" min="0" max="100" value="82">
+              <small>Transition probability + context fit guard.</small>
             </label>
             <label class="range-field">
               <span><b>Weirdness</b><output data-range-value="weirdness">34%</output></span>
@@ -102,12 +102,12 @@
           <fieldset class="source-box">
             <legend>Allowed material</legend>
             <label class="switch-row">
-              <span><b>Entities</b><small>Artists, places, works, brands…</small></span>
+              <span><b>Entities</b><small>Only when corpus context supports the splice</small></span>
               <input id="allowEntities" type="checkbox" checked>
               <i aria-hidden="true"></i>
             </label>
             <label class="switch-row">
-              <span><b>Phrases</b><small>Attested Phrase / Mosaic chunks</small></span>
+              <span><b>Phrases</b><small>Attested chunks, context-gated</small></span>
               <input id="allowPhrases" type="checkbox" checked>
               <i aria-hidden="true"></i>
             </label>
@@ -127,12 +127,12 @@
           </div>
 
           <button id="generateButton" class="generate-button" type="submit">
-            <span>GENERATE SOME NONSENSE</span>
+            <span>COOK THE LINE</span>
             <b>→</b>
           </button>
         </form>
 
-        <p class="model-note"><strong>V1:</strong> compact bootstrap transition model over live RhymeLab Word / Phrase / Entity candidates. The corpus-trained transition model will replace the bootstrap model behind the same surface.</p>
+        <p id="modelNote" class="model-note"><strong>MODEL:</strong> checking local corpus runtime…</p>
       </aside>
 
       <section class="output-column" aria-label="Generated Markov results">
