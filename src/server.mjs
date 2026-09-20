@@ -735,7 +735,7 @@ server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymePad workspace: http://${host}:${port}/pad`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
-  console.log(`Markov corpus model: ${markovRuntime.available ? markovModelPath : 'unavailable — npm run markov:model:build'}`);
+  console.log(`Markov transition database: ${markovRuntime.available ? markovModelPath : 'unavailable — npm run markov:model:build'}`);
   if(servingV1Preview){
     console.log(`Product runtime: Serving-v1 preview`);
     console.log(`Serving-v1 SQLite: ${servingV1DbPath}`);
