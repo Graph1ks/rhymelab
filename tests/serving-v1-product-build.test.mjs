@@ -60,6 +60,11 @@ function createDe(path){
       'dictionary',null,0,'[]',1,'eSpeak-NG Backfill V2',99,0,'["generated"]','["generated"]',
       'de-DE',null,null,'aŋk','aŋk','a','k','DOR-STOP',1,1
     );
+    ins.run(
+      3,'A-Zeit','zeit','tsaɪt','t s aɪ t','1',1,'[]',
+      1,6.0,10,3,'WRONG_LEMMA','noun','f','dictionary',null,0,'[]',0,
+      'German Wiktionary',1,1,'[]','[]','de-DE',null,null,'aɪt','aɪt','aɪ','t','COR-STOP',1,2
+    );
   }finally{db.close();}
 }
 function createEn(path){
@@ -151,6 +156,20 @@ function createEntity(path){
     );
     db.prepare('INSERT INTO entity_rhyme_anchor VALUES(?,?,?,?)')
       .run('de-ipa-v2','writer_secondary_anchor','aɪ-t',1);
+    db.prepare('INSERT INTO entity VALUES(?,?,?,?,?,?)').run(2,'Q2','work.album',0.8,0.8,'B');
+    db.prepare('INSERT INTO entity_category VALUES(?,?,?,?,?,?,?,?)')
+      .run(2,'work.album',0.8,1,0.8,'B',0,1);
+    db.prepare('INSERT INTO entity_name VALUES(?,?,?,?,?,?,?,?,?,?,?)')
+      .run(2,2,'Zeit','zeit','de','auto','label',1,1,'wikidata','Q2');
+    db.prepare('INSERT INTO entity_pronunciation VALUES(?,?,?,?,?,?,?,?,?,?,?,?)')
+      .run(2,2,'de-DE','source','tsaɪt',1,'wikidata_p898','Q2',0,null,1,'accepted_source_backed');
+    db.prepare('INSERT INTO entity_phonetic_analysis VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run(
+      2,'de-ipa-v2','["t","s","aɪ","t"]',
+      '[{"position":1,"onset":["t","s"],"nucleus":"aɪ","coda":["t"],"stressLevel":2}]',
+      1,1,'[]','2','aɪ','t','aɪ t','aɪt'
+    );
+    db.prepare('INSERT INTO entity_rhyme_anchor VALUES(?,?,?,?)')
+      .run('de-ipa-v2','writer_secondary_anchor_context','ctx-aɪ-t',2);
   }finally{db.close();}
 }
 
@@ -297,8 +316,29 @@ test('Product metadata builder plans read-only, checkpoints, resumes and atomica
       assert.equal(runtime.coreDb.prepare("SELECT COUNT(*) c FROM hot").get().c,1);
       assert.equal(runtime.allDb.prepare("SELECT COUNT(*) c FROM entity_rhyme_anchor WHERE channel='writer_secondary_anchor'").get().c,1);
       assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_de_surface_profile').get().c,2);
-      assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_entity_analysis').get().c,1);
-      assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence').get().c,1);
+      const zeitProfile=runtime.allDb.prepare(
+        "SELECT source_hot_id,display_surface,lemma FROM runtime_de_surface_profile WHERE surface_id=1"
+      ).get();
+      assert.deepEqual(
+        {source_hot_id:Number(zeitProfile.source_hot_id),display_surface:zeitProfile.display_surface,lemma:zeitProfile.lemma},
+        {source_hot_id:1,display_surface:'Zeit',lemma:'zeit'},
+      );
+
+      assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_entity_analysis').get().c,2);
+      assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence').get().c,2);
+      const occurrenceAnchors=runtime.allDb.prepare(`
+        SELECT product_pronunciation_id,channel,anchor_key
+        FROM runtime_entity_anchor_occurrence
+        ORDER BY product_pronunciation_id,channel,anchor_key
+      `).all().map((row)=>({
+        product_pronunciation_id:Number(row.product_pronunciation_id),
+        channel:row.channel,
+        anchor_key:row.anchor_key,
+      }));
+      assert.deepEqual(occurrenceAnchors,[
+        {product_pronunciation_id:1,channel:'writer_secondary_anchor',anchor_key:'aɪ-t'},
+        {product_pronunciation_id:2,channel:'writer_secondary_anchor_context',anchor_key:'ctx-aɪ-t'},
+      ]);
     }finally{runtime.close();}
   }finally{
     await rm(root,{recursive:true,force:true});
