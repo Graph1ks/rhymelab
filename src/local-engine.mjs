@@ -43,6 +43,14 @@ function profileForDb(db) {
   return getPhonologyProfile(databaseLanguage(db));
 }
 
+function servingProductDb(db) {
+  try {
+    return String(db.prepare("SELECT value FROM meta WHERE key='schema'").get()?.value || '') === 'rhymelab-serving-v1';
+  } catch {
+    return false;
+  }
+}
+
 export function normalizeWord(value, language = 'de') {
   return normalizeForLanguage(value, language).slice(0, MAX_QUERY);
 }
@@ -228,7 +236,11 @@ function candidatePool(db, queryRow, poolLimit, includeVariants = false, include
   const limit = clampLimit(poolLimit, 350, 800);
   const preferred = includeVariants ? '' : ' AND pronunciation_preferred=1';
   const historical = includeHistorical ? '' : ' AND historical=0';
-  const generated = generatedOnly ? " AND pronunciation_flags LIKE '%secondary_opt_in%'" : '';
+  const generated = generatedOnly
+    ? (servingProductDb(db)
+        ? ' AND serving_genuine_generated=1'
+        : " AND pronunciation_flags LIKE '%secondary_opt_in%'")
+    : '';
   const order = ' ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank LIMIT ?';
 
   add(db.prepare(`SELECT * FROM hot WHERE exact_key=?${preferred}${historical}${generated}${order}`)
