@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { createReadStream, existsSync } from 'node:fs';
-import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { createGunzip, gunzipSync } from 'node:zlib';
 import { createInterface } from 'node:readline';
@@ -179,7 +179,22 @@ await writeFile(
 );
 
 async function cloneBase(input,output){
-  await copyFile(input,output);
+  await rm(output,{force:true});
+  const source=new DatabaseSync(input,{readOnly:true});
+  try{
+    source.exec("VACUUM INTO '"+output.replaceAll("'","''")+"'");
+  }finally{
+    source.close();
+  }
+  const cloned=new DatabaseSync(output,{readOnly:true});
+  try{
+    const check=cloned.prepare('PRAGMA quick_check').all();
+    if(check.length!==1||String(check[0]?.quick_check||'').toLowerCase()!=='ok'){
+      throw new Error('SQLite clone quick_check failed for '+output+': '+JSON.stringify(check));
+    }
+  }finally{
+    cloned.close();
+  }
 }
 
 function parseTsvHeader(line){
