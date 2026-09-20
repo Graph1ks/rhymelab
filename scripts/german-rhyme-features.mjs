@@ -116,14 +116,21 @@ export function consonantSimilarity(a, b) {
 function sequenceSimilarity(a, b, tokenSimilarity) {
   if (!a.length && !b.length) return EMPTY_CONSONANT_MATCH;
   const m = a.length, n = b.length;
-  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-  for (let i=1;i<=m;i++) dp[i][0] = i;
-  for (let j=1;j<=n;j++) dp[0][j] = j;
-  for (let i=1;i<=m;i++) for (let j=1;j<=n;j++) {
-    const substitution = 1 - tokenSimilarity(a[i-1], b[j-1]);
-    dp[i][j] = Math.min(dp[i-1][j] + 1, dp[i][j-1] + 1, dp[i-1][j-1] + substitution);
+  const previous=Array.from({length:n+1},(_,index)=>index);
+  const current=new Array(n+1).fill(0);
+  for(let i=1;i<=m;i++){
+    current[0]=i;
+    for(let j=1;j<=n;j++){
+      const substitution=1-tokenSimilarity(a[i-1],b[j-1]);
+      current[j]=Math.min(
+        previous[j]+1,
+        current[j-1]+1,
+        previous[j-1]+substitution,
+      );
+    }
+    for(let j=0;j<=n;j++)previous[j]=current[j];
   }
-  return clamp01(1 - dp[m][n] / Math.max(m,n));
+  return clamp01(1-previous[n]/Math.max(m,n));
 }
 
 function stressSimilarity(a, b) {
@@ -183,9 +190,24 @@ function classifyPrimaryRhyme(va, vb, { overall, vowel, codaAnchor }) {
   return 'weak';
 }
 
-export function scoreGermanRhymeAnalyses(a, b) {
-  const exactRhyme = Boolean(a.exactTailKey && a.exactTailKey === b.exactTailKey);
-  const va = featureVectorForAnalysis(a), vb = featureVectorForAnalysis(b);
+export function prepareGermanRhymeAnalysis(analysis){
+  return {
+    analysis,
+    vector:featureVectorForAnalysis(analysis),
+    exactTailKey:analysis?.exactTailKey||null,
+    stressedSyllableCount:Number(analysis?.stressedSyllableCount||0),
+  };
+}
+
+export function scorePreparedGermanRhymeAnalyses(preparedA,preparedB) {
+  const a=preparedA.analysis;
+  const b=preparedB.analysis;
+  const exactRhyme=Boolean(
+    preparedA.exactTailKey
+    &&preparedA.exactTailKey===preparedB.exactTailKey
+  );
+  const va=preparedA.vector;
+  const vb=preparedB.vector;
   const relations = classifySoundRelations(va, vb, {
     vowelSimilarity: germanRelationVowelSimilarity,
     consonantSimilarity,
@@ -196,7 +218,9 @@ export function scoreGermanRhymeAnalyses(a, b) {
   if (exactRhyme) {
     return {
       overall: 1,
-      type: a.stressedSyllableCount >= 2 && b.stressedSyllableCount >= 2 ? 'multisyllabic_perfect' : 'perfect',
+      type: preparedA.stressedSyllableCount >= 2 && preparedB.stressedSyllableCount >= 2
+        ? 'multisyllabic_perfect'
+        : 'perfect',
       vowel: 1, coda: 1, stress: 1, syllable: 1, onset: 1, consonance: 1,
       codaAnchor: true,
       ...relationPayload(relations),
@@ -227,6 +251,13 @@ export function scoreGermanRhymeAnalyses(a, b) {
   const codaAnchor = hasExactCodaAnchor(va, vb);
   const type = classifyPrimaryRhyme(va, vb, { overall, vowel, codaAnchor });
   return { overall, type, vowel, coda, stress, syllable, onset, consonance, codaAnchor, ...relationPayload(relations) };
+}
+
+export function scoreGermanRhymeAnalyses(a, b) {
+  return scorePreparedGermanRhymeAnalyses(
+    prepareGermanRhymeAnalysis(a),
+    prepareGermanRhymeAnalysis(b),
+  );
 }
 
 export function coarseCodaClass(coda) {
