@@ -77,6 +77,8 @@ function buildFakeDom(){
   put('#syllableFilter',new FakeElement({value:'all'}));
   put('#sortMode',new FakeElement({value:'recommended'}));
   put('#historicalMode');
+  put('#generatedMode');
+  put('#generatedFilter');
   put('#entityCategory',new FakeElement({value:'all'}));
   put('#entityCategoryFilter');
   put('#variantFilter');
@@ -235,7 +237,7 @@ test('unified UI control binding preflights the complete interactive surface', a
     assert.match(app,new RegExp(selector.replaceAll('.','\\.')));
   }
   for(const selector of [
-    '#resultsToolbar','#searchOptionsToggle','#resultFiltersToggle',
+    '#resultsToolbar','#searchOptionsToggle','#resultFiltersToggle','#generatedMode',
     '#searchOptionsSection','#resultFiltersSection','#searchStageAnchor','.search-stage',
   ]){
     assert.match(app,new RegExp(selector.replaceAll('.','\\.').replace('#','\\#')));
@@ -243,6 +245,8 @@ test('unified UI control binding preflights the complete interactive surface', a
   assert.match(app,/rhymelab\.searchOptionsExpanded\.v2/);
   assert.match(app,/rhymelab\.resultFiltersExpanded\.v2/);
   assert.match(app,/const defaultSearchSectionsExpanded=true/);
+  assert.match(app,/generated:state\.generatedOptIn\?'1':'0'/);
+  assert.doesNotMatch(app,/localStorage\.(?:getItem|setItem)\(['"]rhymelab\.generated/);
 });
 
 
