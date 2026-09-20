@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFileSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
+import { performance } from 'node:perf_hooks';
 import { findRhymes, getStats, getWord, openRhymeDb, searchWords } from './local-engine.mjs';
 import { DEFAULT_WRITER_DB_PATH, openWriterDb } from './experimental-writer-db.mjs';
 import { WRITER_RUNTIME_ID, selectRhymeRuntimeDatabases } from './runtime-db-routing.mjs';
@@ -10,6 +11,7 @@ import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
 import { getPhraseBrowserStats, getPhraseDetail, openPhraseBrowserDb, searchPhrases } from './phrase-browser-store.mjs';
 import { searchUnifiedWriter, unifiedWriterCapabilities } from './unified-writer-search.mjs';
 import { materializeRhymePadV14 } from './rhymepad-v14.mjs';
+import { createRollingQueryTiming } from './runtime-query-timing.mjs';
 import { DEFAULT_ENTITY_DB_PATH, openEntityWriterDb } from './entity-writer-runtime.mjs';
 import {
   DEFAULT_ENGLISH_PRODUCT_MARKER_PATH,
@@ -62,6 +64,7 @@ const uiDir = resolve('src/ui');
 const padUiDir = resolve('src/pad');
 const benchmarkUiDir = resolve('src/benchmark-ui');
 const queryPronunciationTestDir = resolve('src/query-pronunciation-test');
+const writerQueryTiming=createRollingQueryTiming(100);
 
 let writerDb;
 try {
@@ -396,6 +399,7 @@ const server = createServer(async (req, res) => {
           reason:generatedOptinRuntime.reason,
         },503);
       }
+      const searchStarted=performance.now();
       const result = searchUnifiedWriter(
         runtimeDatabases,
         q,
@@ -421,12 +425,13 @@ const server = createServer(async (req, res) => {
           },
         },
       );
+      const runtimeTiming=writerQueryTiming.record(performance.now()-searchStarted);
       const status = result.status === 'language_unavailable'
         ? 503
         : result.status === 'query_not_found'
           ? 404
           : 200;
-      return json(res, result, status);
+      return json(res, {...result,runtimeTiming}, status);
     }
 
     if (url.pathname === '/api/phrases/stats') {
