@@ -127,6 +127,48 @@ function availability(layer){
     :{canonical:0,generated:1};
 }
 
+function coreIdentityMatch(alias='r'){
+  return `EXISTS(
+    SELECT 1
+    FROM surface core_surface
+    JOIN pronunciation core_pronunciation
+      ON core_pronunciation.surface_id=core_surface.surface_id
+    WHERE core_surface.language=${alias}.language
+      AND core_surface.normalized=${alias}.normalized
+      AND core_pronunciation.identity_key=${alias}.identity_key
+      AND core_pronunciation.canonical_available=1
+  )`;
+}
+
+function generatedAvailabilityExpr(generated,alias='r'){
+  return generated?`CASE WHEN ${coreIdentityMatch(alias)} THEN 0 ELSE 1 END`:'0';
+}
+
+function generatedOriginFilter(generated,alias='r'){
+  return generated?`WHERE NOT ${coreIdentityMatch(alias)}`:'';
+}
+
+export function normalizeServingV1Availability(db){
+  db.exec(`
+    UPDATE pronunciation
+    SET generated_available=0,generated_preferred=0
+    WHERE canonical_available=1;
+
+    UPDATE surface
+    SET
+      canonical_available=CASE WHEN EXISTS(
+        SELECT 1 FROM pronunciation p
+        WHERE p.surface_id=surface.surface_id AND p.canonical_available=1
+      ) THEN 1 ELSE 0 END,
+      generated_available=CASE WHEN EXISTS(
+        SELECT 1 FROM pronunciation p
+        WHERE p.surface_id=surface.surface_id
+          AND p.canonical_available=0
+          AND p.generated_available=1
+      ) THEN 1 ELSE 0 END;
+  `);
+}
+
 function surfaceUpsert(selectSql){
   return `
     INSERT INTO surface(
@@ -167,9 +209,15 @@ function pronunciationUpsert(selectSql){
     WHERE 1
     ON CONFLICT(surface_id,identity_key) DO UPDATE SET
       canonical_available=MAX(pronunciation.canonical_available,excluded.canonical_available),
-      generated_available=MAX(pronunciation.generated_available,excluded.generated_available),
+      generated_available=CASE
+        WHEN MAX(pronunciation.canonical_available,excluded.canonical_available)=1 THEN 0
+        ELSE MAX(pronunciation.generated_available,excluded.generated_available)
+      END,
       canonical_preferred=MAX(pronunciation.canonical_preferred,excluded.canonical_preferred),
-      generated_preferred=MAX(pronunciation.generated_preferred,excluded.generated_preferred),
+      generated_preferred=CASE
+        WHEN MAX(pronunciation.canonical_available,excluded.canonical_available)=1 THEN 0
+        ELSE MAX(pronunciation.generated_preferred,excluded.generated_preferred)
+      END,
       eligible=MAX(pronunciation.eligible,excluded.eligible),
       ${replace('notation')},
       ${replace('raw')},
@@ -257,25 +305,27 @@ function deStage({name,path,layer}){
     rangeCountSql:(last,upper)=>`SELECT COUNT(*) c FROM src.hot h WHERE ${sourceWhere(last,upper)}`,
     statements(last,upper){
       const rows=common(last,upper);
+      const generatedAvailability=generatedAvailabilityExpr(generated,'r');
       return [
         surfaceUpsert(`
-          SELECT language,normalized,surface,${bits.canonical},${bits.generated},
-            ${rank},'${authority}',usage_rank,usage_count,historical,lemma,part_of_speech,lexicon_layer
-          FROM (${rows})
-          GROUP BY language,normalized
+          SELECT r.language,r.normalized,MIN(r.surface),${bits.canonical},MAX(${generatedAvailability}),
+            ${rank},'${authority}',MIN(r.usage_rank),MAX(r.usage_count),MAX(r.historical),
+            MIN(r.lemma),MIN(r.part_of_speech),MIN(r.lexicon_layer)
+          FROM (${rows}) r
+          GROUP BY r.language,r.normalized
         `),
         pronunciationUpsert(`
           SELECT s.surface_id,r.identity_key,r.notation,r.raw,r.ipa,r.phonemes,r.syllable_count,
             r.stress_pattern,r.primary_stress,r.exact_key,r.multisyllable_key,r.vowel_key,
-            r.vowel_family,r.coda_key,r.eligible,${bits.canonical},${bits.generated},
+            r.vowel_family,r.coda_key,r.eligible,${bits.canonical},${generatedAvailability},
             CASE WHEN ${bits.canonical}=1 THEN r.preferred ELSE 0 END,
-            CASE WHEN ${bits.generated}=1 THEN r.preferred ELSE 0 END,
+            CASE WHEN ${generatedAvailability}=1 THEN r.preferred ELSE 0 END,
             ${rank},'${authority}'
           FROM (${rows}) r
           JOIN surface s ON s.language=r.language AND s.normalized=r.normalized
         `),
         roleUpsert(`
-          SELECT s.surface_id,'lexical',${bits.canonical},${bits.generated}
+          SELECT s.surface_id,'lexical',1,0
           FROM (${rows}) r
           JOIN surface s ON s.language=r.language AND s.normalized=r.normalized
           GROUP BY s.surface_id
@@ -285,6 +335,7 @@ function deStage({name,path,layer}){
           FROM (${rows}) r
           JOIN surface s ON s.language=r.language AND s.normalized=r.normalized
           JOIN pronunciation p ON p.surface_id=s.surface_id AND p.identity_key=r.identity_key
+          ${generatedOriginFilter(generated,'r')}
           GROUP BY p.pronunciation_id,r.source_kind
         `),
       ];
@@ -320,25 +371,27 @@ function enStage({name,path,layer}){
     rangeCountSql:(last,upper)=>`SELECT COUNT(*) c FROM src.en_pronunciation p WHERE ${sourceWhere(last,upper)}`,
     statements(last,upper){
       const rows=common(last,upper);
+      const generatedAvailability=generatedAvailabilityExpr(generated,'r');
       return [
         surfaceUpsert(`
-          SELECT language,normalized,surface,${bits.canonical},${bits.generated},
-            ${rank},'${authority}',usage_rank,usage_count,historical,lemma,part_of_speech,lexicon_layer
-          FROM (${rows})
-          GROUP BY language,normalized
+          SELECT r.language,r.normalized,MIN(r.surface),${bits.canonical},MAX(${generatedAvailability}),
+            ${rank},'${authority}',MIN(r.usage_rank),MAX(r.usage_count),MAX(r.historical),
+            MIN(r.lemma),MIN(r.part_of_speech),MIN(r.lexicon_layer)
+          FROM (${rows}) r
+          GROUP BY r.language,r.normalized
         `),
         pronunciationUpsert(`
           SELECT s.surface_id,r.identity_key,r.notation,r.raw,r.ipa,r.phonemes,r.syllable_count,
             r.stress_pattern,r.primary_stress,r.exact_key,r.multisyllable_key,r.vowel_key,
-            r.vowel_family,r.coda_key,r.eligible,${bits.canonical},${bits.generated},
+            r.vowel_family,r.coda_key,r.eligible,${bits.canonical},${generatedAvailability},
             CASE WHEN ${bits.canonical}=1 THEN r.preferred ELSE 0 END,
-            CASE WHEN ${bits.generated}=1 THEN r.preferred ELSE 0 END,
+            CASE WHEN ${generatedAvailability}=1 THEN r.preferred ELSE 0 END,
             ${rank},'${authority}'
           FROM (${rows}) r
           JOIN surface s ON s.language=r.language AND s.normalized=r.normalized
         `),
         roleUpsert(`
-          SELECT s.surface_id,'lexical',${bits.canonical},${bits.generated}
+          SELECT s.surface_id,'lexical',1,0
           FROM (${rows}) r
           JOIN surface s ON s.language=r.language AND s.normalized=r.normalized
           GROUP BY s.surface_id
@@ -348,6 +401,7 @@ function enStage({name,path,layer}){
           FROM (${rows}) r
           JOIN surface s ON s.language=r.language AND s.normalized=r.normalized
           JOIN pronunciation p2 ON p2.surface_id=s.surface_id AND p2.identity_key=r.identity_key
+          ${generatedOriginFilter(generated,'r')}
           GROUP BY p2.pronunciation_id,r.source_kind
         `),
       ];
@@ -388,25 +442,27 @@ function phraseStage({name,path,layer}){
     rangeCountSql:(last,upper)=>`SELECT COUNT(*) c FROM src.phrase_pronunciation pp WHERE ${sourceWhere(last,upper)}`,
     statements(last,upper){
       const rows=common(last,upper);
+      const generatedAvailability=generatedAvailabilityExpr(generated,'r');
       return [
         surfaceUpsert(`
-          SELECT language,normalized,surface,${bits.canonical},${bits.generated},
-            ${rank},'${authority}',usage_rank,usage_count,historical,lemma,part_of_speech,lexicon_layer
-          FROM (${rows})
-          GROUP BY language,normalized
+          SELECT r.language,r.normalized,MIN(r.surface),${bits.canonical},MAX(${generatedAvailability}),
+            ${rank},'${authority}',MIN(r.usage_rank),MAX(r.usage_count),MAX(r.historical),
+            MIN(r.lemma),MIN(r.part_of_speech),MIN(r.lexicon_layer)
+          FROM (${rows}) r
+          GROUP BY r.language,r.normalized
         `),
         pronunciationUpsert(`
           SELECT s.surface_id,r.identity_key,r.notation,r.raw,r.ipa,r.phonemes,r.syllable_count,
             r.stress_pattern,r.primary_stress,r.exact_key,r.multisyllable_key,r.vowel_key,
-            r.vowel_family,r.coda_key,r.eligible,${bits.canonical},${bits.generated},
+            r.vowel_family,r.coda_key,r.eligible,${bits.canonical},${generatedAvailability},
             CASE WHEN ${bits.canonical}=1 THEN r.preferred ELSE 0 END,
-            CASE WHEN ${bits.generated}=1 THEN r.preferred ELSE 0 END,
+            CASE WHEN ${generatedAvailability}=1 THEN r.preferred ELSE 0 END,
             ${rank},'${authority}'
           FROM (${rows}) r
           JOIN surface s ON s.language=r.language AND s.normalized=r.normalized
         `),
         roleUpsert(`
-          SELECT s.surface_id,'phrase',${bits.canonical},${bits.generated}
+          SELECT s.surface_id,'phrase',1,0
           FROM (${rows}) r
           JOIN surface s ON s.language=r.language AND s.normalized=r.normalized
           GROUP BY s.surface_id
@@ -416,6 +472,7 @@ function phraseStage({name,path,layer}){
           FROM (${rows}) r
           JOIN surface s ON s.language=r.language AND s.normalized=r.normalized
           JOIN pronunciation p2 ON p2.surface_id=s.surface_id AND p2.identity_key=r.identity_key
+          ${generatedOriginFilter(generated,'r')}
           GROUP BY p2.pronunciation_id,r.source_kind
         `),
       ];
@@ -465,22 +522,23 @@ function entityStage({name,path,layer}){
       return [
         surfaceUpsert(`
           SELECT language,normalized,surface,${bits.canonical},${bits.generated},
-            ${rank},'${authority}',usage_rank,usage_count,historical,lemma,part_of_speech,lexicon_layer
-          FROM (${rows})
-          GROUP BY language,normalized
+            ${rank},'${authority}',MIN(r.usage_rank),MAX(r.usage_count),MAX(r.historical),
+            MIN(r.lemma),MIN(r.part_of_speech),MIN(r.lexicon_layer)
+          FROM (${rows}) r
+          GROUP BY r.language,r.normalized
         `),
         pronunciationUpsert(`
           SELECT s.surface_id,r.identity_key,r.notation,r.raw,r.ipa,r.phonemes,r.syllable_count,
             r.stress_pattern,r.primary_stress,r.exact_key,r.multisyllable_key,r.vowel_key,
-            r.vowel_family,r.coda_key,r.eligible,${bits.canonical},${bits.generated},
+            r.vowel_family,r.coda_key,r.eligible,${bits.canonical},${generatedAvailability},
             CASE WHEN ${bits.canonical}=1 THEN r.preferred ELSE 0 END,
-            CASE WHEN ${bits.generated}=1 THEN r.preferred ELSE 0 END,
+            CASE WHEN ${generatedAvailability}=1 THEN r.preferred ELSE 0 END,
             ${rank},'${authority}'
           FROM (${rows}) r
           JOIN surface s ON s.language=r.language AND s.normalized=r.normalized
         `),
         roleUpsert(`
-          SELECT s.surface_id,ec.category,${bits.canonical},${bits.generated}
+          SELECT s.surface_id,ec.category,1,0
           FROM src.entity_pronunciation ep
           JOIN src.entity_name en ON en.name_id=ep.name_id
           JOIN src.entity_category ec ON ec.entity_id=en.entity_id
@@ -489,7 +547,7 @@ function entityStage({name,path,layer}){
           GROUP BY s.surface_id,ec.category
         `),
         entityUpsert(`
-          SELECT s.surface_id,e.qid,e.primary_category,e.popularity_score,${bits.canonical},${bits.generated}
+          SELECT s.surface_id,e.qid,e.primary_category,e.popularity_score,1,0
           FROM src.entity_pronunciation ep
           JOIN src.entity_name en ON en.name_id=ep.name_id
           JOIN src.entity e ON e.entity_id=en.entity_id
@@ -502,6 +560,7 @@ function entityStage({name,path,layer}){
           FROM (${rows}) r
           JOIN surface s ON s.language=r.language AND s.normalized=r.normalized
           JOIN pronunciation p2 ON p2.surface_id=s.surface_id AND p2.identity_key=r.identity_key
+          ${generatedOriginFilter(generated,'r')}
           GROUP BY p2.pronunciation_id,r.source_kind
         `),
       ];
@@ -592,14 +651,32 @@ export function servingV1InvariantReport(db){
       SELECT 1 FROM pronunciation_origin o WHERE o.pronunciation_id=p.pronunciation_id
     )
   `);
+  const canonicalMarkedGenerated=scalar(db,`
+    SELECT COUNT(*) c
+    FROM pronunciation
+    WHERE canonical_available=1
+      AND (generated_available=1 OR generated_preferred=1)
+  `);
+  const generatedOriginOnCanonical=scalar(db,`
+    SELECT COUNT(*) c
+    FROM pronunciation_origin o
+    JOIN pronunciation p USING(pronunciation_id)
+    WHERE p.canonical_available=1
+      AND o.layer='generated'
+  `);
   return {
     core_never_displaced_by_generated:generatedDisplacedCore===0&&generatedSurfaceDisplacedCore===0,
     generated_displaced_core_pronunciations:generatedDisplacedCore,
     generated_displaced_core_surfaces:generatedSurfaceDisplacedCore,
+    canonical_pronunciations_marked_generated:canonicalMarkedGenerated,
+    generated_origins_on_canonical_pronunciations:generatedOriginOnCanonical,
+    identical_generated_is_absorbed_by_core:canonicalMarkedGenerated===0&&generatedOriginOnCanonical===0,
     orphan_pronunciations:orphanPronunciations,
     pronunciations_without_origin:missingOrigin,
     ok:generatedDisplacedCore===0
       &&generatedSurfaceDisplacedCore===0
+      &&canonicalMarkedGenerated===0
+      &&generatedOriginOnCanonical===0
       &&orphanPronunciations===0
       &&missingOrigin===0,
   };
