@@ -63,6 +63,7 @@
     "markov:model:plan": "node --no-warnings scripts/build-markov-model.mjs --plan",
     "markov:model:build": "node --no-warnings scripts/build-markov-model.mjs",
     "markov:model:status": "node --no-warnings scripts/build-markov-model.mjs --status",
+    "markov:lyrics:analyze": "node --no-warnings scripts/analyze-private-lyrics.mjs",
     "phrase:catalog:diagnose": "node --no-warnings scripts/diagnose-de-phrase-catalog.mjs",
     "phrase:register:cologne": "node --no-warnings scripts/enrich-de-phrase-register-cologne.mjs",
     "phrase:register:cologne:bootstrap": "node scripts/bootstrap-cologne-kiezdeutsch-local.mjs",
