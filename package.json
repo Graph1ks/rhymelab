@@ -173,6 +173,7 @@
     "serving:v1:product:accept": "node --no-warnings scripts/accept-serving-v1-product.mjs",
     "serving:v1:product:accept:status": "node --no-warnings scripts/accept-serving-v1-product.mjs --status",
     "serving:v1:hotpath:benchmark": "node --no-warnings scripts/benchmark-serving-v1-hotpaths.mjs",
-    "serving:v1:hotpath:owner": "node --no-warnings scripts/run-serving-v1-hotpath-owner.mjs"
+    "serving:v1:hotpath:owner": "node --no-warnings scripts/run-serving-v1-hotpath-owner.mjs",
+    "serving:v1:report:benchmark": "node --no-warnings scripts/benchmark-serving-v1-report.mjs"
   }
 }
