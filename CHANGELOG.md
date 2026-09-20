@@ -24,6 +24,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Fixed
 
+- Unified result presentation now collapses duplicate Word/Entity surfaces into one visible answer per language. Core/Word pronunciation wins when available, same-name Entity identities contribute their taxonomy tags/QIDs, alternate pronunciations remain metadata, and unfiltered sound-relation sections no longer render the same result card repeatedly.
 - Normalized eSpeak-NG IPA adapter output before frozen DE/EN analysis: Unicode format joiners are removed and observed eSpeak-specific long-vowel variants are mapped into existing accepted analyzer inventories.
 - Prevented the first 1000-case eSpeak report format from being staged after the benchmark exposed adapter-induced false rejects and corrupted diphthong/syllable analysis.
 - Restored primary unified-search control interaction after PR #117 accidentally used an undefined `$$$` selector helper in three event-binding lines, causing partial UI initialization after the Search submit handler.

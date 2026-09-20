@@ -160,6 +160,44 @@ function entityCategoryLabel(category){if(!category)return state.lang==='de'?'Ei
 function entityCategoryCodes(result){const codes=[];if(result?.primaryCategory)codes.push(result.primaryCategory);for(const entry of result?.entityCategories||[]){const category=typeof entry==='string'?entry:entry?.category;if(category&&!codes.includes(category))codes.push(category);}return codes;}
 function entityDisplayCategoryCode(result){const codes=entityCategoryCodes(result);if(!codes.length)return null;const primary=result?.primaryCategory||null;const genericPerson=new Set(['person.artist','person.musician']);if(primary&&!genericPerson.has(primary))return primary;for(const category of ENTITY_CATEGORY_DISPLAY_PRIORITY){if(codes.includes(category)&&category!==primary)return category;}return primary||codes[0]||null;}
 function entityDisplayLabel(result){return entityCategoryLabel(entityDisplayCategoryCode(result));}
+
+function surfaceEntityCategoryLabels(result){return entityCategoryCodes(result).map(entityCategoryLabel);}
+function defaultDisplayType(row){
+  const primary=row?.primaryType&&PRIMARY_RHYME_TYPES.includes(row.primaryType)
+    ?row.primaryType
+    :(PRIMARY_RHYME_TYPES.includes(row?.type)?row.type:null);
+  if(primary)return primary;
+  const relations=(row?.relations||[])
+    .filter((relation)=>SOUND_RELATION_TYPES.includes(relation?.type))
+    .slice()
+    .sort((a,b)=>Number(b?.score||0)-Number(a?.score||0)
+      ||RHYME_TYPES.indexOf(a.type)-RHYME_TYPES.indexOf(b.type));
+  return relations[0]?.type||rowTypes(row)[0]||null;
+}
+function resultKindChips(row){
+  const language=String(row?.language||'de').toUpperCase();
+  const chips=[];
+  if(row?.resultKind==='phrase'){
+    chips.push({className:'phrase',label:t('phrase')});
+  }else if(row?.resultKind==='entity'){
+    const display=entityDisplayLabel(row);
+    const labels=surfaceEntityCategoryLabels(row);
+    chips.push({
+      className:'entity',
+      label:language+' · '+display,
+    });
+    for(const label of labels){
+      if(label===display)continue;
+      chips.push({className:'entity',label});
+    }
+  }else{
+    chips.push({className:'word',label:language+' · '+t('word')});
+    for(const label of surfaceEntityCategoryLabels(row)){
+      chips.push({className:'entity',label});
+    }
+  }
+  return chips;
+}
 function localeLabel(value){const maps={de:{'de-DE':'Deutsch (Deutschland)','de-AT':'Deutsch (Österreich)','de-CH':'Deutsch (Schweiz)','en-US':'Englisch (USA)','en-GB':'Englisch (Großbritannien)','en-CA':'Englisch (Kanada)','en-AU':'Englisch (Australien)'},en:{'de-DE':'German (Germany)','de-AT':'German (Austria)','de-CH':'German (Switzerland)','en-US':'English (United States)','en-GB':'English (United Kingdom)','en-CA':'English (Canada)','en-AU':'English (Australia)'}};return maps[state.lang]?.[value]??value;}
 function dialectLabel(value){const map=state.lang==='de'?{'Austrian German':'Österreichisches Deutsch','Swiss German':'Schweizerdeutsch','General American':'General American','Received Pronunciation':'Received Pronunciation'}:{'Austrian German':'Austrian German','Swiss German':'Swiss German','General American':'General American','Received Pronunciation':'Received Pronunciation'};return map[value]??value;}
 function registerLabel(value){const map=state.lang==='de'?{colloquial:'Umgangssprachlich'}:{colloquial:'Colloquial'};return map[value]??humanize(value);}
@@ -431,8 +469,12 @@ function renderWordPanel(query,rhymeResult=null,displayType=null){
   }).join('');
   const tags=Array.isArray(query.lexicalTags)?query.lexicalTags:[];
   const tagHtml=tags.length?`<div class="lexical-tags"><span class="meta-label">${t('lexicalTags')}</span><div>${tags.map((tag)=>`<span title="${esc(tag)}">${esc(lexicalTagLabel(tag))}</span>`).join('')}</div></div>`:'';
+  const entityLabels=surfaceEntityCategoryLabels(rhymeResult||{});
+  const entityRoleHtml=entityLabels.length?`<div class="lexical-tags"><span class="meta-label">${t('categories')}</span><div>${entityLabels.map((label)=>`<span>${esc(label)}</span>`).join('')}</div></div>`:'';
+  const entityQids=Array.isArray(rhymeResult?.entityQids)?rhymeResult.entityQids:[];
+  const entityIdentityHtml=entityQids.length?`<div class="meta-item meta-wide"><span class="meta-label">QID</span><span class="meta-value">${esc(entityQids.join(', '))}</span></div>`:'';
   const grammaticalLabel=partOfSpeechLabel(query.partOfSpeech)||entityLabel(query.entityKind)||'—';
-  $('#wordPanel').innerHTML=`<div class="word-heading"><div><h2>${esc(query.surface)}</h2><div class="ipa">/${esc(query.preferredIpa||preferred?.ipa||'')}/</div></div><div class="layer-badges"><span class="layer-badge ${query.generatedPronunciation?'generated':query.lexiconLayer==='modern'?'modern':''}">${esc(layer)}</span>${query.historical?`<span class="layer-badge historical">${t('historical')}</span>`:''}</div></div><div class="meta-grid"><div class="meta-item"><span class="meta-label">${t('syllableCount')}</span><span class="meta-value">${esc(query.syllableCount??t('unknown'))}</span></div><div class="meta-item"><span class="meta-label">${t('primaryStress')}</span><span class="meta-value">${esc(query.primaryStressSyllable??t('unknown'))}</span></div><div class="meta-item"><span class="meta-label">${t('usageRank')}</span><span class="meta-value">${query.usageRank?`#${number(query.usageRank)}`:t('unranked')}</span></div><div class="meta-item"><span class="meta-label">${t('corpusCount')}</span><span class="meta-value">${query.usageCount!=null?number(query.usageCount):'—'}</span></div><div class="meta-item"><span class="meta-label">${t('partOfSpeech')}</span><span class="meta-value">${esc(grammaticalLabel)}</span></div><div class="meta-item"><span class="meta-label">${t('lemma')}</span><span class="meta-value">${esc(query.lemma||'—')}</span></div></div>${rhymeAnalysisHtml(rhymeResult,displayType)}${tagHtml}<div class="pronunciation-list"><h3>${t('variants')}</h3>${pronunciationHtml||'—'}</div>`;
+  $('#wordPanel').innerHTML=`<div class="word-heading"><div><h2>${esc(query.surface)}</h2><div class="ipa">/${esc(query.preferredIpa||preferred?.ipa||'')}/</div></div><div class="layer-badges"><span class="layer-badge ${query.generatedPronunciation?'generated':query.lexiconLayer==='modern'?'modern':''}">${esc(layer)}</span>${query.historical?`<span class="layer-badge historical">${t('historical')}</span>`:''}</div></div><div class="meta-grid"><div class="meta-item"><span class="meta-label">${t('syllableCount')}</span><span class="meta-value">${esc(query.syllableCount??t('unknown'))}</span></div><div class="meta-item"><span class="meta-label">${t('primaryStress')}</span><span class="meta-value">${esc(query.primaryStressSyllable??t('unknown'))}</span></div><div class="meta-item"><span class="meta-label">${t('usageRank')}</span><span class="meta-value">${query.usageRank?`#${number(query.usageRank)}`:t('unranked')}</span></div><div class="meta-item"><span class="meta-label">${t('corpusCount')}</span><span class="meta-value">${query.usageCount!=null?number(query.usageCount):'—'}</span></div><div class="meta-item"><span class="meta-label">${t('partOfSpeech')}</span><span class="meta-value">${esc(grammaticalLabel)}</span></div><div class="meta-item"><span class="meta-label">${t('lemma')}</span><span class="meta-value">${esc(query.lemma||'—')}</span></div>${entityIdentityHtml}</div>${rhymeAnalysisHtml(rhymeResult,displayType)}${tagHtml}${entityRoleHtml}<div class="pronunciation-list"><h3>${t('variants')}</h3>${pronunciationHtml||'—'}</div>`;
 }
 function renderPhrasePanel(query,rhymeResult=null,detail=null,displayType=null){
   const surface=detail?.canonical||query.surface||query.word||'';
@@ -444,10 +486,13 @@ function renderPhrasePanel(query,rhymeResult=null,detail=null,displayType=null){
 function renderEntityPanel(result,displayType=null){
   const categories=entityCategoryCodes(result);
   const displayCategory=entityDisplayLabel(result);
+  const qids=Array.isArray(result.entityQids)&&result.entityQids.length
+    ?result.entityQids
+    :[result.entityQid].filter(Boolean);
   const popularity=result.popularityPercentile!=null?Math.round(Number(result.popularityPercentile)*100):null;
-  $('#wordPanel').innerHTML=`<div class="word-heading"><div><h2>${esc(result.surface||result.word)}</h2><div class="ipa">/${esc(result.ipa||'')}/</div></div><div class="layer-badges"><span class="layer-badge modern">${esc(displayCategory)}</span><span class="layer-badge">${String(result.language||'').toUpperCase()}</span></div></div><div class="meta-grid"><div class="meta-item"><span class="meta-label">${t('syllableCount')}</span><span class="meta-value">${esc(result.syllableCount??'—')}</span></div><div class="meta-item"><span class="meta-label">${t('category')}</span><span class="meta-value">${esc(displayCategory)}</span></div><div class="meta-item"><span class="meta-label">${t('popularity')}</span><span class="meta-value">${popularity==null?'—':`${popularity}% · ${esc(result.popularityTier||'—')}`}</span></div><div class="meta-item"><span class="meta-label">QID</span><span class="meta-value">${esc(result.entityQid||'—')}</span></div><div class="meta-item meta-wide"><span class="meta-label">${t('categories')}</span><span class="meta-value">${esc(categories.length?categories.map(entityCategoryLabel).join(', '):displayCategory)}</span></div></div>${rhymeAnalysisHtml(result,displayType)}`;
+  $('#wordPanel').innerHTML=`<div class="word-heading"><div><h2>${esc(result.surface||result.word)}</h2><div class="ipa">/${esc(result.ipa||'')}/</div></div><div class="layer-badges">${surfaceEntityCategoryLabels(result).map((label)=>`<span class="layer-badge modern">${esc(label)}</span>`).join('')}<span class="layer-badge">${String(result.language||'').toUpperCase()}</span></div></div><div class="meta-grid"><div class="meta-item"><span class="meta-label">${t('syllableCount')}</span><span class="meta-value">${esc(result.syllableCount??'—')}</span></div><div class="meta-item"><span class="meta-label">${t('category')}</span><span class="meta-value">${esc(displayCategory)}</span></div><div class="meta-item"><span class="meta-label">${t('popularity')}</span><span class="meta-value">${popularity==null?'—':`${popularity}% · ${esc(result.popularityTier||'—')}`}</span></div><div class="meta-item"><span class="meta-label">QID</span><span class="meta-value">${esc(qids.length?qids.join(', '):'—')}</span></div><div class="meta-item meta-wide"><span class="meta-label">${t('categories')}</span><span class="meta-value">${esc(categories.length?categories.map(entityCategoryLabel).join(', '):displayCategory)}</span></div></div>${rhymeAnalysisHtml(result,displayType)}`;
 }
-function resultRow(row,displayType){const isPhrase=row.resultKind==='phrase',isEntity=row.resultKind==='entity',entityCategory=isEntity?entityDisplayLabel(row):null,usage=isEntity?(row.popularityTier||'—'):isPhrase?(row.usageCount?number(row.usageCount):'—'):(row.usageRank?`#${number(row.usageRank)}`:'—'),usageSub=isEntity?entityCategory:isPhrase?'Leipzig':(row.usageCount!=null?number(row.usageCount):t('unranked')),score=displayScore(row,displayType),key=`${row.resultKind||'word'}:${row.resultId||row.windowId||row.normalized||row.word}`,kindClass=isPhrase?'phrase':isEntity?'entity':'word',kindLabel=isPhrase?t('phrase'):isEntity?`${String(row.language||'').toUpperCase()} · ${entityCategory}`:`${String(row.language||'de').toUpperCase()} · ${t('word')}`;return`<div class="result-row ${isPhrase?'phrase-row':isEntity?'entity-row':''}" data-result-key="${esc(key)}" data-display-type="${esc(displayType)}" tabindex="0" aria-label="${esc(`${t('inspectWord')} ${row.word}`)}"><div class="result-word"><div class="result-title-line"><strong>${esc(row.word)}</strong><span class="kind-chip ${kindClass}">${esc(kindLabel)}</span>${row.generatedPronunciation?`<span class="kind-chip generated">${esc(t('generatedShort'))}</span>`:''}</div><div class="sub"><code>${isPhrase&&row.ipaKind==='matched_mosaic_span'?'span: ':''}/${esc(row.ipa||'')}/</code>${row.historical?`<span class="historical-text">${t('historicalEntity')}</span>`:''}</div></div><div class="type-col"><span class="badge ${esc(displayType)}">${esc(typeLabel(displayType))}</span></div><div class="syllable-col metric">${esc(row.syllableCount??'—')}<span class="muted">${t('syllableShort')}</span></div><div class="usage-col metric">${esc(usage)}<span class="muted">${esc(usageSub)}</span></div><div class="score">${Math.round(score*100)}%</div></div>`;}
+function resultRow(row,displayType){const isPhrase=row.resultKind==='phrase',isEntity=row.resultKind==='entity',entityCategory=isEntity?entityDisplayLabel(row):null,usage=isEntity?(row.popularityTier||'—'):isPhrase?(row.usageCount?number(row.usageCount):'—'):(row.usageRank?`#${number(row.usageRank)}`:'—'),usageSub=isEntity?entityCategory:isPhrase?'Leipzig':(row.usageCount!=null?number(row.usageCount):t('unranked')),score=displayScore(row,displayType),key=`${row.resultKind||'word'}:${row.resultId||row.windowId||row.normalized||row.word}`,kindChips=resultKindChips(row).map((chip)=>`<span class="kind-chip ${esc(chip.className)}">${esc(chip.label)}</span>`).join('');return`<div class="result-row ${isPhrase?'phrase-row':isEntity?'entity-row':''}" data-result-key="${esc(key)}" data-display-type="${esc(displayType)}" tabindex="0" aria-label="${esc(`${t('inspectWord')} ${row.word}`)}"><div class="result-word"><div class="result-title-line"><strong>${esc(row.word)}</strong>${kindChips}${row.generatedPronunciation?`<span class="kind-chip generated">${esc(t('generatedShort'))}</span>`:''}</div><div class="sub"><code>${isPhrase&&row.ipaKind==='matched_mosaic_span'?'span: ':''}/${esc(row.ipa||'')}/</code>${row.historical?`<span class="historical-text">${t('historicalEntity')}</span>`:''}</div></div><div class="type-col"><span class="badge ${esc(displayType)}">${esc(typeLabel(displayType))}</span></div><div class="syllable-col metric">${esc(row.syllableCount??'—')}<span class="muted">${t('syllableShort')}</span></div><div class="usage-col metric">${esc(usage)}<span class="muted">${esc(usageSub)}</span></div><div class="score">${Math.round(score*100)}%</div></div>`;}
 function section(type,rows,totalCount,kind,{progressive=false}={}){
   const key=`${kind}:${type}`;
   const visibleLimit=progressive?rows.length:(state.sectionVisible.get(key)||state.sectionPageSize);
@@ -504,8 +549,11 @@ function render(){
   const block=(kind,label,items,totalItems)=>{
     if(!items.length)return'';
     const sections=renderTypes.map((type)=>{
-      const typed=items.filter((row)=>matchesType(row,type));
-      const typedTotal=totalItems.filter((row)=>matchesType(row,type)).length;
+      const belongs=(row)=>progressive
+        ?matchesType(row,type)
+        :defaultDisplayType(row)===type;
+      const typed=items.filter(belongs);
+      const typedTotal=totalItems.filter(belongs).length;
       return typed.length?section(type,typed,typedTotal,kind,{progressive}):'';
     }).join('');
     return sections?`<div class="channel-block ${kind}"><div class="channel-header"><strong>${label}</strong><span>${number(totalItems.length)}</span></div>${sections}</div>`:'';

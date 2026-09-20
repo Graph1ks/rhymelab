@@ -47,6 +47,8 @@ The synchronous `searchUnifiedWriter()` implementation remains the semantic refe
 
 This step deliberately adds **no cross-request search/result/scoring/analysis cache**. Caching is deferred until the already-planned Serving-v1 and worker-parallelization work is finished and measured.
 
+Unified Product presentation now follows Serving-v1 surface identity: one visible `language + normalized surface` result, with Word/Core pronunciation preferred when a lexical result exists and same-name Entity categories/QIDs merged onto that surface. Multiple matching sound relations remain metadata/filterable relations and no longer duplicate the same card across unfiltered sections.
+
 ## Current product/runtime baseline — v0.11.0
 
 The normal local UI/API now uses the accepted materialized German Writer runtime by default:

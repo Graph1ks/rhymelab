@@ -17,6 +17,7 @@ import {
   searchEnglishWriterFromExternalQuery,
 } from './english-writer-runtime.mjs';
 import { getPhonologyProfile } from '../scripts/phonology-profiles.mjs';
+import { consolidateUnifiedSurfaceResults } from './unified-surface-results.mjs';
 
 export const UNIFIED_WRITER_SCHEMA = 'rhymelab-unified-writer-v1';
 export const UNIFIED_WRITER_POLICY = 'de-unified-word-phrase-writer-v1';
@@ -1059,10 +1060,36 @@ export function searchUnifiedWriter(
   };
 
   const phraseResults = phraseChannel.results || [];
+  const surfaceConsolidation=consolidateUnifiedSurfaceResults({
+    wordResults,
+    entityResults,
+  });
+  const visibleWordResults=surfaceConsolidation.wordResults;
+  const visibleEntityResults=surfaceConsolidation.entityResults;
+  const visibleDeWords=visibleWordResults.filter((row)=>row.language==='de');
+  const visibleEnWords=visibleWordResults.filter((row)=>row.language==='en');
+  const visibleDeEntities=visibleEntityResults.filter((row)=>row.language==='de');
+  const visibleEnEntities=visibleEntityResults.filter((row)=>row.language==='en');
+  const visibleWordChannel={
+    ...wordChannel,
+    byLanguage:{
+      de:{...deWordChannel,results:visibleDeWords},
+      en:{...enWordChannel,results:visibleEnWords},
+    },
+    results:visibleWordResults,
+  };
+  const visibleEntityChannel={
+    ...entityChannel,
+    byLanguage:{
+      de:{...deEntityChannel,results:visibleDeEntities},
+      en:{...enEntityChannel,results:visibleEnEntities},
+    },
+    results:visibleEntityResults,
+  };
   const results = [
-    ...wordResults,
+    ...visibleWordResults,
     ...phraseResults,
-    ...entityResults,
+    ...visibleEntityResults,
   ];
   const unresolvedGermanPhrase = Boolean(
     deQuery
@@ -1100,9 +1127,9 @@ export function searchUnifiedWriter(
       phraseQuota: false,
     },
     channels: {
-      words: wordChannel,
+      words: visibleWordChannel,
       phrases: phraseChannel,
-      entities: entityChannel,
+      entities: visibleEntityChannel,
     },
     ...(profileStages?{
       performanceProfile:{
@@ -1112,14 +1139,15 @@ export function searchUnifiedWriter(
       },
     }:{}),
     counts: {
-      words: wordResults.length,
-      germanWords: deWordChannel.results?.length || 0,
-      englishWords: enWordChannel.results?.length || 0,
+      words: visibleWordResults.length,
+      germanWords: visibleDeWords.length,
+      englishWords: visibleEnWords.length,
       phrases: phraseResults.length,
-      entities: entityResults.length,
-      germanEntities: deEntityChannel.results?.length || 0,
-      englishEntities: enEntityChannel.results?.length || 0,
+      entities: visibleEntityResults.length,
+      germanEntities: visibleDeEntities.length,
+      englishEntities: visibleEnEntities.length,
       total: results.length,
+      surfaceAggregation: surfaceConsolidation.diagnostics,
       searchPool: {
         germanWords: Number(deWordChannel.writerRetrieval?.mergedCandidates || deWordChannel.results?.length || 0),
         englishWords: Number(enWordChannel.writerRetrieval?.normalizedCandidates || enWordChannel.results?.length || 0),

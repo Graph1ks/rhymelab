@@ -4,6 +4,7 @@ import {
   normalizeUnifiedResultLanguage,
   normalizeUnifiedResultScope,
 } from './unified-writer-search.mjs';
+import {consolidateUnifiedSurfaceResults} from './unified-surface-results.mjs';
 
 export const PARALLEL_WRITER_EXECUTION='persistent-worker-threads-v1';
 export const PARALLEL_WRITER_CHANNELS=Object.freeze([
@@ -299,7 +300,33 @@ export function mergeParallelUnifiedWriterResponses(
   };
 
   const phraseResults=phraseChannel.results||[];
-  const results=[...wordResults,...phraseResults,...entityResults];
+  const surfaceConsolidation=consolidateUnifiedSurfaceResults({
+    wordResults,
+    entityResults,
+  });
+  const visibleWordResults=surfaceConsolidation.wordResults;
+  const visibleEntityResults=surfaceConsolidation.entityResults;
+  const visibleDeWords=visibleWordResults.filter((row)=>row.language==='de');
+  const visibleEnWords=visibleWordResults.filter((row)=>row.language==='en');
+  const visibleDeEntities=visibleEntityResults.filter((row)=>row.language==='de');
+  const visibleEnEntities=visibleEntityResults.filter((row)=>row.language==='en');
+  const visibleWordChannel={
+    ...wordChannel,
+    byLanguage:{
+      de:{...deWord,results:visibleDeWords},
+      en:{...enWord,results:visibleEnWords},
+    },
+    results:visibleWordResults,
+  };
+  const visibleEntityChannel={
+    ...entityChannel,
+    byLanguage:{
+      de:{...deEntity,results:visibleDeEntities},
+      en:{...enEntity,results:visibleEnEntities},
+    },
+    results:visibleEntityResults,
+  };
+  const results=[...visibleWordResults,...phraseResults,...visibleEntityResults];
   const activeResultLanguages=languages.filter(
     (language)=>capabilities?.languages?.[language]?.available,
   );
@@ -337,22 +364,23 @@ export function mergeParallelUnifiedWriterResponses(
       phraseQuota:false,
     },
     channels:{
-      words:wordChannel,
+      words:visibleWordChannel,
       phrases:phraseChannel,
-      entities:entityChannel,
+      entities:visibleEntityChannel,
     },
     ...(options.profileStages===true
       ?{performanceProfile:mergedPerformanceProfile(responses,totalMs)}
       :{}),
     counts:{
-      words:wordResults.length,
-      germanWords:deWord.results?.length||0,
-      englishWords:enWord.results?.length||0,
+      words:visibleWordResults.length,
+      germanWords:visibleDeWords.length,
+      englishWords:visibleEnWords.length,
       phrases:phraseResults.length,
-      entities:entityResults.length,
-      germanEntities:deEntity.results?.length||0,
-      englishEntities:enEntity.results?.length||0,
+      entities:visibleEntityResults.length,
+      germanEntities:visibleDeEntities.length,
+      englishEntities:visibleEnEntities.length,
       total:results.length,
+      surfaceAggregation:surfaceConsolidation.diagnostics,
       searchPool:{
         germanWords:Number(deWord.writerRetrieval?.mergedCandidates||deWord.results?.length||0),
         englishWords:Number(enWord.writerRetrieval?.normalizedCandidates||enWord.results?.length||0),
