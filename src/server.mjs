@@ -44,7 +44,7 @@ import {
   servingV1ProductRuntimeState,
 } from './serving-v1-product-runtime.mjs';
 import {
-  isServingV1Preview,
+  isServingV1,
   resolveServerRuntimeMode,
 } from './server-runtime-mode.mjs';
 import {createServingV1ParallelWriterRuntime} from './unified-writer-parallel.mjs';
@@ -60,7 +60,7 @@ const serverRuntimeMode=resolveServerRuntimeMode({
   argv:process.argv.slice(2),
   env:process.env,
 });
-const servingV1Preview=isServingV1Preview(serverRuntimeMode);
+const servingV1Active=isServingV1(serverRuntimeMode);
 const servingV1DbPath=resolve(
   process.env.RHYMELAB_SERVING_V1_DB||DEFAULT_SERVING_V1_PRODUCT_DB_PATH,
 );
@@ -100,7 +100,7 @@ const writerQueryTiming=createRollingQueryTiming(100);
 
 let writerDb=null;
 let writerDbError=null;
-if(!servingV1Preview){
+if(!servingV1Active){
   try {
     writerDb = openWriterDb(writerDbPath);
   } catch (error) {
@@ -114,17 +114,19 @@ if(!servingV1Preview){
 
 let legacyDb = null;
 let legacyDbError = null;
-try {
-  legacyDb = openRhymeDb(legacyDbPath);
-} catch (error) {
-  legacyDbError = error instanceof Error ? error.message : String(error);
-  console.warn(`Legacy/control DB unavailable at ${legacyDbPath}`);
-  console.warn('Normal Writer v5 runtime remains available; only ?ranking=legacy is disabled.');
+if(!servingV1Active){
+  try {
+    legacyDb = openRhymeDb(legacyDbPath);
+  } catch (error) {
+    legacyDbError = error instanceof Error ? error.message : String(error);
+    console.warn(`Archived legacy/control DB unavailable at ${legacyDbPath}`);
+    console.warn('Legacy archive runtime remains usable without ranking=legacy comparisons.');
+  }
 }
 
 let phraseDb = null;
 let phraseDbError = null;
-if(!servingV1Preview){
+if(!servingV1Active){
   try {
     phraseDb = openPhraseBrowserDb(phraseDbPath);
   } catch (error) {
@@ -137,7 +139,7 @@ if(!servingV1Preview){
 let englishDb = null;
 let englishDbError = null;
 const englishMarker = readEnglishProductAcceptanceMarker(englishMarkerPath);
-if(!servingV1Preview){
+if(!servingV1Active){
   if (englishMarker.accepted) {
     try {
       englishDb = openEnglishWriterDb(englishDbPath, {
@@ -156,7 +158,7 @@ if(!servingV1Preview){
 
 let entityDb = null;
 let entityDbError = null;
-if(!servingV1Preview){
+if(!servingV1Active){
   try {
     entityDb = openEntityWriterDb(entityDbPath);
   } catch (error) {
@@ -168,7 +170,7 @@ if(!servingV1Preview){
 
 let servingV1Runtime=null;
 let servingV1State=null;
-if(servingV1Preview){
+if(servingV1Active){
   try{
     servingV1Runtime=openServingV1ProductRuntime(servingV1DbPath);
     servingV1State=servingV1ProductRuntimeState(servingV1Runtime.coreDb);
@@ -181,7 +183,7 @@ if(servingV1Preview){
 }
 
 let parallelWriterRuntime=null;
-if(servingV1Preview){
+if(servingV1Active){
   try{
     parallelWriterRuntime=createServingV1ParallelWriterRuntime(servingV1DbPath);
     await parallelWriterRuntime.ready();
@@ -193,7 +195,7 @@ if(servingV1Preview){
   }
 }
 
-const generatedOptinRuntime=servingV1Preview
+const generatedOptinRuntime=servingV1Active
   ?{
       available:false,
       reason:'serving_v1_preview_uses_same_database_all_mode',
@@ -210,14 +212,14 @@ const generatedOptinRuntime=servingV1Preview
       entityPath:generatedEntityDbPath,
       englishMarkerPath,
     });
-if(!servingV1Preview&&!generatedOptinRuntime.available){
+if(!servingV1Active&&!generatedOptinRuntime.available){
   console.warn('Generated opt-in runtime unavailable: '+generatedOptinRuntime.reason);
   if(generatedOptinRuntime.error)console.warn(generatedOptinRuntime.error);
 }
 
 const markovRuntime=openMarkovModel(markovModelPath);
 if(!markovRuntime.available){
-  console.warn(`Markov corpus model unavailable at ${markovModelPath}: ${markovRuntime.reason}`);
+  console.warn(`Markov transition model unavailable at ${markovModelPath}: ${markovRuntime.reason}`);
   console.warn('Build it with: npm run markov:model:build');
 }
 
@@ -228,10 +230,10 @@ const acceptedRuntimeDatabases={
   entityDb,
   generatedOverlay:false,
 };
-const canonicalRuntimeDatabases=servingV1Preview
+const canonicalRuntimeDatabases=servingV1Active
   ?servingV1Runtime.coreDatabases
   :acceptedRuntimeDatabases;
-const activeGeneratedRuntime=servingV1Preview
+const activeGeneratedRuntime=servingV1Active
   ?{
       available:true,
       reason:null,
@@ -309,7 +311,7 @@ function databaseBundleRevision({writerDb,englishDb,phraseDb,entityDb},paths){
     .digest('hex');
 }
 
-const canonicalRuntimePaths=servingV1Preview
+const canonicalRuntimePaths=servingV1Active
   ?{
       writer:servingV1DbPath,
       english:servingV1DbPath,
@@ -322,7 +324,7 @@ const canonicalRuntimePaths=servingV1Preview
       phrase:phraseDbPath,
       entity:entityDbPath,
     };
-const generatedRuntimePaths=servingV1Preview
+const generatedRuntimePaths=servingV1Active
   ?canonicalRuntimePaths
   :{
       writer:generatedWriterDbPath,
@@ -339,7 +341,7 @@ const generatedQueryPronunciationRevision=activeGeneratedRuntime.available
   :null;
 
 function generatedRuntimeHealth(){
-  if(servingV1Preview){
+  if(servingV1Active){
     return {
       available:true,
       reason:null,
@@ -487,7 +489,7 @@ const server = createServer(async (req, res) => {
       if (!isAllowedLocalWriteOrigin(req)) return json(res, { error: 'Markov generation is localhost-only' }, 403, false);
       if (!markovRuntime.available) {
         return json(res, {
-          error: 'Markov corpus model unavailable.',
+          error: 'Markov transition model unavailable.',
           reason: markovRuntime.reason,
           detail: markovRuntime.error,
           build_command: 'npm run markov:model:build',
@@ -539,15 +541,17 @@ const server = createServer(async (req, res) => {
         status: 'ok',
         mode: 'local',
         markov_generator: markovModelHealth(markovRuntime),
-        package_runtime: servingV1Preview ? 'serving-v1-product-preview' : 'writer-v5-default',
+        package_runtime: servingV1Active ? 'serving-v1-default' : 'legacy-archive-bundle',
         writer_database: canonicalRuntimeDatabases.writerDb ? canonicalRuntimePaths.writer : null,
-        writer_runtime: servingV1Preview ? SERVING_V1_PRODUCT_RUNTIME : WRITER_RUNTIME_ID,
-        serving_v1_preview: servingV1Preview ? {
+        writer_runtime: servingV1Active ? SERVING_V1_PRODUCT_RUNTIME : WRITER_RUNTIME_ID,
+        serving_v1: servingV1Active ? {
           enabled:true,
+          default_runtime:true,
           database:servingV1DbPath,
           state:servingV1State,
         } : {
           enabled:false,
+          default_runtime:false,
         },
         legacy_database: legacyDb ? legacyDbPath : null,
         legacy_available: Boolean(legacyDb),
@@ -561,7 +565,7 @@ const server = createServer(async (req, res) => {
         english_database: canonicalRuntimeDatabases.englishDb ? canonicalRuntimePaths.english : null,
         english_available: Boolean(canonicalRuntimeDatabases.englishDb),
         english_error: canonicalRuntimeDatabases.englishDb ? null : englishDbError,
-        english_acceptance_marker: servingV1Preview
+        english_acceptance_marker: servingV1Active
           ? null
           : (englishMarker.accepted ? englishMarkerPath : null),
         query_pronunciation_revision: queryPronunciationRevision,
@@ -571,7 +575,7 @@ const server = createServer(async (req, res) => {
           revalidation: 'health_revision_once_per_app_session',
         },
         generated_optin: generatedRuntimeHealth(),
-        parallel_search: servingV1Preview ? {
+        parallel_search: servingV1Active ? {
           enabled:true,
           ...parallelWriterRuntime.health(),
         } : {
@@ -617,7 +621,7 @@ const server = createServer(async (req, res) => {
         },
       };
       const searchStarted=performance.now();
-      const result = servingV1Preview
+      const result = servingV1Active
         ?await parallelWriterRuntime.search(q,searchOptions,{
             generatedOverlay:generatedOptinRequested(url),
           })
@@ -634,14 +638,14 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/phrases/stats') {
       const runtimeDatabases=requestRuntimeDatabases(url);
       if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:activeGeneratedRuntime.reason},503);
-      if (!runtimeDatabases.phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+      if (!runtimeDatabases.phraseDb) return json(res, { error: 'Phrase runtime unavailable in the active database.' }, 503);
       return json(res, getPhraseBrowserStats(runtimeDatabases.phraseDb));
     }
 
     if (url.pathname === '/api/phrases/search') {
       const runtimeDatabases=requestRuntimeDatabases(url);
       if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:activeGeneratedRuntime.reason},503);
-      if (!runtimeDatabases.phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+      if (!runtimeDatabases.phraseDb) return json(res, { error: 'Phrase runtime unavailable in the active database.' }, 503);
       return json(res, {
         results: searchPhrases(runtimeDatabases.phraseDb, {
           q: url.searchParams.get('q') || '',
@@ -656,7 +660,7 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/phrases/detail') {
       const runtimeDatabases=requestRuntimeDatabases(url);
       if(!runtimeDatabases)return json(res,{error:'Generated opt-in runtime is unavailable.',reason:activeGeneratedRuntime.reason},503);
-      if (!runtimeDatabases.phraseDb) return json(res, { error: 'Phrase database unavailable. Run: npm run phrase:catalog:bootstrap' }, 503);
+      if (!runtimeDatabases.phraseDb) return json(res, { error: 'Phrase runtime unavailable in the active database.' }, 503);
       const result = getPhraseDetail(runtimeDatabases.phraseDb, url.searchParams.get('id') || '');
       return result ? json(res, result) : json(res, { error: 'Phrase not found' }, 404);
     }
@@ -736,8 +740,8 @@ server.listen(port, host, () => {
   console.log(`RhymePad workspace: http://${host}:${port}/pad`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
   console.log(`Markov transition database: ${markovRuntime.available ? markovModelPath : 'unavailable — npm run markov:model:build'}`);
-  if(servingV1Preview){
-    console.log(`Product runtime: Serving-v1 preview`);
+  if(servingV1Active){
+    console.log(`Product runtime: Serving-v1 canonical/default`);
     console.log(`Serving-v1 SQLite: ${servingV1DbPath}`);
     console.log(`Serving-v1 runtime: ${SERVING_V1_PRODUCT_RUNTIME}`);
     console.log(`Writer execution: ${parallelWriterRuntime.health().execution} · ${parallelWriterRuntime.health().workers} workers`);
@@ -751,7 +755,10 @@ server.listen(port, host, () => {
     console.log(`English product acceptance: ${englishMarker.accepted ? 'accepted' : englishDbError}`);
     console.log(`Generated opt-in runtime: ${generatedOptinRuntime.available ? 'available (default OFF)' : 'unavailable: '+generatedOptinRuntime.reason}`);
   }
-  console.log(`Legacy/control SQLite: ${legacyDb ? legacyDbPath : 'unavailable'}`);
+  if(!servingV1Active){
+    console.log(`Archive runtime: legacy Writer bundle`);
+    console.log(`Archived legacy/control SQLite: ${legacyDb ? legacyDbPath : 'unavailable'}`);
+  }
   console.log(`Unified Writer: http://${host}:${port}`);
 });
 
