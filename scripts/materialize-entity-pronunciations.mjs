@@ -14,6 +14,9 @@ import {
   entityPronunciationRuntimeEligible,
   entityRetrievalAnchors,
 } from './entity-pronunciation-core.mjs';
+import {
+  entityCrossLocaleDuplicateSql,
+} from './entity-pronunciation-routing-core.mjs';
 
 const args = process.argv.slice(2);
 let entityDbPath = 'data/local/rhymelab-entities-v1.sqlite';
@@ -24,6 +27,10 @@ let includeAliases = true;
 const CHECKPOINT_EVERY = 10000;
 const PROGRESS_EVERY = 5000;
 const PHONETIC_BUILD_REVISION = 'entity-phonetic-runtime-de-v1-checkpointed-v1';
+const AMBIGUOUS_LABEL_SQL=entityCrossLocaleDuplicateSql({
+  nameAlias:'n',
+  nameTable:'entity_name',
+});
 
 function metaValue(db, key) {
   return db.prepare('SELECT value FROM meta WHERE key=?').get(key)?.value ?? null;
@@ -189,6 +196,7 @@ try {
     FROM entity_name n
     WHERE n.searchable=1
       AND n.language='de'
+      AND NOT ${AMBIGUOUS_LABEL_SQL}
       ${includeAliases ? '' : 'AND n.preferred=1'}
     ORDER BY n.name_id
   `).all();
@@ -299,6 +307,7 @@ try {
     JOIN entity_pronunciation p USING(name_id)
     WHERE n.searchable=1
       AND n.language='de'
+      AND NOT ${AMBIGUOUS_LABEL_SQL}
       ${includeAliases ? '' : 'AND n.preferred=1'}
       AND p.locale='de-DE'
       AND p.review_state IN ('accepted','reviewed','accepted_source_composition')
@@ -309,6 +318,7 @@ try {
     JOIN entity_pronunciation p USING(name_id)
     WHERE n.searchable=1
       AND n.language='de'
+      AND NOT ${AMBIGUOUS_LABEL_SQL}
       ${includeAliases ? '' : 'AND n.preferred=1'}
       AND p.locale='de-DE'
       AND p.review_state='accepted_source_composition'
@@ -320,6 +330,7 @@ try {
     JOIN entity_pronunciation p USING(name_id)
     WHERE n.searchable=1
       AND n.language='de'
+      AND NOT ${AMBIGUOUS_LABEL_SQL}
       ${includeAliases ? '' : 'AND n.preferred=1'}
       AND p.locale='de-DE'
       AND p.review_state IN ('accepted','reviewed')
