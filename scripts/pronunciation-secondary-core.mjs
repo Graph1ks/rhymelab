@@ -75,7 +75,7 @@ export function phoneticParityFields(analysis,language){
   if(!analysis)throw new TypeError('phoneticParityFields requires analysis.');
   const code=String(language||'').toLowerCase();
   const codaClass=code==='de'
-    ?coarseCodaClass(analysis.syllables?.at?.(-1)?.coda||[])
+    ?coarseCodaClass(analysis.finalCoda||analysis.syllables?.at?.(-1)?.coda||[])
     :englishCoarseCodaClass(analysis.codaKey||'');
   return {
     ipa:String(analysis.ipa||''),
