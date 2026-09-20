@@ -164,6 +164,12 @@
     "serving:v1:runtime:plan": "node --no-warnings scripts/build-serving-v1-runtime.mjs --plan",
     "serving:v1:runtime:build": "node --no-warnings scripts/build-serving-v1-runtime.mjs",
     "serving:v1:runtime:status": "node --no-warnings scripts/build-serving-v1-runtime.mjs --status",
-    "serving:v1:runtime:equivalence": "node --no-warnings scripts/verify-serving-v1-runtime-equivalence.mjs"
+    "serving:v1:runtime:equivalence": "node --no-warnings scripts/verify-serving-v1-runtime-equivalence.mjs",
+    "serving:v1:product:plan": "node --no-warnings scripts/build-serving-v1-product.mjs --plan",
+    "serving:v1:product:build": "node --no-warnings scripts/build-serving-v1-product.mjs",
+    "serving:v1:product:status": "node --no-warnings scripts/build-serving-v1-product.mjs --status",
+    "serving:v1:product:accept:plan": "node --no-warnings scripts/accept-serving-v1-product.mjs --plan",
+    "serving:v1:product:accept": "node --no-warnings scripts/accept-serving-v1-product.mjs",
+    "serving:v1:product:accept:status": "node --no-warnings scripts/accept-serving-v1-product.mjs --status"
   }
 }
