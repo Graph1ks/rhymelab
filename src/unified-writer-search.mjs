@@ -517,7 +517,9 @@ function searchGermanPhraseChannel(phraseDb, query, options = {}) {
   const diversified = diversifyPhraseMosaicWriterPage(ranked);
   const limit = clampInteger(options.phraseLimit, 250, 1, 250);
   const selected=diversified.diversifiedWriterPageCandidates.slice(0,limit);
-  const generatedIds=generatedPhrasePronunciationIds(phraseDb,selected);
+  const generatedIds=options.generatedOverlay===true
+    ?generatedPhrasePronunciationIds(phraseDb,selected)
+    :new Set();
   const results=selected.map((candidate)=>phraseProductResult({
     ...candidate,
     generatedPronunciation:generatedIds.has(String(candidate.phrasePronunciationId||'')),
@@ -858,7 +860,10 @@ export function searchUnifiedWriter(
     } else {
       const deCapability = capabilities.languages.de;
       phraseChannel = deCapability.phraseMosaic
-        ? searchGermanPhraseChannel(phraseDb, deQuery, options)
+        ? searchGermanPhraseChannel(phraseDb, deQuery, {
+            ...options,
+            generatedOverlay,
+          })
         : {
             available: false,
             reason: deCapability.phraseReason || 'phrase_runtime_unavailable',
