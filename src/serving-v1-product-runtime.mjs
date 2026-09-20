@@ -61,7 +61,7 @@ function dropCompatibilityViews(db){
     'entity_phonetic_analysis','entity_rhyme_anchor',
     'phrase','phrase_pronunciation','phrase_pronunciation_token',
     'phrase_mosaic_window','phrase_mosaic_retrieval_anchor','phrase_mosaic_retrieval_v2_anchor',
-    'phrase_snapshot','phrase_usage_evidence','phrase_attestation',
+    'phrase_snapshot','phrase_usage_evidence','phrase_attestation','serving_runtime_connection',
   ]){
     db.exec(`DROP VIEW IF EXISTS temp.${name};`);
   }
@@ -79,6 +79,9 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
   const entityAvailability=availability(mode,'sp');
 
   db.exec(`
+    CREATE TEMP VIEW serving_runtime_connection AS
+    SELECT '${mode}' AS mode;
+
     CREATE TEMP VIEW hot AS
     SELECT
       p.pronunciation_id AS id,
