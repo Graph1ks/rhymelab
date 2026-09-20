@@ -86,10 +86,89 @@ export function materializedWriterRuntimeState(db, options = {}) {
   return state;
 }
 
+function servingConnectionMode(db){
+  try{return String(db.prepare('SELECT mode FROM temp.serving_runtime_connection').get()?.mode||'all');}
+  catch{return 'all';}
+}
+
+function compareBoundedCandidate(a,b){
+  return Number(a.usage_rank==null)-Number(b.usage_rank==null)
+    ||Number(a.usage_rank??Number.MAX_SAFE_INTEGER)-Number(b.usage_rank??Number.MAX_SAFE_INTEGER)
+    ||Number(a.source_order||0)-Number(b.source_order||0)
+    ||Number(a.pronunciation_id||0)-Number(b.pronunciation_id||0);
+}
+
+function mergeBoundedRows(left,right,limit){
+  const out=[];
+  let i=0,j=0;
+  while(out.length<limit&&(i<left.length||j<right.length)){
+    if(j>=right.length||(i<left.length&&compareBoundedCandidate(left[i],right[j])<=0))out.push(left[i++]);
+    else out.push(right[j++]);
+  }
+  return out;
+}
+
+function hydrateWriterRows(db,ids){
+  const byId=new Map();
+  for(const batch of chunks(ids,300)){
+    if(!batch.length)continue;
+    const marks=batch.map(()=>'?').join(',');
+    const rows=db.prepare(`SELECT * FROM hot WHERE id IN (${marks})`).all(...batch);
+    for(const row of rows)byId.set(Number(row.id),row);
+  }
+  return ids.map((id)=>byId.get(Number(id))).filter(Boolean);
+}
+
+function lookupBoundedServingWriterRows(db,anchorKey,options={}){
+  const queryNormalized=String(options.queryNormalized||'');
+  const querySyllables=Number(options.querySyllables||0);
+  const includeVariants=options.includeVariants===true;
+  const includeHistorical=options.includeHistorical===true;
+  const generatedOnly=options.generatedOnly===true;
+  const limit=Math.max(1,Math.min(800,Number(options.limit||800)));
+  const mode=servingConnectionMode(db);
+  const preferredColumn=mode==='core'?'core_preferred':'all_preferred';
+  const where=[
+    'key_value=?',
+    'normalized<>?',
+    mode==='core'?'canonical_available=1':'(canonical_available=1 OR generated_available=1)',
+    includeVariants?'1=1':`${preferredColumn}=1`,
+    includeHistorical?'1=1':'historical=0',
+    generatedOnly?'generated_only=1':'1=1',
+    'syllable_count=?',
+  ].join(' AND ');
+  const stmt=db.prepare(`
+    SELECT pronunciation_id,usage_rank,source_order
+    FROM runtime_de_writer_candidate
+    WHERE ${where}
+    ORDER BY usage_rank IS NULL,usage_rank,source_order,pronunciation_id
+    LIMIT ?
+  `);
+  const exact=querySyllables>0
+    ?stmt.all(String(anchorKey),queryNormalized,querySyllables,limit)
+    :[];
+  const remaining=Math.max(0,limit-exact.length);
+  if(!remaining)return hydrateWriterRows(db,exact.map((row)=>Number(row.pronunciation_id)));
+  const low=querySyllables>1
+    ?stmt.all(String(anchorKey),queryNormalized,querySyllables-1,remaining)
+    :[];
+  const high=querySyllables>=0
+    ?stmt.all(String(anchorKey),queryNormalized,querySyllables+1,remaining)
+    :[];
+  const near=mergeBoundedRows(low,high,remaining);
+  return hydrateWriterRows(
+    db,[...exact,...near].map((row)=>Number(row.pronunciation_id))
+  );
+}
+
 export function lookupMaterializedWriterAnchorRows(db, anchorKey, options = {}) {
   const state = materializedWriterRuntimeState(db);
   if (!state.active) throw new Error('Materialized writer runtime is not active for this database');
   if(!state.servingV1) return lookupWriterAnchorRows(db, anchorKey, options);
+
+  if(tableExists(db,'runtime_de_writer_candidate')){
+    return lookupBoundedServingWriterRows(db,anchorKey,options);
+  }
 
   const queryNormalized=String(options.queryNormalized||'');
   const querySyllables=Number(options.querySyllables||0);
