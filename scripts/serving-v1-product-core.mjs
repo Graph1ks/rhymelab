@@ -154,6 +154,7 @@ export function createServingV1ProductStorage(db){
     CREATE TABLE IF NOT EXISTS runtime_de_writer_candidate(
       key_value TEXT NOT NULL,
       pronunciation_id INTEGER NOT NULL REFERENCES pronunciation(pronunciation_id) ON DELETE CASCADE,
+      normalized TEXT NOT NULL,
       syllable_count INTEGER NOT NULL,
       usage_rank INTEGER,
       historical INTEGER NOT NULL,
