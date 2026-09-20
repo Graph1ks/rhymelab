@@ -492,6 +492,96 @@ function generatedPhrasePronunciationIds(phraseDb,candidates){
 }
 
 function searchGermanPhraseChannel(phraseDb, query, options = {}) {
+  const profileStages=options.profileStages===true;
+  const stages={};
+  const counters={};
+  const timed=(name,fn)=>{
+    if(!profileStages)return fn();
+    const started=performance.now();
+    try{return fn();}
+    finally{stages[name]=Number((performance.now()-started).toFixed(3));}
+  };
+
+  if (!phraseDb) {
+    return {
+      available: false,
+      reason: 'phrase_database_unavailable',
+      results: [],
+    };
+  }
+  if (!query?.preferredIpa) {
+    return {
+      available: true,
+      reason: 'query_pronunciation_unresolved',
+      results: [],
+    };
+  }
+
+  const retrieval = timed('retrieval_ms',()=>retrievePhraseMosaicCandidatesV2(
+    phraseDb,
+    query.preferredIpa,
+    {
+      perChannelLimit: clampInteger(options.phrasePerChannelLimit, 128, 1, 512),
+      maxCandidates: clampInteger(options.phrasePoolLimit, 512, 1, 2048),
+      generatedOnly:options.generatedOnly===true,
+    },
+  ));
+  counters.retrieval_candidates=Number(retrieval?.candidates?.length||0);
+
+  const enriched = timed('enrichment_ms',()=>enrichPhraseMosaicCandidates(
+    phraseDb,
+    query.surface,
+    retrieval,
+  ));
+  counters.enriched_candidates=Number(enriched?.candidates?.length||enriched?.length||0);
+
+  const ranked = timed('ranking_ms',()=>rankPhraseMosaicCandidatesV2(enriched));
+  const diversified = timed(
+    'diversity_ms',
+    ()=>diversifyPhraseMosaicWriterPage(ranked),
+  );
+  const limit = clampInteger(options.phraseLimit, 250, 1, 250);
+  const selected=diversified.diversifiedWriterPageCandidates.slice(0,limit);
+  counters.selected_candidates=selected.length;
+
+  const generatedIds=options.generatedOverlay===true
+    ?timed(
+        'generated_source_lookup_ms',
+        ()=>generatedPhrasePronunciationIds(phraseDb,selected),
+      )
+    :new Set();
+
+  const results=timed(
+    'result_construction_ms',
+    ()=>selected.map((candidate)=>phraseProductResult({
+      ...candidate,
+      generatedPronunciation:generatedIds.has(
+        String(candidate.phrasePronunciationId||'')
+      ),
+    })),
+  );
+
+  return {
+    available: true,
+    reason: null,
+    schema: diversified.schema,
+    policy: diversified.policy,
+    rankingPolicy: ranked.policy,
+    retrievalPolicy: retrieval.policy,
+    retrieval: retrieval.retrieval,
+    queryAnchors: retrieval.query?.anchors || [],
+    rankingFingerprint: ranked.rankingFingerprint,
+    diversityFingerprint: diversified.diversityFingerprint,
+    candidateCount: ranked.candidateCount,
+    writerPageCandidateCount: ranked.writerPageCandidateCount,
+    diversifiedWriterPageCandidateCount:
+      diversified.diversifiedWriterPageCandidateCount,
+    suppressedCandidateCount: diversified.suppressedCandidateCount,
+    suppressionReasonCounts: diversified.suppressionReasonCounts,
+    ...(profileStages?{performanceProfile:{stages_ms:stages,counters}}:{}),
+    results,
+  };
+}) {
   if (!phraseDb) {
     return {
       available: false,
@@ -900,12 +990,25 @@ export function searchUnifiedWriter(
             ...options,
             generatedOverlay,
             generatedOnly,
+            profileStages,
           }))
         : {
             available: false,
             reason: deCapability.phraseReason || 'phrase_runtime_unavailable',
             results: [],
           };
+      if(profileStages&&phraseChannel?.performanceProfile?.stages_ms){
+        for(const [name,value] of Object.entries(
+          phraseChannel.performanceProfile.stages_ms
+        )){
+          stageTimings['phrases_de_'+name]=Number(value);
+        }
+        for(const [name,value] of Object.entries(
+          phraseChannel.performanceProfile.counters||{}
+        )){
+          performanceCounters['phrases_de_'+name]=Number(value);
+        }
+      }
     }
   }
 
