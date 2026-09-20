@@ -197,3 +197,49 @@ test('parallel Writer merge preserves channel ordering and uses wall time',()=>{
     PARALLEL_WRITER_EXECUTION,
   );
 });
+
+
+test('parallel merge absorbs same-surface Entities into the word result',()=>{
+  const word={
+    resultKind:'word',language:'en',normalized:'rain',word:'Rain',
+    surface:'Rain',ipa:'reɪn',channelRank:1,
+  };
+  const singer={
+    resultKind:'entity',language:'en',normalized:'rain',word:'Rain',
+    surface:'Rain',ipa:'reɪn',channelRank:1,entityQid:'Q1',
+    primaryCategory:'person.singer',
+    entityCategories:[{category:'person.singer'}],
+  };
+  const game={
+    resultKind:'entity',language:'en',normalized:'rain',word:'Rain',
+    surface:'Rain',ipa:'reɪn',channelRank:2,entityQid:'Q2',
+    primaryCategory:'work.video_game',
+    entityCategories:[{category:'work.video_game'}],
+  };
+  const responses={
+    words_en:baseResponse({
+      resultLanguageBasis:'en',
+      scope:'words',
+      wordEn:[word],
+    }),
+    entities_en:baseResponse({
+      resultLanguageBasis:'en',
+      scope:'entities',
+      entityEn:[singer,game],
+    }),
+  };
+  const merged=mergeParallelUnifiedWriterResponses(
+    responses,
+    'rain',
+    {language:'en',resultLanguage:'en',scope:'all'},
+    {generatedOverlay:false,totalMs:1},
+  );
+  assert.equal(merged.results.length,1);
+  assert.equal(merged.results[0].resultKind,'word');
+  assert.deepEqual(
+    merged.results[0].entityCategories.map((entry)=>entry.category),
+    ['person.singer','work.video_game'],
+  );
+  assert.equal(merged.counts.entities,0);
+  assert.equal(merged.counts.words,1);
+});
