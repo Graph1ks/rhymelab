@@ -25,8 +25,13 @@ function databases(){
 function selectMode(generatedOverlay){
   const next=generatedOverlay===true?'all':'core';
   if(next===mode)return;
-  installServingV1CompatibilityViews(db,{mode:next});
-  mode=next;
+  db.exec('PRAGMA query_only=OFF;');
+  try{
+    installServingV1CompatibilityViews(db,{mode:next});
+    mode=next;
+  }finally{
+    db.exec('PRAGMA query_only=ON;');
+  }
 }
 
 parentPort.on('message',(message)=>{
