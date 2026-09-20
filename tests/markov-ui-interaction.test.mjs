@@ -84,17 +84,25 @@ test('Markov control preflight rejects incomplete UI surfaces',()=>{
   assert.throws(()=>assertMarkovControlSurface(document),/#generateButton/u);
 });
 
-test('Markov test surface preserves mobile and reduced-motion behavior',async()=>{
-  const [html,styles]=await Promise.all([
+test('Markov test surface preserves mobile behavior and uses the corpus API',async()=>{
+  const [html,styles,app,core]=await Promise.all([
     readFile('src/markov-test/index.html','utf8'),
     readFile('src/markov-test/styles.css','utf8'),
+    readFile('src/markov-test/app.js','utf8'),
+    readFile('src/markov-test/markov-core.mjs','utf8'),
   ]);
   for(const selector of REQUIRED_MARKOV_CONTROLS){
     if(!selector.startsWith('#'))continue;
     assert.match(html,new RegExp(`id=["']${selector.slice(1)}["']`));
   }
+  assert.match(html,/id=["']modelState["']/u);
+  assert.match(html,/id=["']modelNote["']/u);
   assert.match(styles,/@media\(max-width:620px\)/u);
   assert.match(styles,/@media\(prefers-reduced-motion:reduce\)/u);
   assert.match(styles,/\.hero-sentence\.animate-in \.sentence-token/u);
+  assert.match(styles,/\.token-corpus/u);
   assert.doesNotMatch(styles,/overflow-y:\s*(?:scroll|auto)/u);
+  assert.match(app,/\/api\/markov\/generate/u);
+  assert.doesNotMatch(core,/MODEL_LINES/u);
+  assert.doesNotMatch(core,/<CONTENT>/u);
 });
