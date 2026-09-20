@@ -10,7 +10,19 @@ The accepted multi-database runtime remains the default for `npm run dev`. To ex
 npm run dev:serving
 ```
 
-This opens `data/local/rhymelab-serving-v1.sqlite` with separate read-only Core and All connections. The browser stays at `http://127.0.0.1:3030/`; no alternate UI is used. The normal Generated checkbox switches requests from the Core connection to the All connection, while Generated only keeps using the existing provenance filter inside the unified Writer pipeline.
+This opens `data/local/rhymelab-serving-v1.sqlite` for the normal browser UI and starts five persistent `worker_threads` for the expensive result channels:
+
+```text
+DE Words
+EN Words
+DE Phrase/Mosaic
+DE Entities
+EN Entities
+```
+
+Each worker owns one long-lived read-only SQLite connection. For an `all` search the eligible channels execute concurrently and the parent process merges their already-deterministic channel results in the same order/shape as the synchronous reference implementation. The browser stays at `http://127.0.0.1:3030/`; no alternate UI is used. The normal Generated checkbox switches worker connections between Serving Core and All compatibility views, while Generated only keeps using the existing provenance filter inside the unified Writer pipeline.
+
+This worker runtime deliberately adds **no cross-request result, score, analysis or prepared-feature cache**. Caching remains deferred; the performance gain here is parallel execution only.
 
 Override the preview database path with:
 
@@ -72,6 +84,7 @@ Returns local runtime status including:
 - `unified_writer` language/channel capabilities, including whether German Word Writer and Phrase/Mosaic are ready and whether an English runtime is installed.
 - `query_pronunciation_revision` — SHA-256 revision of the active pronunciation/search DB file state plus DB metadata; the browser uses it once per app session to validate persistent generated-pronunciation cache rows.
 - `query_pronunciation_cache` — cache schema/revalidation metadata.
+- `parallel_search` — Serving-v1 preview worker status, execution policy and channel list.
 
 ## `GET /api/writer?q=<word-or-phrase>`
 
@@ -109,7 +122,7 @@ Every `/api/writer` response includes a process-local runtime timing block:
 }
 ```
 
-`searchMs` measures the synchronous server search path from unified query resolution through DB retrieval, phonetic scoring and ranking. It deliberately excludes browser/network latency and JSON serialization. `averageLast100Ms` is the rolling mean of the most recent up-to-100 Writer API executions in the current server process and resets on server restart. The main UI shows both values below the right-hand inspector.
+`searchMs` measures the server-side Writer wall time from query dispatch through DB retrieval, phonetic scoring, ranking and final channel merge. In the accepted default runtime that path remains synchronous; in `dev:serving` it measures the persistent-worker parallel path. It deliberately excludes browser/network latency and JSON serialization. `averageLast100Ms` is the rolling mean of the most recent up-to-100 Writer API executions in the current server process and resets on server restart. The main UI shows both values below the right-hand inspector.
 
 ### Unknown / partially unresolved query pronunciation
 
