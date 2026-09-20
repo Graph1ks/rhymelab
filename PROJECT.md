@@ -75,6 +75,7 @@ External models and online sources may be used during research, source acquisiti
 **Storage:** local SQLite plus versioned source/manifests and generated local artifacts  
 **Product surfaces:** local browser UI, unified Writer API, integrated RhymePad  
 **Canonical runtime posture:** local-only, deterministic, no required runtime network
+**Planned distribution editions:** Lite / Standard / Full derived reproducibly from one accepted Master/Developer Serving dataset; authoritative contract: `docs/DISTRIBUTION_TIERS.md`
 
 ### Large-data build reliability
 
@@ -187,6 +188,7 @@ Use the files by responsibility:
 - PROJECT.md — durable product identity, repository mode, architecture boundaries, cost/license/contribution policy;
 - AGENTS.md — operating contract for human/AI engineering work plus project-specific guardrails;
 - STATUS.md — current operational state;
+- docs/DISTRIBUTION_TIERS.md — durable Lite/Standard/Full database packaging and capability contract;
 - docs/HANDOVER.md and focused phase handovers — continuation context;
 - PROJECT_STATE.json — machine-readable project state;
 - CHANGELOG.md — curated meaningful product/release history from 2026-09-19 onward;
