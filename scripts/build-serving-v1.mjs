@@ -41,6 +41,7 @@ const batchSize=integerArg('--batch-size',100_000,{min:1_000,max:1_000_000});
 const progressEvery=integerArg('--progress-every',1,{min:1,max:10_000});
 const reset=hasFlag('--reset');
 const replace=hasFlag('--replace');
+const pauseAfterStage=argValue('--pause-after-stage',null);
 
 const paths={
   deCore:resolve(argValue('--de-core','data/local/rhymelab-v5.sqlite')),
@@ -60,6 +61,7 @@ const reportPath=resolve(argValue('--report','data/local/rhymelab-serving-v1-rep
 const previousPath=resolve(argValue('--previous',outputPath+'.previous.sqlite'));
 
 let stopRequested=false;
+let manualPauseRequested=false;
 for(const signal of ['SIGINT','SIGTERM']){
   process.on(signal,()=>{
     if(stopRequested)return;
@@ -439,12 +441,22 @@ try{
       `${formatCount(current.surfaces)} surfaces · ${formatCount(current.pronunciations)} pronunciations · `+
       `${formatDuration(performance.now()-stageStarted)}`
     );
+
+    if(pauseAfterStage===stage.name){
+      manualPauseRequested=true;
+      upsertMeta(db,'status','paused');
+      upsertMeta(db,'updated_at',now());
+      console.log('[serving-v1] manual checkpoint pause after '+stage.name+'; rerun the same build command to resume.');
+      break;
+    }
   }
 
   if(stopRequested){
     upsertMeta(db,'status','paused');
     upsertMeta(db,'updated_at',now());
     process.exitCode=130;
+  }else if(manualPauseRequested){
+    // Intentional owner/dev checkpoint. Work DB stays in place and all completed stages are reusable.
   }else{
     console.log('[serving-v1] finalizing indexes/statistics…');
     db.exec('ANALYZE; PRAGMA optimize;');
@@ -519,6 +531,10 @@ try{
 if(stopRequested){
   console.error('[serving-v1] work database retained at: '+workPath);
   process.exit(130);
+}
+if(manualPauseRequested){
+  console.log('[serving-v1] work database retained at: '+workPath);
+  process.exit(0);
 }
 
 if(!finalReport)throw new Error('Serving v1 build finished without a final report.');
