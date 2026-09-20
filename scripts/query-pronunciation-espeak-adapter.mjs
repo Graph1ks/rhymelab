@@ -1,4 +1,5 @@
 import { execFile, spawnSync } from 'node:child_process';
+import { normalizeEspeakIpa } from './espeak-ipa-normalization.mjs';
 import { getPhonologyProfile } from './phonology-profiles.mjs';
 
 const commandVersionCache=new Map();
@@ -12,44 +13,7 @@ function normalizeLanguage(value){
   return language;
 }
 
-export function normalizeEspeakIpa(value,language){
-  const code=normalizeLanguage(language);
-  let ipa=String(value??'')
-    .normalize('NFC')
-    .replace(/\p{Cf}/gu,'')
-    .replace(/[\r\n]+/gu,' ')
-    .replace(/[‖|]+/gu,' ')
-    .replace(/_/gu,' ')
-    .replace(/\s+/gu,' ')
-    .trim();
-
-  if(code==='en'){
-    ipa=ipa
-      .replaceAll('ɫ','l')
-      .replaceAll('ɾ','t')
-      .replaceAll('ᵻ','ɪ')
-      .replaceAll('ᵊ','ə')
-      .replaceAll('ɡ','g')
-      .replaceAll('əː','ɜ')
-      .replaceAll('ɹ̩','ɚ')
-      .replaceAll('oː','oʊ')
-      .replaceAll('eː','eɪ')
-      .replaceAll('ɛː','ɛ')
-      .replaceAll('ɪː','i')
-      .replaceAll('ʊː','u');
-  }else{
-    ipa=ipa
-      .replaceAll('ɡ','g')
-      .replaceAll('ɾ','r')
-      .replaceAll('ɫ','l')
-      .replaceAll('ᵊ','ə')
-      .replaceAll('ɑː','aː')
-      .replaceAll('ɒː','aː')
-      .replaceAll('ɜː','ɐ')
-      .replaceAll('ɜ','ɐ');
-  }
-  return ipa;
-}
+export { normalizeEspeakIpa } from './espeak-ipa-normalization.mjs';
 
 function espeakCommands(explicitCommand=null){
   if(explicitCommand)return[String(explicitCommand)];
