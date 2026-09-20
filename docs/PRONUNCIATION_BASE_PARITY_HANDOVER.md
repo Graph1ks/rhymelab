@@ -385,3 +385,36 @@ When I provide data/local/pronunciation-base-parity-v1-report.json or an error/l
 4. keep Client B 292 / C 2161 / D 60 / U 25 deferred for later review;
 5. after repo changes, give me the exact local PowerShell commands to continue.
 ```
+
+
+## Owner materialization result — accepted
+
+The Base-Parity owner report has passed the handover gates.
+
+Accepted summary:
+
+```text
+status                                  ok
+active eSpeak A/B                3,365,814
+unclassified active                      0
+DE schema parity                       true
+EN schema parity                       true
+Phrase schema parity                   true
+Entity schema parity                   true
+phrase surfaces                       8,070
+canonical-composed                    7,967
+dependency-deferred                     103
+Client/U deferred total               2,538
+```
+
+This handover's materialization gate is closed.
+
+Continuation is now `docs/GENERATED_OPTIN_RUNTIME_V1.md`.
+
+The next owner gate is:
+
+```powershell
+npm run pronunciation:secondary:runtime:accept
+```
+
+Only a passing runtime acceptance writes the enablement marker used by the server. The generated-data checkbox remains disabled otherwise and remains unchecked by default even after acceptance.
