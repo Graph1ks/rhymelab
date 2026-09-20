@@ -8,7 +8,7 @@ function compactAnalysis(analysis){
   return {
     ipa:analysis?.ipa??null,
     canonicalPhonemes:analysis?.canonicalPhonemes??null,
-    syllables:analysis?.syllables??null,
+    finalCoda:analysis?.syllables?.at?.(-1)?.coda??[],
     syllableCount:analysis?.syllableCount??null,
     primaryStressSyllable:analysis?.primaryStressSyllable??null,
     stressPattern:analysis?.stressPattern??null,
