@@ -190,7 +190,8 @@ function modePolicyCheck(result,runtimeMode){
   return {ok:violations.length===0,violations};
 }
 
-function firstDiff(a,b,path='
+function firstDiff(a,b,path='$',out=[]){
+  if(out.length>=20)return out;
   if(Object.is(a,b))return out;
   if(typeof a!==typeof b||a===null||b===null){
     out.push({path,legacy:a??null,serving:b??null});return out;
@@ -215,7 +216,6 @@ function firstDiff(a,b,path='
   out.push({path,legacy:a,serving:b});
   return out;
 }
-
 function openLegacy(){
   const writerDb=openWriterDb(writerPath);
   let englishDb=null,phraseDb=null,entityDb=null,generated=null;
