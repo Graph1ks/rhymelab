@@ -8,6 +8,7 @@ import {
   GENERATED_OPTIN_REPORT_POLICY,
   GENERATED_OPTIN_REPORT_SCHEMA,
   GENERATED_OPTIN_RUNTIME_POLICY,
+  generatedOptinDatasetStats,
   selectGeneratedOptinDatabases,
   validateGeneratedOptinAcceptanceMarker,
   validateGeneratedOptinReport,
@@ -137,6 +138,33 @@ test('runtime selection is canonical by default and fail-closed when opt-in is u
   assert.equal(on.available,true);
   assert.equal(on.mode,'generated_optin');
   assert.equal(on.databases,generatedDatabases);
+});
+
+test('dataset stats split Core and Generated pronunciation records without double counting',()=>{
+  const db=()=>new DatabaseSync(':memory:');
+  const canonical={writerDb:db(),englishDb:db(),phraseDb:db(),entityDb:db(),generatedOverlay:false};
+  const generated={writerDb:db(),englishDb:db(),phraseDb:db(),entityDb:db(),generatedOverlay:true};
+  const all=[...Object.values(canonical).filter((value)=>value instanceof DatabaseSync),...Object.values(generated).filter((value)=>value instanceof DatabaseSync)];
+  try{
+    canonical.writerDb.exec("CREATE TABLE hot(id INTEGER,pronunciation_flags TEXT); INSERT INTO hot VALUES(1,'[]'),(2,'[]');");
+    generated.writerDb.exec("CREATE TABLE hot(id INTEGER,pronunciation_flags TEXT); INSERT INTO hot VALUES(1,'[]'),(2,'[]'),(3,'[\\\"generated\\\",\\\"secondary_opt_in\\\"]');");
+    canonical.englishDb.exec("CREATE TABLE en_pronunciation(id INTEGER,source TEXT); INSERT INTO en_pronunciation VALUES(1,'cmudict');");
+    generated.englishDb.exec("CREATE TABLE en_pronunciation(id INTEGER,source TEXT); INSERT INTO en_pronunciation VALUES(1,'cmudict'),(2,'espeak_ng_generated_secondary'),(3,'espeak_ng_generated_secondary');");
+    canonical.phraseDb.exec("CREATE TABLE phrase_pronunciation(phrase_pronunciation_id TEXT); CREATE TABLE phrase_pronunciation_token(phrase_pronunciation_id TEXT,pronunciation_source TEXT); INSERT INTO phrase_pronunciation VALUES('p1'); INSERT INTO phrase_pronunciation_token VALUES('p1','Wiktionary');");
+    generated.phraseDb.exec("CREATE TABLE phrase_pronunciation(phrase_pronunciation_id TEXT); CREATE TABLE phrase_pronunciation_token(phrase_pronunciation_id TEXT,pronunciation_source TEXT); INSERT INTO phrase_pronunciation VALUES('p1'),('p2'); INSERT INTO phrase_pronunciation_token VALUES('p1','Wiktionary'),('p2','eSpeak-NG Backfill V2'),('p2','eSpeak-NG Backfill V2');");
+    canonical.entityDb.exec("CREATE TABLE entity_pronunciation(pronunciation_id INTEGER,source_kind TEXT); INSERT INTO entity_pronunciation VALUES(1,'source');");
+    generated.entityDb.exec("CREATE TABLE entity_pronunciation(pronunciation_id INTEGER,source_kind TEXT); INSERT INTO entity_pronunciation VALUES(1,'source'),(2,'espeak_ng_generated_secondary'),(3,'espeak_ng_generated_secondary');");
+
+    const stats=generatedOptinDatasetStats(canonical,{available:true,databases:generated});
+    assert.equal(stats.schema,'rhymelab-dataset-stats-v1');
+    assert.deepEqual(stats.categories.deWords,{core:2,generated:1,total:3,consistent:true});
+    assert.deepEqual(stats.categories.enWords,{core:1,generated:2,total:3,consistent:true});
+    assert.deepEqual(stats.categories.phrases,{core:1,generated:1,total:2,consistent:true});
+    assert.deepEqual(stats.categories.entities,{core:1,generated:2,total:3,consistent:true});
+    assert.deepEqual(stats.totals,{core:5,generated:6,total:11,consistent:true});
+  }finally{
+    for(const database of all)database.close();
+  }
 });
 
 test('accepted generated overlay can use its rebuilt phrase fingerprint without changing canonical gate',()=>{
