@@ -121,7 +121,7 @@ async function requestMarkovGeneration(rows,settings){
       rows:compactWriterRows(rows),
       ...settings,
       count:8,
-      attempts:72,
+      attempts:settings.targetTokens>=12?128:72,
     }),
   });
   let data={};
@@ -230,7 +230,7 @@ function renderCandidateList(candidates){
     <button class="candidate-card ${candidate.rank===1?'active':''}" type="button" data-candidate-id="${esc(candidate.id)}">
       <span class="candidate-rank">${candidate.rank}</span><span class="candidate-copy">${esc(candidate.sentence)}</span>
       <span class="candidate-score">${percentage(candidate.scores.utility)}</span>
-      <span class="candidate-mini">R ${percentage(candidate.scores.rhyme)} · N ${percentage(candidate.scores.naturalness)} · T ${percentage(candidate.scores.transition)}</span>
+      <span class="candidate-mini">R ${percentage(candidate.scores.rhyme)} · N ${percentage(candidate.scores.naturalness)} · T ${percentage(candidate.scores.transition)} · L ${candidate.scores.actualLength}/${candidate.scores.targetLength}</span>
     </button>`).join('');
   document.querySelectorAll('[data-candidate-id]').forEach((button)=>button.addEventListener('click',()=>{
     const candidate=currentCandidates.find((row)=>row.id===button.dataset.candidateId);if(!candidate)return;
