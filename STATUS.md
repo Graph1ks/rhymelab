@@ -39,6 +39,20 @@ Owner full-data Backfill V2 collection is complete: 6,033,818 unique language+no
 
 
 
+## Planned distribution tiers
+
+The durable packaging contract is now recorded in `docs/DISTRIBUTION_TIERS.md`.
+
+```text
+Lite      50k Core                  Words only
+Standard  250k Core                 Words + Phrase/Mosaic + Entities
+Full      400k Core + 200k Generated Words + Phrase/Mosaic + Entities + Generated + Markov live generator
+```
+
+The numeric tier cuts describe the retained Word/Pronunciation population, not Entity counts. The editions are required to satisfy `LITE ⊂ STANDARD ⊂ FULL ⊂ MASTER` for overlapping Core data and to be produced reproducibly from one finalized Master/Developer Serving dataset rather than separate source builds.
+
+Current size expectations are planning values only: roughly 100–250 MB Lite, 2–4 GB Standard and 3–6 GB Full. A read-only `dbstat`/closure storage census on the finalized Master DB is the required next distribution step before fixing final storage gates or implementing the builder.
+
 ## Serving-v1 performance candidate
 
 A report-grade steady-state benchmark is available as `npm run serving:v1:report:benchmark`. It measures the same persistent-worker unified-search path used by the Serving preview, discards worker startup plus warmup, then runs 20 fixed DE/EN/both cases over 7 deterministic measurement rounds by default (140 samples). It writes JSON and Markdown under `data/local/benchmark/`, records DB/runtime fingerprints and host metadata, and verifies that each query returns the same semantic result across repeats. A missed p50/p95/max target is report data rather than a process error; only an invalid/nondeterministic run fails the command.
