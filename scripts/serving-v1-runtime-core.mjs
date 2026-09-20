@@ -42,12 +42,11 @@ export function createServingV1RuntimeStorage(db){
 
     CREATE TABLE IF NOT EXISTS runtime_target(
       target_id INTEGER PRIMARY KEY,
-      target_key TEXT UNIQUE NOT NULL,
       target_kind TEXT NOT NULL CHECK(target_kind IN ('pronunciation','phrase_window')),
       language TEXT NOT NULL,
       pronunciation_id INTEGER NOT NULL REFERENCES pronunciation(pronunciation_id) ON DELETE CASCADE,
       runtime_phrase_id INTEGER,
-      runtime_window_id TEXT,
+      runtime_window_id TEXT UNIQUE,
       syllable_count INTEGER,
       canonical_available INTEGER NOT NULL CHECK(canonical_available IN (0,1)),
       generated_available INTEGER NOT NULL CHECK(generated_available IN (0,1)),
@@ -55,20 +54,28 @@ export function createServingV1RuntimeStorage(db){
       generated_preferred INTEGER NOT NULL DEFAULT 0 CHECK(generated_preferred IN (0,1))
     );
 
-    CREATE TABLE IF NOT EXISTS runtime_retrieval_key(
+    CREATE TABLE IF NOT EXISTS runtime_key(
+      key_id INTEGER PRIMARY KEY,
       language TEXT NOT NULL,
       channel TEXT NOT NULL,
       key_value TEXT NOT NULL,
+      UNIQUE(language,channel,key_value)
+    );
+
+    CREATE TABLE IF NOT EXISTS runtime_key_member(
+      key_id INTEGER NOT NULL REFERENCES runtime_key(key_id) ON DELETE CASCADE,
       target_id INTEGER NOT NULL REFERENCES runtime_target(target_id) ON DELETE CASCADE,
-      PRIMARY KEY(language,channel,key_value,target_id)
+      PRIMARY KEY(key_id,target_id)
     ) WITHOUT ROWID;
 
     CREATE INDEX IF NOT EXISTS idx_runtime_target_pronunciation
       ON runtime_target(pronunciation_id,target_kind,target_id);
     CREATE INDEX IF NOT EXISTS idx_runtime_target_availability
       ON runtime_target(language,target_kind,canonical_available,generated_available,syllable_count,target_id);
-    CREATE INDEX IF NOT EXISTS idx_runtime_key_target
-      ON runtime_retrieval_key(target_id,channel);
+    CREATE INDEX IF NOT EXISTS idx_runtime_key_lookup
+      ON runtime_key(language,channel,key_value,key_id);
+    CREATE INDEX IF NOT EXISTS idx_runtime_key_member_target
+      ON runtime_key_member(target_id,key_id);
 
     CREATE TABLE IF NOT EXISTS runtime_surface_morphology(
       surface_id INTEGER PRIMARY KEY REFERENCES surface(surface_id) ON DELETE CASCADE,
@@ -163,14 +170,6 @@ function scalar(db,sql){
   return Number(db.prepare(sql).get()?.c||0);
 }
 
-export function runtimeTargetKeyForPronunciation(pronunciationId){
-  return 'pronunciation:'+Number(pronunciationId);
-}
-
-export function runtimeTargetKeyForPhraseWindow(runtimeWindowId){
-  return 'phrase_window:'+String(runtimeWindowId);
-}
-
 export function runtimeLookupTargets(db,{
   language='de',
   channel,
@@ -210,14 +209,15 @@ export function runtimeLookupTargets(db,{
   args.push(Math.max(1,Math.min(5000,Number(limit)||800)));
   return db.prepare(`
     SELECT
-      t.target_id,t.target_key,t.target_kind,t.language,t.pronunciation_id,
+      t.target_id,t.target_kind,t.language,t.pronunciation_id,
       t.runtime_phrase_id,t.runtime_window_id,t.syllable_count,
       t.canonical_available,t.generated_available,
       t.canonical_preferred,t.generated_preferred,
       p.surface_id,s.display_surface,s.normalized,s.usage_rank,s.historical,
       p.ipa,p.raw,p.phonemes,p.stress_pattern,p.authority_kind
-    FROM runtime_retrieval_key k
-    JOIN runtime_target t USING(target_id)
+    FROM runtime_key k
+    JOIN runtime_key_member m USING(key_id)
+    JOIN runtime_target t ON t.target_id=m.target_id
     JOIN pronunciation p USING(pronunciation_id)
     JOIN surface s USING(surface_id)
     WHERE ${clauses.join(' AND ')}
@@ -231,7 +231,8 @@ export function runtimeLookupTargets(db,{
 export function servingV1RuntimeSummary(db){
   const channelRows=db.prepare(`
     SELECT channel,COUNT(*) key_rows,COUNT(DISTINCT key_value) distinct_keys
-    FROM runtime_retrieval_key
+    FROM runtime_key k
+    JOIN runtime_key_member m USING(key_id)
     GROUP BY channel
     ORDER BY channel
   `).all().map((row)=>({
@@ -242,8 +243,8 @@ export function servingV1RuntimeSummary(db){
   return {
     pronunciationTargets:scalar(db,"SELECT COUNT(*) c FROM runtime_target WHERE target_kind='pronunciation'"),
     phraseWindowTargets:scalar(db,"SELECT COUNT(*) c FROM runtime_target WHERE target_kind='phrase_window'"),
-    retrievalKeyRows:scalar(db,'SELECT COUNT(*) c FROM runtime_retrieval_key'),
-    distinctRetrievalKeys:scalar(db,"SELECT COUNT(*) c FROM (SELECT language,channel,key_value FROM runtime_retrieval_key GROUP BY language,channel,key_value)"),
+    retrievalKeyRows:scalar(db,'SELECT COUNT(*) c FROM runtime_key_member'),
+    distinctRetrievalKeys:scalar(db,'SELECT COUNT(*) c FROM runtime_key'),
     morphologyRows:scalar(db,'SELECT COUNT(*) c FROM runtime_surface_morphology'),
     resolvedMorphologyRows:scalar(db,"SELECT COUNT(*) c FROM runtime_surface_morphology WHERE status='attested_right_head_candidate'"),
     ambiguousMorphologyRows:scalar(db,"SELECT COUNT(*) c FROM runtime_surface_morphology WHERE status='ambiguous_conflict'"),
@@ -269,8 +270,8 @@ export function servingV1RuntimeInvariantReport(db){
   `);
   const orphanKey=scalar(db,`
     SELECT COUNT(*) c
-    FROM runtime_retrieval_key k
-    LEFT JOIN runtime_target t USING(target_id)
+    FROM runtime_key_member m
+    LEFT JOIN runtime_target t ON t.target_id=m.target_id
     WHERE t.target_id IS NULL
   `);
   const orphanWindow=scalar(db,`
