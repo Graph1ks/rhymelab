@@ -9,6 +9,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {createServingV1Storage} from '../scripts/serving-v1-core.mjs';
 import {createServingV1RuntimeStorage} from '../scripts/serving-v1-runtime-core.mjs';
 import {
+  SERVING_V1_PRODUCT_REVISION,
   SERVING_V1_PRODUCT_SCHEMA,
   servingV1ProductInvariantReport,
 } from '../scripts/serving-v1-product-core.mjs';
@@ -28,21 +29,37 @@ function createDe(path){
     meta(db,'rhymelab-local-db-v5');
     db.exec(`
       CREATE TABLE hot(
-        id INTEGER PRIMARY KEY,normalized TEXT,ipa TEXT,phonemes TEXT,stress TEXT,
-        pronunciation_eligible INTEGER,pronunciation_flags TEXT,usage_score REAL,
-        usage_source_count INTEGER,gender TEXT,entity_kind TEXT,lexical_tags TEXT,
+        id INTEGER PRIMARY KEY,surface TEXT,normalized TEXT,ipa TEXT,phonemes TEXT,stress TEXT,
+        pronunciation_eligible INTEGER,pronunciation_flags TEXT,usage_rank INTEGER,usage_score REAL,
+        usage_count INTEGER,usage_source_count INTEGER,lemma TEXT,pos TEXT,gender TEXT,lexicon_layer TEXT,
+        entity_kind TEXT,historical INTEGER,lexical_tags TEXT,pronunciation_preferred INTEGER,
         pronunciation_source TEXT,pronunciation_source_order INTEGER,pronunciation_evidence INTEGER,
         pronunciation_tags TEXT,pronunciation_raw_tags TEXT,locale TEXT,dialect TEXT,
         pronunciation_register TEXT,rhyme_tail TEXT,final_tail TEXT,vowels TEXT,consonants TEXT,
         coda_class TEXT,rhyme_syllables INTEGER,pronunciation_rank INTEGER
       );
     `);
-    const ins=db.prepare('INSERT INTO hot VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    ins.run(1,'zeit','tsaɪt','t s aɪ t','1',1,'[]',6.0,3,'f',null,'["common"]',
-      'German Wiktionary',1,2,'[]','[]','de-DE',null,null,'aɪt','aɪt','aɪ','t','COR-STOP',1,1);
-    ins.run(2,'krankenscheindrucker','kʁaŋk','k ʁ a ŋ k','1',1,'["generated","secondary_opt_in"]',
-      null,null,null,null,'[]','eSpeak-NG Backfill V2',99,0,'["generated"]','["generated"]',
-      'de-DE',null,null,'aŋk','aŋk','a','k','DOR-STOP',1,1);
+    const ins=db.prepare(`
+      INSERT INTO hot(
+        id,surface,normalized,ipa,phonemes,stress,pronunciation_eligible,pronunciation_flags,
+        usage_rank,usage_score,usage_count,usage_source_count,lemma,pos,gender,lexicon_layer,
+        entity_kind,historical,lexical_tags,pronunciation_preferred,pronunciation_source,
+        pronunciation_source_order,pronunciation_evidence,pronunciation_tags,pronunciation_raw_tags,
+        locale,dialect,pronunciation_register,rhyme_tail,final_tail,vowels,consonants,coda_class,
+        rhyme_syllables,pronunciation_rank
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `);
+    ins.run(
+      1,'Zeit','zeit','tsaɪt','t s aɪ t','1',1,'[]',
+      1,6.0,10,3,'zeit','noun','f','dictionary',null,0,'["common"]',1,
+      'German Wiktionary',1,2,'[]','[]','de-DE',null,null,'aɪt','aɪt','aɪ','t','COR-STOP',1,1
+    );
+    ins.run(
+      2,'Krankenscheindrucker','krankenscheindrucker','kʁaŋk','k ʁ a ŋ k','1',1,
+      '["generated","secondary_opt_in"]',null,null,null,null,'krankenscheindrucker','noun',null,
+      'dictionary',null,0,'[]',1,'eSpeak-NG Backfill V2',99,0,'["generated"]','["generated"]',
+      'de-DE',null,null,'aŋk','aŋk','a','k','DOR-STOP',1,1
+    );
   }finally{db.close();}
 }
 function createEn(path){
@@ -112,7 +129,9 @@ function createEntity(path){
         model_id TEXT,confidence REAL,review_state TEXT
       );
       CREATE TABLE entity_phonetic_analysis(
-        pronunciation_id INTEGER,analyzer_id TEXT,phonemes TEXT,stress_pattern TEXT
+        pronunciation_id INTEGER,analyzer_id TEXT,phonemes TEXT,syllables TEXT,syllable_count INTEGER,
+        primary_stress INTEGER,secondary_stress TEXT,stress_pattern TEXT,vowel_sequence TEXT,
+        consonant_sequence TEXT,rhyme_tail TEXT,rhyme_signature TEXT
       );
       CREATE TABLE entity_rhyme_anchor(
         analyzer_id TEXT,channel TEXT,anchor_key TEXT,pronunciation_id INTEGER
@@ -125,8 +144,11 @@ function createEntity(path){
       .run(1,1,'Zeit','zeit','de','auto','label',1,1,'wikidata','Q1');
     db.prepare('INSERT INTO entity_pronunciation VALUES(?,?,?,?,?,?,?,?,?,?,?,?)')
       .run(1,1,'de-DE','source','tsaɪt',1,'wikidata_p898','Q1',0,null,1,'accepted_source_backed');
-    db.prepare('INSERT INTO entity_phonetic_analysis VALUES(?,?,?,?)')
-      .run(1,'de-ipa-v2','["t","s","aɪ","t"]','1');
+    db.prepare('INSERT INTO entity_phonetic_analysis VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run(
+      1,'de-ipa-v2','["t","s","aɪ","t"]',
+      '[{"position":1,"onset":["t","s"],"nucleus":"aɪ","coda":["t"],"stressLevel":2}]',
+      1,1,'[]','2','aɪ','t','aɪ t','aɪt'
+    );
     db.prepare('INSERT INTO entity_rhyme_anchor VALUES(?,?,?,?)')
       .run('de-ipa-v2','writer_secondary_anchor','aɪ-t',1);
   }finally{db.close();}
@@ -264,6 +286,7 @@ test('Product metadata builder plans read-only, checkpoints, resumes and atomica
     try{
       const m=Object.fromEntries(promoted.prepare('SELECT key,value FROM meta').all().map(r=>[r.key,r.value]));
       assert.equal(m.product_adapter_schema,SERVING_V1_PRODUCT_SCHEMA);
+      assert.equal(m.product_adapter_revision,SERVING_V1_PRODUCT_REVISION);
       assert.equal(m.product_adapter_status,'complete');
       assert.equal(servingV1ProductInvariantReport(promoted).ok,true);
     }finally{promoted.close();}
@@ -273,6 +296,9 @@ test('Product metadata builder plans read-only, checkpoints, resumes and atomica
       assert.equal(runtime.allDb.prepare("SELECT COUNT(*) c FROM hot").get().c,2);
       assert.equal(runtime.coreDb.prepare("SELECT COUNT(*) c FROM hot").get().c,1);
       assert.equal(runtime.allDb.prepare("SELECT COUNT(*) c FROM entity_rhyme_anchor WHERE channel='writer_secondary_anchor'").get().c,1);
+      assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_de_surface_profile').get().c,2);
+      assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_entity_analysis').get().c,1);
+      assert.equal(runtime.allDb.prepare('SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence').get().c,1);
     }finally{runtime.close();}
   }finally{
     await rm(root,{recursive:true,force:true});
