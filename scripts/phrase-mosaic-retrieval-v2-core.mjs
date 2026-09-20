@@ -414,27 +414,28 @@ export function retrievePhraseMosaicCandidatesV2(db, queryIpa, options = {}) {
   const servingGenerated=generatedOnly
     ?' AND t.canonical_available=0 AND t.generated_available=1'
     :'';
+  const nativeKeyIdStmt=servingNative?db.prepare(`
+    SELECT key_id
+    FROM runtime_key
+    WHERE language='de' AND channel=? AND key_value=?
+  `):null;
   const nativeIdStmt=servingNative?db.prepare(`
     SELECT
       t.runtime_window_id,
-      w.source_window_id,
-      w.syllable_count
-    FROM runtime_key k
-    JOIN runtime_key_member km USING(key_id)
+      substr(t.runtime_window_id,instr(t.runtime_window_id,':')+1) AS source_window_id,
+      t.syllable_count
+    FROM runtime_key_member km
     JOIN runtime_target t
       ON t.target_id=km.target_id
      AND t.target_kind='phrase_window'
-    JOIN runtime_phrase_window w
-      ON w.runtime_window_id=t.runtime_window_id
-    WHERE k.language='de'
-      AND k.channel=?
-      AND k.key_value=?
-      AND w.syllable_count BETWEEN ? AND ?
+    WHERE km.key_id=?
+      AND t.syllable_count BETWEEN ? AND ?
       AND ${servingAvailability}
       ${servingGenerated}
-    ORDER BY w.syllable_count,w.source_window_id
+    ORDER BY t.syllable_count,source_window_id
     LIMIT ?
   `):null;
+  const nativeKeyIdCache=new Map();
 
   const hydrateNativeWindows=(runtimeWindowIds)=>{
     const byId=new Map();
@@ -502,8 +503,17 @@ export function retrievePhraseMosaicCandidatesV2(db, queryIpa, options = {}) {
       entry.channels.add(channel);
     }
   };
-  const nativeRows=(channel,key,minSyllables,maxSyllables,limit)=>
-    nativeIdStmt.all(channel,key,minSyllables,maxSyllables,limit);
+  const nativeRows=(channel,key,minSyllables,maxSyllables,limit)=>{
+    const cacheKey=channel+'\u001f'+key;
+    let keyId=nativeKeyIdCache.get(cacheKey);
+    if(keyId===undefined){
+      const row=nativeKeyIdStmt.get(channel,key);
+      keyId=row?Number(row.key_id):null;
+      nativeKeyIdCache.set(cacheKey,keyId);
+    }
+    if(keyId==null)return [];
+    return nativeIdStmt.all(keyId,minSyllables,maxSyllables,limit);
+  };
 
   for (const anchor of queryAnchors) {
     if(servingNative){
