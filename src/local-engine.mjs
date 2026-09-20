@@ -339,7 +339,55 @@ function servingChannelCandidateIds(
   return out.map((row)=>Number(row.pronunciation_id));
 }
 
-function hydrateServingCandidates(db,orderedIds){
+function hydrateServingScoringCandidates(db,orderedIds){
+  const byId=new Map();
+  for(let offset=0;offset<orderedIds.length;offset+=500){
+    const batch=orderedIds.slice(offset,offset+500);
+    if(!batch.length)continue;
+    const marks=batch.map(()=>'?').join(',');
+    const rows=db.prepare(`
+      SELECT
+        c.pronunciation_id AS id,
+        c.source_order AS source_order_id,
+        c.normalized,
+        c.usage_rank,
+        c.historical,
+        c.syllable_count,
+        a.analysis_json AS serving_analysis_json
+      FROM runtime_de_candidate c
+      JOIN runtime_de_analysis a USING(pronunciation_id)
+      WHERE c.pronunciation_id IN (${marks})
+    `).all(...batch);
+    for(const row of rows)byId.set(Number(row.id),row);
+  }
+  return orderedIds.map((id)=>byId.get(Number(id))).filter(Boolean);
+}
+
+function hydrateServingRankingMetadata(db,ids){
+  const byId=new Map();
+  for(let offset=0;offset<ids.length;offset+=500){
+    const batch=ids.slice(offset,offset+500);
+    if(!batch.length)continue;
+    const marks=batch.map(()=>'?').join(',');
+    const rows=db.prepare(`
+      SELECT
+        p.pronunciation_id AS id,
+        dp.display_surface AS surface,
+        dp.usage_rank,
+        dp.lexicon_layer,
+        dp.lexical_tags_json AS lexical_tags,
+        dp.lemma,
+        dp.part_of_speech AS pos
+      FROM pronunciation p
+      JOIN runtime_de_surface_profile dp USING(surface_id)
+      WHERE p.pronunciation_id IN (${marks})
+    `).all(...batch);
+    for(const row of rows)byId.set(Number(row.id),row);
+  }
+  return byId;
+}
+
+function hydrateServingRichCandidates(db,orderedIds){
   const byId=new Map();
   for(let offset=0;offset<orderedIds.length;offset+=300){
     const batch=orderedIds.slice(offset,offset+300);
@@ -390,7 +438,7 @@ function servingCandidatePool(
     metrics.candidate_ids+=orderedIds.length;
   }
   const hydrationStarted=metrics?performance.now():0;
-  const hydrated=hydrateServingCandidates(db,orderedIds)
+  const hydrated=hydrateServingScoringCandidates(db,orderedIds)
     .filter((row)=>row.normalized!==queryRow.normalized);
   if(metrics){
     metrics.candidate_hydration_ms+=performance.now()-hydrationStarted;
@@ -471,68 +519,103 @@ export function cachedResultPreparedAnalysis(row){
   return row&&typeof row==='object'?RESULT_PREPARED_ANALYSIS_CACHE.get(row)||null:null;
 }
 
-function resultFromRow(row, score, queryRow, profile) {
-  const primaryType = score.type === 'weak' ? null : score.type;
-  const relations = SOUND_RELATION_TYPES.flatMap((type) => {
-    const relation = score.relations?.[type];
-    return relation?.matched ? [{
+function scoredResultCore(row,score,querySyllableCount,profile){
+  const primaryType=score.type==='weak'?null:score.type;
+  const relations=SOUND_RELATION_TYPES.flatMap((type)=>{
+    const relation=score.relations?.[type];
+    return relation?.matched?[{
       type,
-      strength: relation.strength,
-      score: relation.score,
-      components: relation.components,
-    }] : [];
+      strength:relation.strength,
+      score:relation.score,
+      components:relation.components,
+    }]:[];
   });
-  const relationTypes = relations.map((relation) => relation.type);
-  const fallbackTier = relationTypes.length
-    ? Math.min(...relationTypes.map((type) => RHYME_TIER.get(type) ?? 99))
-    : 99;
-  const tier = primaryType ? (RHYME_TIER.get(primaryType) ?? 99) : fallbackTier;
+  const relationTypes=relations.map((relation)=>relation.type);
+  const fallbackTier=relationTypes.length
+    ?Math.min(...relationTypes.map((type)=>RHYME_TIER.get(type)??99))
+    :99;
+  const tier=primaryType?(RHYME_TIER.get(primaryType)??99):fallbackTier;
+  return {
+    _pronunciationId:Number(row.id),
+    _scoreObject:score,
+    _querySyllableCount:Number(querySyllableCount),
+    language:profile.language,
+    word:row.surface||row.normalized,
+    normalized:row.normalized,
+    usageRank:row.usage_rank,
+    syllableCount:row.syllable_count,
+    syllableDistance:Math.abs(
+      Number(row.syllable_count)-Number(querySyllableCount)
+    ),
+    rhymeTier:tier,
+    score:Number(score.overall.toFixed(4)),
+    type:score.type,
+    primaryType,
+    relationTypes,
+    relations,
+    components:{
+      vowel:Number(score.vowel.toFixed(4)),
+      coda:Number(score.coda.toFixed(4)),
+      stress:Number(score.stress.toFixed(4)),
+      syllable:Number(score.syllable.toFixed(4)),
+      onset:Number((score.onset??0).toFixed(4)),
+      consonance:Number(score.consonance.toFixed(4)),
+    },
+  };
+}
+
+function resultFromRow(row, score, queryRow, profile) {
+  const core=scoredResultCore(row,score,queryRow.syllable_count,profile);
   const pronunciationFlags=parseJsonArray(row.pronunciation_flags);
   const generatedPronunciation=
     pronunciationFlags.includes('generated')
     ||String(row.pronunciation_source||'').toLocaleLowerCase('en-US').includes('espeak');
   return {
-    language: profile.language,
-    word: row.surface,
-    normalized: row.normalized,
-    ipa: row.ipa,
-    pronunciationPreferred: Boolean(row.pronunciation_preferred),
-    pronunciationRank: row.pronunciation_rank,
-    locale: row.locale,
-    dialect: row.dialect,
-    register: row.pronunciation_register,
+    ...core,
+    word:row.surface,
+    ipa:row.ipa,
+    pronunciationPreferred:Boolean(row.pronunciation_preferred),
+    pronunciationRank:row.pronunciation_rank,
+    locale:row.locale,
+    dialect:row.dialect,
+    register:row.pronunciation_register,
     ...(generatedPronunciation?{
       pronunciationSource:row.pronunciation_source||null,
       pronunciationFlags,
       generatedPronunciation:true,
     }:{}),
-    usageRank: row.usage_rank,
-    usageScore: row.usage_score,
-    usageCount: row.usage_count,
-    usageSourceCount: row.usage_source_count,
-    lexiconLayer: row.lexicon_layer,
-    entityKind: row.entity_kind,
-    historical: Boolean(row.historical),
-    lexicalTags: parseJsonArray(row.lexical_tags),
-    lemma: row.lemma,
-    partOfSpeech: row.pos,
-    syllableCount: row.syllable_count,
-    syllableDistance: Math.abs(Number(row.syllable_count) - Number(queryRow.syllable_count)),
-    rhymeTier: tier,
-    score: Number(score.overall.toFixed(4)),
-    type: score.type,
-    primaryType,
-    relationTypes,
-    relations,
-    components: {
-      vowel: Number(score.vowel.toFixed(4)),
-      coda: Number(score.coda.toFixed(4)),
-      stress: Number(score.stress.toFixed(4)),
-      syllable: Number(score.syllable.toFixed(4)),
-      onset: Number((score.onset ?? 0).toFixed(4)),
-      consonance: Number(score.consonance.toFixed(4)),
-    },
+    usageScore:row.usage_score,
+    usageCount:row.usage_count,
+    usageSourceCount:row.usage_source_count,
+    lexiconLayer:row.lexicon_layer,
+    entityKind:row.entity_kind,
+    historical:Boolean(row.historical),
+    lexicalTags:parseJsonArray(row.lexical_tags),
+    lemma:row.lemma,
+    partOfSpeech:row.pos,
   };
+}
+
+function enrichScoredResultForRuntimeRanking(scored,metadata){
+  return {
+    ...scored,
+    word:metadata?.surface||scored.word,
+    usageRank:metadata?.usage_rank??scored.usageRank,
+    lexiconLayer:metadata?.lexicon_layer??null,
+    lexicalTags:parseJsonArray(metadata?.lexical_tags),
+    lemma:metadata?.lemma??null,
+    partOfSpeech:metadata?.pos??null,
+  };
+}
+
+function stripInternalResultFields(row){
+  const {
+    _pronunciationId,
+    _scoreObject,
+    _querySyllableCount,
+    ...publicRow
+  }=row;
+  return publicRow;
 }
 
 function localeForRow(row) {
@@ -660,9 +743,13 @@ export function findRhymes(db, word, options = {}) {
     analysis_feature_preparation_ms:0,
     phonetic_scoring_ms:0,
     result_construction_ms:0,
+    ranking_metadata_hydration_ms:0,
+    selected_result_hydration_ms:0,
     ranking_selection_ms:0,
     candidate_ids:0,
     candidates_hydrated:0,
+    ranking_metadata_rows:0,
+    rich_results_hydrated:0,
     scoring_calls:0,
     unique_scoring_pairs:0,
     analysis_cache_hits:0,
@@ -768,7 +855,9 @@ export function findRhymes(db, word, options = {}) {
       if (score.type === 'weak' && !(score.relationTypes || []).length) continue;
 
       const resultStarted=metrics?performance.now():0;
-      const result = resultFromRow(candidate, score, queryRow, profile);
+      const result=servingBoundedHotpath(db)
+        ?scoredResultCore(candidate,score,queryRow.syllable_count,profile)
+        :resultFromRow(candidate,score,queryRow,profile);
       RESULT_ANALYSIS_CACHE.set(result,candidateAnalysis);
       RESULT_PREPARED_ANALYSIS_CACHE.set(result,candidatePrepared);
       if(metrics)metrics.result_construction_ms+=performance.now()-resultStarted;
@@ -784,15 +873,66 @@ export function findRhymes(db, word, options = {}) {
     }
   }
 
-  const rankingStarted=metrics?performance.now():0;
-  const sortedResults = rankRuntimeRecommendedResults([...bestByWord.values()], queryDetail);
-  const { results, selection } = selectResultsWithTypeCoverage(sortedResults, {
-    limit: options.limit,
-    type: requestedType,
-    ensureTypeCoverage: options.ensureTypeCoverage,
-    coverageFloor: options.coverageFloor,
-  });
+  const servingThin=servingBoundedHotpath(db);
+  let rankableResults=[...bestByWord.values()];
+  if(servingThin&&rankableResults.length){
+    const metadataStarted=metrics?performance.now():0;
+    const metadata=hydrateServingRankingMetadata(
+      db,
+      rankableResults.map((row)=>row._pronunciationId),
+    );
+    rankableResults=rankableResults.map((row)=>
+      enrichScoredResultForRuntimeRanking(
+        row,
+        metadata.get(Number(row._pronunciationId)),
+      )
+    );
+    if(metrics){
+      metrics.ranking_metadata_hydration_ms+=performance.now()-metadataStarted;
+      metrics.ranking_metadata_rows+=metadata.size;
+    }
+  }
 
+  const rankingStarted=metrics?performance.now():0;
+  const sortedResults=rankRuntimeRecommendedResults(rankableResults,queryDetail);
+  const selected=selectResultsWithTypeCoverage(sortedResults,{
+    limit:options.limit,
+    type:requestedType,
+    ensureTypeCoverage:options.ensureTypeCoverage,
+    coverageFloor:options.coverageFloor,
+  });
+  let results=selected.results;
+
+  if(servingThin&&results.length){
+    const richStarted=metrics?performance.now():0;
+    const richRows=hydrateServingRichCandidates(
+      db,
+      results.map((row)=>row._pronunciationId),
+    );
+    const richById=new Map(richRows.map((row)=>[Number(row.id),row]));
+    results=results.map((row)=>{
+      const rich=richById.get(Number(row._pronunciationId));
+      if(!rich)return stripInternalResultFields(row);
+      const full=resultFromRow(
+        rich,
+        row._scoreObject,
+        {syllable_count:row._querySyllableCount},
+        profile,
+      );
+      const publicFull=stripInternalResultFields(full);
+      const analysis=analysisCache.get(String(row._pronunciationId));
+      const prepared=preparedCache.get(String(row._pronunciationId));
+      if(analysis)RESULT_ANALYSIS_CACHE.set(publicFull,analysis);
+      if(prepared)RESULT_PREPARED_ANALYSIS_CACHE.set(publicFull,prepared);
+      return publicFull;
+    });
+    if(metrics){
+      metrics.selected_result_hydration_ms+=performance.now()-richStarted;
+      metrics.rich_results_hydrated+=richRows.length;
+    }
+  }
+
+  const selection=selected.selection;
   const groups = Object.fromEntries(RHYME_TYPES.map((type) => [type, []]));
   for (const result of results) {
     for (const type of resultTypes(result)) groups[type].push(result);

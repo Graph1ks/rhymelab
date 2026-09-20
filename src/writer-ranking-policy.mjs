@@ -359,88 +359,140 @@ function lexicalRedundancyPrepared(left,right,currentMax=0){
   return Number(Math.max(initialConstruction,nearDuplicate).toFixed(4));
 }
 
+function selectionState(candidate,diversityWeight){
+  const diversityTierPenalty=redundancyTierPenalty(candidate.maxRedundancy);
+  return {
+    effectiveTier:candidate.writer.writerTier+diversityTierPenalty,
+    diversityTierPenalty,
+    diversifiedScore:candidate.writer.utility-diversityWeight*candidate.maxRedundancy,
+  };
+}
+
+function candidateBeats(left,right,diversityWeight){
+  if(!right)return true;
+  const a=selectionState(left,diversityWeight);
+  const b=selectionState(right,diversityWeight);
+  return a.effectiveTier<b.effectiveTier
+    ||(a.effectiveTier===b.effectiveTier&&(
+      left.writer.lexicalSafetyTierPenalty<right.writer.lexicalSafetyTierPenalty
+      ||(left.writer.lexicalSafetyTierPenalty===right.writer.lexicalSafetyTierPenalty&&(
+        a.diversifiedScore>b.diversifiedScore+1e-9
+        ||(Math.abs(a.diversifiedScore-b.diversifiedScore)<=1e-9&&(
+          left.writer.utility>right.writer.utility+1e-9
+          ||(Math.abs(left.writer.utility-right.writer.utility)<=1e-9&&(
+            left.baseIndex<right.baseIndex
+            ||(left.baseIndex===right.baseIndex
+              &&lexicalCompare(left.row,right.row)<0)
+          ))
+        ))
+      ))
+    ));
+}
+
+function bestCandidateIndex(remaining,diversityWeight){
+  let bestIndex=-1;
+  for(let index=0;index<remaining.length;index++){
+    if(bestIndex<0||candidateBeats(
+      remaining[index],
+      remaining[bestIndex],
+      diversityWeight,
+    ))bestIndex=index;
+  }
+  return bestIndex;
+}
+
+function updateCandidateRedundancy(candidate,selected){
+  if(candidate.maxRedundancy>=1){
+    candidate.comparedWinners=selected.length;
+    return;
+  }
+  for(let index=candidate.comparedWinners;index<selected.length;index++){
+    const winner=selected[index];
+    candidate.maxRedundancy=Math.max(
+      candidate.maxRedundancy,
+      lexicalRedundancyPrepared(
+        candidate.diversityIdentity,
+        winner.diversityIdentity,
+        candidate.maxRedundancy,
+      ),
+    );
+    if(candidate.maxRedundancy>=1)break;
+  }
+  candidate.comparedWinners=selected.length;
+}
+
 export function rankWriterRecommendedResults(rows, query, options = {}) {
-  const requestedLimit = Number.parseInt(String(options.limit ?? rows?.length ?? 1), 10);
-  const limit = Math.min(rows?.length ?? 0, Math.max(1, Number.isFinite(requestedLimit) ? requestedLimit : 1));
-  const diversityWeight = clamp01(options.diversityWeight ?? DEFAULT_DIVERSITY_WEIGHT);
-  const remaining = (rows || []).map((row, baseIndex) => ({
+  const requestedLimit=Number.parseInt(String(options.limit??rows?.length??1),10);
+  const limit=Math.min(
+    rows?.length??0,
+    Math.max(1,Number.isFinite(requestedLimit)?requestedLimit:1),
+  );
+  const diversityWeight=clamp01(
+    options.diversityWeight??DEFAULT_DIVERSITY_WEIGHT
+  );
+  const completeTail=options.completeTail!==false;
+  const remaining=(rows||[]).map((row,baseIndex)=>({
     row,
     baseIndex,
-    writer: writerUtilityFeatures(row, query),
+    writer:writerUtilityFeatures(row,query),
     diversityIdentity:preparedDiversityIdentity(row),
-    maxRedundancy: 0,
+    maxRedundancy:0,
+    comparedWinners:0,
   }));
-  const selected = [];
+  const selected=[];
 
-  while (remaining.length && selected.length < limit) {
-    let bestIndex = -1;
-    let bestScore = Number.NEGATIVE_INFINITY;
-    let bestEffectiveTier = Number.POSITIVE_INFINITY;
+  while(remaining.length&&selected.length<limit){
+    let bestIndex=-1;
 
-    for (let index = 0; index < remaining.length; index += 1) {
-      const candidate = remaining[index];
-      const diversityTierPenalty = redundancyTierPenalty(candidate.maxRedundancy);
-      const effectiveTier = candidate.writer.writerTier + diversityTierPenalty;
-      const diversifiedScore = candidate.writer.utility - diversityWeight * candidate.maxRedundancy;
-      const incumbent = bestIndex >= 0 ? remaining[bestIndex] : null;
-      const better = effectiveTier < bestEffectiveTier
-        || (effectiveTier === bestEffectiveTier && (
-          candidate.writer.lexicalSafetyTierPenalty < (incumbent?.writer.lexicalSafetyTierPenalty ?? Number.POSITIVE_INFINITY)
-          || (candidate.writer.lexicalSafetyTierPenalty === (incumbent?.writer.lexicalSafetyTierPenalty ?? Number.POSITIVE_INFINITY) && (
-            diversifiedScore > bestScore + 1e-9
-            || (Math.abs(diversifiedScore - bestScore) <= 1e-9
-              && (candidate.writer.utility > (incumbent?.writer.utility ?? -1) + 1e-9
-                || (Math.abs(candidate.writer.utility - (incumbent?.writer.utility ?? -1)) <= 1e-9
-                  && (candidate.baseIndex < (incumbent?.baseIndex ?? Number.MAX_SAFE_INTEGER)
-                    || (candidate.baseIndex === incumbent?.baseIndex
-                      && lexicalCompare(candidate.row, incumbent?.row) < 0)))))
-          ))
-        ));
-      if (better) {
-        bestIndex = index;
-        bestScore = diversifiedScore;
-        bestEffectiveTier = effectiveTier;
+    // Stale maxRedundancy is optimistic: unseen winners can only increase the
+    // penalty. Repeatedly refresh the current optimistic leader until the best
+    // candidate is fully evaluated against all selected winners. At that point
+    // every other candidate can only stay equal or get worse, so the winner is
+    // exactly the same as eager all-pairs evaluation.
+    while(remaining.length){
+      const optimisticIndex=bestCandidateIndex(remaining,diversityWeight);
+      const candidate=remaining[optimisticIndex];
+      if(candidate.comparedWinners<selected.length){
+        updateCandidateRedundancy(candidate,selected);
+        continue;
       }
+      bestIndex=optimisticIndex;
+      break;
     }
 
-    const [winner] = remaining.splice(bestIndex, 1);
-    const diversityTierPenalty = redundancyTierPenalty(winner.maxRedundancy);
+    const [winner]=remaining.splice(bestIndex,1);
+    const state=selectionState(winner,diversityWeight);
     selected.push({
       ...winner,
-      effectiveTier: winner.writer.writerTier + diversityTierPenalty,
-      diversityTierPenalty,
-      diversifiedScore: Number(bestScore.toFixed(4)),
-      redundancyPenalty: Number((diversityWeight * winner.maxRedundancy).toFixed(4)),
+      effectiveTier:state.effectiveTier,
+      diversityTierPenalty:state.diversityTierPenalty,
+      diversifiedScore:Number(state.diversifiedScore.toFixed(4)),
+      redundancyPenalty:Number(
+        (diversityWeight*winner.maxRedundancy).toFixed(4)
+      ),
     });
-
-    for (const candidate of remaining) {
-      candidate.maxRedundancy = Math.max(
-        candidate.maxRedundancy,
-        lexicalRedundancyPrepared(
-          candidate.diversityIdentity,
-          winner.diversityIdentity,
-          candidate.maxRedundancy,
-        ),
-      );
-    }
   }
 
-  const tail = remaining.sort((a, b) => a.writer.writerTier - b.writer.writerTier
-    || a.writer.lexicalSafetyTierPenalty - b.writer.lexicalSafetyTierPenalty
-    || b.writer.utility - a.writer.utility
-    || a.baseIndex - b.baseIndex
-    || lexicalCompare(a.row, b.row));
+  if(completeTail&&remaining.length){
+    for(const candidate of remaining)updateCandidateRedundancy(candidate,selected);
+  }
 
-  return [...selected, ...tail].map((item, index) => ({
+  const tail=remaining.sort((a,b)=>a.writer.writerTier-b.writer.writerTier
+    ||a.writer.lexicalSafetyTierPenalty-b.writer.lexicalSafetyTierPenalty
+    ||b.writer.utility-a.writer.utility
+    ||a.baseIndex-b.baseIndex
+    ||lexicalCompare(a.row,b.row));
+
+  return [...selected,...tail].map((item,index)=>({
     ...item.row,
-    writerRank: index + 1,
-    writer: {
+    writerRank:index+1,
+    writer:{
       ...item.writer,
-      effectiveTier: item.effectiveTier ?? item.writer.writerTier,
-      diversityTierPenalty: item.diversityTierPenalty ?? 0,
-      diversifiedScore: item.diversifiedScore ?? item.writer.utility,
-      redundancyPenalty: item.redundancyPenalty ?? 0,
-      maxRedundancy: Number((item.maxRedundancy ?? 0).toFixed(4)),
+      effectiveTier:item.effectiveTier??item.writer.writerTier,
+      diversityTierPenalty:item.diversityTierPenalty??0,
+      diversifiedScore:item.diversifiedScore??item.writer.utility,
+      redundancyPenalty:item.redundancyPenalty??0,
+      maxRedundancy:Number((item.maxRedundancy??0).toFixed(4)),
     },
   }));
 }

@@ -398,7 +398,17 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
     writerMorphology: morphology.get(row.normalized) || null,
   }));
   const rankingStarted=scoringContext.metrics?performance.now():0;
-  const ranked = rankWriterRecommendedResults(morphologyRows, query, { limit });
+  const ranked=rankWriterRecommendedResults(
+    morphologyRows,
+    query,
+    {
+      limit,
+      // Only the requested page is materialized here. The candidate universe is
+      // retained; deeper cursor/page requests can rank farther without changing
+      // the accepted greedy prefix.
+      completeTail:false,
+    },
+  );
   const results = ranked.slice(0, limit);
   if(scoringContext.metrics){
     scoringContext.metrics.ranking_diversity_ms+=performance.now()-rankingStarted;
@@ -544,7 +554,17 @@ export function findWriterRhymes(db, word, options = {}) {
   // already-selected prefix. Rank only the rows the API can return instead of
   // completing O(n^2) greedy selection for candidates beyond the requested page.
   const rankingStarted=scoringContext?.metrics?performance.now():0;
-  const ranked = rankWriterRecommendedResults(morphologyRows, query, { limit });
+  const ranked=rankWriterRecommendedResults(
+    morphologyRows,
+    query,
+    {
+      limit,
+      // Only the requested page is materialized here. The candidate universe is
+      // retained; deeper cursor/page requests can rank farther without changing
+      // the accepted greedy prefix.
+      completeTail:false,
+    },
+  );
   const results = ranked.slice(0, limit);
   if(scoringContext?.metrics){
     scoringContext.metrics.ranking_diversity_ms+=performance.now()-rankingStarted;
