@@ -5,6 +5,7 @@ import {
   coarseCodaClass,
   consonantSimilarity,
   featureVectorForAnalysis,
+  germanRhymeMatchUpperBound,
   prepareGermanRhymeAnalysis,
   scoreGermanRhymeAnalyses,
   scorePreparedGermanRhymeAnalyses,
@@ -134,4 +135,33 @@ test('prepared German scorer is exactly equivalent to the compatibility scorer',
       );
     }
   }
+});
+
+
+test('safe German prefilter never rejects a pair accepted by the full scorer',()=>{
+  const ipas=[
+    '[haʊ̯s]','[maʊ̯s]','[baʊ̯m]','[bɪs]','[kɪnt]','[mɪt]',
+    '[ˈliːbə]','[ˈtriːbə]','[ˈmiːtə]','[zoˈliːdə]','[ˈbliːbn̩]',
+    '[naxt]','[maxt]','[zuːxt]','[tsaɪt]','[vaɪ̯zə]',
+    '[ˈaʁbaɪ̯t͡sˌvaɪ̯zə]','[ˈhɔxt͡saɪ̯t͡sˌʁaɪ̯zə]',
+    '[ˈspɔtɪfaɪ̯]','[ˈnɔɪ̯ə]','[ˈhɪt͡səˌfʁaɪ̯]','[ˈɪnˌhaːbɐ]',
+  ];
+  const analyses=ipas.map(analyzeGermanIpa);
+  let rejected=0;
+  for(let i=0;i<analyses.length;i++){
+    for(let j=0;j<analyses.length;j++){
+      const full=scoreGermanRhymeAnalyses(analyses[i],analyses[j]);
+      const bound=germanRhymeMatchUpperBound(analyses[i],analyses[j]);
+      const accepted=full.type!=='weak'||(full.relationTypes||[]).length>0;
+      if(accepted){
+        assert.equal(
+          bound.possible,
+          true,
+          `false rejection: ${ipas[i]} -> ${ipas[j]} (${full.type}; ${full.relationTypes})`,
+        );
+      }
+      if(!bound.possible)rejected+=1;
+    }
+  }
+  assert.ok(rejected>0,'prefilter fixture must exercise actual safe rejections');
 });
