@@ -31,6 +31,14 @@ test('English canonical analyzer unifies CMUdict ARPAbet and Wiktionary IPA with
   assert.equal(gb.rhotic,false);
 });
 
+test('English IPA analyzer ignores Unicode format controls embedded in phonetic sequences',()=>{
+  const clean=analyzeEnglishIpa('ɐbˈaɪm',{locale:'en-US'});
+  const withJoiner=analyzeEnglishIpa('ɐbˈa\\u200Dɪm',{locale:'en-US'});
+  assert.equal(withJoiner.canonicalPhonemes,clean.canonicalPhonemes);
+  assert.equal(withJoiner.stressPattern,clean.stressPattern);
+  assert.equal(withJoiner.exactTailKey,clean.exactTailKey);
+});
+
 test('English fixture covers exact, multisyllabic, slant-family and independent relation behavior',()=>{
   for(const expectation of fixture.pair_expectations){
     const left=analyses.get(expectation.left),right=analyses.get(expectation.right);
