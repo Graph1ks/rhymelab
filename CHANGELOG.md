@@ -24,6 +24,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Fixed
 
+- Fixed DE -> EN compound rhyme bridging so German-only phones before the right edge no longer zero the English channel; `Arbeitsweise` now uses the same relevant stressed rhyme-tail neighborhood as `Weise`.
 - Unified result presentation now collapses duplicate Word/Entity surfaces into one visible answer per language. Core/Word pronunciation wins when available, same-name Entity identities contribute their taxonomy tags/QIDs, alternate pronunciations remain metadata, and unfiltered sound-relation sections no longer render the same result card repeatedly.
 - Normalized eSpeak-NG IPA adapter output before frozen DE/EN analysis: Unicode format joiners are removed and observed eSpeak-specific long-vowel variants are mapped into existing accepted analyzer inventories.
 - Prevented the first 1000-case eSpeak report format from being staged after the benchmark exposed adapter-induced false rejects and corrupted diphthong/syllable analysis.
@@ -33,6 +34,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Changed
 
+- Generated data is now included by default whenever the generated-capable runtime is available; the existing checkbox is an opt-out and `generated=0` is the explicit Core-only API mode.
+- Added a fail-closed German scorer upper-bound prefilter that skips expensive feature/full-score work only for provably impossible matches; retrieval populations and accepted result semantics remain unchanged and are guarded by optimized-vs-full response parity tests.
 - Query pronunciation cache reuse now requires the once-per-session `/api/health` database revision; DB or resolver updates invalidate stale generated pronunciations while source-backed database pronunciation remains authoritative.
 - Accepted the normalized eSpeak OOV v2 run as structural compatibility evidence at 1012 / 1014 analyzer-compatible cases (99.80%); lexical correctness remains a separate quality gate.
 - eSpeak OOV benchmark evidence is now schema v2 and records raw IPA, normalized IPA, normalization changes, all failures, and exact analyzer errors for forensic review.
