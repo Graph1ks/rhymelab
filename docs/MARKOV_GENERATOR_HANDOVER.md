@@ -227,11 +227,11 @@ Do not prematurely lock:
 - model storage format;
 - UI behavior.
 
-Those choices depend on the owner's next-thread requirements and measured source/model properties.
+Those choices were open at handover creation. The experimental corpus-backed V1 described below now makes provisional choices for model order, source corpus and reverse generation. They remain acceptance-reversible until full-data evidence is collected.
 
 ## Experimental V1 implementation candidate
 
-The first Markov test-surface implementation now has a focused contract in:
+The Markov test surface now has a corpus-backed implementation contract in:
 
 ```text
 docs/MARKOV_GENERATOR_V1.md
@@ -240,15 +240,33 @@ docs/MARKOV_GENERATOR_V1.md
 Current candidate behavior:
 
 - isolated development route at `/markov-test`;
-- deterministic `rhymelab-markov-bootstrap-v1` structural generator;
-- live unified Writer candidates supply Word / Phrase / Entity material;
-- optional Generated material follows runtime capability;
-- rhyme-pressure and explicit rhyme-mode controls include assonance-chain and internal-rhyme experiments;
-- same settings + same seed reproduce the same candidate order;
-- mobile/reduced-motion behavior and primary-control runtime interaction tests are included;
-- this remains an experimental bootstrap model, not the final corpus-trained transition model and not RhymePad product integration.
+- deterministic policy `rhymelab-markov-corpus-v1`;
+- resumable model builder over the three frozen German Leipzig 1M-sentence corpora already used by the Phrase pipeline;
+- compact order-2 forward + reverse transitions with order-1 backoff;
+- live unified Writer candidates continue to supply phonetic Word / Phrase / Entity rhyme truth;
+- end-rhyme generation selects the Writer rhyme tail first and walks reverse corpus transitions toward the left context;
+- opener continuity is checked against forward corpus transitions;
+- Phrase / Entity / internal-echo substitutions are context-gated instead of random slot insertions;
+- Naturalness affects transition sampling, tail support, opener joins and splice rejection;
+- same model fingerprint + input + controls + seed reproduce the same result order;
+- missing corpus model disables generation; the old hand-written bootstrap/template fallback is removed;
+- mobile/reduced-motion and primary-control regression coverage remain in place.
 
-The next substantive generator phase is corpus-backed transition-model materialization and quality benchmarking, not expanding the bootstrap sentence templates indefinitely.
+Build commands:
+
+```powershell
+npm run markov:model:plan
+npm run markov:model:build
+npm run markov:model:status
+```
+
+If the already-registered Leipzig extracted sentence files are absent locally:
+
+```powershell
+npm run phrase:catalog:bootstrap
+```
+
+The implementation has fixture-level deterministic tests, but the owner-local three-million-sentence model has not been materialized in the development-agent environment. Full model fingerprint, model size, runtime latency, sentence-quality review and RhymePad/Full-distribution promotion remain pending evidence.
 
 ## Frozen boundaries to preserve
 
