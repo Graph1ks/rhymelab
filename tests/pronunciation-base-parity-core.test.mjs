@@ -8,6 +8,7 @@ import {
   assertSameSqliteSchema,
   deferredBucket,
   jsonSortedUnique,
+  phraseDependencyBucket,
   resolveMaterializationResume,
   scopeClass,
   sqliteSchemaFingerprint,
@@ -42,6 +43,25 @@ test('deferred buckets preserve client B/C/D and unresolved U',()=>{
   }),'client_D_grapheme');
   assert.equal(deferredBucket({
     final_status:'unresolved',quality_tier:'U',
+  }),'U_unresolved');
+});
+
+test('phrase dependency buckets distinguish safe deferral from parity defects',()=>{
+  assert.equal(phraseDependencyBucket(null),'missing_backfill_dependency');
+  assert.equal(phraseDependencyBucket({
+    decision:'admit',final_status:'resolved',final_method:'espeak_ng',quality_tier:'A',
+  }),'active_espeak_ab_token_missing_from_writer');
+  assert.equal(phraseDependencyBucket({
+    decision:'review',final_status:'pending',final_method:null,quality_tier:null,
+  }),'admission_review');
+  assert.equal(phraseDependencyBucket({
+    decision:'reject_noise',final_status:'pending',final_method:null,quality_tier:null,
+  }),'admission_reject_noise');
+  assert.equal(phraseDependencyBucket({
+    decision:'admit',final_status:'resolved',final_method:'client_rules',quality_tier:'C',
+  }),'client_C_rules');
+  assert.equal(phraseDependencyBucket({
+    decision:'admit',final_status:'unresolved',final_method:null,quality_tier:'U',
   }),'U_unresolved');
 });
 

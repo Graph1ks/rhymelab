@@ -63,6 +63,19 @@ export function deferredBucket(row){
   return 'other_non_espeak';
 }
 
+export function phraseDependencyBucket(row){
+  if(!row)return 'missing_backfill_dependency';
+  const active=(
+    row.decision==='admit'
+    && row.final_status==='resolved'
+    && row.final_method==='espeak_ng'
+    && (row.quality_tier==='A'||row.quality_tier==='B')
+  );
+  if(active)return 'active_espeak_ab_token_missing_from_writer';
+  if(row.decision!=='admit')return 'admission_'+String(row.decision||'unknown');
+  return deferredBucket(row)||'non_active_token';
+}
+
 export function scopeClass(scopes){
   const set=new Set(scopes||[]);
   return {

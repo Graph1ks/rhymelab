@@ -80,6 +80,10 @@ and is exported to:
 
 `data/local/pronunciation-backfill-v2-deferred.tsv`
 
+Parity-only phrase dependency deferrals are separately exported to:
+
+`data/local/pronunciation-base-parity-v1-deferred-phrases.tsv`
+
 Do not promote, delete, silently fold in, or spend review time on those 2,538 rows unless the owner explicitly reopens that work later.
 
 ## Current owner action
@@ -223,7 +227,7 @@ The existing canonical Phrase materializers are then rerun:
 
 Full generated phrase surfaces are accepted only when the resulting phrase is representable through the canonical token-composition path.
 
-If an active generated phrase surface still cannot be represented canonically, the materializer intentionally fails instead of inventing incomplete phrase metadata.
+If a phrase is blocked only by a token that is intentionally non-active under the existing admission/fallback policy, the phrase surface is parity-deferred rather than force-inserted into a weaker schema. The materializer still intentionally fails for unexplained gaps, for an active eSpeak A/B token that is missing from the augmented Writer, or when all tokens resolve but canonical composition still fails.
 
 ### Entity
 
@@ -253,7 +257,7 @@ The owner report is acceptable only if all of the following hold:
 4. all four `exact_schema_match` values are true
 5. canonical DB files were not mutated
 6. the deferred total remains 2,538 with the expected four buckets
-7. all active generated phrase-surface rows are represented by the canonical phrase-composition path
+7. every active generated phrase-surface row is either represented by canonical phrase composition or appears in the parity-deferred phrase TSV because at least one required token is intentionally non-active; unexplained or active-token gaps are fatal
 8. there is no generated-only persistent metadata table/schema in any augmented runtime DB
 
 The materializer should hard-fail rather than emit `status=ok` when these invariants are violated.
@@ -316,13 +320,7 @@ Do not bypass normal EN eligibility semantics.
 
 ### Phrase failure
 
-Most important likely gate:
-
-`generated full-surface phrase is not representable by canonical token composition`
-
-If this occurs, inspect the exact phrase IDs and unresolved token resolution first.
-
-Do not create a second phrase-pronunciation representation solely to make the gate pass.
+Phrase composition gaps are dependency-classified. A gap is safe to parity-defer only when every unresolved token is intentionally non-active (review/reject-noise/Client B/C/D/U). If the materializer reports `unexplained_canonical_token_gap` or `canonical_composition_failed_with_all_tokens_resolved`, inspect those exact phrase/token rows and fix the canonical path. Do not create a second phrase-pronunciation representation solely to make the gate pass.
 
 ### Entity failure
 

@@ -53,6 +53,7 @@ import {
   assertSameSqliteSchema,
   deferredBucket,
   jsonSortedUnique,
+  phraseDependencyBucket,
   resolveMaterializationResume,
   sqliteSchemaFingerprint,
 } from './pronunciation-base-parity-core.mjs';
@@ -78,6 +79,7 @@ const phraseOutPath=resolve(argValue('--phrase-out','data/local/rhymelab-phrases
 const entityOutPath=resolve(argValue('--entity-out','data/local/rhymelab-entities-v1-generated-optin.sqlite'));
 const reportPath=resolve(argValue('--report','data/local/pronunciation-base-parity-v1-report.json'));
 const deferredPath=resolve(argValue('--deferred-tsv','data/local/pronunciation-backfill-v2-deferred.tsv'));
+const phraseDeferredPath=resolve(argValue('--phrase-deferred-tsv','data/local/pronunciation-base-parity-v1-deferred-phrases.tsv'));
 const deUsagePath=resolve(argValue('--de-usage','data/de/usage/de-usage.tsv'));
 const deKaikkiPath=resolve(argValue('--de-kaikki','data/work/de-rhyme-core-v1/downloads/dewiktionary-kaikki-raw.jsonl.gz'));
 const enRegistryPath=resolve(argValue('--en-registry','sources/en/phase12b-sources-v1.json'));
@@ -88,7 +90,7 @@ const resumePlan=resolveMaterializationResume(argValue('--resume-from','de'));
 for(const path of [workPath,deBasePath,enBasePath,phraseBasePath,entityBasePath,deUsagePath,deKaikkiPath,enRegistryPath]){
   if(!existsSync(path))throw new Error('Required input is missing: '+path);
 }
-for(const path of [deOutPath,enOutPath,phraseOutPath,entityOutPath,reportPath,deferredPath]){
+for(const path of [deOutPath,enOutPath,phraseOutPath,entityOutPath,reportPath,deferredPath,phraseDeferredPath]){
   await mkdir(dirname(path),{recursive:true});
 }
 const outputByStage=new Map([
@@ -886,17 +888,156 @@ async function buildPhrases(){
       ORDER BY sr.item_id,sr.source_key
     `).all();
     const eligible=phraseDb.prepare('SELECT 1 AS ok FROM phrase_pronunciation WHERE phrase_id=? AND eligible=1 LIMIT 1');
+    const phraseInfo=phraseDb.prepare(
+      'SELECT canonical,normalized,token_count,modern_eligible FROM phrase WHERE phrase_id=?'
+    );
+    const unresolvedTokens=phraseDb.prepare(`
+      SELECT r.token_index,t.surface,r.normalized,r.status
+      FROM phrase_token_pronunciation_resolution r
+      JOIN phrase_token t ON t.phrase_id=r.phrase_id AND t.token_index=r.token_index
+      WHERE r.phrase_id=? AND r.status<>'resolved_preferred'
+      ORDER BY r.token_index
+    `);
+    const tokenBackfill=workDb.prepare(`
+      SELECT w.item_id,w.surface,w.normalized,w.final_status,w.final_method,w.quality_tier,
+             w.client_status,w.last_error,a.decision,a.reason
+      FROM work_item w
+      JOIN admission a USING(item_id)
+      WHERE w.language='de' AND w.normalized=?
+        AND EXISTS(
+          SELECT 1 FROM source_ref sr
+          WHERE sr.item_id=w.item_id AND sr.scope='phrase_unresolved_token'
+        )
+      ORDER BY
+        CASE a.decision WHEN 'admit' THEN 0 WHEN 'review' THEN 1 ELSE 2 END,
+        w.item_id
+      LIMIT 1
+    `);
+
     const missing=surfaceRefs.filter((row)=>!eligible.get(row.phrase_id));
-    if(missing.length){
-      const sample=missing.slice(0,20).map((row)=>row.phrase_id).join(', ');
+    const parityDeferred=[];
+    const hardFailures=[];
+    for(const row of missing){
+      const phrase=phraseInfo.get(row.phrase_id)||{};
+      const tokens=unresolvedTokens.all(row.phrase_id);
+      if(!tokens.length){
+        hardFailures.push({
+          ...row,
+          canonical:phrase.canonical||null,
+          reason:'canonical_composition_failed_with_all_tokens_resolved',
+          tokens:[],
+        });
+        continue;
+      }
+
+      const dependencies=tokens.map((token)=>{
+        const state=tokenBackfill.get(token.normalized)||null;
+        const active=Boolean(
+          state
+          && state.decision==='admit'
+          && state.final_status==='resolved'
+          && state.final_method==='espeak_ng'
+          && (state.quality_tier==='A'||state.quality_tier==='B')
+        );
+        const bucket=phraseDependencyBucket(state);
+        return {
+          token_index:Number(token.token_index),
+          surface:token.surface,
+          normalized:token.normalized,
+          resolution_status:token.status,
+          backfill_item_id:state?Number(state.item_id):null,
+          admission_decision:state?.decision||null,
+          admission_reason:state?.reason||null,
+          final_status:state?.final_status||null,
+          final_method:state?.final_method||null,
+          quality_tier:state?.quality_tier||null,
+          client_status:state?.client_status||null,
+          last_error:state?.last_error||null,
+          dependency_bucket:bucket,
+          active_espeak_ab:active,
+        };
+      });
+
+      const unexplained=dependencies.filter((dep)=>
+        dep.dependency_bucket==='missing_backfill_dependency'
+        ||dep.dependency_bucket==='active_espeak_ab_token_missing_from_writer'
+      );
+      if(unexplained.length){
+        hardFailures.push({
+          ...row,
+          canonical:phrase.canonical||null,
+          reason:'unexplained_canonical_token_gap',
+          tokens:dependencies,
+        });
+        continue;
+      }
+
+      parityDeferred.push({
+        item_id:Number(row.item_id),
+        phrase_id:row.phrase_id,
+        canonical:phrase.canonical||null,
+        normalized:phrase.normalized||null,
+        token_count:Number(phrase.token_count||0),
+        modern_eligible:Boolean(phrase.modern_eligible),
+        reason:'blocked_by_intentionally_non_active_token_dependency',
+        dependencies,
+      });
+    }
+
+    if(hardFailures.length){
+      const sample=hardFailures.slice(0,10).map((row)=>
+        row.phrase_id+':'+row.reason
+      ).join(', ');
       throw new Error(
-        'Phrase base-parity failed: '+missing.length+' generated full-surface phrase rows still cannot be represented by canonical token composition. Sample: '+sample
+        'Phrase base-parity failed: '+hardFailures.length+
+        ' phrase surfaces have unexplained canonical-composition gaps after dependency classification. Sample: '+sample
       );
     }
+
+    await writeFile(
+      phraseDeferredPath,
+      [
+        ['item_id','phrase_id','canonical','normalized','token_count','modern_eligible','reason','dependencies_json'].join('\t'),
+        ...parityDeferred.map((row)=>[
+          row.item_id,row.phrase_id,row.canonical,row.normalized,row.token_count,
+          row.modern_eligible?1:0,row.reason,JSON.stringify(row.dependencies),
+        ].map(tsvCell).join('\t')),
+      ].join('\n')+'\n',
+      'utf8',
+    );
+
+    if(parityDeferred.length){
+      const bucketCounts={};
+      for(const row of parityDeferred){
+        for(const dep of row.dependencies){
+          bucketCounts[dep.dependency_bucket]=(bucketCounts[dep.dependency_bucket]||0)+1;
+        }
+      }
+      console.log(
+        '[base-parity:phrases] deferred='+parityDeferred.length+
+        ' full-surface rows because canonical token composition depends on intentionally non-active tokens'+
+        ' · dependency_buckets='+JSON.stringify(bucketCounts)
+      );
+    }
+
     phraseDb.exec('ANALYZE; PRAGMA optimize;');
     return {
       source_surface_rows:surfaceRefs.length,
-      source_surface_rows_represented_by_canonical_composition:surfaceRefs.length,
+      source_surface_rows_represented_by_canonical_composition:surfaceRefs.length-parityDeferred.length,
+      source_surface_rows_parity_deferred:parityDeferred.length,
+      parity_deferred_tsv:phraseDeferredPath,
+      parity_deferred_reason:'blocked_by_intentionally_non_active_token_dependency',
+      parity_deferred_dependency_buckets:Object.fromEntries(
+        [...new Set(parityDeferred.flatMap((row)=>row.dependencies.map((dep)=>dep.dependency_bucket)))]
+          .sort()
+          .map((bucket)=>[
+            bucket,
+            parityDeferred.reduce(
+              (sum,row)=>sum+row.dependencies.filter((dep)=>dep.dependency_bucket===bucket).length,
+              0,
+            ),
+          ])
+      ),
       ready_phrases:pronunciation.readyPhrases,
       windows:windows.windows??windows.windowCount??null,
       retrieval_anchors:retrieval.anchorCount??null,
@@ -1135,6 +1276,7 @@ const report={
     canonical_databases_mutated:false,
     base_schema_rule:'generated opt-in databases must have exactly the same SQLite schema as their canonical base database',
     extra_etymology_or_sense_tables:false,
+    phrase_surface_policy:'canonical composition only; full-surface generated rows blocked solely by intentionally non-active token dependencies are parity-deferred, never force-inserted',
   },
   inputs:{
     work:workPath,
@@ -1149,6 +1291,7 @@ const report={
     phrases:phraseOutPath,
     entities:entityOutPath,
     deferred_tsv:deferredPath,
+    phrase_parity_deferred_tsv:phraseDeferredPath,
   },
   active_espeak_ab:activeCount,
   active_domain_coverage:activeDomainCoverage,
