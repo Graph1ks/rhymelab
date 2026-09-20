@@ -139,7 +139,9 @@ export function createPhraseRankingEvidenceResolver(db) {
   try{
     serving=
       db.prepare("SELECT value FROM meta WHERE key='schema'").get()?.value==='rhymelab-serving-v1'
-      &&db.prepare("SELECT value FROM meta WHERE key='product_adapter_status'").get()?.value==='complete';
+      &&Boolean(db.prepare(
+        "SELECT 1 FROM sqlite_schema WHERE type='table' AND name='runtime_phrase'"
+      ).get());
   }catch{}
 
   let materialized=null;
