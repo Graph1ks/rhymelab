@@ -24,3 +24,21 @@ test('same coda with contrasting vowels is consonance',()=>{
   assert.equal(relations.consonance.matched,true);
   assert.equal(relations.assonance.matched,false);
 });
+
+
+test('prepared relation symbols preserve classifier output exactly',()=>{
+  const left=vc('aʊ',['s']);
+  const right=vc('ɪ',['s']);
+  const options={vowelSimilarity:exact,consonantSimilarity:softCons};
+  const compatibility=classifySoundRelations(left,right,options);
+  const prepared=classifySoundRelations(left,right,{
+    ...options,
+    preparedSymbols:{
+      vowelsA:['aʊ'],
+      vowelsB:['ɪ'],
+      consonantsA:['s'],
+      consonantsB:['s'],
+    },
+  });
+  assert.deepEqual(prepared,compatibility);
+});
