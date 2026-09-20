@@ -1,4 +1,5 @@
 import { analyzeEnglishPronunciation } from './english-phonology.mjs';
+import { normalizeEspeakIpa } from './espeak-ipa-normalization.mjs';
 import { englishCoarseCodaClass } from './en-writer-db-core.mjs';
 import { normalizeEnglishSurface } from './en-writer-source-core.mjs';
 
@@ -307,7 +308,10 @@ export function retrieveEnglishRuntimeCandidatesFromAnalysis(db,analysis,options
 
 export function analyzeStoredEnglishRuntimePronunciation(row){
   const locale=row.locale_us?'en-US':(row.locale_gb?'en-GB':null);
-  return analyzeEnglishPronunciation(row.raw,{
+  const pronunciation=row.source==='espeak_ng_generated_secondary'&&row.notation==='ipa'
+    ?normalizeEspeakIpa(row.raw,'en')
+    :row.raw;
+  return analyzeEnglishPronunciation(pronunciation,{
     notation:row.notation,
     locale,
     source:row.source,
