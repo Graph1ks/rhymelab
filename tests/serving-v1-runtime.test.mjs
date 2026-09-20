@@ -380,6 +380,19 @@ test('Serving-v1 runtime materializer plans read-only, resumes safely, and build
       assert.deepEqual(entityGenerated.map((row)=>row.normalized),['future star']);
     }finally{db.close();}
 
+    const equivalenceReport=join(root,'equivalence-report.json');
+    const equivalence=spawnSync(
+      process.execPath,
+      ['--no-warnings','scripts/verify-serving-v1-runtime-equivalence.mjs',
+        '--serving',serving,'--report',equivalenceReport,'--sample','20'],
+      {cwd:process.cwd(),encoding:'utf8'},
+    );
+    assert.equal(equivalence.status,0,equivalence.stderr||equivalence.stdout);
+    const equivalenceJson=JSON.parse(await readFile(equivalenceReport,'utf8'));
+    assert.equal(equivalenceJson.status,'accepted');
+    assert.equal(equivalenceJson.totals.failed,0);
+    assert.ok(equivalenceJson.totals.cases>0);
+
     const backupDb=new DatabaseSync(backup,{readOnly:true});
     try{
       assert.equal(backupDb.prepare("SELECT value FROM meta WHERE key='runtime_schema'").get(),undefined);
