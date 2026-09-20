@@ -41,6 +41,7 @@ import {
   isServingV1Preview,
   resolveServerRuntimeMode,
 } from './server-runtime-mode.mjs';
+import {createServingV1ParallelWriterRuntime} from './unified-writer-parallel.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
@@ -161,6 +162,19 @@ if(servingV1Preview){
   }catch(error){
     console.error(`Cannot open Serving-v1 Product database at ${servingV1DbPath}`);
     console.error('Build it with: npm run serving:v1:product:build');
+    console.error(error instanceof Error?error.message:String(error));
+    process.exit(1);
+  }
+}
+
+let parallelWriterRuntime=null;
+if(servingV1Preview){
+  try{
+    parallelWriterRuntime=createServingV1ParallelWriterRuntime(servingV1DbPath);
+    await parallelWriterRuntime.ready();
+  }catch(error){
+    try{await parallelWriterRuntime?.close();}catch{}
+    console.error('Cannot initialize persistent Serving-v1 Writer workers.');
     console.error(error instanceof Error?error.message:String(error));
     process.exit(1);
   }
@@ -481,6 +495,12 @@ const server = createServer(async (req, res) => {
           revalidation: 'health_revision_once_per_app_session',
         },
         generated_optin: generatedRuntimeHealth(),
+        parallel_search: servingV1Preview ? {
+          enabled:true,
+          ...parallelWriterRuntime.health(),
+        } : {
+          enabled:false,
+        },
         unified_writer: unifiedWriterCapabilities(canonicalRuntimeDatabases),
       });
     }
@@ -499,32 +519,33 @@ const server = createServer(async (req, res) => {
           reason:activeGeneratedRuntime.reason,
         },503);
       }
-      const searchStarted=performance.now();
-      const result = searchUnifiedWriter(
-        runtimeDatabases,
-        q,
-        {
-          language: url.searchParams.get('language') || 'de',
-          resultLanguage: url.searchParams.get('result_language') || url.searchParams.get('results_language') || null,
-          scope: url.searchParams.get('scope') || 'all',
-          type: url.searchParams.get('type') || 'all',
-          includeVariants: url.searchParams.get('variants') === 'all',
-          includeHistorical: url.searchParams.get('historical') === 'all',
-          wordLimit: url.searchParams.get('word_limit') || url.searchParams.get('limit'),
-          wordPoolLimit: url.searchParams.get('word_pool') || url.searchParams.get('pool'),
-          phraseLimit: url.searchParams.get('phrase_limit') || url.searchParams.get('limit'),
-          phrasePoolLimit: url.searchParams.get('phrase_pool'),
-          phrasePerChannelLimit: url.searchParams.get('phrase_per_channel'),
-          entityLimit: url.searchParams.get('entity_limit') || url.searchParams.get('limit'),
-          entityPoolLimit: url.searchParams.get('entity_pool'),
-          entityCategory: url.searchParams.get('entity_category') || 'all',
-          generatedOnly:generatedOnlyRequested(url),
-          queryPronunciations: {
-            de: clientQueryPronunciation(url, 'de'),
-            en: clientQueryPronunciation(url, 'en'),
-          },
+      const searchOptions={
+        language: url.searchParams.get('language') || 'de',
+        resultLanguage: url.searchParams.get('result_language') || url.searchParams.get('results_language') || null,
+        scope: url.searchParams.get('scope') || 'all',
+        type: url.searchParams.get('type') || 'all',
+        includeVariants: url.searchParams.get('variants') === 'all',
+        includeHistorical: url.searchParams.get('historical') === 'all',
+        wordLimit: url.searchParams.get('word_limit') || url.searchParams.get('limit'),
+        wordPoolLimit: url.searchParams.get('word_pool') || url.searchParams.get('pool'),
+        phraseLimit: url.searchParams.get('phrase_limit') || url.searchParams.get('limit'),
+        phrasePoolLimit: url.searchParams.get('phrase_pool'),
+        phrasePerChannelLimit: url.searchParams.get('phrase_per_channel'),
+        entityLimit: url.searchParams.get('entity_limit') || url.searchParams.get('limit'),
+        entityPoolLimit: url.searchParams.get('entity_pool'),
+        entityCategory: url.searchParams.get('entity_category') || 'all',
+        generatedOnly:generatedOnlyRequested(url),
+        queryPronunciations: {
+          de: clientQueryPronunciation(url, 'de'),
+          en: clientQueryPronunciation(url, 'en'),
         },
-      );
+      };
+      const searchStarted=performance.now();
+      const result = servingV1Preview
+        ?await parallelWriterRuntime.search(q,searchOptions,{
+            generatedOverlay:generatedOptinRequested(url),
+          })
+        :searchUnifiedWriter(runtimeDatabases,q,searchOptions);
       const runtimeTiming=writerQueryTiming.record(performance.now()-searchStarted);
       const status = result.status === 'language_unavailable'
         ? 503
@@ -642,6 +663,7 @@ server.listen(port, host, () => {
     console.log(`Product runtime: Serving-v1 preview`);
     console.log(`Serving-v1 SQLite: ${servingV1DbPath}`);
     console.log(`Serving-v1 runtime: ${SERVING_V1_PRODUCT_RUNTIME}`);
+    console.log(`Writer execution: ${parallelWriterRuntime.health().execution} · ${parallelWriterRuntime.health().workers} workers`);
     console.log('Generated opt-in: Serving-v1 all-mode (default OFF)');
   }else{
     console.log(`Writer v5 SQLite: ${writerDbPath}`);
@@ -657,8 +679,9 @@ server.listen(port, host, () => {
 });
 
 function shutdown() {
-  server.close(() => {
-    try { writerDb.close(); } catch {}
+  server.close(async() => {
+    try { await parallelWriterRuntime?.close(); } catch {}
+    try { writerDb?.close(); } catch {}
     try { legacyDb?.close(); } catch {}
     try { phraseDb?.close(); } catch {}
     try { entityDb?.close(); } catch {}
