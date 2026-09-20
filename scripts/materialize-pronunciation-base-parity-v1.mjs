@@ -495,9 +495,51 @@ async function buildEnglish(){
   await cloneBase(enBasePath,enOutPath);
   const db=new DatabaseSync(enOutPath);
   db.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;');
-  const targets=activeRows.filter((row)=>row.language==='en'&&row.scopeClass.enWord);
-  const targetByNormalized=new Map(targets.map((row)=>[String(row.normalized),row]));
-  console.log('[base-parity:en] targets='+targets.length.toLocaleString('en-US'));
+  db.exec(`
+    CREATE TEMP TABLE generated_en_target(
+      item_id INTEGER PRIMARY KEY,
+      normalized TEXT NOT NULL UNIQUE,
+      surface TEXT NOT NULL,
+      ipa TEXT NOT NULL,
+      raw_ipa TEXT,
+      quality_tier TEXT NOT NULL,
+      quality_reason TEXT,
+      engine TEXT,
+      engine_version TEXT,
+      wordfreq_rank INTEGER,
+      wordfreq_zipf REAL
+    );
+    CREATE TEMP TABLE generated_en_evidence(
+      item_id INTEGER NOT NULL,
+      evidence_json TEXT NOT NULL
+    );
+    CREATE INDEX temp.idx_generated_en_evidence_item ON generated_en_evidence(item_id);
+    CREATE TEMP TABLE generated_en_esdb(
+      item_id INTEGER NOT NULL,
+      evidence_json TEXT NOT NULL
+    );
+    CREATE INDEX temp.idx_generated_en_esdb_item ON generated_en_esdb(item_id);
+  `);
+  const insertTarget=db.prepare(`
+    INSERT INTO temp.generated_en_target(
+      item_id,normalized,surface,ipa,raw_ipa,quality_tier,quality_reason,engine,engine_version
+    ) VALUES(?,?,?,?,?,?,?,?,?)
+  `);
+  const targetByNormalized=new Map();
+  let targetCount=0;
+  db.exec('BEGIN');
+  try{
+    for(const row of workDb.prepare(enTargetSql).iterate()){
+      insertTarget.run(
+        Number(row.item_id),row.normalized,row.surface,row.ipa,row.raw_ipa||null,
+        row.quality_tier,row.quality_reason||null,row.engine||null,row.engine_version||null,
+      );
+      targetByNormalized.set(String(row.normalized),Number(row.item_id));
+      targetCount+=1;
+    }
+    db.exec('COMMIT');
+  }catch(error){try{db.exec('ROLLBACK')}catch{};throw error}
+  console.log('[base-parity:en] targets='+targetCount.toLocaleString('en-US'));
 
   const registry=await readJson(enRegistryPath);
   const rawDir=resolve(enRawDirArg||registry.local_raw_directory||'data/raw/en/phase12b-20260918');
@@ -511,85 +553,89 @@ async function buildEnglish(){
   const esdbPath=resolve(rawDir,esdbSource.local_filename);
   const wordfreqPath=resolve(rawDir,wordfreqSource.local_filename);
 
-  const records=new Map();
-  function ensureRecord(evidence){
-    let record=records.get(evidence.normalized);
-    if(!record){
-      record={
-        surface:evidence.surface,
-        normalized:evidence.normalized,
-        surface_variants:new Set(),
-        poses:new Set(),
-        tags:new Set(),
-        lemmas:new Set(),
-        relation_kinds:new Set(),
-        evidence_kinds:new Set(),
-        lexical_current_evidence:0,
-        lexical_historical_evidence:0,
-        proper_name_evidence:0,
-        common_lexical_evidence:0,
-        esdb:null,
-        usage:null,
-        pronunciations:[],
-      };
-      records.set(evidence.normalized,record);
-    }
-    return record;
-  }
-  function addEvidence(evidence){
-    if(!evidence?.normalized||!targetByNormalized.has(evidence.normalized))return;
-    const record=ensureRecord(evidence);
-    record.surface_variants.add(evidence.surface);
-    if(evidence.pos&&evidence.pos!=='unknown')record.poses.add(evidence.pos);
-    for(const value of evidence.tags||[])record.tags.add(value);
-    for(const value of evidence.lemma_candidates||[])record.lemmas.add(value);
-    for(const value of evidence.relation_kinds||[])record.relation_kinds.add(value);
-    record.evidence_kinds.add(evidence.evidence_kind);
-    if(evidence.proper_name)record.proper_name_evidence+=1;
-    else record.common_lexical_evidence+=1;
-    if(historicalEvidence(evidence))record.lexical_historical_evidence+=1;
-    else record.lexical_current_evidence+=1;
-  }
-
+  const insertEvidence=db.prepare('INSERT INTO temp.generated_en_evidence(item_id,evidence_json) VALUES(?,?)');
   const input=createReadStream(kaikkiPath).pipe(createGunzip());
   const lines=createInterface({input,crlfDelay:Infinity});
-  let raw=0;
-  for await(const line of lines){
-    raw+=1;
-    if(!line)continue;
-    let entry;try{entry=JSON.parse(line)}catch{continue}
-    if(entry?.lang_code!=='en')continue;
-    addEvidence(lexicalEvidenceForHeadword(entry));
-    for(const evidence of lexicalEvidenceForListedForms(entry))addEvidence(evidence);
-    if(raw%progressEvery===0)console.log('[base-parity:en-kaikki] raw='+raw.toLocaleString('en-US')+' matched='+records.size.toLocaleString('en-US'));
-  }
-  lines.close();input.destroy();
-
-  const esdbLines=createInterface({input:createReadStream(esdbPath),crlfDelay:Infinity});
-  for await(const line of esdbLines){
-    const parsed=parseEsdbLine(line);
-    if(!parsed)continue;
-    for(const surface of parsed.forms||[]){
-      const normalized=normalizeEnglishSurface(surface);
-      const record=records.get(normalized);
-      if(record)record.esdb=mergeEsdbEvidence(record.esdb,parsed);
+  let raw=0,matchedEvidence=0;
+  db.exec('BEGIN');
+  try{
+    for await(const line of lines){
+      raw+=1;
+      if(!line)continue;
+      let entry;try{entry=JSON.parse(line)}catch{continue}
+      if(entry?.lang_code!=='en')continue;
+      const evidences=[
+        lexicalEvidenceForHeadword(entry),
+        ...lexicalEvidenceForListedForms(entry),
+      ].filter(Boolean);
+      for(const evidence of evidences){
+        const itemId=targetByNormalized.get(evidence.normalized);
+        if(!itemId)continue;
+        insertEvidence.run(itemId,JSON.stringify(evidence));
+        matchedEvidence+=1;
+      }
+      if(raw%progressEvery===0){
+        db.exec('COMMIT');db.exec('BEGIN');
+        console.log('[base-parity:en-kaikki] raw='+raw.toLocaleString('en-US')+' evidence='+matchedEvidence.toLocaleString('en-US'));
+      }
     }
-  }
-  for(const record of records.values())record.esdb=finalizeEsdbEvidence(record.esdb);
+    db.exec('COMMIT');
+  }catch(error){try{db.exec('ROLLBACK')}catch{};throw error}
+  finally{lines.close();input.destroy()}
 
+  const insertEsdb=db.prepare('INSERT INTO temp.generated_en_esdb(item_id,evidence_json) VALUES(?,?)');
+  const esdbLines=createInterface({input:createReadStream(esdbPath),crlfDelay:Infinity});
+  db.exec('BEGIN');
+  try{
+    let parsedRows=0;
+    for await(const line of esdbLines){
+      const parsed=parseEsdbLine(line);
+      if(!parsed)continue;
+      parsedRows+=1;
+      const seenItems=new Set();
+      for(const surface of parsed.forms||[]){
+        const normalized=normalizeEnglishSurface(surface);
+        const itemId=targetByNormalized.get(normalized);
+        if(!itemId||seenItems.has(itemId))continue;
+        seenItems.add(itemId);
+        insertEsdb.run(itemId,JSON.stringify(parsed));
+      }
+      if(parsedRows%progressEvery===0){
+        db.exec('COMMIT');db.exec('BEGIN');
+        console.log('[base-parity:en-esdb] rows='+parsedRows.toLocaleString('en-US'));
+      }
+    }
+    db.exec('COMMIT');
+  }catch(error){try{db.exec('ROLLBACK')}catch{};throw error}
+
+  const updateWordfreq=db.prepare(`
+    UPDATE temp.generated_en_target SET wordfreq_rank=?,wordfreq_zipf=? WHERE item_id=?
+  `);
   const decoded=decodeMsgpack(gunzipSync(await readFile(wordfreqPath)));
   const wordRows=parseWordfreqCBpack(decoded);
   const seen=new Set();
   let rank=0;
   for(const item of wordRows){
     const normalized=normalizeEnglishSurface(item.word);
-    if(!normalized||seen.has(normalized))continue;
-    seen.add(normalized);rank+=1;
-    const record=records.get(normalized);
-    if(record)record.usage={rank,zipf:Number(item.zipf)};
+    if(!normalized||!isEnglishPublishSurface(normalized)||seen.has(normalized))continue;
+    seen.add(normalized);
+    rank+=1;
+    const itemId=targetByNormalized.get(normalized);
+    if(itemId)updateWordfreq.run(rank,Number(item.zipf),itemId);
   }
 
-  const existing=db.prepare('SELECT * FROM en_form WHERE normalized=?');
+  db.exec(`
+    CREATE TEMP TABLE generated_en_current AS
+    SELECT t.item_id,
+           f.id AS current_id,
+           f.historical_only AS current_historical_only,
+           f.proper_name_only AS current_proper_name_only,
+           f.esdb_invalid AS current_esdb_invalid
+    FROM generated_en_target t
+    LEFT JOIN en_form f ON f.normalized=t.normalized;
+    CREATE INDEX temp.idx_generated_en_current_item ON generated_en_current(item_id);
+  `);
+
   const updateExisting=db.prepare(`
     UPDATE en_form
     SET analyzed_en_us=1,default_eligible=?,exclusion_reasons=?
@@ -604,39 +650,105 @@ async function buildEnglish(){
       historical_only,proper_name_only,analyzed_en_us,default_eligible,exclusion_reasons,
       esdb_min_size,esdb_regions,esdb_pos_classes,esdb_archaic,esdb_uncommon,esdb_invalid,
       wordfreq_rank,wordfreq_zipf
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ) VALUES(${Array(26).fill('?').join(',')})
   `);
   const insertPron=db.prepare(`
     INSERT INTO en_pronunciation(
       form_id,source,notation,raw,locales,locale_us,locale_gb,source_attested_unprofiled,tags,evidence_count,
       analysis_status,phonemes,syllable_count,stress,primary_stress,rhyme_tail,final_tail,exact_key,
       multisyllable_key,vowel_key,vowel_family,coda_key,coda_class,rhyme_syllables,rhotic,default_profile_eligible
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ) VALUES(${Array(26).fill('?').join(',')})
   `);
-  let inserted=0,overlaid=0;
+  const targetRows=db.prepare(`
+    SELECT t.*,c.current_id,c.current_historical_only,c.current_proper_name_only,c.current_esdb_invalid
+    FROM generated_en_target t
+    JOIN generated_en_current c USING(item_id)
+    ORDER BY t.item_id
+  `);
+
+  const evidenceIterator=db.prepare(
+    'SELECT item_id,evidence_json FROM temp.generated_en_evidence ORDER BY item_id'
+  ).iterate()[Symbol.iterator]();
+  let evidenceCursor=evidenceIterator.next();
+  function evidenceForItem(itemId){
+    const values=[];
+    while(!evidenceCursor.done&&Number(evidenceCursor.value.item_id)<itemId)evidenceCursor=evidenceIterator.next();
+    while(!evidenceCursor.done&&Number(evidenceCursor.value.item_id)===itemId){
+      values.push(JSON.parse(evidenceCursor.value.evidence_json));
+      evidenceCursor=evidenceIterator.next();
+    }
+    return values;
+  }
+  const esdbIterator=db.prepare(
+    'SELECT item_id,evidence_json FROM temp.generated_en_esdb ORDER BY item_id'
+  ).iterate()[Symbol.iterator]();
+  let esdbCursor=esdbIterator.next();
+  function esdbForItem(itemId){
+    const values=[];
+    while(!esdbCursor.done&&Number(esdbCursor.value.item_id)<itemId)esdbCursor=esdbIterator.next();
+    while(!esdbCursor.done&&Number(esdbCursor.value.item_id)===itemId){
+      values.push(JSON.parse(esdbCursor.value.evidence_json));
+      esdbCursor=esdbIterator.next();
+    }
+    return values;
+  }
+
+  let inserted=0,overlaid=0,matchedRecords=0,done=0;
   db.exec('BEGIN');
   try{
-    for(let index=0;index<targets.length;index+=1){
-      const row=targets[index];
+    for(const row of targetRows.iterate()){
+      const evidences=evidenceForItem(Number(row.item_id));
+      const record={
+        surface:evidences[0]?.surface||row.surface,
+        normalized:row.normalized,
+        surface_variants:new Set(),
+        poses:new Set(),
+        tags:new Set(),
+        lemmas:new Set(),
+        relation_kinds:new Set(),
+        evidence_kinds:new Set(),
+        lexical_current_evidence:0,
+        lexical_historical_evidence:0,
+        proper_name_evidence:0,
+        common_lexical_evidence:0,
+        esdb:null,
+        usage:Number.isInteger(Number(row.wordfreq_rank))
+          ?{rank:Number(row.wordfreq_rank),zipf:Number(row.wordfreq_zipf)}
+          :null,
+        pronunciations:[],
+      };
+      for(const evidence of evidences){
+        record.surface_variants.add(evidence.surface);
+        if(evidence.pos&&evidence.pos!=='unknown')record.poses.add(evidence.pos);
+        for(const value of evidence.tags||[])record.tags.add(value);
+        for(const value of evidence.lemma_candidates||[])record.lemmas.add(value);
+        for(const value of evidence.relation_kinds||[])record.relation_kinds.add(value);
+        record.evidence_kinds.add(evidence.evidence_kind);
+        if(evidence.proper_name)record.proper_name_evidence+=1;
+        else record.common_lexical_evidence+=1;
+        if(historicalEvidence(evidence))record.lexical_historical_evidence+=1;
+        else record.lexical_current_evidence+=1;
+      }
+      if(evidences.length)matchedRecords+=1;
+      if(!record.surface_variants.size)record.surface_variants.add(row.surface);
+      for(const parsed of esdbForItem(Number(row.item_id))){
+        record.esdb=mergeEsdbEvidence(record.esdb,parsed);
+      }
+      record.esdb=finalizeEsdbEvidence(record.esdb);
+
       const analysis=analyzeEnglishPronunciation(cleanIpa(row.ipa),{
         notation:'ipa',locale:'en-US',source:'espeak_ng_generated_secondary',
       });
-      const record=records.get(row.normalized)||{
-        surface:row.surface,normalized:row.normalized,surface_variants:new Set([row.surface]),
-        poses:new Set(),tags:new Set(),lemmas:new Set(),relation_kinds:new Set(),evidence_kinds:new Set(),
-        lexical_current_evidence:0,lexical_historical_evidence:0,proper_name_evidence:0,
-        common_lexical_evidence:0,esdb:null,usage:null,pronunciations:[],
-      };
       record.pronunciations=[{analysis,locales:['en-US']}];
-      const current=existing.get(row.normalized)||null;
+
       let formId;
       let defaultEligible;
-      if(current){
-        formId=Number(current.id);
+      if(Number.isInteger(Number(row.current_id))&&Number(row.current_id)>0){
+        formId=Number(row.current_id);
         const reasons=[];
-        if(Number(current.historical_only))reasons.push('historical_only');
-        if(Number(current.proper_name_only))reasons.push('explicit_proper_name_only');
-        if(Number(current.esdb_invalid))reasons.push('esdb_invalid_variant');
+        if(Number(row.current_historical_only))reasons.push('historical_only');
+        if(Number(row.current_proper_name_only))reasons.push('explicit_proper_name_only');
+        if(Number(row.current_esdb_invalid))reasons.push('esdb_invalid_variant');
         defaultEligible=reasons.length===0;
         updateExisting.run(defaultEligible?1:0,JSON.stringify(reasons),formId);
         overlaid+=1;
@@ -661,6 +773,7 @@ async function buildEnglish(){
         );
         inserted+=1;
       }
+
       const codaClass=englishCoarseCodaClass(analysis.codaKey||'');
       insertPron.run(
         formId,'espeak_ng_generated_secondary','ipa',row.raw_ipa||row.ipa,
@@ -671,16 +784,25 @@ async function buildEnglish(){
         analysis.codaKey||'',codaClass,analysis.stressedSyllableCount,analysis.rhotic?1:0,
         defaultEligible?1:0,
       );
-      if((index+1)%progressEvery===0){
+
+      done+=1;
+      if(done%progressEvery===0){
         db.exec('COMMIT');db.exec('BEGIN');
-        console.log('[base-parity:en-write] '+(index+1).toLocaleString('en-US')+'/'+targets.length.toLocaleString('en-US'));
+        console.log('[base-parity:en-write] '+done.toLocaleString('en-US')+'/'+targetCount.toLocaleString('en-US'));
       }
     }
     db.exec('COMMIT');
   }catch(error){try{db.exec('ROLLBACK')}catch{};throw error}
+
+  targetByNormalized.clear();
   db.exec('ANALYZE; PRAGMA optimize;');
   db.close();
-  return {targets:targets.length,inserted,overlaid,source_records_matched:records.size};
+  return {
+    targets:targetCount,
+    inserted,
+    overlaid,
+    source_records_matched:matchedRecords,
+  };
 }
 
 async function buildPhrases(){
