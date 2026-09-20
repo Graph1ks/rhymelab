@@ -1,4 +1,4 @@
-# Markov Generator V1 — Corpus-backed experimental surface
+# Markov Generator V1 — lyric-calibrated experimental surface
 
 ## Status
 
@@ -13,7 +13,7 @@ Development route:
 Generator policy:
 
 ```text
-rhymelab-markov-corpus-v1
+rhymelab-markov-lyric-v1
 ```
 
 Model schema:
@@ -22,71 +22,71 @@ Model schema:
 rhymelab-markov-model-v1
 ```
 
-The hand-written bootstrap sentence templates have been removed. The test surface now requires a materialized local corpus model. If that model is missing, generation is disabled rather than falling back to fabricated structural templates.
+The generator is a constrained Markov line generator. RhymeLab Writer remains the authority for rhyme candidates and phonetic scores; the Markov model supplies local word-order evidence.
 
-## Source corpus
+## Privacy boundary: owner lyrics are calibration only
 
-The German V1 model consumes the same frozen Leipzig sentence sources already registered for Phase 11 phrase evidence:
+Owner-provided lyrics are **not product training data**.
 
-- `deu_news_2024_1M`;
-- `deu_wikipedia_2021_1M`;
-- `deu-de_web_2021_1M`.
+Hard rules:
 
-The authoritative source manifest is:
+- no private lyric JSON in Git;
+- no lyric lines, titles, IDs or URLs in tests/docs/runtime assets;
+- no n-grams or transition tables derived from the private lyric file in a shipped model;
+- no distributable SQLite model trained from that private file;
+- no private source path in committed artifacts.
 
-```text
-sources/leipzig/de10k-v1-frozen.json
+The optional local analyzer is:
+
+```bash
+npm run markov:lyrics:analyze -- --input /absolute/path/to/private-lyrics.json
 ```
 
-Those raw archives and extracted sentence files remain owner-local data and are not committed to Git.
+It writes only aggregate numeric/statistical output to the ignored local data area. The analyzer intentionally emits no raw text, identifiers, titles, URLs or transition sequences.
 
-The default builder expects sentence files produced by the existing Phrase bootstrap under:
+The runtime contains only the product-safe aggregate line-shape profile:
 
 ```text
-data/work/de-phrase-catalog-v1/extracted/
+rhymelab-lyric-shape-v1
+
+default target       6 tokens
+compact line floor   3 tokens
+common line ceiling  ~9 tokens
+long-line envelope   ~12 tokens
+median stanza shape  4 lines
 ```
 
-## Build
+Those numbers calibrate line-length scoring and UI defaults. They do not permit reconstruction of any source lyric.
 
-Inspect the expected sources and configuration without writing the model:
+## No implicit three-million-sentence build
+
+The previous experimental builder defaulted to the three Leipzig 1M sentence corpora. That behavior is removed.
 
 ```bash
 npm run markov:model:plan
 ```
 
-If the Leipzig sentence files are not present locally:
+with no source now reports `ready:false` and exits non-zero. A model source must be explicit.
+
+Examples:
 
 ```bash
-npm run phrase:catalog:bootstrap
+npm run markov:model:build -- --sentences approved=/absolute/path/to/approved-lines.txt
 ```
 
-Build or resume the model:
+or, for an explicitly selected registered manifest:
 
 ```bash
-npm run markov:model:build
+npm run markov:model:build -- \
+  --manifest /absolute/path/to/manifest.json \
+  --phrase-work /absolute/path/to/extracted
 ```
 
-Inspect build/model state:
+The owner-private lyric file is not an approved distributable model source.
 
-```bash
-npm run markov:model:status
-```
+## Model builder
 
-The default build is deliberately bounded rather than retaining every observed transition:
-
-- order-2 Markov state;
-- order-1 backoff;
-- forward and reverse transition indexes;
-- minimum lexical token count: 3;
-- up to 300,000 retained order-2 states;
-- up to 24 outgoing transitions per state / direction / order;
-- 5,000 accepted sentences per checkpoint batch.
-
-These are **experimental V1 parameters**, not a frozen product acceptance decision.
-
-## Long-running build contract
-
-The builder is resumable and treats model materialization as a durable local build:
+The builder remains resumable and compact:
 
 1. vocabulary + order-2 state census;
 2. vocabulary/state pruning;
@@ -95,163 +95,129 @@ The builder is resumable and treats model materialization as a durable local bui
 5. semantic fingerprint;
 6. compact validation/promotion.
 
-The work database persists per-source checkpoints for the scan and transition phases.
+Current experimental defaults:
 
-A build-configuration fingerprint binds the resumable work database to:
+- order-2 model with order-1 backoff;
+- forward and reverse transitions;
+- minimum lexical token count: 3;
+- up to 300,000 retained order-2 states;
+- up to 24 outgoing transitions per state/direction/order;
+- 5,000 accepted source lines per checkpoint batch.
 
-- source manifest;
-- source file identity metadata;
-- model policy/order;
-- state and transition caps;
-- token-count cutoff;
-- optional sentence limit.
-
-If those inputs/options change, the existing work database is rejected until the owner explicitly rebuilds with `--reset`.
-
-Promotion writes a temporary final SQLite, validates it, preserves the previous final artifact during replacement, strips build-only checkpoint/state-census tables, runs `VACUUM`, and only then replaces the active model.
+These are implementation defaults, not frozen product acceptance criteria.
 
 ## Runtime architecture
-
-The V1 runtime separates language modeling from rhyme truth:
 
 ```text
 rhyme target
     ↓
-accepted RhymeLab Writer retrieval / scoring
+accepted RhymeLab Writer retrieval/scoring
     ↓
-Word / Phrase / Entity rhyme candidate pool
+Word / Phrase / Entity rhyme candidates
     ↓
-candidate corpus-support check
+select Writer-backed rhyme tail
     ↓
-select a rhyme tail
+reverse Markov walk toward the left context
     ↓
-reverse Markov walk from that tail
-(order 2 → order 1 backoff)
+forward context checks for opener and optional splice
     ↓
-optional opener / seed boundary check
+lyric-shape length scoring
     ↓
-optional context-gated internal echo / Phrase / Entity splice
+naturalness + rhyme + length reranking
     ↓
-transparent naturalness + rhyme + length reranking
-    ↓
-deterministic generated variants
+deterministic generated line variants
 ```
 
-The Markov model does **not** replace accepted RhymeLab phonetic relation truth. Writer remains responsible for supplying and scoring the rhyme material.
+### Separation of responsibilities
 
-### Why reverse transitions exist
+**RhymeLab Writer**
 
-For end-rhyme generation, generating a random sentence forward and hoping that its last word rhymes is wasteful and weak.
+- pronunciation;
+- rhyme family/type;
+- multisyllabic/slant/assonance/consonance evidence;
+- Phrase/Mosaic;
+- Entity rhyme candidates;
+- usage/popularity evidence.
 
-V1 instead selects a Writer-backed rhyme candidate first and generates the left context backwards from the rhyme tail. The rhyme is therefore a generation constraint, not a decorative post-processing substitution.
+**Markov transition model**
 
-Forward transitions remain useful for:
+- local word-order likelihood;
+- forward context joins;
+- reverse construction from a rhyme ending;
+- context support for Phrase/Entity/internal-rhyme substitutions.
 
-- opener/seed continuity;
-- validating generated local context;
-- Phrase/Entity/internal-echo splice checks;
-- diagnostics.
+**Lyric shape profile**
 
-## Naturalness control
+- compact song-line length prior;
+- line-length scoring envelope;
+- future multi-line rhyme-distance/stanza priors.
 
-The `Naturalness` slider now changes generation behavior rather than only changing a final display score.
+The Markov model does not become a second phonetic truth store.
+
+## Why reverse generation exists
+
+For end-rhyme generation, a forward random walk followed by a rhyme replacement is structurally weak.
+
+V1 instead chooses a real Writer-backed rhyme tail first and generates the preceding context backwards. The rhyme is therefore a generation constraint rather than a post-processing decoration.
+
+Forward transitions remain useful for opener continuity and splice validation.
+
+## Naturalness
+
+The `Naturalness` control affects generation, not only display scoring.
 
 Higher values:
 
-- narrow transition choice toward higher-probability corpus continuations;
-- prefer rhyme tails whose tokens are represented in the language model;
-- reject unsupported opener-to-generated-text joins;
-- reject Phrase/Entity/internal substitutions with weak local transition support;
+- favor higher-probability transitions;
+- require stronger model support for rhyme tails;
+- reject unsupported opener joins;
+- reject weak Phrase/Entity/internal substitutions;
 - reduce exploratory shortlist depth.
 
-Lower values permit progressively less likely but still model-backed transitions.
+Lower values permit less likely model-backed continuations.
 
-Naturalness is still a deterministic corpus-likelihood heuristic. It is **not** evidence that a sentence is grammatically or artistically good.
-
-## Phrase and Entity behavior
-
-Phrase and Entity material remains optional.
-
-It is no longer labeled as such merely because a generic slot asked for it. The selected Writer result kind is authoritative.
-
-V1 can use Phrase/Entity material as:
-
-- a Writer-backed rhyme tail;
-- an optional internal echo when the surrounding forward corpus transitions provide sufficient support.
-
-At high Naturalness, an Entity or Phrase that has no usable language-model support is not force-inserted merely because it has a high phonetic score.
+This is still a statistical heuristic, not a grammar guarantee.
 
 ## Determinism
 
-For fixed:
-
-- model semantic fingerprint;
-- Writer candidate rows;
-- language;
-- opener;
-- rhyme target;
-- controls;
-- numeric seed;
-
-candidate construction and ordering are deterministic.
-
-The UI can generate a new numeric seed, but exposes it for replay.
-
-## Current diagnostics
-
-The result surface exposes separate signals:
-
-- overall utility;
-- naturalness;
-- rhyme;
-- transition likelihood;
-- opener/context join;
-- tail fit;
-- internal echo;
-- target-length fit.
-
-Generated output remains visibly distinct from source-backed Phrase results.
+For a fixed model fingerprint, Writer candidate set, language, opener, rhyme target, controls and numeric seed, result construction and ordering are deterministic.
 
 ## Model availability
 
-The local server exposes model state through `/api/health` under `markov_generator`.
+The local server exposes the active model through `/api/health` under `markov_generator`.
 
-Generation uses the localhost-only:
+Generation uses:
 
 ```text
 POST /api/markov/generate
 ```
 
-The browser sends a compact projection of the already-retrieved Writer candidate pool rather than duplicating Writer retrieval/scoring inside the Markov runtime.
+If no explicit model has been materialized, generation is disabled. There is no hand-written template fallback and no implicit corpus bootstrap.
 
-If the model is absent or invalid, the API returns an explicit unavailable error and the UI disables generation. There is no bootstrap-template fallback.
+## Current acceptance state
 
-## Language scope
+Implemented and covered:
 
-The first corpus-backed model is German only.
+- private-input ignore rules;
+- privacy-safe aggregate analyzer;
+- no implicit 3M corpus selection;
+- explicit-source model builds;
+- compact forward/reverse model materialization;
+- deterministic generation;
+- aggregate lyric-line length calibration;
+- Writer-backed rhyme tails;
+- Phrase/Entity context gating;
+- mobile/reduced-motion control coverage.
 
-The UI disables unsupported languages when the active model reports `language=de`.
+Still pending:
 
-English Writer remains accepted independently, but Markov EN generation is not enabled until a reproducible/licensable English corpus/model is selected and materialized under an explicit model policy.
-
-## Non-claims / remaining acceptance work
-
-This code does **not** claim that the full owner corpus model has already passed product acceptance.
-
-The implementation and fixture tests exist, but this development environment does not contain the owner-local three-million-sentence Leipzig inputs. Therefore the following evidence is still pending:
-
-- full 3M-sentence owner model materialization;
-- repeat-build semantic fingerprint;
-- final model bytes;
-- full-model generation latency;
-- transition/state counts after real pruning;
-- duplicate/repetition diagnostics;
-- sentence naturalness/grammatical-breakage review;
-- rhyme-pressure vs naturalness tradeoff curves;
-- Phrase splice quality;
-- Entity insertion quality;
-- representative writer review, especially difficult targets such as `Arbeitsweise`;
+- selection of the distributable/licensed lyric-like training source;
+- full-size model build from that approved source;
+- repeat-build fingerprint evidence;
+- final DB size and runtime latency;
+- human review of lyric naturalness and rhyme quality;
+- multi-line stanza/rhyme-scheme generation;
 - RhymePad integration;
 - Full-edition packaging.
 
-Until those gates are completed, this remains an experimental test surface rather than accepted product behavior.
+Until those gates are complete, `/markov-test` remains an experimental surface.
