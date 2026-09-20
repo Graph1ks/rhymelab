@@ -12,6 +12,11 @@ function normalizeKind(row){
   const kind=String(row?.resultKind||'word').toLowerCase();
   if(kind==='phrase')return 'phrase';
   if(kind==='entity')return 'entity';
+  const surface=String(row?.surface||row?.word||'').normalize('NFKC').trim();
+  // Serving-v1 surface consolidation can legally carry a multi-token surface
+  // through the Word channel. For Markov material controls that is still a
+  // phrase/chunk, not a single word.
+  if(surface&&surface.split(/\s+/u).filter(Boolean).length>1)return 'phrase';
   return 'word';
 }
 
@@ -76,7 +81,7 @@ export function summarizePool(rows){
 
 export function compactWriterRows(rows){
   return (rows||[]).map((row)=>({
-    resultKind:row?.resultKind,
+    resultKind:normalizeKind(row),
     surface:row?.surface,
     word:row?.word,
     normalized:row?.normalized,
