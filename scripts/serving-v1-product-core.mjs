@@ -496,6 +496,56 @@ export function servingV1ProductInvariantReport(db){
       WHERE a.product_pronunciation_id=ep.product_pronunciation_id
     )
   `);
+  const deAnalysisMissing=scalar(db,`
+    SELECT COUNT(*) c
+    FROM runtime_de_candidate c
+    WHERE NOT EXISTS(
+      SELECT 1 FROM runtime_de_analysis a WHERE a.pronunciation_id=c.pronunciation_id
+    )
+  `);
+  const deWriterHotpathMissing=scalar(db,`
+    SELECT COUNT(*) c
+    FROM runtime_key k
+    JOIN runtime_key_member km USING(key_id)
+    JOIN runtime_target t ON t.target_id=km.target_id AND t.target_kind='pronunciation'
+    JOIN runtime_de_candidate c ON c.pronunciation_id=t.pronunciation_id
+    WHERE k.language='de' AND k.channel='writer_right_edge'
+      AND NOT EXISTS(
+        SELECT 1 FROM runtime_de_writer_candidate wc
+        WHERE wc.key_value=k.key_value AND wc.pronunciation_id=c.pronunciation_id
+      )
+  `);
+  const enHotpathMissing=scalar(db,`
+    SELECT COUNT(*) c
+    FROM runtime_key k
+    JOIN runtime_key_member km USING(key_id)
+    JOIN runtime_target t ON t.target_id=km.target_id AND t.target_kind='pronunciation'
+    WHERE k.language='en'
+      AND k.channel IN ('exact_tail','multisyllable','vowel','family_coda_class','coda')
+      AND NOT EXISTS(
+        SELECT 1 FROM runtime_en_key_candidate ec
+        WHERE ec.channel=k.channel AND ec.key_value=k.key_value
+          AND ec.pronunciation_id=t.pronunciation_id
+      )
+  `);
+  const entityRankedAnchorMissing=scalar(db,`
+    SELECT COUNT(*) c
+    FROM runtime_entity_anchor_occurrence a
+    WHERE NOT EXISTS(
+      SELECT 1 FROM runtime_entity_anchor_ranked r
+      WHERE r.analyzer_id=a.analyzer_id AND r.channel=a.channel
+        AND r.anchor_key=a.anchor_key
+        AND r.product_pronunciation_id=a.product_pronunciation_id
+    )
+  `);
+  const phraseRankingEvidenceMissing=scalar(db,`
+    SELECT COUNT(*) c
+    FROM runtime_phrase p
+    WHERE NOT EXISTS(
+      SELECT 1 FROM runtime_phrase_ranking_evidence e
+      WHERE e.runtime_phrase_id=p.runtime_phrase_id
+    )
+  `);
   const sourceOccurrenceMissing=integrityCount(
     db,'product_adapter_entity_source_occurrences_missing'
   );
@@ -524,6 +574,11 @@ export function servingV1ProductInvariantReport(db){
     de_word_surfaces_without_runtime_profile:deSurfaceProfileMissing,
     entity_pronunciations_without_precomputed_analysis:entityAnalysisMissing,
     entity_pronunciations_without_occurrence_anchor:entityAnchorless,
+    de_hotpath_candidates_without_precomputed_analysis:deAnalysisMissing,
+    de_writer_key_members_without_hotpath_mapping:deWriterHotpathMissing,
+    en_key_members_without_hotpath_mapping:enHotpathMissing,
+    entity_occurrence_anchors_without_ranked_hotpath:entityRankedAnchorMissing,
+    runtime_phrases_without_materialized_ranking_evidence:phraseRankingEvidenceMissing,
     eligible_source_entity_occurrences_without_product_mapping:sourceOccurrenceMissing,
     product_entity_occurrences_without_eligible_source_mapping:productOccurrenceExtra,
     eligible_source_entity_anchors_without_exact_product_mapping:sourceAnchorMissing,
@@ -538,6 +593,11 @@ export function servingV1ProductInvariantReport(db){
       &&generatedEntityNotMarked===0
       &&deSurfaceProfileMissing===0
       &&entityAnalysisMissing===0
+      &&deAnalysisMissing===0
+      &&deWriterHotpathMissing===0
+      &&enHotpathMissing===0
+      &&entityRankedAnchorMissing===0
+      &&phraseRankingEvidenceMissing===0
       &&occurrenceIntegrityVerified
       &&sourceOccurrenceMissing===0
       &&productOccurrenceExtra===0
