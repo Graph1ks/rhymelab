@@ -1,7 +1,15 @@
+import {
+  SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
+  entityAnalyzerSql,
+  entityCanonicalPhonemesSql,
+  entityIdentityKeySql,
+} from './serving-v1-pronunciation-identity.mjs';
+
 export const SERVING_V1_SCHEMA='rhymelab-serving-v1';
 export const SERVING_V1_POLICY='surface-pronunciation-core-authority-v1';
+export const SERVING_V1_IDENTITY_REVISION=SERVING_V1_PRONUNCIATION_IDENTITY_REVISION;
 export const SERVING_V1_BUILD_POLICY='resumable-attached-source-batches-v1';
-export const SERVING_V1_BUILD_REVISION='core-absorbs-identical-generated-v2';
+export const SERVING_V1_BUILD_REVISION='canonical-cross-domain-pronunciation-identity-v3';
 
 export const SERVING_AUTHORITY=Object.freeze({
   core_word:10,
@@ -494,13 +502,16 @@ function entityStage({name,path,layer}){
     AND ep.review_state IN (${acceptedEntityReviewStates})
     ${marker}
   `;
+  const entityPhonemes=entityCanonicalPhonemesSql('epa','ep');
+  const entityIdentity=entityIdentityKeySql('epa','ep');
+  const entityAnalyzer=entityAnalyzerSql('en.language');
   const common=(last,upper)=>`
     SELECT
       ep.pronunciation_id source_id,en.language,en.normalized,en.surface,
       'ipa' notation,ep.ipa raw,ep.ipa ipa,
-      (COALESCE(NULLIF(MIN(epa.phonemes),''),ep.ipa)||'|stress:'||COALESCE(MIN(epa.stress_pattern),'')) identity_key,
-      MIN(epa.phonemes) phonemes,MIN(epa.syllable_count) syllable_count,
-      MIN(epa.stress_pattern) stress_pattern,MIN(epa.primary_stress) primary_stress,
+      ${entityIdentity} identity_key,
+      ${entityPhonemes} phonemes,epa.syllable_count syllable_count,
+      epa.stress_pattern stress_pattern,epa.primary_stress primary_stress,
       NULL exact_key,NULL multisyllable_key,NULL vowel_key,NULL vowel_family,NULL coda_key,
       1 eligible,ep.preferred preferred,NULL usage_rank,NULL usage_count,NULL historical,
       NULL lemma,NULL part_of_speech,'entity' lexicon_layer,ep.source_kind source_kind,
@@ -508,9 +519,10 @@ function entityStage({name,path,layer}){
     FROM src.entity_pronunciation ep
     JOIN src.entity_name en ON en.name_id=ep.name_id
     JOIN src.entity e ON e.entity_id=en.entity_id
-    LEFT JOIN src.entity_phonetic_analysis epa ON epa.pronunciation_id=ep.pronunciation_id
+    LEFT JOIN src.entity_phonetic_analysis epa
+      ON epa.pronunciation_id=ep.pronunciation_id
+     AND epa.analyzer_id=${entityAnalyzer}
     WHERE ${sourceWhere(last,upper)}
-    GROUP BY ep.pronunciation_id
   `;
   return {
     name,label:generated?'Generated Entity pronunciations':'Core Entity pronunciations',path,layer,domain:'entity',
