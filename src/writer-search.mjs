@@ -80,9 +80,11 @@ function resultFromCandidateRow(row, score, querySyllables, language) {
     locale: row.locale,
     dialect: row.dialect,
     register: row.pronunciation_register,
-    pronunciationSource: row.pronunciation_source||null,
-    pronunciationFlags,
-    generatedPronunciation,
+    ...(generatedPronunciation?{
+      pronunciationSource:row.pronunciation_source||null,
+      pronunciationFlags,
+      generatedPronunciation:true,
+    }:{}),
     usageRank: row.usage_rank,
     usageScore: row.usage_score,
     usageCount: row.usage_count,
@@ -150,9 +152,11 @@ function rescoreWriterResult(row, queryAnalysis, profile, querySyllables) {
   }, score, querySyllables, row.language || profile.language);
   return {
     ...rescored,
-    pronunciationSource:row.pronunciationSource||null,
-    pronunciationFlags:row.pronunciationFlags||[],
-    generatedPronunciation:Boolean(row.generatedPronunciation),
+    ...(row.generatedPronunciation?{
+      pronunciationSource:row.pronunciationSource||null,
+      pronunciationFlags:row.pronunciationFlags||[],
+      generatedPronunciation:true,
+    }:{}),
     legacyScore: row.score,
     legacyPrimaryType: row.primaryType,
     legacyRhymeTier: row.rhymeTier,
