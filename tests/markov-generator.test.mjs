@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   MARKOV_GENERATOR_POLICY,
   compactWriterRows,
+  markovMaterialKind,
   summarizePool,
   vowelSimilarity,
 } from '../src/markov-test/markov-core.mjs';
@@ -47,4 +48,11 @@ test('compact Writer payload preserves generator evidence without unrelated fiel
   ]);
   assert.equal(Object.hasOwn(compact[0],'noise'),false);
   assert.equal(Object.hasOwn(compact[0],'debugPayload'),false);
+});
+
+
+test('Serving-v1 multi-token Word carriers obey Phrase material controls',()=>{
+  const carrier={resultKind:'word',surface:'Wiener Walzer',normalized:'wiener walzer',score:.8};
+  assert.equal(markovMaterialKind(carrier),'phrase');
+  assert.equal(compactWriterRows([carrier])[0].resultKind,'phrase');
 });
