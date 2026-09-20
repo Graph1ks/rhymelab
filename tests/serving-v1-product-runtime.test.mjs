@@ -18,6 +18,7 @@ import {
 import {getWord} from '../src/local-engine.mjs';
 import {findWriterRhymes} from '../src/writer-search.mjs';
 import {getEnglishWord,searchEnglishWriter} from '../src/english-writer-runtime.mjs';
+import {getPhraseBrowserStats,getPhraseDetail} from '../src/phrase-browser-store.mjs';
 import {searchEntityRhymes} from '../src/entity-writer-runtime.mjs';
 import {
   phraseMosaicV2QueryAnchors,
@@ -344,6 +345,13 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       assert.equal(phraseRetrieval.retrieval.rawAnchorWindowMatches,1);
       assert.equal(phraseRetrieval.candidates.length,1);
       assert.equal(phraseRetrieval.candidates[0].windowId,'w0');
+
+      const phraseStats=getPhraseBrowserStats(runtime.coreDb);
+      assert.equal(phraseStats.phrases,1);
+      assert.equal(phraseStats.sources.length,1);
+      const phraseDetail=getPhraseDetail(runtime.coreDb,'phrase-1');
+      assert.equal(phraseDetail.canonical,'bei klarer Reise');
+      assert.deepEqual(phraseDetail.tokens,[]);
 
       const entitySearch=searchEntityRhymes(runtime.coreDb,getWord(runtime.coreDb,'Zeit'),{
         language:'de',limit:10,poolLimit:16,profileStages:true,
