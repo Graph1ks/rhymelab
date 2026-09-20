@@ -19,6 +19,7 @@ import { coarseCodaClass } from './german-rhyme-features.mjs';
 import {
   determineEnglishPublishEligibility,
   finalizeEsdbEvidence,
+  isEnglishPublishSurface,
   lexicalEvidenceForHeadword,
   lexicalEvidenceForListedForms,
   mergeEsdbEvidence,
@@ -199,12 +200,56 @@ async function buildGerman(){
   await cloneBase(deBasePath,deOutPath);
   const db=new DatabaseSync(deOutPath);
   db.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;');
+  db.exec(`
+    CREATE TEMP TABLE generated_de_target(
+      item_id INTEGER PRIMARY KEY,
+      normalized TEXT NOT NULL UNIQUE,
+      surface TEXT NOT NULL,
+      ipa TEXT NOT NULL,
+      raw_ipa TEXT,
+      quality_tier TEXT NOT NULL,
+      quality_reason TEXT,
+      engine TEXT,
+      engine_version TEXT,
+      phrase_token INTEGER NOT NULL,
+      usage_rank INTEGER,
+      usage_score REAL,
+      usage_count INTEGER,
+      usage_source_count INTEGER
+    );
+    CREATE TEMP TABLE generated_de_option(
+      item_id INTEGER NOT NULL,
+      option_json TEXT NOT NULL
+    );
+    CREATE INDEX temp.idx_generated_de_option_item ON generated_de_option(item_id);
+  `);
+  const insertTarget=db.prepare(`
+    INSERT INTO temp.generated_de_target(
+      item_id,normalized,surface,ipa,raw_ipa,quality_tier,quality_reason,engine,engine_version,phrase_token
+    ) VALUES(?,?,?,?,?,?,?,?,?,?)
+  `);
+  let targetCount=0;
+  const targetByNormalized=new Map();
+  db.exec('BEGIN');
+  try{
+    for(const row of workDb.prepare(deTargetSql).iterate()){
+      insertTarget.run(
+        Number(row.item_id),row.normalized,row.surface,row.ipa,row.raw_ipa||null,
+        row.quality_tier,row.quality_reason||null,row.engine||null,row.engine_version||null,
+        Number(row.phrase_token||0),
+      );
+      targetByNormalized.set(String(row.normalized),Number(row.item_id));
+      targetCount+=1;
+    }
+    db.exec('COMMIT');
+  }catch(error){try{db.exec('ROLLBACK')}catch{};throw error}
+  console.log('[base-parity:de] targets='+targetCount.toLocaleString('en-US'));
 
-  const targets=activeRows.filter((row)=>row.language==='de'&&row.scopeClass.deWord);
-  const targetByNormalized=new Map(targets.map((row)=>[String(row.normalized),row]));
-  console.log('[base-parity:de] targets='+targets.length.toLocaleString('en-US'));
-
-  const usage=new Map();
+  const updateUsage=db.prepare(`
+    UPDATE temp.generated_de_target
+    SET usage_rank=?,usage_score=?,usage_count=?,usage_source_count=?
+    WHERE item_id=?
+  `);
   const usageLines=createInterface({input:createReadStream(deUsagePath),crlfDelay:Infinity});
   let header=null;
   for await(const line of usageLines){
@@ -212,24 +257,18 @@ async function buildGerman(){
     if(!header){header=parseTsvHeader(line);continue;}
     const cells=line.split('\t');
     const normalized=String(cells[header.normalized_form]||'');
-    if(!targetByNormalized.has(normalized))continue;
-    usage.set(normalized,{
-      rank:Number.parseInt(cells[header.rank]||'',10),
-      score:header.usage_score===undefined?null:Number(cells[header.usage_score]||0),
-      count:header.combined_count===undefined?null:Number(cells[header.combined_count]||0),
-      sourceCount:header.source_count===undefined?null:Number(cells[header.source_count]||0),
-    });
+    const itemId=targetByNormalized.get(normalized);
+    if(!itemId)continue;
+    updateUsage.run(
+      Number.parseInt(cells[header.rank]||'',10),
+      header.usage_score===undefined?null:Number(cells[header.usage_score]||0),
+      header.combined_count===undefined?null:Number(cells[header.combined_count]||0),
+      header.source_count===undefined?null:Number(cells[header.source_count]||0),
+      itemId,
+    );
   }
 
-  db.exec(`
-    CREATE TEMP TABLE generated_de_option(
-      item_id INTEGER NOT NULL,
-      option_json TEXT NOT NULL
-    );
-    CREATE INDEX temp.idx_generated_de_option_item ON generated_de_option(item_id);
-  `);
   const insertOption=db.prepare('INSERT INTO temp.generated_de_option(item_id,option_json) VALUES(?,?)');
-
   const source=createReadStream(deKaikkiPath);
   const input=deKaikkiPath.endsWith('.gz')?source.pipe(createGunzip()):source;
   const lines=createInterface({input,crlfDelay:Infinity});
@@ -241,32 +280,31 @@ async function buildGerman(){
       if(!line)continue;
       let entry;try{entry=JSON.parse(line)}catch{continue}
       if(entry?.lang_code!=='de'||!entry?.word)continue;
-      const headNormalized=normalizeGerman(entry.word);
-      const headTarget=targetByNormalized.get(headNormalized);
-      if(headTarget){
+
+      const headItemId=targetByNormalized.get(normalizeGerman(entry.word));
+      if(headItemId){
         for(const option of optionsForHeadword(entry)){
-          insertOption.run(Number(headTarget.item_id),JSON.stringify(option));
+          insertOption.run(headItemId,JSON.stringify(option));
           matchedOptions+=1;
         }
       }
-      for(const listed of optionsForListedForms(entry,targetByNormalized instanceof Map
-        ?new Set() : null)){
-        // unreachable compatibility branch; targeted listed forms are handled below.
-        void listed;
-      }
+
+      const matchedListed=new Set();
       for(const form of Array.isArray(entry.forms)?entry.forms:[]){
         const surface=String(form?.form??'').normalize('NFKC').trim();
         if(!surface)continue;
         const normalized=normalizeGerman(surface);
-        const target=targetByNormalized.get(normalized);
-        if(!target)continue;
-        const listed=optionsForListedForms(entry,new Set([normalized]));
-        for(const candidate of listed){
-          if(candidate.candidateNormalized!==normalized)continue;
-          insertOption.run(Number(target.item_id),JSON.stringify(candidate.option));
+        if(targetByNormalized.has(normalized))matchedListed.add(normalized);
+      }
+      if(matchedListed.size){
+        for(const listed of optionsForListedForms(entry,matchedListed)){
+          const itemId=targetByNormalized.get(listed.candidateNormalized);
+          if(!itemId)continue;
+          insertOption.run(itemId,JSON.stringify(listed.option));
           matchedOptions+=1;
         }
       }
+
       if(raw%progressEvery===0){
         db.exec('COMMIT');db.exec('BEGIN');
         console.log('[base-parity:de-source] raw='+raw.toLocaleString('en-US')+' options='+matchedOptions.toLocaleString('en-US'));
@@ -276,13 +314,26 @@ async function buildGerman(){
   }catch(error){try{db.exec('ROLLBACK')}catch{};throw error}
   finally{lines.close();input.destroy()}
 
-  const existingForm=db.prepare(`
-    SELECT publish_order,surface,usage_rank,usage_score,usage_count,usage_source_count,
-           lemma,pos,gender,historical,lexical_tags
-    FROM hot WHERE normalized=?
-    ORDER BY pronunciation_preferred DESC,pronunciation_eligible DESC,pronunciation_rank,id
-    LIMIT 1
+  db.exec(`
+    CREATE TEMP TABLE generated_de_current AS
+    SELECT
+      t.item_id,
+      h.publish_order,h.surface AS current_surface,
+      h.usage_rank AS current_usage_rank,h.usage_score AS current_usage_score,
+      h.usage_count AS current_usage_count,h.usage_source_count AS current_usage_source_count,
+      h.lemma AS current_lemma,h.pos AS current_pos,h.gender AS current_gender,
+      h.historical AS current_historical,h.lexical_tags AS current_lexical_tags,
+      h.lexicon_layer AS current_lexicon_layer,h.entity_kind AS current_entity_kind
+    FROM generated_de_target t
+    LEFT JOIN hot h ON h.id=(
+      SELECT h2.id FROM hot h2
+      WHERE h2.normalized=t.normalized
+      ORDER BY h2.pronunciation_preferred DESC,h2.pronunciation_eligible DESC,h2.pronunciation_rank,h2.id
+      LIMIT 1
+    );
+    CREATE INDEX temp.idx_generated_de_current_item ON generated_de_current(item_id);
   `);
+
   const maxOrder=Number(db.prepare('SELECT COALESCE(MAX(publish_order),0) AS v FROM hot').get()?.v||0);
   let nextOrder=maxOrder;
   const insertHot=db.prepare(`
@@ -294,7 +345,7 @@ async function buildGerman(){
       pronunciation_rank,pronunciation_preferred,pronunciation_eligible,pronunciation_evidence,
       pronunciation_source_order,pronunciation_source,pronunciation_tags,pronunciation_raw_tags,
       pronunciation_flags,locale,dialect,pronunciation_register
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ) VALUES(${Array(42).fill('?').join(',')})
   `);
   const shiftExisting=db.prepare(`
     UPDATE hot
@@ -308,19 +359,38 @@ async function buildGerman(){
       source_record_keys,candidate_ipas
     ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `);
-  const optionRows=db.prepare('SELECT option_json FROM temp.generated_de_option WHERE item_id=?');
-  let inserted=0,overlaid=0,newAnalyses=0;
+  const targetRows=db.prepare(`
+    SELECT t.*,c.publish_order,c.current_surface,c.current_usage_rank,c.current_usage_score,
+           c.current_usage_count,c.current_usage_source_count,c.current_lemma,c.current_pos,
+           c.current_gender,c.current_historical,c.current_lexical_tags,c.current_lexicon_layer,
+           c.current_entity_kind
+    FROM generated_de_target t
+    JOIN generated_de_current c USING(item_id)
+    ORDER BY t.item_id
+  `);
+  const optionIterator=db.prepare(
+    'SELECT item_id,option_json FROM temp.generated_de_option ORDER BY item_id'
+  ).iterate()[Symbol.iterator]();
+  let optionCursor=optionIterator.next();
+  function optionsForItem(itemId){
+    const values=[];
+    while(!optionCursor.done&&Number(optionCursor.value.item_id)<itemId)optionCursor=optionIterator.next();
+    while(!optionCursor.done&&Number(optionCursor.value.item_id)===itemId){
+      values.push(JSON.parse(optionCursor.value.option_json));
+      optionCursor=optionIterator.next();
+    }
+    return values;
+  }
+
+  let inserted=0,overlaid=0,newAnalyses=0,done=0;
   db.exec('BEGIN');
   try{
-    for(let index=0;index<targets.length;index+=1){
-      const row=targets[index];
-      const options=optionRows.all(Number(row.item_id)).map((item)=>JSON.parse(item.option_json));
-      const merged=mergeOptions(options);
+    for(const row of targetRows.iterate()){
+      const merged=mergeOptions(optionsForItem(Number(row.item_id)));
       const preferred=merged[0]||null;
       const historical=merged.length>0&&merged.every((item)=>item.historicalOnly)?1:0;
       const tags=[...new Set(merged.flatMap((item)=>item.styleTags||[]))].sort();
-      const current=existingForm.get(row.normalized)||null;
-      const u=usage.get(row.normalized)||null;
+      const current=Number.isInteger(Number(row.publish_order))&&Number(row.publish_order)>0;
       let publishOrder;
       let surface;
       let lemma;
@@ -331,15 +401,15 @@ async function buildGerman(){
       let lexiconLayer;
       let entityKind;
       if(current){
-        publishOrder=Number(current.publish_order);
-        surface=current.surface;
-        lemma=current.lemma??preferred?.lemma??row.surface;
-        pos=current.pos??preferred?.pos??null;
-        gender=current.gender??preferred?.gender??null;
-        lexicalTags=current.lexical_tags||JSON.stringify(tags);
-        historicalFlag=Number(current.historical||0);
-        lexiconLayer='dictionary';
-        entityKind=null;
+        publishOrder=Number(row.publish_order);
+        surface=row.current_surface;
+        lemma=row.current_lemma??preferred?.lemma??row.surface;
+        pos=row.current_pos??(preferred?.pos&&preferred.pos!=='unknown'?preferred.pos:null);
+        gender=row.current_gender??preferred?.gender??null;
+        lexicalTags=row.current_lexical_tags||JSON.stringify(tags);
+        historicalFlag=Number(row.current_historical||0);
+        lexiconLayer=row.current_lexicon_layer||'dictionary';
+        entityKind=row.current_entity_kind??null;
         shiftExisting.run(publishOrder);
         overlaid+=1;
       }else{
@@ -351,17 +421,18 @@ async function buildGerman(){
         lexicalTags=JSON.stringify(tags);
         historicalFlag=historical;
         lexiconLayer=merged.length?'dictionary':'modern';
-        entityKind=merged.length?null:(row.scopes.includes('phrase_unresolved_token')?'phrase_token':'generated_gap');
+        entityKind=merged.length?null:(Number(row.phrase_token)?'phrase_token':'generated_gap');
         inserted+=1;
       }
+
       const analysis=analyzeGermanIpa(cleanIpa(row.ipa));
       const final=analysis.syllables.at(-1);
       insertHot.run(
         publishOrder,surface,row.normalized,
-        u?.rank??current?.usage_rank??null,
-        Number.isFinite(u?.score)?u.score:current?.usage_score??null,
-        Number.isFinite(u?.count)?u.count:current?.usage_count??null,
-        Number.isFinite(u?.sourceCount)?u.sourceCount:current?.usage_source_count??null,
+        row.usage_rank??row.current_usage_rank??null,
+        row.usage_score??row.current_usage_score??null,
+        row.usage_count??row.current_usage_count??null,
+        row.usage_source_count??row.current_usage_source_count??null,
         lemma,pos,gender,lexiconLayer,entityKind,historicalFlag,lexicalTags,
         analysis.ipa,analysis.canonicalPhonemes,analysis.syllableCount,analysis.stressPattern,
         analysis.primaryStressSyllable,analysis.stressedTail,analysis.finalTail,
@@ -371,27 +442,30 @@ async function buildGerman(){
         1,1,1,1,999,'eSpeak-NG Backfill V2',
         '[]','[]','["generated","secondary_opt_in"]','de-DE',null,null,
       );
-      if(!current){
-        for(const option of merged){
-          insertAnalysis.run(
-            publishOrder,option.resolutionKey,option.lemma,option.normalizedLemma,option.pos,
-            Number(option.homographNo||1),Number(option.confidence||0),option.gender??null,
-            option.isProper?1:0,option.isObsolete?1:0,option.historicalOnly?1:0,
-            jsonSorted(option.styleTags,'de'),jsonSorted(option.formFeatures,'de'),
-            jsonSorted(option.matchKinds||[option.matchKind],'de'),
-            jsonSorted(option.sourceRecordKeys,'de'),jsonSorted(option.candidateIpas,'de'),
-          );
-          newAnalyses+=1;
-        }
+
+      for(const option of merged){
+        const info=insertAnalysis.run(
+          publishOrder,option.resolutionKey,option.lemma,option.normalizedLemma,option.pos,
+          Number(option.homographNo||1),Number(option.confidence||0),option.gender??null,
+          option.isProper?1:0,option.isObsolete?1:0,option.historicalOnly?1:0,
+          jsonSorted(option.styleTags,'de'),jsonSorted(option.formFeatures,'de'),
+          jsonSorted(option.matchKinds||[option.matchKind],'de'),
+          jsonSorted(option.sourceRecordKeys,'de'),jsonSorted(option.candidateIpas,'de'),
+        );
+        newAnalyses+=Number(info.changes||0);
       }
-      if((index+1)%progressEvery===0){
+
+      done+=1;
+      if(done%progressEvery===0){
         db.exec('COMMIT');db.exec('BEGIN');
-        console.log('[base-parity:de-write] '+(index+1).toLocaleString('en-US')+'/'+targets.length.toLocaleString('en-US'));
+        console.log('[base-parity:de-write] '+done.toLocaleString('en-US')+'/'+targetCount.toLocaleString('en-US'));
       }
     }
     db.exec('COMMIT');
   }catch(error){try{db.exec('ROLLBACK')}catch{};throw error}
-  db.exec('DROP TABLE temp.generated_de_option; PRAGMA optimize;');
+
+  targetByNormalized.clear();
+  db.exec('PRAGMA optimize;');
   db.close();
 
   const writerReport=resolve(dirname(reportPath),'writer-materialization-generated-optin-v5-report.json');
@@ -402,7 +476,13 @@ async function buildGerman(){
   );
   if(child.status!==0)throw new Error('Writer-v5 parity materialization failed with exit '+child.status);
 
-  return {targets:targets.length,inserted,overlaid,new_lexical_analyses:newAnalyses,writer_report:writerReport};
+  return {
+    targets:targetCount,
+    inserted,
+    overlaid,
+    lexical_analyses_added:newAnalyses,
+    writer_report:writerReport,
+  };
 }
 
 function historicalEvidence(evidence){
