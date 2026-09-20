@@ -1037,11 +1037,11 @@ function deWriterHotpathStage(path){
     run(db,last,upper){
       db.exec(`
         INSERT OR IGNORE INTO runtime_de_writer_candidate(
-          key_value,pronunciation_id,syllable_count,usage_rank,historical,
+          key_value,pronunciation_id,normalized,syllable_count,usage_rank,historical,
           core_preferred,all_preferred,canonical_available,generated_available,generated_only,source_order
         )
         SELECT
-          k.key_value,c.pronunciation_id,c.syllable_count,c.usage_rank,c.historical,
+          k.key_value,c.pronunciation_id,c.normalized,c.syllable_count,c.usage_rank,c.historical,
           c.core_preferred,c.all_preferred,c.canonical_available,c.generated_available,c.generated_only,c.source_order
         FROM runtime_key k
         JOIN runtime_key_member km USING(key_id)
