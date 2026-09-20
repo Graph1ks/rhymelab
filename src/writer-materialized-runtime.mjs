@@ -41,6 +41,11 @@ function tableExists(db, name) {
   return Boolean(db.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?").get(name));
 }
 
+function servingConnectionMode(db) {
+  try { return String(db.prepare('SELECT mode FROM temp.serving_runtime_connection').get()?.mode || 'all'); }
+  catch { return 'all'; }
+}
+
 export function materializedWriterRuntimeState(db, options = {}) {
   const refresh = options.refresh === true;
   if (!refresh && STATE_CACHE.has(db)) return STATE_CACHE.get(db);
@@ -99,19 +104,17 @@ export function lookupMaterializedWriterAnchorRows(db, anchorKey, options = {}) 
   const limit=Math.max(1,Math.min(800,Number(options.limit||800)));
   const preferred=includeVariants?'':' AND h.pronunciation_preferred=1';
   const historical=includeHistorical?'':' AND h.historical=0';
-  const generated=generatedOnly?" AND h.pronunciation_flags LIKE '%secondary_opt_in%'":'';
+  const mode=servingConnectionMode(db);
+  const modeFilter=mode==='core'?' AND h.source_generated=0':'';
+  const generated=generatedOnly?' AND h.genuine_generated=1':'';
   return db.prepare(`
     SELECT h.*
-    FROM runtime_key k
-    JOIN runtime_key_member km USING(key_id)
-    JOIN runtime_target t ON t.target_id=km.target_id
-    JOIN hot h ON h.id=t.pronunciation_id
-    WHERE k.language='de'
-      AND k.channel='writer_right_edge'
-      AND k.key_value=?
+    FROM runtime_de_writer_anchor_occurrence a
+    JOIN runtime_de_word_occurrence h ON h.id=a.source_hot_id
+    WHERE a.anchor_key=?
       AND h.normalized<>?
       AND ABS(h.syllable_count-?)<=1
-      ${preferred}${historical}${generated}
+      ${preferred}${historical}${modeFilter}${generated}
     ORDER BY ABS(h.syllable_count-?),h.usage_rank IS NULL,h.usage_rank,h.id
     LIMIT ?
   `).all(String(anchorKey),queryNormalized,querySyllables,querySyllables,limit);
