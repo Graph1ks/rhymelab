@@ -101,6 +101,21 @@ For an individual Entity result:
 
 Regression coverage must include representative person, group, work, fictional-character and fallback cases.
 
+## Unified surface presentation
+
+The visible product identity is one normalized surface per result language, not one card per source row, pronunciation row, Entity QID, or sound-relation tag.
+
+For an unfiltered unified search:
+
+- the same `language + normalized surface` must appear at most once in the visible result set;
+- a lexical Word result is the preferred carrier when the same surface is also present in the Entity channel, preserving the Word/Core pronunciation and Writer score while attaching all observed Entity categories/QIDs as metadata;
+- multiple same-name Entity identities collapse to one surface result; distinct QIDs remain available as metadata and must not create duplicate cards;
+- alternate pronunciations remain metadata/inspection detail rather than duplicate result cards;
+- one result may match several sound relations, but the unfiltered UI renders it only in its primary/default sound section; explicit relation filtering may still select the result by any matching relation;
+- Phrase/Mosaic matched-span results remain a separate result kind because their IPA may describe a matched subspan rather than the full lexical surface.
+
+The storage/runtime may retain distinct Entity identities and pronunciations. This rule concerns Product presentation and unified response consolidation, not destructive database deduplication.
+
 ## Change discipline
 
 Do not redesign or reparent stable controls merely to achieve visual consistency. Preserve existing behavior first, then make the smallest scoped UI change that satisfies the request.
