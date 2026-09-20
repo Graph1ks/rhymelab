@@ -581,67 +581,6 @@ function searchGermanPhraseChannel(phraseDb, query, options = {}) {
     ...(profileStages?{performanceProfile:{stages_ms:stages,counters}}:{}),
     results,
   };
-}) {
-  if (!phraseDb) {
-    return {
-      available: false,
-      reason: 'phrase_database_unavailable',
-      results: [],
-    };
-  }
-  if (!query?.preferredIpa) {
-    return {
-      available: true,
-      reason: 'query_pronunciation_unresolved',
-      results: [],
-    };
-  }
-
-  const retrieval = retrievePhraseMosaicCandidatesV2(
-    phraseDb,
-    query.preferredIpa,
-    {
-      perChannelLimit: clampInteger(options.phrasePerChannelLimit, 128, 1, 512),
-      maxCandidates: clampInteger(options.phrasePoolLimit, 512, 1, 2048),
-      generatedOnly:options.generatedOnly===true,
-    },
-  );
-  const enriched = enrichPhraseMosaicCandidates(
-    phraseDb,
-    query.surface,
-    retrieval,
-  );
-  const ranked = rankPhraseMosaicCandidatesV2(enriched);
-  const diversified = diversifyPhraseMosaicWriterPage(ranked);
-  const limit = clampInteger(options.phraseLimit, 250, 1, 250);
-  const selected=diversified.diversifiedWriterPageCandidates.slice(0,limit);
-  const generatedIds=options.generatedOverlay===true
-    ?generatedPhrasePronunciationIds(phraseDb,selected)
-    :new Set();
-  const results=selected.map((candidate)=>phraseProductResult({
-    ...candidate,
-    generatedPronunciation:generatedIds.has(String(candidate.phrasePronunciationId||'')),
-  }));
-
-  return {
-    available: true,
-    reason: null,
-    schema: diversified.schema,
-    policy: diversified.policy,
-    rankingPolicy: ranked.policy,
-    retrievalPolicy: retrieval.policy,
-    retrieval: retrieval.retrieval,
-    queryAnchors: retrieval.query?.anchors || [],
-    rankingFingerprint: ranked.rankingFingerprint,
-    diversityFingerprint: diversified.diversityFingerprint,
-    candidateCount: ranked.candidateCount,
-    writerPageCandidateCount: ranked.writerPageCandidateCount,
-    diversifiedWriterPageCandidateCount:
-      diversified.diversifiedWriterPageCandidateCount,
-    suppressedCandidateCount: diversified.suppressedCandidateCount,
-    suppressionReasonCounts: diversified.suppressionReasonCounts,
-    results,
-  };
 }
 
 function languageWarning(code) {
