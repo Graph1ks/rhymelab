@@ -208,3 +208,100 @@ function renderHero(candidate,{animate=true}={}){
     <blockquote class="hero-sentence ${animate?'animate-in':''}" aria-label="Generated corpus Markov sentence">${tokens}<span class="sentence-punctuation">.</span></blockquote>
     <div class="hero-bottom"><div class="source-badges">${sourceBadges(candidate)}</div><button id="copySentence" class="ghost-button" type="button">COPY LINE</button></div>
     <div class="score-grid">
+      ${scoreBar('Utility',candidate.scores.utility)}
+      ${scoreBar('Natural',candidate.scores.naturalness)}
+      ${scoreBar('Rhyme',candidate.scores.rhyme)}
+      ${scoreBar('Transitions',candidate.scores.transition)}
+      ${scoreBar('Context join',candidate.scores.boundary)}
+      ${scoreBar('Tail fit',candidate.scores.tailFit)}
+      ${scoreBar('Internal echo',candidate.scores.echo)}
+      ${scoreBar('Length fit',candidate.scores.lengthFit)}
+    </div>`;
+  $('#copySentence')?.addEventListener('click',async()=>{
+    try{await navigator.clipboard?.writeText(candidate.sentence);$('#copySentence').textContent='COPIED ✓';setTimeout(()=>{if($('#copySentence'))$('#copySentence').textContent='COPY LINE';},900);}
+    catch{setStatus('Clipboard unavailable — select the sentence manually.','warn');}
+  });
+}
+
+function renderCandidateList(candidates){
+  $('#resultList').innerHTML=candidates.map((candidate)=>`
+    <button class="candidate-card ${candidate.rank===1?'active':''}" type="button" data-candidate-id="${esc(candidate.id)}">
+      <span class="candidate-rank">${candidate.rank}</span><span class="candidate-copy">${esc(candidate.sentence)}</span>
+      <span class="candidate-score">${percentage(candidate.scores.utility)}</span>
+      <span class="candidate-mini">R ${percentage(candidate.scores.rhyme)} · N ${percentage(candidate.scores.naturalness)} · T ${percentage(candidate.scores.transition)}</span>
+    </button>`).join('');
+  document.querySelectorAll('[data-candidate-id]').forEach((button)=>button.addEventListener('click',()=>{
+    const candidate=currentCandidates.find((row)=>row.id===button.dataset.candidateId);if(!candidate)return;
+    document.querySelectorAll('[data-candidate-id]').forEach((row)=>row.classList.toggle('active',row===button));
+    renderHero(candidate,{animate:true});$('#sentenceStage').scrollIntoView?.({behavior:'smooth',block:'nearest'});
+  }));
+}
+
+function renderPoolStats(pool,data){
+  const summary=summarizePool(pool);const meta=$('#poolStats');
+  meta.innerHTML=`
+    <span><b>${summary.total}</b> rhyme candidates</span><span><b>${summary.word}</b> words</span>
+    <span><b>${summary.phrase}</b> phrases</span><span><b>${summary.entity}</b> entities</span>
+    <span><b>${Math.round(Number(data?.runtimeTiming?.searchMs||0))}</b> ms lookup</span>`;
+}
+
+async function generate(){
+  if(!markovHealth?.available)throw new Error('Corpus Markov model unavailable. Run npm run markov:model:build.');
+  const settings=settingsFromControls();
+  if(settings.language!==markovHealth.language)throw new Error(`No ${settings.language.toUpperCase()} corpus model is materialized yet.`);
+  setBusy(true);setStatus('Pulling rhyme candidates from RhymeLab…','busy');$('#uiError').hidden=true;
+  try{
+    const {rows,data}=await fetchCandidatePool(settings.target,settings);currentPool=rows;
+    if(rows.length<2)throw new Error('Too few RhymeLab candidates for constrained generation. Try another rhyme target.');
+    renderPoolStats(rows,data);await runSlotMachine(rows);setStatus('Walking reverse corpus transitions from the rhyme tail…','busy');
+    const generated=await requestMarkovGeneration(rows,settings);
+    currentCandidates=generated?.candidates||[];
+    if(!currentCandidates.length)throw new Error('The corpus model found no line that satisfies these constraints. Lower Naturalness or change the rhyme target.');
+    renderHero(currentCandidates[0],{animate:true});renderCandidateList(currentCandidates);
+    setStatus(`Generated ${currentCandidates.length} constrained variants from ${Number(generated?.model?.accepted_sentences||0).toLocaleString()} attested sentences.`,'ok');
+  }catch(error){
+    $('#uiError').hidden=false;$('#uiError').textContent=error instanceof Error?error.message:String(error);
+    setStatus('Generation failed.','error');
+    $('#sentenceStage').innerHTML='<div class="empty-stage"><span>¯\\_(ツ)_/¯</span><strong>NO FAKE FALLBACK</strong><p>The corpus model could not satisfy this request. Change the constraints instead of emitting template soup.</p></div>';
+  }finally{setBusy(false);}
+}
+function reroll(){if(!markovHealth?.available)return;$('#randomSeed').value=String(integerSeed());generate().catch(()=>{});}
+
+function applyModelHealth(){
+  const note=$('#modelNote');
+  const state=$('#modelState');
+  const language=$('#language');
+  if(markovHealth?.available){
+    const sentences=Number(markovHealth.accepted_sentences||0).toLocaleString();
+    const transitions=Number(markovHealth.transitions||0).toLocaleString();
+    note.innerHTML=`<strong>CORPUS V1:</strong> reverse/forward order-${esc(markovHealth.order)} Markov over <b>${sentences}</b> accepted Leipzig sentences · ${transitions} pruned transitions · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
+    state.textContent='CORPUS READY';state.dataset.tone='ok';
+    for(const option of language.options)option.disabled=option.value!==markovHealth.language;
+    language.value=markovHealth.language;
+  }else{
+    note.innerHTML='<strong>MODEL REQUIRED:</strong> no fake template fallback. Run <code>npm run markov:model:build</code>. If the Leipzig sentence files are missing, run <code>npm run phrase:catalog:bootstrap</code> first.';
+    state.textContent='MODEL MISSING';state.dataset.tone='error';
+  }
+}
+
+async function initialize(){
+  try{
+    const healthResponse=await fetch('/api/health');const health=healthResponse.ok?await healthResponse.json():null;
+    pronunciationRevision=health?.query_pronunciation_revision||null;
+    generatedAvailable=Boolean(health?.generated_optin?.available);
+    markovHealth=health?.markov_generator||null;
+    const generated=$('#allowGenerated');generated.disabled=!generatedAvailable;if(!generatedAvailable)generated.checked=false;
+    $('#generatedHint').textContent=generatedAvailable?'available':'not available in this runtime';
+    const controls=installMarkovControls(document,{
+      generate:()=>generate().catch(()=>{}),reroll,rangeChange:updateRangeLabel,optionChange:()=>{},preset:applyPreset,
+    });
+    for(const id of ['rhymePressure','naturalness','weirdness','targetTokens'])updateRangeLabel(id,document.getElementById(id).value);
+    controls.randomSeed.value=String(integerSeed());applyPreset('balanced');applyModelHealth();setBusy(false);
+    setStatus(markovHealth?.available?'Corpus model ready. Pick a rhyme target.':'Corpus model missing — build it once before generation.',markovHealth?.available?'ok':'warn');
+  }catch(error){
+    document.documentElement.dataset.rhymelabControls='failed';$('#uiError').hidden=false;
+    $('#uiError').textContent=`UI initialization failed: ${error instanceof Error?error.message:String(error)}`;console.error(error);
+  }
+}
+
+initialize();
