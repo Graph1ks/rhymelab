@@ -329,8 +329,8 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       assert.deepEqual(
         runtime.allDb.prepare(
           'SELECT pronunciation_id,source_kind FROM entity_pronunciation ORDER BY pronunciation_id'
-        ).all(),
-        [{pronunciation_id:1,source_kind:'wikidata_p898'}],
+        ).all().map((row)=>[Number(row.pronunciation_id),row.source_kind]),
+        [[1,'wikidata_p898']],
       );
 
       assert.equal(getWord(runtime.coreDb,'Krankenscheindrucker'),null);
