@@ -366,6 +366,69 @@ test('entity result presentation uses concrete taxonomy labels instead of generi
   }),'Videospiel');
 });
 
+test('surface results render merged Entity tags and choose one default sound section', async () => {
+  const app=await readFile('src/ui/app.js','utf8');
+  const testable=app
+    .replace(/^import .*?;\s*$/gmu,'')
+    .replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
+  const dom=buildFakeDom();
+  const localStorage=makeStorage();
+
+  const factory=new Function(
+    'document','localStorage','navigator','location','history','fetch','IntersectionObserver',
+    `${testable}\nreturn {state,resultRow,defaultDisplayType};`,
+  );
+  const runtime=factory(
+    dom.document,
+    localStorage,
+    {language:'en-US'},
+    {href:'http://127.0.0.1:3030/'},
+    {replaceState(){}},
+    async()=>({ok:true,json:async()=>({})}),
+    class {},
+  );
+
+  const rain={
+    resultKind:'word',
+    resultId:'rain',
+    word:'Rain',
+    surface:'Rain',
+    normalized:'rain',
+    language:'en',
+    ipa:'reɪn',
+    syllableCount:1,
+    usageRank:100,
+    score:1,
+    type:'perfect',
+    primaryType:'perfect',
+    relationTypes:['assonance'],
+    relations:[{type:'assonance',score:1,strength:'strong'}],
+    entityCategories:[
+      {category:'person.singer'},
+      {category:'work.video_game'},
+    ],
+  };
+  const html=runtime.resultRow(rain,'perfect');
+  assert.match(html,/EN · Word/);
+  assert.match(html,/>Singer</);
+  assert.match(html,/>Video Game</);
+  assert.equal(runtime.defaultDisplayType(rain),'perfect');
+
+  const relationOnly={
+    resultKind:'word',
+    word:'Tone',
+    normalized:'tone',
+    language:'en',
+    type:'weak',
+    relationTypes:['assonance','consonance'],
+    relations:[
+      {type:'assonance',score:0.75,strength:'strong'},
+      {type:'consonance',score:0.81,strength:'strong'},
+    ],
+  };
+  assert.equal(runtime.defaultDisplayType(relationOnly),'consonance');
+});
+
 test('control-surface preflight rejects a missing required control group', async () => {
   const app=await readFile('src/ui/app.js','utf8');
   const testable=app
