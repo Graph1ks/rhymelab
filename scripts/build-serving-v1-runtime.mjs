@@ -1028,7 +1028,6 @@ async function main(){
     }))upsertMeta(db,key,val);
 
     const stages=stageDefinitions(context.paths);
-    const plan=await planFor(db,stages);
 
     console.log(
       '[serving-v1-runtime] stages='+stages.length+
@@ -1038,8 +1037,10 @@ async function main(){
 
     const buildStarted=performance.now();
     for(const stage of stages){
-      const sourceRows=Number(plan.find((row)=>row.stage===stage.name)?.source_rows||0);
-      const maxSourceId=Number(plan.find((row)=>row.stage===stage.name)?.max_source_id||0);
+      // Stage sizes are resolved immediately before execution because later stages
+      // (notably phrase evidence) depend on rows materialized by earlier stages.
+      const sourceRows=Number(stage.total(db)||0);
+      const maxSourceId=Number(stage.max(db)||0);
       let state=stageState(db,stage.name);
       if(state?.status==='complete'){
         console.log('[serving-v1-runtime] ✓ '+stage.label+' already complete · '+formatCount(sourceRows));
