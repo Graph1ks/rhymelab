@@ -946,10 +946,36 @@ function enHotpathCandidateStage(path){
 }
 
 function entityRankedAnchorStage(path){
+  const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
+  const eligible=`
+    ep.review_state IN (${accepted})
+    AND n.searchable=1 AND n.language IN ('de','en')
+    AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+  `;
   return {
     name:'13_entity_ranked_anchors',label:'Entity bounded ranked anchor lookup',path,
-    total(db){return scalar(db,'SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence');},
-    max(db){return scalar(db,'SELECT COALESCE(MAX(product_pronunciation_id),0) c FROM runtime_entity_anchor_occurrence');},
+    total(db){
+      attach(db,path);
+      try{return scalar(db,`
+        SELECT COUNT(*) c
+        FROM src.entity_rhyme_anchor a
+        JOIN src.entity_pronunciation ep ON ep.pronunciation_id=a.pronunciation_id
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ${eligible}
+          AND a.analyzer_id=${entityAnalyzerSql('n.language')}
+      `);}finally{detach(db);}
+    },
+    max(db){
+      attach(db,path);
+      try{return scalar(db,`
+        SELECT COALESCE(MAX(ep.pronunciation_id),0) c
+        FROM src.entity_rhyme_anchor a
+        JOIN src.entity_pronunciation ep ON ep.pronunciation_id=a.pronunciation_id
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ${eligible}
+          AND a.analyzer_id=${entityAnalyzerSql('n.language')}
+      `);}finally{detach(db);}
+    },
     range(db,last,upper){return scalar(db,`
       SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence
       WHERE product_pronunciation_id>${last} AND product_pronunciation_id<=${upper}
@@ -980,8 +1006,26 @@ function deAnalysisHotpathStage(path){
   const profile=getPhonologyProfile('de');
   return {
     name:'14_de_precomputed_analysis',label:'DE scorer-ready phonetic analyses',path,
-    total(db){return scalar(db,'SELECT COUNT(*) c FROM runtime_de_candidate');},
-    max(db){return scalar(db,'SELECT COALESCE(MAX(pronunciation_id),0) c FROM runtime_de_candidate');},
+    total(db){return scalar(db,`
+      SELECT COUNT(*) c
+      FROM pronunciation p
+      JOIN surface s USING(surface_id)
+      WHERE s.language='de' AND p.eligible=1
+        AND EXISTS(
+          SELECT 1 FROM surface_role sr
+          WHERE sr.surface_id=s.surface_id AND sr.role='lexical'
+        )
+    `);},
+    max(db){return scalar(db,`
+      SELECT COALESCE(MAX(p.pronunciation_id),0) c
+      FROM pronunciation p
+      JOIN surface s USING(surface_id)
+      WHERE s.language='de' AND p.eligible=1
+        AND EXISTS(
+          SELECT 1 FROM surface_role sr
+          WHERE sr.surface_id=s.surface_id AND sr.role='lexical'
+        )
+    `);},
     range(db,last,upper){return scalar(db,`
       SELECT COUNT(*) c FROM runtime_de_candidate
       WHERE pronunciation_id>${last} AND pronunciation_id<=${upper}
@@ -1008,6 +1052,21 @@ function deAnalysisHotpathStage(path){
 
 
 function deWriterHotpathStage(path){
+  const eligibleTarget=`
+    k.language='de' AND k.channel='writer_right_edge'
+    AND t.target_kind='pronunciation'
+    AND EXISTS(
+      SELECT 1
+      FROM pronunciation p
+      JOIN surface s USING(surface_id)
+      WHERE p.pronunciation_id=t.pronunciation_id
+        AND s.language='de' AND p.eligible=1
+        AND EXISTS(
+          SELECT 1 FROM surface_role sr
+          WHERE sr.surface_id=s.surface_id AND sr.role='lexical'
+        )
+    )
+  `;
   return {
     name:'15_de_writer_key_candidates',label:'DE bounded writer-key candidates',path,
     total(db){return scalar(db,`
@@ -1015,16 +1074,14 @@ function deWriterHotpathStage(path){
       FROM runtime_key k
       JOIN runtime_key_member km USING(key_id)
       JOIN runtime_target t ON t.target_id=km.target_id
-      JOIN runtime_de_candidate c ON c.pronunciation_id=t.pronunciation_id
-      WHERE k.language='de' AND k.channel='writer_right_edge' AND t.target_kind='pronunciation'
+      WHERE ${eligibleTarget}
     `);},
     max(db){return scalar(db,`
       SELECT COALESCE(MAX(t.target_id),0) c
       FROM runtime_key k
       JOIN runtime_key_member km USING(key_id)
       JOIN runtime_target t ON t.target_id=km.target_id
-      JOIN runtime_de_candidate c ON c.pronunciation_id=t.pronunciation_id
-      WHERE k.language='de' AND k.channel='writer_right_edge' AND t.target_kind='pronunciation'
+      WHERE ${eligibleTarget}
     `);},
     range(db,last,upper){return scalar(db,`
       SELECT COUNT(*) c
