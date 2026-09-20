@@ -157,11 +157,10 @@ function createWriterScoringContext(profile,queryAnalysis,enabled=false){
 }
 
 function writerCandidateKey(row){
-  return String(
-    row?.id
-    ??row?.source_order_id
-    ??((row?.normalized||row?.word||'')+'\u0000'+(row?.ipa||'')),
-  );
+  const normalized=String(row?.normalized||row?.word||'');
+  const ipa=String(row?.ipa||'');
+  if(normalized||ipa)return normalized+'\u0000'+ipa;
+  return String(row?.id??row?.source_order_id??'');
 }
 
 function writerAnalysisForRow(row,profile,context,fallbackAnalysis=null){
