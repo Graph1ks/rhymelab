@@ -19,6 +19,7 @@ import {
   generateCorpusMarkovCandidates,
   markovModelHealth,
 } from '../src/markov-model-runtime.mjs';
+import {MARKOV_LYRIC_PROFILE,lyricLengthFit} from '../src/markov-lyric-profile.mjs';
 
 const fixtureSentences=[
   'Nachts in der Stadt klingt jede Straße anders.',
@@ -139,4 +140,14 @@ test('runtime health exposes corpus model identity',()=>{
   assert.equal(health.policy,MARKOV_MODEL_POLICY);
   assert.equal(health.accepted_sentences,fixtureSentences.length);
   runtime.close();
+});
+
+
+test('aggregate lyric profile favors compact song-line lengths without embedding source text',()=>{
+  assert.equal(MARKOV_LYRIC_PROFILE.defaultTargetTokens,6);
+  assert.equal(MARKOV_LYRIC_PROFILE.compactLineTokens,3);
+  assert.equal(MARKOV_LYRIC_PROFILE.commonLineTokens,9);
+  assert.ok(lyricLengthFit(6,6)>lyricLengthFit(14,6));
+  assert.ok(lyricLengthFit(7,7)>lyricLengthFit(3,7));
+  assert.equal(Object.hasOwn(MARKOV_LYRIC_PROFILE,'lyrics'),false);
 });
