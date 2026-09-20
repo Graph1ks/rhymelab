@@ -1,6 +1,7 @@
 export const SERVING_V1_SCHEMA='rhymelab-serving-v1';
 export const SERVING_V1_POLICY='surface-pronunciation-core-authority-v1';
 export const SERVING_V1_BUILD_POLICY='resumable-attached-source-batches-v1';
+export const SERVING_V1_BUILD_REVISION='core-absorbs-identical-generated-v2';
 
 export const SERVING_AUTHORITY=Object.freeze({
   core_word:10,
@@ -519,9 +520,10 @@ function entityStage({name,path,layer}){
     statements(last,upper){
       const rows=common(last,upper);
       const filter=sourceWhere(last,upper);
+      const generatedAvailability=generatedAvailabilityExpr(generated,'r');
       return [
         surfaceUpsert(`
-          SELECT language,normalized,surface,${bits.canonical},${bits.generated},
+          SELECT r.language,r.normalized,MIN(r.surface),${bits.canonical},MAX(${generatedAvailability}),
             ${rank},'${authority}',MIN(r.usage_rank),MAX(r.usage_count),MAX(r.historical),
             MIN(r.lemma),MIN(r.part_of_speech),MIN(r.lexicon_layer)
           FROM (${rows}) r
