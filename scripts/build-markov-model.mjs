@@ -32,6 +32,7 @@ let reportPath='data/local/markov-model-v1-report.json';
 let maxStates=300_000;
 let topK=24;
 let minTokenCount=3;
+let minimumSequenceTokens=3;
 let batchSentences=5_000;
 let maxSentencesPerCorpus=0;
 let plan=false;
@@ -49,6 +50,7 @@ for(let i=0;i<args.length;i+=1){
   else if(arg==='--max-states')maxStates=Math.max(1_000,Number(args[++i])||maxStates);
   else if(arg==='--top-k')topK=Math.max(4,Math.min(96,Number(args[++i])||topK));
   else if(arg==='--min-token-count')minTokenCount=Math.max(1,Number(args[++i])||minTokenCount);
+  else if(arg==='--min-sequence-tokens')minimumSequenceTokens=Math.max(2,Math.min(12,Number(args[++i])||minimumSequenceTokens));
   else if(arg==='--batch-sentences')batchSentences=Math.max(100,Number(args[++i])||batchSentences);
   else if(arg==='--max-sentences-per-corpus')maxSentencesPerCorpus=Math.max(0,Number(args[++i])||0);
   else if(arg==='--sentences')sentenceArgs.push(args[++i]||'');
@@ -141,7 +143,7 @@ if(plan){
     order:MARKOV_MODEL_ORDER,
     manifest:manifest.id,
     sources:sourceRows.map(({code,path,available,bytes,manifest})=>({code,path,available,bytes,human_bytes:human(bytes),expected_sentences:manifest?.sentences??null,genre:manifest?.genre??null,year:manifest?.year??null})),
-    config:{maxStates,topK,minTokenCount,batchSentences,maxSentencesPerCorpus},
+    config:{maxStates,topK,minTokenCount,minimumSequenceTokens,batchSentences,maxSentencesPerCorpus},
     work:workPath,out:outPath,report:reportPath,
     ready:sourceRows.length>0&&sourceRows.every((row)=>row.available),
     missing_hint:sourceRows.length?'Fix missing explicit source paths before building.':'No implicit corpus is selected. Pass --sentences code=/path/file or --manifest ... --phrase-work ... . Owner-private lyrics are calibration-only.',
@@ -180,6 +182,7 @@ const config={
   max_states:maxStates,
   top_k:topK,
   min_token_count:minTokenCount,
+  minimum_sequence_tokens:minimumSequenceTokens,
   max_sentences_per_corpus:maxSentencesPerCorpus,
 };
 const configFingerprint=sha(config);
@@ -201,6 +204,7 @@ writeMeta(db,{
   max_states:maxStates,
   top_k:topK,
   min_token_count:minTokenCount,
+  minimum_sequence_tokens:minimumSequenceTokens,
   build_config_fingerprint:configFingerprint,
   build_started_at:existingMeta.build_started_at||new Date().toISOString(),
 });
@@ -260,7 +264,7 @@ async function runPass1(){
       lineNumber+=1;
       if(lineNumber<=resumeLine)continue;
       if(maxSentencesPerCorpus&&accepted>=maxSentencesPerCorpus)break;
-      const sequence=sequenceFromSentence(sentenceFromLine(line),{language:'de'});
+      const sequence=sequenceFromSentence(sentenceFromLine(line),{language:'de',minimumTokens:minimumSequenceTokens});
       if(!sequence.length)continue;
       accepted+=1;batchAccepted+=1;
       for(const row of sequence.slice(2,-1)){
@@ -349,7 +353,7 @@ async function runPass2(){
       lineNumber+=1;
       if(lineNumber<=resumeLine)continue;
       if(maxSentencesPerCorpus&&accepted>=maxSentencesPerCorpus)break;
-      const sequence=sequenceFromSentence(sentenceFromLine(line),{language:'de'});
+      const sequence=sequenceFromSentence(sentenceFromLine(line),{language:'de',minimumTokens:minimumSequenceTokens});
       if(!sequence.length)continue;
       accepted+=1;batchAccepted+=1;
       const norms=sequence.map((row)=>vocab.has(row.norm)||row.norm===START_TOKEN||row.norm===END_TOKEN?row.norm:null);
