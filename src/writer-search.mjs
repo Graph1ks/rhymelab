@@ -126,14 +126,22 @@ function compareSound(a, b) {
     || Number(a.usageRank ?? Number.MAX_SAFE_INTEGER) - Number(b.usageRank ?? Number.MAX_SAFE_INTEGER);
 }
 
-function createWriterScoringContext(profile,queryAnalysis,enabled=false){
+function createWriterScoringContext(
+  profile,
+  queryAnalysis,
+  enabled=false,
+  {disableSafePrefilter=false}={},
+){
   const metrics=enabled?{
     writer_analysis_feature_preparation_ms:0,
+    writer_safe_prefilter_ms:0,
     writer_phonetic_scoring_ms:0,
     writer_result_construction_ms:0,
     right_edge_lookup_ms:0,
     morphology_ms:0,
     ranking_diversity_ms:0,
+    writer_safe_prefilter_checks:0,
+    writer_safe_prefilter_rejections:0,
     writer_scoring_calls:0,
     writer_unique_scoring_pairs:0,
     writer_score_cache_hits:0,
@@ -152,6 +160,7 @@ function createWriterScoringContext(profile,queryAnalysis,enabled=false){
     analysisByKey:new Map(),
     preparedByKey:new Map(),
     scoreByKey:new Map(),
+    disableSafePrefilter:Boolean(disableSafePrefilter),
     metrics,
   };
 }
@@ -313,6 +322,25 @@ function collectRightEdgeCandidates(
       try {
         candidateAnalysis=writerAnalysisForRow(row,profile,context);
       } catch { continue; }
+      if(
+        context?.disableSafePrefilter!==true
+        &&typeof profile.writerMatchUpperBound==='function'
+      ){
+        const prefilterStarted=context?.metrics?performance.now():0;
+        const bound=profile.writerMatchUpperBound(
+          context.queryPrepared,
+          candidateAnalysis,
+        );
+        if(context?.metrics){
+          context.metrics.writer_safe_prefilter_ms+=
+            performance.now()-prefilterStarted;
+          context.metrics.writer_safe_prefilter_checks+=1;
+        }
+        if(!bound?.possible){
+          if(context?.metrics)context.metrics.writer_safe_prefilter_rejections+=1;
+          continue;
+        }
+      }
       const score=writerScoreForRow(row,candidateAnalysis,profile,context);
       if (score.type === 'weak' && !(score.relationTypes || []).length) continue;
       const resultStarted=context?.metrics?performance.now():0;
@@ -358,6 +386,7 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
     profile,
     queryAnalysis,
     options.profileStages===true,
+    {disableSafePrefilter:options.disableSafePrefilter===true},
   );
   const retrieval = collectRightEdgeCandidates(
     db,
@@ -498,7 +527,12 @@ export function findWriterRhymes(db, word, options = {}) {
   try { queryAnalysis = profile.analyzeIpa(base.query.preferredIpa); }
   catch { queryAnalysis = null; }
   const scoringContext=queryAnalysis
-    ?createWriterScoringContext(profile,queryAnalysis,options.profileStages===true)
+    ?createWriterScoringContext(
+        profile,
+        queryAnalysis,
+        options.profileStages===true,
+        {disableSafePrefilter:options.disableSafePrefilter===true},
+      )
     :null;
 
   const merged = new Map();
