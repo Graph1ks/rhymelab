@@ -519,68 +519,103 @@ export function cachedResultPreparedAnalysis(row){
   return row&&typeof row==='object'?RESULT_PREPARED_ANALYSIS_CACHE.get(row)||null:null;
 }
 
-function resultFromRow(row, score, queryRow, profile) {
-  const primaryType = score.type === 'weak' ? null : score.type;
-  const relations = SOUND_RELATION_TYPES.flatMap((type) => {
-    const relation = score.relations?.[type];
-    return relation?.matched ? [{
+function scoredResultCore(row,score,querySyllableCount,profile){
+  const primaryType=score.type==='weak'?null:score.type;
+  const relations=SOUND_RELATION_TYPES.flatMap((type)=>{
+    const relation=score.relations?.[type];
+    return relation?.matched?[{
       type,
-      strength: relation.strength,
-      score: relation.score,
-      components: relation.components,
-    }] : [];
+      strength:relation.strength,
+      score:relation.score,
+      components:relation.components,
+    }]:[];
   });
-  const relationTypes = relations.map((relation) => relation.type);
-  const fallbackTier = relationTypes.length
-    ? Math.min(...relationTypes.map((type) => RHYME_TIER.get(type) ?? 99))
-    : 99;
-  const tier = primaryType ? (RHYME_TIER.get(primaryType) ?? 99) : fallbackTier;
+  const relationTypes=relations.map((relation)=>relation.type);
+  const fallbackTier=relationTypes.length
+    ?Math.min(...relationTypes.map((type)=>RHYME_TIER.get(type)??99))
+    :99;
+  const tier=primaryType?(RHYME_TIER.get(primaryType)??99):fallbackTier;
+  return {
+    _pronunciationId:Number(row.id),
+    _scoreObject:score,
+    _querySyllableCount:Number(querySyllableCount),
+    language:profile.language,
+    word:row.surface||row.normalized,
+    normalized:row.normalized,
+    usageRank:row.usage_rank,
+    syllableCount:row.syllable_count,
+    syllableDistance:Math.abs(
+      Number(row.syllable_count)-Number(querySyllableCount)
+    ),
+    rhymeTier:tier,
+    score:Number(score.overall.toFixed(4)),
+    type:score.type,
+    primaryType,
+    relationTypes,
+    relations,
+    components:{
+      vowel:Number(score.vowel.toFixed(4)),
+      coda:Number(score.coda.toFixed(4)),
+      stress:Number(score.stress.toFixed(4)),
+      syllable:Number(score.syllable.toFixed(4)),
+      onset:Number((score.onset??0).toFixed(4)),
+      consonance:Number(score.consonance.toFixed(4)),
+    },
+  };
+}
+
+function resultFromRow(row, score, queryRow, profile) {
+  const core=scoredResultCore(row,score,queryRow.syllable_count,profile);
   const pronunciationFlags=parseJsonArray(row.pronunciation_flags);
   const generatedPronunciation=
     pronunciationFlags.includes('generated')
     ||String(row.pronunciation_source||'').toLocaleLowerCase('en-US').includes('espeak');
   return {
-    language: profile.language,
-    word: row.surface,
-    normalized: row.normalized,
-    ipa: row.ipa,
-    pronunciationPreferred: Boolean(row.pronunciation_preferred),
-    pronunciationRank: row.pronunciation_rank,
-    locale: row.locale,
-    dialect: row.dialect,
-    register: row.pronunciation_register,
+    ...core,
+    word:row.surface,
+    ipa:row.ipa,
+    pronunciationPreferred:Boolean(row.pronunciation_preferred),
+    pronunciationRank:row.pronunciation_rank,
+    locale:row.locale,
+    dialect:row.dialect,
+    register:row.pronunciation_register,
     ...(generatedPronunciation?{
       pronunciationSource:row.pronunciation_source||null,
       pronunciationFlags,
       generatedPronunciation:true,
     }:{}),
-    usageRank: row.usage_rank,
-    usageScore: row.usage_score,
-    usageCount: row.usage_count,
-    usageSourceCount: row.usage_source_count,
-    lexiconLayer: row.lexicon_layer,
-    entityKind: row.entity_kind,
-    historical: Boolean(row.historical),
-    lexicalTags: parseJsonArray(row.lexical_tags),
-    lemma: row.lemma,
-    partOfSpeech: row.pos,
-    syllableCount: row.syllable_count,
-    syllableDistance: Math.abs(Number(row.syllable_count) - Number(queryRow.syllable_count)),
-    rhymeTier: tier,
-    score: Number(score.overall.toFixed(4)),
-    type: score.type,
-    primaryType,
-    relationTypes,
-    relations,
-    components: {
-      vowel: Number(score.vowel.toFixed(4)),
-      coda: Number(score.coda.toFixed(4)),
-      stress: Number(score.stress.toFixed(4)),
-      syllable: Number(score.syllable.toFixed(4)),
-      onset: Number((score.onset ?? 0).toFixed(4)),
-      consonance: Number(score.consonance.toFixed(4)),
-    },
+    usageScore:row.usage_score,
+    usageCount:row.usage_count,
+    usageSourceCount:row.usage_source_count,
+    lexiconLayer:row.lexicon_layer,
+    entityKind:row.entity_kind,
+    historical:Boolean(row.historical),
+    lexicalTags:parseJsonArray(row.lexical_tags),
+    lemma:row.lemma,
+    partOfSpeech:row.pos,
   };
+}
+
+function enrichScoredResultForRuntimeRanking(scored,metadata){
+  return {
+    ...scored,
+    word:metadata?.surface||scored.word,
+    usageRank:metadata?.usage_rank??scored.usageRank,
+    lexiconLayer:metadata?.lexicon_layer??null,
+    lexicalTags:parseJsonArray(metadata?.lexical_tags),
+    lemma:metadata?.lemma??null,
+    partOfSpeech:metadata?.pos??null,
+  };
+}
+
+function stripInternalResultFields(row){
+  const {
+    _pronunciationId,
+    _scoreObject,
+    _querySyllableCount,
+    ...publicRow
+  }=row;
+  return publicRow;
 }
 
 function localeForRow(row) {
