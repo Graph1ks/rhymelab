@@ -135,35 +135,58 @@ function commonnessFromRows(rows) {
 }
 
 export function createPhraseRankingEvidenceResolver(db) {
-  const usage = db.prepare([
-    'SELECT s.snapshot_label,u.occurrence_count,u.sentence_count,',
-    'u.per_million_tokens,u.per_million_sentences',
-    ' FROM phrase_usage_evidence u',
-    ' JOIN phrase_snapshot s ON s.snapshot_id=u.snapshot_id',
-    ' WHERE u.phrase_id=? AND u.policy=?',
-    ' AND s.snapshot_label IN (?,?,?)',
-    ' ORDER BY s.snapshot_label',
-  ].join(''));
+  let serving=false;
+  try{
+    serving=
+      db.prepare("SELECT value FROM meta WHERE key='schema'").get()?.value==='rhymelab-serving-v1'
+      &&db.prepare("SELECT value FROM meta WHERE key='product_adapter_status'").get()?.value==='complete';
+  }catch{}
 
-  const attestations = db.prepare([
-    'SELECT style_tags_json FROM phrase_attestation',
-    ' WHERE phrase_id=? ORDER BY attestation_id',
-  ].join(''));
+  const usage = serving
+    ?db.prepare([
+      'SELECT snapshot_label,occurrence_count,sentence_count,',
+      'per_million_tokens,per_million_sentences',
+      ' FROM runtime_phrase_usage',
+      ' WHERE runtime_phrase_id=?',
+      ' ORDER BY snapshot_label',
+    ].join(''))
+    :db.prepare([
+      'SELECT s.snapshot_label,u.occurrence_count,u.sentence_count,',
+      'u.per_million_tokens,u.per_million_sentences',
+      ' FROM phrase_usage_evidence u',
+      ' JOIN phrase_snapshot s ON s.snapshot_id=u.snapshot_id',
+      ' WHERE u.phrase_id=? AND u.policy=?',
+      ' AND s.snapshot_label IN (?,?,?)',
+      ' ORDER BY s.snapshot_label',
+    ].join(''));
+
+  const attestations = serving
+    ?db.prepare([
+      'SELECT style_tags_json FROM runtime_phrase_attestation',
+      ' WHERE runtime_phrase_id=? ORDER BY ordinal',
+    ].join(''))
+    :db.prepare([
+      'SELECT style_tags_json FROM phrase_attestation',
+      ' WHERE phrase_id=? ORDER BY attestation_id',
+    ].join(''));
 
   const cache = new Map();
 
-  return (phraseId) => {
-    const key = String(phraseId || '');
+  return (phraseId,runtimePhraseId=null) => {
+    const lookupId=serving?Number(runtimePhraseId||0):String(phraseId||'');
+    const key=(serving?'runtime:':'phrase:')+String(lookupId);
     const existing = cache.get(key);
     if (existing) return existing;
 
-    const usageRows = usage.all(
-      key,
-      LEIPZIG_POLICY,
-      ...PHRASE_MOSAIC_GENERAL_COMMONNESS_CORPORA,
-    );
+    const usageRows = serving
+      ?usage.all(lookupId)
+      :usage.all(
+        lookupId,
+        LEIPZIG_POLICY,
+        ...PHRASE_MOSAIC_GENERAL_COMMONNESS_CORPORA,
+      );
     const styleTags = sortedUnique(
-      attestations.all(key).flatMap((row) => parseArray(row.style_tags_json)),
+      attestations.all(lookupId).flatMap((row) => parseArray(row.style_tags_json)),
     );
 
     const evidence = {
@@ -178,7 +201,7 @@ export function createPhraseRankingEvidenceResolver(db) {
 export function enrichPhraseMosaicCandidates(db, querySurface, retrievalResult) {
   const resolvePhrase = createPhraseRankingEvidenceResolver(db);
   const candidates = (retrievalResult?.candidates || []).map((candidate) => {
-    const phraseEvidence = resolvePhrase(candidate.phraseId);
+    const phraseEvidence = resolvePhrase(candidate.phraseId,candidate.runtimePhraseId);
     const surfaceSafety = classifyPhraseSurfaceSafety(candidate.canonical, {
       historicalState: candidate.historicalState,
       modernEligible: candidate.modernEligible,
