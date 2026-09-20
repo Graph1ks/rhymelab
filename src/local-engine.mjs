@@ -294,16 +294,26 @@ function servingChannelCandidateIds(
     baseArgs.push(String(extraValue??''));
   }
   const where=filters.join(' AND ');
-  const bounds=db.prepare(`
-    SELECT MIN(syllable_count) min_syllable,MAX(syllable_count) max_syllable
+  const minRow=db.prepare(`
+    SELECT syllable_count
     FROM runtime_de_candidate
     WHERE ${where}
+    ORDER BY syllable_count ASC
+    LIMIT 1
   `).get(...baseArgs);
-  if(bounds?.min_syllable==null||bounds?.max_syllable==null)return [];
+  if(minRow?.syllable_count==null)return [];
+  const maxRow=db.prepare(`
+    SELECT syllable_count
+    FROM runtime_de_candidate
+    WHERE ${where}
+    ORDER BY syllable_count DESC
+    LIMIT 1
+  `).get(...baseArgs);
+  if(maxRow?.syllable_count==null)return [];
 
   const queryCount=Math.max(0,Number(querySyllables)||0);
-  const minS=Number(bounds.min_syllable);
-  const maxS=Number(bounds.max_syllable);
+  const minS=Number(minRow.syllable_count);
+  const maxS=Number(maxRow.syllable_count);
   const maxDistance=Math.max(Math.abs(queryCount-minS),Math.abs(maxS-queryCount));
   const bucket=db.prepare(`
     SELECT pronunciation_id,usage_rank,source_order

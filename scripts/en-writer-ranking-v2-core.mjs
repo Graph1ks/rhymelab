@@ -184,53 +184,100 @@ function lemmaSet(row){
   return new Set(parseJsonArray(row.lemmas).map((item)=>String(item).toLocaleLowerCase('en-US')));
 }
 
-export function candidateRedundancy(a,b){
+function preparedRedundancyState(row){
+  const normalized=String(row?.normalized||'');
+  return {
+    row,
+    normalized,
+    lemmas:lemmaSet(row),
+    bigrams:bigrams(normalized),
+    maxRedundancy:0,
+  };
+}
+
+function lexicalSimilarityPrepared(a,b){
+  if(!a.normalized||!b.normalized) return 0;
   if(a.normalized===b.normalized) return 1;
-  const al=lemmaSet(a),bl=lemmaSet(b);
-  if([...al].some((lemma)=>bl.has(lemma))) return 0.95;
-  const lexical=lexicalSimilarity(a.normalized,b.normalized);
-  const prefix=(()=>{
-    const x=String(a.normalized||''),y=String(b.normalized||'');
-    const max=Math.max(x.length,y.length,1);
-    let n=0;
-    while(n<Math.min(x.length,y.length)&&x[n]===y[n]) n+=1;
-    return n/max;
-  })();
-  return clamp01(Math.max(lexical,prefix*0.9));
+  if(!a.bigrams.size||!b.bigrams.size) return 0;
+  let overlap=0;
+  const smaller=a.bigrams.size<=b.bigrams.size?a.bigrams:b.bigrams;
+  const larger=smaller===a.bigrams?b.bigrams:a.bigrams;
+  for(const item of smaller) if(larger.has(item)) overlap+=1;
+  return clamp01((2*overlap)/(a.bigrams.size+b.bigrams.size));
+}
+
+function candidateRedundancyPrepared(a,b){
+  if(a.normalized===b.normalized) return 1;
+  const smaller=a.lemmas.size<=b.lemmas.size?a.lemmas:b.lemmas;
+  const larger=smaller===a.lemmas?b.lemmas:a.lemmas;
+  for(const lemma of smaller) if(larger.has(lemma)) return 0.95;
+
+  const lexical=lexicalSimilarityPrepared(a,b);
+  const max=Math.max(a.normalized.length,b.normalized.length,1);
+  let prefixLength=0;
+  const prefixLimit=Math.min(a.normalized.length,b.normalized.length);
+  while(
+    prefixLength<prefixLimit
+    &&a.normalized[prefixLength]===b.normalized[prefixLength]
+  ) prefixLength+=1;
+  return clamp01(Math.max(lexical,(prefixLength/max)*0.9));
+}
+
+export function candidateRedundancy(a,b){
+  return candidateRedundancyPrepared(
+    preparedRedundancyState(a),
+    preparedRedundancyState(b),
+  );
 }
 
 export function diversifyRanked(rows,{weight=0.12,limit=20}={}){
-  const remaining=[...rows];
+  const diversityWeight=Number(weight||0);
+  const remaining=(rows||[]).map(preparedRedundancyState);
   const selected=[];
+
   while(remaining.length&&selected.length<limit){
-    const base=remaining[0];
+    const base=remaining[0].row;
     let bestIndex=0;
     let bestScore=-Infinity;
+
     for(let i=0;i<remaining.length;i+=1){
-      const row=remaining[i];
+      const candidate=remaining[i];
+      const row=candidate.row;
       if(row.tier!==base.tier||row.quality_band!==base.quality_band) break;
-      const maxRedundancy=selected.length
-        ?Math.max(...selected.map((picked)=>candidateRedundancy(row,picked)))
-        :0;
-      const diversifiedScore=row.evidence.utility-Number(weight||0)*maxRedundancy;
+      const diversifiedScore=row.evidence.utility-diversityWeight*candidate.maxRedundancy;
       if(
         diversifiedScore>bestScore
-        ||(diversifiedScore===bestScore&&stableTie(row,remaining[bestIndex])<0)
+        ||(
+          diversifiedScore===bestScore
+          &&stableTie(row,remaining[bestIndex].row)<0
+        )
       ){
         bestScore=diversifiedScore;
         bestIndex=i;
       }
     }
+
     const [picked]=remaining.splice(bestIndex,1);
-    const maxRedundancy=selected.length
-      ?Math.max(...selected.map((row)=>candidateRedundancy(picked,row)))
-      :0;
+    const pickedRow=picked.row;
     selected.push({
-      ...picked,
-      max_redundancy:Number(maxRedundancy.toFixed(6)),
-      diversified_score:Number((picked.evidence.utility-Number(weight||0)*maxRedundancy).toFixed(8)),
+      ...pickedRow,
+      max_redundancy:Number(picked.maxRedundancy.toFixed(6)),
+      diversified_score:Number(
+        (pickedRow.evidence.utility-diversityWeight*picked.maxRedundancy).toFixed(8)
+      ),
     });
+
+    // Each candidate/picked pair is evaluated exactly once. This preserves the
+    // original greedy objective while avoiding repeated work against the full
+    // selected prefix on every selection round.
+    for(const candidate of remaining){
+      const redundancy=candidateRedundancyPrepared(candidate,picked);
+      if(redundancy>candidate.maxRedundancy){
+        candidate.maxRedundancy=redundancy;
+      }
+    }
   }
+
   return selected;
 }
 

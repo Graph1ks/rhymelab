@@ -11,6 +11,73 @@ import {
   rankQualityRows,
 } from '../scripts/en-writer-ranking-v2-core.mjs';
 
+function referenceDiversifyRanked(rows,{weight=0.12,limit=20}={}){
+  const remaining=[...rows];
+  const selected=[];
+  while(remaining.length&&selected.length<limit){
+    const base=remaining[0];
+    let bestIndex=0;
+    let bestScore=-Infinity;
+    for(let i=0;i<remaining.length;i+=1){
+      const row=remaining[i];
+      if(row.tier!==base.tier||row.quality_band!==base.quality_band)break;
+      const maxRedundancy=selected.length
+        ?Math.max(...selected.map((picked)=>candidateRedundancy(row,picked)))
+        :0;
+      const diversifiedScore=row.evidence.utility-Number(weight||0)*maxRedundancy;
+      if(
+        diversifiedScore>bestScore
+        ||(diversifiedScore===bestScore&&(
+          Number(remaining[bestIndex].evidence.utility)-Number(row.evidence.utility)
+          ||Number(remaining[bestIndex].evidence.phonetic)-Number(row.evidence.phonetic)
+          ||Number(Boolean(remaining[bestIndex].evidence.usage_known))-Number(Boolean(row.evidence.usage_known))
+          ||Number(row.wordfreq_rank??Number.MAX_SAFE_INTEGER)-Number(remaining[bestIndex].wordfreq_rank??Number.MAX_SAFE_INTEGER)
+          ||Number(row.pronunciation_id??Number.MAX_SAFE_INTEGER)-Number(remaining[bestIndex].pronunciation_id??Number.MAX_SAFE_INTEGER)
+          ||String(row.normalized).localeCompare(String(remaining[bestIndex].normalized),'en')
+        )<0)
+      ){
+        bestScore=diversifiedScore;
+        bestIndex=i;
+      }
+    }
+    const [picked]=remaining.splice(bestIndex,1);
+    const maxRedundancy=selected.length
+      ?Math.max(...selected.map((row)=>candidateRedundancy(picked,row)))
+      :0;
+    selected.push({
+      ...picked,
+      max_redundancy:Number(maxRedundancy.toFixed(6)),
+      diversified_score:Number(
+        (picked.evidence.utility-Number(weight||0)*maxRedundancy).toFixed(8)
+      ),
+    });
+  }
+  return selected;
+}
+
+function deterministicRankingRows(count=180){
+  const stems=['time','rhyme','chime','prime','lime','climb','shine','line','mine','sign'];
+  return Array.from({length:count},(_,index)=>{
+    const stem=stems[index%stems.length];
+    const suffix=Math.floor(index/stems.length);
+    return {
+      normalized:stem+(suffix||''),
+      tier:index<120?0:1,
+      quality_band:index<60?0:index<120?1:2,
+      pronunciation_id:index+1,
+      lemmas:JSON.stringify([stem,index%7===0?'shared-'+(index%5):'lemma-'+index]),
+      wordfreq_rank:index%11===0?null:index+10,
+      evidence:{
+        utility:Number((0.99-(index%60)*0.0015).toFixed(8)),
+        phonetic:Number((0.98-(index%60)*0.001).toFixed(8)),
+        commonness:0.5,
+        usage_known:index%11!==0,
+        lexical_overlap:0,
+      },
+    };
+  });
+}
+
 test('English Writer v2 commonness remains bounded and unknown usage stays explicit',()=>{
   assert.ok(commonnessUtility(6,100)>commonnessUtility(3,50000));
   assert.ok(commonnessUtility(null,null)>=0&&commonnessUtility(null,null)<=1);
@@ -65,4 +132,53 @@ test('English Writer v2 diversity stays inside tier and anchored quality band',(
 test('lexical similarity remains available for diversity diagnostics',()=>{
   assert.equal(lexicalSimilarity('time','time'),1);
   assert.ok(lexicalSimilarity('nation','station')>0);
+});
+
+test('incremental English diversity is byte-for-byte equivalent to the reference greedy policy',()=>{
+  const rows=deterministicRankingRows(240);
+  for(const weight of [0,0.08,0.12,0.20]){
+    for(const limit of [1,20,100,250]){
+      const expected=referenceDiversifyRanked(rows,{weight,limit});
+      const actual=diversifyRanked(rows,{weight,limit});
+      assert.deepEqual(actual,expected);
+    }
+  }
+});
+
+test('English diversity remains equivalent across deterministic irregular lemma/bigram cases',()=>{
+  let state=0x6d2b79f5;
+  const random=()=>{
+    state=(Math.imul(state^state>>>15,1|state)+0x6d2b79f5)|0;
+    state^=state+Math.imul(state^state>>>7,61|state);
+    return ((state^state>>>14)>>>0)/4294967296;
+  };
+  const alphabet='abcdefghijklmnopqrstuvwy';
+  for(let round=0;round<24;round++){
+    const rows=Array.from({length:40+Math.floor(random()*80)},(_,index)=>{
+      const length=3+Math.floor(random()*8);
+      let normalized='';
+      for(let i=0;i<length;i++)normalized+=alphabet[Math.floor(random()*alphabet.length)];
+      const lemmaA='l'+Math.floor(random()*18);
+      const lemmaB=random()<0.35?'l'+Math.floor(random()*18):'u'+round+'-'+index;
+      return {
+        normalized,
+        tier:Math.floor(random()*3),
+        quality_band:Math.floor(random()*4),
+        pronunciation_id:index+1,
+        lemmas:JSON.stringify([lemmaA,lemmaB]),
+        wordfreq_rank:random()<0.15?null:1+Math.floor(random()*100000),
+        evidence:{
+          utility:Number(random().toFixed(8)),
+          phonetic:Number(random().toFixed(8)),
+          commonness:Number(random().toFixed(8)),
+          usage_known:random()>=0.15,
+          lexical_overlap:0,
+        },
+      };
+    }).sort((a,b)=>a.tier-b.tier||a.quality_band-b.quality_band||a.pronunciation_id-b.pronunciation_id);
+    assert.deepEqual(
+      diversifyRanked(rows,{weight:0.12,limit:Math.min(50,rows.length)}),
+      referenceDiversifyRanked(rows,{weight:0.12,limit:Math.min(50,rows.length)}),
+    );
+  }
 });
