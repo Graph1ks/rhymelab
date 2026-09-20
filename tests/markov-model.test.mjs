@@ -19,7 +19,11 @@ import {
   generateCorpusMarkovCandidates,
   markovModelHealth,
 } from '../src/markov-model-runtime.mjs';
-import {MARKOV_LYRIC_PROFILE,lyricLengthFit} from '../src/markov-lyric-profile.mjs';
+import {
+  MARKOV_LYRIC_PROFILE,
+  lyricLengthFit,
+  lyricTargetBounds,
+} from '../src/markov-lyric-profile.mjs';
 
 const fixtureSentences=[
   'Nachts in der Stadt klingt jede Straße anders.',
@@ -102,6 +106,9 @@ test('corpus Markov generation is deterministic and ends on a real rhyme candida
   assert.ok(first.every((candidate)=>['Reise','Weise','leise','eine neue Weise'].some((tail)=>candidate.sentence.toLocaleLowerCase('de-DE').includes(tail.toLocaleLowerCase('de-DE')))));
   assert.ok(first.every((candidate)=>candidate.model.policy===MARKOV_MODEL_POLICY));
   assert.ok(first.every((candidate)=>candidate.scores.utility>=0&&candidate.scores.utility<=1));
+  assert.ok(first.every((candidate)=>candidate.scores.lengthWithinTarget===true));
+  assert.ok(first.every((candidate)=>candidate.scores.actualLength>=candidate.scores.minimumLength));
+  assert.ok(first.every((candidate)=>candidate.scores.actualLength<=candidate.scores.maximumLength));
   runtime.close();
 });
 
@@ -150,5 +157,13 @@ test('aggregate lyric profile favors compact song-line lengths without embedding
   assert.equal(MARKOV_LYRIC_PROFILE.commonLineTokens,9);
   assert.ok(lyricLengthFit(6,6)>lyricLengthFit(14,6));
   assert.ok(lyricLengthFit(7,7)>lyricLengthFit(3,7));
+  assert.ok(lyricLengthFit(16,16)>lyricLengthFit(2,16));
+  assert.equal(lyricLengthFit(16,16),1);
+  assert.deepEqual(lyricTargetBounds(16,{weirdness:.28}),{
+    target:16,
+    tolerance:2,
+    min:14,
+    max:18,
+  });
   assert.equal(Object.hasOwn(MARKOV_LYRIC_PROFILE,'lyrics'),false);
 });
