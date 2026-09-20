@@ -8,6 +8,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Added
 
+- Added `npm run dev:serving`, an explicit one-file Serving-v1 Product preview that drives the normal RhymeLab browser UI/API through Core/All read-only connections without changing the accepted default runtime.
 - Added a bounded IndexedDB cache for generated client query pronunciations, keyed by language/spelling and gated by resolver policy plus the current active-database revision.
 - Added `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md` as the focused fresh-thread continuation contract for client query pronunciation, cache revalidation and browser verification.
 - Added a deterministic 1000-case source-backed DE/EN query-pronunciation gold-control benchmark, balanced by language and syllable-count bucket, to measure eSpeak-NG pronunciation quality separately from structural analyzer compatibility.
