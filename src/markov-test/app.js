@@ -103,3 +103,108 @@ async function fetchCandidatePool(target,settings){
     if(generated?.ipa){attachGeneratedQuery(params,settings.language,generated);({response,data}=await writerRequest(params));}
   }
   if(!response.ok)throw new Error(data?.error||data?.reason||`Writer request failed (${response.status})`);
+  const rows=(data?.results||[]).filter((row)=>{
+    if(row?.resultKind==='phrase'&&!settings.allowPhrases)return false;
+    if(row?.resultKind==='entity'&&!settings.allowEntities)return false;
+    return true;
+  });
+  return {rows,data};
+}
+
+async function requestMarkovGeneration(rows,settings){
+  const response=await fetch('/api/markov/generate',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({
+      rows:compactWriterRows(rows),
+      ...settings,
+      count:8,
+      attempts:72,
+    }),
+  });
+  let data={};
+  try{data=await response.json();}catch{}
+  if(!response.ok)throw new Error(data?.error||data?.reason||`Markov generation failed (${response.status})`);
+  return data;
+}
+
+function settingsFromControls(){
+  const seedText=$('#seedText').value.trim();
+  const target=$('#target').value.trim()||seedText.split(/\s+/u).filter(Boolean).at(-1)||'Arbeitsweise';
+  return {
+    seedText,target,
+    language:$('#language').value==='en'?'en':'de',
+    mode:$('#mode').value,
+    rhymePressure:Number($('#rhymePressure').value),
+    naturalness:Number($('#naturalness').value),
+    weirdness:Number($('#weirdness').value),
+    targetTokens:Number($('#targetTokens').value),
+    allowEntities:$('#allowEntities').checked,
+    allowPhrases:$('#allowPhrases').checked,
+    allowGenerated:generatedAvailable&&$('#allowGenerated').checked,
+    seed:Number($('#randomSeed').value)||0,
+  };
+}
+
+function updateRangeLabel(id,value){
+  const output=document.querySelector(`[data-range-value="${id}"]`);
+  if(output)output.textContent=id==='targetTokens'?`${value} tok`:`${value}%`;
+}
+function applyPreset(name){
+  const preset=PRESETS[name];if(!preset)return;
+  for(const [key,value] of Object.entries(preset)){
+    const control=document.getElementById(key);if(!control)continue;
+    control.value=String(value);if(control.type==='range')updateRangeLabel(key,value);
+  }
+  document.querySelectorAll('[data-preset]').forEach((button)=>button.classList.toggle('active',button.dataset.preset===name));
+}
+function setBusy(busy){
+  $('#generateButton').disabled=busy||!markovHealth?.available;
+  $('#rerollSeed').disabled=busy||!markovHealth?.available;
+  document.documentElement.dataset.markovState=busy?'generating':'ready';
+}
+function setStatus(message,tone='neutral'){const status=$('#status');status.textContent=message;status.dataset.tone=tone;}
+function randomSurface(pool,index){
+  if(!pool.length)return ['tick','tack','reim','peng'][index%4];
+  const row=pool[(index*17+7)%pool.length];return row?.surface||row?.word||'...';
+}
+function delay(ms){return new Promise((resolve)=>setTimeout(resolve,ms));}
+
+async function runSlotMachine(pool){
+  const stage=$('#sentenceStage');
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+  stage.innerHTML=`<div class="machine" aria-hidden="true"><span class="machine-label">CORPUS IS COOKING</span><strong id="machineWord">${esc(randomSurface(pool,0))}</strong><div class="machine-dots"><i></i><i></i><i></i></div></div>`;
+  stage.classList.add('is-cooking');
+  for(let index=1;index<=7;index+=1){await delay(55+index*5);const word=$('#machineWord');if(word)word.textContent=randomSurface(pool,index);}
+  stage.classList.remove('is-cooking');
+}
+
+function tokenMarkup(token,index){
+  const label=token.kind==='corpus'?'corpus transition':token.kind;
+  return `<span class="sentence-token token-${esc(token.kind)}" style="--i:${index}" title="${esc(label)}">${esc(token.text)}</span>`;
+}
+function scoreBar(label,value){
+  const percent=Math.round(Number(value||0)*100);
+  return `<div class="score-row"><span>${esc(label)}</span><div class="score-track"><i style="--score:${percent}%"></i></div><strong>${percent}</strong></div>`;
+}
+function sourceBadges(candidate){
+  const counts=candidate.sourceCounts||{};const badges=[];
+  if(counts.corpus)badges.push(`<span>CORPUS ${counts.corpus}</span>`);
+  if(counts.word)badges.push(`<span>WORDS ${counts.word}</span>`);
+  if(counts.phrase)badges.push(`<span>PHRASES ${counts.phrase}</span>`);
+  if(counts.entity)badges.push(`<span>ENTITIES ${counts.entity}</span>`);
+  if(counts.generated)badges.push(`<span>GENERATED ${counts.generated}</span>`);
+  badges.push(`<span>SEED ${candidate.seed}</span>`);
+  return badges.join('');
+}
+
+function renderHero(candidate,{animate=true}={}){
+  currentHero=candidate;
+  const stage=$('#sentenceStage');
+  const tokens=candidate.tokens.map(tokenMarkup).join(' ');
+  stage.innerHTML=`
+    <div class="stage-orbit" aria-hidden="true"><span>✦</span><span>~</span><span>♪</span></div>
+    <div class="hero-kicker"><span>#${candidate.rank}</span><span>${esc(candidate.mode.toUpperCase())}</span><span>${esc(MARKOV_GENERATOR_POLICY)}</span></div>
+    <blockquote class="hero-sentence ${animate?'animate-in':''}" aria-label="Generated corpus Markov sentence">${tokens}<span class="sentence-punctuation">.</span></blockquote>
+    <div class="hero-bottom"><div class="source-badges">${sourceBadges(candidate)}</div><button id="copySentence" class="ghost-button" type="button">COPY LINE</button></div>
+    <div class="score-grid">
