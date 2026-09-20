@@ -155,8 +155,7 @@
     "pronunciation:backfill:highspeed:batch": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs",
     "pronunciation:backfill:highspeed:analyzer-control": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs --analyzer-workers 0",
     "pronunciation:backfill:framing:test": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs --workers 4 --analyzer-workers 4 --cases 4096 --batch-sizes 128 --espeak-frame-group-size 16",
-    "pronunciation:secondary:materialize": "node --no-warnings scripts/materialize-pronunciation-secondary-v1.mjs",
-    "pronunciation:secondary:report": "node --no-warnings scripts/materialize-pronunciation-secondary-v1.mjs --phase report",
-    "pronunciation:secondary:reset": "node --no-warnings scripts/materialize-pronunciation-secondary-v1.mjs --reset"
+    "pronunciation:secondary:materialize": "node --no-warnings scripts/materialize-pronunciation-base-parity-v1.mjs",
+    "pronunciation:secondary:parity": "node --no-warnings scripts/materialize-pronunciation-base-parity-v1.mjs"
   }
 }
