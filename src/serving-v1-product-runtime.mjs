@@ -39,7 +39,8 @@ export function servingV1ProductRuntimeState(db){
       runtimeStatus!=='complete'?'serving_v1_runtime_incomplete':
       productSchema!==SERVING_V1_PRODUCT_SCHEMA?'serving_v1_product_schema_mismatch':
       productStatus!=='complete'?'serving_v1_product_incomplete':
-      'serving_v1_product_revision_mismatch',
+      productRevision!==SERVING_V1_PRODUCT_REVISION?'serving_v1_product_revision_mismatch':
+      'serving_v1_identity_revision_mismatch',
     schema,
     runtimeStatus,
     productSchema,
