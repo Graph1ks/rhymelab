@@ -108,9 +108,25 @@ async function sourceStatus(sources){
 function openStatus(path){
   try{
     const db=new DatabaseSync(path,{readOnly:true});
-    try{return {path,meta:readMeta(db),stats:modelStats(db),checkpoints:db.prepare('SELECT * FROM build_checkpoint ORDER BY phase,source_index').all()};}
-    finally{db.close();}
-  }catch(error){return {path,error:error instanceof Error?error.message:String(error)};}
+    try{
+      let checkpoints=[];
+      try{
+        checkpoints=db.prepare(
+          'SELECT * FROM build_checkpoint ORDER BY phase,source_index',
+        ).all();
+      }catch{}
+      return {
+        path,
+        meta:readMeta(db),
+        stats:modelStats(db),
+        checkpoints,
+      };
+    }finally{
+      db.close();
+    }
+  }catch(error){
+    return {path,error:error instanceof Error?error.message:String(error)};
+  }
 }
 
 const {manifest,sources}=await resolveSources();
