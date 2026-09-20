@@ -21,6 +21,7 @@ import {
 import {
   DEFAULT_GENERATED_ENGLISH_DB_PATH,
   DEFAULT_GENERATED_ENTITY_DB_PATH,
+  DEFAULT_GENERATED_OPTIN_MARKER_PATH,
   DEFAULT_GENERATED_OPTIN_REPORT_PATH,
   DEFAULT_GENERATED_PHRASE_DB_PATH,
   DEFAULT_GENERATED_WRITER_DB_PATH,
@@ -40,6 +41,9 @@ const englishMarkerPath = resolve(
 );
 const generatedOptinReportPath=resolve(
   process.env.RHYMELAB_GENERATED_OPTIN_REPORT || DEFAULT_GENERATED_OPTIN_REPORT_PATH,
+);
+const generatedOptinMarkerPath=resolve(
+  process.env.RHYMELAB_GENERATED_OPTIN_MARKER || DEFAULT_GENERATED_OPTIN_MARKER_PATH,
 );
 const generatedWriterDbPath=resolve(
   process.env.RHYMELAB_GENERATED_WRITER_DB || DEFAULT_GENERATED_WRITER_DB_PATH,
@@ -118,6 +122,8 @@ try {
 
 const generatedOptinRuntime=openGeneratedOptinRuntime({
   reportPath:generatedOptinReportPath,
+  acceptanceMarkerPath:generatedOptinMarkerPath,
+  requireRuntimeAcceptance:true,
   writerPath:generatedWriterDbPath,
   englishPath:generatedEnglishDbPath,
   phrasePath:generatedPhraseDbPath,
@@ -345,7 +351,8 @@ const server = createServer(async (req, res) => {
         generated_optin: {
           available: generatedOptinRuntime.available,
           reason: generatedOptinRuntime.available ? null : generatedOptinRuntime.reason,
-          report: generatedOptinRuntime.available ? generatedOptinRuntime.reportPath : null,
+          report: generatedOptinRuntime.available ? generatedOptinRuntime.reportPath : generatedOptinReportPath,
+          acceptance_marker: generatedOptinMarkerPath,
           report_fingerprint: generatedOptinRuntime.available ? generatedOptinRuntime.reportFingerprint : null,
           active_espeak_ab: generatedOptinRuntime.available ? generatedOptinRuntime.activeEspeakAB : 0,
           deferred_total: generatedOptinRuntime.available ? generatedOptinRuntime.deferredTotal : 0,
