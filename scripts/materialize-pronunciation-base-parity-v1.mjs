@@ -52,6 +52,8 @@ import {
   GENERATED_BASE_PARITY_SCHEMA,
   assertSameSqliteSchema,
   deferredBucket,
+  jsonSortedUnique,
+  resolveMaterializationResume,
   sqliteSchemaFingerprint,
 } from './pronunciation-base-parity-core.mjs';
 
@@ -81,6 +83,7 @@ const deKaikkiPath=resolve(argValue('--de-kaikki','data/work/de-rhyme-core-v1/do
 const enRegistryPath=resolve(argValue('--en-registry','sources/en/phase12b-sources-v1.json'));
 const enRawDirArg=argValue('--en-raw-dir',null);
 const progressEvery=intArg('--progress-every',50000,1000,1_000_000);
+const resumePlan=resolveMaterializationResume(argValue('--resume-from','de'));
 
 for(const path of [workPath,deBasePath,enBasePath,phraseBasePath,entityBasePath,deUsagePath,deKaikkiPath,enRegistryPath]){
   if(!existsSync(path))throw new Error('Required input is missing: '+path);
@@ -88,9 +91,20 @@ for(const path of [workPath,deBasePath,enBasePath,phraseBasePath,entityBasePath,
 for(const path of [deOutPath,enOutPath,phraseOutPath,entityOutPath,reportPath,deferredPath]){
   await mkdir(dirname(path),{recursive:true});
 }
-for(const path of [deOutPath,enOutPath,phraseOutPath,entityOutPath]){
-  await rm(path,{force:true});
+const outputByStage=new Map([
+  ['de',deOutPath],
+  ['en',enOutPath],
+  ['phrases',phraseOutPath],
+  ['entities',entityOutPath],
+]);
+for(const stage of resumePlan.rebuild){
+  await rm(outputByStage.get(stage),{force:true});
 }
+console.log(
+  '[base-parity] resume-from='+resumePlan.resume_from+
+  ' preserve='+(resumePlan.preserve.join(',')||'none')+
+  ' rebuild='+resumePlan.rebuild.join(',')
+);
 
 const workDb=new DatabaseSync(workPath,{readOnly:true});
 workDb.exec('PRAGMA query_only=ON;');
@@ -201,11 +215,33 @@ function parseTsvHeader(line){
   const names=String(line||'').replace(/^\uFEFF/u,'').split('\t');
   return Object.fromEntries(names.map((name,index)=>[name,index]));
 }
-function jsonSorted(values,locale='en'){
-  return JSON.stringify([...new Set((values||[]).map(String).filter(Boolean))]
-    .sort((a,b)=>a.localeCompare(b,locale)));
-}
+const jsonSorted=jsonSortedUnique;
 function sha(value){return createHash('sha256').update(String(value)).digest('hex')}
+
+function reuseAugmented(label,basePath,augPath){
+  if(!existsSync(augPath)){
+    throw new Error(
+      'Cannot resume past '+label+': expected completed augmented database is missing: '+augPath
+    );
+  }
+  const db=new DatabaseSync(augPath,{readOnly:true});
+  try{
+    const check=db.prepare('PRAGMA quick_check').all();
+    if(check.length!==1||String(check[0]?.quick_check||'').toLowerCase()!=='ok'){
+      throw new Error(label+' resume quick_check failed: '+JSON.stringify(check));
+    }
+  }finally{
+    db.close();
+  }
+  const parity=verifyParity(label,basePath,augPath);
+  console.log('[base-parity] reusing completed '+label+' output: '+augPath);
+  return {
+    resumed:true,
+    reused_existing_augmented_db:true,
+    exact_schema_match:parity.exact_schema_match,
+    schema_fingerprint:parity.schema_fingerprint,
+  };
+}
 
 async function buildGerman(){
   await cloneBase(deBasePath,deOutPath);
@@ -1062,10 +1098,18 @@ if(unclassifiedActive){
   );
 }
 
-const de=await buildGerman();
-const en=await buildEnglish();
-const phrases=await buildPhrases();
-const entities=await buildEntities();
+const de=resumePlan.rebuild.includes('de')
+  ?await buildGerman()
+  :reuseAugmented('German Writer',deBasePath,deOutPath);
+const en=resumePlan.rebuild.includes('en')
+  ?await buildEnglish()
+  :reuseAugmented('English Writer',enBasePath,enOutPath);
+const phrases=resumePlan.rebuild.includes('phrases')
+  ?await buildPhrases()
+  :reuseAugmented('Phrase catalog/runtime',phraseBasePath,phraseOutPath);
+const entities=resumePlan.rebuild.includes('entities')
+  ?await buildEntities()
+  :reuseAugmented('Entity catalog/runtime',entityBasePath,entityOutPath);
 
 const parity={
   de:verifyParity('German Writer',deBasePath,deOutPath),
@@ -1078,6 +1122,11 @@ const report={
   schema:GENERATED_BASE_PARITY_SCHEMA,
   policy:GENERATED_BASE_PARITY_POLICY,
   status:'ok',
+  resume:{
+    requested_stage:resumePlan.resume_from,
+    preserved_completed_domains:resumePlan.preserve,
+    rebuilt_domains:resumePlan.rebuild,
+  },
   source_fingerprint:sourceFingerprint,
   owner_contract:{
     generated_results_class:'second_class',
