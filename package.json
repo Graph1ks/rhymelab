@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "node src/server.mjs",
-    "dev:serving": "node src/server.mjs --serving-v1",
+    "dev:serving": "node src/server.mjs",
+    "dev:legacy": "node src/server.mjs --legacy-runtime",
     "start": "node src/server.mjs",
     "check": "node scripts/check-source.mjs",
     "test": "node --test tests/*.test.mjs",
