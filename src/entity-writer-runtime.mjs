@@ -1,6 +1,9 @@
 import { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';
-import { SERVING_V1_PRODUCT_SCHEMA } from '../scripts/serving-v1-product-core.mjs';
+import {
+  SERVING_V1_PRODUCT_REVISION,
+  SERVING_V1_PRODUCT_SCHEMA,
+} from '../scripts/serving-v1-product-core.mjs';
 import { getPhonologyProfile } from '../scripts/phonology-profiles.mjs';
 import {
   ENTITY_WRITER_RANKING_POLICY,
@@ -128,10 +131,13 @@ function categoryRowsByEntity(db, entityIds, chunkSize = 400) {
     const chunk = ids.slice(offset, offset + chunkSize);
     if (!chunk.length) continue;
     const placeholders = chunk.map(() => '?').join(',');
+    const categoryTable=metaValue(db,'schema')==='rhymelab-serving-v1'
+      ?'runtime_entity_category'
+      :'entity_category';
     const rows = db.prepare(`
       SELECT entity_id,category,category_score,category_rank,category_percentile,
         category_tier,retained_by_category
-      FROM entity_category
+      FROM ${categoryTable}
       WHERE entity_id IN (${placeholders})
       ORDER BY entity_id,retained_by_category DESC,category_percentile DESC,category
     `).all(...chunk);
@@ -161,7 +167,8 @@ function runtimeLanguageState(db,tablesReady,language){
     metaValue(db,'schema')==='rhymelab-serving-v1'
     &&metaValue(db,'runtime_status')==='complete'
     &&metaValue(db,'product_adapter_schema')===SERVING_V1_PRODUCT_SCHEMA
-    &&metaValue(db,'product_adapter_status')==='complete';
+    &&metaValue(db,'product_adapter_status')==='complete'
+    &&metaValue(db,'product_adapter_revision')===SERVING_V1_PRODUCT_REVISION;
   if(servingProduct){
     const mode=servingConnectionMode(db)||'all';
     const availability=servingAvailabilitySql(mode,'sp');
@@ -282,6 +289,60 @@ export function entityWriterCapabilities(db) {
   return result;
 }
 
+function parseJsonArray(value){
+  try{
+    const parsed=JSON.parse(value||'[]');
+    return Array.isArray(parsed)?parsed:[];
+  }catch{
+    return [];
+  }
+}
+
+function storedEntityAnalysis(row,language){
+  const syllables=parseJsonArray(row.analysis_syllables_json);
+  const phonemes=parseJsonArray(row.analysis_phonemes_json);
+  if(!syllables.length)return null;
+  const primary=Math.max(
+    1,
+    Math.min(
+      syllables.length,
+      Number(row.analysis_primary_stress||1)||1,
+    ),
+  );
+  const vowelSequence=String(row.analysis_vowel_sequence||'');
+  const consonantSequence=String(row.analysis_consonant_sequence||'');
+  const final=syllables.at(-1)||{onset:[],nucleus:null,coda:[]};
+  return {
+    profile:language==='en'?'en-pron-v1-candidate':undefined,
+    notation:'ipa',
+    locale:row.locale||null,
+    source:row.source_kind||null,
+    rawPronunciation:row.ipa||null,
+    ipa:row.ipa||null,
+    canonicalPhonemes:phonemes.join(' '),
+    phonemes,
+    syllables,
+    syllableCount:Number(row.analysis_syllable_count||syllables.length),
+    stressPattern:String(row.analysis_stress_pattern||''),
+    primaryStressSyllable:primary,
+    rhymeStartSyllable:primary,
+    stressedSyllableCount:Math.max(1,syllables.length-primary+1),
+    stressedTail:String(row.analysis_rhyme_tail||''),
+    exactTailKey:String(row.analysis_rhyme_signature||''),
+    multisyllableKey:syllables.length-primary+1>=2
+      ?String(row.analysis_rhyme_signature||'')
+      :null,
+    vowelSequence,
+    vowelKey:vowelSequence.replaceAll(' ','-'),
+    consonantSequence,
+    onsetSequence:syllables.slice(primary-1)
+      .flatMap((syllable,index)=>index===0?[]:(syllable.onset||[]))
+      .join(' '),
+    codaKey:(final.coda||[]).join(' '),
+    onsetKey:(final.onset||[]).join(' '),
+  };
+}
+
 function analyzeEntityQuery(query,language,profile){
   if(language==='en'){
     const pronunciation=(query?.pronunciations||[]).find((row)=>row.preferred)
@@ -383,47 +444,28 @@ export function searchEntityRhymes(db, query, options = {}) {
     ORDER BY e.popularity_score DESC,n.preferred DESC,e.qid,n.name_id,p.pronunciation_id
     LIMIT ?
   `);
-  const servingIndexedLookup=servingV1?db.prepare(`
-    SELECT
-      ? AS channel,? AS anchor_key,
-      ep.product_pronunciation_id AS pronunciation_id,
-      ep.name_id,ep.ipa,ep.locale,ep.pronunciation_role,
-      ep.source_kind,ep.source_record,ep.generated,ep.model_id,ep.confidence,ep.review_state,
-      n.entity_id,n.surface,n.normalized,n.language,n.name_kind,n.preferred AS name_preferred,
-      e.qid,e.primary_category,e.popularity_score,e.popularity_percentile,e.popularity_tier
-    FROM runtime_key k
-    JOIN runtime_key_member km USING(key_id)
-    JOIN runtime_target t ON t.target_id=km.target_id AND t.target_kind='pronunciation'
-    JOIN pronunciation sp ON sp.pronunciation_id=t.pronunciation_id
-    JOIN runtime_entity_pronunciation ep ON ep.serving_pronunciation_id=sp.pronunciation_id
-    JOIN runtime_entity_name n USING(name_id)
-    JOIN runtime_entity_identity e USING(entity_id)
-    WHERE k.language=?
-      AND k.channel=?
-      AND k.key_value=?
-      AND ep.locale=?
-      AND n.language=?
-      AND ep.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
-      AND ${servingAvailability}
-      ${servingGenerated}
-      AND (?='all' OR EXISTS(
-        SELECT 1 FROM runtime_entity_category ec
-        WHERE ec.entity_id=e.entity_id AND ec.category=?
-      ))
-    ORDER BY e.popularity_score DESC,n.preferred DESC,e.qid,n.name_id,ep.product_pronunciation_id
-    LIMIT ?
-  `):null;
-  const servingWriterLookup=servingV1?db.prepare(`
+  const servingLookup=servingV1?db.prepare(`
     SELECT
       a.channel,a.anchor_key,
       ep.product_pronunciation_id AS pronunciation_id,
       ep.name_id,ep.ipa,ep.locale,ep.pronunciation_role,
       ep.source_kind,ep.source_record,ep.generated,ep.model_id,ep.confidence,ep.review_state,
       n.entity_id,n.surface,n.normalized,n.language,n.name_kind,n.preferred AS name_preferred,
-      e.qid,e.primary_category,e.popularity_score,e.popularity_percentile,e.popularity_tier
-    FROM runtime_entity_writer_anchor a
-    JOIN pronunciation sp ON sp.pronunciation_id=a.serving_pronunciation_id
-    JOIN runtime_entity_pronunciation ep ON ep.serving_pronunciation_id=sp.pronunciation_id
+      e.qid,e.primary_category,e.popularity_score,e.popularity_percentile,e.popularity_tier,
+      ea.phonemes_json AS analysis_phonemes_json,
+      ea.syllables_json AS analysis_syllables_json,
+      ea.syllable_count AS analysis_syllable_count,
+      ea.primary_stress AS analysis_primary_stress,
+      ea.stress_pattern AS analysis_stress_pattern,
+      ea.vowel_sequence AS analysis_vowel_sequence,
+      ea.consonant_sequence AS analysis_consonant_sequence,
+      ea.rhyme_tail AS analysis_rhyme_tail,
+      ea.rhyme_signature AS analysis_rhyme_signature
+    FROM runtime_entity_anchor_occurrence a
+    JOIN runtime_entity_pronunciation ep
+      ON ep.product_pronunciation_id=a.product_pronunciation_id
+    JOIN runtime_entity_analysis ea USING(product_pronunciation_id)
+    JOIN pronunciation sp ON sp.pronunciation_id=ep.serving_pronunciation_id
     JOIN runtime_entity_name n USING(name_id)
     JOIN runtime_entity_identity e USING(entity_id)
     WHERE a.analyzer_id=?
@@ -441,31 +483,20 @@ export function searchEntityRhymes(db, query, options = {}) {
     ORDER BY e.popularity_score DESC,n.preferred DESC,e.qid,n.name_id,ep.product_pronunciation_id
     LIMIT ?
   `):null;
-  const servingChannel=(channel)=>new Map([
-    ['exact_tail','entity_exact_tail'],
-    ['vowel_sequence','entity_vowel_sequence'],
-    ['vowel_family','entity_vowel_family'],
-    ['final_nucleus_coda','entity_final_nucleus_coda'],
-    ['final_nucleus','entity_final_nucleus'],
-  ]).get(channel)||null;
 
   for(const anchor of anchors){
     let rows;
     if(servingV1){
-      if(String(anchor.channel).startsWith('writer_')){
-        rows=servingWriterLookup.all(
-          languageCapability.analyzer,anchor.channel,anchor.key,
-          languageCapability.locale,language,category,category,perChannelLimit,
-        );
-      }else{
-        const indexedChannel=servingChannel(anchor.channel);
-        rows=indexedChannel
-          ?servingIndexedLookup.all(
-              anchor.channel,anchor.key,language,indexedChannel,anchor.key,
-              languageCapability.locale,language,category,category,perChannelLimit,
-            )
-          :[];
-      }
+      rows=servingLookup.all(
+        languageCapability.analyzer,
+        anchor.channel,
+        anchor.key,
+        languageCapability.locale,
+        language,
+        category,
+        category,
+        perChannelLimit,
+      );
     }else{
       rows=legacyLookup.all(
         languageCapability.analyzer,
@@ -501,10 +532,13 @@ export function searchEntityRhymes(db, query, options = {}) {
   for(const row of byPronunciation.values()){
     let candidateAnalysis;
     try{
-      candidateAnalysis=profile.analyzeIpa(row.ipa);
+      candidateAnalysis=servingV1
+        ?storedEntityAnalysis(row,language)
+        :profile.analyzeIpa(row.ipa);
     }catch{
-      continue;
+      candidateAnalysis=null;
     }
+    if(!candidateAnalysis)continue;
     const score=profile.scoreWriterAnalyses(queryAnalysis,candidateAnalysis);
     const types=scoreTypes(score);
     if(!types.length) continue;
