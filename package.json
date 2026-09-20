@@ -157,6 +157,9 @@
     "pronunciation:backfill:framing:test": "node --no-warnings scripts/benchmark-pronunciation-espeak-batch.mjs --workers 4 --analyzer-workers 4 --cases 4096 --batch-sizes 128 --espeak-frame-group-size 16",
     "pronunciation:secondary:materialize": "node --no-warnings scripts/materialize-pronunciation-base-parity-v1.mjs",
     "pronunciation:secondary:parity": "node --no-warnings scripts/materialize-pronunciation-base-parity-v1.mjs",
-    "pronunciation:secondary:runtime:accept": "node --no-warnings scripts/accept-generated-optin-runtime-v1.mjs"
+    "pronunciation:secondary:runtime:accept": "node --no-warnings scripts/accept-generated-optin-runtime-v1.mjs",
+    "serving:v1:plan": "node --no-warnings scripts/build-serving-v1.mjs --plan",
+    "serving:v1:build": "node --no-warnings scripts/build-serving-v1.mjs",
+    "serving:v1:status": "node --no-warnings scripts/build-serving-v1.mjs --status"
   }
 }
