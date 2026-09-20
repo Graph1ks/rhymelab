@@ -12,7 +12,7 @@ Read first:
 
 Current accepted implementation landed via PR #145:
 
-`574e7f9821606281c111b117e78239a596f8351e`
+`574e7f9`
 
 Required CI job remains:
 
