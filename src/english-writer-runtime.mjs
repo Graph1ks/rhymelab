@@ -332,7 +332,8 @@ function betterScoredCandidate(next,current){
   if(nextKnown&&Number(next.wordfreq_rank)!==Number(current.wordfreq_rank)){
     return Number(next.wordfreq_rank)<Number(current.wordfreq_rank);
   }
-  return Number(next.pronunciation_id)<Number(current.pronunciation_id);
+  return Number(next.source_order_id??next.pronunciation_id)
+    <Number(current.source_order_id??current.pronunciation_id);
 }
 
 function productResult(row,queryDetail,index){
