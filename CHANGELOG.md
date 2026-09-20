@@ -8,6 +8,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Added
 
+- Added `docs/DISTRIBUTION_TIERS.md` as the durable Lite/Standard/Full packaging contract: 50k Core Words for Lite, 250k Core plus Phrase/Entity features for Standard, and 400k Core + 200k Generated plus Phrase/Entity/Markov live generation for Full. The contract fixes nested-edition, capability, one-Master-build, storage-census and relational-closure requirements.
 - Added a report-grade Serving-v1 steady-state performance benchmark with discarded warmup rounds, deterministic interleaved repeats, per-language/per-query percentiles, semantic repeatability checks, environment/DB fingerprints, and companion JSON + Markdown reports. Performance target misses are reported without turning a completed measurement into a command failure.
 - Added persistent Serving-v1 channel workers for DE Words, EN Words, Phrase/Mosaic, DE Entities and EN Entities. The real preview UI, hotpath benchmark and Product Acceptance latency path now execute eligible channels concurrently with one long-lived read-only SQLite connection per worker and no cross-request search caching.
 - Added `npm run dev:serving`, an explicit one-file Serving-v1 Product preview that drives the normal RhymeLab browser UI/API through Core/All read-only connections without changing the accepted default runtime.
