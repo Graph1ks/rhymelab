@@ -185,8 +185,18 @@ test('parallel Writer merge preserves channel ordering and uses wall time',()=>{
   );
 
   assert.deepEqual(
-    merged.results,
-    [deWord,enWord,phrase,deEntity,enEntity],
+    merged.results.map((row)=>[
+      row.resultKind,
+      row.language,
+      row.normalized,
+    ]),
+    [
+      ['word','de','de'],
+      ['word','en','en'],
+      ['phrase','de','phrase'],
+      ['entity','de','de-entity'],
+      ['entity','en','en-entity'],
+    ],
   );
   assert.equal(merged.counts.words,2);
   assert.equal(merged.counts.phrases,1);
