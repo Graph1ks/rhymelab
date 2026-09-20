@@ -44,18 +44,14 @@ import {
   materializePhraseMosaicRetrievalV2Anchors,
 } from './phrase-mosaic-retrieval-v2-core.mjs';
 import {
-  ENTITY_EN_RUNTIME_ANALYZER,
-  ENTITY_RUNTIME_ANALYZER,
   analyzeEntityPronunciation,
   entityRetrievalAnchors,
 } from './entity-pronunciation-core.mjs';
 import {
   GENERATED_BASE_PARITY_POLICY,
   GENERATED_BASE_PARITY_SCHEMA,
-  activeGeneratedRow,
   assertSameSqliteSchema,
   deferredBucket,
-  scopeClass,
   sqliteSchemaFingerprint,
 } from './pronunciation-base-parity-core.mjs';
 
