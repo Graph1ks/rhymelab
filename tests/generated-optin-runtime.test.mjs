@@ -4,9 +4,12 @@ import { resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 import {
+  GENERATED_OPTIN_MARKER_SCHEMA,
   GENERATED_OPTIN_REPORT_POLICY,
   GENERATED_OPTIN_REPORT_SCHEMA,
+  GENERATED_OPTIN_RUNTIME_POLICY,
   selectGeneratedOptinDatabases,
+  validateGeneratedOptinAcceptanceMarker,
   validateGeneratedOptinReport,
 } from '../src/generated-optin-runtime.mjs';
 import {
@@ -84,6 +87,32 @@ test('generated opt-in report gate accepts only the exact base-parity contract',
   assert.equal(
     validateGeneratedOptinReport(badPhraseBalance,paths).reason,
     'generated_optin_report_phrase_balance_mismatch',
+  );
+});
+
+test('generated runtime acceptance marker is bound to the parity report fingerprint',()=>{
+  const parityFingerprint='b'.repeat(64);
+  const marker={
+    schema:GENERATED_OPTIN_MARKER_SCHEMA,
+    status:'accepted',
+    policy:GENERATED_OPTIN_RUNTIME_POLICY,
+    parity_report_fingerprint:parityFingerprint,
+    acceptance_report_fingerprint:'c'.repeat(64),
+  };
+  assert.equal(
+    validateGeneratedOptinAcceptanceMarker(marker,parityFingerprint).accepted,
+    true,
+  );
+  assert.equal(
+    validateGeneratedOptinAcceptanceMarker(marker,'d'.repeat(64)).reason,
+    'generated_optin_acceptance_marker_parity_fingerprint_mismatch',
+  );
+  assert.equal(
+    validateGeneratedOptinAcceptanceMarker({
+      ...marker,
+      acceptance_report_fingerprint:'bad',
+    },parityFingerprint).reason,
+    'generated_optin_acceptance_marker_report_fingerprint_invalid',
   );
 });
 
