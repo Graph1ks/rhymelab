@@ -1,7 +1,7 @@
 export const ENTITY_WRITER_RANKING_POLICY =
-  'entity-writer-ranking-v2-phonetic-band-prominence-v1';
+  'entity-writer-ranking-v3-surface-identity-v1';
 export const ENTITY_PHONETIC_BAND_WIDTH = 0.02;
-export const ENTITY_SURFACE_DIVERSITY_CAP = 2;
+export const ENTITY_SURFACE_DIVERSITY_CAP = 1;
 
 function finiteNumber(value, fallback = 0) {
   const number = Number(value);
@@ -19,6 +19,68 @@ export function entityProminencePercentile(row) {
     row?.selectedCategory?.percentile ?? row?.popularityPercentile,
     0,
   );
+}
+
+function surfaceMetadata(rows){
+  const metadata=new Map();
+  for(const row of rows||[]){
+    const normalized=String(row?.normalized||'').trim();
+    if(!normalized)continue;
+    if(!metadata.has(normalized)){
+      metadata.set(normalized,{
+        entityQids:[],
+        entityIdentities:[],
+        entityCategories:[],
+        surfacePronunciations:[],
+      });
+    }
+    const target=metadata.get(normalized);
+    const qid=String(row?.entityQid||'').trim();
+    if(qid&&!target.entityQids.includes(qid)){
+      target.entityQids.push(qid);
+      target.entityIdentities.push({
+        qid,
+        entityId:row?.entityId??null,
+        entityNameId:row?.entityNameId??null,
+        primaryCategory:row?.primaryCategory||null,
+        popularityScore:finiteNumber(row?.popularityScore,0),
+        popularityPercentile:finiteNumber(row?.popularityPercentile,0),
+        popularityTier:row?.popularityTier||null,
+      });
+    }
+    const categories=[
+      row?.primaryCategory,
+      ...(row?.entityCategories||[]).map((entry)=>
+        typeof entry==='string'?entry:entry?.category
+      ),
+    ].filter(Boolean);
+    for(const category of categories){
+      if(target.entityCategories.some((entry)=>entry.category===category))continue;
+      const detail=(row?.entityCategories||[]).find((entry)=>
+        (typeof entry==='string'?entry:entry?.category)===category
+      );
+      target.entityCategories.push(
+        typeof detail==='object'&&detail
+          ?{...detail,category}
+          :{category},
+      );
+    }
+    const ipa=String(row?.ipa||'').trim();
+    if(ipa&&!target.surfacePronunciations.some(
+      (entry)=>entry.ipa===ipa&&entry.locale===(row?.locale||null)
+    )){
+      target.surfacePronunciations.push({
+        ipa,
+        locale:row?.locale||null,
+        generated:Boolean(
+          row?.generatedPronunciation||row?.pronunciationGenerated
+        ),
+        source:row?.pronunciationSource||null,
+        qid:row?.entityQid||null,
+      });
+    }
+  }
+  return metadata;
 }
 
 export function compareEntityWriterRows(a, b) {
@@ -102,6 +164,7 @@ export function rankAndDiversifyEntityRows(rows, {
   surfaceCap = ENTITY_SURFACE_DIVERSITY_CAP,
 } = {}) {
   const sorted = [...(rows || [])].sort(compareEntityWriterRows);
+  const metadataBySurface=surfaceMetadata(sorted);
   const seenQids = new Set();
   const surfaceCounts = new Map();
   const results = [];
@@ -141,8 +204,17 @@ export function rankAndDiversifyEntityRows(rows, {
     }
 
     const phoneticBand = entityPhoneticBand(row?.score);
+    const mergedSurface=metadataBySurface.get(normalized)||null;
     results.push({
       ...row,
+      ...(mergedSurface?{
+        entityQids:[...mergedSurface.entityQids],
+        entityIdentities:[...mergedSurface.entityIdentities],
+        entityCategories:[...mergedSurface.entityCategories],
+        surfacePronunciations:[...mergedSurface.surfacePronunciations],
+        mergedEntityCount:mergedSurface.entityQids.length,
+        mergedPronunciationCount:mergedSurface.surfacePronunciations.length,
+      }:{}),
       rankingEvidence: {
         policy: ENTITY_WRITER_RANKING_POLICY,
         phoneticBand,
