@@ -180,12 +180,16 @@ function resultKindChips(row){
   if(row?.resultKind==='phrase'){
     chips.push({className:'phrase',label:t('phrase')});
   }else if(row?.resultKind==='entity'){
+    const display=entityDisplayLabel(row);
     const labels=surfaceEntityCategoryLabels(row);
     chips.push({
       className:'entity',
-      label:language+' · '+(labels[0]||entityDisplayLabel(row)),
+      label:language+' · '+display,
     });
-    for(const label of labels.slice(1))chips.push({className:'entity',label});
+    for(const label of labels){
+      if(label===display)continue;
+      chips.push({className:'entity',label});
+    }
   }else{
     chips.push({className:'word',label:language+' · '+t('word')});
     for(const label of surfaceEntityCategoryLabels(row)){
