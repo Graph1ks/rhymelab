@@ -254,7 +254,7 @@ export function normalizeMarkovPool(rows,{target='',allowEntities=true,allowPhra
     const kind=normalizeKind(row);
     if(kind==='entity'&&!allowEntities)continue;
     if(kind==='phrase'&&!allowPhrases)continue;
-    const key=\`\${kind}:\${normalized}\`;
+    const key=`${kind}:${normalized}`;
     if(seen.has(key))continue;
     seen.add(key);
     out.push({
@@ -304,12 +304,12 @@ function modeScore(candidate,mode,previousCandidate=null){
 function chooseCandidate(candidates,random,{mode,rhymePressure,weirdness,previousCandidate,used}){
   const pressure=clamp(rhymePressure/100);
   const weird=clamp(weirdness/100);
-  const available=candidates.filter((candidate)=>!used.has(\`\${candidate.kind}:\${candidate.normalized}\`));
+  const available=candidates.filter((candidate)=>!used.has(`${candidate.kind}:${candidate.normalized}`));
   const source=available.length?available:candidates;
   if(!source.length)return null;
   const rows=source.map((candidate)=>{
     const phonetic=modeScore(candidate,mode,previousCandidate);
-    const repetition=used.has(\`\${candidate.kind}:\${candidate.normalized}\`)?0.18:0;
+    const repetition=used.has(`${candidate.kind}:${candidate.normalized}`)?0.18:0;
     const score=clamp(
       candidate.naturalness*(1-pressure)*0.85
       +phonetic*pressure
@@ -365,7 +365,7 @@ function materializePath(path,pool,random,options){
       used,
     });
     if(!candidate)continue;
-    const key=\`\${candidate.kind}:\${candidate.normalized}\`;
+    const key=`${candidate.kind}:${candidate.normalized}`;
     used.add(key);
     selected.push(candidate);
     previousCandidate=candidate;
@@ -386,7 +386,7 @@ function materializePath(path,pool,random,options){
   const clean=tokenRows.filter((row)=>row.text);
   const pieces=clean.map((row,index)=>{
     if(index===0)return row.text;
-    if(index===1&&clean[0]?.kind==='seed')return \`— \${row.text}\`;
+    if(index===1&&clean[0]?.kind==='seed')return `— ${row.text}`;
     return row.text;
   });
   let sentence=pieces.join(' ').replace(/\s+/gu,' ').trim();
@@ -484,7 +484,7 @@ export function generateMarkovCandidates({
     seen.add(materialized.sentence);
     const scores=scoreMaterialized(path,materialized,{targetTokens,rhymePressure,naturalness,weirdness,mode});
     candidates.push({
-      id:\`mk-\${hashString(\`\${seedMaterial}|\${materialized.sentence}\`).toString(16)}\`,
+      id:`mk-${hashString(`${seedMaterial}|${materialized.sentence}`).toString(16)}`,
       sentence:materialized.sentence,
       tokens:materialized.tokens,
       scores,
