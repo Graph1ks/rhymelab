@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   MARKOV_GENERATOR_POLICY,
-  generateMarkovCandidates,
+  compactWriterRows,
   summarizePool,
   vowelSimilarity,
 } from '../src/markov-test/markov-core.mjs';
@@ -16,48 +16,11 @@ const rows=[
   {resultKind:'phrase',surface:'auf leise Weise',normalized:'auf leise weise',ipa:'aʊf laɪzə vaɪzə',score:.91,crossedWordBoundaries:2,leipzigCommonness:.8,relations:[{type:'assonance',score:.96}]},
 ];
 
-test('Markov bootstrap generation is deterministic for identical inputs',()=>{
-  const options={
-    rows,
-    target:'Arbeitsweise',
-    seedText:'Nachts in der Stadt',
-    seed:4242,
-    mode:'chain',
-    rhymePressure:86,
-    naturalness:65,
-    weirdness:44,
-    targetTokens:12,
-    count:8,
-    attempts:48,
-  };
-  const first=generateMarkovCandidates(options);
-  const second=generateMarkovCandidates(options);
-  assert.ok(first.length>=4);
-  assert.deepEqual(first,second);
-  assert.equal(first[0].model.policy,MARKOV_GENERATOR_POLICY);
-  assert.match(first[0].sentence,/^Nachts in der Stadt/u);
-  assert.ok(first[0].scores.utility>=0&&first[0].scores.utility<=1);
-  assert.ok(first[0].scores.assonanceChain>=0&&first[0].scores.assonanceChain<=1);
+test('browser Markov policy points at the corpus runtime',()=>{
+  assert.equal(MARKOV_GENERATOR_POLICY,'rhymelab-markov-corpus-v1');
 });
 
-test('Markov source toggles prevent Phrase and Entity tokens when disabled',()=>{
-  const candidates=generateMarkovCandidates({
-    rows,
-    target:'Arbeitsweise',
-    seed:99,
-    allowEntities:false,
-    allowPhrases:false,
-    count:10,
-    attempts:64,
-  });
-  assert.ok(candidates.length);
-  for(const candidate of candidates){
-    assert.equal(candidate.tokens.some((token)=>token.kind==='entity'),false);
-    assert.equal(candidate.tokens.some((token)=>token.kind==='phrase'),false);
-  }
-});
-
-test('pool summary retains feature populations',()=>{
+test('pool summary retains Writer feature populations',()=>{
   assert.deepEqual(summarizePool(rows),{
     total:6,
     word:4,
@@ -71,4 +34,17 @@ test('vowel similarity rewards related vowel chains',()=>{
   const close=vowelSimilarity('tsaɪt ʁaɪzə','aʊf laɪzə vaɪzə');
   const far=vowelSimilarity('tsaɪt ʁaɪzə','mʊk tɔp');
   assert.ok(close>far);
+});
+
+test('compact Writer payload preserves generator evidence without unrelated fields',()=>{
+  const compact=compactWriterRows([{...rows[0],noise:{huge:true},debugPayload:'omit me'}]);
+  assert.equal(compact.length,1);
+  assert.equal(compact[0].surface,'Hochzeitsreise');
+  assert.equal(compact[0].score,.94);
+  assert.deepEqual(compact[0].relations,[
+    {type:'assonance',score:.95},
+    {type:'consonance',score:.7},
+  ]);
+  assert.equal(Object.hasOwn(compact[0],'noise'),false);
+  assert.equal(Object.hasOwn(compact[0],'debugPayload'),false);
 });
