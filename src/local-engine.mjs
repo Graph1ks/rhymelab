@@ -339,7 +339,55 @@ function servingChannelCandidateIds(
   return out.map((row)=>Number(row.pronunciation_id));
 }
 
-function hydrateServingCandidates(db,orderedIds){
+function hydrateServingScoringCandidates(db,orderedIds){
+  const byId=new Map();
+  for(let offset=0;offset<orderedIds.length;offset+=500){
+    const batch=orderedIds.slice(offset,offset+500);
+    if(!batch.length)continue;
+    const marks=batch.map(()=>'?').join(',');
+    const rows=db.prepare(`
+      SELECT
+        c.pronunciation_id AS id,
+        c.source_order AS source_order_id,
+        c.normalized,
+        c.usage_rank,
+        c.historical,
+        c.syllable_count,
+        a.analysis_json AS serving_analysis_json
+      FROM runtime_de_candidate c
+      JOIN runtime_de_analysis a USING(pronunciation_id)
+      WHERE c.pronunciation_id IN (${marks})
+    `).all(...batch);
+    for(const row of rows)byId.set(Number(row.id),row);
+  }
+  return orderedIds.map((id)=>byId.get(Number(id))).filter(Boolean);
+}
+
+function hydrateServingRankingMetadata(db,ids){
+  const byId=new Map();
+  for(let offset=0;offset<ids.length;offset+=500){
+    const batch=ids.slice(offset,offset+500);
+    if(!batch.length)continue;
+    const marks=batch.map(()=>'?').join(',');
+    const rows=db.prepare(`
+      SELECT
+        p.pronunciation_id AS id,
+        dp.display_surface AS surface,
+        dp.usage_rank,
+        dp.lexicon_layer,
+        dp.lexical_tags_json AS lexical_tags,
+        dp.lemma,
+        dp.part_of_speech AS pos
+      FROM pronunciation p
+      JOIN runtime_de_surface_profile dp USING(surface_id)
+      WHERE p.pronunciation_id IN (${marks})
+    `).all(...batch);
+    for(const row of rows)byId.set(Number(row.id),row);
+  }
+  return byId;
+}
+
+function hydrateServingRichCandidates(db,orderedIds){
   const byId=new Map();
   for(let offset=0;offset<orderedIds.length;offset+=300){
     const batch=orderedIds.slice(offset,offset+300);
@@ -390,7 +438,7 @@ function servingCandidatePool(
     metrics.candidate_ids+=orderedIds.length;
   }
   const hydrationStarted=metrics?performance.now():0;
-  const hydrated=hydrateServingCandidates(db,orderedIds)
+  const hydrated=hydrateServingScoringCandidates(db,orderedIds)
     .filter((row)=>row.normalized!==queryRow.normalized);
   if(metrics){
     metrics.candidate_hydration_ms+=performance.now()-hydrationStarted;
