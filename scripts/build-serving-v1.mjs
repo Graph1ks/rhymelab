@@ -490,6 +490,8 @@ try{
       invariants_json:safeJson(invariants),
     })) upsertMeta(db,key,value);
 
+    db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+
     finalReport={
       schema:'rhymelab-serving-v1-build-report',
       status:'ok',
