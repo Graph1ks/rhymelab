@@ -98,17 +98,25 @@ Authority order:
 
 Generated data can fill a missing pronunciation or contribute another genuine pronunciation variant, but it cannot replace an existing Core identity.
 
-Hard invariant:
+Hard invariants:
 
 ```text
 core_never_displaced_by_generated = true
+identical_generated_is_absorbed_by_core = true
+generated_origins_on_canonical_pronunciations = 0
+canonical_pronunciations_marked_generated = 0
 ```
 
 If Core and Generated provide the same Surface + phoneme/stress identity:
 
 - one serving pronunciation is retained;
 - Core owns the serving fields;
-- Generated availability/provenance is recorded on that row.
+- the redundant Generated pronunciation is fully absorbed by Core;
+- no Generated availability flag, Generated preferred flag, or Generated pronunciation-origin row is retained on that serving pronunciation.
+
+The rich source/augmented databases remain the place where the historical Generated source record can be audited. Serving-v1 does not duplicate that redundant provenance onto a Core-equivalent runtime identity.
+
+Semantic roles and Entity references are source-backed metadata, not generated pronunciation truth. Therefore a Core-equivalent pronunciation may carry roles such as `person.rapper`, `group.music_group`, or `work.album` without making the serving pronunciation Generated.
 
 ## Current Serving-v1 tables
 
@@ -329,6 +337,19 @@ The final report includes:
 - Core-authority invariant results.
 
 These numbers are diagnostic evidence for the next design step. They are not yet a runtime acceptance gate.
+
+## Future runtime default
+
+Serving-v1 itself is mode-neutral: it stores Core pronunciations plus only genuinely additional Generated pronunciation identities.
+
+Owner product decision for the later Serving-v1 runtime switch:
+
+- Generated pronunciation results are **enabled by default**;
+- the user can explicitly disable Generated pronunciation results;
+- Core-equivalent Generated pronunciations have already been absorbed and therefore never display as Generated;
+- disabling Generated removes only pronunciation identities that exist solely through the Generated layer.
+
+This target default does not change the current pre-Serving runtime contract yet and does not affect how Serving-v1 is built.
 
 ## Deliberately deferred
 
