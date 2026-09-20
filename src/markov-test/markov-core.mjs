@@ -1,4 +1,4 @@
-export const MARKOV_GENERATOR_POLICY='rhymelab-markov-corpus-v1';
+export const MARKOV_GENERATOR_POLICY='rhymelab-markov-lyric-v1';
 
 const IPA_VOWEL_GROUP=/[aeiouyɑɒæɛəɜɪiɔoʊuʌœøɐɯɨɤɶɞɚɝʏɵ]+/giu;
 
