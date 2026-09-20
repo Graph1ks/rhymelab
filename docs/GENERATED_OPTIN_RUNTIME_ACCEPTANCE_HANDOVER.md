@@ -18,7 +18,7 @@ PR #149
 Add explicit generated-pronunciation opt-in runtime
 
 merge commit
-900219ac18fb9e5e905e206ed505c3c1e4031a73
+900219a
 ```
 
 The repository implementation is finished for this gate.
