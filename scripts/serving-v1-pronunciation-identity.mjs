@@ -37,14 +37,18 @@ export function entityCanonicalPhonemesSql(
   return `COALESCE(
     NULLIF(
       CASE
-        WHEN json_valid(${raw})=1 AND json_type(${raw})='array' THEN (
-          SELECT group_concat(token,' ')
-          FROM (
-            SELECT CAST(value AS TEXT) token
-            FROM json_each(${raw})
-            ORDER BY CAST(key AS INTEGER)
-          )
-        )
+        WHEN json_valid(${raw})=1 THEN
+          CASE
+            WHEN json_type(${raw})='array' THEN (
+              SELECT group_concat(token,' ')
+              FROM (
+                SELECT CAST(value AS TEXT) token
+                FROM json_each(${raw})
+                ORDER BY CAST(key AS INTEGER)
+              )
+            )
+            ELSE trim(${raw})
+          END
         ELSE trim(${raw})
       END,
       ''
