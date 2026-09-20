@@ -68,9 +68,10 @@ const searchOptions=(spec)=>({
 
 function semanticFingerprint(result){
   if(!result)return null;
-  const {performanceProfile,...semantic}=result;
   return createHash('sha256')
-    .update(JSON.stringify(semantic))
+    .update(JSON.stringify(result,(key,current)=>
+      key==='performanceProfile'||key==='runtimeTiming'?undefined:current
+    ))
     .digest('hex');
 }
 
