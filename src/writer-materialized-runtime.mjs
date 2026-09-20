@@ -16,6 +16,9 @@ const META_KEYS = [
   'writer_anchor_candidate_basis',
   'writer_morphology_policy',
   'writer_morphology_storage',
+  'runtime_status',
+  'product_adapter_status',
+  'product_adapter_schema',
 ];
 const LOOKUP_BATCH_SIZE = 300;
 const STATE_CACHE = new WeakMap();
@@ -47,18 +50,30 @@ export function materializedWriterRuntimeState(db, options = {}) {
       .all(...META_KEYS)
       .map((row) => [row.key, row.value]),
   );
-  const tablesPresent = tableExists(db, 'writer_anchor')
+  const servingV1 =
+    meta.schema === 'rhymelab-serving-v1'
+    && meta.runtime_status === 'complete'
+    && meta.product_adapter_status === 'complete';
+  const servingTablesPresent = servingV1
+    && tableExists(db,'runtime_key')
+    && tableExists(db,'runtime_key_member')
+    && tableExists(db,'runtime_surface_morphology');
+  const tablesPresent = servingTablesPresent || (
+    tableExists(db, 'writer_anchor')
     && tableExists(db, 'form_analysis')
-    && tableExists(db, 'writer_morphology_evidence');
-  const active = meta.schema === WRITER_V5_DB_SCHEMA
+    && tableExists(db, 'writer_morphology_evidence')
+  );
+  const legacyActive = meta.schema === WRITER_V5_DB_SCHEMA
     && meta.writer_anchor_storage === WRITER_ANCHOR_STORAGE
     && meta.writer_anchor_candidate_basis === WRITER_ANCHOR_CANDIDATE_BASIS
     && meta.writer_morphology_policy === WRITER_MORPHOLOGY_POLICY
     && meta.writer_morphology_storage === WRITER_MORPHOLOGY_STORAGE
     && tablesPresent;
+  const active = Boolean(legacyActive || servingTablesPresent);
   const state = {
     active,
-    runtimeId: active ? WRITER_V5_RUNTIME_ID : null,
+    servingV1:Boolean(servingTablesPresent),
+    runtimeId: servingTablesPresent ? 'serving-v1-materialized-writer' : (active ? WRITER_V5_RUNTIME_ID : null),
     databaseSchema: meta.schema || null,
     anchorPolicy: meta.writer_anchor_policy || null,
     anchorStorage: meta.writer_anchor_storage || null,
@@ -74,7 +89,32 @@ export function materializedWriterRuntimeState(db, options = {}) {
 export function lookupMaterializedWriterAnchorRows(db, anchorKey, options = {}) {
   const state = materializedWriterRuntimeState(db);
   if (!state.active) throw new Error('Materialized writer runtime is not active for this database');
-  return lookupWriterAnchorRows(db, anchorKey, options);
+  if(!state.servingV1) return lookupWriterAnchorRows(db, anchorKey, options);
+
+  const queryNormalized=String(options.queryNormalized||'');
+  const querySyllables=Number(options.querySyllables||0);
+  const includeVariants=options.includeVariants===true;
+  const includeHistorical=options.includeHistorical===true;
+  const generatedOnly=options.generatedOnly===true;
+  const limit=Math.max(1,Math.min(800,Number(options.limit||800)));
+  const preferred=includeVariants?'':' AND h.pronunciation_preferred=1';
+  const historical=includeHistorical?'':' AND h.historical=0';
+  const generated=generatedOnly?" AND h.pronunciation_flags LIKE '%secondary_opt_in%'":'';
+  return db.prepare(`
+    SELECT h.*
+    FROM runtime_key k
+    JOIN runtime_key_member km USING(key_id)
+    JOIN runtime_target t ON t.target_id=km.target_id
+    JOIN hot h ON h.id=t.pronunciation_id
+    WHERE k.language='de'
+      AND k.channel='writer_right_edge'
+      AND k.key_value=?
+      AND h.normalized<>?
+      AND ABS(h.syllable_count-?)<=1
+      ${preferred}${historical}${generated}
+    ORDER BY ABS(h.syllable_count-?),h.usage_rank IS NULL,h.usage_rank,h.id
+    LIMIT ?
+  `).all(String(anchorKey),queryNormalized,querySyllables,querySyllables,limit);
 }
 
 function firstFormsByNormalized(db, normalizedForms) {
@@ -218,6 +258,55 @@ export function resolveMaterializedWriterMorphologyBatch(db, rows, language = 'd
   if (language !== 'de') return result;
   const state = materializedWriterRuntimeState(db);
   if (!state.active) throw new Error('Materialized writer runtime is not active for this database');
+
+  if(state.servingV1){
+    const normalized=[...new Set((rows||[]).map((row)=>normalizeSurface(
+      row?.normalized||row?.surface||row?.word
+    )).filter(Boolean))];
+    for(const batch of chunks(normalized)){
+      if(!batch.length)continue;
+      const marks=batch.map(()=>'?').join(',');
+      const found=db.prepare(`
+        SELECT
+          s.normalized,s.lemma,s.part_of_speech,
+          m.status,m.family_key,m.construction_rule,m.analysis_count,
+          m.stored_positive_count,m.supported_family_count
+        FROM surface s
+        JOIN runtime_surface_morphology m USING(surface_id)
+        WHERE s.language='de' AND s.normalized IN (${marks})
+      `).all(...batch);
+      for(const row of found){
+        const resolved=row.status==='attested_right_head_candidate'&&row.family_key;
+        result.set(row.normalized,{
+          policy:WRITER_MORPHOLOGY_POLICY,
+          status:row.status||'unresolved',
+          consensusStatus:resolved?'resolved_converged':(row.status||'unresolved'),
+          inferred:false,
+          familyKey:resolved?row.family_key:null,
+          constructionRule:resolved?(row.construction_rule||null):null,
+          split:null,
+          source:'materialized_multi_analysis_right_head_evidence',
+          wholeLemma:row.lemma||null,
+          wholePartOfSpeech:row.part_of_speech||null,
+          analysisCount:Number(row.analysis_count||0),
+          storedPositiveCount:Number(row.stored_positive_count||0),
+          supportedFamilies:resolved?[{familyKey:row.family_key,analysisKeys:[]}]:[],
+        });
+      }
+    }
+    for(const normalizedValue of normalized){
+      if(!result.has(normalizedValue)){
+        result.set(normalizedValue,{
+          policy:WRITER_MORPHOLOGY_POLICY,status:'unresolved',consensusStatus:'unresolved',
+          inferred:false,familyKey:null,constructionRule:null,split:null,
+          source:'materialized_multi_analysis_right_head_evidence',
+          wholeLemma:null,wholePartOfSpeech:null,analysisCount:0,storedPositiveCount:0,
+          supportedFamilies:[],
+        });
+      }
+    }
+    return result;
+  }
 
   const uniqueRows = [];
   const seen = new Set();

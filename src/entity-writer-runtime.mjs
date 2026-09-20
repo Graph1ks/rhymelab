@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';
+import { SERVING_V1_PRODUCT_SCHEMA } from '../scripts/serving-v1-product-core.mjs';
 import { getPhonologyProfile } from '../scripts/phonology-profiles.mjs';
 import {
   ENTITY_WRITER_RANKING_POLICY,
@@ -51,9 +52,10 @@ function clampInteger(value, fallback, minimum, maximum) {
 function tableExists(db, name) {
   if (!db) return false;
   try {
-    return Boolean(db.prepare(
-      "SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?",
-    ).get(name));
+    return Boolean(
+      db.prepare("SELECT 1 FROM sqlite_schema WHERE type IN ('table','view') AND name=?").get(name)
+      ||db.prepare("SELECT 1 FROM sqlite_temp_schema WHERE type IN ('table','view') AND name=?").get(name)
+    );
   } catch {
     return false;
   }
@@ -139,6 +141,33 @@ function runtimeLanguageState(db,tablesReady,language){
   const code=language==='en'?'en':'de';
   const expectedRuntime=code==='en'?ENTITY_EN_PHONETIC_RUNTIME:ENTITY_PHONETIC_RUNTIME;
   const expectedAnalyzer=code==='en'?ENTITY_EN_RUNTIME_ANALYZER:ENTITY_RUNTIME_ANALYZER;
+  const servingProduct=
+    metaValue(db,'schema')==='rhymelab-serving-v1'
+    &&metaValue(db,'runtime_status')==='complete'
+    &&metaValue(db,'product_adapter_schema')===SERVING_V1_PRODUCT_SCHEMA
+    &&metaValue(db,'product_adapter_status')==='complete';
+  if(servingProduct){
+    let pronunciations=0;
+    try{
+      pronunciations=Number(db.prepare(`
+        SELECT COUNT(*) c
+        FROM entity_pronunciation p
+        JOIN entity_name n USING(name_id)
+        WHERE n.language=?
+      `).get(code)?.c||0);
+    }catch{}
+    return {
+      available:Boolean(tablesReady&&pronunciations>0),
+      reason:!tablesReady
+        ?'entity_runtime_tables_missing'
+        :pronunciations>0?null:`entity_${code}_pronunciations_unavailable`,
+      runtime:expectedRuntime,
+      analyzer:expectedAnalyzer,
+      pronunciations,
+      locale:code==='en'?'en-US':'de-DE',
+      servingV1:true,
+    };
+  }
   const runtime=metaValue(db,code==='en'?'entity_phonetic_runtime_en':'entity_phonetic_runtime');
   const analyzer=metaValue(db,code==='en'?'entity_phonetic_analyzer_en':'entity_phonetic_analyzer');
   const pronunciations=Number(

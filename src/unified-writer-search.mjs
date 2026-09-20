@@ -53,9 +53,10 @@ function normalizeGerman(value) {
 function tableExists(db, name) {
   if (!db) return false;
   try {
-    return Boolean(db.prepare(
-      "SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?",
-    ).get(name));
+    return Boolean(
+      db.prepare("SELECT 1 FROM sqlite_schema WHERE type IN ('table','view') AND name=?").get(name)
+      ||db.prepare("SELECT 1 FROM sqlite_temp_schema WHERE type IN ('table','view') AND name=?").get(name)
+    );
   } catch {
     return false;
   }
@@ -172,10 +173,15 @@ export function unifiedWriterCapabilities({
     'phrase_mosaic_retrieval_anchor',
     'phrase_mosaic_retrieval_v2_anchor',
   ].every((name) => tableExists(phraseDb, name));
+  const servingPhraseRuntime=
+    metaValue(phraseDb,'schema')==='rhymelab-serving-v1'
+    &&metaValue(phraseDb,'runtime_status')==='complete'
+    &&metaValue(phraseDb,'product_adapter_status')==='complete';
   const phraseAccepted =
     phraseTablesReady
     && (
-      generatedOverlay === true
+      servingPhraseRuntime
+      || generatedOverlay === true
       || phraseAnchorFingerprint === ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT
     );
   const entityCapability = entityWriterCapabilities(entityDb);

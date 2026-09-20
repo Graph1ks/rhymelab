@@ -32,6 +32,8 @@ const RHYME_TIER = new Map([
 ]);
 
 function databaseLanguage(db) {
+  const schema=String(db.prepare("SELECT value FROM meta WHERE key='schema'").get()?.value||'');
+  if(schema==='rhymelab-serving-v1') return 'de';
   return String(db.prepare("SELECT value FROM meta WHERE key='language'").get()?.value || 'de')
     .trim()
     .toLocaleLowerCase('en-US');

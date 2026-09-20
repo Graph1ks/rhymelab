@@ -94,13 +94,28 @@ function deCases(path,layer){
   try{
     const generated=layer==='generated';
     const marker=generated?" AND h.pronunciation_flags LIKE '%secondary_opt_in%'":'';
-    const keys=db.prepare(`
-      SELECT anchor_key
-      FROM writer_anchor
-      GROUP BY anchor_key
-      ORDER BY anchor_key
-      LIMIT ?
-    `).all(sampleSize);
+    const keys=generated
+      ?serving.prepare(`
+        SELECT k.key_value AS anchor_key
+        FROM runtime_key k
+        JOIN runtime_key_member m USING(key_id)
+        JOIN runtime_target t ON t.target_id=m.target_id
+        WHERE k.language='de'
+          AND k.channel='writer_right_edge'
+          AND t.canonical_available=0
+          AND t.generated_available=1
+        GROUP BY k.key_value
+        HAVING COUNT(*)>0
+        ORDER BY k.key_value
+        LIMIT ?
+      `).all(sampleSize)
+      :db.prepare(`
+        SELECT anchor_key
+        FROM writer_anchor
+        GROUP BY anchor_key
+        ORDER BY anchor_key
+        LIMIT ?
+      `).all(sampleSize);
     const rows=db.prepare(`
       SELECT h.normalized,h.phonemes,h.ipa,h.stress
       FROM writer_anchor a
@@ -286,9 +301,32 @@ try{
   phraseCases(paths.phraseGenerated,'generated');
 
   const failed=cases.filter((row)=>!row.equal);
+  const generatedDeCases=cases.filter(
+    (row)=>row.domain==='de_word'
+      &&row.layer==='generated'
+      &&row.channel==='writer_right_edge'
+  );
+  const generatedDeNonEmpty=generatedDeCases.filter(
+    (row)=>row.expected_count>0&&row.actual_count>0
+  ).length;
+  const coverageFailures=[];
+  if(generatedDeCases.length<sampleSize){
+    coverageFailures.push({
+      gate:'de_generated_writer_right_edge_sample_size',
+      expected:sampleSize,
+      actual:generatedDeCases.length,
+    });
+  }
+  if(generatedDeNonEmpty!==generatedDeCases.length){
+    coverageFailures.push({
+      gate:'de_generated_writer_right_edge_non_empty',
+      expected:generatedDeCases.length,
+      actual:generatedDeNonEmpty,
+    });
+  }
   const report={
-    schema:'rhymelab-serving-v1-runtime-retrieval-equivalence-v1',
-    status:failed.length?'failed':'accepted',
+    schema:'rhymelab-serving-v1-runtime-retrieval-equivalence-v2',
+    status:(failed.length||coverageFailures.length)?'failed':'accepted',
     runtime_semantic_fingerprint:meta.runtime_semantic_fingerprint||null,
     sample_size_per_channel:sampleSize,
     cases,
@@ -296,9 +334,12 @@ try{
       cases:cases.length,
       passed:cases.length-failed.length,
       failed:failed.length,
+      coverage_failed:coverageFailures.length,
+      de_generated_writer_right_edge_non_empty:generatedDeNonEmpty,
     },
     failed_cases:failed,
-    scope:'retrieval-key membership equivalence only; ranking/response equivalence remains deferred until the Serving runtime adapter exists',
+    coverage_failures:coverageFailures,
+    scope:'retrieval-key membership equivalence only; generated DE sampling is guaranteed non-empty; ranking/response equivalence remains deferred until the Serving runtime adapter exists',
   };
   await mkdir(dirname(reportPath),{recursive:true});
   await writeFile(reportPath,JSON.stringify(report,null,2)+'\n','utf8');
@@ -310,7 +351,7 @@ try{
     failed:report.totals.failed,
     report:reportPath,
   },null,2));
-  if(failed.length)process.exitCode=1;
+  if(failed.length||coverageFailures.length)process.exitCode=1;
 }finally{
   serving.close();
 }

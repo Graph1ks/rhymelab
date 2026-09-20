@@ -12,9 +12,10 @@ export const PHRASE_IPA_ANALYZER = 'de-ipa-v2';
 
 const sha256 = (value) => createHash('sha256').update(String(value)).digest('hex');
 const json = (value) => JSON.stringify(value);
-const tableExists = (db, name) => Boolean(db.prepare(
-  "SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?",
-).get(name));
+const tableExists = (db, name) => Boolean(
+  db.prepare("SELECT 1 FROM sqlite_schema WHERE type IN ('table','view') AND name=?").get(name)
+  ||db.prepare("SELECT 1 FROM sqlite_temp_schema WHERE type IN ('table','view') AND name=?").get(name)
+);
 
 function batches(values, size = 300) {
   const out = [];
