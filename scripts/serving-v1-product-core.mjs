@@ -1,6 +1,6 @@
 export const SERVING_V1_PRODUCT_SCHEMA='rhymelab-serving-v1-product-adapter-v1';
 export const SERVING_V1_PRODUCT_POLICY='single-db-legacy-semantic-adapter-v1';
-export const SERVING_V1_PRODUCT_REVISION='compatibility-metadata-and-one-db-routing-v1-identity-v3';
+export const SERVING_V1_PRODUCT_REVISION='compatibility-metadata-and-one-db-routing-v2-occurrence-anchors-identity-v3';
 
 export function createServingV1ProductStorage(db){
   db.exec(`
@@ -67,6 +67,30 @@ export function createServingV1ProductStorage(db){
 
     CREATE INDEX IF NOT EXISTS idx_runtime_pron_profile_coda
       ON runtime_pronunciation_profile(coda_class,pronunciation_id);
+
+    CREATE TABLE IF NOT EXISTS runtime_de_surface_profile(
+      surface_id INTEGER PRIMARY KEY REFERENCES surface(surface_id) ON DELETE CASCADE,
+      source_hot_id INTEGER NOT NULL,
+      display_surface TEXT NOT NULL,
+      usage_rank INTEGER,
+      usage_score REAL,
+      usage_count INTEGER,
+      usage_source_count INTEGER,
+      lemma TEXT,
+      part_of_speech TEXT,
+      gender TEXT,
+      lexicon_layer TEXT,
+      entity_kind TEXT,
+      historical INTEGER NOT NULL DEFAULT 0,
+      lexical_tags_json TEXT NOT NULL DEFAULT '[]',
+      selection_usage_rank_missing INTEGER NOT NULL,
+      selection_pronunciation_preferred INTEGER NOT NULL,
+      selection_pronunciation_rank INTEGER,
+      selection_ipa TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_surface_profile_hot
+      ON runtime_de_surface_profile(source_hot_id,surface_id);
 
     CREATE TABLE IF NOT EXISTS runtime_phrase_profile(
       runtime_phrase_id INTEGER PRIMARY KEY REFERENCES runtime_phrase(runtime_phrase_id) ON DELETE CASCADE,
@@ -141,6 +165,32 @@ export function createServingV1ProductStorage(db){
     CREATE INDEX IF NOT EXISTS idx_runtime_entity_pron_name
       ON runtime_entity_pronunciation(name_id,locale,preferred DESC,review_state,product_pronunciation_id);
 
+    CREATE TABLE IF NOT EXISTS runtime_entity_analysis(
+      product_pronunciation_id INTEGER PRIMARY KEY REFERENCES runtime_entity_pronunciation(product_pronunciation_id) ON DELETE CASCADE,
+      analyzer_id TEXT NOT NULL,
+      phonemes_json TEXT NOT NULL DEFAULT '[]',
+      syllables_json TEXT NOT NULL DEFAULT '[]',
+      syllable_count INTEGER NOT NULL,
+      primary_stress INTEGER,
+      secondary_stress_json TEXT NOT NULL DEFAULT '[]',
+      stress_pattern TEXT,
+      vowel_sequence TEXT,
+      consonant_sequence TEXT,
+      rhyme_tail TEXT,
+      rhyme_signature TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS runtime_entity_anchor_occurrence(
+      analyzer_id TEXT NOT NULL,
+      channel TEXT NOT NULL,
+      anchor_key TEXT NOT NULL,
+      product_pronunciation_id INTEGER NOT NULL REFERENCES runtime_entity_pronunciation(product_pronunciation_id) ON DELETE CASCADE,
+      PRIMARY KEY(analyzer_id,channel,anchor_key,product_pronunciation_id)
+    ) WITHOUT ROWID;
+
+    CREATE INDEX IF NOT EXISTS idx_runtime_entity_anchor_occurrence_pron
+      ON runtime_entity_anchor_occurrence(product_pronunciation_id,analyzer_id,channel);
+
     CREATE TABLE IF NOT EXISTS runtime_entity_writer_anchor(
       analyzer_id TEXT NOT NULL,
       channel TEXT NOT NULL,
@@ -173,12 +223,15 @@ export function servingV1ProductSummary(db){
   return {
     lexicalProfiles:scalar(db,'SELECT COUNT(*) c FROM runtime_lexical_profile'),
     pronunciationProfiles:scalar(db,'SELECT COUNT(*) c FROM runtime_pronunciation_profile'),
+    deSurfaceProfiles:scalar(db,'SELECT COUNT(*) c FROM runtime_de_surface_profile'),
     phraseProfiles:scalar(db,'SELECT COUNT(*) c FROM runtime_phrase_profile'),
     entityIdentities:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_identity'),
     entityCategories:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_category'),
     entityNames:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_name'),
     entityPronunciations:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_pronunciation'),
     entityWriterAnchors:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_writer_anchor'),
+    entityAnalyses:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_analysis'),
+    entityOccurrenceAnchors:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence'),
     coreEntityPronunciations:scalar(db,`
       SELECT COUNT(*) c
       FROM runtime_entity_pronunciation ep
@@ -252,6 +305,35 @@ export function servingV1ProductInvariantReport(db){
     WHERE p.canonical_available=0 AND p.generated_available=1
       AND (ep.generated<>1 OR ep.source_kind<>'espeak_ng_generated_secondary')
   `);
+  const deSurfaceProfileMissing=scalar(db,`
+    SELECT COUNT(*) c
+    FROM surface s
+    WHERE s.language='de'
+      AND EXISTS(
+        SELECT 1 FROM pronunciation_origin o
+        JOIN pronunciation p ON p.pronunciation_id=o.pronunciation_id
+        WHERE p.surface_id=s.surface_id AND o.domain='word'
+      )
+      AND NOT EXISTS(
+        SELECT 1 FROM runtime_de_surface_profile dp WHERE dp.surface_id=s.surface_id
+      )
+  `);
+  const entityAnalysisMissing=scalar(db,`
+    SELECT COUNT(*) c
+    FROM runtime_entity_pronunciation ep
+    WHERE NOT EXISTS(
+      SELECT 1 FROM runtime_entity_analysis ea
+      WHERE ea.product_pronunciation_id=ep.product_pronunciation_id
+    )
+  `);
+  const entityAnchorless=scalar(db,`
+    SELECT COUNT(*) c
+    FROM runtime_entity_pronunciation ep
+    WHERE NOT EXISTS(
+      SELECT 1 FROM runtime_entity_anchor_occurrence a
+      WHERE a.product_pronunciation_id=ep.product_pronunciation_id
+    )
+  `);
   return {
     lexical_surfaces_without_profile:lexicalMissing,
     lexical_pronunciations_without_profile:pronProfileMissing,
@@ -259,12 +341,18 @@ export function servingV1ProductInvariantReport(db){
     orphan_entity_pronunciations:orphanEntityPronunciation,
     generated_marker_on_core_entity_pronunciations:generatedMarkerOnCoreEntity,
     generated_only_entity_pronunciations_not_marked:generatedEntityNotMarked,
+    de_word_surfaces_without_runtime_profile:deSurfaceProfileMissing,
+    entity_pronunciations_without_precomputed_analysis:entityAnalysisMissing,
+    entity_pronunciations_without_occurrence_anchor:entityAnchorless,
     core_absorption_preserved:generatedMarkerOnCoreEntity===0,
     ok:lexicalMissing===0
       &&pronProfileMissing===0
       &&phraseProfileMissing===0
       &&orphanEntityPronunciation===0
       &&generatedMarkerOnCoreEntity===0
-      &&generatedEntityNotMarked===0,
+      &&generatedEntityNotMarked===0
+      &&deSurfaceProfileMissing===0
+      &&entityAnalysisMissing===0
+      &&entityAnchorless===0,
   };
 }
