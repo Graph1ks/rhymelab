@@ -8,7 +8,7 @@ function clamp(value,min=0,max=1){
   return Math.max(min,Math.min(max,number));
 }
 
-function normalizeKind(row){
+export function markovMaterialKind(row){
   const kind=String(row?.resultKind||'word').toLowerCase();
   if(kind==='phrase')return 'phrase';
   if(kind==='entity')return 'entity';
@@ -57,7 +57,7 @@ export function normalizeMarkovPool(rows,{target='',allowEntities=true,allowPhra
     if(!surface)continue;
     const normalized=String(row?.normalized||surface).toLocaleLowerCase('en-US');
     if(normalized===normalizedTarget)continue;
-    const kind=normalizeKind(row);
+    const kind=markovMaterialKind(row);
     if(kind==='entity'&&!allowEntities)continue;
     if(kind==='phrase'&&!allowPhrases)continue;
     const key=`${kind}:${normalized}`;
@@ -71,7 +71,7 @@ export function normalizeMarkovPool(rows,{target='',allowEntities=true,allowPhra
 export function summarizePool(rows){
   const counts={total:0,word:0,phrase:0,entity:0,generated:0};
   for(const row of rows||[]){
-    const kind=normalizeKind(row);
+    const kind=markovMaterialKind(row);
     counts.total+=1;
     counts[kind]+=1;
     if(row?.generatedPronunciation||String(row?.lexiconLayer||'').includes('generated'))counts.generated+=1;
@@ -81,7 +81,7 @@ export function summarizePool(rows){
 
 export function compactWriterRows(rows){
   return (rows||[]).map((row)=>({
-    resultKind:normalizeKind(row),
+    resultKind:markovMaterialKind(row),
     surface:row?.surface,
     word:row?.word,
     normalized:row?.normalized,
