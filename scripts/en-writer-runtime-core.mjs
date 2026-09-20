@@ -1,5 +1,5 @@
 import { analyzeEnglishPronunciation } from './english-phonology.mjs';
-import { normalizeEspeakIpa } from './query-pronunciation-espeak-adapter.mjs';
+import { normalizeEspeakIpa } from './espeak-ipa-normalization.mjs';
 import { englishCoarseCodaClass } from './en-writer-db-core.mjs';
 import { normalizeEnglishSurface } from './en-writer-source-core.mjs';
 
