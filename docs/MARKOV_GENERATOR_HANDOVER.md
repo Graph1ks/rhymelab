@@ -227,7 +227,7 @@ Do not prematurely lock:
 - model storage format;
 - UI behavior.
 
-Those choices were open at handover creation. The experimental lyric-calibrated V1 described below now makes provisional choices for model order, reverse generation and line-shape scoring. The distributable training source remains intentionally explicit/unselected rather than silently defaulting to a massive general-prose corpus.
+Those choices were open at handover creation. The experimental lyric-calibrated V1 now uses the existing RhymeLab Phrase/Mosaic catalog as its default transition source, while private owner lyrics contribute only aggregate structure. Model order, reverse generation and line-shape scoring remain acceptance-reversible.
 
 ## Experimental V1 implementation candidate
 
@@ -249,7 +249,9 @@ Current candidate behavior:
 - Naturalness affects transition sampling, tail support, opener joins and splice rejection;
 - aggregate lyric-line shape calibrates line-length scoring and UI defaults;
 - missing model disables generation; no hand-written template fallback exists;
-- model materialization now requires an **explicit approved source**;
+- the default transition source is the existing local `data/local/rhymelab-phrases-v1.sqlite` Phrase/Mosaic catalog;
+- `npm run markov:model:build` deterministically exports modern 2–16-token phrase rows and materializes the transition model;
+- private owner lyrics are not used for the transition model;
 - the former implicit three-Leipzig-1M-corpus build default has been removed.
 
 ### Owner-private lyric calibration
@@ -283,22 +285,31 @@ The report is written under ignored local data and is not a production artifact.
 
 ### Model build
 
-There is deliberately no implicit source:
+The default source is now RhymeLab's own materialized Phrase/Mosaic catalog:
+
+```text
+data/local/rhymelab-phrases-v1.sqlite
+```
+
+Normal owner flow:
 
 ```powershell
 npm run markov:model:plan
-```
-
-reports `ready:false` until the owner explicitly supplies an approved line source.
-
-Example explicit build:
-
-```powershell
-npm run markov:model:build -- --sentences approved=C:\path\to\approved-lines.txt
+npm run markov:model:build
 npm run markov:model:status
 ```
 
-The next evidence gate is therefore **not** a 3M Leipzig materialization. It is selection of an appropriate distributable/licensed lyric-like line source, then model-quality acceptance against that source.
+If the Phrase/Mosaic database itself is missing:
+
+```powershell
+npm run phrase:catalog:bootstrap
+npm run markov:model:build
+npm run markov:model:status
+```
+
+The wrapper exports modern eligible 2–16-token Phrase/Mosaic rows to ignored work data and then invokes the compact resumable transition builder. No private lyric file is required.
+
+The next evidence gate is an owner build against the full local Phrase/Mosaic catalog followed by fingerprint/size/latency/quality review.
 
 ## Frozen boundaries to preserve
 
