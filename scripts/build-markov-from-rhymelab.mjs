@@ -168,9 +168,11 @@ console.error(JSON.stringify({
 
 const hasReset=forwarded.includes('--reset');
 const hasMinTokenCount=forwarded.includes('--min-token-count');
+const hasMinSequenceTokens=forwarded.includes('--min-sequence-tokens');
 const buildArgs=[
   ...(changed&&!hasReset?['--reset']:[]),
   ...(!hasMinTokenCount?['--min-token-count','1']:[]),
+  ...(!hasMinSequenceTokens?['--min-sequence-tokens','2']:[]),
   ...forwarded,
 ];
 runBuilder(buildArgs);
