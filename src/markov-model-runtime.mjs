@@ -262,8 +262,9 @@ export function markovModelHealth(runtime){
       reason:runtime?.reason||'model_missing',
       error:runtime?.error||null,
       database:runtime?.path||resolve(DEFAULT_MARKOV_MODEL_DB_PATH),
-      build_command:'npm run markov:model:build -- --sentences approved=/absolute/path/to/approved-lines.txt',
-      source_requirement:'Explicit approved line source required. Owner-private lyrics are calibration-only and must not be used as a distributable model source.',
+      build_command:'npm run markov:model:build',
+      bootstrap_command:'npm run phrase:catalog:bootstrap',
+      source_requirement:'The default model is built from the existing RhymeLab Phrase/Mosaic catalog. Owner-private lyrics are calibration-only and are never used as model transitions.',
     };
   }
   let bytes=null;
