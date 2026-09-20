@@ -159,6 +159,7 @@ export function unifiedWriterCapabilities({
   englishDb = null,
   phraseDb = null,
   entityDb = null,
+  generatedOverlay = false,
 } = {}) {
   const phraseAnchorFingerprint = metaValue(
     phraseDb,
@@ -173,7 +174,10 @@ export function unifiedWriterCapabilities({
   ].every((name) => tableExists(phraseDb, name));
   const phraseAccepted =
     phraseTablesReady
-    && phraseAnchorFingerprint === ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT;
+    && (
+      generatedOverlay === true
+      || phraseAnchorFingerprint === ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT
+    );
   const entityCapability = entityWriterCapabilities(entityDb);
 
   return {
@@ -225,6 +229,7 @@ export function unifiedWriterCapabilities({
     phraseAnchorFingerprint,
     acceptedPhraseAnchorFingerprint: ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT,
     entities: entityCapability,
+    generatedOverlay: generatedOverlay === true,
   };
 }
 
@@ -526,7 +531,13 @@ function languageWarning(code) {
 }
 
 export function searchUnifiedWriter(
-  { writerDb, englishDb = null, phraseDb = null, entityDb = null } = {},
+  {
+    writerDb,
+    englishDb = null,
+    phraseDb = null,
+    entityDb = null,
+    generatedOverlay = false,
+  } = {},
   input,
   options = {},
 ) {
@@ -540,6 +551,7 @@ export function searchUnifiedWriter(
     englishDb,
     phraseDb,
     entityDb,
+    generatedOverlay,
   });
   const requestedLanguages = languageBasis === 'both'
     ? ['de', 'en']
