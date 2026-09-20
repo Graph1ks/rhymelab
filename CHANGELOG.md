@@ -24,6 +24,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Fixed
 
+- Fixed systematic Entity pronunciation-language leakage: Wikidata label locale is no longer treated as sufficient pronunciation-language evidence. If the same Entity has the same normalized searchable name as both DE and EN labels, derived German/English pronunciation sources are suppressed while direct/source-backed pronunciation evidence remains eligible. This covers people, films, games, groups and other Entity categories without name-specific exceptions.
 - Fixed DE -> EN compound rhyme bridging so German-only phones before the right edge no longer zero the English channel; `Arbeitsweise` now uses the same relevant stressed rhyme-tail neighborhood as `Weise`.
 - Unified result presentation now collapses duplicate Word/Entity surfaces into one visible answer per language. Core/Word pronunciation wins when available, same-name Entity identities contribute their taxonomy tags/QIDs, alternate pronunciations remain metadata, and unfiltered sound-relation sections no longer render the same result card repeatedly.
 - Normalized eSpeak-NG IPA adapter output before frozen DE/EN analysis: Unicode format joiners are removed and observed eSpeak-specific long-vowel variants are mapped into existing accepted analyzer inventories.
