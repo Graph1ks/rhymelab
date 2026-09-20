@@ -17,9 +17,11 @@ import {
 } from '../src/generated-optin-runtime.mjs';
 import {
   SERVING_V1_BUILD_POLICY,
+  SERVING_V1_BUILD_REVISION,
   SERVING_V1_POLICY,
   SERVING_V1_SCHEMA,
   createServingV1Storage,
+  normalizeServingV1Availability,
   servingV1InvariantReport,
   servingV1StageDefinitions,
   servingV1Summary,
@@ -245,6 +247,7 @@ if(mode==='plan'){
     schema:'rhymelab-serving-v1-plan',
     policy:SERVING_V1_POLICY,
     build_policy:SERVING_V1_BUILD_POLICY,
+    build_revision:SERVING_V1_BUILD_REVISION,
     source_fingerprint:sourceFingerprint,
     batch_size:batchSize,
     output:outputPath,
@@ -295,8 +298,15 @@ let finalReport=null;
 try{
   const existingSchema=db.prepare("SELECT value FROM meta WHERE key='schema'").get()?.value||null;
   const existingFingerprint=db.prepare("SELECT value FROM meta WHERE key='source_fingerprint'").get()?.value||null;
+  const existingBuildRevision=db.prepare("SELECT value FROM meta WHERE key='build_revision'").get()?.value||null;
   if(existingSchema&&existingSchema!==SERVING_V1_SCHEMA){
     throw new Error('Unexpected Serving work schema: '+existingSchema);
+  }
+  if(existingBuildRevision&&existingBuildRevision!==SERVING_V1_BUILD_REVISION){
+    throw new Error(
+      'Serving build logic changed since this work database was created. '+
+      'Refusing to mix build revisions. Run with --reset to discard only the incomplete work database.'
+    );
   }
   if(existingFingerprint&&existingFingerprint!==sourceFingerprint){
     throw new Error(
@@ -310,6 +320,7 @@ try{
     schema:SERVING_V1_SCHEMA,
     policy:SERVING_V1_POLICY,
     build_policy:SERVING_V1_BUILD_POLICY,
+    build_revision:SERVING_V1_BUILD_REVISION,
     status:'building',
     created_at:createdAt,
     updated_at:now(),
@@ -459,6 +470,7 @@ try{
     // Intentional owner/dev checkpoint. Work DB stays in place and all completed stages are reusable.
   }else{
     console.log('[serving-v1] finalizing indexes/statistics…');
+    normalizeServingV1Availability(db);
     db.exec('ANALYZE; PRAGMA optimize;');
     const integrity=db.prepare('PRAGMA quick_check').all();
     if(integrity.length!==1||String(integrity[0]?.quick_check||'').toLocaleLowerCase('en-US')!=='ok'){
@@ -497,6 +509,7 @@ try{
       status:'ok',
       policy:SERVING_V1_POLICY,
       build_policy:SERVING_V1_BUILD_POLICY,
+      build_revision:SERVING_V1_BUILD_REVISION,
       created_at:createdAt,
       completed_at:completedAt,
       source_fingerprint:sourceFingerprint,
