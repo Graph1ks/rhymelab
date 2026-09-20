@@ -27,6 +27,8 @@ function createDb() {
     'CREATE TABLE phrase_pronunciation(',
     ' phrase_pronunciation_id TEXT PRIMARY KEY,phrase_id TEXT NOT NULL REFERENCES phrase(phrase_id),',
     ' ipa TEXT NOT NULL,eligible INTEGER NOT NULL);',
+    'CREATE TABLE phrase_pronunciation_token(',
+    ' phrase_pronunciation_id TEXT NOT NULL,pronunciation_source TEXT NOT NULL);',
   ].join('\n'));
   ensurePhraseMosaicWindowStorage(db);
   return db;
@@ -38,6 +40,7 @@ function insertPhrase(db, {
   ipa,
   boundary,
   tokenSyllableSpans,
+  generated=false,
 }) {
   db.prepare(
     'INSERT INTO phrase(phrase_id,canonical,phrase_types_json,historical_state,modern_eligible) VALUES(?,?,?,?,1)',
@@ -46,6 +49,9 @@ function insertPhrase(db, {
   db.prepare(
     'INSERT INTO phrase_pronunciation(phrase_pronunciation_id,phrase_id,ipa,eligible) VALUES(?,?,?,1)',
   ).run(pronunciationId, phraseId, ipa);
+  db.prepare(
+    'INSERT INTO phrase_pronunciation_token(phrase_pronunciation_id,pronunciation_source) VALUES(?,?)',
+  ).run(pronunciationId, generated?'eSpeak-NG Backfill V2':'Wiktionary');
 
   const tokens = tokenSyllableSpans.map(([start, end], tokenIndex) => ({
     token_index: tokenIndex,
@@ -188,6 +194,46 @@ test('11D4 full-surface retrieval makes a final-stressed two-syllable query sear
     const candidate = result.candidates.find((row) => row.canonical === 'du Bik');
     assert.ok(candidate, 'expected full-surface mosaic candidate');
     assert.equal(candidate.queryAnchor.kind, 'full_surface');
+  } finally {
+    db.close();
+  }
+});
+
+test('11D4 generated-only retrieval excludes Core phrase pronunciations before ranking', () => {
+  const db = createDb();
+  try {
+    insertPhrase(db, {
+      phraseId: 'core',
+      canonical: 'core phrase',
+      ipa: 'du‿ˈbiːk',
+      boundary: 1,
+      tokenSyllableSpans: [[0, 1], [1, 2]],
+    });
+    insertPhrase(db, {
+      phraseId: 'generated',
+      canonical: 'generated phrase',
+      ipa: 'du‿ˈbiːk',
+      boundary: 1,
+      tokenSyllableSpans: [[0, 1], [1, 2]],
+      generated: true,
+    });
+    materializePhraseMosaicRetrievalAnchors(db);
+    materializePhraseMosaicRetrievalV2Anchors(db);
+
+    const all = retrievePhraseMosaicCandidatesV2(db, 'muˈziːk', {
+      perChannelLimit: 32,
+      maxCandidates: 64,
+    });
+    const only = retrievePhraseMosaicCandidatesV2(db, 'muˈziːk', {
+      perChannelLimit: 32,
+      maxCandidates: 64,
+      generatedOnly: true,
+    });
+    assert.ok(all.candidates.some((row) => row.phraseId === 'core'));
+    assert.ok(all.candidates.some((row) => row.phraseId === 'generated'));
+    assert.equal(only.candidates.some((row) => row.phraseId === 'core'), false);
+    assert.ok(only.candidates.some((row) => row.phraseId === 'generated'));
+    assert.equal(only.bounds.generatedOnly, true);
   } finally {
     db.close();
   }
