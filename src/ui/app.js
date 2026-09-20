@@ -140,7 +140,7 @@ const state={
   view:['list','compact'].includes(savedResultView)?savedResultView:'list',
   searchOptionsExpanded:savedSearchOptionsExpanded==null?defaultSearchSectionsExpanded:savedSearchOptionsExpanded==='1',
   resultFiltersExpanded:savedResultFiltersExpanded==null?defaultSearchSectionsExpanded:savedResultFiltersExpanded==='1',
-  generatedOptIn:false,generatedOnly:false,generatedCapability:null,datasetStats:null,runtimeTiming:null,
+  generatedOptIn:true,generatedOnly:false,generatedCapability:null,datasetStats:null,runtimeTiming:null,
   canonicalPronunciationRevision:null,generatedPronunciationRevision:null,
   capabilities:null,pronunciationRevision:null,data:null,visibleCount:60,pageSize:60,sectionPageSize:24,
   sectionVisible:new Map(),query:'',scrollObserver:null,wordCache:new Map(),pronunciationMisses:new Set(),
