@@ -265,6 +265,7 @@ async function createServing(path,sourcePaths){
     for(const [key,val] of Object.entries({
       schema:'rhymelab-serving-v1',
       status:'complete',
+      identity_revision:'canonical-phoneme-stress-v3',
       semantic_fingerprint:'a'.repeat(64),
       source_fingerprint:'b'.repeat(64),
       source_snapshot_json:JSON.stringify({inputs,generated_acceptance:{}}),
