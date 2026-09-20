@@ -156,14 +156,15 @@ export function createServingV1ProductStorage(db){
       generated INTEGER NOT NULL,
       model_id TEXT,
       confidence REAL,
-      review_state TEXT NOT NULL,
-      UNIQUE(name_id,serving_pronunciation_id)
+      review_state TEXT NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_runtime_entity_pron_serving
       ON runtime_entity_pronunciation(serving_pronunciation_id,product_pronunciation_id);
     CREATE INDEX IF NOT EXISTS idx_runtime_entity_pron_name
       ON runtime_entity_pronunciation(name_id,locale,preferred DESC,review_state,product_pronunciation_id);
+    CREATE INDEX IF NOT EXISTS idx_runtime_entity_pron_identity_occurrence
+      ON runtime_entity_pronunciation(name_id,serving_pronunciation_id,product_pronunciation_id);
 
     CREATE TABLE IF NOT EXISTS runtime_entity_analysis(
       product_pronunciation_id INTEGER PRIMARY KEY REFERENCES runtime_entity_pronunciation(product_pronunciation_id) ON DELETE CASCADE,
@@ -215,8 +216,35 @@ export function createServingV1ProductStorage(db){
   `);
 }
 
+export function resetServingV1ProductStorage(db){
+  db.exec(`
+    DROP TABLE IF EXISTS runtime_entity_anchor_occurrence;
+    DROP TABLE IF EXISTS runtime_entity_analysis;
+    DROP TABLE IF EXISTS runtime_entity_writer_anchor;
+    DROP TABLE IF EXISTS runtime_entity_pronunciation;
+    DROP TABLE IF EXISTS runtime_entity_name;
+    DROP TABLE IF EXISTS runtime_entity_category;
+    DROP TABLE IF EXISTS runtime_entity_identity;
+    DROP TABLE IF EXISTS runtime_phrase_profile;
+    DROP TABLE IF EXISTS runtime_de_surface_profile;
+    DROP TABLE IF EXISTS runtime_pronunciation_profile;
+    DROP TABLE IF EXISTS runtime_lexical_profile;
+    DROP TABLE IF EXISTS product_build_stage;
+  `);
+  createServingV1ProductStorage(db);
+}
+
 function scalar(db,sql){
   return Number(db.prepare(sql).get()?.c||0);
+}
+
+function integrityCount(db,key){
+  let value;
+  try{value=db.prepare('SELECT value FROM meta WHERE key=?').get(key)?.value;}
+  catch{return null;}
+  if(value==null)return null;
+  const number=Number(value);
+  return Number.isFinite(number)?number:null;
 }
 
 export function servingV1ProductSummary(db){
@@ -334,6 +362,24 @@ export function servingV1ProductInvariantReport(db){
       WHERE a.product_pronunciation_id=ep.product_pronunciation_id
     )
   `);
+  const sourceOccurrenceMissing=integrityCount(
+    db,'product_adapter_entity_source_occurrences_missing'
+  );
+  const productOccurrenceExtra=integrityCount(
+    db,'product_adapter_entity_product_occurrences_extra'
+  );
+  const sourceAnchorMissing=integrityCount(
+    db,'product_adapter_entity_source_anchors_missing'
+  );
+  const productAnchorExtra=integrityCount(
+    db,'product_adapter_entity_product_anchors_extra'
+  );
+  const occurrenceIntegrityVerified=[
+    sourceOccurrenceMissing,
+    productOccurrenceExtra,
+    sourceAnchorMissing,
+    productAnchorExtra,
+  ].every((value)=>value!==null);
   return {
     lexical_surfaces_without_profile:lexicalMissing,
     lexical_pronunciations_without_profile:pronProfileMissing,
@@ -344,6 +390,11 @@ export function servingV1ProductInvariantReport(db){
     de_word_surfaces_without_runtime_profile:deSurfaceProfileMissing,
     entity_pronunciations_without_precomputed_analysis:entityAnalysisMissing,
     entity_pronunciations_without_occurrence_anchor:entityAnchorless,
+    eligible_source_entity_occurrences_without_product_mapping:sourceOccurrenceMissing,
+    product_entity_occurrences_without_eligible_source_mapping:productOccurrenceExtra,
+    eligible_source_entity_anchors_without_exact_product_mapping:sourceAnchorMissing,
+    product_entity_anchors_without_eligible_source_mapping:productAnchorExtra,
+    entity_source_occurrence_integrity_verified:occurrenceIntegrityVerified,
     core_absorption_preserved:generatedMarkerOnCoreEntity===0,
     ok:lexicalMissing===0
       &&pronProfileMissing===0
@@ -353,6 +404,10 @@ export function servingV1ProductInvariantReport(db){
       &&generatedEntityNotMarked===0
       &&deSurfaceProfileMissing===0
       &&entityAnalysisMissing===0
-      &&entityAnchorless===0,
+      &&occurrenceIntegrityVerified
+      &&sourceOccurrenceMissing===0
+      &&productOccurrenceExtra===0
+      &&sourceAnchorMissing===0
+      &&productAnchorExtra===0,
   };
 }
