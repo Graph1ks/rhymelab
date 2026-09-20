@@ -1158,6 +1158,7 @@ async function main(){
     const summary=servingV1RuntimeSummary(db);
     const invariants=servingV1RuntimeInvariantReport(db);
     if(!invariants.ok)throw new Error('Serving-v1 runtime invariant failure: '+JSON.stringify(invariants));
+    await validateSourceSnapshot(context.contract.sourceSnapshot);
 
     const completedAt=now();
     const runtimeSemanticFingerprint=sha256(JSON.stringify({
@@ -1196,6 +1197,7 @@ async function main(){
       safety:{
         current_runtime_rewired:false,
         source_databases_mutated:false,
+        source_inputs_revalidated_unchanged:true,
         base_serving_preserved_until_success:true,
         promotion_atomic:true,
       },
