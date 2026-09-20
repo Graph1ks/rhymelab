@@ -109,16 +109,17 @@ export function germanRightEdgeVowelSuffixKeys(analysis) {
     });
 }
 
-function scorePriority(score) {
-  const tier = new Map([
-    ['multisyllabic_perfect', 0],
-    ['perfect', 0],
-    ['multisyllabic_slant', 1],
-    ['family', 2],
-    ['slant', 3],
-    ['weak', 9],
-  ]).get(score?.type) ?? 9;
-  return { tier, overall: Number(score?.overall || 0) };
+const SCORE_TIER=Object.freeze({
+  multisyllabic_perfect:0,
+  perfect:0,
+  multisyllabic_slant:1,
+  family:2,
+  slant:3,
+  weak:9,
+});
+
+function scoreTier(score){
+  return SCORE_TIER[score?.type]??9;
 }
 
 export function prepareGermanRhymeAnchorAnalysis(analysis){
@@ -135,11 +136,14 @@ export function prepareGermanRhymeAnchorAnalysis(analysis){
       prepared:prepareGermanRhymeAnalysis(anchored),
     };
   });
+  const primaryPrepared=anchors.find((anchor)=>anchor.position===primaryPosition)?.prepared;
   return {
     analysis,
     primaryPosition,
     anchors,
-    fallback:prepareGermanRhymeAnalysis(analysis),
+    // The primary anchor is the same stressed-rhyme domain as the original
+    // analysis. Reuse it instead of preparing the same feature vector twice.
+    fallback:primaryPrepared||prepareGermanRhymeAnalysis(analysis),
   };
 }
 
@@ -154,7 +158,7 @@ export function scorePreparedGermanRhymeAnalysesWithAnchors(preparedA,preparedB)
         rightAnchor.prepared,
       );
       candidates.push({
-        ...score,
+        score,
         anchor:{
           queryPosition:leftAnchor.position,
           candidatePosition:rightAnchor.position,
@@ -167,24 +171,22 @@ export function scorePreparedGermanRhymeAnalysesWithAnchors(preparedA,preparedB)
     }
   }
 
-  candidates.sort((x,y)=>{
-    const aPriority=scorePriority(x);
-    const bPriority=scorePriority(y);
-    return aPriority.tier-bPriority.tier
-      ||bPriority.overall-aPriority.overall
-      ||Number(x.anchor.queryPosition!==preparedA.primaryPosition)
-        -Number(y.anchor.queryPosition!==preparedA.primaryPosition);
-  });
-
-  const best=candidates[0]||scorePreparedGermanRhymeAnalyses(
-    preparedA.fallback,
-    preparedB.fallback,
+  candidates.sort((x,y)=>
+    scoreTier(x.score)-scoreTier(y.score)
+    ||Number(y.score?.overall||0)-Number(x.score?.overall||0)
+    ||Number(x.anchor.queryPosition!==preparedA.primaryPosition)
+      -Number(y.anchor.queryPosition!==preparedA.primaryPosition)
   );
+
+  const bestEntry=candidates[0]||null;
+  const best=bestEntry
+    ?{...bestEntry.score,anchor:bestEntry.anchor}
+    :scorePreparedGermanRhymeAnalyses(preparedA.fallback,preparedB.fallback);
   return {
     ...best,
     anchorCandidates:candidates.map((candidate)=>({
-      type:candidate.type,
-      overall:Number(candidate.overall.toFixed(4)),
+      type:candidate.score.type,
+      overall:Number(candidate.score.overall.toFixed(4)),
       anchor:candidate.anchor,
     })),
   };
