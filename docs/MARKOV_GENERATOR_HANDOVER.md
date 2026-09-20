@@ -227,11 +227,11 @@ Do not prematurely lock:
 - model storage format;
 - UI behavior.
 
-Those choices were open at handover creation. The experimental corpus-backed V1 described below now makes provisional choices for model order, source corpus and reverse generation. They remain acceptance-reversible until full-data evidence is collected.
+Those choices were open at handover creation. The experimental lyric-calibrated V1 described below now makes provisional choices for model order, reverse generation and line-shape scoring. The distributable training source remains intentionally explicit/unselected rather than silently defaulting to a massive general-prose corpus.
 
 ## Experimental V1 implementation candidate
 
-The Markov test surface now has a corpus-backed implementation contract in:
+The Markov test surface now has a lyric-calibrated implementation contract in:
 
 ```text
 docs/MARKOV_GENERATOR_V1.md
@@ -240,33 +240,65 @@ docs/MARKOV_GENERATOR_V1.md
 Current candidate behavior:
 
 - isolated development route at `/markov-test`;
-- deterministic policy `rhymelab-markov-corpus-v1`;
-- resumable model builder over the three frozen German Leipzig 1M-sentence corpora already used by the Phrase pipeline;
+- deterministic policy `rhymelab-markov-lyric-v1`;
 - compact order-2 forward + reverse transitions with order-1 backoff;
-- live unified Writer candidates continue to supply phonetic Word / Phrase / Entity rhyme truth;
-- end-rhyme generation selects the Writer rhyme tail first and walks reverse corpus transitions toward the left context;
-- opener continuity is checked against forward corpus transitions;
-- Phrase / Entity / internal-echo substitutions are context-gated instead of random slot insertions;
+- live unified Writer candidates remain authoritative for phonetic Word / Phrase / Entity rhyme truth;
+- end-rhyme generation selects the Writer rhyme tail first and walks reverse transitions toward the left context;
+- opener continuity is checked with forward transitions;
+- Phrase / Entity / internal-echo substitutions remain context-gated;
 - Naturalness affects transition sampling, tail support, opener joins and splice rejection;
-- same model fingerprint + input + controls + seed reproduce the same result order;
-- missing corpus model disables generation; the old hand-written bootstrap/template fallback is removed;
-- mobile/reduced-motion and primary-control regression coverage remain in place.
+- aggregate lyric-line shape calibrates line-length scoring and UI defaults;
+- missing model disables generation; no hand-written template fallback exists;
+- model materialization now requires an **explicit approved source**;
+- the former implicit three-Leipzig-1M-corpus build default has been removed.
 
-Build commands:
+### Owner-private lyric calibration
+
+The owner supplied private lyrics as development/calibration material.
+
+They are **not repository data and not distributable model training data**.
+
+The repository contains:
+
+- ignore rules covering the named local file and private calibration paths;
+- a local-only analyzer command that emits aggregate statistics only;
+- a product-safe numeric lyric-shape profile;
+- regression tests asserting analyzer output contains no raw lyric text, IDs, titles or URLs.
+
+The repository does **not** contain:
+
+- the lyric JSON;
+- copied lyric lines;
+- lyric-derived n-grams/transitions;
+- lyric-derived distributable model SQLite;
+- song identifiers/titles/URLs from the private source.
+
+Optional local analysis:
+
+```powershell
+npm run markov:lyrics:analyze -- --input C:\path\to\private-lyrics.json
+```
+
+The report is written under ignored local data and is not a production artifact.
+
+### Model build
+
+There is deliberately no implicit source:
 
 ```powershell
 npm run markov:model:plan
-npm run markov:model:build
+```
+
+reports `ready:false` until the owner explicitly supplies an approved line source.
+
+Example explicit build:
+
+```powershell
+npm run markov:model:build -- --sentences approved=C:\path\to\approved-lines.txt
 npm run markov:model:status
 ```
 
-If the already-registered Leipzig extracted sentence files are absent locally:
-
-```powershell
-npm run phrase:catalog:bootstrap
-```
-
-The implementation has fixture-level deterministic tests, but the owner-local three-million-sentence model has not been materialized in the development-agent environment. Full model fingerprint, model size, runtime latency, sentence-quality review and RhymePad/Full-distribution promotion remain pending evidence.
+The next evidence gate is therefore **not** a 3M Leipzig materialization. It is selection of an appropriate distributable/licensed lyric-like line source, then model-quality acceptance against that source.
 
 ## Frozen boundaries to preserve
 
