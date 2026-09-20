@@ -1,3 +1,17 @@
+# CURRENT CONTINUATION — Markov phrase / sentence generator
+
+The active engineering continuation has moved beyond the historical Phase 12C / Generated-opt-in material below.
+
+**Read first:** `docs/MARKOV_GENERATOR_HANDOVER.md`.
+
+Current decision: stop further Serving-v1 micro-optimization until real Lite/Standard/Full distribution files exist and have been measured with `npm run serving:v1:report:benchmark`. The current Master/Developer preview is reference evidence, not the next optimization target.
+
+The next thread focuses on the Markov phrase/sentence generator. The owner will provide additional Markov requirements there; incorporate them before locking architecture or implementation details.
+
+Distribution contract: `docs/DISTRIBUTION_TIERS.md`.
+
+---
+
 # CURRENT BRANCH HANDOVER — Phase 12C runtime + AI staging
 
 Durable project identity, solo-dev repository mode, architecture boundaries, cost/licensing/contribution policy, and QA expectations now live in `PROJECT.md`. Read it immediately after `AGENTS.md`; current technical continuation remains in the focused Phase 12C handover below.

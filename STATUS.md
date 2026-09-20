@@ -2,6 +2,14 @@
 
 Last updated: 2026-09-20
 
+## Current continuation — Markov generator
+
+Focused handover: `docs/MARKOV_GENERATOR_HANDOVER.md`.
+
+Further Serving-v1 micro-optimization is intentionally paused until real Lite/Standard/Full distributions are materialized and benchmarked. The current report-grade Master/Developer reference is approximately p50 145.4 ms / p95 280.3 ms / max 425.6 ms over 140 measured persistent-worker samples with semantic integrity PASS. This is retained as a baseline, not a reason to continue optimizing the ~18.8 GiB Master immediately.
+
+The active next engineering topic is the Markov phrase/sentence generator. The owner will provide additional product requirements in the next thread before architecture is finalized. The already-recorded distribution boundary remains: Markov is a live generator for Full, not a pre-rendered giant phrase corpus, and generated text should reuse the accepted lexical/pronunciation/Phrase phonology stack.
+
 RhymeLab's public repository is `Graph1ks/rhymelab`. `main` is protected and the required public CI check is `validate`.
 
 ## Immediate owner gate — Generated opt-in runtime acceptance
