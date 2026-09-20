@@ -1,6 +1,6 @@
 export const SERVING_V1_PRODUCT_SCHEMA='rhymelab-serving-v1-product-adapter-v1';
 export const SERVING_V1_PRODUCT_POLICY='single-db-legacy-semantic-adapter-v1';
-export const SERVING_V1_PRODUCT_REVISION='compatibility-metadata-and-one-db-routing-v2-occurrence-anchors-identity-v3';
+export const SERVING_V1_PRODUCT_REVISION='source-occurrence-word-hotpaths-v3-identity-v3';
 
 export function createServingV1ProductStorage(db){
   db.exec(`
@@ -18,6 +18,165 @@ export function createServingV1ProductStorage(db){
       completed_at TEXT,
       error TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS runtime_de_word_occurrence(
+      id INTEGER PRIMARY KEY,
+      serving_pronunciation_id INTEGER NOT NULL REFERENCES pronunciation(pronunciation_id) ON DELETE CASCADE,
+      source_generated INTEGER NOT NULL CHECK(source_generated IN (0,1)),
+      genuine_generated INTEGER NOT NULL CHECK(genuine_generated IN (0,1)),
+      publish_order INTEGER NOT NULL,
+      surface TEXT NOT NULL,
+      normalized TEXT NOT NULL,
+      usage_rank INTEGER,
+      usage_score REAL,
+      usage_count INTEGER,
+      usage_source_count INTEGER,
+      lemma TEXT,
+      pos TEXT,
+      gender TEXT,
+      lexicon_layer TEXT NOT NULL,
+      entity_kind TEXT,
+      historical INTEGER NOT NULL,
+      lexical_tags TEXT NOT NULL DEFAULT '[]',
+      ipa TEXT NOT NULL,
+      phonemes TEXT NOT NULL,
+      syllable_count INTEGER NOT NULL,
+      stress TEXT NOT NULL,
+      primary_stress INTEGER NOT NULL,
+      rhyme_tail TEXT NOT NULL,
+      final_tail TEXT NOT NULL,
+      vowels TEXT NOT NULL,
+      consonants TEXT NOT NULL,
+      exact_key TEXT NOT NULL,
+      multisyllable_key TEXT,
+      vowel_key TEXT NOT NULL,
+      vowel_family TEXT NOT NULL,
+      coda_key TEXT NOT NULL,
+      coda_class TEXT NOT NULL,
+      rhyme_syllables INTEGER NOT NULL,
+      pronunciation_rank INTEGER NOT NULL,
+      pronunciation_preferred INTEGER NOT NULL,
+      pronunciation_eligible INTEGER NOT NULL,
+      pronunciation_evidence INTEGER NOT NULL,
+      pronunciation_source_order INTEGER NOT NULL,
+      pronunciation_source TEXT NOT NULL,
+      pronunciation_tags TEXT NOT NULL DEFAULT '[]',
+      pronunciation_raw_tags TEXT NOT NULL DEFAULT '[]',
+      pronunciation_flags TEXT NOT NULL DEFAULT '[]',
+      locale TEXT,
+      dialect TEXT,
+      pronunciation_register TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_occ_normalized
+      ON runtime_de_word_occurrence(normalized,pronunciation_preferred DESC,usage_rank,id);
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_occ_exact
+      ON runtime_de_word_occurrence(exact_key,pronunciation_preferred,historical,syllable_count,usage_rank,id);
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_occ_multi
+      ON runtime_de_word_occurrence(multisyllable_key,pronunciation_preferred,historical,syllable_count,usage_rank,id)
+      WHERE multisyllable_key IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_occ_vowel
+      ON runtime_de_word_occurrence(vowel_key,pronunciation_preferred,historical,syllable_count,usage_rank,id);
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_occ_family
+      ON runtime_de_word_occurrence(vowel_family,pronunciation_preferred,historical,syllable_count,usage_rank,id);
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_occ_coda
+      ON runtime_de_word_occurrence(coda_key,pronunciation_preferred,historical,syllable_count,usage_rank,id);
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_occ_generated
+      ON runtime_de_word_occurrence(genuine_generated,normalized,id);
+
+    CREATE TABLE IF NOT EXISTS runtime_de_writer_anchor_occurrence(
+      anchor_key TEXT NOT NULL,
+      source_hot_id INTEGER NOT NULL REFERENCES runtime_de_word_occurrence(id) ON DELETE CASCADE,
+      PRIMARY KEY(anchor_key,source_hot_id)
+    ) WITHOUT ROWID;
+
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_writer_anchor_occ_pron
+      ON runtime_de_writer_anchor_occurrence(source_hot_id,anchor_key);
+
+    CREATE TABLE IF NOT EXISTS runtime_en_form_occurrence(
+      id INTEGER PRIMARY KEY,
+      surface TEXT NOT NULL,
+      normalized TEXT NOT NULL UNIQUE,
+      surface_variants TEXT NOT NULL,
+      poses TEXT NOT NULL,
+      lemmas TEXT NOT NULL,
+      relation_kinds TEXT NOT NULL,
+      lexical_tags TEXT NOT NULL,
+      evidence_kinds TEXT NOT NULL,
+      current_evidence_count INTEGER NOT NULL,
+      historical_evidence_count INTEGER NOT NULL,
+      proper_name_evidence_count INTEGER NOT NULL,
+      common_lexical_evidence_count INTEGER NOT NULL,
+      historical_only INTEGER NOT NULL,
+      proper_name_only INTEGER NOT NULL,
+      analyzed_en_us INTEGER NOT NULL,
+      default_eligible INTEGER NOT NULL,
+      exclusion_reasons TEXT NOT NULL,
+      esdb_min_size INTEGER,
+      esdb_regions TEXT NOT NULL,
+      esdb_pos_classes TEXT NOT NULL,
+      esdb_archaic INTEGER NOT NULL,
+      esdb_uncommon INTEGER NOT NULL,
+      esdb_invalid INTEGER NOT NULL,
+      wordfreq_rank INTEGER,
+      wordfreq_zipf REAL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_runtime_en_form_default_usage
+      ON runtime_en_form_occurrence(default_eligible,wordfreq_rank,normalized);
+
+    CREATE TABLE IF NOT EXISTS runtime_en_pronunciation_occurrence(
+      id INTEGER PRIMARY KEY,
+      serving_pronunciation_id INTEGER NOT NULL REFERENCES pronunciation(pronunciation_id) ON DELETE CASCADE,
+      source_generated INTEGER NOT NULL CHECK(source_generated IN (0,1)),
+      genuine_generated INTEGER NOT NULL CHECK(genuine_generated IN (0,1)),
+      form_id INTEGER NOT NULL REFERENCES runtime_en_form_occurrence(id) ON DELETE CASCADE,
+      source TEXT NOT NULL,
+      notation TEXT NOT NULL,
+      raw TEXT NOT NULL,
+      locales TEXT NOT NULL,
+      locale_us INTEGER NOT NULL,
+      locale_gb INTEGER NOT NULL,
+      source_attested_unprofiled INTEGER NOT NULL,
+      tags TEXT NOT NULL,
+      evidence_count INTEGER NOT NULL,
+      analysis_status TEXT NOT NULL,
+      phonemes TEXT,
+      syllable_count INTEGER,
+      stress TEXT,
+      primary_stress INTEGER,
+      rhyme_tail TEXT,
+      final_tail TEXT,
+      exact_key TEXT,
+      multisyllable_key TEXT,
+      vowel_key TEXT,
+      vowel_family TEXT,
+      coda_key TEXT,
+      coda_class TEXT,
+      rhyme_syllables INTEGER,
+      rhotic INTEGER,
+      default_profile_eligible INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_runtime_en_occ_form
+      ON runtime_en_pronunciation_occurrence(form_id,default_profile_eligible,id);
+    CREATE INDEX IF NOT EXISTS idx_runtime_en_occ_exact
+      ON runtime_en_pronunciation_occurrence(exact_key,default_profile_eligible,form_id,id)
+      WHERE exact_key IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_en_occ_multi
+      ON runtime_en_pronunciation_occurrence(multisyllable_key,default_profile_eligible,form_id,id)
+      WHERE multisyllable_key IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_en_occ_vowel
+      ON runtime_en_pronunciation_occurrence(vowel_key,default_profile_eligible,form_id,id)
+      WHERE vowel_key IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_en_occ_family_coda
+      ON runtime_en_pronunciation_occurrence(vowel_family,coda_class,default_profile_eligible,form_id,id)
+      WHERE vowel_family IS NOT NULL AND coda_class IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_en_occ_coda
+      ON runtime_en_pronunciation_occurrence(coda_key,default_profile_eligible,form_id,id)
+      WHERE coda_key IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_en_occ_generated
+      ON runtime_en_pronunciation_occurrence(genuine_generated,form_id,id);
 
     CREATE TABLE IF NOT EXISTS runtime_lexical_profile(
       surface_id INTEGER PRIMARY KEY REFERENCES surface(surface_id) ON DELETE CASCADE,
@@ -219,6 +378,10 @@ export function createServingV1ProductStorage(db){
 export function resetServingV1ProductStorage(db){
   db.exec(`
     DROP TABLE IF EXISTS runtime_entity_anchor_occurrence;
+    DROP TABLE IF EXISTS runtime_de_writer_anchor_occurrence;
+    DROP TABLE IF EXISTS runtime_de_word_occurrence;
+    DROP TABLE IF EXISTS runtime_en_pronunciation_occurrence;
+    DROP TABLE IF EXISTS runtime_en_form_occurrence;
     DROP TABLE IF EXISTS runtime_entity_analysis;
     DROP TABLE IF EXISTS runtime_entity_writer_anchor;
     DROP TABLE IF EXISTS runtime_entity_pronunciation;

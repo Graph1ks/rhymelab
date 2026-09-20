@@ -210,6 +210,164 @@ function attach(db,path){db.exec('ATTACH DATABASE '+quote(path)+' AS src;');}
 function detach(db){db.exec('DETACH DATABASE src;');}
 function stageRow(db,name){return db.prepare('SELECT * FROM product_build_stage WHERE stage=?').get(name)||null;}
 
+
+function deWordOccurrenceStage(path){
+  const filter=(last,upper)=>`h.id>${last} AND h.id<=${upper} AND h.pronunciation_eligible=1`;
+  return {
+    name:'00_de_word_occurrences',label:'DE source word occurrences',path,
+    total(db){attach(db,path);try{return scalar(db,'SELECT COUNT(*) c FROM src.hot WHERE pronunciation_eligible=1');}finally{detach(db);}},
+    max(db){attach(db,path);try{return scalar(db,'SELECT COALESCE(MAX(id),0) c FROM src.hot WHERE pronunciation_eligible=1');}finally{detach(db);}},
+    range(db,last,upper){return scalar(db,`SELECT COUNT(*) c FROM src.hot h WHERE ${filter(last,upper)}`);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR REPLACE INTO runtime_de_word_occurrence(
+          id,serving_pronunciation_id,source_generated,genuine_generated,
+          publish_order,surface,normalized,usage_rank,usage_score,usage_count,usage_source_count,
+          lemma,pos,gender,lexicon_layer,entity_kind,historical,lexical_tags,
+          ipa,phonemes,syllable_count,stress,primary_stress,rhyme_tail,final_tail,vowels,consonants,
+          exact_key,multisyllable_key,vowel_key,vowel_family,coda_key,coda_class,rhyme_syllables,
+          pronunciation_rank,pronunciation_preferred,pronunciation_eligible,pronunciation_evidence,
+          pronunciation_source_order,pronunciation_source,pronunciation_tags,pronunciation_raw_tags,
+          pronunciation_flags,locale,dialect,pronunciation_register
+        )
+        SELECT
+          h.id,p.pronunciation_id,
+          CASE WHEN h.pronunciation_flags LIKE '%secondary_opt_in%' THEN 1 ELSE 0 END,
+          CASE WHEN h.pronunciation_flags LIKE '%secondary_opt_in%'
+                 AND p.canonical_available=0 AND p.generated_available=1 THEN 1 ELSE 0 END,
+          h.publish_order,h.surface,h.normalized,h.usage_rank,h.usage_score,h.usage_count,h.usage_source_count,
+          h.lemma,h.pos,h.gender,h.lexicon_layer,h.entity_kind,h.historical,h.lexical_tags,
+          h.ipa,h.phonemes,h.syllable_count,h.stress,h.primary_stress,h.rhyme_tail,h.final_tail,h.vowels,h.consonants,
+          h.exact_key,h.multisyllable_key,h.vowel_key,h.vowel_family,h.coda_key,h.coda_class,h.rhyme_syllables,
+          h.pronunciation_rank,h.pronunciation_preferred,h.pronunciation_eligible,h.pronunciation_evidence,
+          h.pronunciation_source_order,h.pronunciation_source,h.pronunciation_tags,h.pronunciation_raw_tags,
+          h.pronunciation_flags,h.locale,h.dialect,h.pronunciation_register
+        FROM src.hot h
+        JOIN surface s ON s.language='de' AND s.normalized=h.normalized
+        JOIN pronunciation p
+          ON p.surface_id=s.surface_id
+         AND p.identity_key=(COALESCE(NULLIF(h.phonemes,''),h.ipa)||'|stress:'||COALESCE(h.stress,''))
+        WHERE ${filter(last,upper)};
+      `);
+    },
+  };
+}
+
+function deWriterAnchorOccurrenceStage(path){
+  const filter=(last,upper)=>`h.id>${last} AND h.id<=${upper} AND h.pronunciation_eligible=1`;
+  return {
+    name:'00b_de_writer_anchor_occurrences',label:'DE source Writer anchor occurrences',path,
+    total(db){attach(db,path);try{return scalar(db,`
+      SELECT COUNT(*) c FROM src.writer_anchor a
+      JOIN src.hot h ON h.id=a.pronunciation_id
+      WHERE h.pronunciation_eligible=1
+    `);}finally{detach(db);}},
+    max(db){attach(db,path);try{return scalar(db,`
+      SELECT COALESCE(MAX(h.id),0) c FROM src.hot h
+      WHERE h.pronunciation_eligible=1
+        AND EXISTS(SELECT 1 FROM src.writer_anchor a WHERE a.pronunciation_id=h.id)
+    `);}finally{detach(db);}},
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c FROM src.hot h
+      WHERE ${filter(last,upper)}
+        AND EXISTS(SELECT 1 FROM src.writer_anchor a WHERE a.pronunciation_id=h.id)
+    `);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR IGNORE INTO runtime_de_writer_anchor_occurrence(anchor_key,source_hot_id)
+        SELECT a.anchor_key,h.id
+        FROM src.hot h
+        JOIN src.writer_anchor a ON a.pronunciation_id=h.id
+        JOIN runtime_de_word_occurrence o ON o.id=h.id
+        WHERE ${filter(last,upper)};
+      `);
+    },
+  };
+}
+
+function enFormOccurrenceStage(path){
+  const filter=(last,upper)=>`f.id>${last} AND f.id<=${upper} AND f.default_eligible=1`;
+  return {
+    name:'00c_en_form_occurrences',label:'EN source form occurrences',path,
+    total(db){attach(db,path);try{return scalar(db,'SELECT COUNT(*) c FROM src.en_form WHERE default_eligible=1');}finally{detach(db);}},
+    max(db){attach(db,path);try{return scalar(db,'SELECT COALESCE(MAX(id),0) c FROM src.en_form WHERE default_eligible=1');}finally{detach(db);}},
+    range(db,last,upper){return scalar(db,`SELECT COUNT(*) c FROM src.en_form f WHERE ${filter(last,upper)}`);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR REPLACE INTO runtime_en_form_occurrence(
+          id,surface,normalized,surface_variants,poses,lemmas,relation_kinds,lexical_tags,evidence_kinds,
+          current_evidence_count,historical_evidence_count,proper_name_evidence_count,common_lexical_evidence_count,
+          historical_only,proper_name_only,analyzed_en_us,default_eligible,exclusion_reasons,
+          esdb_min_size,esdb_regions,esdb_pos_classes,esdb_archaic,esdb_uncommon,esdb_invalid,
+          wordfreq_rank,wordfreq_zipf
+        )
+        SELECT
+          f.id,f.surface,f.normalized,f.surface_variants,f.poses,f.lemmas,f.relation_kinds,f.lexical_tags,f.evidence_kinds,
+          f.current_evidence_count,f.historical_evidence_count,f.proper_name_evidence_count,f.common_lexical_evidence_count,
+          f.historical_only,f.proper_name_only,f.analyzed_en_us,f.default_eligible,f.exclusion_reasons,
+          f.esdb_min_size,f.esdb_regions,f.esdb_pos_classes,f.esdb_archaic,f.esdb_uncommon,f.esdb_invalid,
+          f.wordfreq_rank,f.wordfreq_zipf
+        FROM src.en_form f
+        WHERE ${filter(last,upper)};
+      `);
+    },
+  };
+}
+
+function enPronunciationOccurrenceStage(path){
+  const filter=(last,upper)=>`
+    p.id>${last} AND p.id<=${upper}
+    AND p.analysis_status='ok'
+    AND f.default_eligible=1
+  `;
+  return {
+    name:'00d_en_pronunciation_occurrences',label:'EN source pronunciation occurrences',path,
+    total(db){attach(db,path);try{return scalar(db,`
+      SELECT COUNT(*) c FROM src.en_pronunciation p
+      JOIN src.en_form f ON f.id=p.form_id
+      WHERE p.analysis_status='ok' AND f.default_eligible=1
+    `);}finally{detach(db);}},
+    max(db){attach(db,path);try{return scalar(db,`
+      SELECT COALESCE(MAX(p.id),0) c FROM src.en_pronunciation p
+      JOIN src.en_form f ON f.id=p.form_id
+      WHERE p.analysis_status='ok' AND f.default_eligible=1
+    `);}finally{detach(db);}},
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c FROM src.en_pronunciation p
+      JOIN src.en_form f ON f.id=p.form_id
+      WHERE ${filter(last,upper)}
+    `);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR REPLACE INTO runtime_en_pronunciation_occurrence(
+          id,serving_pronunciation_id,source_generated,genuine_generated,form_id,
+          source,notation,raw,locales,locale_us,locale_gb,source_attested_unprofiled,tags,evidence_count,
+          analysis_status,phonemes,syllable_count,stress,primary_stress,rhyme_tail,final_tail,exact_key,
+          multisyllable_key,vowel_key,vowel_family,coda_key,coda_class,rhyme_syllables,rhotic,
+          default_profile_eligible
+        )
+        SELECT
+          p.id,sp.pronunciation_id,
+          CASE WHEN p.source='espeak_ng_generated_secondary' THEN 1 ELSE 0 END,
+          CASE WHEN p.source='espeak_ng_generated_secondary'
+                 AND sp.canonical_available=0 AND sp.generated_available=1 THEN 1 ELSE 0 END,
+          p.form_id,p.source,p.notation,p.raw,p.locales,p.locale_us,p.locale_gb,p.source_attested_unprofiled,
+          p.tags,p.evidence_count,p.analysis_status,p.phonemes,p.syllable_count,p.stress,p.primary_stress,
+          p.rhyme_tail,p.final_tail,p.exact_key,p.multisyllable_key,p.vowel_key,p.vowel_family,p.coda_key,
+          p.coda_class,p.rhyme_syllables,p.rhotic,p.default_profile_eligible
+        FROM src.en_pronunciation p
+        JOIN src.en_form f ON f.id=p.form_id
+        JOIN runtime_en_form_occurrence rf ON rf.id=f.id
+        JOIN surface s ON s.language='en' AND s.normalized=f.normalized
+        JOIN pronunciation sp
+          ON sp.surface_id=s.surface_id
+         AND sp.identity_key=(COALESCE(NULLIF(p.phonemes,''),p.raw)||'|stress:'||COALESCE(p.stress,''))
+        WHERE ${filter(last,upper)};
+      `);
+    },
+  };
+}
+
 function deProfileStage(path){
   const filter=(last,upper)=>`h.id>${last} AND h.id<=${upper} AND h.pronunciation_eligible=1`;
   const mapped=(last,upper)=>`
@@ -902,6 +1060,10 @@ function entityOccurrenceIntegrity(db,path){
 
 function stageDefinitions(paths){
   return [
+    deWordOccurrenceStage(paths.deGenerated),
+    deWriterAnchorOccurrenceStage(paths.deGenerated),
+    enFormOccurrenceStage(paths.enGenerated),
+    enPronunciationOccurrenceStage(paths.enGenerated),
     deProfileStage(paths.deGenerated),
     enProfileStage(paths.enGenerated),
     phraseProfileStage(paths.phraseGenerated),
