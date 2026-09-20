@@ -41,6 +41,8 @@ Owner full-data Backfill V2 collection is complete: 6,033,818 unique language+no
 
 ## Serving-v1 performance candidate
 
+A report-grade steady-state benchmark is available as `npm run serving:v1:report:benchmark`. It measures the same persistent-worker unified-search path used by the Serving preview, discards worker startup plus warmup, then runs 20 fixed DE/EN/both cases over 7 deterministic measurement rounds by default (140 samples). It writes JSON and Markdown under `data/local/benchmark/`, records DB/runtime fingerprints and host metadata, and verifies that each query returns the same semantic result across repeats. A missed p50/p95/max target is report data rather than a process error; only an invalid/nondeterministic run fails the command.
+
 The owner-preview path `npm run dev:serving` now targets the one-file `data/local/rhymelab-serving-v1.sqlite` Product adapter. Expensive unified-search channels execute through five persistent `worker_threads` (DE Words, EN Words, DE Phrase/Mosaic, DE Entities, EN Entities), each with its own read-only connection. Worker creation/DB opening happens before measured requests; workers are reused across requests.
 
 The synchronous `searchUnifiedWriter()` implementation remains the semantic reference. CI fixture coverage requires the parallel Serving response to deep-equal the serial response for the same request. The Serving hotpath benchmark and Product Acceptance timing now measure the parallel path; the benchmark retains `--serial` as a diagnostic control.

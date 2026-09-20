@@ -132,6 +132,14 @@ For `scope=all`, eligible channels execute concurrently. The parent merges chann
 
 The hotpath benchmark and Product Acceptance latency measurement both use this persistent-worker path by default. `scripts/benchmark-serving-v1-hotpaths.mjs --serial` remains available as the synchronous diagnostic reference.
 
+For publishable/local engineering measurements, use the separate steady-state report runner:
+
+```powershell
+npm run serving:v1:report:benchmark
+```
+
+It performs one discarded warmup round by default, then 7 measured rounds over the fixed 20-case DE/EN/both workload (140 samples), re-orders cases deterministically between rounds, validates per-case semantic repeatability, and writes both JSON and Markdown reports under `data/local/benchmark/`. The report explicitly records that HTTP transport, JSON serialization and browser rendering are outside the measured wall time. Use `--core` for a Core-only control run, or override `--repeats`, `--warmup-rounds` and the latency targets when needed.
+
 **No cross-request search caching is introduced by this layer.** There is no result cache, score cache, analysis cache or prepared-feature cache shared between requests. Caching is intentionally deferred until after the existing Serving-v1/parallelization plan is completed and measured.
 
 The German Word path additionally uses a fail-closed scorer upper bound. It can bypass prepared-feature/full-score work only for candidates that are mathematically unable to reach any accepted primary rhyme or sound-relation threshold. Retrieval populations and accepted scoring/ranking semantics are unchanged. CI compares the optimized response against the same Serving fixture with the prefilter disabled.
