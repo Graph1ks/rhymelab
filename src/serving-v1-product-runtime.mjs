@@ -2,6 +2,7 @@ import {existsSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {
+  SERVING_V1_PRODUCT_REVISION,
   SERVING_V1_PRODUCT_SCHEMA,
 } from '../scripts/serving-v1-product-core.mjs';
 
@@ -20,21 +21,25 @@ export function servingV1ProductRuntimeState(db){
   const runtimeStatus=metaValue(db,'runtime_status');
   const productSchema=metaValue(db,'product_adapter_schema');
   const productStatus=metaValue(db,'product_adapter_status');
+  const productRevision=metaValue(db,'product_adapter_revision');
   const valid=schema==='rhymelab-serving-v1'
     &&runtimeStatus==='complete'
     &&productSchema===SERVING_V1_PRODUCT_SCHEMA
-    &&productStatus==='complete';
+    &&productStatus==='complete'
+    &&productRevision===SERVING_V1_PRODUCT_REVISION;
   return {
     available:valid,
     reason:valid?null:
       schema!=='rhymelab-serving-v1'?'serving_v1_schema_mismatch':
       runtimeStatus!=='complete'?'serving_v1_runtime_incomplete':
       productSchema!==SERVING_V1_PRODUCT_SCHEMA?'serving_v1_product_schema_mismatch':
-      'serving_v1_product_incomplete',
+      productStatus!=='complete'?'serving_v1_product_incomplete':
+      'serving_v1_product_revision_mismatch',
     schema,
     runtimeStatus,
     productSchema,
     productStatus,
+    productRevision,
     runtimeSemanticFingerprint:metaValue(db,'runtime_semantic_fingerprint'),
     productSemanticFingerprint:metaValue(db,'product_adapter_semantic_fingerprint'),
     runtime:valid?SERVING_V1_PRODUCT_RUNTIME:null,
@@ -85,20 +90,20 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
     CREATE TEMP VIEW hot AS
     SELECT
       p.pronunciation_id AS id,
-      s.surface_id AS publish_order,
-      s.display_surface AS surface,
+      dp.source_hot_id AS publish_order,
+      dp.display_surface AS surface,
       s.normalized,
-      s.usage_rank,
-      lp.usage_score,
-      s.usage_count,
-      lp.usage_source_count,
-      s.lemma,
-      s.part_of_speech AS pos,
-      lp.gender,
-      s.lexicon_layer,
-      lp.entity_kind,
-      COALESCE(s.historical,0) AS historical,
-      lp.lexical_tags_json AS lexical_tags,
+      dp.usage_rank,
+      dp.usage_score,
+      dp.usage_count,
+      dp.usage_source_count,
+      dp.lemma,
+      dp.part_of_speech AS pos,
+      dp.gender,
+      dp.lexicon_layer,
+      dp.entity_kind,
+      COALESCE(dp.historical,0) AS historical,
+      dp.lexical_tags_json AS lexical_tags,
       COALESCE(p.ipa,p.raw) AS ipa,
       p.phonemes,
       p.syllable_count,
@@ -131,7 +136,7 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
       p.generated_available
     FROM pronunciation p
     JOIN surface s USING(surface_id)
-    JOIN runtime_lexical_profile lp USING(surface_id)
+    JOIN runtime_de_surface_profile dp USING(surface_id)
     JOIN runtime_pronunciation_profile pp USING(pronunciation_id)
     WHERE s.language='de'
       AND p.eligible=1
@@ -249,53 +254,28 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
 
     CREATE TEMP VIEW entity_phonetic_analysis AS
     SELECT
-      ep.product_pronunciation_id AS pronunciation_id,
-      CASE n.language WHEN 'en' THEN 'en-pron-v1-candidate' ELSE 'de-ipa-v2' END AS analyzer_id,
-      sp.phonemes,
-      '[]' AS syllables,
-      sp.syllable_count,
-      sp.primary_stress,
-      '[]' AS secondary_stress,
-      sp.stress_pattern,
-      pp.vowels AS vowel_sequence,
-      pp.consonants AS consonant_sequence,
-      pp.rhyme_tail,
-      sp.exact_key AS rhyme_signature
-    FROM runtime_entity_pronunciation ep
-    JOIN runtime_entity_name n USING(name_id)
+      ea.product_pronunciation_id AS pronunciation_id,
+      ea.analyzer_id,
+      ea.phonemes_json AS phonemes,
+      ea.syllables_json AS syllables,
+      ea.syllable_count,
+      ea.primary_stress,
+      ea.secondary_stress_json AS secondary_stress,
+      ea.stress_pattern,
+      ea.vowel_sequence,
+      ea.consonant_sequence,
+      ea.rhyme_tail,
+      ea.rhyme_signature
+    FROM runtime_entity_analysis ea
+    JOIN runtime_entity_pronunciation ep USING(product_pronunciation_id)
     JOIN pronunciation sp ON sp.pronunciation_id=ep.serving_pronunciation_id
-    LEFT JOIN runtime_pronunciation_profile pp ON pp.pronunciation_id=sp.pronunciation_id
     WHERE ${entityAvailability};
 
     CREATE TEMP VIEW entity_rhyme_anchor AS
     SELECT
-      CASE n.language WHEN 'en' THEN 'en-pron-v1-candidate' ELSE 'de-ipa-v2' END AS analyzer_id,
-      CASE k.channel
-        WHEN 'entity_exact_tail' THEN 'exact_tail'
-        WHEN 'entity_vowel_sequence' THEN 'vowel_sequence'
-        WHEN 'entity_vowel_family' THEN 'vowel_family'
-        WHEN 'entity_final_nucleus_coda' THEN 'final_nucleus_coda'
-        WHEN 'entity_final_nucleus' THEN 'final_nucleus'
-      END AS channel,
-      k.key_value AS anchor_key,
-      ep.product_pronunciation_id AS pronunciation_id
-    FROM runtime_key k
-    JOIN runtime_key_member km USING(key_id)
-    JOIN runtime_target t ON t.target_id=km.target_id AND t.target_kind='pronunciation'
-    JOIN runtime_entity_pronunciation ep ON ep.serving_pronunciation_id=t.pronunciation_id
-    JOIN runtime_entity_name n USING(name_id)
-    JOIN pronunciation sp ON sp.pronunciation_id=ep.serving_pronunciation_id
-    WHERE k.channel IN (
-      'entity_exact_tail','entity_vowel_sequence','entity_vowel_family',
-      'entity_final_nucleus_coda','entity_final_nucleus'
-    )
-      AND ${entityAvailability}
-    UNION
-    SELECT
-      a.analyzer_id,a.channel,a.anchor_key,ep.product_pronunciation_id
-    FROM runtime_entity_writer_anchor a
-    JOIN runtime_entity_pronunciation ep
-      ON ep.serving_pronunciation_id=a.serving_pronunciation_id
+      a.analyzer_id,a.channel,a.anchor_key,a.product_pronunciation_id AS pronunciation_id
+    FROM runtime_entity_anchor_occurrence a
+    JOIN runtime_entity_pronunciation ep USING(product_pronunciation_id)
     JOIN pronunciation sp ON sp.pronunciation_id=ep.serving_pronunciation_id
     WHERE ${entityAvailability};
 
