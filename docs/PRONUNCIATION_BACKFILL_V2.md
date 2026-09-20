@@ -446,3 +446,8 @@ npm run pronunciation:backfill
 V2 does not mutate accepted Writer, Phrase/Mosaic or Entity DBs.
 
 The generated workset is staging/review evidence only. Promotion is a later explicit decision and can differ by source scope and quality tier.
+
+
+## Post-backfill secondary catalog
+
+Backfill V2 generation is complete, but generated pronunciations are not canonical. The post-backfill materialization and owner policy live in `docs/PRONUNCIATION_SECONDARY_V1.md`. Active scope is eSpeak A/B only; Client B/C/D/U are deferred. Generated results are opt-in-only and excluded from default search.
