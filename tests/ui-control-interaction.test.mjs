@@ -97,6 +97,10 @@ function buildFakeDom(){
   put('#availabilityBar');
   put('#scrollSentinel');
   put('#wordPanel');
+  put('#runtimeTiming');
+  put('#runtimeTimingCurrent');
+  put('#runtimeTimingAverage');
+  put('#runtimeTimingSamples');
   put('#emptyState');
   put('#workspace');
   put('#loading');
@@ -177,7 +181,7 @@ test('unified UI primary controls bind and change state at runtime', async () =>
 
   const factory=new Function(
     'document','localStorage','navigator','location','history','fetch','IntersectionObserver',
-    `${testable}\nreturn {state,installInteractiveControls};`,
+    `${testable}\nreturn {state,installInteractiveControls,renderRuntimeTiming};`,
   );
   const runtime=factory(
     dom.document,
@@ -243,6 +247,13 @@ test('unified UI primary controls bind and change state at runtime', async () =>
   assert.equal(dom.singles.get('#statsDialog').open,true);
   dom.singles.get('#statsClose').dispatch('click');
   assert.equal(dom.singles.get('#statsDialog').open,false);
+
+  runtime.state.runtimeTiming={searchMs:184.4,averageLast100Ms:231.2,sampleCount:37,windowSize:100};
+  runtime.renderRuntimeTiming();
+  assert.equal(dom.singles.get('#runtimeTimingCurrent').textContent,'184');
+  assert.equal(dom.singles.get('#runtimeTimingAverage').textContent,'231');
+  assert.equal(dom.singles.get('#runtimeTimingSamples').textContent,'37 / 100');
+  assert.equal(dom.singles.get('#runtimeTiming').classList.contains('has-samples'),true);
 });
 
 test('unified UI control binding preflights the complete interactive surface', async () => {
@@ -263,6 +274,7 @@ test('unified UI control binding preflights the complete interactive surface', a
   for(const selector of [
     '#resultsToolbar','#searchOptionsToggle','#resultFiltersToggle','#generatedMode','#generatedOnlyMode',
     '#statsButton','#statsDialog','#statsContent',
+    '#runtimeTiming','#runtimeTimingCurrent','#runtimeTimingAverage','#runtimeTimingSamples',
     '#searchOptionsSection','#resultFiltersSection','#searchStageAnchor','.search-stage',
   ]){
     assert.match(app,new RegExp(selector.replaceAll('.','\\.').replace('#','\\#')));
@@ -381,4 +393,18 @@ test('control-surface preflight rejects a missing required control group', async
     ()=>runtime.installInteractiveControls(),
     /RhymeLab UI control surface incomplete: \.basis-option/,
   );
+});
+
+
+test('inspector layout keeps long surfaces and provenance badges inside the sidebar', async () => {
+  const [styles,index]=await Promise.all([
+    readFile('src/ui/styles.css','utf8'),
+    readFile('src/ui/index.html','utf8'),
+  ]);
+  assert.match(styles,/\.word-heading\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(styles,/\.word-heading h2\{[^}]*overflow-wrap:anywhere/);
+  assert.match(styles,/\.layer-badges\{[^}]*flex-wrap:wrap/);
+  assert.match(styles,/\.layer-badge\{[^}]*max-width:100%/);
+  assert.match(index,/class="inspector-column"/);
+  assert.match(index,/id="runtimeTiming"/);
 });

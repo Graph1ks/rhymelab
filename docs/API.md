@@ -75,6 +75,24 @@ Parameters:
 - `generated=1` — opt into the accepted augmented runtime bundle;
 - `generated_only=1` — route to the augmented bundle and restrict DE Word, EN Word, Phrase/Mosaic and Entity candidate retrieval to the generated opt-in provenance before ranking/limits.
 
+### Runtime timing
+
+Every `/api/writer` response includes a process-local runtime timing block:
+
+```json
+{
+  "runtimeTiming": {
+    "schema": "rhymelab-runtime-query-timing-v1",
+    "searchMs": 184.4,
+    "averageLast100Ms": 231.2,
+    "sampleCount": 37,
+    "windowSize": 100
+  }
+}
+```
+
+`searchMs` measures the synchronous server search path from unified query resolution through DB retrieval, phonetic scoring and ranking. It deliberately excludes browser/network latency and JSON serialization. `averageLast100Ms` is the rolling mean of the most recent up-to-100 Writer API executions in the current server process and resets on server restart. The main UI shows both values below the right-hand inspector.
+
 ### Unknown / partially unresolved query pronunciation
 
 The API itself does **not** run a pronunciation generator or host executable.

@@ -227,7 +227,26 @@
         </div>
       </div>
 
-      <aside class="word-panel" id="wordPanel"></aside>
+      <div class="inspector-column">
+        <aside class="word-panel" id="wordPanel"></aside>
+        <section id="runtimeTiming" class="runtime-timing-card" aria-live="polite" aria-label="Search runtime">
+          <div class="runtime-timing-head">
+            <span data-i18n="runtimeTiming">Search runtime</span>
+            <small id="runtimeTimingSamples">0 / 100</small>
+          </div>
+          <div class="runtime-timing-grid">
+            <div class="runtime-timing-metric">
+              <span data-i18n="runtimeTimingQuery">Query</span>
+              <strong><span id="runtimeTimingCurrent">—</span><small> ms</small></strong>
+            </div>
+            <div class="runtime-timing-metric">
+              <span data-i18n="runtimeTimingAverage">AVG · 100</span>
+              <strong><span id="runtimeTimingAverage">—</span><small> ms</small></strong>
+            </div>
+          </div>
+          <p data-i18n="runtimeTimingScope">Server search · DB + scoring + ranking</p>
+        </section>
+      </div>
     </section>
   </main>
 
