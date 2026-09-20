@@ -48,6 +48,9 @@ import {
   entityRetrievalAnchors,
 } from './entity-pronunciation-core.mjs';
 import {
+  entityCrossLocaleDuplicateSql,
+} from './entity-pronunciation-routing-core.mjs';
+import {
   GENERATED_BASE_PARITY_POLICY,
   GENERATED_BASE_PARITY_SCHEMA,
   assertSameSqliteSchema,
@@ -1071,6 +1074,16 @@ async function buildEntities(){
   ).get()?.c||0);
   const refs=workDb.prepare(entityRefSql);
   const name=db.prepare('SELECT name_id,language,surface FROM entity_name WHERE name_id=?');
+  const crossLocaleDuplicate=db.prepare(`
+    SELECT 1 AS yes
+    FROM entity_name n
+    WHERE n.name_id=?
+      AND ${entityCrossLocaleDuplicateSql({
+        nameAlias:'n',
+        nameTable:'entity_name',
+      })}
+    LIMIT 1
+  `);
   const eligibleExisting=db.prepare(`
     SELECT 1 AS ok FROM entity_pronunciation
     WHERE name_id=? AND locale=?
@@ -1097,7 +1110,7 @@ async function buildEntities(){
       analyzer_id,channel,anchor_key,pronunciation_id
     ) VALUES(?,?,?,?)
   `);
-  let inserted=0,skippedSourceBacked=0;
+  let inserted=0,skippedSourceBacked=0,skippedCrossLocaleAmbiguous=0;
   db.exec('BEGIN');
   try{
     let index=0;
@@ -1107,6 +1120,10 @@ async function buildEntities(){
       if(!n)throw new Error('Entity source reference points to missing name_id='+row.name_id);
       const language=String(row.language);
       const locale=language==='en'?'en-US':'de-DE';
+      if(crossLocaleDuplicate.get(Number(row.name_id))){
+        skippedCrossLocaleAmbiguous+=1;
+        continue;
+      }
       if(eligibleExisting.get(Number(row.name_id),locale)){
         skippedSourceBacked+=1;
         continue;
@@ -1149,7 +1166,12 @@ async function buildEntities(){
   }catch(error){try{db.exec('ROLLBACK')}catch{};throw error}
   db.exec('ANALYZE; PRAGMA optimize;');
   db.close();
-  return {targets:entityTargetCount,inserted,skipped_source_backed:skippedSourceBacked};
+  return {
+    targets:entityTargetCount,
+    inserted,
+    skipped_source_backed:skippedSourceBacked,
+    skipped_cross_locale_ambiguous:skippedCrossLocaleAmbiguous,
+  };
 }
 
 function tableCounts(path,tables){
