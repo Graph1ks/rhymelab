@@ -66,6 +66,10 @@ function resultFromCandidateRow(row, score, querySyllables, language) {
     ? Math.min(...relationTypes.map((type) => RHYME_TIER.get(type) ?? 99))
     : 99;
   const rhymeTier = primaryType ? (RHYME_TIER.get(primaryType) ?? 99) : fallbackTier;
+  const pronunciationFlags=parseJsonArray(row.pronunciation_flags);
+  const generatedPronunciation=
+    pronunciationFlags.includes('generated')
+    ||String(row.pronunciation_source||'').toLocaleLowerCase('en-US').includes('espeak');
   return {
     language,
     word: row.surface,
@@ -76,6 +80,9 @@ function resultFromCandidateRow(row, score, querySyllables, language) {
     locale: row.locale,
     dialect: row.dialect,
     register: row.pronunciation_register,
+    pronunciationSource: row.pronunciation_source||null,
+    pronunciationFlags,
+    generatedPronunciation,
     usageRank: row.usage_rank,
     usageScore: row.usage_score,
     usageCount: row.usage_count,
@@ -143,6 +150,9 @@ function rescoreWriterResult(row, queryAnalysis, profile, querySyllables) {
   }, score, querySyllables, row.language || profile.language);
   return {
     ...rescored,
+    pronunciationSource:row.pronunciationSource||null,
+    pronunciationFlags:row.pronunciationFlags||[],
+    generatedPronunciation:Boolean(row.generatedPronunciation),
     legacyScore: row.score,
     legacyPrimaryType: row.primaryType,
     legacyRhymeTier: row.rhymeTier,
