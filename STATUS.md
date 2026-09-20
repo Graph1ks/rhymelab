@@ -4,6 +4,22 @@ Last updated: 2026-09-19
 
 RhymeLab's public repository is `Graph1ks/rhymelab`. `main` is protected and the required public CI check is `validate`.
 
+## Immediate owner gate — Generated opt-in runtime acceptance
+
+PR #149 is merged on `main` at `900219ac`. Base-Parity V1 already passed locally; the next and only pending owner action for this track is the **local runtime acceptance**, not another Backfill/materialization run.
+
+Focused continuation: `docs/GENERATED_OPTIN_RUNTIME_ACCEPTANCE_HANDOVER.md`.
+
+Run after pulling current `main`:
+
+```powershell
+git switch main
+git pull --ff-only
+npm run pronunciation:secondary:runtime:accept
+```
+
+The owner has **not run this command yet**. On success it writes `data/local/generated-optin-runtime-acceptance-v1-report.json` plus the fail-closed enablement marker `data/local/generated-optin-runtime-enabled-v1.json`. Only then should `npm start` expose the Generated Data checkbox as available; it remains default OFF and non-persistent. Do not reopen Client B/C/D/U or the 103 parity-deferred phrase surfaces unless explicitly requested.
+
 Current UI/API follow-up separates query-pronunciation language from result language, exposes exact Entity-category filters from runtime capabilities, consolidates source display into one Sources dialog, reports bounded search-pool counts, and uses per-category More controls for standard browsing. DE source-backed input may target EN word results through the accepted English target phonology; same-language accepted ranking/retrieval behavior remains unchanged.
 
 Primary unified-search controls now have an explicit runtime interaction regression gate. A prior partial-initialization bug caused Search to remain bound while later buttons were dead; control binding now preflights the full surface, marks successful binding, fails visibly, and is exercised by simulated click tests before merge.
