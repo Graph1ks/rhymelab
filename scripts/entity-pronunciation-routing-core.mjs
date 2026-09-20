@@ -34,11 +34,15 @@ export function entityPronunciationRoutingSql({
   pronunciationAlias='p',
   nameAlias='n',
   nameTable='entity_name',
+  ambiguousNameTable=null,
 }={}){
   const weak=ENTITY_DERIVED_PRONUNCIATION_SOURCES.map(sqlString).join(',');
-  return `NOT (
-    ${pronunciationAlias}.source_kind IN (${weak})
-    AND EXISTS(
+  const ambiguity=ambiguousNameTable
+    ?`EXISTS(
+      SELECT 1 FROM ${ambiguousNameTable} ambiguous
+      WHERE ambiguous.name_id=${nameAlias}.name_id
+    )`
+    :`EXISTS(
       SELECT 1
       FROM ${nameTable} sibling
       WHERE sibling.entity_id=${nameAlias}.entity_id
@@ -49,7 +53,10 @@ export function entityPronunciationRoutingSql({
           WHEN 'en' THEN 'de'
           ELSE ''
         END
-    )
+    )`;
+  return `NOT (
+    ${pronunciationAlias}.source_kind IN (${weak})
+    AND ${ambiguity}
   )`;
 }
 
