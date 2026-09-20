@@ -17,7 +17,7 @@ const rows=[
 ];
 
 test('browser Markov policy points at the corpus runtime',()=>{
-  assert.equal(MARKOV_GENERATOR_POLICY,'rhymelab-markov-corpus-v1');
+  assert.equal(MARKOV_GENERATOR_POLICY,'rhymelab-markov-lyric-v1');
 });
 
 test('pool summary retains Writer feature populations',()=>{
