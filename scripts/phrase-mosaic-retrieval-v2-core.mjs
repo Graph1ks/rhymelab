@@ -414,25 +414,18 @@ export function retrievePhraseMosaicCandidatesV2(db, queryIpa, options = {}) {
   const servingGenerated=generatedOnly
     ?' AND t.canonical_available=0 AND t.generated_available=1'
     :'';
-  const nativeStmt=servingNative?db.prepare(`
+  const nativeIdStmt=servingNative?db.prepare(`
     SELECT
-      w.source_window_id AS window_id,
-      w.exact_tail_key,w.vowel_key,w.final_nucleus,w.final_coda_key,
-      w.final_coda_class,w.syllable_count AS anchor_syllable_count,
-      rp.runtime_phrase_id,
-      rp.source_phrase_pronunciation_id AS phrase_pronunciation_id,
-      rp.source_phrase_id AS phrase_id,
-      w.syllable_start,w.syllable_end,w.syllable_count,
-      w.phoneme_start,w.phoneme_end,w.token_start_index,w.token_end_index,
-      w.crossed_word_boundaries,w.starts_inside_token,w.ends_inside_token,
-      rp.source_surface AS canonical,rp.phrase_types_json,rp.historical_state,
-      rp.modern_eligible,COALESCE(p.ipa,p.raw) AS phrase_ipa
+      t.runtime_window_id,
+      w.source_window_id,
+      w.syllable_count
     FROM runtime_key k
     JOIN runtime_key_member km USING(key_id)
-    JOIN runtime_target t ON t.target_id=km.target_id AND t.target_kind='phrase_window'
-    JOIN runtime_phrase_window w ON w.runtime_window_id=t.runtime_window_id
-    JOIN runtime_phrase rp USING(runtime_phrase_id)
-    JOIN pronunciation p ON p.pronunciation_id=rp.pronunciation_id
+    JOIN runtime_target t
+      ON t.target_id=km.target_id
+     AND t.target_kind='phrase_window'
+    JOIN runtime_phrase_window w
+      ON w.runtime_window_id=t.runtime_window_id
     WHERE k.language='de'
       AND k.channel=?
       AND k.key_value=?
@@ -442,6 +435,36 @@ export function retrievePhraseMosaicCandidatesV2(db, queryIpa, options = {}) {
     ORDER BY w.syllable_count,w.source_window_id
     LIMIT ?
   `):null;
+
+  const hydrateNativeWindows=(runtimeWindowIds)=>{
+    const byId=new Map();
+    const ids=[...new Set(runtimeWindowIds.filter(Boolean))];
+    for(let offset=0;offset<ids.length;offset+=400){
+      const batch=ids.slice(offset,offset+400);
+      const marks=batch.map(()=>'?').join(',');
+      const rows=db.prepare(`
+        SELECT
+          w.runtime_window_id,
+          w.source_window_id AS window_id,
+          w.exact_tail_key,w.vowel_key,w.final_nucleus,w.final_coda_key,
+          w.final_coda_class,w.syllable_count AS anchor_syllable_count,
+          rp.runtime_phrase_id,
+          rp.source_phrase_pronunciation_id AS phrase_pronunciation_id,
+          rp.source_phrase_id AS phrase_id,
+          w.syllable_start,w.syllable_end,w.syllable_count,
+          w.phoneme_start,w.phoneme_end,w.token_start_index,w.token_end_index,
+          w.crossed_word_boundaries,w.starts_inside_token,w.ends_inside_token,
+          rp.source_surface AS canonical,rp.phrase_types_json,rp.historical_state,
+          rp.modern_eligible,COALESCE(p.ipa,p.raw) AS phrase_ipa
+        FROM runtime_phrase_window w
+        JOIN runtime_phrase rp USING(runtime_phrase_id)
+        JOIN pronunciation p ON p.pronunciation_id=rp.pronunciation_id
+        WHERE w.runtime_window_id IN (${marks})
+      `).all(...batch);
+      for(const row of rows)byId.set(String(row.runtime_window_id),row);
+    }
+    return byId;
+  };
 
   const exactStmt = servingNative?null:db.prepare(
     candidateSelectSql('a.exact_tail_key=? AND a.syllable_count=?',{generatedOnly})
@@ -462,84 +485,158 @@ export function retrievePhraseMosaicCandidatesV2(db, queryIpa, options = {}) {
       {generatedOnly},
     ) + ' ORDER BY a.syllable_count,a.window_id LIMIT ?'
   );
+  const nativeRefs=new Map();
+  const addNativeRefs=(rows,anchor,channel)=>{
+    for(const row of rows){
+      const key=String(row.source_window_id)+'|'+anchor.anchorId;
+      let entry=nativeRefs.get(key);
+      if(!entry){
+        entry={
+          runtimeWindowId:String(row.runtime_window_id),
+          windowId:String(row.source_window_id),
+          queryAnchor:anchor,
+          channels:new Set(),
+        };
+        nativeRefs.set(key,entry);
+      }
+      entry.channels.add(channel);
+    }
+  };
   const nativeRows=(channel,key,minSyllables,maxSyllables,limit)=>
-    nativeStmt.all(channel,key,minSyllables,maxSyllables,limit);
+    nativeIdStmt.all(channel,key,minSyllables,maxSyllables,limit);
 
   for (const anchor of queryAnchors) {
-    addRows(
-      matches,
-      servingNative
-        ?nativeRows('phrase_exact_tail',anchor.exactTailKey,anchor.syllableCount,anchor.syllableCount,perChannelLimit)
-        :exactStmt.all(anchor.exactTailKey, anchor.syllableCount, perChannelLimit),
-      anchor,
-      'exact_tail',
+    if(servingNative){
+      addNativeRefs(
+        nativeRows(
+          'phrase_exact_tail',
+          anchor.exactTailKey,
+          anchor.syllableCount,
+          anchor.syllableCount,
+          perChannelLimit,
+        ),
+        anchor,
+        'exact_tail',
+      );
+    }else{
+      addRows(
+        matches,
+        exactStmt.all(anchor.exactTailKey,anchor.syllableCount,perChannelLimit),
+        anchor,
+        'exact_tail',
+      );
+    }
+    if(servingNative){
+      addNativeRefs(
+        nativeRows(
+          'phrase_vowel_coda',
+          anchor.vowelKey+'\u001f'+anchor.finalCodaKey,
+          anchor.syllableCount,
+          anchor.syllableCount,
+          perChannelLimit,
+        ),
+        anchor,
+        'vowel_coda',
+      );
+    }else{
+      addRows(
+        matches,
+        vowelCodaStmt.all(
+          anchor.vowelKey,
+          anchor.finalCodaKey,
+          anchor.syllableCount,
+          perChannelLimit,
+        ),
+        anchor,
+        'vowel_coda',
+      );
+    }
+    if(servingNative){
+      addNativeRefs(
+        nativeRows(
+          'phrase_vowel',
+          anchor.vowelKey,
+          anchor.syllableCount,
+          anchor.syllableCount,
+          perChannelLimit,
+        ),
+        anchor,
+        'vowel',
+      );
+    }else{
+      addRows(
+        matches,
+        vowelStmt.all(anchor.vowelKey,anchor.syllableCount,perChannelLimit),
+        anchor,
+        'vowel',
+      );
+    }
+    if(servingNative){
+      addNativeRefs(
+        nativeRows(
+          'phrase_vowel_family_coda_class',
+          anchor.vowelFamilyKey+'\u001f'+anchor.finalCodaClass,
+          anchor.syllableCount,
+          anchor.syllableCount,
+          perChannelLimit,
+        ),
+        anchor,
+        'vowel_family_coda_class',
+      );
+    }else{
+      addRows(
+        matches,
+        familyStmt.all(
+          anchor.vowelFamilyKey,
+          anchor.finalCodaClass,
+          anchor.syllableCount,
+          perChannelLimit,
+        ),
+        anchor,
+        'vowel_family_coda_class',
+      );
+    }
+    if(servingNative){
+      addNativeRefs(
+        nativeRows(
+          'phrase_final_nucleus_coda_class',
+          anchor.finalNucleus+'\u001f'+anchor.finalCodaClass,
+          Math.max(2,anchor.syllableCount-1),
+          Math.min(6,anchor.syllableCount+1),
+          perChannelLimit,
+        ),
+        anchor,
+        'final_nucleus_coda_class',
+      );
+    }else{
+      addRows(
+        matches,
+        finalStmt.all(
+          anchor.finalNucleus,
+          anchor.finalCodaClass,
+          Math.max(2,anchor.syllableCount-1),
+          Math.min(6,anchor.syllableCount+1),
+          perChannelLimit,
+        ),
+        anchor,
+        'final_nucleus_coda_class',
+      );
+    }
+  }
+
+  if(servingNative&&nativeRefs.size){
+    const hydrated=hydrateNativeWindows(
+      [...nativeRefs.values()].map((entry)=>entry.runtimeWindowId),
     );
-    addRows(
-      matches,
-      servingNative
-        ?nativeRows(
-            'phrase_vowel_coda',
-            anchor.vowelKey+'\u001f'+anchor.finalCodaKey,
-            anchor.syllableCount,
-            anchor.syllableCount,
-            perChannelLimit,
-          )
-        :vowelCodaStmt.all(
-            anchor.vowelKey,
-            anchor.finalCodaKey,
-            anchor.syllableCount,
-            perChannelLimit,
-          ),
-      anchor,
-      'vowel_coda',
-    );
-    addRows(
-      matches,
-      servingNative
-        ?nativeRows('phrase_vowel',anchor.vowelKey,anchor.syllableCount,anchor.syllableCount,perChannelLimit)
-        :vowelStmt.all(anchor.vowelKey, anchor.syllableCount, perChannelLimit),
-      anchor,
-      'vowel',
-    );
-    addRows(
-      matches,
-      servingNative
-        ?nativeRows(
-            'phrase_vowel_family_coda_class',
-            anchor.vowelFamilyKey+'\u001f'+anchor.finalCodaClass,
-            anchor.syllableCount,
-            anchor.syllableCount,
-            perChannelLimit,
-          )
-        :familyStmt.all(
-            anchor.vowelFamilyKey,
-            anchor.finalCodaClass,
-            anchor.syllableCount,
-            perChannelLimit,
-          ),
-      anchor,
-      'vowel_family_coda_class',
-    );
-    addRows(
-      matches,
-      servingNative
-        ?nativeRows(
-            'phrase_final_nucleus_coda_class',
-            anchor.finalNucleus+'\u001f'+anchor.finalCodaClass,
-            Math.max(2, anchor.syllableCount - 1),
-            Math.min(6, anchor.syllableCount + 1),
-            perChannelLimit,
-          )
-        :finalStmt.all(
-            anchor.finalNucleus,
-            anchor.finalCodaClass,
-            Math.max(2, anchor.syllableCount - 1),
-            Math.min(6, anchor.syllableCount + 1),
-            perChannelLimit,
-          ),
-      anchor,
-      'final_nucleus_coda_class',
-    );
+    for(const [key,entry] of nativeRefs){
+      const row=hydrated.get(entry.runtimeWindowId);
+      if(!row)continue;
+      matches.set(key,{
+        row,
+        queryAnchor:entry.queryAnchor,
+        channels:entry.channels,
+      });
+    }
   }
 
   const phraseAnalysisCache = new Map();
