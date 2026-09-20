@@ -274,7 +274,7 @@ function applyModelHealth(){
   if(markovHealth?.available){
     const sentences=Number(markovHealth.accepted_sentences||0).toLocaleString();
     const transitions=Number(markovHealth.transitions||0).toLocaleString();
-    note.innerHTML=`<strong>LYRIC V1:</strong> reverse/forward order-${esc(markovHealth.order)} model over <b>${sentences}</b> explicitly supplied source lines · ${transitions} pruned transitions · shape ${esc(markovHealth.lyric_profile||'rhymelab-lyric-shape-v1')} · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
+    note.innerHTML=`<strong>LYRIC V1:</strong> reverse/forward order-${esc(markovHealth.order)} model over <b>${sentences}</b> RhymeLab Phrase/Mosaic source lines · ${transitions} pruned transitions · shape ${esc(markovHealth.lyric_profile||'rhymelab-lyric-shape-v1')} · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
     state.textContent='MODEL READY';state.dataset.tone='ok';
     for(const option of language.options)option.disabled=option.value!==markovHealth.language;
     language.value=markovHealth.language;
@@ -297,7 +297,7 @@ async function initialize(){
     });
     for(const id of ['rhymePressure','naturalness','weirdness','targetTokens'])updateRangeLabel(id,document.getElementById(id).value);
     controls.randomSeed.value=String(integerSeed());applyPreset('balanced');applyModelHealth();setBusy(false);
-    setStatus(markovHealth?.available?'Lyric model ready. Pick a rhyme target.':'Markov transition database missing — run npm run markov:model:build.',markovHealth?.available?'ok':'warn');
+    setStatus(markovHealth?.available?'Markov transitions ready. Pick a rhyme target.':'Markov transition database missing — run npm run markov:model:build.',markovHealth?.available?'ok':'warn');
   }catch(error){
     document.documentElement.dataset.rhymelabControls='failed';$('#uiError').hidden=false;
     $('#uiError').textContent=`UI initialization failed: ${error instanceof Error?error.message:String(error)}`;console.error(error);
