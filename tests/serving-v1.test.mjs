@@ -319,8 +319,10 @@ test('Serving v1 builder resumes by stage, deduplicates cross-domain identities,
     assert.ok(report.deduplicated_pronunciation_rows>0);
     assert.ok(report.summary.multiRoleSurfaces>=1);
     assert.ok(report.summary.sameNameMultipleEntities>=1);
-    assert.ok(report.summary.pronunciationLayerOverlap>=1);
+    assert.equal(report.summary.pronunciationLayerOverlap,0);
     assert.ok(report.summary.generatedOnlyPronunciations>=4);
+    assert.equal(report.invariants.identical_generated_is_absorbed_by_core,true);
+    assert.equal(report.invariants.generated_origins_on_canonical_pronunciations,0);
 
     const db=new DatabaseSync(files.output,{readOnly:true});
     try{
@@ -328,7 +330,7 @@ test('Serving v1 builder resumes by stage, deduplicates cross-domain identities,
       assert.equal(metallica.display_surface,'Metallica');
       assert.equal(metallica.authority_kind,'core_word');
       assert.equal(Number(metallica.canonical_available),1);
-      assert.equal(Number(metallica.generated_available),1);
+      assert.equal(Number(metallica.generated_available),0);
 
       const pronunciations=db.prepare(
         'SELECT * FROM pronunciation WHERE surface_id=? ORDER BY pronunciation_id'
@@ -336,12 +338,20 @@ test('Serving v1 builder resumes by stage, deduplicates cross-domain identities,
       assert.equal(pronunciations.length,1);
       assert.equal(pronunciations[0].authority_kind,'core_word');
       assert.equal(Number(pronunciations[0].canonical_available),1);
-      assert.equal(Number(pronunciations[0].generated_available),1);
+      assert.equal(Number(pronunciations[0].generated_available),0);
+      assert.equal(Number(pronunciations[0].generated_preferred),0);
 
-      const roles=db.prepare(
-        'SELECT role FROM surface_role WHERE surface_id=? ORDER BY role'
-      ).all(metallica.surface_id).map((row)=>row.role);
-      assert.deepEqual(roles,['group.music_group','lexical','work.album']);
+      const roleRows=db.prepare(
+        'SELECT role,canonical_available,generated_available FROM surface_role WHERE surface_id=? ORDER BY role'
+      ).all(metallica.surface_id);
+      assert.deepEqual(roleRows.map((row)=>row.role),['group.music_group','lexical','work.album']);
+      assert.ok(roleRows.every((row)=>Number(row.canonical_available)===1));
+      assert.ok(roleRows.every((row)=>Number(row.generated_available)===0));
+
+      const generatedOrigins=db.prepare(
+        "SELECT COUNT(*) c FROM pronunciation_origin WHERE pronunciation_id=? AND layer='generated'"
+      ).get(pronunciations[0].pronunciation_id);
+      assert.equal(Number(generatedOrigins.c),0);
 
       const entities=db.prepare(
         'SELECT entity_qid FROM surface_entity WHERE surface_id=? ORDER BY entity_qid'
