@@ -3,6 +3,34 @@ import { createHash } from 'node:crypto';
 export const GENERATED_BASE_PARITY_SCHEMA='rhymelab-generated-base-parity-v1';
 export const GENERATED_BASE_PARITY_POLICY='canonical-schema-opt-in-generated-overlay-v1';
 
+export const MATERIALIZATION_STAGES=Object.freeze(['de','en','phrases','entities']);
+
+export function resolveMaterializationResume(resumeFrom='de'){
+  const normalized=String(resumeFrom||'de').trim().toLocaleLowerCase('en-US');
+  const index=MATERIALIZATION_STAGES.indexOf(normalized);
+  if(index<0){
+    throw new Error(
+      'Invalid --resume-from stage "'+resumeFrom+'". Expected one of: '+MATERIALIZATION_STAGES.join(', '),
+    );
+  }
+  return {
+    resume_from:normalized,
+    preserve:MATERIALIZATION_STAGES.slice(0,index),
+    rebuild:MATERIALIZATION_STAGES.slice(index),
+  };
+}
+
+export function jsonSortedUnique(values,locale='en'){
+  let list;
+  if(values==null)list=[];
+  else if(Array.isArray(values))list=values;
+  else if(typeof values==='string')list=[values];
+  else if(typeof values?.[Symbol.iterator]==='function')list=[...values];
+  else list=[values];
+  return JSON.stringify([...new Set(list.map(String).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,locale)));
+}
+
 export const DE_WORD_SCOPES=new Set([
   'de_usage_source_minus_accepted',
   'de_wiktionary_headword_source_minus_accepted',
