@@ -120,7 +120,9 @@ test('secondary storage hard-codes opt-in-only search eligibility',()=>{
       ) VALUES(1,'de','Haus','haus','A','test','espeak_ng',1)
     `).run();
     const row=db.prepare('SELECT second_class,default_search_eligible,user_opt_in_eligible FROM secondary_form WHERE item_id=1').get();
-    assert.deepEqual(row,{second_class:1,default_search_eligible:0,user_opt_in_eligible:1});
+    assert.equal(row.second_class,1);
+    assert.equal(row.default_search_eligible,0);
+    assert.equal(row.user_opt_in_eligible,1);
   }finally{
     db.close();
   }
