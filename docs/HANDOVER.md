@@ -2,6 +2,22 @@
 
 Durable project identity, solo-dev repository mode, architecture boundaries, cost/licensing/contribution policy, and QA expectations now live in `PROJECT.md`. Read it immediately after `AGENTS.md`; current technical continuation remains in the focused Phase 12C handover below.
 
+## Current continuation — Generated opt-in runtime acceptance
+
+The active continuation has moved beyond the historical Phase 12C / Backfill material below. Read `docs/GENERATED_OPTIN_RUNTIME_ACCEPTANCE_HANDOVER.md` first.
+
+PR #149 is already merged on `main` at `900219ac`. The Base-Parity owner report passed. The owner has **not yet run** the local generated-runtime acceptance command. Do not rerun Backfill V2 or Base-Parity materialization.
+
+Next owner command:
+
+```powershell
+git switch main
+git pull --ff-only
+npm run pronunciation:secondary:runtime:accept
+```
+
+Expected primary report: `data/local/generated-optin-runtime-acceptance-v1-report.json`. A successful run also writes `data/local/generated-optin-runtime-enabled-v1.json`, which is required before the server exposes the generated runtime as available. After the report passes, run `npm start` and verify `Generated opt-in runtime: available (default OFF)`.
+
 Current UI/API follow-up: query-pronunciation language and result language are now separate contracts. A source-backed DE query may request EN word results by re-analyzing the resolved source pronunciation under the accepted English target phonology and then using the existing indexed English retrieval/scoring/ranking stack; accepted same-language paths are unchanged. Entity category filters are populated from runtime capabilities. Standard unfiltered browsing uses per-section More buttons, while endless scrolling is limited to an explicitly selected rhyme/sound relation. Individual result inspectors no longer repeat source labels; the UI has one alphabetized Sources dialog. EN -> DE word bridging remains intentionally unimplemented pending an explicit target-pronunciation adaptation policy.
 
 Current unknown-query boundary: missing pronunciation may occur in a single word **or anywhere inside a multi-word user query**. Only query spelling/token -> IPA generation runs in the end-user client via `src/ui/query-pronunciation-client.mjs`. Existing DB pronunciation is used token-by-token when available; only missing token pronunciations are generated, then the browser composes an ephemeral phrase/word IPA and submits it to `/api/writer`. Existing Word/Phrase/Entity retrieval, scoring, ranking and result behavior remain authoritative. eSpeak-NG is benchmark/development-only under `scripts/`. Regression sentinel: `heute abend große gangbang party`. Manual browser flow: `/query-pronunciation-test`. Generated OOV token pronunciations now use a bounded revision-gated IndexedDB cache: the normal initial `/api/health` request supplies `query_pronunciation_revision`; cache reuse is allowed only when DB revision and resolver policy still match. Source-backed pronunciation remains authoritative. Focused continuation: `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md`.
