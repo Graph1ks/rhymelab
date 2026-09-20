@@ -25,6 +25,7 @@ import {
   DEFAULT_GENERATED_OPTIN_REPORT_PATH,
   DEFAULT_GENERATED_PHRASE_DB_PATH,
   DEFAULT_GENERATED_WRITER_DB_PATH,
+  generatedOptinDatasetStats,
   openGeneratedOptinRuntime,
   selectGeneratedOptinDatabases,
 } from './generated-optin-runtime.mjs';
@@ -143,8 +144,20 @@ const canonicalRuntimeDatabases={
   generatedOverlay:false,
 };
 
+let datasetStatsCache=null;
+function runtimeDatasetStats(){
+  if(!datasetStatsCache){
+    datasetStatsCache=generatedOptinDatasetStats(canonicalRuntimeDatabases,generatedOptinRuntime);
+  }
+  return datasetStatsCache;
+}
+
+function generatedOnlyRequested(url){
+  return url.searchParams.get('generated_only')==='1';
+}
+
 function generatedOptinRequested(url){
-  return url.searchParams.get('generated')==='1';
+  return url.searchParams.get('generated')==='1'||generatedOnlyRequested(url);
 }
 
 function requestRuntimeSelection(url){
@@ -369,6 +382,10 @@ const server = createServer(async (req, res) => {
       });
     }
 
+    if (url.pathname === '/api/dataset-stats') {
+      return json(res,runtimeDatasetStats());
+    }
+
     if (url.pathname === '/api/writer') {
       const q = url.searchParams.get('q') || '';
       if (!q.trim()) return json(res, { error: 'q is required' }, 400);
@@ -397,6 +414,7 @@ const server = createServer(async (req, res) => {
           entityLimit: url.searchParams.get('entity_limit') || url.searchParams.get('limit'),
           entityPoolLimit: url.searchParams.get('entity_pool'),
           entityCategory: url.searchParams.get('entity_category') || 'all',
+          generatedOnly:generatedOnlyRequested(url),
           queryPronunciations: {
             de: clientQueryPronunciation(url, 'de'),
             en: clientQueryPronunciation(url, 'en'),
