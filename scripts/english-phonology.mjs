@@ -53,7 +53,7 @@ const VOWEL_FAMILY = new Map([
 ]);
 
 function stripOuter(value) {
-  let s = String(value ?? '').normalize('NFC').replace(/\\p{Cf}/gu, '').trim();
+  let s = String(value ?? '').normalize('NFC').replace(/\p{Cf}/gu, '').trim();
   if ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('/') && s.endsWith('/'))) s = s.slice(1, -1).trim();
   return s;
 }
