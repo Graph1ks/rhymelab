@@ -130,6 +130,35 @@ function closeQuietly(db){
   try{db?.close();}catch{}
 }
 
+export function selectGeneratedOptinDatabases(
+  canonicalDatabases,
+  generatedRuntime,
+  enabled=false,
+){
+  if(enabled!==true){
+    return {
+      available:true,
+      mode:'canonical',
+      databases:canonicalDatabases,
+      reason:null,
+    };
+  }
+  if(!generatedRuntime?.available||!generatedRuntime?.databases){
+    return {
+      available:false,
+      mode:'generated_optin',
+      databases:null,
+      reason:generatedRuntime?.reason||'generated_optin_runtime_unavailable',
+    };
+  }
+  return {
+    available:true,
+    mode:'generated_optin',
+    databases:generatedRuntime.databases,
+    reason:null,
+  };
+}
+
 export function openGeneratedOptinRuntime({
   reportPath=DEFAULT_GENERATED_OPTIN_REPORT_PATH,
   writerPath=DEFAULT_GENERATED_WRITER_DB_PATH,
