@@ -229,7 +229,7 @@ export function unifiedWriterCapabilities({
     phraseAnchorFingerprint,
     acceptedPhraseAnchorFingerprint: ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT,
     entities: entityCapability,
-    generatedOverlay: generatedOverlay === true,
+    ...(generatedOverlay?{generatedOverlay:true}:{}),
   };
 }
 
@@ -448,7 +448,7 @@ function phraseProductResult(candidate) {
     surfaceSafety: candidate.rankingEvidence?.surfaceSafety || null,
     phraseRankingEvidence: candidate.rankingEvidence || null,
     diversitySuppression: candidate.diversitySuppression || null,
-    generatedPronunciation:Boolean(candidate.generatedPronunciation),
+    ...(candidate.generatedPronunciation?{generatedPronunciation:true}:{}),
   };
 }
 
