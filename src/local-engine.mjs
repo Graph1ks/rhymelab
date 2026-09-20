@@ -743,9 +743,13 @@ export function findRhymes(db, word, options = {}) {
     analysis_feature_preparation_ms:0,
     phonetic_scoring_ms:0,
     result_construction_ms:0,
+    ranking_metadata_hydration_ms:0,
+    selected_result_hydration_ms:0,
     ranking_selection_ms:0,
     candidate_ids:0,
     candidates_hydrated:0,
+    ranking_metadata_rows:0,
+    rich_results_hydrated:0,
     scoring_calls:0,
     unique_scoring_pairs:0,
     analysis_cache_hits:0,
@@ -851,7 +855,9 @@ export function findRhymes(db, word, options = {}) {
       if (score.type === 'weak' && !(score.relationTypes || []).length) continue;
 
       const resultStarted=metrics?performance.now():0;
-      const result = resultFromRow(candidate, score, queryRow, profile);
+      const result=servingBoundedHotpath(db)
+        ?scoredResultCore(candidate,score,queryRow.syllable_count,profile)
+        :resultFromRow(candidate,score,queryRow,profile);
       RESULT_ANALYSIS_CACHE.set(result,candidateAnalysis);
       RESULT_PREPARED_ANALYSIS_CACHE.set(result,candidatePrepared);
       if(metrics)metrics.result_construction_ms+=performance.now()-resultStarted;
@@ -867,15 +873,67 @@ export function findRhymes(db, word, options = {}) {
     }
   }
 
-  const rankingStarted=metrics?performance.now():0;
-  const sortedResults = rankRuntimeRecommendedResults([...bestByWord.values()], queryDetail);
-  const { results, selection } = selectResultsWithTypeCoverage(sortedResults, {
-    limit: options.limit,
-    type: requestedType,
-    ensureTypeCoverage: options.ensureTypeCoverage,
-    coverageFloor: options.coverageFloor,
-  });
+  const servingThin=servingBoundedHotpath(db);
+  let rankableResults=[...bestByWord.values()];
+  if(servingThin&&rankableResults.length){
+    const metadataStarted=metrics?performance.now():0;
+    const metadata=hydrateServingRankingMetadata(
+      db,
+      rankableResults.map((row)=>row._pronunciationId),
+    );
+    rankableResults=rankableResults.map((row)=>
+      enrichScoredResultForRuntimeRanking(
+        row,
+        metadata.get(Number(row._pronunciationId)),
+      )
+    );
+    if(metrics){
+      metrics.ranking_metadata_hydration_ms+=performance.now()-metadataStarted;
+      metrics.ranking_metadata_rows+=metadata.size;
+    }
+  }
 
+  const rankingStarted=metrics?performance.now():0;
+  const sortedResults=rankRuntimeRecommendedResults(rankableResults,queryDetail);
+  const selected=selectResultsWithTypeCoverage(sortedResults,{
+    limit:options.limit,
+    type:requestedType,
+    ensureTypeCoverage:options.ensureTypeCoverage,
+    coverageFloor:options.coverageFloor,
+  });
+  let results=selected.results;
+
+  if(servingThin&&results.length){
+    const richStarted=metrics?performance.now():0;
+    const richRows=hydrateServingRichCandidates(
+      db,
+      results.map((row)=>row._pronunciationId),
+    );
+    const richById=new Map(richRows.map((row)=>[Number(row.id),row]));
+    results=results.map((row)=>{
+      const rich=richById.get(Number(row._pronunciationId));
+      if(!rich)return stripInternalResultFields(row);
+      const full=resultFromRow(
+        rich,
+        row._scoreObject,
+        {syllable_count:row._querySyllableCount},
+        profile,
+      );
+      const analysis=analysisCache.get(String(row._pronunciationId));
+      const prepared=preparedCache.get(String(row._pronunciationId));
+      if(analysis)RESULT_ANALYSIS_CACHE.set(full,analysis);
+      if(prepared)RESULT_PREPARED_ANALYSIS_CACHE.set(full,prepared);
+      return stripInternalResultFields(full);
+    });
+    if(metrics){
+      metrics.selected_result_hydration_ms+=performance.now()-richStarted;
+      metrics.rich_results_hydrated+=richRows.length;
+    }
+  }else{
+    results=results.map(stripInternalResultFields);
+  }
+
+  const selection=selected.selection;
   const groups = Object.fromEntries(RHYME_TYPES.map((type) => [type, []]));
   for (const result of results) {
     for (const type of resultTypes(result)) groups[type].push(result);
