@@ -180,6 +180,11 @@ export function createServingV1ProductStorage(db){
       secondary_stress_syllables_json TEXT NOT NULL DEFAULT '[]'
     );
 
+    CREATE TABLE IF NOT EXISTS runtime_phrase_ranking_evidence(
+      runtime_phrase_id INTEGER PRIMARY KEY REFERENCES runtime_phrase(runtime_phrase_id) ON DELETE CASCADE,
+      evidence_json TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS runtime_en_key_candidate(
       channel TEXT NOT NULL,
       key_value TEXT NOT NULL,
@@ -347,6 +352,7 @@ export function resetServingV1ProductStorage(db){
     DROP TABLE IF EXISTS runtime_entity_name;
     DROP TABLE IF EXISTS runtime_entity_category;
     DROP TABLE IF EXISTS runtime_entity_identity;
+    DROP TABLE IF EXISTS runtime_phrase_ranking_evidence;
     DROP TABLE IF EXISTS runtime_phrase_profile;
     DROP TABLE IF EXISTS runtime_de_surface_profile;
     DROP TABLE IF EXISTS runtime_pronunciation_profile;
@@ -375,6 +381,7 @@ export function servingV1ProductSummary(db){
     pronunciationProfiles:scalar(db,'SELECT COUNT(*) c FROM runtime_pronunciation_profile'),
     deSurfaceProfiles:scalar(db,'SELECT COUNT(*) c FROM runtime_de_surface_profile'),
     phraseProfiles:scalar(db,'SELECT COUNT(*) c FROM runtime_phrase_profile'),
+    phraseRankingEvidence:scalar(db,'SELECT COUNT(*) c FROM runtime_phrase_ranking_evidence'),
     entityIdentities:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_identity'),
     entityCategories:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_category'),
     entityNames:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_name'),
