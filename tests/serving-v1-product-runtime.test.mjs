@@ -369,6 +369,17 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
         queryNormalized:'zeit',querySyllables:1,generatedOnly:true,
       });
       assert.deepEqual(rows.map((row)=>row.normalized),['krankenscheindrucker']);
+      const compatibilityRow=runtime.allDb.prepare('SELECT * FROM hot WHERE id=2').get();
+      const writerFields=[
+        'id','surface','normalized','usage_rank','usage_score','usage_count','usage_source_count',
+        'lemma','pos','lexicon_layer','entity_kind','historical','lexical_tags','ipa','syllable_count',
+        'pronunciation_rank','pronunciation_preferred','pronunciation_source','pronunciation_flags',
+        'locale','dialect','pronunciation_register','serving_analysis_json',
+      ];
+      assert.deepEqual(
+        Object.fromEntries(writerFields.map((key)=>[key,rows[0][key]])),
+        Object.fromEntries(writerFields.map((key)=>[key,compatibilityRow[key]])),
+      );
 
       const morph=resolveMaterializedWriterMorphologyBatch(runtime.coreDb,[{normalized:'zeit'}]);
       assert.equal(morph.get('zeit').familyKey,'right:zeit');

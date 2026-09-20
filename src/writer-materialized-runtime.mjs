@@ -108,15 +108,43 @@ function mergeBoundedRows(left,right,limit){
   return out;
 }
 
-function hydrateWriterRows(db,ids){
-  const byId=new Map();
-  for(const batch of chunks(ids,300)){
-    if(!batch.length)continue;
-    const marks=batch.map(()=>'?').join(',');
-    const rows=db.prepare(`SELECT * FROM hot WHERE id IN (${marks})`).all(...batch);
-    for(const row of rows)byId.set(Number(row.id),row);
-  }
-  return ids.map((id)=>byId.get(Number(id))).filter(Boolean);
+function servingWriterProjection(mode){
+  const preferred=mode==='core'
+    ?'p.canonical_preferred'
+    :'CASE WHEN p.canonical_available=1 THEN p.canonical_preferred ELSE p.generated_preferred END';
+  return `
+    SELECT
+      p.pronunciation_id AS id,
+      c.pronunciation_id,
+      c.source_order,
+      dp.display_surface AS surface,
+      c.normalized,
+      dp.usage_rank,
+      dp.usage_score,
+      dp.usage_count,
+      dp.usage_source_count,
+      dp.lemma,
+      dp.part_of_speech AS pos,
+      dp.lexicon_layer,
+      dp.entity_kind,
+      COALESCE(dp.historical,0) AS historical,
+      dp.lexical_tags_json AS lexical_tags,
+      COALESCE(p.ipa,p.raw) AS ipa,
+      p.syllable_count,
+      COALESCE(pp.pronunciation_rank,1) AS pronunciation_rank,
+      ${preferred} AS pronunciation_preferred,
+      pp.source AS pronunciation_source,
+      pp.flags_json AS pronunciation_flags,
+      pp.locale,
+      pp.dialect,
+      pp.register AS pronunciation_register,
+      da.analysis_json AS serving_analysis_json
+    FROM runtime_de_writer_candidate c
+    JOIN pronunciation p USING(pronunciation_id)
+    JOIN runtime_de_surface_profile dp ON dp.surface_id=p.surface_id
+    JOIN runtime_pronunciation_profile pp USING(pronunciation_id)
+    JOIN runtime_de_analysis da USING(pronunciation_id)
+  `;
 }
 
 function lookupBoundedServingWriterRows(db,anchorKey,options={}){
@@ -127,38 +155,34 @@ function lookupBoundedServingWriterRows(db,anchorKey,options={}){
   const generatedOnly=options.generatedOnly===true;
   const limit=Math.max(1,Math.min(800,Number(options.limit||800)));
   const mode=servingConnectionMode(db);
-  const preferredColumn=mode==='core'?'core_preferred':'all_preferred';
+  const preferredColumn=mode==='core'?'c.core_preferred':'c.all_preferred';
   const where=[
-    'key_value=?',
-    'normalized<>?',
-    mode==='core'?'canonical_available=1':'(canonical_available=1 OR generated_available=1)',
+    'c.key_value=?',
+    'c.normalized<>?',
+    mode==='core'?'c.canonical_available=1':'(c.canonical_available=1 OR c.generated_available=1)',
     includeVariants?'1=1':`${preferredColumn}=1`,
-    includeHistorical?'1=1':'historical=0',
-    generatedOnly?'generated_only=1':'1=1',
-    'syllable_count=?',
+    includeHistorical?'1=1':'c.historical=0',
+    generatedOnly?'c.generated_only=1':'1=1',
+    'c.syllable_count=?',
   ].join(' AND ');
   const stmt=db.prepare(`
-    SELECT pronunciation_id,usage_rank,source_order
-    FROM runtime_de_writer_candidate
+    ${servingWriterProjection(mode)}
     WHERE ${where}
-    ORDER BY usage_rank IS NULL,usage_rank,source_order,pronunciation_id
+    ORDER BY c.usage_rank IS NULL,c.usage_rank,c.source_order,c.pronunciation_id
     LIMIT ?
   `);
   const exact=querySyllables>0
     ?stmt.all(String(anchorKey),queryNormalized,querySyllables,limit)
     :[];
   const remaining=Math.max(0,limit-exact.length);
-  if(!remaining)return hydrateWriterRows(db,exact.map((row)=>Number(row.pronunciation_id)));
+  if(!remaining)return exact;
   const low=querySyllables>1
     ?stmt.all(String(anchorKey),queryNormalized,querySyllables-1,remaining)
     :[];
   const high=querySyllables>=0
     ?stmt.all(String(anchorKey),queryNormalized,querySyllables+1,remaining)
     :[];
-  const near=mergeBoundedRows(low,high,remaining);
-  return hydrateWriterRows(
-    db,[...exact,...near].map((row)=>Number(row.pronunciation_id))
-  );
+  return [...exact,...mergeBoundedRows(low,high,remaining)];
 }
 
 export function lookupMaterializedWriterAnchorRows(db, anchorKey, options = {}) {
