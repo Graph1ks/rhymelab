@@ -69,23 +69,49 @@ function lexicalSafetyEvidence(row) {
   };
 }
 
-export function normalizedEditSimilarity(left, right, language = 'de') {
-  const a = normalizeSurface(left, language);
-  const b = normalizeSurface(right, language);
+function normalizedEditSimilarityPrepared(a,b) {
   if (a === b) return 1;
   if (!a.length || !b.length) return 0;
 
-  const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
-  const current = new Array(b.length + 1).fill(0);
-  for (let i = 1; i <= a.length; i += 1) {
-    current[0] = i;
-    for (let j = 1; j <= b.length; j += 1) {
-      const substitution = previous[j - 1] + Number(a[i - 1] !== b[j - 1]);
-      current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, substitution);
-    }
-    for (let j = 0; j <= b.length; j += 1) previous[j] = current[j];
+  const denominator=Math.max(a.length,b.length);
+  let prefix=0;
+  const prefixLimit=Math.min(a.length,b.length);
+  while(prefix<prefixLimit&&a[prefix]===b[prefix])prefix++;
+
+  let suffix=0;
+  const suffixLimit=Math.min(a.length-prefix,b.length-prefix);
+  while(
+    suffix<suffixLimit
+    &&a[a.length-1-suffix]===b[b.length-1-suffix]
+  )suffix++;
+
+  const left=a.slice(prefix,a.length-suffix);
+  const right=b.slice(prefix,b.length-suffix);
+  if(!left.length||!right.length){
+    return clamp01(1-Math.abs(left.length-right.length)/denominator);
   }
-  return clamp01(1 - previous[b.length] / Math.max(a.length, b.length));
+
+  // Keep the inner dimension short. This is the exact same Levenshtein metric,
+  // only with common edges removed and less allocation/work per comparison.
+  const x=left.length>=right.length?left:right;
+  const y=left.length>=right.length?right:left;
+  const previous=Array.from({length:y.length+1},(_,index)=>index);
+  const current=new Array(y.length+1).fill(0);
+  for(let i=1;i<=x.length;i++){
+    current[0]=i;
+    for(let j=1;j<=y.length;j++){
+      const substitution=previous[j-1]+Number(x[i-1]!==y[j-1]);
+      current[j]=Math.min(previous[j]+1,current[j-1]+1,substitution);
+    }
+    for(let j=0;j<=y.length;j++)previous[j]=current[j];
+  }
+  return clamp01(1-previous[y.length]/denominator);
+}
+
+export function normalizedEditSimilarity(left, right, language = 'de') {
+  const a = normalizeSurface(left, language);
+  const b = normalizeSurface(right, language);
+  return normalizedEditSimilarityPrepared(a,b);
 }
 
 export function lexicalOverlapEvidence(query, candidate) {
@@ -246,6 +272,41 @@ function lexicalCompare(a, b) {
   return String(a?.word || '').localeCompare(String(b?.word || ''), locale);
 }
 
+function preparedDiversityIdentity(row){
+  const language=row?.language||'de';
+  return {
+    language,
+    surface:normalizeSurface(row?.normalized||row?.surface||row?.word,language),
+    lemma:normalizeSurface(row?.lemma,language),
+    family:morphologyFamily(row),
+  };
+}
+
+function lexicalRedundancyPrepared(left,right,currentMax=0){
+  const a=left.surface;
+  const b=right.surface;
+  if(!a||!b)return 0;
+  if(a===b)return 1;
+  if(left.lemma&&right.lemma&&left.lemma===right.lemma)return 1;
+  if(left.family&&right.family&&left.family===right.family)return 0.92;
+
+  const prefixLength=commonPrefixLength(a,b);
+  const minLength=Math.max(1,Math.min(a.length,b.length));
+  const initialConstruction=prefixLength>=6&&prefixLength/minLength>=0.45
+    ?clamp01(0.50+0.45*(prefixLength/minLength))
+    :0;
+
+  // Exact Levenshtein similarity can never exceed minLen/maxLen. If both that
+  // bound and the prefix rule are already below the best known redundancy,
+  // this pair cannot change ranking and the DP is provably unnecessary.
+  const similarityUpperBound=Math.min(a.length,b.length)/Math.max(a.length,b.length);
+  if(Math.max(initialConstruction,similarityUpperBound)<=currentMax)return 0;
+
+  const surfaceSimilarity=normalizedEditSimilarityPrepared(a,b);
+  const nearDuplicate=surfaceSimilarity>=0.84?surfaceSimilarity:0;
+  return Number(Math.max(initialConstruction,nearDuplicate).toFixed(4));
+}
+
 export function rankWriterRecommendedResults(rows, query, options = {}) {
   const requestedLimit = Number.parseInt(String(options.limit ?? rows?.length ?? 1), 10);
   const limit = Math.min(rows?.length ?? 0, Math.max(1, Number.isFinite(requestedLimit) ? requestedLimit : 1));
@@ -254,6 +315,7 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
     row,
     baseIndex,
     writer: writerUtilityFeatures(row, query),
+    diversityIdentity:preparedDiversityIdentity(row),
     maxRedundancy: 0,
   }));
   const selected = [];
@@ -302,7 +364,11 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
     for (const candidate of remaining) {
       candidate.maxRedundancy = Math.max(
         candidate.maxRedundancy,
-        lexicalRedundancy(candidate.row, winner.row),
+        lexicalRedundancyPrepared(
+          candidate.diversityIdentity,
+          winner.diversityIdentity,
+          candidate.maxRedundancy,
+        ),
       );
     }
   }

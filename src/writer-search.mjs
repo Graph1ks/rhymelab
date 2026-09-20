@@ -1,5 +1,6 @@
 import {
   RHYME_TYPES,
+  cachedResultAnalysis,
   findRhymes,
   resultTypes,
 } from './local-engine.mjs';
@@ -126,8 +127,10 @@ function compareSound(a, b) {
 
 function rescoreWriterResult(row, queryAnalysis, profile, querySyllables) {
   if (typeof profile.scoreWriterAnalyses !== 'function') return row;
-  let candidateAnalysis;
-  try { candidateAnalysis = profile.analyzeIpa(row.ipa); } catch { return row; }
+  let candidateAnalysis=cachedResultAnalysis(row);
+  try {
+    if(!candidateAnalysis) candidateAnalysis=profile.analyzeIpa(row.ipa);
+  } catch { return row; }
   const score = profile.scoreWriterAnalyses(queryAnalysis, candidateAnalysis);
   const rescored = resultFromCandidateRow({
     surface: row.word,
@@ -202,7 +205,11 @@ function collectRightEdgeCandidates(db, queryAnalysis, queryNormalized, querySyl
 
     for (const row of rows) {
       let candidateAnalysis;
-      try { candidateAnalysis = profile.analyzeIpa(row.ipa); } catch { continue; }
+      try {
+        candidateAnalysis=row?.serving_analysis_json
+          ?JSON.parse(row.serving_analysis_json)
+          :profile.analyzeIpa(row.ipa);
+      } catch { continue; }
       const score = profile.scoreWriterAnalyses(queryAnalysis, candidateAnalysis);
       if (score.type === 'weak' && !(score.relationTypes || []).length) continue;
       const result = resultFromCandidateRow(row, score, querySyllables, profile.language);

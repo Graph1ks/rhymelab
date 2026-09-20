@@ -31,7 +31,12 @@ function servingProductRuntime(db){
     &&metaValue(db,'product_adapter_status')==='complete';
 }
 
-function servingEnglishProjection({withRuntimeKey=false}={}){
+function servingEnglishProjection({withRuntimeKey=false,withCandidate=false}={}){
+  const from=withCandidate
+    ?'runtime_en_key_candidate hc JOIN pronunciation p USING(pronunciation_id)'
+    :withRuntimeKey
+      ?'runtime_key k JOIN runtime_key_member km USING(key_id) JOIN runtime_target t ON t.target_id=km.target_id AND t.target_kind=\'pronunciation\' JOIN pronunciation p ON p.pronunciation_id=t.pronunciation_id'
+      :'pronunciation p';
   return `
     SELECT
       s.surface_id AS form_id,
@@ -48,6 +53,7 @@ function servingEnglishProjection({withRuntimeKey=false}={}){
       lp.en_esdb_archaic AS esdb_archaic,
       lp.en_esdb_uncommon AS esdb_uncommon,
       p.pronunciation_id AS pronunciation_id,
+      pp.source_row_id AS source_order_id,
       pp.source,
       p.notation,
       p.raw,
@@ -73,7 +79,7 @@ function servingEnglishProjection({withRuntimeKey=false}={}){
       pp.rhyme_syllables,
       pp.rhotic,
       pp.default_profile_eligible
-    FROM ${withRuntimeKey?'runtime_key k JOIN runtime_key_member km USING(key_id) JOIN runtime_target t ON t.target_id=km.target_id AND t.target_kind=\'pronunciation\' JOIN pronunciation p ON p.pronunciation_id=t.pronunciation_id':'pronunciation p'}
+    FROM ${from}
     JOIN surface s USING(surface_id)
     JOIN runtime_lexical_profile lp USING(surface_id)
     JOIN runtime_pronunciation_profile pp USING(pronunciation_id)
@@ -96,21 +102,18 @@ function prepareServingEnglishRuntimeStatements(db,{generatedOnly=false}={}){
       AND pp.default_profile_eligible=1
       AND p.eligible=1
       AND ${availability}
-    ORDER BY p.pronunciation_id
+    ORDER BY COALESCE(pp.source_row_id,p.pronunciation_id),p.pronunciation_id
   `);
   const byKey=db.prepare(`
-    ${servingEnglishProjection({withRuntimeKey:true})}
-    WHERE k.language='en'
-      AND k.channel=?
-      AND k.key_value=?
+    ${servingEnglishProjection({withCandidate:true})}
+    WHERE hc.channel=?
+      AND hc.key_value=?
+      AND hc.default_eligible=1
       AND s.language='en'
-      AND lp.en_default_eligible=1
-      AND pp.default_profile_eligible=1
-      AND p.eligible=1
       AND s.surface_id<>?
       AND ${availability}
       ${generated}
-    ORDER BY p.pronunciation_id
+    ORDER BY hc.source_order,p.pronunciation_id
     LIMIT ?
   `);
   const wrap=(channel,keyBuilder=(value)=>value)=>({
@@ -343,7 +346,9 @@ export function retrieveEnglishRuntimeCandidates(db,surface,options={}){
     .sort((a,b)=>{
       const ap=Math.min(...a.channels.map((kind)=>priority.get(kind)??99));
       const bp=Math.min(...b.channels.map((kind)=>priority.get(kind)??99));
-      return ap-bp||a.pronunciation_id-b.pronunciation_id;
+      return ap-bp
+        ||Number(a.source_order_id??a.pronunciation_id)-Number(b.source_order_id??b.pronunciation_id)
+        ||a.pronunciation_id-b.pronunciation_id;
     })
     .slice(0,maxCandidates);
 
@@ -415,7 +420,9 @@ export function retrieveEnglishRuntimeCandidatesFromAnalysis(db,analysis,options
     .sort((a,b)=>{
       const ap=Math.min(...a.channels.map((kind)=>priority.get(kind)??99));
       const bp=Math.min(...b.channels.map((kind)=>priority.get(kind)??99));
-      return ap-bp||a.pronunciation_id-b.pronunciation_id;
+      return ap-bp
+        ||Number(a.source_order_id??a.pronunciation_id)-Number(b.source_order_id??b.pronunciation_id)
+        ||a.pronunciation_id-b.pronunciation_id;
     })
     .slice(0,maxCandidates);
 

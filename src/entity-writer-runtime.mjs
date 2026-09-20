@@ -419,6 +419,12 @@ export function searchEntityRhymes(db, query, options = {}) {
   const servingGenerated=generatedOnly
     ?' AND sp.canonical_available=0 AND sp.generated_available=1'
     :'';
+  const servingRankAvailability=servingMode==='core'
+    ?'ra.canonical_available=1'
+    :'(ra.canonical_available=1 OR ra.generated_available=1)';
+  const servingRankGenerated=generatedOnly
+    ?' AND ra.canonical_available=0 AND ra.generated_available=1'
+    :'';
   const legacyLookup=servingV1?null:db.prepare(`
     SELECT
       a.channel,a.anchor_key,
@@ -444,6 +450,45 @@ export function searchEntityRhymes(db, query, options = {}) {
     ORDER BY e.popularity_score DESC,n.preferred DESC,e.qid,n.name_id,p.pronunciation_id
     LIMIT ?
   `);
+  const servingLookupFast=servingV1?db.prepare(`
+    WITH picked AS (
+      SELECT
+        ra.analyzer_id,ra.channel,ra.anchor_key,ra.product_pronunciation_id
+      FROM runtime_entity_anchor_ranked ra
+      WHERE ra.analyzer_id=?
+        AND ra.channel=?
+        AND ra.anchor_key=?
+        AND ra.locale=?
+        AND ra.language=?
+        AND ${servingRankAvailability}
+        ${servingRankGenerated}
+      ORDER BY
+        ra.popularity_score DESC,ra.name_preferred DESC,ra.qid,ra.name_id,ra.product_pronunciation_id
+      LIMIT ?
+    )
+    SELECT
+      picked.channel,picked.anchor_key,
+      ep.product_pronunciation_id AS pronunciation_id,
+      ep.name_id,ep.ipa,ep.locale,ep.pronunciation_role,
+      ep.source_kind,ep.source_record,ep.generated,ep.model_id,ep.confidence,ep.review_state,
+      n.entity_id,n.surface,n.normalized,n.language,n.name_kind,n.preferred AS name_preferred,
+      e.qid,e.primary_category,e.popularity_score,e.popularity_percentile,e.popularity_tier,
+      ea.phonemes_json AS analysis_phonemes_json,
+      ea.syllables_json AS analysis_syllables_json,
+      ea.syllable_count AS analysis_syllable_count,
+      ea.primary_stress AS analysis_primary_stress,
+      ea.stress_pattern AS analysis_stress_pattern,
+      ea.vowel_sequence AS analysis_vowel_sequence,
+      ea.consonant_sequence AS analysis_consonant_sequence,
+      ea.rhyme_tail AS analysis_rhyme_tail,
+      ea.rhyme_signature AS analysis_rhyme_signature
+    FROM picked
+    JOIN runtime_entity_pronunciation ep USING(product_pronunciation_id)
+    JOIN runtime_entity_analysis ea USING(product_pronunciation_id)
+    JOIN runtime_entity_name n USING(name_id)
+    JOIN runtime_entity_identity e USING(entity_id)
+    ORDER BY e.popularity_score DESC,n.preferred DESC,e.qid,n.name_id,ep.product_pronunciation_id
+  `):null;
   const servingLookup=servingV1?db.prepare(`
     SELECT
       a.channel,a.anchor_key,
@@ -486,7 +531,16 @@ export function searchEntityRhymes(db, query, options = {}) {
 
   for(const anchor of anchors){
     let rows;
-    if(servingV1){
+    if(servingV1&&category==='all'){
+      rows=servingLookupFast.all(
+        languageCapability.analyzer,
+        anchor.channel,
+        anchor.key,
+        languageCapability.locale,
+        language,
+        perChannelLimit,
+      );
+    }else if(servingV1){
       rows=servingLookup.all(
         languageCapability.analyzer,
         anchor.channel,

@@ -323,6 +323,10 @@ test('Product metadata builder plans read-only, checkpoints, resumes and atomica
     const planned=Object.fromEntries(planJson.stages.map((stage)=>[stage.stage,stage.source_rows]));
     assert.equal(Number(planned['09_entity_analysis']),4);
     assert.equal(Number(planned['10_entity_occurrence_anchors']),4);
+    assert.equal(Number(planned['11_de_hotpath_candidates']),2);
+    assert.equal(Number(planned['13_entity_ranked_anchors']),3);
+    assert.equal(Number(planned['14_de_precomputed_analysis']),2);
+    assert.equal(Number(planned['16_phrase_ranking_evidence']),1);
 
     const paused=run([...common,'--pause-after-stage','01_de_profiles']);
     assert.equal(paused.status,0,paused.stderr||paused.stdout);
@@ -351,6 +355,15 @@ test('Product metadata builder plans read-only, checkpoints, resumes and atomica
       assert.equal(invariants.product_entity_occurrences_without_eligible_source_mapping,0);
       assert.equal(invariants.eligible_source_entity_anchors_without_exact_product_mapping,0);
       assert.equal(invariants.product_entity_anchors_without_eligible_source_mapping,0);
+      assert.equal(invariants.de_hotpath_candidates_without_precomputed_analysis,0);
+      assert.equal(invariants.de_writer_key_members_without_hotpath_mapping,0);
+      assert.equal(invariants.en_key_members_without_hotpath_mapping,0);
+      assert.equal(invariants.entity_occurrence_anchors_without_ranked_hotpath,0);
+      assert.equal(invariants.runtime_phrases_without_materialized_ranking_evidence,0);
+      assert.equal(promoted.prepare('SELECT COUNT(*) c FROM runtime_de_candidate').get().c,2);
+      assert.equal(promoted.prepare('SELECT COUNT(*) c FROM runtime_de_analysis').get().c,2);
+      assert.equal(promoted.prepare('SELECT COUNT(*) c FROM runtime_entity_anchor_ranked').get().c,3);
+      assert.equal(promoted.prepare('SELECT COUNT(*) c FROM runtime_phrase_ranking_evidence').get().c,1);
     }finally{promoted.close();}
 
     const runtime=openServingV1ProductRuntime(serving);

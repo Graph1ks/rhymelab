@@ -139,8 +139,24 @@ export function createPhraseRankingEvidenceResolver(db) {
   try{
     serving=
       db.prepare("SELECT value FROM meta WHERE key='schema'").get()?.value==='rhymelab-serving-v1'
-      &&db.prepare("SELECT value FROM meta WHERE key='product_adapter_status'").get()?.value==='complete';
+      &&Boolean(db.prepare(
+        "SELECT 1 FROM sqlite_schema WHERE type='table' AND name='runtime_phrase'"
+      ).get());
   }catch{}
+
+  let materialized=null;
+  if(serving){
+    try{
+      const exists=db.prepare(
+        "SELECT 1 FROM sqlite_schema WHERE type='table' AND name='runtime_phrase_ranking_evidence'"
+      ).get();
+      if(exists){
+        materialized=db.prepare(
+          'SELECT evidence_json FROM runtime_phrase_ranking_evidence WHERE runtime_phrase_id=?'
+        );
+      }
+    }catch{}
+  }
 
   const usage = serving
     ?db.prepare([
@@ -177,6 +193,17 @@ export function createPhraseRankingEvidenceResolver(db) {
     const key=(serving?'runtime:':'phrase:')+String(lookupId);
     const existing = cache.get(key);
     if (existing) return existing;
+
+    if(materialized){
+      const row=materialized.get(lookupId);
+      if(row?.evidence_json){
+        try{
+          const evidence=JSON.parse(row.evidence_json);
+          cache.set(key,evidence);
+          return evidence;
+        }catch{}
+      }
+    }
 
     const usageRows = serving
       ?usage.all(lookupId)

@@ -26,6 +26,7 @@ import {
   resolveMaterializedWriterMorphologyBatch,
 } from '../src/writer-materialized-runtime.mjs';
 import {unifiedWriterCapabilities} from '../src/unified-writer-search.mjs';
+import {getPhonologyProfile} from '../scripts/phonology-profiles.mjs';
 
 function meta(db,key,value){
   db.prepare(`
@@ -81,12 +82,12 @@ function lexicalProfile(db,{surfaceId,pronunciationId,generated=false,source='Ge
   `).run(surfaceId,generated?110:10,JSON.stringify(['lemma-'+surfaceId]),zipf);
   db.prepare(`
     INSERT INTO runtime_pronunciation_profile(
-      pronunciation_id,source_priority,source,pronunciation_rank,evidence_count,tags_json,
+      pronunciation_id,source_row_id,source_priority,source,pronunciation_rank,evidence_count,tags_json,
       raw_tags_json,flags_json,locale,locales_json,locale_us,locale_gb,rhyme_tail,final_tail,
       vowels,consonants,coda_class,rhyme_syllables,default_profile_eligible
-    ) VALUES(?,?,?,?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,1)
+    ) VALUES(?,?,?,?,?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,1)
   `).run(
-    pronunciationId,generated?110:10,source,rank,
+    pronunciationId,pronunciationId,generated?110:10,source,rank,
     generated?'["generated"]':'[]',
     generated?'["generated"]':'[]',
     generated?'["generated","secondary_opt_in"]':'[]',
@@ -137,9 +138,30 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
           selection_usage_rank_missing,selection_pronunciation_preferred,selection_pronunciation_rank,selection_ipa
         ) VALUES(2,2,'Krankenscheindrucker',NULL,NULL,NULL,NULL,'krankenscheindrucker','noun',NULL,'dictionary',NULL,0,'[]',1,1,1,'kʁaŋk')
       `).run();
+      const deProfile=getPhonologyProfile('de');
+      const deAnalysis=db.prepare(
+        'INSERT INTO runtime_de_analysis(pronunciation_id,analyzer_id,analysis_json) VALUES(?,?,?)'
+      );
+      deAnalysis.run(1,deProfile.analyzerVersion,JSON.stringify(deProfile.analyzeIpa('tsaɪt')));
+      deAnalysis.run(2,deProfile.analyzerVersion,JSON.stringify(deProfile.analyzeIpa('kʁaŋk')));
+      db.prepare(`
+        INSERT INTO runtime_de_candidate(
+          pronunciation_id,normalized,syllable_count,usage_rank,historical,core_preferred,all_preferred,
+          canonical_available,generated_available,generated_only,source_order,exact_key,multisyllable_key,
+          vowel_key,vowel_family,stressed_family,coda_key,coda_class
+        ) VALUES
+          (1,'zeit',1,1,0,1,1,1,0,0,1,'tail',NULL,'aɪ','AI','AI','t','m'),
+          (2,'krankenscheindrucker',1,NULL,0,0,1,0,1,1,2,'tail',NULL,'aɪ','AI','AI','k','m')
+      `).run();
       db.prepare("INSERT INTO runtime_key(language,channel,key_value) VALUES('de','writer_right_edge','aɪ-k')").run();
       const keyId=Number(db.prepare("SELECT key_id FROM runtime_key WHERE channel='writer_right_edge'").get().key_id);
       db.prepare('INSERT INTO runtime_key_member(key_id,target_id) VALUES(?,?)').run(keyId,2);
+      db.prepare(`
+        INSERT INTO runtime_de_writer_candidate(
+          key_value,pronunciation_id,normalized,syllable_count,usage_rank,historical,
+          core_preferred,all_preferred,canonical_available,generated_available,generated_only,source_order
+        ) VALUES('aɪ-k',2,'krankenscheindrucker',1,NULL,0,0,1,0,1,1,2)
+      `).run();
 
       db.prepare(`
         INSERT INTO runtime_surface_morphology(
@@ -157,6 +179,12 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       db.prepare("INSERT INTO runtime_key(language,channel,key_value) VALUES('en','exact_tail','tail')").run();
       const enKeyId=Number(db.prepare("SELECT key_id FROM runtime_key WHERE language='en' AND channel='exact_tail'").get().key_id);
       db.prepare('INSERT INTO runtime_key_member(key_id,target_id) VALUES(?,?)').run(enKeyId,4);
+      db.prepare(`
+        INSERT INTO runtime_en_key_candidate(
+          channel,key_value,pronunciation_id,surface_id,source_order,
+          canonical_available,generated_available,default_eligible
+        ) VALUES('exact_tail','tail',4,4,4,0,1,1)
+      `).run();
 
       surface(db,{id:5,language:'de',normalized:'bei klarer reise',surface:'bei klarer Reise',core:true,role:'phrase'});
       pron(db,{id:5,surfaceId:5,core:true,ipa:'baɪ klaːʁɐ ʁaɪzə',phonemes:'b aɪ k l a ʁ ɐ ʁ aɪ z ə',stress:'01010',syllables:5,exact:'tail-reise',vowel:'aɪ-a',family:'AI-A',coda:'z ə'});
@@ -188,6 +216,17 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       db.prepare('INSERT INTO runtime_key_member(key_id,target_id) VALUES(?,?)').run(phraseKeyId,100);
       db.prepare("INSERT INTO runtime_phrase_usage VALUES(1,'deu_news_2024_1M',1,1,1,1)").run();
       db.prepare('INSERT INTO runtime_phrase_attestation VALUES(?,?,?)').run(1,1,'["modern"]');
+      db.prepare(
+        'INSERT INTO runtime_phrase_ranking_evidence(runtime_phrase_id,evidence_json) VALUES(?,?)'
+      ).run(1,JSON.stringify({
+        commonness:{
+          policy:'leipzig-equal-weight-log1p-per-million-sentences-v1',
+          corpusCount:1,occurrenceSum:1,sentenceSum:1,
+          equalWeightCommonness:Number((Math.log1p(1)/3).toFixed(6)),
+          corpora:{},
+        },
+        styleTags:['modern'],
+      }));
 
       db.prepare("INSERT INTO runtime_entity_identity VALUES(1,'Q1','group.music_group',0.9,0.9,'A')").run();
       db.prepare("INSERT INTO runtime_entity_category VALUES(1,'group.music_group',0.9,1,0.9,'A',0,1)").run();
@@ -212,6 +251,14 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       `).run();
       db.prepare("INSERT INTO runtime_entity_anchor_occurrence VALUES('de-ipa-v2','exact_tail','aɪt',1)").run();
       db.prepare("INSERT INTO runtime_entity_anchor_occurrence VALUES('de-ipa-v2','writer_secondary_anchor','aɪ-t',1)").run();
+      db.prepare(`
+        INSERT INTO runtime_entity_anchor_ranked(
+          analyzer_id,channel,anchor_key,product_pronunciation_id,language,locale,
+          canonical_available,generated_available,popularity_score,name_preferred,qid,name_id
+        ) VALUES
+          ('de-ipa-v2','exact_tail','aɪt',1,'de','de-DE',1,0,0.9,1,'Q1',1),
+          ('de-ipa-v2','writer_secondary_anchor','aɪ-t',1,'de','de-DE',1,0,0.9,1,'Q1',1)
+      `).run();
     }finally{db.close();}
 
     const runtime=openServingV1ProductRuntime(path);

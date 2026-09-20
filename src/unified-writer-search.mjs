@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import { getWord } from './local-engine.mjs';
 import {
   findWriterRhymes,
@@ -578,6 +579,16 @@ export function searchUnifiedWriter(
 ) {
   if (!writerDb) throw new Error('German Writer runtime is unavailable');
 
+  const profileStages=options.profileStages===true;
+  const profileStarted=performance.now();
+  const stageTimings={};
+  const timed=(name,fn)=>{
+    if(!profileStages)return fn();
+    const started=performance.now();
+    try{return fn();}
+    finally{stageTimings[name]=Number((performance.now()-started).toFixed(3));}
+  };
+
   const languageBasis = normalizeUnifiedLanguageBasis(options.language);
   const resultLanguageBasis = normalizeUnifiedResultLanguage(options.resultLanguage, languageBasis);
   const scope = normalizeUnifiedResultScope(options.scope);
@@ -644,10 +655,10 @@ export function searchUnifiedWriter(
 
   const clientPronunciations = options.queryPronunciations || {};
   const sourceDeQuery = requestedLanguages.includes('de') && capabilities.languages.de.available
-    ? resolveGermanUnifiedQuery(writerDb, phraseDb, input)
+    ? timed('query_de',()=>resolveGermanUnifiedQuery(writerDb, phraseDb, input))
     : null;
   const sourceEnQuery = requestedLanguages.includes('en') && capabilities.languages.en.available
-    ? getEnglishWord(englishDb, input)
+    ? timed('query_en',()=>getEnglishWord(englishDb, input))
     : null;
   const clientDeQuery = requestedLanguages.includes('de') && capabilities.languages.de.available
     ? externalClientQueryDetail(input, 'de', clientPronunciations.de)
@@ -734,7 +745,7 @@ export function searchUnifiedWriter(
       ensureTypeCoverage: false,
       generatedOnly,
     };
-    const wordResult = deQuery?.preferredIpa
+    const wordResult = timed('words_de',()=>deQuery?.preferredIpa
       ? (
           deQuery.kind === 'word' && !deQuery.generatedPronunciation
             ? findWriterRhymes(writerDb, deQuery.surface, queryOptions)
@@ -742,7 +753,7 @@ export function searchUnifiedWriter(
         )
       : (!deQuery && enQuery?.preferredIpa)
         ? findWriterRhymesFromExternalQuery(writerDb, enQuery, queryOptions)
-        : null;
+        : null);
     deWordChannel = wordResult
       ? {
           available: true,
@@ -783,7 +794,7 @@ export function searchUnifiedWriter(
       type: options.type || 'all',
       generatedOnly,
     };
-    const wordResult = enQuery
+    const wordResult = timed('words_en',()=>enQuery
       ? (
           enQuery.generatedPronunciation
             ? searchEnglishWriterFromExternalQuery(englishDb, enQuery, englishOptions)
@@ -791,7 +802,7 @@ export function searchUnifiedWriter(
         )
       : deQuery?.preferredIpa
         ? searchEnglishWriterFromExternalQuery(englishDb, deQuery, englishOptions)
-        : null;
+        : null);
     enWordChannel = wordResult
       ? {
           available: true,
@@ -870,11 +881,11 @@ export function searchUnifiedWriter(
     } else {
       const deCapability = capabilities.languages.de;
       phraseChannel = deCapability.phraseMosaic
-        ? searchGermanPhraseChannel(phraseDb, deQuery, {
+        ? timed('phrases_de',()=>searchGermanPhraseChannel(phraseDb, deQuery, {
             ...options,
             generatedOverlay,
             generatedOnly,
-          })
+          }))
         : {
             available: false,
             reason: deCapability.phraseReason || 'phrase_runtime_unavailable',
@@ -901,14 +912,14 @@ export function searchUnifiedWriter(
   if(includeEntities&&resultLanguages.includes('de')){
     const targetQuery=deQuery||enQuery;
     if(targetQuery&&capabilities.languages.de?.entityRhymes){
-      deEntityChannel=searchEntityRhymes(entityDb,targetQuery,{
+      deEntityChannel=timed('entities_de',()=>searchEntityRhymes(entityDb,targetQuery,{
         language:'de',
         category:options.entityCategory||'all',
         type:options.type||'all',
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
         generatedOnly,
-      });
+      }));
     }else{
       deEntityChannel=emptyEntityLanguageChannel(
         'de',
@@ -922,14 +933,14 @@ export function searchUnifiedWriter(
   if(includeEntities&&resultLanguages.includes('en')){
     const targetQuery=enQuery||deQuery;
     if(targetQuery&&capabilities.languages.en?.entityRhymes){
-      enEntityChannel=searchEntityRhymes(entityDb,targetQuery,{
+      enEntityChannel=timed('entities_en',()=>searchEntityRhymes(entityDb,targetQuery,{
         language:'en',
         category:options.entityCategory||'all',
         type:options.type||'all',
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
         generatedOnly,
-      });
+      }));
     }else{
       enEntityChannel=emptyEntityLanguageChannel(
         'en',
@@ -1010,6 +1021,12 @@ export function searchUnifiedWriter(
       phrases: phraseChannel,
       entities: entityChannel,
     },
+    ...(profileStages?{
+      performanceProfile:{
+        stages_ms:stageTimings,
+        total_ms:Number((performance.now()-profileStarted).toFixed(3)),
+      },
+    }:{}),
     counts: {
       words: wordResults.length,
       germanWords: deWordChannel.results?.length || 0,

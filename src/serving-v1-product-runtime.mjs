@@ -102,6 +102,7 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
     SELECT
       p.pronunciation_id AS id,
       dp.source_hot_id AS publish_order,
+      COALESCE(pp.source_row_id,dp.source_hot_id,p.pronunciation_id) AS source_order_id,
       dp.display_surface AS surface,
       s.normalized,
       dp.usage_rank,
@@ -144,11 +145,13 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
       pp.dialect,
       pp.register AS pronunciation_register,
       p.canonical_available,
-      p.generated_available
+      p.generated_available,
+      da.analysis_json AS serving_analysis_json
     FROM pronunciation p
     JOIN surface s USING(surface_id)
     JOIN runtime_de_surface_profile dp USING(surface_id)
     JOIN runtime_pronunciation_profile pp USING(pronunciation_id)
+    JOIN runtime_de_analysis da USING(pronunciation_id)
     WHERE s.language='de'
       AND p.eligible=1
       AND ${pronAvailability}
@@ -200,6 +203,7 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
     CREATE TEMP VIEW en_pronunciation AS
     SELECT
       p.pronunciation_id AS id,
+      COALESCE(pp.source_row_id,p.pronunciation_id) AS source_order_id,
       s.surface_id AS form_id,
       pp.source,
       p.notation,
