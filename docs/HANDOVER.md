@@ -966,3 +966,25 @@ data/local/en-writer-acceptance-v1-report.json
 ```
 
 If status is `candidate_accepted_for_product_integration`, implement that selected policy directly and move to one integrated EN / DE+EN product acceptance bundle. Do not reopen separate Commonness or Diversity micro-gates.
+
+
+## Pronunciation Backfill V2 continuation — secondary metadata materialization
+
+Backfill generation is complete. Do not promote generated rows into canonical databases. The owner decision is:
+
+- active secondary channel = eSpeak A/B only (3,365,814 rows);
+- default search = OFF;
+- future visibility requires explicit user checkbox/opt-in;
+- Client B 292 / C 2,161 / D 60 / U 25 are deferred, preserved, and not under current review.
+
+Authoritative design: `docs/PRONUNCIATION_SECONDARY_V1.md`.
+
+Next owner command after merge:
+
+```powershell
+git switch main
+git pull --ff-only
+npm run pronunciation:secondary:materialize
+```
+
+Expected outputs: `data/local/pronunciation-secondary-v1.sqlite`, `data/local/pronunciation-secondary-v1-report.json`, and `data/local/pronunciation-backfill-v2-deferred.tsv`. Runtime/UI checkbox integration is a later step; the materializer itself does not rewire default search.
