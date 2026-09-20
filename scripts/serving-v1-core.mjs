@@ -241,7 +241,7 @@ function deStage({name,path,layer}){
     SELECT
       h.id source_id,'de' language,h.normalized,h.surface,
       'ipa' notation,h.ipa raw,h.ipa ipa,
-      COALESCE(NULLIF(h.phonemes,''),h.ipa) identity_key,
+      (COALESCE(NULLIF(h.phonemes,''),h.ipa)||'|stress:'||COALESCE(h.stress,'')) identity_key,
       h.phonemes,h.syllable_count,h.stress stress_pattern,h.primary_stress,
       h.exact_key,h.multisyllable_key,h.vowel_key,h.vowel_family,h.coda_key,
       h.pronunciation_eligible eligible,h.pronunciation_preferred preferred,
@@ -303,7 +303,7 @@ function enStage({name,path,layer}){
     SELECT
       p.id source_id,'en' language,f.normalized,f.surface,p.notation,p.raw,
       CASE WHEN p.notation='ipa' THEN p.raw ELSE NULL END ipa,
-      COALESCE(NULLIF(p.phonemes,''),p.raw) identity_key,
+      (COALESCE(NULLIF(p.phonemes,''),p.raw)||'|stress:'||COALESCE(p.stress,'')) identity_key,
       p.phonemes,p.syllable_count,p.stress stress_pattern,p.primary_stress,
       p.exact_key,p.multisyllable_key,p.vowel_key,p.vowel_family,p.coda_key,
       p.default_profile_eligible eligible,p.default_profile_eligible preferred,
@@ -368,7 +368,7 @@ function phraseStage({name,path,layer}){
     SELECT
       pp.rowid source_id,'de' language,p.normalized,p.canonical surface,
       'ipa' notation,pp.ipa raw,pp.ipa ipa,
-      COALESCE(NULLIF(pp.canonical_phonemes,''),pp.ipa) identity_key,
+      (COALESCE(NULLIF(pp.canonical_phonemes,''),pp.ipa)||'|stress:'||COALESCE(pp.stress_pattern,'')) identity_key,
       pp.canonical_phonemes phonemes,pp.syllable_count,pp.stress_pattern,
       NULL primary_stress,pp.exact_tail_key exact_key,pp.multisyllable_key,
       pp.vowel_key,pp.vowel_family_key vowel_family,pp.coda_key,
@@ -440,7 +440,7 @@ function entityStage({name,path,layer}){
     SELECT
       ep.pronunciation_id source_id,en.language,en.normalized,en.surface,
       'ipa' notation,ep.ipa raw,ep.ipa ipa,
-      COALESCE(NULLIF(MIN(epa.phonemes),''),ep.ipa) identity_key,
+      (COALESCE(NULLIF(MIN(epa.phonemes),''),ep.ipa)||'|stress:'||COALESCE(MIN(epa.stress_pattern),'')) identity_key,
       MIN(epa.phonemes) phonemes,MIN(epa.syllable_count) syllable_count,
       MIN(epa.stress_pattern) stress_pattern,MIN(epa.primary_stress) primary_stress,
       NULL exact_key,NULL multisyllable_key,NULL vowel_key,NULL vowel_family,NULL coda_key,
