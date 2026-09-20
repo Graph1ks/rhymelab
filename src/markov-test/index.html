@@ -27,7 +27,7 @@
       <aside class="control-panel" aria-label="Markov generator controls">
         <div class="panel-head">
           <div>
-            <p class="micro">CORPUS MARKOV · LIVE RHYME POOL</p>
+            <p class="micro">LYRIC MARKOV · LIVE RHYME POOL</p>
             <h2>Feed the machine</h2>
           </div>
           <span id="modelState" class="live-dot" data-tone="neutral">MODEL…</span>
@@ -94,8 +94,9 @@
               <small>Safe shortlist ←→ deeper candidate pool.</small>
             </label>
             <label class="range-field">
-              <span><b>Target length</b><output data-range-value="targetTokens">10 tok</output></span>
-              <input id="targetTokens" type="range" min="5" max="20" value="10">
+              <span><b>Target length</b><output data-range-value="targetTokens">7 tok</output></span>
+              <input id="targetTokens" type="range" min="3" max="16" value="7">
+              <small>Lyric-line profile: compact 3 · typical 6 · common ceiling ~9.</small>
             </label>
           </div>
 
@@ -132,7 +133,7 @@
           </button>
         </form>
 
-        <p id="modelNote" class="model-note"><strong>MODEL:</strong> checking local corpus runtime…</p>
+        <p id="modelNote" class="model-note"><strong>MODEL:</strong> checking local lyric-transition runtime…</p>
       </aside>
 
       <section class="output-column" aria-label="Generated Markov results">
