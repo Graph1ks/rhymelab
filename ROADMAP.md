@@ -569,23 +569,34 @@ Proceed only after the English single-word profile and resumed Entity phonetics 
 
 Only after German and English are individually strong.
 
-## Future runtime editions / install profiles — deferred
+## Future runtime editions / install profiles — planned
 
-After the full Serving dataset and performance contract are stable, evaluate deterministic compact runtime editions derived from the accepted master data rather than maintaining separate source pipelines.
+Authoritative contract: `docs/DISTRIBUTION_TIERS.md`.
 
-Candidate editions:
+The previous exploratory 20k / 100k–250k edition sketch is superseded. The accepted planning model is:
 
-- **Lite** — approximately 20k high-value lexical surfaces for a very small/snappy local install;
-- **Standard** — approximately 100k–250k lexical surfaces for broader everyday coverage;
-- **Full** — the complete accepted Serving dataset for exhaustive search/research use.
+| Edition | Word / pronunciation population | Features |
+| --- | --- | --- |
+| **Lite** | **50k Core** | DE/EN Words only |
+| **Standard** | **250k Core** | Words + Phrase/Mosaic + Entities |
+| **Full** | **400k Core + 200k Generated** | Words + Phrase/Mosaic + Entities + Generated + Markov live generator |
 
-The compact editions should be generated from the same accepted master data, preserving all accepted pronunciations and required rhyme/scoring metadata for selected surfaces while omitting source/build/intermediate evidence that is not required at runtime.
+The numeric cuts apply to the retained Word/Pronunciation population, **not Entity counts**.
 
-Do not define Lite as a naive first-20k row copy. Its future selection policy should combine common-word usage rank with explicit rhyme-family / multisyllabic coverage so creative rhyme quality is not needlessly collapsed by a pure frequency cutoff.
+Hard architectural direction:
 
-Future product UX may expose an explicit installed-runtime/profile switch such as `Lite / Standard / Full`. Switching editions must not silently change phonology, scoring, ranking, provenance semantics, or Generated/Core policy; only the available candidate population may differ according to the selected edition.
+```text
+LITE ⊂ STANDARD ⊂ FULL ⊂ MASTER
+```
 
-This is future distribution/runtime work only. Do not implement or rebuild these editions while Serving-v1 performance/parity work is still active.
+All editions are derived from one finalized Master/Developer Serving dataset, use one canonical deterministic distribution ranking policy, and stay in the same Serving schema/runtime family with explicit edition capabilities. Do not build three independent source pipelines.
+
+Markov in Full is a live generator backed by compact model state; do not pre-render a giant generated-phrase database.
+
+Before implementing the distribution builder, first build a read-only storage census / distribution analyzer over the finalized Master DB using `dbstat`, closure row counts and projected tier sizes. Initial planning expectations are approximately 100–250 MB Lite, 2–4 GB Standard and 3–6 GB Full, but these are not acceptance gates until measured on real materialized editions.
+
+Distribution work remains deferred until the Serving-v1 runtime/performance contract and final Master population are stable.
+
 
 ## Hosted runtime
 
