@@ -7,6 +7,8 @@ import {
   activeGeneratedRow,
   assertSameSqliteSchema,
   deferredBucket,
+  jsonSortedUnique,
+  resolveMaterializationResume,
   scopeClass,
   sqliteSchemaFingerprint,
 } from '../scripts/pronunciation-base-parity-core.mjs';
@@ -41,6 +43,28 @@ test('deferred buckets preserve client B/C/D and unresolved U',()=>{
   assert.equal(deferredBucket({
     final_status:'unresolved',quality_tier:'U',
   }),'U_unresolved');
+});
+
+
+test('base-parity JSON list serialization accepts Sets and other iterables',()=>{
+  assert.equal(jsonSortedUnique(new Set(['beta','alpha','beta'])),'["alpha","beta"]');
+  assert.equal(jsonSortedUnique(['z','a','z']),'["a","z"]');
+  assert.equal(jsonSortedUnique('solo'),'["solo"]');
+  assert.equal(jsonSortedUnique(null),'[]');
+});
+
+test('materialization resume preserves only completed earlier domains',()=>{
+  assert.deepEqual(resolveMaterializationResume('de'),{
+    resume_from:'de',
+    preserve:[],
+    rebuild:['de','en','phrases','entities'],
+  });
+  assert.deepEqual(resolveMaterializationResume('en'),{
+    resume_from:'en',
+    preserve:['de'],
+    rebuild:['en','phrases','entities'],
+  });
+  assert.throws(()=>resolveMaterializationResume('bogus'),/Invalid --resume-from stage/u);
 });
 
 test('scope classification keeps domain ownership explicit',()=>{
