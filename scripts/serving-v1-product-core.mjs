@@ -1,6 +1,6 @@
 export const SERVING_V1_PRODUCT_SCHEMA='rhymelab-serving-v1-product-adapter-v1';
 export const SERVING_V1_PRODUCT_POLICY='single-db-legacy-semantic-adapter-v1';
-export const SERVING_V1_PRODUCT_REVISION='compatibility-metadata-and-one-db-routing-v1';
+export const SERVING_V1_PRODUCT_REVISION='compatibility-metadata-and-one-db-routing-v1-identity-v3';
 
 export function createServingV1ProductStorage(db){
   db.exec(`
