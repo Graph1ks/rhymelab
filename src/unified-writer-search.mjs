@@ -159,6 +159,7 @@ export function unifiedWriterCapabilities({
   englishDb = null,
   phraseDb = null,
   entityDb = null,
+  generatedOverlay = false,
 } = {}) {
   const phraseAnchorFingerprint = metaValue(
     phraseDb,
@@ -173,7 +174,10 @@ export function unifiedWriterCapabilities({
   ].every((name) => tableExists(phraseDb, name));
   const phraseAccepted =
     phraseTablesReady
-    && phraseAnchorFingerprint === ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT;
+    && (
+      generatedOverlay === true
+      || phraseAnchorFingerprint === ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT
+    );
   const entityCapability = entityWriterCapabilities(entityDb);
 
   return {
@@ -225,6 +229,7 @@ export function unifiedWriterCapabilities({
     phraseAnchorFingerprint,
     acceptedPhraseAnchorFingerprint: ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT,
     entities: entityCapability,
+    ...(generatedOverlay?{generatedOverlay:true}:{}),
   };
 }
 
@@ -443,6 +448,7 @@ function phraseProductResult(candidate) {
     surfaceSafety: candidate.rankingEvidence?.surfaceSafety || null,
     phraseRankingEvidence: candidate.rankingEvidence || null,
     diversitySuppression: candidate.diversitySuppression || null,
+    ...(candidate.generatedPronunciation?{generatedPronunciation:true}:{}),
   };
 }
 
@@ -454,6 +460,28 @@ function wordProductResult(row) {
     resultId: row.normalized,
     channelRank: Number(row.writerRank || 0),
   };
+}
+
+function generatedPhrasePronunciationIds(phraseDb,candidates){
+  const ids=[...new Set(
+    (candidates||[])
+      .map((candidate)=>String(candidate?.phrasePronunciationId||''))
+      .filter(Boolean)
+  )];
+  if(!ids.length)return new Set();
+  const out=new Set();
+  for(let offset=0;offset<ids.length;offset+=300){
+    const batch=ids.slice(offset,offset+300);
+    const marks=batch.map(()=>'?').join(',');
+    const rows=phraseDb.prepare(`
+      SELECT DISTINCT phrase_pronunciation_id
+      FROM phrase_pronunciation_token
+      WHERE phrase_pronunciation_id IN (${marks})
+        AND LOWER(COALESCE(pronunciation_source,'')) LIKE '%espeak%'
+    `).all(...batch);
+    for(const row of rows)out.add(String(row.phrase_pronunciation_id));
+  }
+  return out;
 }
 
 function searchGermanPhraseChannel(phraseDb, query, options = {}) {
@@ -488,9 +516,14 @@ function searchGermanPhraseChannel(phraseDb, query, options = {}) {
   const ranked = rankPhraseMosaicCandidatesV2(enriched);
   const diversified = diversifyPhraseMosaicWriterPage(ranked);
   const limit = clampInteger(options.phraseLimit, 250, 1, 250);
-  const results = diversified.diversifiedWriterPageCandidates
-    .slice(0, limit)
-    .map(phraseProductResult);
+  const selected=diversified.diversifiedWriterPageCandidates.slice(0,limit);
+  const generatedIds=options.generatedOverlay===true
+    ?generatedPhrasePronunciationIds(phraseDb,selected)
+    :new Set();
+  const results=selected.map((candidate)=>phraseProductResult({
+    ...candidate,
+    generatedPronunciation:generatedIds.has(String(candidate.phrasePronunciationId||'')),
+  }));
 
   return {
     available: true,
@@ -526,7 +559,13 @@ function languageWarning(code) {
 }
 
 export function searchUnifiedWriter(
-  { writerDb, englishDb = null, phraseDb = null, entityDb = null } = {},
+  {
+    writerDb,
+    englishDb = null,
+    phraseDb = null,
+    entityDb = null,
+    generatedOverlay = false,
+  } = {},
   input,
   options = {},
 ) {
@@ -540,6 +579,7 @@ export function searchUnifiedWriter(
     englishDb,
     phraseDb,
     entityDb,
+    generatedOverlay,
   });
   const requestedLanguages = languageBasis === 'both'
     ? ['de', 'en']
@@ -820,7 +860,10 @@ export function searchUnifiedWriter(
     } else {
       const deCapability = capabilities.languages.de;
       phraseChannel = deCapability.phraseMosaic
-        ? searchGermanPhraseChannel(phraseDb, deQuery, options)
+        ? searchGermanPhraseChannel(phraseDb, deQuery, {
+            ...options,
+            generatedOverlay,
+          })
         : {
             available: false,
             reason: deCapability.phraseReason || 'phrase_runtime_unavailable',

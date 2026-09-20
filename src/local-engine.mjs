@@ -161,6 +161,10 @@ export function getWord(db, word) {
   if (!rows.length) return null;
   const first = rows[0];
   const preferred = rows.find((row) => row.pronunciation_preferred) || first;
+  const preferredFlags=parseJsonArray(preferred.pronunciation_flags);
+  const generatedPronunciation=
+    preferredFlags.includes('generated')
+    ||String(preferred.pronunciation_source||'').toLocaleLowerCase('en-US').includes('espeak');
   return {
     language: profile.language,
     surface: first.surface,
@@ -180,6 +184,10 @@ export function getWord(db, word) {
     stress: preferred.stress,
     primaryStressSyllable: preferred.primary_stress,
     preferredIpa: preferred.ipa,
+    ...(generatedPronunciation?{
+      generatedPronunciation:true,
+      pronunciationProvenance:'generated_optin_overlay',
+    }:{}),
     pronunciations: rows.map((row) => ({
       ipa: row.ipa,
       preferred: Boolean(row.pronunciation_preferred),

@@ -144,14 +144,16 @@ function referenceIpa(reference){
 function sourceReferenceDetail(surface,language,reference){
   const ipa=referenceIpa(reference);
   if(!ipa)return null;
+  const generated=reference?.generatedPronunciation===true;
   return {
     language,
     surface:String(reference?.surface||surface),
     normalized:normalizeClientSurface(surface,language),
     ipa,
-    method:'client_source_reference',
+    method:generated?'client_generated_overlay_reference':'client_source_reference',
     policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
-    sourceBacked:true,
+    sourceBacked:!generated,
+    generatedReference:generated,
     clientOnly:true,
   };
 }
@@ -178,14 +180,18 @@ async function findTwoPartReferenceCompound(normalized,language,lookupReference)
     const leftIpa=referenceIpa(left);
     const rightIpa=referenceIpa(right);
     if(!leftIpa||!rightIpa)continue;
+    const generated=left?.generatedPronunciation===true||right?.generatedPronunciation===true;
     return {
       language,
       surface:normalized,
       normalized,
       ipa:`${leftIpa}${demoteStress(rightIpa)}`,
-      method:'client_source_reference_compound',
+      method:generated
+        ?'client_generated_overlay_reference_compound'
+        :'client_source_reference_compound',
       policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
-      sourceBacked:true,
+      sourceBacked:!generated,
+      generatedReference:generated,
       clientOnly:true,
       components:[
         left.surface||candidate.left,

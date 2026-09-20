@@ -81,7 +81,11 @@ select,.checkbox-line{min-height:44px}
 .scroll-sentinel:not(.hidden){border:1px dashed var(--line-strong);border-radius:14px;background:rgba(255,255,255,.3);margin-top:10px}
 
 /* Unified language targets, filters, Sources and control polish */
-.search-mode-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.search-mode-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.generated-optin-line{min-height:48px}
+.generated-optin-line.unavailable{opacity:.48}
+.generated-optin-line.unavailable input{cursor:not-allowed}
+.kind-chip.generated{background:#e9f2ff;color:#244f9f}
 .result-language-segmented{grid-template-columns:repeat(3,minmax(0,1fr))}
 .result-language-option{
   min-width:0;min-height:48px;border:0;border-radius:10px;background:transparent;color:var(--muted);
@@ -168,7 +172,6 @@ select option,select optgroup{background:#fff;color:var(--ink)}
 
 @media(max-width:1100px){
   .search-mode-grid{grid-template-columns:1fr 1fr}
-  .search-mode-grid .mode-group:last-child{grid-column:1/-1}
 }
 @media(max-width:720px){
   .search-mode-grid{grid-template-columns:1fr}

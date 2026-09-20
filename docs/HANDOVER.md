@@ -992,3 +992,22 @@ Expected primary report: `data/local/pronunciation-base-parity-v1-report.json`. 
 ## Current continuation pointer — Generated Base-Parity owner run
 
 Use `docs/PRONUNCIATION_BASE_PARITY_HANDOVER.md` as the focused continuation document for the current owner run. The owner has already started `npm run pronunciation:secondary:materialize`; do not ask for a restart unless the resulting report/error makes it necessary. Primary artifact: `data/local/pronunciation-base-parity-v1-report.json`. Only after that report passes every hard parity gate should runtime/UI checkbox integration begin.
+
+
+## Generated pronunciation opt-in runtime gate
+
+Base-Parity owner materialization has passed. The accepted report has status `ok`, zero unclassified active rows, exact schema parity for all four domains, 3,365,814 active eSpeak A/B rows, 2,538 intentionally deferred Client/U rows, and 103 phrase surfaces parity-deferred because canonical composition depends only on intentionally non-active tokens.
+
+Runtime/UI integration is now defined by `docs/GENERATED_OPTIN_RUNTIME_V1.md`.
+
+Generated data remains OFF by default. The server requires both the accepted parity report and a local runtime enablement marker. The marker is written only by:
+
+```powershell
+npm run pronunciation:secondary:runtime:accept
+```
+
+Primary output: `data/local/generated-optin-runtime-acceptance-v1-report.json`.
+
+Passing acceptance writes: `data/local/generated-optin-runtime-enabled-v1.json`.
+
+Do not create that marker manually. Client B 292 / C 2,161 / D 60 / U 25 remain deferred.

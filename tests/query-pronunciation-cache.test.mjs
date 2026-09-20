@@ -121,3 +121,19 @@ test('cache miss still prefers DB reference and only stores generated fallback',
   assert.equal(unknown.method,'client_rules');
   assert.equal(stores,1);
 });
+
+test('generated overlay references remain generated rather than source-backed truth',async()=>{
+  const detail=await resolveUnknownClientPronunciation('Baladur','de',{
+    lookupCachedPronunciation:async()=>null,
+    lookupReference:async()=>({
+      surface:'Baladur',
+      preferredIpa:'ˈbaladʊR',
+      generatedPronunciation:true,
+    }),
+    storeCachedPronunciation:async()=>{},
+  });
+  assert.equal(detail.method,'client_generated_overlay_reference');
+  assert.equal(detail.sourceBacked,false);
+  assert.equal(detail.generatedReference,true);
+  assert.equal(detail.ipa,'ˈbaladʊR');
+});

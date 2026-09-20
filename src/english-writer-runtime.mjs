@@ -212,6 +212,10 @@ function detailFromPronunciations(surface,pronunciations){
   const lemmas=parseJsonArray(first.lemmas);
   const poses=parseJsonArray(first.poses);
   const lexicalTags=parseJsonArray(first.lexical_tags);
+  const firstTags=parseJsonArray(first.tags);
+  const generatedPronunciation=
+    firstTags.includes('generated')
+    ||String(first.source||'').includes('generated_secondary');
   return {
     kind:'word',
     language:'en',
@@ -233,7 +237,10 @@ function detailFromPronunciations(surface,pronunciations){
     stress:first.stress||null,
     primaryStressSyllable:Number(first.primary_stress||0)||null,
     preferredIpa:first.phonemes||'',
-    pronunciationProvenance:'source_backed_en_us_default_profile',
+    pronunciationProvenance:generatedPronunciation
+      ?'generated_optin_overlay'
+      :'source_backed_en_us_default_profile',
+    ...(generatedPronunciation?{generatedPronunciation:true}:{}),
     pronunciations:pronunciations.map((row,index)=>({
       ipa:row.phonemes||'',
       raw:row.raw,
@@ -315,6 +322,10 @@ function productResult(row,queryDetail,index){
   const lemmas=parseJsonArray(row.lemmas);
   const poses=parseJsonArray(row.poses);
   const lexicalTags=parseJsonArray(row.lexical_tags);
+  const pronunciationTags=parseJsonArray(row.tags);
+  const generatedPronunciation=
+    pronunciationTags.includes('generated')
+    ||String(row.source||'').includes('generated_secondary');
   return {
     resultKind:'word',
     language:'en',
@@ -328,6 +339,10 @@ function productResult(row,queryDetail,index){
     pronunciationPreferred:true,
     pronunciationRank:1,
     pronunciationSource:row.source,
+    ...(generatedPronunciation?{
+      pronunciationTags,
+      generatedPronunciation:true,
+    }:{}),
     pronunciationNotation:row.notation,
     locale:pronunciationLocale(row),
     dialect:null,
