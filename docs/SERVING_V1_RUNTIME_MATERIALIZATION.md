@@ -8,6 +8,7 @@ Required predecessor:
 
 - `data/local/rhymelab-serving-v1.sqlite`
 - Serving-v1 identity report status `ok`
+- pronunciation identity revision `canonical-phoneme-stress-v3`
 - Core-authority invariants accepted
 
 ## Goal
