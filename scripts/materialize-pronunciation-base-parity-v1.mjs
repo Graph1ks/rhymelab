@@ -53,6 +53,7 @@ import {
   assertSameSqliteSchema,
   deferredBucket,
   jsonSortedUnique,
+  phraseDependencyBucket,
   resolveMaterializationResume,
   sqliteSchemaFingerprint,
 } from './pronunciation-base-parity-core.mjs';
@@ -938,12 +939,7 @@ async function buildPhrases(){
           && state.final_method==='espeak_ng'
           && (state.quality_tier==='A'||state.quality_tier==='B')
         );
-        let bucket='missing_backfill_dependency';
-        if(state){
-          if(active)bucket='active_espeak_ab_token_missing_from_writer';
-          else if(state.decision!=='admit')bucket='admission_'+String(state.decision||'unknown');
-          else bucket=deferredBucket(state)||'non_active_token';
-        }
+        const bucket=phraseDependencyBucket(state);
         return {
           token_index:Number(token.token_index),
           surface:token.surface,
