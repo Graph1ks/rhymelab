@@ -549,6 +549,77 @@ function entityPronStage(path){
   };
 }
 
+function entityWriterAnchorStage(path){
+  const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
+  const filter=(last,upper)=>`
+    ep.pronunciation_id>${last} AND ep.pronunciation_id<=${upper}
+    AND ep.review_state IN (${accepted})
+    AND n.searchable=1 AND n.language IN ('de','en')
+    AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+  `;
+  return {
+    name:'07_entity_writer_anchors',label:'Entity writer subchannel anchors',path,
+    total(db){attach(db,path);try{return scalar(db,`
+      SELECT COUNT(*) c
+      FROM src.entity_pronunciation ep JOIN src.entity_name n ON n.name_id=ep.name_id
+      WHERE ep.review_state IN (${accepted})
+        AND n.searchable=1 AND n.language IN ('de','en')
+        AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+        AND EXISTS(
+          SELECT 1 FROM src.entity_rhyme_anchor a
+          WHERE a.pronunciation_id=ep.pronunciation_id AND a.channel LIKE 'writer_%'
+        )
+    `);}finally{detach(db);}},
+    max(db){attach(db,path);try{return scalar(db,`
+      SELECT COALESCE(MAX(ep.pronunciation_id),0) c
+      FROM src.entity_pronunciation ep JOIN src.entity_name n ON n.name_id=ep.name_id
+      WHERE ep.review_state IN (${accepted})
+        AND n.searchable=1 AND n.language IN ('de','en')
+        AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+        AND EXISTS(
+          SELECT 1 FROM src.entity_rhyme_anchor a
+          WHERE a.pronunciation_id=ep.pronunciation_id AND a.channel LIKE 'writer_%'
+        )
+    `);}finally{detach(db);}},
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c
+      FROM src.entity_pronunciation ep JOIN src.entity_name n ON n.name_id=ep.name_id
+      WHERE ${filter(last,upper)}
+        AND EXISTS(
+          SELECT 1 FROM src.entity_rhyme_anchor a
+          WHERE a.pronunciation_id=ep.pronunciation_id AND a.channel LIKE 'writer_%'
+        )
+    `);},
+    run(db,last,upper){
+      db.exec(`
+        WITH mapped AS (
+          SELECT
+            ep.pronunciation_id source_id,sp.pronunciation_id serving_pronunciation_id
+          FROM src.entity_pronunciation ep
+          JOIN src.entity_name n ON n.name_id=ep.name_id
+          LEFT JOIN src.entity_phonetic_analysis epa ON epa.pronunciation_id=ep.pronunciation_id
+          JOIN surface s ON s.language=n.language AND s.normalized=n.normalized
+          JOIN pronunciation sp
+            ON sp.surface_id=s.surface_id
+           AND sp.identity_key=(
+             COALESCE(NULLIF(MIN(epa.phonemes),''),ep.ipa)
+             ||'|stress:'||COALESCE(MIN(epa.stress_pattern),'')
+           )
+          WHERE ${filter(last,upper)}
+          GROUP BY ep.pronunciation_id
+        )
+        INSERT OR IGNORE INTO runtime_entity_writer_anchor(
+          analyzer_id,channel,anchor_key,serving_pronunciation_id
+        )
+        SELECT a.analyzer_id,a.channel,a.anchor_key,m.serving_pronunciation_id
+        FROM mapped m
+        JOIN src.entity_rhyme_anchor a ON a.pronunciation_id=m.source_id
+        WHERE a.channel LIKE 'writer_%';
+      `);
+    },
+  };
+}
+
 function stageDefinitions(paths){
   return [
     deProfileStage(paths.deGenerated),
@@ -557,6 +628,7 @@ function stageDefinitions(paths){
     entityIdentityStage(paths.entityGenerated),
     entityNameStage(paths.entityGenerated),
     entityPronStage(paths.entityGenerated),
+    entityWriterAnchorStage(paths.entityGenerated),
   ];
 }
 
