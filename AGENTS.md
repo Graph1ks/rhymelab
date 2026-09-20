@@ -417,3 +417,8 @@ Do not introduce embeddings, LLMs or ML/neural inference into the deterministic 
 ## Generated pronunciation base-parity invariant
 
 Read `docs/PRONUNCIATION_BASE_PARITY_V1.md` before changing Backfill V2 promotion/runtime behavior. eSpeak A/B generated rows are second-class and **must remain excluded from default search**, but when materialized they must use the exact same persistent schema/tables and derived runtime structures as the regular base dataset for their domain. Do not introduce a reduced generated-only schema or extra generated-only metadata model. A future runtime may expose augmented DBs only behind explicit user opt-in. Client B/C/D and unresolved U rows remain deferred and preserved. Canonical DE/EN/Phrase/Entity DB files must not be mutated.
+
+
+## Generated pronunciation opt-in runtime invariant
+
+Read `docs/GENERATED_OPTIN_RUNTIME_V1.md` before changing generated-runtime routing. Canonical Writer behavior is the default and must remain unchanged when generated opt-in is false. Generated augmented DE/EN/Phrase/Entity databases may be selected only after the Base-Parity report passes and `data/local/generated-optin-runtime-enabled-v1.json` is present and bound to that report fingerprint. The UI checkbox is explicit, default-off and not persisted. Do not create separate generated ranking/scoring logic. Generated overlay query references must remain marked generated rather than being relabeled source-backed. Client B/C/D/U remain outside runtime.
