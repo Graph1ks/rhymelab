@@ -7,6 +7,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {createServingV1Storage} from '../scripts/serving-v1-core.mjs';
 import {createServingV1RuntimeStorage} from '../scripts/serving-v1-runtime-core.mjs';
 import {
+  SERVING_V1_PRODUCT_REVISION,
   SERVING_V1_PRODUCT_SCHEMA,
   createServingV1ProductStorage,
 } from '../scripts/serving-v1-product-core.mjs';
@@ -109,16 +110,31 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       meta(db,'runtime_status','complete');
       meta(db,'runtime_semantic_fingerprint','a'.repeat(64));
       meta(db,'product_adapter_schema',SERVING_V1_PRODUCT_SCHEMA);
+      meta(db,'product_adapter_revision',SERVING_V1_PRODUCT_REVISION);
       meta(db,'product_adapter_status','complete');
       meta(db,'product_adapter_semantic_fingerprint','b'.repeat(64));
 
       surface(db,{id:1,language:'de',normalized:'zeit',surface:'Zeit',core:true,usageRank:1});
       pron(db,{id:1,surfaceId:1,core:true,ipa:'tsaɪt',phonemes:'t s aɪ t',coda:'t'});
       lexicalProfile(db,{surfaceId:1,pronunciationId:1});
+      db.prepare(`
+        INSERT INTO runtime_de_surface_profile(
+          surface_id,source_hot_id,display_surface,usage_rank,usage_score,usage_count,usage_source_count,
+          lemma,part_of_speech,gender,lexicon_layer,entity_kind,historical,lexical_tags_json,
+          selection_usage_rank_missing,selection_pronunciation_preferred,selection_pronunciation_rank,selection_ipa
+        ) VALUES(1,1,'Zeit',1,6.0,10,2,'zeit','noun','f','dictionary',NULL,0,'[]',0,1,1,'tsaɪt')
+      `).run();
 
       surface(db,{id:2,language:'de',normalized:'krankenscheindrucker',surface:'Krankenscheindrucker',generated:true});
       pron(db,{id:2,surfaceId:2,generated:true,ipa:'kʁaŋk',phonemes:'k ʁ a ŋ k',coda:'k'});
       lexicalProfile(db,{surfaceId:2,pronunciationId:2,generated:true,source:'eSpeak-NG Backfill V2'});
+      db.prepare(`
+        INSERT INTO runtime_de_surface_profile(
+          surface_id,source_hot_id,display_surface,usage_rank,usage_score,usage_count,usage_source_count,
+          lemma,part_of_speech,gender,lexicon_layer,entity_kind,historical,lexical_tags_json,
+          selection_usage_rank_missing,selection_pronunciation_preferred,selection_pronunciation_rank,selection_ipa
+        ) VALUES(2,2,'Krankenscheindrucker',NULL,NULL,NULL,NULL,'krankenscheindrucker','noun',NULL,'dictionary',NULL,0,'[]',1,1,1,'kʁaŋk')
+      `).run();
       db.prepare("INSERT INTO runtime_key(language,channel,key_value) VALUES('de','writer_right_edge','aɪ-k')").run();
       const keyId=Number(db.prepare("SELECT key_id FROM runtime_key WHERE channel='writer_right_edge'").get().key_id);
       db.prepare('INSERT INTO runtime_key_member(key_id,target_id) VALUES(?,?)').run(keyId,2);
@@ -181,6 +197,19 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
         ) VALUES(1,1,1,10,'de-DE','source','tsaɪt',1,'wikidata_p898','Q1',0,'accepted_source_backed')
       `).run();
       db.prepare("INSERT INTO runtime_entity_writer_anchor VALUES('de-ipa-v2','writer_secondary_anchor','aɪ-t',1)").run();
+      db.prepare(`
+        INSERT INTO runtime_entity_analysis(
+          product_pronunciation_id,analyzer_id,phonemes_json,syllables_json,syllable_count,
+          primary_stress,secondary_stress_json,stress_pattern,vowel_sequence,consonant_sequence,
+          rhyme_tail,rhyme_signature
+        ) VALUES(
+          1,'de-ipa-v2','["t","s","aɪ","t"]',
+          '[{"position":1,"onset":["t","s"],"nucleus":"aɪ","coda":["t"],"stressLevel":2}]',
+          1,1,'[]','2','aɪ','t','aɪ t','aɪt'
+        )
+      `).run();
+      db.prepare("INSERT INTO runtime_entity_anchor_occurrence VALUES('de-ipa-v2','exact_tail','aɪt',1)").run();
+      db.prepare("INSERT INTO runtime_entity_anchor_occurrence VALUES('de-ipa-v2','writer_secondary_anchor','aɪ-t',1)").run();
     }finally{db.close();}
 
     const runtime=openServingV1ProductRuntime(path);
