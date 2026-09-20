@@ -102,15 +102,31 @@ test('syllable distance remains ahead of prominence inside a phonetic band', () 
   assert.equal(ranked.results[0].entityQid, 'Qclose');
 });
 
-test('Entity Writer diversity removes duplicate entities and caps repeated surfaces', () => {
+test('Entity Writer returns one row per surface and retains same-surface identities as metadata', () => {
   const ranked = rankAndDiversifyEntityRows([
-    row({ entityQid: 'Q1', normalized: 'same', surface: 'Same', score: 0.95 }),
+    row({
+      entityQid: 'Q1', normalized: 'same', surface: 'Same', score: 0.95,
+      primaryCategory:'person.singer',
+      entityCategories:[{category:'person.singer'}],
+      ipa:'seɪm',locale:'en-US',
+    }),
     row({ entityQid: 'Q1', normalized: 'alias', surface: 'Alias', score: 0.949 }),
-    row({ entityQid: 'Q2', normalized: 'same', surface: 'Same', score: 0.948 }),
+    row({
+      entityQid: 'Q2', normalized: 'same', surface: 'Same', score: 0.948,
+      primaryCategory:'work.video_game',
+      entityCategories:[{category:'work.video_game'}],
+      ipa:'seɪm',locale:'en-US',
+    }),
     row({ entityQid: 'Q3', normalized: 'same', surface: 'Same', score: 0.947 }),
-  ], { limit: 10, surfaceCap: 2 });
+  ], { limit: 10 });
 
-  assert.deepEqual(ranked.results.map((item) => item.entityQid), ['Q1', 'Q2']);
+  assert.deepEqual(ranked.results.map((item) => item.entityQid), ['Q1']);
+  assert.deepEqual(ranked.results[0].entityQids,['Q1','Q2','Q3']);
+  assert.deepEqual(
+    ranked.results[0].entityCategories.map((entry)=>entry.category),
+    ['person.singer','work.video_game'],
+  );
+  assert.equal(ranked.results[0].mergedEntityCount,3);
   assert.equal(ranked.suppressionReasonCounts.duplicate_entity_qid, 1);
-  assert.equal(ranked.suppressionReasonCounts.repeated_surface_cap, 1);
+  assert.equal(ranked.suppressionReasonCounts.repeated_surface_cap, 2);
 });
