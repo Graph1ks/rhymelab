@@ -569,6 +569,24 @@ Proceed only after the English single-word profile and resumed Entity phonetics 
 
 Only after German and English are individually strong.
 
+## Future runtime editions / install profiles — deferred
+
+After the full Serving dataset and performance contract are stable, evaluate deterministic compact runtime editions derived from the accepted master data rather than maintaining separate source pipelines.
+
+Candidate editions:
+
+- **Lite** — approximately 20k high-value lexical surfaces for a very small/snappy local install;
+- **Standard** — approximately 100k–250k lexical surfaces for broader everyday coverage;
+- **Full** — the complete accepted Serving dataset for exhaustive search/research use.
+
+The compact editions should be generated from the same accepted master data, preserving all accepted pronunciations and required rhyme/scoring metadata for selected surfaces while omitting source/build/intermediate evidence that is not required at runtime.
+
+Do not define Lite as a naive first-20k row copy. Its future selection policy should combine common-word usage rank with explicit rhyme-family / multisyllabic coverage so creative rhyme quality is not needlessly collapsed by a pure frequency cutoff.
+
+Future product UX may expose an explicit installed-runtime/profile switch such as `Lite / Standard / Full`. Switching editions must not silently change phonology, scoring, ranking, provenance semantics, or Generated/Core policy; only the available candidate population may differ according to the selected edition.
+
+This is future distribution/runtime work only. Do not implement or rebuild these editions while Serving-v1 performance/parity work is still active.
+
 ## Hosted runtime
 
 Not part of the current roadmap. Core search remains locally executable for desktop, web packaging and later mobile use.
