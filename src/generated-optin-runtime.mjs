@@ -185,6 +185,69 @@ export function readGeneratedOptinReport(
   };
 }
 
+function countRows(db,sql){
+  if(!db)return 0;
+  return Number(db.prepare(sql).get()?.c||0);
+}
+
+export function generatedOptinDatasetStats(canonicalDatabases,generatedRuntime=null){
+  const generatedDatabases=generatedRuntime?.available===true?generatedRuntime.databases:null;
+  const specs={
+    deWords:{
+      coreDb:canonicalDatabases?.writerDb,
+      generatedDb:generatedDatabases?.writerDb,
+      totalSql:'SELECT COUNT(*) AS c FROM hot',
+      generatedSql:"SELECT COUNT(*) AS c FROM hot WHERE pronunciation_flags LIKE '%secondary_opt_in%'",
+    },
+    enWords:{
+      coreDb:canonicalDatabases?.englishDb,
+      generatedDb:generatedDatabases?.englishDb,
+      totalSql:'SELECT COUNT(*) AS c FROM en_pronunciation',
+      generatedSql:"SELECT COUNT(*) AS c FROM en_pronunciation WHERE source='espeak_ng_generated_secondary'",
+    },
+    phrases:{
+      coreDb:canonicalDatabases?.phraseDb,
+      generatedDb:generatedDatabases?.phraseDb,
+      totalSql:'SELECT COUNT(*) AS c FROM phrase_pronunciation',
+      generatedSql:"SELECT COUNT(DISTINCT phrase_pronunciation_id) AS c FROM phrase_pronunciation_token WHERE pronunciation_source='eSpeak-NG Backfill V2'",
+    },
+    entities:{
+      coreDb:canonicalDatabases?.entityDb,
+      generatedDb:generatedDatabases?.entityDb,
+      totalSql:'SELECT COUNT(*) AS c FROM entity_pronunciation',
+      generatedSql:"SELECT COUNT(*) AS c FROM entity_pronunciation WHERE source_kind='espeak_ng_generated_secondary'",
+    },
+  };
+  const categories={};
+  for(const [key,spec] of Object.entries(specs)){
+    const core=countRows(spec.coreDb,spec.totalSql);
+    const total=spec.generatedDb?countRows(spec.generatedDb,spec.totalSql):core;
+    const generated=spec.generatedDb?countRows(spec.generatedDb,spec.generatedSql):0;
+    categories[key]={
+      core,
+      generated,
+      total,
+      consistent:total===core+generated,
+    };
+  }
+  const totals=Object.values(categories).reduce((sum,row)=>({
+    core:sum.core+row.core,
+    generated:sum.generated+row.generated,
+    total:sum.total+row.total,
+  }),{core:0,generated:0,total:0});
+  return {
+    schema:'rhymelab-dataset-stats-v1',
+    unit:'pronunciation_records',
+    generatedAvailable:Boolean(generatedDatabases),
+    categories,
+    totals:{
+      ...totals,
+      consistent:totals.total===totals.core+totals.generated
+        &&Object.values(categories).every((row)=>row.consistent),
+    },
+  };
+}
+
 function closeQuietly(db){
   try{db?.close();}catch{}
 }
