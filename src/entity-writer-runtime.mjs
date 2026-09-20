@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';
+import { performance } from 'node:perf_hooks';
 import {
   SERVING_V1_PRODUCT_REVISION,
   SERVING_V1_PRODUCT_SCHEMA,
@@ -365,6 +366,16 @@ function analyzeEntityQuery(query,language,profile){
 }
 
 export function searchEntityRhymes(db, query, options = {}) {
+  const profileStages=options.profileStages===true;
+  const stages={};
+  const counters={};
+  const timed=(name,work)=>{
+    if(!profileStages)return work();
+    const started=performance.now();
+    try{return work();}
+    finally{stages[name]=Number((performance.now()-started).toFixed(3));}
+  };
+
   const language=String(options.language||'de').trim().toLocaleLowerCase('en-US');
   if(!['de','en'].includes(language)){
     return {
@@ -375,7 +386,10 @@ export function searchEntityRhymes(db, query, options = {}) {
     };
   }
 
-  const capabilities=entityWriterCapabilities(db);
+  const capabilities=timed(
+    'capability_ms',
+    ()=>entityWriterCapabilities(db),
+  );
   const languageCapability=capabilities.languages?.[language];
   if(!languageCapability?.available){
     return {
@@ -388,11 +402,13 @@ export function searchEntityRhymes(db, query, options = {}) {
 
   const profile=getPhonologyProfile(language);
   let queryAnalysis;
-  try {
-    queryAnalysis=analyzeEntityQuery(query,language,profile);
-  } catch {
-    queryAnalysis=null;
-  }
+  timed('query_analysis_ms',()=>{
+    try {
+      queryAnalysis=analyzeEntityQuery(query,language,profile);
+    } catch {
+      queryAnalysis=null;
+    }
+  });
   if(!queryAnalysis){
     return {
       available:true,
@@ -529,6 +545,8 @@ export function searchEntityRhymes(db, query, options = {}) {
     LIMIT ?
   `):null;
 
+  let anchorRowsSeen=0;
+  timed('anchor_lookup_ms',()=>{
   for(const anchor of anchors){
     let rows;
     if(servingV1&&category==='all'){
@@ -564,6 +582,7 @@ export function searchEntityRhymes(db, query, options = {}) {
         perChannelLimit,
       );
     }
+    anchorRowsSeen+=rows.length;
     for(const row of rows){
       if(queryNormalized&&profile.normalizeSurface(row.surface)===queryNormalized) continue;
       const current=byPronunciation.get(row.pronunciation_id);
@@ -577,12 +596,17 @@ export function searchEntityRhymes(db, query, options = {}) {
       }
     }
   }
+  });
+  counters.anchor_count=anchors.length;
+  counters.anchor_rows=anchorRowsSeen;
+  counters.unique_pronunciations=byPronunciation.size;
 
-  const categoryIndex=categoryRowsByEntity(
+  const categoryIndex=timed('category_hydration_ms',()=>categoryRowsByEntity(
     db,
     [...byPronunciation.values()].map((row)=>row.entity_id),
-  );
+  ));
   const results=[];
+  timed('analysis_scoring_and_construction_ms',()=>{
   for(const row of byPronunciation.values()){
     let candidateAnalysis;
     try{
@@ -656,8 +680,13 @@ export function searchEntityRhymes(db, query, options = {}) {
       writerAnchorCandidates:score.anchorCandidates||[],
     });
   }
+  });
+  counters.scored_candidates=results.length;
 
-  const ranked=rankAndDiversifyEntityRows(results,{limit});
+  const ranked=timed(
+    'ranking_diversity_ms',
+    ()=>rankAndDiversifyEntityRows(results,{limit}),
+  );
 
   return {
     available:true,
@@ -680,6 +709,7 @@ export function searchEntityRhymes(db, query, options = {}) {
       suppressionReasonCounts:ranked.suppressionReasonCounts,
       guardViolations:ranked.guardViolations,
     },
+    ...(profileStages?{performanceProfile:{stages_ms:stages,counters}}:{}),
     results:ranked.results,
   };
 }

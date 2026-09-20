@@ -492,6 +492,16 @@ function generatedPhrasePronunciationIds(phraseDb,candidates){
 }
 
 function searchGermanPhraseChannel(phraseDb, query, options = {}) {
+  const profileStages=options.profileStages===true;
+  const stages={};
+  const counters={};
+  const timed=(name,fn)=>{
+    if(!profileStages)return fn();
+    const started=performance.now();
+    try{return fn();}
+    finally{stages[name]=Number((performance.now()-started).toFixed(3));}
+  };
+
   if (!phraseDb) {
     return {
       available: false,
@@ -507,7 +517,7 @@ function searchGermanPhraseChannel(phraseDb, query, options = {}) {
     };
   }
 
-  const retrieval = retrievePhraseMosaicCandidatesV2(
+  const retrieval = timed('retrieval_ms',()=>retrievePhraseMosaicCandidatesV2(
     phraseDb,
     query.preferredIpa,
     {
@@ -515,23 +525,41 @@ function searchGermanPhraseChannel(phraseDb, query, options = {}) {
       maxCandidates: clampInteger(options.phrasePoolLimit, 512, 1, 2048),
       generatedOnly:options.generatedOnly===true,
     },
-  );
-  const enriched = enrichPhraseMosaicCandidates(
+  ));
+  counters.retrieval_candidates=Number(retrieval?.candidates?.length||0);
+
+  const enriched = timed('enrichment_ms',()=>enrichPhraseMosaicCandidates(
     phraseDb,
     query.surface,
     retrieval,
+  ));
+  counters.enriched_candidates=Number(enriched?.candidates?.length||enriched?.length||0);
+
+  const ranked = timed('ranking_ms',()=>rankPhraseMosaicCandidatesV2(enriched));
+  const diversified = timed(
+    'diversity_ms',
+    ()=>diversifyPhraseMosaicWriterPage(ranked),
   );
-  const ranked = rankPhraseMosaicCandidatesV2(enriched);
-  const diversified = diversifyPhraseMosaicWriterPage(ranked);
   const limit = clampInteger(options.phraseLimit, 250, 1, 250);
   const selected=diversified.diversifiedWriterPageCandidates.slice(0,limit);
+  counters.selected_candidates=selected.length;
+
   const generatedIds=options.generatedOverlay===true
-    ?generatedPhrasePronunciationIds(phraseDb,selected)
+    ?timed(
+        'generated_source_lookup_ms',
+        ()=>generatedPhrasePronunciationIds(phraseDb,selected),
+      )
     :new Set();
-  const results=selected.map((candidate)=>phraseProductResult({
-    ...candidate,
-    generatedPronunciation:generatedIds.has(String(candidate.phrasePronunciationId||'')),
-  }));
+
+  const results=timed(
+    'result_construction_ms',
+    ()=>selected.map((candidate)=>phraseProductResult({
+      ...candidate,
+      generatedPronunciation:generatedIds.has(
+        String(candidate.phrasePronunciationId||'')
+      ),
+    })),
+  );
 
   return {
     available: true,
@@ -550,6 +578,7 @@ function searchGermanPhraseChannel(phraseDb, query, options = {}) {
       diversified.diversifiedWriterPageCandidateCount,
     suppressedCandidateCount: diversified.suppressedCandidateCount,
     suppressionReasonCounts: diversified.suppressionReasonCounts,
+    ...(profileStages?{performanceProfile:{stages_ms:stages,counters}}:{}),
     results,
   };
 }
@@ -900,12 +929,25 @@ export function searchUnifiedWriter(
             ...options,
             generatedOverlay,
             generatedOnly,
+            profileStages,
           }))
         : {
             available: false,
             reason: deCapability.phraseReason || 'phrase_runtime_unavailable',
             results: [],
           };
+      if(profileStages&&phraseChannel?.performanceProfile?.stages_ms){
+        for(const [name,value] of Object.entries(
+          phraseChannel.performanceProfile.stages_ms
+        )){
+          stageTimings['phrases_de_'+name]=Number(value);
+        }
+        for(const [name,value] of Object.entries(
+          phraseChannel.performanceProfile.counters||{}
+        )){
+          performanceCounters['phrases_de_'+name]=Number(value);
+        }
+      }
     }
   }
 
@@ -934,7 +976,20 @@ export function searchUnifiedWriter(
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
         generatedOnly,
+        profileStages,
       }));
+      if(profileStages&&deEntityChannel?.performanceProfile?.stages_ms){
+        for(const [name,value] of Object.entries(
+          deEntityChannel.performanceProfile.stages_ms
+        )){
+          stageTimings['entities_de_'+name]=Number(value);
+        }
+        for(const [name,value] of Object.entries(
+          deEntityChannel.performanceProfile.counters||{}
+        )){
+          performanceCounters['entities_de_'+name]=Number(value);
+        }
+      }
     }else{
       deEntityChannel=emptyEntityLanguageChannel(
         'de',
@@ -955,7 +1010,20 @@ export function searchUnifiedWriter(
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
         generatedOnly,
+        profileStages,
       }));
+      if(profileStages&&enEntityChannel?.performanceProfile?.stages_ms){
+        for(const [name,value] of Object.entries(
+          enEntityChannel.performanceProfile.stages_ms
+        )){
+          stageTimings['entities_en_'+name]=Number(value);
+        }
+        for(const [name,value] of Object.entries(
+          enEntityChannel.performanceProfile.counters||{}
+        )){
+          performanceCounters['entities_en_'+name]=Number(value);
+        }
+      }
     }else{
       enEntityChannel=emptyEntityLanguageChannel(
         'en',

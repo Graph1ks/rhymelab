@@ -313,9 +313,18 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       assert.equal(phraseEvidence.retrievalCandidateCount,phraseRetrieval.candidates.length);
 
       const entitySearch=searchEntityRhymes(runtime.coreDb,getWord(runtime.coreDb,'Zeit'),{
-        language:'de',limit:10,poolLimit:16,
+        language:'de',limit:10,poolLimit:16,profileStages:true,
       });
       assert.equal(entitySearch.available,true);
+      assert.ok(Number.isFinite(
+        entitySearch.performanceProfile.stages_ms.anchor_lookup_ms
+      ));
+      assert.ok(Number.isFinite(
+        entitySearch.performanceProfile.stages_ms.category_hydration_ms
+      ));
+      assert.ok(Number.isFinite(
+        entitySearch.performanceProfile.stages_ms.ranking_diversity_ms
+      ));
 
       const state=materializedWriterRuntimeState(runtime.allDb);
       assert.equal(state.active,true);

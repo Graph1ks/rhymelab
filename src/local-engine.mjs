@@ -793,7 +793,8 @@ export function findRhymes(db, word, options = {}) {
   const includeVariants = options.includeVariants === true;
   const includeHistorical = options.includeHistorical === true;
   const requestedType = normalizedRequestedType(options.type);
-  const queryOrderId=servingBoundedHotpath(db)?'source_order_id':'id';
+  const servingThin=servingBoundedHotpath(db);
+  const queryOrderId=servingThin?'source_order_id':'id';
   let queryRows = db.prepare(`
     SELECT * FROM hot
     WHERE normalized=? ${includeVariants ? '' : 'AND pronunciation_preferred=1'}
@@ -855,7 +856,7 @@ export function findRhymes(db, word, options = {}) {
       if (score.type === 'weak' && !(score.relationTypes || []).length) continue;
 
       const resultStarted=metrics?performance.now():0;
-      const result=servingBoundedHotpath(db)
+      const result=servingThin
         ?scoredResultCore(candidate,score,queryRow.syllable_count,profile)
         :resultFromRow(candidate,score,queryRow,profile);
       RESULT_ANALYSIS_CACHE.set(result,candidateAnalysis);
@@ -873,7 +874,6 @@ export function findRhymes(db, word, options = {}) {
     }
   }
 
-  const servingThin=servingBoundedHotpath(db);
   let rankableResults=[...bestByWord.values()];
   if(servingThin&&rankableResults.length){
     const metadataStarted=metrics?performance.now():0;
