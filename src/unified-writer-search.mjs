@@ -53,9 +53,10 @@ function normalizeGerman(value) {
 function tableExists(db, name) {
   if (!db) return false;
   try {
-    return Boolean(db.prepare(
-      "SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?",
-    ).get(name));
+    return Boolean(
+      db.prepare("SELECT 1 FROM sqlite_schema WHERE type IN ('table','view') AND name=?").get(name)
+      ||db.prepare("SELECT 1 FROM sqlite_temp_schema WHERE type IN ('table','view') AND name=?").get(name)
+    );
   } catch {
     return false;
   }
