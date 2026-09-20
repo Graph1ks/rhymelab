@@ -11,9 +11,14 @@ import { openEntityWriterDb } from './entity-writer-runtime.mjs';
 export const GENERATED_OPTIN_RUNTIME_SCHEMA='rhymelab-generated-optin-runtime-v1';
 export const GENERATED_OPTIN_REPORT_SCHEMA='rhymelab-generated-base-parity-v1';
 export const GENERATED_OPTIN_REPORT_POLICY='canonical-schema-opt-in-generated-overlay-v1';
+export const GENERATED_OPTIN_MARKER_SCHEMA='rhymelab-generated-optin-runtime-enabled-v1';
+export const GENERATED_OPTIN_RUNTIME_POLICY='explicit-checkbox-generated-overlay-v1';
 
 export const DEFAULT_GENERATED_OPTIN_REPORT_PATH=resolve(
   'data/local/pronunciation-base-parity-v1-report.json',
+);
+export const DEFAULT_GENERATED_OPTIN_MARKER_PATH=resolve(
+  'data/local/generated-optin-runtime-enabled-v1.json',
 );
 export const DEFAULT_GENERATED_WRITER_DB_PATH=resolve(
   'data/local/rhymelab-v5-generated-optin.sqlite',
@@ -111,6 +116,60 @@ export function validateGeneratedOptinReport(report,{
   };
 }
 
+export function validateGeneratedOptinAcceptanceMarker(
+  marker,
+  parityReportFingerprint,
+){
+  if(!marker||typeof marker!=='object'){
+    return {accepted:false,reason:'generated_optin_acceptance_marker_invalid',marker};
+  }
+  if(marker.schema!==GENERATED_OPTIN_MARKER_SCHEMA){
+    return {accepted:false,reason:'generated_optin_acceptance_marker_schema_mismatch',marker};
+  }
+  if(marker.status!=='accepted'){
+    return {accepted:false,reason:'generated_optin_acceptance_marker_not_accepted',marker};
+  }
+  if(marker.policy!==GENERATED_OPTIN_RUNTIME_POLICY){
+    return {accepted:false,reason:'generated_optin_acceptance_marker_policy_mismatch',marker};
+  }
+  if(String(marker.parity_report_fingerprint||'')!==String(parityReportFingerprint||'')){
+    return {accepted:false,reason:'generated_optin_acceptance_marker_parity_fingerprint_mismatch',marker};
+  }
+  if(!/^[a-f0-9]{64}$/u.test(String(marker.acceptance_report_fingerprint||''))){
+    return {accepted:false,reason:'generated_optin_acceptance_marker_report_fingerprint_invalid',marker};
+  }
+  return {accepted:true,reason:null,marker};
+}
+
+export function readGeneratedOptinAcceptanceMarker(
+  markerPath=DEFAULT_GENERATED_OPTIN_MARKER_PATH,
+  parityReportFingerprint='',
+){
+  const path=resolve(markerPath);
+  if(!existsSync(path)){
+    return {
+      accepted:false,
+      reason:'generated_optin_acceptance_marker_missing',
+      marker:null,
+      path,
+    };
+  }
+  let marker;
+  try{marker=JSON.parse(readFileSync(path,'utf8'));}
+  catch{
+    return {
+      accepted:false,
+      reason:'generated_optin_acceptance_marker_invalid_json',
+      marker:null,
+      path,
+    };
+  }
+  return {
+    ...validateGeneratedOptinAcceptanceMarker(marker,parityReportFingerprint),
+    path,
+  };
+}
+
 export function readGeneratedOptinReport(
   reportPath=DEFAULT_GENERATED_OPTIN_REPORT_PATH,
   paths={},
@@ -161,6 +220,8 @@ export function selectGeneratedOptinDatabases(
 
 export function openGeneratedOptinRuntime({
   reportPath=DEFAULT_GENERATED_OPTIN_REPORT_PATH,
+  acceptanceMarkerPath=DEFAULT_GENERATED_OPTIN_MARKER_PATH,
+  requireRuntimeAcceptance=true,
   writerPath=DEFAULT_GENERATED_WRITER_DB_PATH,
   englishPath=DEFAULT_GENERATED_ENGLISH_DB_PATH,
   phrasePath=DEFAULT_GENERATED_PHRASE_DB_PATH,
@@ -180,7 +241,29 @@ export function openGeneratedOptinRuntime({
       available:false,
       reason:state.reason,
       reportPath:resolve(reportPath),
+      acceptanceMarkerPath:resolve(acceptanceMarkerPath),
       report:state.report||null,
+      paths,
+      databases:null,
+      close(){},
+    };
+  }
+
+  const marker=requireRuntimeAcceptance
+    ?readGeneratedOptinAcceptanceMarker(
+        acceptanceMarkerPath,
+        state.semanticFingerprint,
+      )
+    :{accepted:true,reason:null,marker:null,path:resolve(acceptanceMarkerPath)};
+  if(!marker.accepted){
+    return {
+      schema:GENERATED_OPTIN_RUNTIME_SCHEMA,
+      available:false,
+      reason:marker.reason,
+      reportPath:resolve(reportPath),
+      acceptanceMarkerPath:resolve(acceptanceMarkerPath),
+      report:state.report,
+      acceptanceMarker:marker.marker||null,
       paths,
       databases:null,
       close(){},
@@ -195,6 +278,7 @@ export function openGeneratedOptinRuntime({
         reason:'generated_optin_database_missing',
         missingPath:path,
         reportPath:resolve(reportPath),
+        acceptanceMarkerPath:resolve(acceptanceMarkerPath),
         report:state.report,
         paths,
         databases:null,
@@ -226,6 +310,7 @@ export function openGeneratedOptinRuntime({
       reason:'generated_optin_database_open_failed',
       error:error instanceof Error?error.message:String(error),
       reportPath:resolve(reportPath),
+      acceptanceMarkerPath:resolve(acceptanceMarkerPath),
       report:state.report,
       paths,
       databases:null,
@@ -245,6 +330,8 @@ export function openGeneratedOptinRuntime({
     available:true,
     reason:null,
     reportPath:resolve(reportPath),
+    acceptanceMarkerPath:resolve(acceptanceMarkerPath),
+    acceptanceMarker:marker.marker||null,
     report:state.report,
     reportFingerprint:state.semanticFingerprint,
     activeEspeakAB:state.activeEspeakAB,
