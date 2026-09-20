@@ -448,6 +448,7 @@ function phraseProductResult(candidate) {
     surfaceSafety: candidate.rankingEvidence?.surfaceSafety || null,
     phraseRankingEvidence: candidate.rankingEvidence || null,
     diversitySuppression: candidate.diversitySuppression || null,
+    generatedPronunciation:Boolean(candidate.generatedPronunciation),
   };
 }
 
@@ -459,6 +460,28 @@ function wordProductResult(row) {
     resultId: row.normalized,
     channelRank: Number(row.writerRank || 0),
   };
+}
+
+function generatedPhrasePronunciationIds(phraseDb,candidates){
+  const ids=[...new Set(
+    (candidates||[])
+      .map((candidate)=>String(candidate?.phrasePronunciationId||''))
+      .filter(Boolean)
+  )];
+  if(!ids.length)return new Set();
+  const out=new Set();
+  for(let offset=0;offset<ids.length;offset+=300){
+    const batch=ids.slice(offset,offset+300);
+    const marks=batch.map(()=>'?').join(',');
+    const rows=phraseDb.prepare(`
+      SELECT DISTINCT phrase_pronunciation_id
+      FROM phrase_pronunciation_token
+      WHERE phrase_pronunciation_id IN (${marks})
+        AND LOWER(COALESCE(pronunciation_source,'')) LIKE '%espeak%'
+    `).all(...batch);
+    for(const row of rows)out.add(String(row.phrase_pronunciation_id));
+  }
+  return out;
 }
 
 function searchGermanPhraseChannel(phraseDb, query, options = {}) {
@@ -493,9 +516,12 @@ function searchGermanPhraseChannel(phraseDb, query, options = {}) {
   const ranked = rankPhraseMosaicCandidatesV2(enriched);
   const diversified = diversifyPhraseMosaicWriterPage(ranked);
   const limit = clampInteger(options.phraseLimit, 250, 1, 250);
-  const results = diversified.diversifiedWriterPageCandidates
-    .slice(0, limit)
-    .map(phraseProductResult);
+  const selected=diversified.diversifiedWriterPageCandidates.slice(0,limit);
+  const generatedIds=generatedPhrasePronunciationIds(phraseDb,selected);
+  const results=selected.map((candidate)=>phraseProductResult({
+    ...candidate,
+    generatedPronunciation:generatedIds.has(String(candidate.phrasePronunciationId||'')),
+  }));
 
   return {
     available: true,
