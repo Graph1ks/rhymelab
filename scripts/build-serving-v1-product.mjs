@@ -15,6 +15,7 @@ import {
   SERVING_V1_PRODUCT_REVISION,
   SERVING_V1_PRODUCT_SCHEMA,
   createServingV1ProductStorage,
+  resetServingV1ProductStorage,
   servingV1ProductInvariantReport,
   servingV1ProductSummary,
 } from './serving-v1-product-core.mjs';
@@ -542,18 +543,20 @@ function entityPronStage(path){
         SELECT source_id,name_id,serving_pronunciation_id,source_priority,locale,pronunciation_role,
           ipa,preferred,effective_source_kind,source_record,effective_generated,model_id,confidence,review_state
         FROM (${rows}) r WHERE 1
-        ON CONFLICT(name_id,serving_pronunciation_id) DO UPDATE SET
-          source_priority=MIN(runtime_entity_pronunciation.source_priority,excluded.source_priority),
-          locale=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.locale ELSE runtime_entity_pronunciation.locale END,
-          pronunciation_role=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.pronunciation_role ELSE runtime_entity_pronunciation.pronunciation_role END,
-          ipa=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.ipa ELSE runtime_entity_pronunciation.ipa END,
-          preferred=MAX(runtime_entity_pronunciation.preferred,excluded.preferred),
-          source_kind=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.source_kind ELSE runtime_entity_pronunciation.source_kind END,
-          source_record=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.source_record ELSE runtime_entity_pronunciation.source_record END,
-          generated=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.generated ELSE runtime_entity_pronunciation.generated END,
-          model_id=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.model_id ELSE runtime_entity_pronunciation.model_id END,
-          confidence=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.confidence ELSE runtime_entity_pronunciation.confidence END,
-          review_state=CASE WHEN excluded.source_priority<runtime_entity_pronunciation.source_priority THEN excluded.review_state ELSE runtime_entity_pronunciation.review_state END;
+        ON CONFLICT(product_pronunciation_id) DO UPDATE SET
+          name_id=excluded.name_id,
+          serving_pronunciation_id=excluded.serving_pronunciation_id,
+          source_priority=excluded.source_priority,
+          locale=excluded.locale,
+          pronunciation_role=excluded.pronunciation_role,
+          ipa=excluded.ipa,
+          preferred=excluded.preferred,
+          source_kind=excluded.source_kind,
+          source_record=excluded.source_record,
+          generated=excluded.generated,
+          model_id=excluded.model_id,
+          confidence=excluded.confidence,
+          review_state=excluded.review_state;
       `);
     },
   };
@@ -821,6 +824,82 @@ function entityOccurrenceAnchorStage(path){
   };
 }
 
+function entityOccurrenceIntegrity(db,path){
+  const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
+  const eligible=`
+    ep.review_state IN (${accepted})
+    AND n.searchable=1 AND n.language IN ('de','en')
+    AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
+  `;
+  attach(db,path);
+  try{
+    const sourceOccurrencesMissing=scalar(db,`
+      SELECT COUNT(*) c
+      FROM src.entity_pronunciation ep
+      JOIN src.entity_name n ON n.name_id=ep.name_id
+      WHERE ${eligible}
+        AND NOT EXISTS(
+          SELECT 1
+          FROM runtime_entity_pronunciation rp
+          WHERE rp.product_pronunciation_id=ep.pronunciation_id
+            AND rp.name_id=ep.name_id
+        )
+    `);
+    const productOccurrencesExtra=scalar(db,`
+      SELECT COUNT(*) c
+      FROM runtime_entity_pronunciation rp
+      WHERE NOT EXISTS(
+        SELECT 1
+        FROM src.entity_pronunciation ep
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ep.pronunciation_id=rp.product_pronunciation_id
+          AND ep.name_id=rp.name_id
+          AND ${eligible}
+      )
+    `);
+    const sourceAnchorsMissing=scalar(db,`
+      SELECT COUNT(*) c
+      FROM src.entity_rhyme_anchor a
+      JOIN src.entity_pronunciation ep ON ep.pronunciation_id=a.pronunciation_id
+      JOIN src.entity_name n ON n.name_id=ep.name_id
+      WHERE ${eligible}
+        AND a.analyzer_id=${entityAnalyzerSql('n.language')}
+        AND NOT EXISTS(
+          SELECT 1
+          FROM runtime_entity_anchor_occurrence pa
+          WHERE pa.product_pronunciation_id=ep.pronunciation_id
+            AND pa.analyzer_id=a.analyzer_id
+            AND pa.channel=a.channel
+            AND pa.anchor_key=a.anchor_key
+        )
+    `);
+    const productAnchorsExtra=scalar(db,`
+      SELECT COUNT(*) c
+      FROM runtime_entity_anchor_occurrence pa
+      WHERE NOT EXISTS(
+        SELECT 1
+        FROM src.entity_rhyme_anchor a
+        JOIN src.entity_pronunciation ep ON ep.pronunciation_id=a.pronunciation_id
+        JOIN src.entity_name n ON n.name_id=ep.name_id
+        WHERE ep.pronunciation_id=pa.product_pronunciation_id
+          AND a.analyzer_id=pa.analyzer_id
+          AND a.channel=pa.channel
+          AND a.anchor_key=pa.anchor_key
+          AND ${eligible}
+          AND a.analyzer_id=${entityAnalyzerSql('n.language')}
+      )
+    `);
+    return {
+      sourceOccurrencesMissing,
+      productOccurrencesExtra,
+      sourceAnchorsMissing,
+      productAnchorsExtra,
+    };
+  }finally{
+    detach(db);
+  }
+}
+
 function stageDefinitions(paths){
   return [
     deProfileStage(paths.deGenerated),
@@ -961,6 +1040,20 @@ async function main(){
     }
     if(upgrading){
       console.log('[serving-product] upgrading '+ctx.upgradeFrom+' -> '+SERVING_V1_PRODUCT_REVISION);
+      resetServingV1ProductStorage(db);
+      db.prepare(`
+        DELETE FROM meta
+        WHERE key IN (
+          'product_adapter_completed_at',
+          'product_adapter_semantic_fingerprint',
+          'product_adapter_summary_json',
+          'product_adapter_invariants_json',
+          'product_adapter_entity_source_occurrences_missing',
+          'product_adapter_entity_product_occurrences_extra',
+          'product_adapter_entity_source_anchors_missing',
+          'product_adapter_entity_product_anchors_extra'
+        )
+      `).run();
     }
 
     for(const [key,val] of Object.entries({
@@ -1074,6 +1167,14 @@ async function main(){
       putMeta(db,'product_adapter_updated_at',now());
       return;
     }
+
+    const entityIntegrity=entityOccurrenceIntegrity(db,ctx.paths.entityGenerated);
+    for(const [key,val] of Object.entries({
+      product_adapter_entity_source_occurrences_missing:entityIntegrity.sourceOccurrencesMissing,
+      product_adapter_entity_product_occurrences_extra:entityIntegrity.productOccurrencesExtra,
+      product_adapter_entity_source_anchors_missing:entityIntegrity.sourceAnchorsMissing,
+      product_adapter_entity_product_anchors_extra:entityIntegrity.productAnchorsExtra,
+    }))putMeta(db,key,val);
 
     console.log('[serving-product] finalizing indexes/statistics…');
     db.exec('ANALYZE; PRAGMA optimize;');
