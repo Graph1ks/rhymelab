@@ -22,7 +22,7 @@ The materializer builds **augmented copies** of the canonical databases.
 
 Default search keeps using the canonical databases.
 
-A future generated-results checkbox will switch/extend retrieval to the augmented copies. Because each augmented database starts as a byte copy of the canonical base and keeps the exact same SQLite schema, every generated row is represented through the same tables and fields as ordinary data.
+A future generated-results checkbox will switch/extend retrieval to the augmented copies. Each augmented database starts as a transactionally consistent SQLite clone of the canonical base (`VACUUM INTO`) and keeps the exact same persistent SQLite schema, so every generated row is represented through the same tables and fields as ordinary data.
 
 Outputs:
 
