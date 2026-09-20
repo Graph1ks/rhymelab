@@ -180,6 +180,7 @@ function runtimeLanguageState(db,tablesReady,language){
       pronunciationAlias:'ep',
       nameAlias:'n',
       nameTable:'runtime_entity_name',
+      ambiguousNameTable:'temp.serving_entity_ambiguous_name',
     });
     let availableRow=null;
     try{
@@ -456,6 +457,7 @@ export function searchEntityRhymes(db, query, options = {}) {
     pronunciationAlias:'ep',
     nameAlias:'n',
     nameTable:'runtime_entity_name',
+    ambiguousNameTable:'temp.serving_entity_ambiguous_name',
   });
   const servingRankAvailability=servingMode==='core'
     ?'ra.canonical_available=1'
