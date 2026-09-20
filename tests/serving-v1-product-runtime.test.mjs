@@ -7,6 +7,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {createServingV1Storage} from '../scripts/serving-v1-core.mjs';
 import {createServingV1RuntimeStorage} from '../scripts/serving-v1-runtime-core.mjs';
 import {
+  SERVING_V1_PRODUCT_REVISION,
   SERVING_V1_PRODUCT_SCHEMA,
   createServingV1ProductStorage,
 } from '../scripts/serving-v1-product-core.mjs';
@@ -108,7 +109,9 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       meta(db,'status','complete');
       meta(db,'runtime_status','complete');
       meta(db,'runtime_semantic_fingerprint','a'.repeat(64));
+      meta(db,'identity_revision','canonical-phoneme-stress-v3');
       meta(db,'product_adapter_schema',SERVING_V1_PRODUCT_SCHEMA);
+      meta(db,'product_adapter_revision',SERVING_V1_PRODUCT_REVISION);
       meta(db,'product_adapter_status','complete');
       meta(db,'product_adapter_semantic_fingerprint','b'.repeat(64));
 

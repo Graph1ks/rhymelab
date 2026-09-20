@@ -1,6 +1,6 @@
 export const SERVING_V1_RUNTIME_SCHEMA='rhymelab-serving-v1-runtime-v1';
 export const SERVING_V1_RUNTIME_POLICY='unified-indexed-serving-runtime-v1';
-export const SERVING_V1_RUNTIME_REVISION='retrieval-morphology-phrase-evidence-v1';
+export const SERVING_V1_RUNTIME_REVISION='retrieval-morphology-phrase-evidence-v2-identity-v3';
 
 export const RUNTIME_CHANNELS=Object.freeze([
   'exact_tail',

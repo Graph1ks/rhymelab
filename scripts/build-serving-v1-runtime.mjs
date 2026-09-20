@@ -10,6 +10,11 @@ import {
   classifyPhraseSurfaceSafety,
 } from './phrase-mosaic-ranking-evidence-core.mjs';
 import {
+  SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
+  entityAnalyzerSql,
+  entityIdentityKeySql,
+} from './serving-v1-pronunciation-identity.mjs';
+import {
   SERVING_V1_RUNTIME_POLICY,
   SERVING_V1_RUNTIME_REVISION,
   SERVING_V1_RUNTIME_SCHEMA,
@@ -119,6 +124,13 @@ function readServingContract(path){
     const meta=metaObject(db);
     if(meta.schema!=='rhymelab-serving-v1')throw new Error('Unexpected Serving-v1 schema: '+String(meta.schema||'missing'));
     if(meta.status!=='complete')throw new Error('Serving-v1 identity database is not complete.');
+    if(meta.identity_revision!==SERVING_V1_PRONUNCIATION_IDENTITY_REVISION){
+      throw new Error(
+        'Serving-v1 pronunciation identity revision mismatch: '+
+        String(meta.identity_revision||'missing')+
+        ' != '+SERVING_V1_PRONUNCIATION_IDENTITY_REVISION
+      );
+    }
     if(!/^[a-f0-9]{64}$/u.test(String(meta.semantic_fingerprint||''))){
       throw new Error('Serving-v1 semantic fingerprint missing/invalid.');
     }
@@ -388,12 +400,13 @@ function entityKeyStage(name,label,path,generated){
     WITH source_rows AS (
       SELECT
         ep.pronunciation_id source_id,en.language,en.normalized,
-        (COALESCE(NULLIF(MIN(epa.phonemes),''),ep.ipa)||'|stress:'||COALESCE(MIN(epa.stress_pattern),'')) identity_key
+        ${entityIdentityKeySql('epa','ep')} identity_key
       FROM src.entity_pronunciation ep
       JOIN src.entity_name en ON en.name_id=ep.name_id
-      LEFT JOIN src.entity_phonetic_analysis epa ON epa.pronunciation_id=ep.pronunciation_id
+      LEFT JOIN src.entity_phonetic_analysis epa
+        ON epa.pronunciation_id=ep.pronunciation_id
+       AND epa.analyzer_id=${entityAnalyzerSql('en.language')}
       WHERE ${filter(last,upper)}
-      GROUP BY ep.pronunciation_id
     ),
     mapped AS (
       SELECT r.source_id,r.language,t.target_id
@@ -860,6 +873,7 @@ async function prepareContext(){
     serving_semantic_fingerprint:contract.meta.semantic_fingerprint,
     serving_source_fingerprint:contract.meta.source_fingerprint,
     runtime_revision:SERVING_V1_RUNTIME_REVISION,
+    identity_revision:SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
     inputs:actualSources,
   }));
   return {contract,paths,actualSources,runtimeSourceFingerprint,alreadyComplete:false};
@@ -948,6 +962,7 @@ async function main(){
         schema:'rhymelab-serving-v1-runtime-plan',
         policy:SERVING_V1_RUNTIME_POLICY,
         revision:SERVING_V1_RUNTIME_REVISION,
+        identity_revision:SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
         serving_semantic_fingerprint:context.contract.meta.semantic_fingerprint,
         runtime_source_fingerprint:context.runtimeSourceFingerprint,
         batch_size:batchSize,
@@ -1021,6 +1036,7 @@ async function main(){
       runtime_schema:SERVING_V1_RUNTIME_SCHEMA,
       runtime_policy:SERVING_V1_RUNTIME_POLICY,
       runtime_revision:SERVING_V1_RUNTIME_REVISION,
+      runtime_identity_revision:SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
       runtime_status:'building',
       runtime_source_fingerprint:context.runtimeSourceFingerprint,
       runtime_started_at:workMeta.runtime_started_at||now(),
@@ -1166,6 +1182,7 @@ async function main(){
       schema:SERVING_V1_RUNTIME_SCHEMA,
       policy:SERVING_V1_RUNTIME_POLICY,
       revision:SERVING_V1_RUNTIME_REVISION,
+      identity_revision:SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
       base_serving_semantic_fingerprint:context.contract.meta.semantic_fingerprint,
       runtime_source_fingerprint:context.runtimeSourceFingerprint,
       summary,

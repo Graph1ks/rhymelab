@@ -6,6 +6,11 @@ import {dirname,resolve} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {DatabaseSync} from 'node:sqlite';
 import {
+  SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
+  entityAnalyzerSql,
+  entityIdentityKeySql,
+} from './serving-v1-pronunciation-identity.mjs';
+import {
   SERVING_V1_PRODUCT_POLICY,
   SERVING_V1_PRODUCT_REVISION,
   SERVING_V1_PRODUCT_SCHEMA,
@@ -85,6 +90,13 @@ function readContract(path){
     const m=meta(db);
     if(m.schema!=='rhymelab-serving-v1')throw new Error('Unexpected Serving-v1 schema: '+String(m.schema||'missing'));
     if(m.status!=='complete'||m.runtime_status!=='complete')throw new Error('Serving-v1 Phase 1/2 is not complete.');
+    if(m.identity_revision!==SERVING_V1_PRONUNCIATION_IDENTITY_REVISION){
+      throw new Error(
+        'Serving-v1 pronunciation identity revision mismatch: '+
+        String(m.identity_revision||'missing')+
+        ' != '+SERVING_V1_PRONUNCIATION_IDENTITY_REVISION
+      );
+    }
     if(!/^[a-f0-9]{64}$/u.test(String(m.runtime_semantic_fingerprint||''))){
       throw new Error('Serving-v1 runtime semantic fingerprint missing.');
     }
@@ -470,14 +482,6 @@ function entityPronStage(path){
     AND ((n.language='de' AND ep.locale='de-DE') OR (n.language='en' AND ep.locale='en-US'))
   `;
   const mapped=(last,upper)=>`
-    WITH analysis AS (
-      SELECT
-        pronunciation_id,
-        MIN(NULLIF(phonemes,'')) AS phonemes,
-        MIN(stress_pattern) AS stress_pattern
-      FROM src.entity_phonetic_analysis
-      GROUP BY pronunciation_id
-    )
     SELECT
       ep.pronunciation_id source_id,n.name_id,n.language,n.normalized,sp.pronunciation_id serving_pronunciation_id,
       CASE
@@ -497,14 +501,13 @@ function entityPronStage(path){
     FROM src.entity_pronunciation ep
     JOIN src.entity_name n ON n.name_id=ep.name_id
     JOIN runtime_entity_name rn ON rn.name_id=n.name_id
-    LEFT JOIN analysis epa ON epa.pronunciation_id=ep.pronunciation_id
+    LEFT JOIN src.entity_phonetic_analysis epa
+      ON epa.pronunciation_id=ep.pronunciation_id
+     AND epa.analyzer_id=${entityAnalyzerSql('n.language')}
     JOIN surface s ON s.language=n.language AND s.normalized=n.normalized
     JOIN pronunciation sp
       ON sp.surface_id=s.surface_id
-     AND sp.identity_key=(
-       COALESCE(epa.phonemes,ep.ipa)
-       ||'|stress:'||COALESCE(epa.stress_pattern,'')
-     )
+     AND sp.identity_key=${entityIdentityKeySql('epa','ep')}
     WHERE ${filter(last,upper)}
   `;
   return {
@@ -599,27 +602,18 @@ function entityWriterAnchorStage(path){
     `);},
     run(db,last,upper){
       db.exec(`
-        WITH analysis AS (
-          SELECT
-            pronunciation_id,
-            MIN(NULLIF(phonemes,'')) AS phonemes,
-            MIN(stress_pattern) AS stress_pattern
-          FROM src.entity_phonetic_analysis
-          GROUP BY pronunciation_id
-        ),
-        mapped AS (
+        WITH mapped AS (
           SELECT
             ep.pronunciation_id source_id,sp.pronunciation_id serving_pronunciation_id
           FROM src.entity_pronunciation ep
           JOIN src.entity_name n ON n.name_id=ep.name_id
-          LEFT JOIN analysis epa ON epa.pronunciation_id=ep.pronunciation_id
+          LEFT JOIN src.entity_phonetic_analysis epa
+            ON epa.pronunciation_id=ep.pronunciation_id
+           AND epa.analyzer_id=${entityAnalyzerSql('n.language')}
           JOIN surface s ON s.language=n.language AND s.normalized=n.normalized
           JOIN pronunciation sp
             ON sp.surface_id=s.surface_id
-           AND sp.identity_key=(
-             COALESCE(epa.phonemes,ep.ipa)
-             ||'|stress:'||COALESCE(epa.stress_pattern,'')
-           )
+           AND sp.identity_key=${entityIdentityKeySql('epa','ep')}
           WHERE ${filter(last,upper)}
         )
         INSERT OR IGNORE INTO runtime_entity_writer_anchor(
@@ -659,6 +653,7 @@ async function context(){
   const fingerprint=hash(JSON.stringify({
     runtime_semantic_fingerprint:contract.meta.runtime_semantic_fingerprint,
     product_revision:SERVING_V1_PRODUCT_REVISION,
+    identity_revision:SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
     inputs:actual,
   }));
   return {contract,actual,paths,fingerprint,alreadyComplete:false};
@@ -714,6 +709,7 @@ async function main(){
         schema:'rhymelab-serving-v1-product-plan',
         policy:SERVING_V1_PRODUCT_POLICY,
         revision:SERVING_V1_PRODUCT_REVISION,
+        identity_revision:SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
         runtime_semantic_fingerprint:ctx.contract.meta.runtime_semantic_fingerprint,
         product_source_fingerprint:ctx.fingerprint,
         batch_size:batchSize,
@@ -754,6 +750,7 @@ async function main(){
       product_adapter_schema:SERVING_V1_PRODUCT_SCHEMA,
       product_adapter_policy:SERVING_V1_PRODUCT_POLICY,
       product_adapter_revision:SERVING_V1_PRODUCT_REVISION,
+      product_adapter_identity_revision:SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
       product_adapter_status:'building',
       product_adapter_source_fingerprint:ctx.fingerprint,
       product_adapter_started_at:m.product_adapter_started_at||now(),
@@ -877,6 +874,7 @@ async function main(){
       schema:SERVING_V1_PRODUCT_SCHEMA,
       policy:SERVING_V1_PRODUCT_POLICY,
       revision:SERVING_V1_PRODUCT_REVISION,
+      identity_revision:SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
       runtime_semantic_fingerprint:ctx.contract.meta.runtime_semantic_fingerprint,
       source_fingerprint:ctx.fingerprint,summary,invariants,
     }));

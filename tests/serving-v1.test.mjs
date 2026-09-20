@@ -160,23 +160,23 @@ function createEntity(path,{generated=false}={}){
     name.run(1,1,'Metallica','metallica','de',1);
     category.run(1,'group.music_group');
     pronunciation.run(1,1,'mɛtaˈlɪka',1,'wikidata_p898','accepted_source_backed');
-    analysis.run(1,'de-ipa-v2','m ɛ t a l ɪ k a',4,'0010',2);
+    analysis.run(1,'de-ipa-v2','["m","ɛ","t","a","l","ɪ","k","a"]',4,'0010',2);
 
     entity.run(2,'Q2','work.album',0.80);
     name.run(2,2,'Metallica','metallica','de',1);
     category.run(2,'work.album');
     pronunciation.run(2,2,'mɛtaˈlɪka',1,'source','accepted');
-    analysis.run(2,'de-ipa-v2','m ɛ t a l ɪ k a',4,'0010',2);
+    analysis.run(2,'de-ipa-v2','["m","ɛ","t","a","l","ɪ","k","a"]',4,'0010',2);
 
     if(generated){
       entity.run(3,'Q3','person.rapper',0.70);
       name.run(3,3,'Future Star','future star','en',1);
       category.run(3,'person.rapper');
       pronunciation.run(3,3,'ˈfjuːtʃɚ stɑɹ',1,'espeak_ng_generated_secondary','accepted');
-      analysis.run(3,'en-phon-v1','f j u tʃ ɚ s t ɑ ɹ',3,'100',0);
+      analysis.run(3,'en-pron-v1-candidate','["f","j","u","tʃ","ɚ","s","t","ɑ","ɹ"]',3,'100',0);
 
       pronunciation.run(4,1,'mɛtaˈlɪka',0,'espeak_ng_generated_secondary','accepted');
-      analysis.run(4,'de-ipa-v2','m ɛ t a l ɪ k a',4,'0010',2);
+      analysis.run(4,'de-ipa-v2','["m","ɛ","t","a","l","ɪ","k","a"]',4,'0010',2);
     }
   }finally{db.close();}
 }

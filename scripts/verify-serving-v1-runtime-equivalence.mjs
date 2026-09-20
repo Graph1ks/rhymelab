@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 import { SERVING_V1_RUNTIME_SCHEMA } from './serving-v1-runtime-core.mjs';
+import { canonicalPhonemeString } from './serving-v1-pronunciation-identity.mjs';
 
 const args=process.argv.slice(2);
 const value=(flag,fallback=null)=>{
@@ -206,12 +207,14 @@ function entityCases(path,layer){
     const rows=db.prepare(`
       SELECT
         ep.pronunciation_id,en.language,en.normalized,ep.ipa,
-        COALESCE(NULLIF(MIN(epa.phonemes),''),ep.ipa) phonemes,
-        COALESCE(MIN(epa.stress_pattern),'') stress
+        epa.phonemes,
+        COALESCE(epa.stress_pattern,'') stress
       FROM entity_rhyme_anchor a
       JOIN entity_pronunciation ep ON ep.pronunciation_id=a.pronunciation_id
       JOIN entity_name en ON en.name_id=ep.name_id
-      LEFT JOIN entity_phonetic_analysis epa ON epa.pronunciation_id=ep.pronunciation_id
+      LEFT JOIN entity_phonetic_analysis epa
+        ON epa.pronunciation_id=ep.pronunciation_id
+       AND epa.analyzer_id=a.analyzer_id
       WHERE en.language=?
         AND a.channel=?
         AND a.anchor_key=?
@@ -222,7 +225,6 @@ function entityCases(path,layer){
           OR (en.language='en' AND ep.locale='en-US' AND a.analyzer_id='en-pron-v1-candidate')
         )
         ${marker}
-      GROUP BY ep.pronunciation_id
       ORDER BY ep.pronunciation_id
     `);
 
@@ -241,7 +243,7 @@ function entityCases(path,layer){
       ).map((row)=>mapTarget(
         row.language,
         row.normalized,
-        String(row.phonemes||row.ipa||'')+'|stress:'+String(row.stress||''),
+        canonicalPhonemeString(row.phonemes,row.ipa)+'|stress:'+String(row.stress||''),
         layer,
       ));
       addCase(

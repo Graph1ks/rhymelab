@@ -91,7 +91,7 @@ function createEntity(path,{generated=false}={}){
         pronunciation_id INTEGER PRIMARY KEY,name_id INTEGER,ipa TEXT,source_kind TEXT,review_state TEXT,locale TEXT
       );
       CREATE TABLE entity_phonetic_analysis(
-        pronunciation_id INTEGER,phonemes TEXT,stress_pattern TEXT
+        pronunciation_id INTEGER,analyzer_id TEXT,phonemes TEXT,stress_pattern TEXT
       );
       CREATE TABLE entity_rhyme_anchor(
         analyzer_id TEXT,channel TEXT,anchor_key TEXT,pronunciation_id INTEGER,
@@ -102,14 +102,16 @@ function createEntity(path,{generated=false}={}){
       db.prepare('INSERT INTO entity_name VALUES(?,?,?,?)').run(1,'metallica','de',1);
       db.prepare('INSERT INTO entity_pronunciation VALUES(?,?,?,?,?,?)')
         .run(1,1,'c','wikidata_p898','accepted_source_backed','de-DE');
-      db.prepare('INSERT INTO entity_phonetic_analysis VALUES(?,?,?)').run(1,'m ɛ t a l ɪ k a','0010');
+      db.prepare('INSERT INTO entity_phonetic_analysis VALUES(?,?,?,?)')
+        .run(1,'de-ipa-v2','["m","ɛ","t","a","l","ɪ","k","a"]','0010');
       db.prepare('INSERT INTO entity_rhyme_anchor VALUES(?,?,?,?)')
         .run('de-ipa-v2','exact_tail','tail-c',1);
     }else{
       db.prepare('INSERT INTO entity_name VALUES(?,?,?,?)').run(2,'future star','en',1);
       db.prepare('INSERT INTO entity_pronunciation VALUES(?,?,?,?,?,?)')
         .run(2,2,'f','espeak_ng_generated_secondary','accepted','en-US');
-      db.prepare('INSERT INTO entity_phonetic_analysis VALUES(?,?,?)').run(2,'f j u tʃ ɚ s t ɑ ɹ','100');
+      db.prepare('INSERT INTO entity_phonetic_analysis VALUES(?,?,?,?)')
+        .run(2,'en-pron-v1-candidate','["f","j","u","tʃ","ɚ","s","t","ɑ","ɹ"]','100');
       db.prepare('INSERT INTO entity_rhyme_anchor VALUES(?,?,?,?)')
         .run('en-pron-v1-candidate','vowel_sequence','u-ɚ-ɑ',2);
     }
@@ -263,6 +265,7 @@ async function createServing(path,sourcePaths){
     for(const [key,val] of Object.entries({
       schema:'rhymelab-serving-v1',
       status:'complete',
+      identity_revision:'canonical-phoneme-stress-v3',
       semantic_fingerprint:'a'.repeat(64),
       source_fingerprint:'b'.repeat(64),
       source_snapshot_json:JSON.stringify({inputs,generated_acceptance:{}}),

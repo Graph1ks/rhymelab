@@ -6,8 +6,8 @@ Phase 3 candidate. The current product runtime remains on the accepted legacy Co
 
 Required predecessor:
 
-- Serving-v1 identity/dedupe accepted;
-- Serving-v1 runtime materialization accepted;
+- Serving-v1 identity/dedupe accepted on `canonical-phoneme-stress-v3`;
+- Serving-v1 runtime materialization accepted on the same identity revision;
 - retrieval-key equivalence accepted;
 - `data/local/rhymelab-serving-v1.sqlite` has `runtime_status=complete`.
 
