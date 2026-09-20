@@ -49,6 +49,8 @@ This step deliberately adds **no cross-request search/result/scoring/analysis ca
 
 Generated data is now product-default **ON when the accepted generated-capable runtime is available**. The UI checkbox is checked by default and acts as an explicit opt-out; `generated=0` selects Core-only data. An implicit default request falls back to Core if the generated runtime is unavailable, while explicit `generated=1` / `generated_only=1` remains fail-closed.
 
+Entity pronunciation routing now separates **label/search locale** from **pronunciation-language evidence**. A Wikidata name that is identical for the same QID in both DE and EN labels is cross-locale ambiguous; eSpeak-generated, German Writer token-composition and absorbed Generated pronunciations may not enter either language channel solely because of that label locale. Direct/source-backed pronunciation evidence remains eligible. Serving connections precompute ambiguous Entity `name_id` values in a connection-local TEMP primary-key table so this correctness guard does not add a per-candidate Entity self-join.
+
 German DE -> EN cross-language rhyme search now bridges the rightmost eligible stressed German rhyme tail into English target phonology instead of trying to parse the entire German word as English IPA. Regression coverage protects `Arbeitsweise` vs. `Weise`.
 
 German Word/Writer scoring now includes a fail-closed safe prefilter before prepared/full scoring. It never truncates the candidate pool; it rejects only pairs that cannot possibly satisfy any accepted primary rhyme, assonance, or consonance threshold. Property tests compare the bound against the full scorer, and Serving regression coverage requires optimized vs. full-scorer response equality.
