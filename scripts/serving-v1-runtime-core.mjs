@@ -109,6 +109,8 @@ export function createServingV1RuntimeStorage(db){
       commonness_occurrence_sum INTEGER NOT NULL DEFAULT 0,
       commonness_sentence_sum INTEGER NOT NULL DEFAULT 0,
       style_tags_json TEXT NOT NULL DEFAULT '[]',
+      surface_safety_class TEXT,
+      surface_safety_reasons_json TEXT NOT NULL DEFAULT '[]',
       evidence_ready INTEGER NOT NULL DEFAULT 0 CHECK(evidence_ready IN (0,1)),
       UNIQUE(source_layer,source_phrase_pronunciation_id)
     );
