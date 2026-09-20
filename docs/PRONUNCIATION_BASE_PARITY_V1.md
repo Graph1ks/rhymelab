@@ -155,7 +155,7 @@ The same canonical phrase structures are rebuilt:
 
 No reduced generated phrase schema exists.
 
-Full-surface phrase eSpeak rows are accepted into the parity bundle only when the corresponding phrase can be represented by the canonical token-composition path after the generated token gaps are filled. The materializer hard-fails if an active generated phrase surface still cannot be represented canonically; it does not invent incomplete token-boundary metadata.
+Full-surface phrase eSpeak rows are accepted into the parity bundle only when the corresponding phrase can be represented by the canonical token-composition path after generated token gaps are filled. If composition is blocked **only because one or more required phrase tokens are intentionally non-active under the current Backfill policy** (review/reject-noise/Client B/C/D/U), the full-surface eSpeak row is parity-deferred to `data/local/pronunciation-base-parity-v1-deferred-phrases.tsv`. The materializer still hard-fails when the blocking token itself is active eSpeak A/B but missing from the augmented Writer, when no matching Backfill token dependency exists, or when composition fails despite all tokens resolving. It never invents incomplete token-boundary metadata.
 
 ## Entity parity
 
@@ -214,6 +214,8 @@ and are exported for later work to:
 
 `data/local/pronunciation-backfill-v2-deferred.tsv`
 
+`data/local/pronunciation-base-parity-v1-deferred-phrases.tsv`
+
 ## Owner command
 
 ```powershell
@@ -234,4 +236,4 @@ The critical acceptance gates are:
 - exact SQLite schema match for DE, EN, Phrase and Entity
 - zero default-search wiring
 - canonical databases unchanged
-- all active phrase-surface generated rows representable through canonical phrase composition
+- every generated phrase-surface row is either represented through canonical phrase composition or explicitly parity-deferred **only** because canonical composition depends on intentionally non-active token rows; unexplained/active-token gaps remain fatal
