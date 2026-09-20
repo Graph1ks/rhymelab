@@ -287,6 +287,17 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
         profiledDe.performanceProfile.counters.scoring_calls
         >=profiledDe.performanceProfile.counters.unique_scoring_pairs
       );
+      assert.ok(Number.isFinite(
+        profiledDe.performanceProfile.stages_ms.ranking_metadata_hydration_ms
+      ));
+      assert.ok(Number.isFinite(
+        profiledDe.performanceProfile.stages_ms.selected_result_hydration_ms
+      ));
+      assert.ok(profiledDe.performanceProfile.counters.rich_results_hydrated>=1);
+      assert.ok(profiledDe.results.every((row)=>typeof row.word==='string'&&row.word.length>0));
+      assert.ok(profiledDe.results.every((row)=>typeof row.ipa==='string'&&row.ipa.length>0));
+      assert.ok(profiledDe.results.every((row)=>!('_pronunciationId' in row)));
+      assert.ok(profiledDe.results.every((row)=>!('_scoreObject' in row)));
 
       assert.equal(getEnglishWord(runtime.coreDb,'chime'),null);
       assert.equal(getEnglishWord(runtime.allDb,'chime').generatedPronunciation,true);
