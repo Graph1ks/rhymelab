@@ -112,6 +112,7 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       meta(db,'identity_revision','canonical-phoneme-stress-v3');
       meta(db,'product_adapter_schema',SERVING_V1_PRODUCT_SCHEMA);
       meta(db,'product_adapter_revision',SERVING_V1_PRODUCT_REVISION);
+      meta(db,'product_adapter_identity_revision','canonical-phoneme-stress-v3');
       meta(db,'product_adapter_status','complete');
       meta(db,'product_adapter_semantic_fingerprint','b'.repeat(64));
 
@@ -264,6 +265,22 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       assert.equal(Number(generatedOnlyCount),0,'Core entity pronunciation must not become Generated');
     }finally{
       runtime.close();
+    }
+
+    const invalid=new DatabaseSync(path);
+    try{
+      meta(invalid,'product_adapter_revision','stale-product-revision');
+      let state=servingV1ProductRuntimeState(invalid);
+      assert.equal(state.available,false);
+      assert.equal(state.reason,'serving_v1_product_revision_mismatch');
+
+      meta(invalid,'product_adapter_revision',SERVING_V1_PRODUCT_REVISION);
+      meta(invalid,'product_adapter_identity_revision','stale-identity-revision');
+      state=servingV1ProductRuntimeState(invalid);
+      assert.equal(state.available,false);
+      assert.equal(state.reason,'serving_v1_product_identity_revision_mismatch');
+    }finally{
+      invalid.close();
     }
   }finally{
     await rm(root,{recursive:true,force:true});
