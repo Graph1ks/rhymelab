@@ -41,7 +41,7 @@ test('Markov model builder materializes a compact runnable SQLite from sentence 
     assert.equal(run.status,0,run.stderr||run.stdout);
     const payload=JSON.parse(await readFile(report,'utf8'));
     assert.equal(payload.status,'ok');
-    assert.equal(payload.policy,'rhymelab-markov-corpus-v1');
+    assert.equal(payload.policy,'rhymelab-markov-lyric-v1');
     assert.equal(payload.accepted_sentences,6);
     assert.match(payload.semantic_fingerprint,/^[a-f0-9]{64}$/u);
 
@@ -51,7 +51,7 @@ test('Markov model builder materializes a compact runnable SQLite from sentence 
         db.prepare('SELECT key,value FROM meta').all().map((row)=>[String(row.key),String(row.value)]),
       );
       assert.equal(meta.schema,'rhymelab-markov-model-v1');
-      assert.equal(meta.policy,'rhymelab-markov-corpus-v1');
+      assert.equal(meta.policy,'rhymelab-markov-lyric-v1');
       assert.equal(meta.build_status,'complete');
       const directions=db.prepare('SELECT direction,COUNT(*) AS n FROM transition GROUP BY direction ORDER BY direction').all();
       assert.deepEqual(directions.map((row)=>[row.direction,Number(row.n)]),[
@@ -80,7 +80,7 @@ test('Markov model builder materializes a compact runnable SQLite from sentence 
     });
     assert.equal(statusRun.status,0,statusRun.stderr||statusRun.stdout);
     const statusPayload=JSON.parse(statusRun.stdout);
-    assert.equal(statusPayload.output.stats.policy,'rhymelab-markov-corpus-v1');
+    assert.equal(statusPayload.output.stats.policy,'rhymelab-markov-lyric-v1');
     assert.ok(statusPayload.output.stats.transitions>0);
   }finally{
     await rm(dir,{recursive:true,force:true});
