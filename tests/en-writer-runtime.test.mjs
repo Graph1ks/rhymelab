@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { createEnglishWriterDbStorage, insertEnglishPublishRow, prepareEnglishWriterDbInserts } from '../scripts/en-writer-db-core.mjs';
 import { analyzeEnglishIpa, analyzeEnglishPronunciation } from '../scripts/english-phonology.mjs';
 import {
+  analyzeStoredEnglishRuntimePronunciation,
   compareStoredEnglishAnalysis,
   englishRuntimeQueryPlans,
   retrieveEnglishRuntimeCandidates,
@@ -144,6 +145,47 @@ test('English runtime reanalysis reproduces materialized pronunciation keys',()=
   }finally{
     db.close();
   }
+});
+
+test('generated eSpeak runtime reanalysis applies the complete accepted English normalization contract',()=>{
+  const cases=[
+    ['bɪɫ','bɪl'],
+    ['ˈsɪɾi','ˈsɪti'],
+    ['bᵻt','bɪt'],
+    ['bᵊt','bət'],
+    ['ɡoʊ','goʊ'],
+    ['bˈəːd','bˈɜd'],
+    ['bˈɹ̩','bˈɚ'],
+    ['goː','goʊ'],
+    ['deː','deɪ'],
+    ['bɛːd','bɛd'],
+    ['sɪː','si'],
+    ['fʊːd','fud'],
+    ['dᵻpɹˈa\\u200Dɪm','dɪpɹˈaɪm'],
+  ];
+  for(const [raw,expected] of cases){
+    const generated=analyzeStoredEnglishRuntimePronunciation({
+      raw,
+      notation:'ipa',
+      source:'espeak_ng_generated_secondary',
+      locale_us:1,
+      locale_gb:0,
+    });
+    const canonical=analyzeEnglishIpa(expected,{locale:'en-US'});
+    assert.equal(generated.canonicalPhonemes,canonical.canonicalPhonemes,raw);
+    assert.equal(generated.stressPattern,canonical.stressPattern,raw);
+    assert.equal(generated.exactTailKey,canonical.exactTailKey,raw);
+  }
+});
+
+test('stored runtime reanalysis does not apply eSpeak normalization to source-backed IPA',()=>{
+  assert.throws(()=>analyzeStoredEnglishRuntimePronunciation({
+    raw:'ˈsɪɾi',
+    notation:'ipa',
+    source:'wiktionary',
+    locale_us:1,
+    locale_gb:0,
+  }),/Unsupported English IPA symbol: ɾ/);
 });
 
 test('English runtime query plans use all five dedicated pronunciation indexes',()=>{
