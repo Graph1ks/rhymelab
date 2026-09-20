@@ -24,11 +24,11 @@ let currentPool=[];
 let currentHero=null;
 
 const PRESETS={
-  balanced:{mode:'balanced',rhymePressure:62,naturalness:82,weirdness:28,targetTokens:10},
-  rap:{mode:'internal',rhymePressure:84,naturalness:72,weirdness:38,targetTokens:12},
-  chain:{mode:'chain',rhymePressure:88,naturalness:68,weirdness:44,targetTokens:13},
-  natural:{mode:'balanced',rhymePressure:34,naturalness:96,weirdness:10,targetTokens:10},
-  chaos:{mode:'mosaic',rhymePressure:94,naturalness:38,weirdness:92,targetTokens:15},
+  balanced:{mode:'balanced',rhymePressure:62,naturalness:82,weirdness:28,targetTokens:7},
+  rap:{mode:'internal',rhymePressure:84,naturalness:72,weirdness:38,targetTokens:10},
+  chain:{mode:'chain',rhymePressure:88,naturalness:68,weirdness:44,targetTokens:9},
+  natural:{mode:'balanced',rhymePressure:34,naturalness:96,weirdness:10,targetTokens:6},
+  chaos:{mode:'mosaic',rhymePressure:94,naturalness:38,weirdness:92,targetTokens:12},
 };
 
 function esc(value){
@@ -173,14 +173,14 @@ function delay(ms){return new Promise((resolve)=>setTimeout(resolve,ms));}
 async function runSlotMachine(pool){
   const stage=$('#sentenceStage');
   if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
-  stage.innerHTML=`<div class="machine" aria-hidden="true"><span class="machine-label">CORPUS IS COOKING</span><strong id="machineWord">${esc(randomSurface(pool,0))}</strong><div class="machine-dots"><i></i><i></i><i></i></div></div>`;
+  stage.innerHTML=`<div class="machine" aria-hidden="true"><span class="machine-label">LYRIC MODEL IS COOKING</span><strong id="machineWord">${esc(randomSurface(pool,0))}</strong><div class="machine-dots"><i></i><i></i><i></i></div></div>`;
   stage.classList.add('is-cooking');
   for(let index=1;index<=7;index+=1){await delay(55+index*5);const word=$('#machineWord');if(word)word.textContent=randomSurface(pool,index);}
   stage.classList.remove('is-cooking');
 }
 
 function tokenMarkup(token,index){
-  const label=token.kind==='corpus'?'corpus transition':token.kind;
+  const label=token.kind==='corpus'?'model transition':token.kind;
   return `<span class="sentence-token token-${esc(token.kind)}" style="--i:${index}" title="${esc(label)}">${esc(token.text)}</span>`;
 }
 function scoreBar(label,value){
@@ -246,23 +246,23 @@ function renderPoolStats(pool,data){
 }
 
 async function generate(){
-  if(!markovHealth?.available)throw new Error('Corpus Markov model unavailable. Run npm run markov:model:build.');
+  if(!markovHealth?.available)throw new Error('Lyric Markov model unavailable. Materialize it from an explicitly approved line source.');
   const settings=settingsFromControls();
-  if(settings.language!==markovHealth.language)throw new Error(`No ${settings.language.toUpperCase()} corpus model is materialized yet.`);
+  if(settings.language!==markovHealth.language)throw new Error(`No ${settings.language.toUpperCase()} lyric model is materialized yet.`);
   setBusy(true);setStatus('Pulling rhyme candidates from RhymeLab…','busy');$('#uiError').hidden=true;
   try{
     const {rows,data}=await fetchCandidatePool(settings.target,settings);currentPool=rows;
     if(rows.length<2)throw new Error('Too few RhymeLab candidates for constrained generation. Try another rhyme target.');
-    renderPoolStats(rows,data);await runSlotMachine(rows);setStatus('Walking reverse corpus transitions from the rhyme tail…','busy');
+    renderPoolStats(rows,data);await runSlotMachine(rows);setStatus('Walking reverse model transitions from the rhyme tail…','busy');
     const generated=await requestMarkovGeneration(rows,settings);
     currentCandidates=generated?.candidates||[];
-    if(!currentCandidates.length)throw new Error('The corpus model found no line that satisfies these constraints. Lower Naturalness or change the rhyme target.');
+    if(!currentCandidates.length)throw new Error('The lyric model found no line that satisfies these constraints. Lower Naturalness or change the rhyme target.');
     renderHero(currentCandidates[0],{animate:true});renderCandidateList(currentCandidates);
-    setStatus(`Generated ${currentCandidates.length} constrained variants from ${Number(generated?.model?.accepted_sentences||0).toLocaleString()} attested sentences.`,'ok');
+    setStatus(`Generated ${currentCandidates.length} constrained variants from ${Number(generated?.model?.accepted_sentences||0).toLocaleString()} accepted source lines.`,'ok');
   }catch(error){
     $('#uiError').hidden=false;$('#uiError').textContent=error instanceof Error?error.message:String(error);
     setStatus('Generation failed.','error');
-    $('#sentenceStage').innerHTML='<div class="empty-stage"><span>¯\\_(ツ)_/¯</span><strong>NO FAKE FALLBACK</strong><p>The corpus model could not satisfy this request. Change the constraints instead of emitting template soup.</p></div>';
+    $('#sentenceStage').innerHTML='<div class="empty-stage"><span>¯\\_(ツ)_/¯</span><strong>NO FAKE FALLBACK</strong><p>The lyric model could not satisfy this request. Change the constraints instead of emitting template soup.</p></div>';
   }finally{setBusy(false);}
 }
 function reroll(){if(!markovHealth?.available)return;$('#randomSeed').value=String(integerSeed());generate().catch(()=>{});}
@@ -274,12 +274,12 @@ function applyModelHealth(){
   if(markovHealth?.available){
     const sentences=Number(markovHealth.accepted_sentences||0).toLocaleString();
     const transitions=Number(markovHealth.transitions||0).toLocaleString();
-    note.innerHTML=`<strong>CORPUS V1:</strong> reverse/forward order-${esc(markovHealth.order)} Markov over <b>${sentences}</b> accepted Leipzig sentences · ${transitions} pruned transitions · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
-    state.textContent='CORPUS READY';state.dataset.tone='ok';
+    note.innerHTML=`<strong>LYRIC V1:</strong> reverse/forward order-${esc(markovHealth.order)} model over <b>${sentences}</b> explicitly supplied source lines · ${transitions} pruned transitions · shape ${esc(markovHealth.lyric_profile||'rhymelab-lyric-shape-v1')} · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
+    state.textContent='MODEL READY';state.dataset.tone='ok';
     for(const option of language.options)option.disabled=option.value!==markovHealth.language;
     language.value=markovHealth.language;
   }else{
-    note.innerHTML='<strong>MODEL REQUIRED:</strong> no fake template fallback. Run <code>npm run markov:model:build</code>. If the Leipzig sentence files are missing, run <code>npm run phrase:catalog:bootstrap</code> first.';
+    note.innerHTML='<strong>MODEL REQUIRED:</strong> no fake template fallback and no implicit 3M corpus. Build from an explicitly approved line source; owner-private lyrics are calibration-only.';
     state.textContent='MODEL MISSING';state.dataset.tone='error';
   }
 }
@@ -297,7 +297,7 @@ async function initialize(){
     });
     for(const id of ['rhymePressure','naturalness','weirdness','targetTokens'])updateRangeLabel(id,document.getElementById(id).value);
     controls.randomSeed.value=String(integerSeed());applyPreset('balanced');applyModelHealth();setBusy(false);
-    setStatus(markovHealth?.available?'Corpus model ready. Pick a rhyme target.':'Corpus model missing — build it once before generation.',markovHealth?.available?'ok':'warn');
+    setStatus(markovHealth?.available?'Lyric model ready. Pick a rhyme target.':'Lyric model missing — build it once before generation.',markovHealth?.available?'ok':'warn');
   }catch(error){
     document.documentElement.dataset.rhymelabControls='failed';$('#uiError').hidden=false;
     $('#uiError').textContent=`UI initialization failed: ${error instanceof Error?error.message:String(error)}`;console.error(error);
