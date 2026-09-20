@@ -101,33 +101,55 @@ const workMeta=(key)=>workDb.prepare('SELECT value FROM meta WHERE key=?').get(k
 const sourceFingerprint=workMeta('source_fingerprint');
 if(!sourceFingerprint)throw new Error('Backfill source fingerprint is missing.');
 
-const activeSql=`
-  SELECT w.*
-  FROM work_item w
-  JOIN admission a USING(item_id)
-  WHERE a.decision='admit'
-    AND w.final_status='resolved'
-    AND w.final_method='espeak_ng'
-    AND w.quality_tier IN ('A','B')
+const activeWhere=`
+  a.decision='admit'
+  AND w.final_status='resolved'
+  AND w.final_method='espeak_ng'
+  AND w.quality_tier IN ('A','B')
 `;
-const activeCount=Number(workDb.prepare('SELECT COUNT(*) AS c FROM ('+activeSql+')').get()?.c||0);
+const activeCount=Number(workDb.prepare(`
+  SELECT COUNT(*) AS c FROM work_item w JOIN admission a USING(item_id)
+  WHERE ${activeWhere}
+`).get()?.c||0);
 if(activeCount!==3_365_814){
   console.warn('[base-parity] active eSpeak A/B count='+activeCount.toLocaleString('en-US')+' (owner snapshot was 3,365,814)');
 }
 
-const scopesByItem=new Map();
-for(const row of workDb.prepare('SELECT item_id,scope FROM source_ref ORDER BY item_id,scope').iterate()){
-  const id=Number(row.item_id);
-  let values=scopesByItem.get(id);
-  if(!values){values=[];scopesByItem.set(id,values);}
-  if(!values.includes(row.scope))values.push(String(row.scope));
-}
-
-const activeRows=[];
-for(const row of workDb.prepare(activeSql+' ORDER BY w.item_id').iterate()){
-  const scopes=scopesByItem.get(Number(row.item_id))||[];
-  activeRows.push({...row,scopes,scopeClass:scopeClass(scopes)});
-}
+const deTargetSql=`
+  SELECT w.*,
+    EXISTS(
+      SELECT 1 FROM source_ref sr
+      WHERE sr.item_id=w.item_id AND sr.scope='phrase_unresolved_token'
+    ) AS phrase_token
+  FROM work_item w
+  JOIN admission a USING(item_id)
+  WHERE ${activeWhere}
+    AND w.language='de'
+    AND EXISTS(
+      SELECT 1 FROM source_ref sr
+      WHERE sr.item_id=w.item_id
+        AND sr.scope IN (
+          'de_usage_source_minus_accepted',
+          'de_wiktionary_headword_source_minus_accepted',
+          'de_listed_form_source_minus_accepted',
+          'phrase_unresolved_token'
+        )
+    )
+  ORDER BY w.item_id
+`;
+const enTargetSql=`
+  SELECT w.*
+  FROM work_item w
+  JOIN admission a USING(item_id)
+  WHERE ${activeWhere}
+    AND w.language='en'
+    AND EXISTS(
+      SELECT 1 FROM source_ref sr
+      WHERE sr.item_id=w.item_id
+        AND sr.scope='en_wiktionary_lexical_source_minus_accepted'
+    )
+  ORDER BY w.item_id
+`;
 const deferredRows=[];
 for(const row of workDb.prepare(`
   SELECT w.* FROM work_item w JOIN admission a USING(item_id)
