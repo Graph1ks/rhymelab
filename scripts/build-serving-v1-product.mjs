@@ -41,7 +41,7 @@ const servingPath=resolve(value('--serving','data/local/rhymelab-serving-v1.sqli
 const workPath=resolve(value('--work','data/local/rhymelab-serving-v1.product-building.sqlite'));
 const copyStatePath=resolve(value('--copy-state',workPath+'.copy-state.json'));
 const reportPath=resolve(value('--report','data/local/rhymelab-serving-v1-product-report.json'));
-const backupPath=resolve(value('--backup','data/local/rhymelab-serving-v1.pre-product-v2.sqlite'));
+const backupPath=resolve(value('--backup','data/local/rhymelab-serving-v1.pre-product-v3.sqlite'));
 
 const now=()=>new Date().toISOString();
 const hash=(v)=>createHash('sha256').update(String(v)).digest('hex');
@@ -266,17 +266,23 @@ function deProfileStage(path){
       `);
       db.exec(`
         INSERT INTO runtime_pronunciation_profile(
-          pronunciation_id,source_priority,source,source_order,pronunciation_rank,evidence_count,tags_json,raw_tags_json,
+          pronunciation_id,source_row_id,source_priority,source,source_order,pronunciation_rank,evidence_count,tags_json,raw_tags_json,
           flags_json,locale,dialect,register,rhyme_tail,final_tail,vowels,consonants,coda_class,
           rhyme_syllables,default_profile_eligible
         )
-        SELECT pronunciation_id,source_priority,effective_source,pronunciation_source_order,pronunciation_rank,
+        SELECT pronunciation_id,source_id,source_priority,effective_source,pronunciation_source_order,pronunciation_rank,
           pronunciation_evidence,pronunciation_tags,pronunciation_raw_tags,effective_flags,
           locale,dialect,pronunciation_register,rhyme_tail,final_tail,vowels,consonants,coda_class,
           rhyme_syllables,1
         FROM (${rows}) r
         WHERE 1
         ON CONFLICT(pronunciation_id) DO UPDATE SET
+          source_row_id=CASE
+            WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.source_row_id
+            WHEN excluded.source_priority=runtime_pronunciation_profile.source_priority
+              THEN MIN(COALESCE(runtime_pronunciation_profile.source_row_id,excluded.source_row_id),excluded.source_row_id)
+            ELSE runtime_pronunciation_profile.source_row_id
+          END,
           source_priority=MIN(runtime_pronunciation_profile.source_priority,excluded.source_priority),
           source=CASE WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.source ELSE runtime_pronunciation_profile.source END,
           source_order=CASE WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.source_order ELSE runtime_pronunciation_profile.source_order END,
@@ -358,11 +364,11 @@ function enProfileStage(path){
       `);
       db.exec(`
         INSERT INTO runtime_pronunciation_profile(
-          pronunciation_id,source_priority,source,evidence_count,tags_json,raw_tags_json,flags_json,
+          pronunciation_id,source_row_id,source_priority,source,evidence_count,tags_json,raw_tags_json,flags_json,
           locales_json,locale_us,locale_gb,source_attested_unprofiled,rhyme_tail,final_tail,vowels,
           consonants,coda_class,rhyme_syllables,rhotic,default_profile_eligible,locale
         )
-        SELECT pronunciation_id,source_priority,effective_source,evidence_count,
+        SELECT pronunciation_id,source_id,source_priority,effective_source,evidence_count,
           CASE WHEN effective_source='serving_core_absorbed' THEN '[]' ELSE tags END,
           CASE WHEN effective_source='serving_core_absorbed' THEN '[]' ELSE tags END,
           CASE WHEN effective_source='espeak_ng_generated_secondary' THEN '["generated","secondary_opt_in"]' ELSE '[]' END,
@@ -371,6 +377,12 @@ function enProfileStage(path){
           CASE WHEN locale_us=1 THEN 'en-US' WHEN locale_gb=1 THEN 'en-GB' ELSE NULL END
         FROM (${rows}) r WHERE 1
         ON CONFLICT(pronunciation_id) DO UPDATE SET
+          source_row_id=CASE
+            WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.source_row_id
+            WHEN excluded.source_priority=runtime_pronunciation_profile.source_priority
+              THEN MIN(COALESCE(runtime_pronunciation_profile.source_row_id,excluded.source_row_id),excluded.source_row_id)
+            ELSE runtime_pronunciation_profile.source_row_id
+          END,
           source_priority=MIN(runtime_pronunciation_profile.source_priority,excluded.source_priority),
           source=CASE WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.source ELSE runtime_pronunciation_profile.source END,
           evidence_count=CASE WHEN excluded.source_priority<runtime_pronunciation_profile.source_priority THEN excluded.evidence_count ELSE runtime_pronunciation_profile.evidence_count END,
@@ -824,6 +836,137 @@ function entityOccurrenceAnchorStage(path){
   };
 }
 
+
+function deHotpathCandidateStage(path){
+  return {
+    name:'11_de_hotpath_candidates',label:'DE bounded candidate lookup rows',path,
+    total(db){return scalar(db,`
+      SELECT COUNT(*) c
+      FROM pronunciation p
+      JOIN surface s USING(surface_id)
+      WHERE s.language='de' AND p.eligible=1
+        AND EXISTS(SELECT 1 FROM surface_role sr WHERE sr.surface_id=s.surface_id AND sr.role='lexical')
+    `);},
+    max(db){return scalar(db,`
+      SELECT COALESCE(MAX(p.pronunciation_id),0) c
+      FROM pronunciation p JOIN surface s USING(surface_id)
+      WHERE s.language='de' AND p.eligible=1
+    `);},
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c
+      FROM pronunciation p JOIN surface s USING(surface_id)
+      WHERE s.language='de' AND p.eligible=1
+        AND p.pronunciation_id>${last} AND p.pronunciation_id<=${upper}
+        AND EXISTS(SELECT 1 FROM surface_role sr WHERE sr.surface_id=s.surface_id AND sr.role='lexical')
+    `);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR REPLACE INTO runtime_de_candidate(
+          pronunciation_id,normalized,syllable_count,usage_rank,historical,
+          core_preferred,all_preferred,canonical_available,generated_available,generated_only,
+          source_order,exact_key,multisyllable_key,vowel_key,vowel_family,coda_key,coda_class
+        )
+        SELECT
+          p.pronunciation_id,s.normalized,COALESCE(p.syllable_count,0),dp.usage_rank,dp.historical,
+          p.canonical_preferred,
+          CASE WHEN p.canonical_available=1 THEN p.canonical_preferred ELSE p.generated_preferred END,
+          p.canonical_available,p.generated_available,
+          CASE WHEN p.canonical_available=0 AND p.generated_available=1 THEN 1 ELSE 0 END,
+          COALESCE(pp.source_row_id,dp.source_hot_id,p.pronunciation_id),
+          p.exact_key,p.multisyllable_key,p.vowel_key,p.vowel_family,p.coda_key,pp.coda_class
+        FROM pronunciation p
+        JOIN surface s USING(surface_id)
+        JOIN runtime_de_surface_profile dp USING(surface_id)
+        JOIN runtime_pronunciation_profile pp USING(pronunciation_id)
+        WHERE s.language='de' AND p.eligible=1
+          AND p.pronunciation_id>${last} AND p.pronunciation_id<=${upper}
+          AND EXISTS(SELECT 1 FROM surface_role sr WHERE sr.surface_id=s.surface_id AND sr.role='lexical');
+      `);
+    },
+  };
+}
+
+function enHotpathCandidateStage(path){
+  const channels="'exact_tail','multisyllable','vowel','family_coda_class','coda'";
+  return {
+    name:'12_en_hotpath_candidates',label:'EN bounded retrieval-key candidates',path,
+    total(db){return scalar(db,`
+      SELECT COUNT(*) c
+      FROM runtime_key k
+      JOIN runtime_key_member km USING(key_id)
+      JOIN runtime_target t ON t.target_id=km.target_id
+      WHERE k.language='en' AND k.channel IN (${channels}) AND t.target_kind='pronunciation'
+    `);},
+    max(db){return scalar(db,`
+      SELECT COALESCE(MAX(t.target_id),0) c
+      FROM runtime_key k
+      JOIN runtime_key_member km USING(key_id)
+      JOIN runtime_target t ON t.target_id=km.target_id
+      WHERE k.language='en' AND k.channel IN (${channels}) AND t.target_kind='pronunciation'
+    `);},
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c
+      FROM runtime_key k
+      JOIN runtime_key_member km USING(key_id)
+      JOIN runtime_target t ON t.target_id=km.target_id
+      WHERE k.language='en' AND k.channel IN (${channels}) AND t.target_kind='pronunciation'
+        AND t.target_id>${last} AND t.target_id<=${upper}
+    `);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR IGNORE INTO runtime_en_key_candidate(
+          channel,key_value,pronunciation_id,surface_id,source_order,
+          canonical_available,generated_available,default_eligible
+        )
+        SELECT
+          k.channel,k.key_value,p.pronunciation_id,s.surface_id,
+          COALESCE(pp.source_row_id,p.pronunciation_id),
+          p.canonical_available,p.generated_available,
+          CASE WHEN lp.en_default_eligible=1 AND pp.default_profile_eligible=1 AND p.eligible=1 THEN 1 ELSE 0 END
+        FROM runtime_key k
+        JOIN runtime_key_member km USING(key_id)
+        JOIN runtime_target t ON t.target_id=km.target_id AND t.target_kind='pronunciation'
+        JOIN pronunciation p ON p.pronunciation_id=t.pronunciation_id
+        JOIN surface s USING(surface_id)
+        JOIN runtime_lexical_profile lp USING(surface_id)
+        JOIN runtime_pronunciation_profile pp USING(pronunciation_id)
+        WHERE k.language='en' AND k.channel IN (${channels})
+          AND t.target_id>${last} AND t.target_id<=${upper};
+      `);
+    },
+  };
+}
+
+function entityRankedAnchorStage(path){
+  return {
+    name:'13_entity_ranked_anchors',label:'Entity bounded ranked anchor lookup',path,
+    total(db){return scalar(db,'SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence');},
+    max(db){return scalar(db,'SELECT COALESCE(MAX(product_pronunciation_id),0) c FROM runtime_entity_anchor_occurrence');},
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence
+      WHERE product_pronunciation_id>${last} AND product_pronunciation_id<=${upper}
+    `);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR REPLACE INTO runtime_entity_anchor_ranked(
+          analyzer_id,channel,anchor_key,product_pronunciation_id,language,locale,
+          canonical_available,generated_available,popularity_score,name_preferred,qid,name_id
+        )
+        SELECT
+          a.analyzer_id,a.channel,a.anchor_key,a.product_pronunciation_id,n.language,ep.locale,
+          sp.canonical_available,sp.generated_available,e.popularity_score,n.preferred,e.qid,n.name_id
+        FROM runtime_entity_anchor_occurrence a
+        JOIN runtime_entity_pronunciation ep USING(product_pronunciation_id)
+        JOIN pronunciation sp ON sp.pronunciation_id=ep.serving_pronunciation_id
+        JOIN runtime_entity_name n USING(name_id)
+        JOIN runtime_entity_identity e USING(entity_id)
+        WHERE a.product_pronunciation_id>${last}
+          AND a.product_pronunciation_id<=${upper};
+      `);
+    },
+  };
+}
+
 function entityOccurrenceIntegrity(db,path){
   const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
   const eligible=`
@@ -912,6 +1055,9 @@ function stageDefinitions(paths){
     deSurfaceProfileStage(paths.deGenerated),
     entityAnalysisStage(paths.entityGenerated),
     entityOccurrenceAnchorStage(paths.entityGenerated),
+    deHotpathCandidateStage(paths.deGenerated),
+    enHotpathCandidateStage(paths.enGenerated),
+    entityRankedAnchorStage(paths.entityGenerated),
   ];
 }
 
