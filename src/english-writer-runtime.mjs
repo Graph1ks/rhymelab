@@ -240,7 +240,7 @@ function detailFromPronunciations(surface,pronunciations){
     pronunciationProvenance:generatedPronunciation
       ?'generated_optin_overlay'
       :'source_backed_en_us_default_profile',
-    generatedPronunciation,
+    ...(generatedPronunciation?{generatedPronunciation:true}:{}),
     pronunciations:pronunciations.map((row,index)=>({
       ipa:row.phonemes||'',
       raw:row.raw,
@@ -339,8 +339,10 @@ function productResult(row,queryDetail,index){
     pronunciationPreferred:true,
     pronunciationRank:1,
     pronunciationSource:row.source,
-    pronunciationTags,
-    generatedPronunciation,
+    ...(generatedPronunciation?{
+      pronunciationTags,
+      generatedPronunciation:true,
+    }:{}),
     pronunciationNotation:row.notation,
     locale:pronunciationLocale(row),
     dialect:null,
