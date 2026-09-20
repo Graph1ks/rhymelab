@@ -28,6 +28,101 @@ function row(word, score, extras = {}) {
   };
 }
 
+function referenceEagerWriterRanking(rows,localQuery,{limit,diversityWeight=0.18}={}){
+  const requestedLimit=Number.parseInt(String(limit??rows.length??1),10);
+  const selectedLimit=Math.min(
+    rows.length,
+    Math.max(1,Number.isFinite(requestedLimit)?requestedLimit:1),
+  );
+  const remaining=rows.map((candidate,baseIndex)=>({
+    row:candidate,
+    baseIndex,
+    writer:writerUtilityFeatures(candidate,localQuery),
+    maxRedundancy:0,
+  }));
+  const selected=[];
+
+  const state=(candidate)=>{
+    const max=Number(candidate.maxRedundancy||0);
+    const tierPenalty=max>=0.88?2:max>=0.58?1:0;
+    return {
+      effectiveTier:candidate.writer.writerTier+tierPenalty,
+      tierPenalty,
+      diversifiedScore:candidate.writer.utility-diversityWeight*max,
+    };
+  };
+  const lexical=(a,b)=>String(a?.word||'').localeCompare(String(b?.word||''),'de');
+
+  while(remaining.length&&selected.length<selectedLimit){
+    let bestIndex=-1;
+    for(let index=0;index<remaining.length;index++){
+      const candidate=remaining[index];
+      const a=state(candidate);
+      const incumbent=bestIndex>=0?remaining[bestIndex]:null;
+      const b=incumbent?state(incumbent):null;
+      const better=!incumbent
+        ||a.effectiveTier<b.effectiveTier
+        ||(a.effectiveTier===b.effectiveTier&&(
+          candidate.writer.lexicalSafetyTierPenalty<incumbent.writer.lexicalSafetyTierPenalty
+          ||(candidate.writer.lexicalSafetyTierPenalty===incumbent.writer.lexicalSafetyTierPenalty&&(
+            a.diversifiedScore>b.diversifiedScore+1e-9
+            ||(Math.abs(a.diversifiedScore-b.diversifiedScore)<=1e-9&&(
+              candidate.writer.utility>incumbent.writer.utility+1e-9
+              ||(Math.abs(candidate.writer.utility-incumbent.writer.utility)<=1e-9&&(
+                candidate.baseIndex<incumbent.baseIndex
+                ||(candidate.baseIndex===incumbent.baseIndex
+                  &&lexical(candidate.row,incumbent.row)<0)
+              ))
+            ))
+          ))
+        ));
+      if(better)bestIndex=index;
+    }
+
+    const [winner]=remaining.splice(bestIndex,1);
+    const winnerState=state(winner);
+    selected.push({
+      ...winner.row,
+      writerRank:selected.length+1,
+      writer:{
+        ...winner.writer,
+        effectiveTier:winnerState.effectiveTier,
+        diversityTierPenalty:winnerState.tierPenalty,
+        diversifiedScore:Number(winnerState.diversifiedScore.toFixed(4)),
+        redundancyPenalty:Number((diversityWeight*winner.maxRedundancy).toFixed(4)),
+        maxRedundancy:Number(winner.maxRedundancy.toFixed(4)),
+      },
+    });
+
+    for(const candidate of remaining){
+      candidate.maxRedundancy=Math.max(
+        candidate.maxRedundancy,
+        lexicalRedundancy(candidate.row,winner.row),
+      );
+    }
+  }
+  return selected;
+}
+
+function deterministicDiversityRows(count=180){
+  const stems=['arbeits','hochzeits','sonder','kirchen','pilger','pauschal','frage','warte','leben','liebe','reise','weise'];
+  return Array.from({length:count},(_,index)=>{
+    const stem=stems[index%stems.length];
+    const group=Math.floor(index/stems.length);
+    const word=stem+(group%5===0?'reise':group%5===1?'weise':group%5===2?'zeiten':group%5===3?'zeichen':'klang')+index;
+    return row(word,Number((0.99-(index%70)*0.004).toFixed(4)),{
+      rhymeTier:index%9===0?0:index%7===0?2:1,
+      primaryType:index%9===0?'perfect':index%7===0?'family':'multisyllabic_slant',
+      usageRank:index%13===0?null:1000+index*137,
+      lexicalTags:index%31===0?['rare']:[],
+      lemma:index%17===0?'shared-lemma-'+(index%4):word,
+      writerMorphology:index%11===0
+        ?morphology('right:family-'+(index%6))
+        :null,
+    });
+  });
+}
+
 const query = {
   language: 'de',
   surface: 'Arbeitsweise',
@@ -244,4 +339,49 @@ test('family diversity rotates exact rhyme heads before repeating one family', (
   assert.equal(new Set(topThreeFamilies).size, 3);
   assert.ok(ranked.every((item, index) => item.writerRank === index + 1));
   assert.ok(ranked.every((item) => item.writer?.policy === WRITER_RANKING_POLICY));
+});
+
+
+test('lazy Writer diversity preserves the exact eager top prefix',()=>{
+  const rows=deterministicDiversityRows(220);
+  for(const limit of [1,10,40,120,200]){
+    const expected=referenceEagerWriterRanking(rows,query,{limit});
+    const actual=rankWriterRecommendedResults(rows,query,{
+      limit,
+      completeTail:false,
+    }).slice(0,limit);
+    assert.deepEqual(actual,expected);
+  }
+});
+
+test('lazy Writer diversity stays exact across deterministic randomized inputs',()=>{
+  let state=0x9e3779b9;
+  const random=()=>{
+    state^=state<<13;
+    state^=state>>>17;
+    state^=state<<5;
+    return (state>>>0)/4294967296;
+  };
+  for(let round=0;round<18;round++){
+    const rows=Array.from({length:45+Math.floor(random()*55)},(_,index)=>{
+      const prefix=random()<0.35?'arbeits':random()<0.5?'sonder':'wort';
+      const word=prefix+'-'+round+'-'+index+'-'+Math.floor(random()*12);
+      return row(word,Number((0.55+random()*0.45).toFixed(4)),{
+        rhymeTier:Math.floor(random()*4),
+        primaryType:['perfect','multisyllabic_slant','family','slant'][Math.floor(random()*4)],
+        syllableDistance:Math.floor(random()*3),
+        usageRank:random()<0.15?null:1+Math.floor(random()*300000),
+        lexicalTags:random()<0.08?['rare']:[],
+        lemma:random()<0.1?'shared-'+Math.floor(random()*8):word,
+        writerMorphology:random()<0.15
+          ?morphology('right:'+Math.floor(random()*7))
+          :null,
+      });
+    });
+    const limit=Math.min(rows.length,5+Math.floor(random()*35));
+    assert.deepEqual(
+      rankWriterRecommendedResults(rows,query,{limit,completeTail:false}).slice(0,limit),
+      referenceEagerWriterRanking(rows,query,{limit}),
+    );
+  }
 });
