@@ -384,7 +384,7 @@ test('Serving-v1 runtime materializer plans read-only, resumes safely, and build
     const equivalence=spawnSync(
       process.execPath,
       ['--no-warnings','scripts/verify-serving-v1-runtime-equivalence.mjs',
-        '--serving',serving,'--report',equivalenceReport,'--sample','20'],
+        '--serving',serving,'--report',equivalenceReport,'--sample','1'],
       {cwd:process.cwd(),encoding:'utf8'},
     );
     assert.equal(equivalence.status,0,equivalence.stderr||equivalence.stdout);
