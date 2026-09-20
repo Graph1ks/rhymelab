@@ -418,3 +418,143 @@ function generateBackwardPrefix(runtime,tail,random,options){
   const prefix=[];
   const probs=[];
   const seen=new Map(tail.candidate.tokens.map((row)=>[row.norm,1]));
+  let reachedStart=false;
+  for(let step=0;step<maxPrefix;step+=1){
+    const context=suffix.slice(0,MARKOV_MODEL_ORDER);
+    const allowStart=prefix.length>=minPrefix;
+    const chosen=nextReverseToken(runtime,context,random,options,{allowStart,seen});
+    if(!chosen.token)break;
+    if(chosen.token===START_TOKEN){reachedStart=true;break;}
+    prefix.unshift(chosen.token);
+    suffix.unshift(chosen.token);
+    probs.unshift(chosen.probability);
+    seen.set(chosen.token,(seen.get(chosen.token)||0)+1);
+    if(prefix.length>=targetPrefix&&seedTokens.length){
+      const fit=boundaryFit(runtime,seedTokens,prefix);
+      const stopChance=clamp(0.18+fit*0.65+clamp(options.naturalness/100)*0.12);
+      if(random()<stopChance)break;
+    }
+  }
+  const boundary=boundaryFit(runtime,seedTokens,prefix);
+  const transitionNaturalness=probs.length
+    ?Math.exp(probs.reduce((sum,p)=>sum+Math.log(Math.max(p,1e-9)),0)/probs.length)
+    :0;
+  return {prefix,probs,reachedStart,boundary,transitionNaturalness,seedTokens};
+}
+
+function formatTokens(rows,language){
+  const locale=language==='en'?'en-US':'de-DE';
+  let text='';
+  for(const row of rows){
+    const token=String(row.text||'');
+    if(!token)continue;
+    if(isPunctuationToken(token))text=text.replace(/\s+$/u,'')+token+' ';
+    else text+=`${token} `;
+  }
+  text=text.trim().replace(/\s+/gu,' ');
+  if(!text)return '';
+  const chars=[...text];
+  chars[0]=chars[0].toLocaleUpperCase(locale);
+  text=chars.join('');
+  if(!/[.!?…]$/u.test(text))text+='.';
+  return text;
+}
+
+function buildTokenRows(runtime,backward,tail,options){
+  const rows=[];
+  const seed=String(options.seedText||'').trim().replace(/[.!?…,:;]+$/u,'');
+  if(seed)rows.push({text:seed,kind:'seed',generated:false});
+  for(const norm of backward.prefix){
+    rows.push({text:runtime.surfaceFor(norm),norm,kind:'corpus',generated:false});
+  }
+  rows.push({
+    text:tail.candidate.surface,
+    norm:tail.candidate.tokens.map((row)=>row.norm).join(' '),
+    kind:tail.candidate.kind,
+    generated:tail.candidate.generated,
+    score:tail.candidate.writerScore,
+    placeholder:'<RHYME>',
+  });
+  return rows.filter((row)=>row.text);
+}
+
+function localReplacementFit(runtime,leftContext,candidateTokens,rightTokens){
+  let context=[...leftContext].slice(-MARKOV_MODEL_ORDER);
+  let log=0;
+  let count=0;
+  const sequence=[...candidateTokens,...rightTokens.slice(0,2)];
+  for(const token of sequence){
+    const detail=runtime.transitionProbability('forward',context,token);
+    if(detail.probability<=0)return 0;
+    log+=Math.log(detail.probability);
+    count+=1;
+    context.push(token);
+    if(context.length>MARKOV_MODEL_ORDER)context.shift();
+  }
+  return count?Math.exp(log/count):0;
+}
+
+function maybeInjectEcho(runtime,tokenRows,pool,tail,random,options){
+  const pressure=clamp(options.rhymePressure/100);
+  const natural=clamp(options.naturalness/100);
+  const weird=clamp(options.weirdness/100);
+  const forced=['chain','internal','assonance','consonance'].includes(options.mode);
+  if(!forced&&random()>0.18+weird*0.28)return {rows:tokenRows,echoScore:0};
+  const corpusIndices=[];
+  for(let i=0;i<tokenRows.length;i+=1){if(tokenRows[i].kind==='corpus'&&!isPunctuationToken(tokenRows[i].norm))corpusIndices.push(i);}
+  if(corpusIndices.length<3)return {rows:tokenRows,echoScore:0};
+  const rhymeCandidates=pool
+    .filter((candidate)=>candidate.key!==tail.candidate.key)
+    .filter((candidate)=>candidate.tokens.length<=4)
+    .map((candidate)=>({candidate,phonetic:modeScore(candidate.raw,options.mode)}))
+    .sort((a,b)=>b.phonetic-a.phonetic||b.candidate.usage-a.candidate.usage)
+    .slice(0,Math.round(10+weird*18));
+  let best=null;
+  for(const {candidate,phonetic} of rhymeCandidates){
+    if(candidate.kind==='entity'&&!options.allowEntities)continue;
+    if(candidate.kind==='phrase'&&!options.allowPhrases)continue;
+    const candNorms=candidate.tokens.map((row)=>row.norm);
+    if(candNorms.some((token)=>!runtime.tokenInfo(token))&&natural>0.45)continue;
+    for(const index of corpusIndices){
+      if(index===tokenRows.length-1)continue;
+      const before=tokenRows.slice(0,index).flatMap((row)=>row.kind==='seed'?normalizeSeedTokens(row.text,options.language):row.norm?[row.norm]:[]);
+      const after=tokenRows.slice(index+1).flatMap((row)=>row.kind==='corpus'&&row.norm?[row.norm]:row.placeholder==='<RHYME>'?tail.candidate.tokens.map((t)=>t.norm):[]);
+      const left=before.slice(-MARKOV_MODEL_ORDER);
+      const oldNorm=tokenRows[index].norm;
+      const baseline=localReplacementFit(runtime,left,[oldNorm],after);
+      const fit=localReplacementFit(runtime,left,candNorms,after);
+      if(fit<=0)continue;
+      const relative=baseline>0?clamp(Math.sqrt(fit/baseline),0,1):clamp(fit*8);
+      const utility=clamp(phonetic*(0.45+pressure*0.45)+relative*(0.18+natural*0.42)+candidate.usage*0.08);
+      if(natural>0.72&&relative<0.34)continue;
+      const row={candidate,index,phonetic,fit,relative,utility};
+      if(!best||row.utility>best.utility||row.utility===best.utility&&candidate.surface.localeCompare(best.candidate.surface)<0)best=row;
+    }
+  }
+  if(!best)return {rows:tokenRows,echoScore:0};
+  const rows=tokenRows.map((row)=>({...row}));
+  rows[best.index]={
+    text:best.candidate.surface,
+    norm:best.candidate.tokens.map((row)=>row.norm).join(' '),
+    kind:best.candidate.kind,
+    generated:best.candidate.generated,
+    score:best.candidate.writerScore,
+    placeholder:'<ECHO>',
+  };
+  return {rows,echoScore:best.phonetic,echoNaturalness:best.relative};
+}
+
+function sourceCounts(tokens){
+  const counts={corpus:0,word:0,phrase:0,entity:0,seed:0,generated:0};
+  for(const token of tokens){
+    if(Object.hasOwn(counts,token.kind))counts[token.kind]+=1;
+    if(token.generated)counts.generated+=1;
+  }
+  return counts;
+}
+
+function scoreCandidate(backward,tail,echo,tokenRows,options,runtime){
+  const naturalControl=clamp(options.naturalness/100);
+  const pressure=clamp(options.rhymePressure/100);
+  const target=Math.max(4,Number(options.targetTokens)||10);
+  const actual=tokenRows.reduce((sum,row)=>sum+(row.kind==='seed'?normalizeSeedTokens(row.text,options.language).length:tokenizeSurface(row.text,{language:options.language}).length),0);
