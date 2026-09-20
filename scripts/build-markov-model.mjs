@@ -146,7 +146,7 @@ if(plan){
     ready:sourceRows.length>0&&sourceRows.every((row)=>row.available),
     missing_hint:sourceRows.length?'Fix missing explicit source paths before building.':'No implicit corpus is selected. Pass --sentences code=/path/file or --manifest ... --phrase-work ... . Owner-private lyrics are calibration-only.',
   },null,2));
-  process.exit(sourceRows.every((row)=>row.available)?0:2);
+  process.exit(sourceRows.length>0&&sourceRows.every((row)=>row.available)?0:2);
 }
 if(status){
   console.log(JSON.stringify({
