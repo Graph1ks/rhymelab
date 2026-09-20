@@ -171,7 +171,7 @@ function insertPron(db,id,surfaceId,core,generated,ipa,phonemes,stress='1'){
       target_id,target_kind,language,pronunciation_id,syllable_count,canonical_available,
       generated_available,canonical_preferred,generated_preferred
     )
-    SELECT ?, 'pronunciation',language,?,?,?,?,?,?,? FROM surface WHERE surface_id=?
+    SELECT ?, 'pronunciation',language,?,?,?,?,?,? FROM surface WHERE surface_id=?
   `).run(id,id,1,core?1:0,generated?1:0,core?1:0,generated?1:0,surfaceId);
 }
 
