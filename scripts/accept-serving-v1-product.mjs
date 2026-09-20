@@ -23,6 +23,7 @@ import {
   openGeneratedOptinRuntime,
 } from '../src/generated-optin-runtime.mjs';
 import {searchUnifiedWriter} from '../src/unified-writer-search.mjs';
+import {createServingV1ParallelWriterRuntime} from '../src/unified-writer-parallel.mjs';
 import {
   DEFAULT_SERVING_V1_PRODUCT_DB_PATH,
   openServingV1ProductRuntime,
@@ -31,7 +32,7 @@ import {
 
 export const SERVING_V1_PRODUCT_ACCEPTANCE_SCHEMA='rhymelab-serving-v1-product-acceptance-v1';
 export const SERVING_V1_PRODUCT_ACCEPTANCE_POLICY='default-all-strict-parity-core-absorption-aware-v2';
-export const SERVING_V1_PRODUCT_ACCEPTANCE_REVISION='core-all-generated-query-matrix-v3-product-v2-identity-v3';
+export const SERVING_V1_PRODUCT_ACCEPTANCE_REVISION='core-all-generated-query-matrix-v4-product-v2-identity-v3-parallel-v1';
 
 const args=process.argv.slice(2);
 const value=(flag,fallback=null)=>{
@@ -388,11 +389,8 @@ function openWork(path,fingerprint,cases){
   return db;
 }
 
-function runtimeForCase(caseSpec,legacy,serving){
-  if(caseSpec.runtimeMode==='core'){
-    return {legacy:legacy.core,serving:serving.coreDatabases};
-  }
-  return {legacy:legacy.all,serving:serving.allDatabases};
+function legacyRuntimeForCase(caseSpec,legacy){
+  return caseSpec.runtimeMode==='core'?legacy.core:legacy.all;
 }
 
 function runSearch(databases,caseSpec){
@@ -404,6 +402,17 @@ function measured(databases,caseSpec){
   for(let i=0;i<repeats;i++){
     const start=performance.now();
     result=runSearch(databases,caseSpec);
+    times.push(performance.now()-start);
+  }
+  return {result,times};
+}
+async function measuredServing(parallel,caseSpec){
+  const times=[];
+  let result=null;
+  const generatedOverlay=caseSpec.runtimeMode!=='core';
+  for(let i=0;i<repeats;i++){
+    const start=performance.now();
+    result=await parallel.search(caseSpec.input,caseSpec.options,{generatedOverlay});
     times.push(performance.now()-start);
   }
   return {result,times};
@@ -427,6 +436,7 @@ async function main(){
   const legacy=openLegacy();
   const serving=openServingV1ProductRuntime(servingPath);
   let work=null;
+  let parallel=null;
   try{
     const state=servingV1ProductRuntimeState(serving.allDb);
     if(!state.available)throw new Error(state.reason);
@@ -477,6 +487,9 @@ async function main(){
       return;
     }
 
+    parallel=createServingV1ParallelWriterRuntime(servingPath);
+    await parallel.ready();
+
     const already=new Set(work.prepare('SELECT case_id FROM case_result').all().map(r=>r.case_id));
     const insert=work.prepare(`
       INSERT OR REPLACE INTO case_result(
@@ -491,9 +504,11 @@ async function main(){
 
     for(const caseSpec of cases){
       if(already.has(caseSpec.caseId))continue;
-      const runtimes=runtimeForCase(caseSpec,legacy,serving);
-      const legacyRun=measured(runtimes.legacy,caseSpec);
-      const servingRun=measured(runtimes.serving,caseSpec);
+      const legacyRun=measured(
+        legacyRuntimeForCase(caseSpec,legacy),
+        caseSpec,
+      );
+      const servingRun=await measuredServing(parallel,caseSpec);
       const legacySemantic=semanticResponse(legacyRun.result);
       const servingSemantic=semanticResponse(servingRun.result);
       const legacyJson=JSON.stringify(legacySemantic);
@@ -616,6 +631,8 @@ async function main(){
       },
       latency:{
         targets_ms:{p50:targetP50,p95:targetP95,max:targetMax},
+        serving_execution:'persistent-worker-threads-v1',
+        worker_channels:parallel.health().channels,
         legacy:legacyTiming,
         serving:servingTiming,
         improvement_average_percent:legacyTiming.average_ms
@@ -652,6 +669,7 @@ async function main(){
     if(!semanticOk)process.exitCode=1;
     else if(!latencyOk)process.exitCode=2;
   }finally{
+    try{await parallel?.close();}catch{}
     try{work?.close();}catch{}
     serving.close();
     legacy.close();
