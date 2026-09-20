@@ -263,8 +263,8 @@ export function markovModelHealth(runtime){
       error:runtime?.error||null,
       database:runtime?.path||resolve(DEFAULT_MARKOV_MODEL_DB_PATH),
       build_command:'npm run markov:model:build',
-      bootstrap_command:'npm run phrase:catalog:bootstrap',
-      source_requirement:'The default model is built from the existing RhymeLab Phrase/Mosaic catalog. Owner-private lyrics are calibration-only and are never used as model transitions.',
+      source_status_command:'npm run serving:v1:product:status',
+      source_requirement:'The default model is built from Phrase/Mosaic rows inside the canonical data/local/rhymelab-serving-v1.sqlite database. Owner-private lyrics are calibration-only and are never used as model transitions.',
     };
   }
   let bytes=null;
