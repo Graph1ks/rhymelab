@@ -43,3 +43,10 @@ Desktop.ini
 
 # Additional test output
 .nyc_output/
+
+# Private lyric calibration inputs / reports
+/private/
+data/private/
+/suno-officialgraph1ks-lyrics-metadata.json
+*.private-lyrics.json
+data/local/markov-private-*
