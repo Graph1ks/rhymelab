@@ -42,6 +42,11 @@ import {
   resolveServerRuntimeMode,
 } from './server-runtime-mode.mjs';
 import {createServingV1ParallelWriterRuntime} from './unified-writer-parallel.mjs';
+import {
+  generatedDataExplicitlyRequired,
+  generatedDataRequested,
+  generatedOnlyRequested,
+} from './generated-runtime-request-policy.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
@@ -229,21 +234,12 @@ function runtimeDatasetStats(){
   return datasetStatsCache;
 }
 
-function generatedOnlyRequested(url){
-  return url.searchParams.get('generated_only')==='1';
-}
-
 function generatedOptinRequested(url){
-  if(generatedOnlyRequested(url))return true;
-  return url.searchParams.get('generated')!=='0';
-}
-
-function generatedExplicitlyRequired(url){
-  return generatedOnlyRequested(url)||url.searchParams.get('generated')==='1';
+  return generatedDataRequested(url);
 }
 
 function requestRuntimeSelection(url){
-  const generated=generatedOptinRequested(url);
+  const generated=generatedDataRequested(url);
   if(generated&&activeGeneratedRuntime.available){
     return selectGeneratedOptinDatabases(
       canonicalRuntimeDatabases,
@@ -251,7 +247,7 @@ function requestRuntimeSelection(url){
       true,
     );
   }
-  if(generated&&generatedExplicitlyRequired(url)){
+  if(generated&&generatedDataExplicitlyRequired(url)){
     return selectGeneratedOptinDatabases(
       canonicalRuntimeDatabases,
       activeGeneratedRuntime,
