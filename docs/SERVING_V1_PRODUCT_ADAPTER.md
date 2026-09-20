@@ -130,6 +130,12 @@ The hotpath benchmark and Product Acceptance latency measurement both use this p
 
 **No cross-request search caching is introduced by this layer.** There is no result cache, score cache, analysis cache or prepared-feature cache shared between requests. Caching is intentionally deferred until after the existing Serving-v1/parallelization plan is completed and measured.
 
+### Product surface identity
+
+Serving-v1 already stores one `surface` row per `language + normalized` value and records lexical/phrase/Entity roles separately. The Product response now honors that identity instead of re-expanding it into duplicate visible cards.
+
+Word/Core results are preferred as the visible carrier when the same surface also occurs in the Entity channel. Entity QIDs and taxonomy categories remain attached metadata. If no Word result exists, same-name Entity identities collapse to one visible surface result. Distinct Entity QIDs remain preserved in metadata; this is a Product-output consolidation, not destructive storage dedupe.
+
 ## Build workflow
 
 ### Read-only plan
