@@ -311,6 +311,8 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       });
       const phraseEvidence=enrichPhraseMosaicCandidates(runtime.coreDb,'Zeit',phraseRetrieval);
       assert.equal(phraseEvidence.retrievalCandidateCount,phraseRetrieval.candidates.length);
+      assert.equal(phraseRetrieval.bounds.channelsPerAnchor,5);
+      assert.ok(Array.isArray(phraseRetrieval.candidates));
 
       const entitySearch=searchEntityRhymes(runtime.coreDb,getWord(runtime.coreDb,'Zeit'),{
         language:'de',limit:10,poolLimit:16,profileStages:true,
@@ -318,6 +320,9 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       assert.equal(entitySearch.available,true);
       assert.ok(Number.isFinite(
         entitySearch.performanceProfile.stages_ms.anchor_lookup_ms
+      ));
+      assert.ok(Number.isFinite(
+        entitySearch.performanceProfile.stages_ms.anchor_hydration_ms
       ));
       assert.ok(Number.isFinite(
         entitySearch.performanceProfile.stages_ms.category_hydration_ms
