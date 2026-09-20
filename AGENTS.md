@@ -34,6 +34,7 @@ Before changing the project in a fresh thread/session, read:
 26. `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md` for the current client resolver, persistent cache/revalidation contract, browser test, and fresh-thread continuation
 27. `docs/PRONUNCIATION_BACKFILL_V2.md` for the corrected owner-authorized source/stage → accepted diff plus resumable eSpeak → client-resolver staging workflow
 28. `docs/LOCAL_DATA_INVENTORY.md` before changing local source-path assumptions or full-data backfill adapters
+29. `docs/SERVING_V1.md` before changing the experimental unified Serving-v1 identity/dedupe build, Core authority, resume/promotion behavior, or later Serving-v1 runtime promotion
 
 ## Operating model — solo-dev / owner-controlled
 
