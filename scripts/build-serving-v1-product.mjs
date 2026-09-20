@@ -672,43 +672,35 @@ function deSurfaceProfileStage(path){
           excluded.selection_usage_rank_missing < runtime_de_surface_profile.selection_usage_rank_missing
           OR (
             excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
-            AND COALESCE(excluded.usage_rank,9223372036854775807) < COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND COALESCE(excluded.usage_rank,9223372036854775807)
+              < COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
           )
           OR (
             excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
-            AND COALESCE(excluded.usage_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
-            AND excluded.display_surface < runtime_de_surface_profile.display_surface
+            AND COALESCE(excluded.usage_rank,9223372036854775807)
+              = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND excluded.selection_pronunciation_preferred
+              > runtime_de_surface_profile.selection_pronunciation_preferred
           )
           OR (
             excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
-            AND COALESCE(excluded.usage_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
-            AND excluded.display_surface = runtime_de_surface_profile.display_surface
-            AND excluded.selection_pronunciation_preferred > runtime_de_surface_profile.selection_pronunciation_preferred
+            AND COALESCE(excluded.usage_rank,9223372036854775807)
+              = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND excluded.selection_pronunciation_preferred
+              = runtime_de_surface_profile.selection_pronunciation_preferred
+            AND COALESCE(excluded.selection_pronunciation_rank,9223372036854775807)
+              < COALESCE(runtime_de_surface_profile.selection_pronunciation_rank,9223372036854775807)
           )
           OR (
             excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
-            AND COALESCE(excluded.usage_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
-            AND excluded.display_surface = runtime_de_surface_profile.display_surface
-            AND excluded.selection_pronunciation_preferred = runtime_de_surface_profile.selection_pronunciation_preferred
-            AND COALESCE(excluded.selection_pronunciation_rank,9223372036854775807) < COALESCE(runtime_de_surface_profile.selection_pronunciation_rank,9223372036854775807)
-          )
-          OR (
-            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
-            AND COALESCE(excluded.usage_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
-            AND excluded.display_surface = runtime_de_surface_profile.display_surface
-            AND excluded.selection_pronunciation_preferred = runtime_de_surface_profile.selection_pronunciation_preferred
-            AND COALESCE(excluded.selection_pronunciation_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.selection_pronunciation_rank,9223372036854775807)
-            AND excluded.selection_ipa < runtime_de_surface_profile.selection_ipa
-          )
-          OR (
-            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
-            AND COALESCE(excluded.usage_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
-            AND excluded.display_surface = runtime_de_surface_profile.display_surface
-            AND excluded.selection_pronunciation_preferred = runtime_de_surface_profile.selection_pronunciation_preferred
-            AND COALESCE(excluded.selection_pronunciation_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.selection_pronunciation_rank,9223372036854775807)
-            AND excluded.selection_ipa = runtime_de_surface_profile.selection_ipa
+            AND COALESCE(excluded.usage_rank,9223372036854775807)
+              = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND excluded.selection_pronunciation_preferred
+              = runtime_de_surface_profile.selection_pronunciation_preferred
+            AND COALESCE(excluded.selection_pronunciation_rank,9223372036854775807)
+              = COALESCE(runtime_de_surface_profile.selection_pronunciation_rank,9223372036854775807)
             AND excluded.source_hot_id < runtime_de_surface_profile.source_hot_id
-          );
+          )          );
       `);
     },
   };
