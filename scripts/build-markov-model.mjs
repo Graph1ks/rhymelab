@@ -118,3 +118,123 @@ const sourceRows=await sourceStatus(sources);
 if(plan){
   console.log(JSON.stringify({
     schema:'rhymelab-markov-build-plan-v1',
+    policy:MARKOV_MODEL_POLICY,
+    order:MARKOV_MODEL_ORDER,
+    manifest:manifest.id,
+    sources:sourceRows.map(({code,path,available,bytes,manifest})=>({code,path,available,bytes,human_bytes:human(bytes),expected_sentences:manifest?.sentences??null,genre:manifest?.genre??null,year:manifest?.year??null})),
+    config:{maxStates,topK,minTokenCount,batchSentences,maxSentencesPerCorpus},
+    work:workPath,out:outPath,report:reportPath,
+    ready:sourceRows.every((row)=>row.available),
+    missing_hint:'Run npm run phrase:catalog:bootstrap first if the Leipzig extracted sentence files are missing.',
+  },null,2));
+  process.exit(sourceRows.every((row)=>row.available)?0:2);
+}
+if(status){
+  console.log(JSON.stringify({
+    schema:'rhymelab-markov-build-status-v1',
+    work:await exists(workPath)?openStatus(workPath):{path:workPath,missing:true},
+    output:await exists(outPath)?openStatus(outPath):{path:outPath,missing:true},
+    sources:sourceRows.map(({code,path,available,bytes})=>({code,path,available,bytes})),
+  },null,2));
+  process.exit(0);
+}
+if(!sourceRows.every((row)=>row.available)){
+  const missing=sourceRows.filter((row)=>!row.available).map((row)=>row.path);
+  throw new Error(`Missing Leipzig sentence files:\n${missing.join('\n')}\nRun: npm run phrase:catalog:bootstrap`);
+}
+
+await mkdir(dirname(workPath),{recursive:true});
+await mkdir(dirname(outPath),{recursive:true});
+await mkdir(dirname(reportPath),{recursive:true});
+if(reset)await rm(workPath,{force:true});
+
+const config={
+  schema:MARKOV_MODEL_SCHEMA,
+  policy:MARKOV_MODEL_POLICY,
+  order:MARKOV_MODEL_ORDER,
+  language:'de',
+  source_manifest:manifest.id,
+  sources:sourceRows.map((row)=>({code:row.code,path:row.path,bytes:row.bytes,mtimeMs:row.mtimeMs,parent_sha256:row.manifest?.sha256??null})),
+  max_states:maxStates,
+  top_k:topK,
+  min_token_count:minTokenCount,
+  max_sentences_per_corpus:maxSentencesPerCorpus,
+};
+const configFingerprint=sha(config);
+const existed=await exists(workPath);
+const db=new DatabaseSync(workPath);
+db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA temp_store=MEMORY; PRAGMA cache_size=-262144;');
+createMarkovStorage(db);
+const existingMeta=readMeta(db);
+if(existed&&existingMeta.build_config_fingerprint&&existingMeta.build_config_fingerprint!==configFingerprint){
+  db.close();
+  throw new Error('Existing Markov work DB was built with different inputs/options. Re-run with --reset.');
+}
+writeMeta(db,{
+  schema:MARKOV_MODEL_SCHEMA,
+  policy:MARKOV_MODEL_POLICY,
+  language:'de',
+  order:MARKOV_MODEL_ORDER,
+  source_manifest:manifest.id,
+  max_states:maxStates,
+  top_k:topK,
+  min_token_count:minTokenCount,
+  build_config_fingerprint:configFingerprint,
+  build_started_at:existingMeta.build_started_at||new Date().toISOString(),
+});
+
+const tokenUpsert=db.prepare(`
+  INSERT INTO token(norm,count,title_count,upper_count,preferred_surface)
+  VALUES(?,?,?,?,?)
+  ON CONFLICT(norm) DO UPDATE SET
+    count=count+excluded.count,
+    title_count=title_count+excluded.title_count,
+    upper_count=upper_count+excluded.upper_count
+`);
+const stateUpsert=db.prepare(`
+  INSERT INTO state_count(state_key,count,retained) VALUES(?,?,0)
+  ON CONFLICT(state_key) DO UPDATE SET count=count+excluded.count
+`);
+const transitionUpsert=db.prepare(`
+  INSERT INTO transition(direction,context_len,state_key,next_token,count)
+  VALUES(?,?,?,?,?)
+  ON CONFLICT(direction,context_len,state_key,next_token) DO UPDATE SET count=count+excluded.count
+`);
+const checkpointUpsert=db.prepare(`
+  INSERT INTO build_checkpoint(phase,source_index,source_code,line_number,accepted_sentences,updated_at)
+  VALUES(?,?,?,?,?,?)
+  ON CONFLICT(phase,source_index) DO UPDATE SET
+    source_code=excluded.source_code,
+    line_number=excluded.line_number,
+    accepted_sentences=excluded.accepted_sentences,
+    updated_at=excluded.updated_at
+`);
+const checkpointGet=db.prepare('SELECT * FROM build_checkpoint WHERE phase=? AND source_index=?');
+
+function flushPass1(tokenCounts,stateCounts,sourceIndex,sourceCode,lineNumber,accepted){
+  db.exec('BEGIN');
+  try{
+    for(const [norm,row] of tokenCounts)tokenUpsert.run(norm,row.count,row.title,row.upper,norm);
+    for(const [key,count] of stateCounts)stateUpsert.run(key,count);
+    checkpointUpsert.run('scan',sourceIndex,sourceCode,lineNumber,accepted,new Date().toISOString());
+    db.exec('COMMIT');
+  }catch(error){db.exec('ROLLBACK');throw error;}
+  tokenCounts.clear();stateCounts.clear();
+}
+
+async function runPass1(){
+  console.log('Markov build phase 1/3: vocabulary + state census');
+  for(let sourceIndex=0;sourceIndex<sourceRows.length;sourceIndex+=1){
+    const source=sourceRows[sourceIndex];
+    const checkpoint=checkpointGet.get('scan',sourceIndex);
+    let resumeLine=Number(checkpoint?.line_number||0);
+    let accepted=Number(checkpoint?.accepted_sentences||0);
+    let lineNumber=0;
+    let batchAccepted=0;
+    const tokenCounts=new Map();
+    const stateCounts=new Map();
+    console.log(`  ${source.code}: resume line ${resumeLine.toLocaleString('en-US')}`);
+    for await(const line of lineReader(source.path)){
+      lineNumber+=1;
+      if(lineNumber<=resumeLine)continue;
+      if(maxSentencesPerCorpus&&accepted>=maxSentencesPerCorpus)break;
