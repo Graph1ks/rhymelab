@@ -414,6 +414,6 @@ Research leads to evaluate later include RhymePad as an architecture reference, 
 Do not introduce embeddings, LLMs or ML/neural inference into the deterministic core search path without an explicit architecture decision.
 
 
-## Generated pronunciation secondary-channel invariant
+## Generated pronunciation base-parity invariant
 
-Read `docs/PRONUNCIATION_SECONDARY_V1.md` before changing Backfill V2 promotion/runtime behavior. eSpeak A/B generated rows are second-class and **must remain excluded from default search**. A future runtime may expose them only behind explicit user opt-in. Client B/C/D and unresolved U rows are deferred and must remain preserved, not silently dropped or promoted. Canonical DE/EN/Phrase/Entity databases must not be mutated by the secondary materializer.
+Read `docs/PRONUNCIATION_BASE_PARITY_V1.md` before changing Backfill V2 promotion/runtime behavior. eSpeak A/B generated rows are second-class and **must remain excluded from default search**, but when materialized they must use the exact same persistent schema/tables and derived runtime structures as the regular base dataset for their domain. Do not introduce a reduced generated-only schema or extra generated-only metadata model. A future runtime may expose augmented DBs only behind explicit user opt-in. Client B/C/D and unresolved U rows remain deferred and preserved. Canonical DE/EN/Phrase/Entity DB files must not be mutated.

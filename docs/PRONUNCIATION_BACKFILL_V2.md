@@ -407,7 +407,7 @@ npm run pronunciation:backfill:highspeed:test
 Then run eSpeak with four workers and the fastest stable batch size from the v2 report, for example:
 
 ```powershell
-npm run pronunciation:backfill:espeak -- --workers 4 --espeak-batch-size 128 --espeak-frame-group-size 16 --analyzer-workers 4 --analyzer-workers 4
+npm run pronunciation:backfill:espeak -- --workers 4 --espeak-batch-size 128 --espeak-frame-group-size 16 --analyzer-workers 4
 ```
 
 After eSpeak completes, run the client fallback only for analyzer-rejected admitted rows:
@@ -448,6 +448,6 @@ V2 does not mutate accepted Writer, Phrase/Mosaic or Entity DBs.
 The generated workset is staging/review evidence only. Promotion is a later explicit decision and can differ by source scope and quality tier.
 
 
-## Post-backfill secondary catalog
+## Post-backfill base-parity materialization
 
-Backfill V2 generation is complete, but generated pronunciations are not canonical. The post-backfill materialization and owner policy live in `docs/PRONUNCIATION_SECONDARY_V1.md`. Active scope is eSpeak A/B only; Client B/C/D/U are deferred. Generated results are opt-in-only and excluded from default search.
+Backfill V2 generation is complete, but generated pronunciations remain non-canonical and opt-in-only. The post-backfill owner policy is `docs/PRONUNCIATION_BASE_PARITY_V1.md`: eSpeak A/B rows are materialized through augmented copies of the canonical DE/EN/Phrase/Entity databases with exact persistent SQLite schema parity. Client B/C/D/U remain deferred. Default search remains canonical-only.
