@@ -35,7 +35,7 @@ const servingPath=resolve(value('--serving','data/local/rhymelab-serving-v1.sqli
 const workPath=resolve(value('--work','data/local/rhymelab-serving-v1.product-building.sqlite'));
 const copyStatePath=resolve(value('--copy-state',workPath+'.copy-state.json'));
 const reportPath=resolve(value('--report','data/local/rhymelab-serving-v1-product-report.json'));
-const backupPath=resolve(value('--backup','data/local/rhymelab-serving-v1.pre-product.sqlite'));
+const backupPath=resolve(value('--backup','data/local/rhymelab-serving-v1.pre-product-v2.sqlite'));
 
 const now=()=>new Date().toISOString();
 const hash=(v)=>createHash('sha256').update(String(v)).digest('hex');
@@ -634,6 +634,157 @@ function entityWriterAnchorStage(path){
   };
 }
 
+function deSurfaceProfileStage(path){
+  const filter=(last,upper)=>`h.id>${last} AND h.id<=${upper} AND h.pronunciation_eligible=1`;
+  return {
+    name:'08_de_surface_profiles',label:'DE legacy-equivalent surface metadata',path,
+    total(db){attach(db,path);try{return scalar(db,'SELECT COUNT(*) c FROM src.hot WHERE pronunciation_eligible=1');}finally{detach(db);}},
+    max(db){attach(db,path);try{return scalar(db,'SELECT COALESCE(MAX(id),0) c FROM src.hot WHERE pronunciation_eligible=1');}finally{detach(db);}},
+    range(db,last,upper){return scalar(db,`SELECT COUNT(*) c FROM src.hot h WHERE ${filter(last,upper)}`);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT INTO runtime_de_surface_profile(
+          surface_id,source_hot_id,display_surface,usage_rank,usage_score,usage_count,usage_source_count,
+          lemma,part_of_speech,gender,lexicon_layer,entity_kind,historical,lexical_tags_json,
+          selection_usage_rank_missing,selection_pronunciation_preferred,selection_pronunciation_rank,selection_ipa
+        )
+        SELECT
+          s.surface_id,h.id,h.surface,h.usage_rank,h.usage_score,h.usage_count,h.usage_source_count,
+          h.lemma,h.pos,h.gender,h.lexicon_layer,h.entity_kind,h.historical,h.lexical_tags,
+          CASE WHEN h.usage_rank IS NULL THEN 1 ELSE 0 END,
+          h.pronunciation_preferred,h.pronunciation_rank,h.ipa
+        FROM src.hot h
+        JOIN surface s ON s.language='de' AND s.normalized=h.normalized
+        WHERE ${filter(last,upper)}
+        ON CONFLICT(surface_id) DO UPDATE SET
+          source_hot_id=excluded.source_hot_id,
+          display_surface=excluded.display_surface,
+          usage_rank=excluded.usage_rank,
+          usage_score=excluded.usage_score,
+          usage_count=excluded.usage_count,
+          usage_source_count=excluded.usage_source_count,
+          lemma=excluded.lemma,
+          part_of_speech=excluded.part_of_speech,
+          gender=excluded.gender,
+          lexicon_layer=excluded.lexicon_layer,
+          entity_kind=excluded.entity_kind,
+          historical=excluded.historical,
+          lexical_tags_json=excluded.lexical_tags_json,
+          selection_usage_rank_missing=excluded.selection_usage_rank_missing,
+          selection_pronunciation_preferred=excluded.selection_pronunciation_preferred,
+          selection_pronunciation_rank=excluded.selection_pronunciation_rank,
+          selection_ipa=excluded.selection_ipa
+        WHERE
+          excluded.selection_usage_rank_missing < runtime_de_surface_profile.selection_usage_rank_missing
+          OR (
+            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
+            AND COALESCE(excluded.usage_rank,9223372036854775807) < COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+          )
+          OR (
+            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
+            AND COALESCE(excluded.usage_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND excluded.display_surface < runtime_de_surface_profile.display_surface
+          )
+          OR (
+            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
+            AND COALESCE(excluded.usage_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND excluded.display_surface = runtime_de_surface_profile.display_surface
+            AND excluded.selection_pronunciation_preferred > runtime_de_surface_profile.selection_pronunciation_preferred
+          )
+          OR (
+            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
+            AND COALESCE(excluded.usage_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND excluded.display_surface = runtime_de_surface_profile.display_surface
+            AND excluded.selection_pronunciation_preferred = runtime_de_surface_profile.selection_pronunciation_preferred
+            AND COALESCE(excluded.selection_pronunciation_rank,9223372036854775807) < COALESCE(runtime_de_surface_profile.selection_pronunciation_rank,9223372036854775807)
+          )
+          OR (
+            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
+            AND COALESCE(excluded.usage_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND excluded.display_surface = runtime_de_surface_profile.display_surface
+            AND excluded.selection_pronunciation_preferred = runtime_de_surface_profile.selection_pronunciation_preferred
+            AND COALESCE(excluded.selection_pronunciation_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.selection_pronunciation_rank,9223372036854775807)
+            AND excluded.selection_ipa < runtime_de_surface_profile.selection_ipa
+          )
+          OR (
+            excluded.selection_usage_rank_missing = runtime_de_surface_profile.selection_usage_rank_missing
+            AND COALESCE(excluded.usage_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.usage_rank,9223372036854775807)
+            AND excluded.display_surface = runtime_de_surface_profile.display_surface
+            AND excluded.selection_pronunciation_preferred = runtime_de_surface_profile.selection_pronunciation_preferred
+            AND COALESCE(excluded.selection_pronunciation_rank,9223372036854775807) = COALESCE(runtime_de_surface_profile.selection_pronunciation_rank,9223372036854775807)
+            AND excluded.selection_ipa = runtime_de_surface_profile.selection_ipa
+            AND excluded.source_hot_id < runtime_de_surface_profile.source_hot_id
+          );
+      `);
+    },
+  };
+}
+
+function entityAnalysisStage(path){
+  return {
+    name:'09_entity_analysis',label:'Entity precomputed phonetic analyses',path,
+    total(db){return scalar(db,'SELECT COUNT(*) c FROM runtime_entity_pronunciation');},
+    max(db){return scalar(db,'SELECT COALESCE(MAX(product_pronunciation_id),0) c FROM runtime_entity_pronunciation');},
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c FROM runtime_entity_pronunciation
+      WHERE product_pronunciation_id>${last} AND product_pronunciation_id<=${upper}
+    `);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR REPLACE INTO runtime_entity_analysis(
+          product_pronunciation_id,analyzer_id,phonemes_json,syllables_json,syllable_count,
+          primary_stress,secondary_stress_json,stress_pattern,vowel_sequence,consonant_sequence,
+          rhyme_tail,rhyme_signature
+        )
+        SELECT
+          ep.product_pronunciation_id,epa.analyzer_id,epa.phonemes,epa.syllables,epa.syllable_count,
+          epa.primary_stress,epa.secondary_stress,epa.stress_pattern,epa.vowel_sequence,
+          epa.consonant_sequence,epa.rhyme_tail,epa.rhyme_signature
+        FROM runtime_entity_pronunciation ep
+        JOIN runtime_entity_name n USING(name_id)
+        JOIN src.entity_phonetic_analysis epa
+          ON epa.pronunciation_id=ep.product_pronunciation_id
+         AND epa.analyzer_id=CASE n.language
+           WHEN 'en' THEN 'en-pron-v1-candidate'
+           ELSE 'de-ipa-v2'
+         END
+        WHERE ep.product_pronunciation_id>${last}
+          AND ep.product_pronunciation_id<=${upper};
+      `);
+    },
+  };
+}
+
+function entityOccurrenceAnchorStage(path){
+  return {
+    name:'10_entity_occurrence_anchors',label:'Entity occurrence-level retrieval anchors',path,
+    total(db){return scalar(db,'SELECT COUNT(*) c FROM runtime_entity_pronunciation');},
+    max(db){return scalar(db,'SELECT COALESCE(MAX(product_pronunciation_id),0) c FROM runtime_entity_pronunciation');},
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c FROM runtime_entity_pronunciation
+      WHERE product_pronunciation_id>${last} AND product_pronunciation_id<=${upper}
+    `);},
+    run(db,last,upper){
+      db.exec(`
+        INSERT OR IGNORE INTO runtime_entity_anchor_occurrence(
+          analyzer_id,channel,anchor_key,product_pronunciation_id
+        )
+        SELECT a.analyzer_id,a.channel,a.anchor_key,ep.product_pronunciation_id
+        FROM runtime_entity_pronunciation ep
+        JOIN runtime_entity_name n USING(name_id)
+        JOIN src.entity_rhyme_anchor a
+          ON a.pronunciation_id=ep.product_pronunciation_id
+         AND a.analyzer_id=CASE n.language
+           WHEN 'en' THEN 'en-pron-v1-candidate'
+           ELSE 'de-ipa-v2'
+         END
+        WHERE ep.product_pronunciation_id>${last}
+          AND ep.product_pronunciation_id<=${upper};
+      `);
+    },
+  };
+}
+
 function stageDefinitions(paths){
   return [
     deProfileStage(paths.deGenerated),
@@ -643,17 +794,29 @@ function stageDefinitions(paths){
     entityNameStage(paths.entityGenerated),
     entityPronStage(paths.entityGenerated),
     entityWriterAnchorStage(paths.entityGenerated),
+    deSurfaceProfileStage(paths.deGenerated),
+    entityAnalysisStage(paths.entityGenerated),
+    entityOccurrenceAnchorStage(paths.entityGenerated),
   ];
 }
 
 async function context(){
   if(!existsSync(servingPath))throw new Error('Serving-v1 DB missing: '+servingPath);
   const contract=readContract(servingPath);
+  const currentRevision=contract.meta.product_adapter_revision||null;
   if(contract.meta.product_adapter_schema===SERVING_V1_PRODUCT_SCHEMA
     &&contract.meta.product_adapter_status==='complete'
+    &&currentRevision===SERVING_V1_PRODUCT_REVISION
     &&!replace){
-    return {contract,alreadyComplete:true};
+    return {contract,alreadyComplete:true,upgradeFrom:null};
   }
+  const upgradeFrom=
+    contract.meta.product_adapter_schema===SERVING_V1_PRODUCT_SCHEMA
+    &&contract.meta.product_adapter_status==='complete'
+    &&currentRevision
+    &&currentRevision!==SERVING_V1_PRODUCT_REVISION
+      ?currentRevision
+      :null;
   const actual=await validateSources(contract.snapshot);
   const paths=Object.fromEntries(Object.entries(actual).map(([k,v])=>[k,v.path]));
   const fingerprint=hash(JSON.stringify({
@@ -661,7 +824,7 @@ async function context(){
     product_revision:SERVING_V1_PRODUCT_REVISION,
     inputs:actual,
   }));
-  return {contract,actual,paths,fingerprint,alreadyComplete:false};
+  return {contract,actual,paths,fingerprint,alreadyComplete:false,upgradeFrom};
 }
 
 async function plan(db,stages){
@@ -743,11 +906,23 @@ async function main(){
     if(m.runtime_semantic_fingerprint!==ctx.contract.meta.runtime_semantic_fingerprint){
       throw new Error('Product work DB does not match current runtime semantic fingerprint. Use --reset.');
     }
-    if(m.product_adapter_revision&&m.product_adapter_revision!==SERVING_V1_PRODUCT_REVISION){
-      throw new Error('Product adapter build revision changed. Use --reset.');
+    const upgrading=Boolean(
+      ctx.upgradeFrom
+      &&m.product_adapter_revision===ctx.upgradeFrom
+      &&m.product_adapter_status==='complete'
+    );
+    if(m.product_adapter_revision
+      &&m.product_adapter_revision!==SERVING_V1_PRODUCT_REVISION
+      &&!upgrading){
+      throw new Error('Product adapter build revision changed unexpectedly. Use --reset.');
     }
-    if(m.product_adapter_source_fingerprint&&m.product_adapter_source_fingerprint!==ctx.fingerprint){
+    if(m.product_adapter_source_fingerprint
+      &&m.product_adapter_source_fingerprint!==ctx.fingerprint
+      &&!upgrading){
       throw new Error('Product adapter source fingerprint changed. Use --reset.');
+    }
+    if(upgrading){
+      console.log('[serving-product] upgrading '+ctx.upgradeFrom+' -> '+SERVING_V1_PRODUCT_REVISION);
     }
 
     for(const [key,val] of Object.entries({
