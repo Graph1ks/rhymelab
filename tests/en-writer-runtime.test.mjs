@@ -161,7 +161,11 @@ test('generated eSpeak runtime reanalysis applies the complete accepted English 
     ['bɛːd','bɛd'],
     ['sɪː','si'],
     ['fʊːd','fud'],
-    ['dᵻpɹˈa\\u200Dɪm','dɪpɹˈaɪm'],
+    ['dᵻpɹˈa\u200Dɪm','dɪpɹˈaɪm'],
+    ['bɪt|goʊ','bɪt goʊ'],
+    ['bɪt‖goʊ','bɪt goʊ'],
+    ['bɪt_goʊ','bɪt goʊ'],
+    ['bɪt\r\ngoʊ','bɪt goʊ'],
   ];
   for(const [raw,expected] of cases){
     const generated=analyzeStoredEnglishRuntimePronunciation({
