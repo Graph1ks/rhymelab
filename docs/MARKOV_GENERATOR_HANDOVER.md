@@ -229,6 +229,27 @@ Do not prematurely lock:
 
 Those choices depend on the owner's next-thread requirements and measured source/model properties.
 
+## Experimental V1 implementation candidate
+
+The first Markov test-surface implementation now has a focused contract in:
+
+```text
+docs/MARKOV_GENERATOR_V1.md
+```
+
+Current candidate behavior:
+
+- isolated development route at `/markov-test`;
+- deterministic `rhymelab-markov-bootstrap-v1` structural generator;
+- live unified Writer candidates supply Word / Phrase / Entity material;
+- optional Generated material follows runtime capability;
+- rhyme-pressure and explicit rhyme-mode controls include assonance-chain and internal-rhyme experiments;
+- same settings + same seed reproduce the same candidate order;
+- mobile/reduced-motion behavior and primary-control runtime interaction tests are included;
+- this remains an experimental bootstrap model, not the final corpus-trained transition model and not RhymePad product integration.
+
+The next substantive generator phase is corpus-backed transition-model materialization and quality benchmarking, not expanding the bootstrap sentence templates indefinitely.
+
 ## Frozen boundaries to preserve
 
 Unless the owner explicitly changes them:
