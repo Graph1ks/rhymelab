@@ -39,6 +39,14 @@ test('English IPA analyzer ignores Unicode format controls embedded in phonetic 
   assert.equal(withJoiner.exactTailKey,clean.exactTailKey);
 });
 
+test('English IPA analyzer canonicalizes eSpeak US centralized I vowel',()=>{
+  const clean=analyzeEnglishIpa('dɪpɹˈaɪm',{locale:'en-US'});
+  const espeak=analyzeEnglishIpa('dᵻpɹˈa\u200Dɪm',{locale:'en-US'});
+  assert.equal(espeak.canonicalPhonemes,clean.canonicalPhonemes);
+  assert.equal(espeak.stressPattern,clean.stressPattern);
+  assert.equal(espeak.exactTailKey,clean.exactTailKey);
+});
+
 test('English fixture covers exact, multisyllabic, slant-family and independent relation behavior',()=>{
   for(const expectation of fixture.pair_expectations){
     const left=analyses.get(expectation.left),right=analyses.get(expectation.right);
