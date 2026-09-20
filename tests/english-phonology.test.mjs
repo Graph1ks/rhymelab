@@ -33,7 +33,7 @@ test('English canonical analyzer unifies CMUdict ARPAbet and Wiktionary IPA with
 
 test('English IPA analyzer ignores Unicode format controls embedded in phonetic sequences',()=>{
   const clean=analyzeEnglishIpa('ɐbˈaɪm',{locale:'en-US'});
-  const withJoiner=analyzeEnglishIpa('ɐbˈa\\u200Dɪm',{locale:'en-US'});
+  const withJoiner=analyzeEnglishIpa('ɐbˈa\u200Dɪm',{locale:'en-US'});
   assert.equal(withJoiner.canonicalPhonemes,clean.canonicalPhonemes);
   assert.equal(withJoiner.stressPattern,clean.stressPattern);
   assert.equal(withJoiner.exactTailKey,clean.exactTailKey);
