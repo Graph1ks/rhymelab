@@ -2,8 +2,12 @@ import {existsSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {
+  SERVING_V1_PRODUCT_REVISION,
   SERVING_V1_PRODUCT_SCHEMA,
 } from '../scripts/serving-v1-product-core.mjs';
+import {
+  SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
+} from '../scripts/serving-v1-pronunciation-identity.mjs';
 
 export const DEFAULT_SERVING_V1_PRODUCT_DB_PATH=resolve('data/local/rhymelab-serving-v1.sqlite');
 export const SERVING_V1_PRODUCT_RUNTIME='serving-v1-single-db-product-candidate';
@@ -20,21 +24,29 @@ export function servingV1ProductRuntimeState(db){
   const runtimeStatus=metaValue(db,'runtime_status');
   const productSchema=metaValue(db,'product_adapter_schema');
   const productStatus=metaValue(db,'product_adapter_status');
+  const productRevision=metaValue(db,'product_adapter_revision');
+  const identityRevision=metaValue(db,'identity_revision');
   const valid=schema==='rhymelab-serving-v1'
     &&runtimeStatus==='complete'
     &&productSchema===SERVING_V1_PRODUCT_SCHEMA
-    &&productStatus==='complete';
+    &&productStatus==='complete'
+    &&productRevision===SERVING_V1_PRODUCT_REVISION
+    &&identityRevision===SERVING_V1_PRONUNCIATION_IDENTITY_REVISION;
   return {
     available:valid,
     reason:valid?null:
       schema!=='rhymelab-serving-v1'?'serving_v1_schema_mismatch':
       runtimeStatus!=='complete'?'serving_v1_runtime_incomplete':
       productSchema!==SERVING_V1_PRODUCT_SCHEMA?'serving_v1_product_schema_mismatch':
-      'serving_v1_product_incomplete',
+      productStatus!=='complete'?'serving_v1_product_incomplete':
+      productRevision!==SERVING_V1_PRODUCT_REVISION?'serving_v1_product_revision_mismatch':
+      'serving_v1_identity_revision_mismatch',
     schema,
     runtimeStatus,
     productSchema,
     productStatus,
+    productRevision,
+    identityRevision,
     runtimeSemanticFingerprint:metaValue(db,'runtime_semantic_fingerprint'),
     productSemanticFingerprint:metaValue(db,'product_adapter_semantic_fingerprint'),
     runtime:valid?SERVING_V1_PRODUCT_RUNTIME:null,
