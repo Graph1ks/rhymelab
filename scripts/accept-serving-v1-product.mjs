@@ -31,7 +31,7 @@ import {
 
 export const SERVING_V1_PRODUCT_ACCEPTANCE_SCHEMA='rhymelab-serving-v1-product-acceptance-v1';
 export const SERVING_V1_PRODUCT_ACCEPTANCE_POLICY='default-all-strict-parity-core-absorption-aware-v2';
-export const SERVING_V1_PRODUCT_ACCEPTANCE_REVISION='core-all-generated-query-matrix-v3-product-v2-identity-v3';
+export const SERVING_V1_PRODUCT_ACCEPTANCE_REVISION='core-all-generated-query-matrix-v4-source-occurrence-hotpaths';
 
 const args=process.argv.slice(2);
 const value=(flag,fallback=null)=>{
