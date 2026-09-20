@@ -1,6 +1,6 @@
 export const SERVING_V1_PRODUCT_SCHEMA='rhymelab-serving-v1-product-adapter-v1';
 export const SERVING_V1_PRODUCT_POLICY='single-db-legacy-semantic-adapter-v1';
-export const SERVING_V1_PRODUCT_REVISION='compatibility-metadata-and-one-db-routing-v2-occurrence-anchors-identity-v3';
+export const SERVING_V1_PRODUCT_REVISION='bounded-hotpaths-v3-identity-v3';
 
 export function createServingV1ProductStorage(db){
   db.exec(`
@@ -40,6 +40,7 @@ export function createServingV1ProductStorage(db){
 
     CREATE TABLE IF NOT EXISTS runtime_pronunciation_profile(
       pronunciation_id INTEGER PRIMARY KEY REFERENCES pronunciation(pronunciation_id) ON DELETE CASCADE,
+      source_row_id INTEGER,
       source_priority INTEGER NOT NULL,
       source TEXT NOT NULL,
       source_order INTEGER,
@@ -68,6 +69,15 @@ export function createServingV1ProductStorage(db){
     CREATE INDEX IF NOT EXISTS idx_runtime_pron_profile_coda
       ON runtime_pronunciation_profile(coda_class,pronunciation_id);
 
+    -- Product-v3 lookup repair: these two channels were the only DE base lookups
+    -- without a leading-key index in the unified Serving pronunciation table.
+    CREATE INDEX IF NOT EXISTS idx_pron_multi_lookup
+      ON pronunciation(multisyllable_key,eligible,canonical_available,generated_available)
+      WHERE multisyllable_key IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_pron_coda_lookup
+      ON pronunciation(coda_key,eligible,canonical_available,generated_available)
+      WHERE coda_key IS NOT NULL;
+
     CREATE TABLE IF NOT EXISTS runtime_de_surface_profile(
       surface_id INTEGER PRIMARY KEY REFERENCES surface(surface_id) ON DELETE CASCADE,
       source_hot_id INTEGER NOT NULL,
@@ -92,6 +102,45 @@ export function createServingV1ProductStorage(db){
     CREATE INDEX IF NOT EXISTS idx_runtime_de_surface_profile_hot
       ON runtime_de_surface_profile(source_hot_id,surface_id);
 
+    CREATE TABLE IF NOT EXISTS runtime_de_candidate(
+      pronunciation_id INTEGER PRIMARY KEY REFERENCES pronunciation(pronunciation_id) ON DELETE CASCADE,
+      normalized TEXT NOT NULL,
+      syllable_count INTEGER NOT NULL,
+      usage_rank INTEGER,
+      historical INTEGER NOT NULL,
+      core_preferred INTEGER NOT NULL,
+      all_preferred INTEGER NOT NULL,
+      canonical_available INTEGER NOT NULL,
+      generated_available INTEGER NOT NULL,
+      generated_only INTEGER NOT NULL,
+      source_order INTEGER NOT NULL,
+      exact_key TEXT,
+      multisyllable_key TEXT,
+      vowel_key TEXT,
+      vowel_family TEXT,
+      coda_key TEXT,
+      coda_class TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_exact
+      ON runtime_de_candidate(exact_key,syllable_count,usage_rank,source_order)
+      WHERE exact_key IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_multi
+      ON runtime_de_candidate(multisyllable_key,syllable_count,usage_rank,source_order)
+      WHERE multisyllable_key IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_vowel
+      ON runtime_de_candidate(vowel_key,syllable_count,usage_rank,source_order)
+      WHERE vowel_key IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_family
+      ON runtime_de_candidate(vowel_family,syllable_count,usage_rank,source_order)
+      WHERE vowel_family IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_family_coda
+      ON runtime_de_candidate(vowel_family,coda_class,syllable_count,usage_rank,source_order)
+      WHERE vowel_family IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_coda
+      ON runtime_de_candidate(coda_key,syllable_count,usage_rank,source_order)
+      WHERE coda_key IS NOT NULL;
+
     CREATE TABLE IF NOT EXISTS runtime_phrase_profile(
       runtime_phrase_id INTEGER PRIMARY KEY REFERENCES runtime_phrase(runtime_phrase_id) ON DELETE CASCADE,
       token_count INTEGER NOT NULL,
@@ -99,6 +148,21 @@ export function createServingV1ProductStorage(db){
       primary_stress_syllables_json TEXT NOT NULL DEFAULT '[]',
       secondary_stress_syllables_json TEXT NOT NULL DEFAULT '[]'
     );
+
+    CREATE TABLE IF NOT EXISTS runtime_en_key_candidate(
+      channel TEXT NOT NULL,
+      key_value TEXT NOT NULL,
+      pronunciation_id INTEGER NOT NULL REFERENCES pronunciation(pronunciation_id) ON DELETE CASCADE,
+      surface_id INTEGER NOT NULL REFERENCES surface(surface_id) ON DELETE CASCADE,
+      source_order INTEGER NOT NULL,
+      canonical_available INTEGER NOT NULL,
+      generated_available INTEGER NOT NULL,
+      default_eligible INTEGER NOT NULL,
+      PRIMARY KEY(channel,key_value,source_order,pronunciation_id)
+    ) WITHOUT ROWID;
+
+    CREATE INDEX IF NOT EXISTS idx_runtime_en_key_candidate_pron
+      ON runtime_en_key_candidate(pronunciation_id,channel,key_value);
 
     CREATE TABLE IF NOT EXISTS runtime_entity_identity(
       entity_id INTEGER PRIMARY KEY,
@@ -192,6 +256,28 @@ export function createServingV1ProductStorage(db){
     CREATE INDEX IF NOT EXISTS idx_runtime_entity_anchor_occurrence_pron
       ON runtime_entity_anchor_occurrence(product_pronunciation_id,analyzer_id,channel);
 
+    CREATE TABLE IF NOT EXISTS runtime_entity_anchor_ranked(
+      analyzer_id TEXT NOT NULL,
+      channel TEXT NOT NULL,
+      anchor_key TEXT NOT NULL,
+      product_pronunciation_id INTEGER NOT NULL REFERENCES runtime_entity_pronunciation(product_pronunciation_id) ON DELETE CASCADE,
+      language TEXT NOT NULL,
+      locale TEXT,
+      canonical_available INTEGER NOT NULL,
+      generated_available INTEGER NOT NULL,
+      popularity_score REAL NOT NULL,
+      name_preferred INTEGER NOT NULL,
+      qid TEXT NOT NULL,
+      name_id INTEGER NOT NULL,
+      PRIMARY KEY(analyzer_id,channel,anchor_key,product_pronunciation_id)
+    ) WITHOUT ROWID;
+
+    CREATE INDEX IF NOT EXISTS idx_runtime_entity_anchor_ranked_lookup
+      ON runtime_entity_anchor_ranked(
+        analyzer_id,channel,anchor_key,language,locale,
+        popularity_score DESC,name_preferred DESC,qid,name_id,product_pronunciation_id
+      );
+
     CREATE TABLE IF NOT EXISTS runtime_entity_writer_anchor(
       analyzer_id TEXT NOT NULL,
       channel TEXT NOT NULL,
@@ -218,6 +304,9 @@ export function createServingV1ProductStorage(db){
 
 export function resetServingV1ProductStorage(db){
   db.exec(`
+    DROP TABLE IF EXISTS runtime_entity_anchor_ranked;
+    DROP TABLE IF EXISTS runtime_en_key_candidate;
+    DROP TABLE IF EXISTS runtime_de_candidate;
     DROP TABLE IF EXISTS runtime_entity_anchor_occurrence;
     DROP TABLE IF EXISTS runtime_entity_analysis;
     DROP TABLE IF EXISTS runtime_entity_writer_anchor;
@@ -260,6 +349,9 @@ export function servingV1ProductSummary(db){
     entityWriterAnchors:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_writer_anchor'),
     entityAnalyses:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_analysis'),
     entityOccurrenceAnchors:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence'),
+    deHotpathCandidates:scalar(db,'SELECT COUNT(*) c FROM runtime_de_candidate'),
+    enHotpathKeyCandidates:scalar(db,'SELECT COUNT(*) c FROM runtime_en_key_candidate'),
+    entityRankedAnchors:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_anchor_ranked'),
     coreEntityPronunciations:scalar(db,`
       SELECT COUNT(*) c
       FROM runtime_entity_pronunciation ep
