@@ -238,9 +238,12 @@ export function openEntityWriterDb(dbPath = DEFAULT_ENTITY_DB_PATH) {
 }
 
 export function entityWriterCapabilities(db) {
-  if(db&&metaValue(db,'schema')==='rhymelab-serving-v1'){
+  const servingMode=db&&metaValue(db,'schema')==='rhymelab-serving-v1'
+    ?(servingConnectionMode(db)||'all')
+    :null;
+  if(servingMode){
     const cached=servingCapabilityCache.get(db);
-    if(cached)return cached;
+    if(cached?.mode===servingMode)return cached.result;
   }
   if (!db) {
     const unavailable={
@@ -284,8 +287,8 @@ export function entityWriterCapabilities(db) {
     languages:{de,en},
     multilingualAvailable:Boolean(de.available||en.available),
   };
-  if(metaValue(db,'schema')==='rhymelab-serving-v1'){
-    servingCapabilityCache.set(db,result);
+  if(servingMode){
+    servingCapabilityCache.set(db,{mode:servingMode,result});
   }
   return result;
 }
