@@ -217,7 +217,172 @@ export function getWord(db, word) {
   };
 }
 
+
+function tableOrViewExists(db,name){
+  try{
+    return Boolean(
+      db.prepare("SELECT 1 FROM sqlite_schema WHERE name=?").get(name)
+      ||db.prepare("SELECT 1 FROM sqlite_temp_schema WHERE name=?").get(name)
+    );
+  }catch{return false;}
+}
+
+function servingConnectionMode(db){
+  try{return String(db.prepare('SELECT mode FROM temp.serving_runtime_connection').get()?.mode||'all');}
+  catch{return 'all';}
+}
+
+function servingBoundedHotpath(db){
+  try{
+    return db.prepare("SELECT value FROM meta WHERE key='schema'").get()?.value==='rhymelab-serving-v1'
+      &&tableOrViewExists(db,'runtime_de_candidate')
+      &&tableOrViewExists(db,'runtime_de_analysis');
+  }catch{return false;}
+}
+
+function candidateOrder(a,b){
+  return Number(a.usage_rank==null)-Number(b.usage_rank==null)
+    ||Number(a.usage_rank??Number.MAX_SAFE_INTEGER)-Number(b.usage_rank??Number.MAX_SAFE_INTEGER)
+    ||Number(a.source_order||0)-Number(b.source_order||0)
+    ||Number(a.pronunciation_id||0)-Number(b.pronunciation_id||0);
+}
+
+function mergeCandidateBuckets(left,right,limit){
+  const out=[];
+  let i=0,j=0;
+  while(out.length<limit&&(i<left.length||j<right.length)){
+    if(j>=right.length||(i<left.length&&candidateOrder(left[i],right[j])<=0)) out.push(left[i++]);
+    else out.push(right[j++]);
+  }
+  return out;
+}
+
+function servingChannelCandidateIds(
+  db,
+  column,
+  key,
+  querySyllables,
+  {
+    mode='all',
+    includeVariants=false,
+    includeHistorical=false,
+    generatedOnly=false,
+    limit=800,
+    extraColumn=null,
+    extraValue=null,
+  }={},
+){
+  if(key==null||String(key)==='')return [];
+  const allowed=new Set([
+    'exact_key','multisyllable_key','vowel_key','vowel_family','stressed_family','coda_key',
+  ]);
+  if(!allowed.has(column))throw new Error('Unsupported bounded DE candidate column: '+column);
+  if(extraColumn!==null&&extraColumn!=='coda_class'){
+    throw new Error('Unsupported bounded DE candidate extra column: '+extraColumn);
+  }
+  const preferredColumn=mode==='core'?'core_preferred':'all_preferred';
+  const filters=[
+    `${column}=?`,
+    mode==='core'?'canonical_available=1':'(canonical_available=1 OR generated_available=1)',
+    includeVariants?'1=1':`${preferredColumn}=1`,
+    includeHistorical?'1=1':'historical=0',
+    generatedOnly?'generated_only=1':'1=1',
+  ];
+  const baseArgs=[String(key)];
+  if(extraColumn){
+    filters.push(`${extraColumn}=?`);
+    baseArgs.push(String(extraValue??''));
+  }
+  const where=filters.join(' AND ');
+  const bounds=db.prepare(`
+    SELECT MIN(syllable_count) min_syllable,MAX(syllable_count) max_syllable
+    FROM runtime_de_candidate
+    WHERE ${where}
+  `).get(...baseArgs);
+  if(bounds?.min_syllable==null||bounds?.max_syllable==null)return [];
+
+  const queryCount=Math.max(0,Number(querySyllables)||0);
+  const minS=Number(bounds.min_syllable);
+  const maxS=Number(bounds.max_syllable);
+  const maxDistance=Math.max(Math.abs(queryCount-minS),Math.abs(maxS-queryCount));
+  const bucket=db.prepare(`
+    SELECT pronunciation_id,usage_rank,source_order
+    FROM runtime_de_candidate
+    WHERE ${where} AND syllable_count=?
+    ORDER BY usage_rank IS NULL,usage_rank,source_order,pronunciation_id
+    LIMIT ?
+  `);
+  const out=[];
+  for(let distance=0;distance<=maxDistance&&out.length<limit;distance++){
+    const remaining=limit-out.length;
+    const low=queryCount-distance;
+    const high=queryCount+distance;
+    const lowRows=low>=minS&&low<=maxS
+      ?bucket.all(...baseArgs,low,remaining)
+      :[];
+    const highRows=distance>0&&high>=minS&&high<=maxS
+      ?bucket.all(...baseArgs,high,remaining)
+      :[];
+    out.push(...mergeCandidateBuckets(lowRows,highRows,remaining));
+  }
+  return out.map((row)=>Number(row.pronunciation_id));
+}
+
+function hydrateServingCandidates(db,orderedIds){
+  const byId=new Map();
+  for(let offset=0;offset<orderedIds.length;offset+=300){
+    const batch=orderedIds.slice(offset,offset+300);
+    if(!batch.length)continue;
+    const marks=batch.map(()=>'?').join(',');
+    for(const row of db.prepare(`SELECT * FROM hot WHERE id IN (${marks})`).all(...batch)){
+      byId.set(Number(row.id),row);
+    }
+  }
+  return orderedIds.map((id)=>byId.get(Number(id))).filter(Boolean);
+}
+
+function servingCandidatePool(
+  db,queryRow,poolLimit,includeVariants=false,includeHistorical=false,generatedOnly=false
+){
+  const limit=clampLimit(poolLimit,350,800);
+  const mode=servingConnectionMode(db);
+  const orderedIds=[];
+  const seen=new Set();
+  const add=(ids)=>{
+    for(const id of ids){
+      if(seen.has(id))continue;
+      seen.add(id);
+      orderedIds.push(id);
+    }
+  };
+  const common={mode,includeVariants,includeHistorical,generatedOnly,limit};
+  add(servingChannelCandidateIds(db,'exact_key',queryRow.exact_key,queryRow.syllable_count,common));
+  if(queryRow.multisyllable_key){
+    add(servingChannelCandidateIds(db,'multisyllable_key',queryRow.multisyllable_key,queryRow.syllable_count,common));
+  }
+  add(servingChannelCandidateIds(db,'vowel_key',queryRow.vowel_key,queryRow.syllable_count,common));
+  add(servingChannelCandidateIds(db,'vowel_family',queryRow.vowel_family,queryRow.syllable_count,common));
+  const stressedFamily=String(queryRow.vowel_family||'').split('-')[0];
+  if(stressedFamily){
+    add(servingChannelCandidateIds(db,'stressed_family',stressedFamily,queryRow.syllable_count,common));
+  }
+  add(servingChannelCandidateIds(
+    db,'vowel_family',queryRow.vowel_family,queryRow.syllable_count,
+    {...common,extraColumn:'coda_class',extraValue:queryRow.coda_class},
+  ));
+  if(queryRow.coda_key){
+    add(servingChannelCandidateIds(db,'coda_key',queryRow.coda_key,queryRow.syllable_count,common));
+  }
+  return hydrateServingCandidates(db,orderedIds)
+    .filter((row)=>row.normalized!==queryRow.normalized);
+}
+
 function candidatePool(db, queryRow, poolLimit, includeVariants = false, includeHistorical = false, generatedOnly = false) {
+  if(servingBoundedHotpath(db)){
+    return servingCandidatePool(
+      db,queryRow,poolLimit,includeVariants,includeHistorical,generatedOnly
+    );
+  }
   const candidates = new Map();
   const add = (rows) => {
     for (const row of rows) {
@@ -229,7 +394,7 @@ function candidatePool(db, queryRow, poolLimit, includeVariants = false, include
   const preferred = includeVariants ? '' : ' AND pronunciation_preferred=1';
   const historical = includeHistorical ? '' : ' AND historical=0';
   const generated = generatedOnly ? " AND pronunciation_flags LIKE '%secondary_opt_in%'" : '';
-  const order = ' ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank LIMIT ?';
+  const order = ' ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank, id LIMIT ?';
 
   add(db.prepare(`SELECT * FROM hot WHERE exact_key=?${preferred}${historical}${generated}${order}`)
     .all(queryRow.exact_key, queryRow.syllable_count, limit));
@@ -262,6 +427,19 @@ function candidatePool(db, queryRow, poolLimit, includeVariants = false, include
   }
 
   return [...candidates.values()];
+}
+
+const RESULT_ANALYSIS_CACHE=new WeakMap();
+
+function analysisForHotRow(row,profile){
+  if(row?.serving_analysis_json){
+    try{return JSON.parse(row.serving_analysis_json);}catch{}
+  }
+  return profile.analyzeIpa(row.ipa);
+}
+
+export function cachedResultAnalysis(row){
+  return row&&typeof row==='object'?RESULT_ANALYSIS_CACHE.get(row)||null:null;
 }
 
 function resultFromRow(row, score, queryRow, profile) {
@@ -449,10 +627,11 @@ export function findRhymes(db, word, options = {}) {
   const includeVariants = options.includeVariants === true;
   const includeHistorical = options.includeHistorical === true;
   const requestedType = normalizedRequestedType(options.type);
+  const queryOrderId=servingBoundedHotpath(db)?'source_order_id':'id';
   let queryRows = db.prepare(`
     SELECT * FROM hot
     WHERE normalized=? ${includeVariants ? '' : 'AND pronunciation_preferred=1'}
-    ORDER BY usage_rank IS NULL, usage_rank, pronunciation_preferred DESC, pronunciation_rank, id
+    ORDER BY usage_rank IS NULL, usage_rank, pronunciation_preferred DESC, pronunciation_rank, ${queryOrderId}
     LIMIT 12
   `).all(normalized);
 
@@ -460,7 +639,7 @@ export function findRhymes(db, word, options = {}) {
     queryRows = db.prepare(`
       SELECT * FROM hot
       WHERE normalized=?
-      ORDER BY pronunciation_rank, id
+      ORDER BY pronunciation_rank, ${queryOrderId}
       LIMIT 12
     `).all(normalized);
   }
@@ -470,7 +649,7 @@ export function findRhymes(db, word, options = {}) {
   const bestByWord = new Map();
   for (const queryRow of queryRows) {
     let queryAnalysis;
-    try { queryAnalysis = profile.analyzeIpa(queryRow.ipa); }
+    try { queryAnalysis = analysisForHotRow(queryRow,profile); }
     catch { continue; }
 
     for (const candidate of candidatePool(
@@ -482,12 +661,13 @@ export function findRhymes(db, word, options = {}) {
       options.generatedOnly===true,
     )) {
       let candidateAnalysis;
-      try { candidateAnalysis = profile.analyzeIpa(candidate.ipa); }
+      try { candidateAnalysis = analysisForHotRow(candidate,profile); }
       catch { continue; }
 
       const score = profile.scoreAnalyses(queryAnalysis, candidateAnalysis);
       if (score.type === 'weak' && !(score.relationTypes || []).length) continue;
       const result = resultFromRow(candidate, score, queryRow, profile);
+      RESULT_ANALYSIS_CACHE.set(result,candidateAnalysis);
       const current = bestByWord.get(candidate.normalized);
       if (!current) {
         bestByWord.set(candidate.normalized, result);
