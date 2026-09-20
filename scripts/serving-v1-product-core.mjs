@@ -151,6 +151,26 @@ export function createServingV1ProductStorage(db){
       analysis_json TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS runtime_de_writer_candidate(
+      key_value TEXT NOT NULL,
+      pronunciation_id INTEGER NOT NULL REFERENCES pronunciation(pronunciation_id) ON DELETE CASCADE,
+      syllable_count INTEGER NOT NULL,
+      usage_rank INTEGER,
+      historical INTEGER NOT NULL,
+      core_preferred INTEGER NOT NULL,
+      all_preferred INTEGER NOT NULL,
+      canonical_available INTEGER NOT NULL,
+      generated_available INTEGER NOT NULL,
+      generated_only INTEGER NOT NULL,
+      source_order INTEGER NOT NULL,
+      PRIMARY KEY(key_value,source_order,pronunciation_id)
+    ) WITHOUT ROWID;
+
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_writer_candidate_bucket
+      ON runtime_de_writer_candidate(key_value,syllable_count,usage_rank,source_order,pronunciation_id);
+    CREATE INDEX IF NOT EXISTS idx_runtime_de_writer_candidate_pron
+      ON runtime_de_writer_candidate(pronunciation_id,key_value);
+
     CREATE TABLE IF NOT EXISTS runtime_phrase_profile(
       runtime_phrase_id INTEGER PRIMARY KEY REFERENCES runtime_phrase(runtime_phrase_id) ON DELETE CASCADE,
       token_count INTEGER NOT NULL,
@@ -316,6 +336,7 @@ export function resetServingV1ProductStorage(db){
   db.exec(`
     DROP TABLE IF EXISTS runtime_entity_anchor_ranked;
     DROP TABLE IF EXISTS runtime_en_key_candidate;
+    DROP TABLE IF EXISTS runtime_de_writer_candidate;
     DROP TABLE IF EXISTS runtime_de_analysis;
     DROP TABLE IF EXISTS runtime_de_candidate;
     DROP TABLE IF EXISTS runtime_entity_anchor_occurrence;
@@ -362,6 +383,7 @@ export function servingV1ProductSummary(db){
     entityOccurrenceAnchors:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence'),
     deHotpathCandidates:scalar(db,'SELECT COUNT(*) c FROM runtime_de_candidate'),
     dePrecomputedAnalyses:scalar(db,'SELECT COUNT(*) c FROM runtime_de_analysis'),
+    deWriterKeyCandidates:scalar(db,'SELECT COUNT(*) c FROM runtime_de_writer_candidate'),
     enHotpathKeyCandidates:scalar(db,'SELECT COUNT(*) c FROM runtime_en_key_candidate'),
     entityRankedAnchors:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_anchor_ranked'),
     coreEntityPronunciations:scalar(db,`
