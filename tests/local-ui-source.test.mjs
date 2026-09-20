@@ -54,6 +54,8 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(html, /value="syllables"/);
   assert.doesNotMatch(html, /href="\/phrases"/);
 
+  assert.match(html, /id="generatedMode"[^>]*type="checkbox"[^>]*checked[^>]*disabled/);
+  assert.match(app, /generatedOptIn:true,generatedOnly:false/);
   assert.match(html, /id="historicalMode"/);
   assert.match(html, /id="scrollSentinel"/);
   assert.doesNotMatch(html, /id="nextPage"|id="prevPage"|id="pageStatus"/);

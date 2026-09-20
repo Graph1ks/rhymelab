@@ -42,6 +42,11 @@ import {
   resolveServerRuntimeMode,
 } from './server-runtime-mode.mjs';
 import {createServingV1ParallelWriterRuntime} from './unified-writer-parallel.mjs';
+import {
+  generatedDataExplicitlyRequired,
+  generatedDataRequested,
+  generatedOnlyRequested,
+} from './generated-runtime-request-policy.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
@@ -229,19 +234,30 @@ function runtimeDatasetStats(){
   return datasetStatsCache;
 }
 
-function generatedOnlyRequested(url){
-  return url.searchParams.get('generated_only')==='1';
-}
-
 function generatedOptinRequested(url){
-  return url.searchParams.get('generated')==='1'||generatedOnlyRequested(url);
+  return generatedDataRequested(url);
 }
 
 function requestRuntimeSelection(url){
+  const generated=generatedDataRequested(url);
+  if(generated&&activeGeneratedRuntime.available){
+    return selectGeneratedOptinDatabases(
+      canonicalRuntimeDatabases,
+      activeGeneratedRuntime,
+      true,
+    );
+  }
+  if(generated&&generatedDataExplicitlyRequired(url)){
+    return selectGeneratedOptinDatabases(
+      canonicalRuntimeDatabases,
+      activeGeneratedRuntime,
+      true,
+    );
+  }
   return selectGeneratedOptinDatabases(
     canonicalRuntimeDatabases,
     activeGeneratedRuntime,
-    generatedOptinRequested(url),
+    false,
   );
 }
 
@@ -320,7 +336,7 @@ function generatedRuntimeHealth(){
       deferred_total:null,
       phrase_surface_deferred:null,
       query_pronunciation_revision:generatedQueryPronunciationRevision,
-      default_enabled:false,
+      default_enabled:activeGeneratedRuntime.available,
       mode:'serving-v1-all',
       single_database:true,
     };
@@ -335,7 +351,7 @@ function generatedRuntimeHealth(){
     deferred_total:generatedOptinRuntime.available ? generatedOptinRuntime.deferredTotal : 0,
     phrase_surface_deferred:generatedOptinRuntime.available ? generatedOptinRuntime.phraseSurfaceDeferred : 0,
     query_pronunciation_revision:generatedQueryPronunciationRevision,
-    default_enabled:false,
+    default_enabled:activeGeneratedRuntime.available,
     mode:'generated-optin-bundle',
     single_database:false,
   };
@@ -664,7 +680,7 @@ server.listen(port, host, () => {
     console.log(`Serving-v1 SQLite: ${servingV1DbPath}`);
     console.log(`Serving-v1 runtime: ${SERVING_V1_PRODUCT_RUNTIME}`);
     console.log(`Writer execution: ${parallelWriterRuntime.health().execution} · ${parallelWriterRuntime.health().workers} workers`);
-    console.log('Generated opt-in: Serving-v1 all-mode (default OFF)');
+    console.log('Generated data: Serving-v1 all-mode default ON · generated=0 opts out');
   }else{
     console.log(`Writer v5 SQLite: ${writerDbPath}`);
     console.log(`Writer runtime: ${WRITER_RUNTIME_ID}`);

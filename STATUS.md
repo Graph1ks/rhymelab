@@ -18,7 +18,7 @@ git pull --ff-only
 npm run pronunciation:secondary:runtime:accept
 ```
 
-The owner has **not run this command yet**. On success it writes `data/local/generated-optin-runtime-acceptance-v1-report.json` plus the fail-closed enablement marker `data/local/generated-optin-runtime-enabled-v1.json`. Only then should `npm start` expose the Generated Data checkbox as available; it remains default OFF and non-persistent. Do not reopen Client B/C/D/U or the 103 parity-deferred phrase surfaces unless explicitly requested.
+The owner has **not run this command yet**. On success it writes `data/local/generated-optin-runtime-acceptance-v1-report.json` plus the fail-closed enablement marker `data/local/generated-optin-runtime-enabled-v1.json`. Only then should the accepted multi-database runtime expose Generated Data as available; when available it is selected by default for product search and can be explicitly disabled for Core-only control behavior. Do not reopen Client B/C/D/U or the 103 parity-deferred phrase surfaces unless explicitly requested.
 
 Current UI/API follow-up separates query-pronunciation language from result language, exposes exact Entity-category filters from runtime capabilities, consolidates source display into one Sources dialog, reports bounded search-pool counts, and uses per-category More controls for standard browsing. DE source-backed input may target EN word results through the accepted English target phonology; same-language accepted ranking/retrieval behavior remains unchanged.
 
@@ -45,7 +45,13 @@ The owner-preview path `npm run dev:serving` now targets the one-file `data/loca
 
 The synchronous `searchUnifiedWriter()` implementation remains the semantic reference. CI fixture coverage requires the parallel Serving response to deep-equal the serial response for the same request. The Serving hotpath benchmark and Product Acceptance timing now measure the parallel path; the benchmark retains `--serial` as a diagnostic control.
 
-This step deliberately adds **no cross-request search/result/scoring/analysis cache**. Caching is deferred until the already-planned Serving-v1 and worker-parallelization work is finished and measured.
+This step deliberately adds **no cross-request search/result/scoring/analysis cache**. Caching remains deferred.
+
+Generated data is now product-default **ON when the accepted generated-capable runtime is available**. The UI checkbox is checked by default and acts as an explicit opt-out; `generated=0` selects Core-only data. An implicit default request falls back to Core if the generated runtime is unavailable, while explicit `generated=1` / `generated_only=1` remains fail-closed.
+
+German DE -> EN cross-language rhyme search now bridges the rightmost eligible stressed German rhyme tail into English target phonology instead of trying to parse the entire German word as English IPA. Regression coverage protects `Arbeitsweise` vs. `Weise`.
+
+German Word/Writer scoring now includes a fail-closed safe prefilter before prepared/full scoring. It never truncates the candidate pool; it rejects only pairs that cannot possibly satisfy any accepted primary rhyme, assonance, or consonance threshold. Property tests compare the bound against the full scorer, and Serving regression coverage requires optimized vs. full-scorer response equality.
 
 Unified Product presentation now follows Serving-v1 surface identity: one visible `language + normalized surface` result, with Word/Core pronunciation preferred when a lexical result exists and same-name Entity categories/QIDs merged onto that surface. Multiple matching sound relations remain metadata/filterable relations and no longer duplicate the same card across unfiltered sections.
 

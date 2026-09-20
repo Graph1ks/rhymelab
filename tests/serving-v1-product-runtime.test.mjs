@@ -330,6 +330,26 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       assert.ok(profiledDe.results.every((row)=>!('_pronunciationId' in row)));
       assert.ok(profiledDe.results.every((row)=>!('_scoreObject' in row)));
 
+      for(const [mode,db] of [
+        ['core',runtime.coreDb],
+        ['all',runtime.allDb],
+      ]){
+        const optimized=findWriterRhymes(db,'Zeit',{
+          limit:10,
+          poolLimit:50,
+        });
+        const fullScorer=findWriterRhymes(db,'Zeit',{
+          limit:10,
+          poolLimit:50,
+          disableSafePrefilter:true,
+        });
+        assert.deepEqual(
+          optimized,
+          fullScorer,
+          `safe scorer prefilter changed Serving-v1 ${mode} Writer response`,
+        );
+      }
+
       assert.equal(getEnglishWord(runtime.coreDb,'chime'),null);
       assert.equal(getEnglishWord(runtime.allDb,'chime').generatedPronunciation,true);
 

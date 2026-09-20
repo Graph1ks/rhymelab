@@ -20,7 +20,7 @@ DE Entities
 EN Entities
 ```
 
-Each worker owns one long-lived read-only SQLite connection. For an `all` search the eligible channels execute concurrently and the parent process merges their already-deterministic channel results in the same order/shape as the synchronous reference implementation. The browser stays at `http://127.0.0.1:3030/`; no alternate UI is used. The normal Generated checkbox switches worker connections between Serving Core and All compatibility views, while Generated only keeps using the existing provenance filter inside the unified Writer pipeline.
+Each worker owns one long-lived read-only SQLite connection. For an `all` search the eligible channels execute concurrently and the parent process merges their already-deterministic channel results in the same order/shape as the synchronous reference implementation. The browser stays at `http://127.0.0.1:3030/`; no alternate UI is used. Generated data is included by default when the accepted/generated-capable runtime is available. Unchecking the Generated checkbox is an explicit Core-only opt-out; Generated only keeps using the existing provenance filter inside the unified Writer pipeline.
 
 This worker runtime deliberately adds **no cross-request result, score, analysis or prepared-feature cache**. Caching remains deferred; the performance gain here is parallel execution only.
 
@@ -115,8 +115,16 @@ Parameters:
 - `phrase_limit=<n>`, `phrase_pool=<n>`, `phrase_per_channel=<n>` — bounded Phrase/Mosaic controls;
 - `entity_limit=<n>`, `entity_pool=<n>` — bounded Entity controls;
 - `entity_category=<category|all>` — exact Entity taxonomy filter from the runtime capability list;
-- `generated=1` — opt into the accepted augmented runtime bundle;
-- `generated_only=1` — route to the augmented bundle and restrict DE Word, EN Word, Phrase/Mosaic and Entity candidate retrieval to the generated opt-in provenance before ranking/limits.
+- generated data is included by default when the generated-capable runtime is available;
+- `generated=0` — explicitly opt out and use Core-only data;
+- `generated=1` — explicitly require the generated-capable runtime; if it is unavailable, the request fails closed instead of silently using Core;
+- `generated_only=1` — route to the generated-capable runtime and restrict DE Word, EN Word, Phrase/Mosaic and Entity candidate retrieval to Generated provenance before ranking/limits.
+
+### Safe German scorer prefilter
+
+German Word/Writer scoring now has a fail-closed upper-bound stage before expensive prepared-feature/full-score work. It does not shorten the retrieval pool or rank candidates. A candidate is skipped only when a cheap bound proves that the unchanged full scorer cannot satisfy any accepted primary-rhyme, assonance, or consonance threshold. If the proof is inconclusive, the candidate continues through the original scorer.
+
+The implementation retains an internal `disableSafePrefilter` diagnostic option used by regression tests. Serving fixture tests require the complete Writer response with the prefilter enabled to deep-equal the response from the full-scorer control path.
 
 ### Runtime timing
 
@@ -195,7 +203,7 @@ language=de&result_language=both
 German query pronunciation -> German + English results
 ```
 
-For the DE -> EN word path, RhymeLab does **not** look up the German spelling as an English word. It resolves the German source-backed pronunciation first, re-analyzes that pronunciation under the accepted English target phonology, then uses the existing indexed English retrieval/scoring/ranking pipeline. The accepted same-language DE and EN paths remain unchanged.
+For the DE -> EN word path, RhymeLab does **not** look up the German spelling as an English word. It resolves the German source-backed pronunciation first, selects the rightmost eligible stressed German rhyme anchor, adapts only that right-edge rhyme tail into the accepted English target phonology, then uses the existing indexed English retrieval/scoring/ranking pipeline. This prevents irrelevant German-only phones earlier in a compound from killing the English rhyme search; for example, `Arbeitsweise` and `Weise` reach the same right-edge English rhyme neighborhood. The accepted same-language DE and EN paths remain unchanged.
 
 This specifically allows inputs such as `Schwein` to retrieve English candidates from the /aɪn/ rhyme neighborhood without pretending that `Schwein` is an English lexeme.
 

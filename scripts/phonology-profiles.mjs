@@ -1,11 +1,13 @@
 import { analyzeGermanIpa } from './german-ipa.mjs';
 import {
+  germanRhymeMatchUpperBound,
   prepareGermanRhymeAnalysis,
   scoreGermanRhymeAnalyses,
   scorePreparedGermanRhymeAnalyses,
 } from './german-rhyme-features.mjs';
 import {
   germanRightEdgeVowelSuffixKeys,
+  germanWriterRhymeMatchUpperBound,
   prepareGermanRhymeAnchorAnalysis,
   scoreGermanRhymeAnalysesWithAnchors,
   scorePreparedGermanRhymeAnalysesWithAnchors,
@@ -48,9 +50,11 @@ const PROFILES=new Map([
     relationPolicyVersion:'rhyme-relations-v2',
     writerAnchorPolicyVersion:'de-right-edge-anchors-v1',
     analyzeIpa:analyzeGermanIpa,
+    matchUpperBound:germanRhymeMatchUpperBound,
     prepareAnalysis:prepareGermanRhymeAnalysis,
     scoreAnalyses:scoreGermanRhymeAnalyses,
     scorePreparedAnalyses:scorePreparedGermanRhymeAnalyses,
+    writerMatchUpperBound:germanWriterRhymeMatchUpperBound,
     prepareWriterAnalysis:prepareGermanRhymeAnchorAnalysis,
     scoreWriterAnalyses:scoreGermanRhymeAnalysesWithAnchors,
     scorePreparedWriterAnalyses:scorePreparedGermanRhymeAnalysesWithAnchors,

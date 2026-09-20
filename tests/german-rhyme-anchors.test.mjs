@@ -5,6 +5,7 @@ import { prepareGermanRhymeAnalysis } from '../scripts/german-rhyme-features.mjs
 import {
   eligibleGermanRhymeAnchorPositions,
   germanRightEdgeVowelSuffixKeys,
+  germanWriterRhymeMatchUpperBound,
   prepareGermanRhymeAnchorAnalysis,
   scoreGermanRhymeAnalysesWithAnchors,
   scorePreparedGermanRhymeAnalysesWithAnchors,
@@ -74,4 +75,39 @@ test('primary anchor preparation is reused as an exact fallback',()=>{
     assert.strictEqual(prepared.fallback,primary.prepared);
     assert.deepEqual(prepared.fallback,prepareGermanRhymeAnalysis(analysis));
   }
+});
+
+
+test('safe Writer anchor prefilter never rejects an accepted full Writer score',()=>{
+  const ipas=[
+    'ˈaʁbaɪ̯t͡sˌvaɪ̯zə',
+    'ˈhɔxt͡saɪ̯t͡sˌʁaɪ̯zə',
+    'ˈliːbə','ˈtriːbə','ˈmiːtə','naxt','maxt','zuːxt',
+    'ˈhɪt͡səˌfʁaɪ̯','ˈɪnˌhaːbɐ','ˈspɔtɪfaɪ̯','ˈnɔɪ̯ə',
+  ];
+  const analyses=ipas.map(analyzeGermanIpa);
+  const prepared=analyses.map(prepareGermanRhymeAnchorAnalysis);
+  let rejected=0;
+  for(let i=0;i<analyses.length;i++){
+    for(let j=0;j<analyses.length;j++){
+      const full=scorePreparedGermanRhymeAnalysesWithAnchors(
+        prepared[i],
+        prepared[j],
+      );
+      const bound=germanWriterRhymeMatchUpperBound(
+        prepared[i],
+        analyses[j],
+      );
+      const accepted=full.type!=='weak'||(full.relationTypes||[]).length>0;
+      if(accepted){
+        assert.equal(
+          bound.possible,
+          true,
+          `false Writer rejection: ${ipas[i]} -> ${ipas[j]} (${full.type}; ${full.relationTypes})`,
+        );
+      }
+      if(!bound.possible)rejected+=1;
+    }
+  }
+  assert.ok(rejected>0,'Writer prefilter fixture must exercise actual safe rejections');
 });

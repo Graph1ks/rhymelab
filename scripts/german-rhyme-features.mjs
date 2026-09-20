@@ -242,6 +242,152 @@ export function prepareGermanRhymeAnalysis(analysis){
   return prepared;
 }
 
+function sequenceLengthUpperBound(a,b){
+  const m=Number(a?.length||0);
+  const n=Number(b?.length||0);
+  if(!m&&!n)return 1;
+  if(!m||!n)return 0;
+  return Math.min(m,n)/Math.max(m,n);
+}
+
+function rhymeDomainSyllables(analysis){
+  const syllables=Array.isArray(analysis?.syllables)?analysis.syllables:[];
+  const start=Math.max(
+    0,
+    Math.min(
+      Math.max(0,syllables.length-1),
+      Number(analysis?.primaryStressSyllable||1)-1,
+    ),
+  );
+  return syllables.slice(start);
+}
+
+function rawRhymeConsonants(rhyme){
+  return rhyme.flatMap((syllable,index)=>[
+    ...(index===0?[]:(syllable?.onset||[])),
+    ...(syllable?.coda||[]),
+  ]);
+}
+
+/**
+ * Cheap fail-closed upper bound used before the full DE scorer.
+ *
+ * possible=false means the exact scorer cannot produce any accepted primary
+ * rhyme or sound relation. It is therefore safe to skip feature preparation
+ * and the full relation/phonetic scorer for that pair.
+ *
+ * The bound never ranks or truncates candidates. Any candidate that can still
+ * possibly satisfy one accepted relation continues through the unchanged
+ * scorer.
+ */
+export function germanRhymeMatchUpperBound(analysisA,analysisB){
+  const exactRhyme=Boolean(
+    analysisA?.exactTailKey
+    &&analysisA.exactTailKey===analysisB?.exactTailKey
+  );
+  if(exactRhyme){
+    return {
+      possible:true,
+      exactRhyme:true,
+      overallUpperBound:1,
+      primaryPossible:true,
+      assonancePossible:false,
+      consonancePossible:false,
+    };
+  }
+
+  const rhymeA=rhymeDomainSyllables(analysisA);
+  const rhymeB=rhymeDomainSyllables(analysisB);
+  const pairs=Math.max(rhymeA.length,rhymeB.length,1);
+  let vowelSum=0;
+  let codaUpperSum=0;
+  let onsetUpperSum=0;
+  for(let offset=0;offset<pairs;offset++){
+    const aIndex=rhymeA.length-1-offset;
+    const bIndex=rhymeB.length-1-offset;
+    const left=rhymeA[aIndex];
+    const right=rhymeB[bIndex];
+    if(!left||!right)continue;
+    const postStressReducedPair=aIndex>0&&bIndex>0;
+    vowelSum+=postStressReducedPair
+      ?germanRelationVowelSimilarity(left.nucleus,right.nucleus)
+      :vowelSimilarity(left.nucleus,right.nucleus);
+    codaUpperSum+=sequenceLengthUpperBound(left.coda||[],right.coda||[]);
+    onsetUpperSum+=sequenceLengthUpperBound(
+      aIndex===0?[]:(left.onset||[]),
+      bIndex===0?[]:(right.onset||[]),
+    );
+  }
+
+  const vowel=vowelSum/pairs;
+  const codaUpper=codaUpperSum/pairs;
+  const onsetUpper=onsetUpperSum/pairs;
+  const stress=stressSimilarity(
+    rhymeA.map((syllable)=>Number(syllable?.stressLevel||0)),
+    rhymeB.map((syllable)=>Number(syllable?.stressLevel||0)),
+  );
+  const syllable=1-Math.min(
+    1,
+    Math.abs(rhymeA.length-rhymeB.length)
+      /Math.max(rhymeA.length,rhymeB.length,1),
+  );
+  const overallUpperBound=clamp01(
+    0.48*vowel
+    +0.30*codaUpper
+    +0.10*stress
+    +0.08*syllable
+    +0.04*onsetUpper
+  );
+  const primaryPossible=
+    overallUpperBound>=GERMAN_PRIMARY_THRESHOLDS.slantOverall;
+
+  const vowelsA=rhymeA.map((syllable)=>syllable?.nucleus).filter(Boolean);
+  const vowelsB=rhymeB.map((syllable)=>syllable?.nucleus).filter(Boolean);
+  const stressedNucleus=vowelsA.length&&vowelsB.length
+    ?germanRelationVowelSimilarity(vowelsA[0],vowelsB[0])
+    :0;
+  const vowelCoverage=sequenceLengthUpperBound(vowelsA,vowelsB);
+  const vowelSequence=sequenceSimilarity(
+    vowelsA,
+    vowelsB,
+    germanRelationVowelSimilarity,
+  );
+  const assonancePossible=
+    stressedNucleus>=GERMAN_RELATION_THRESHOLDS.assonance.stressedNucleusMin
+    &&vowelCoverage>=GERMAN_RELATION_THRESHOLDS.assonance.minCoverage
+    &&vowelSequence>=GERMAN_RELATION_THRESHOLDS.assonance.vowelSequenceMin;
+
+  const consonantsA=rawRhymeConsonants(rhymeA);
+  const consonantsB=rawRhymeConsonants(rhymeB);
+  const consonantEvidence=consonantsA.length>0&&consonantsB.length>0;
+  const consonantCoverage=consonantEvidence
+    ?sequenceLengthUpperBound(consonantsA,consonantsB)
+    :0;
+  const consonancePossible=
+    consonantEvidence
+    &&consonantCoverage>=GERMAN_RELATION_THRESHOLDS.consonance.minCoverage
+    &&consonantCoverage>=GERMAN_RELATION_THRESHOLDS.consonance.consonantSequenceMin
+    &&vowelSequence<=GERMAN_RELATION_THRESHOLDS.consonance.maxVowelSequence
+    &&stressedNucleus<=GERMAN_RELATION_THRESHOLDS.consonance.maxStressedNucleus;
+
+  return {
+    possible:Boolean(primaryPossible||assonancePossible||consonancePossible),
+    exactRhyme:false,
+    overallUpperBound,
+    primaryPossible,
+    assonancePossible,
+    consonancePossible,
+    vowelUpperBound:vowel,
+    codaUpperBound:codaUpper,
+    onsetUpperBound:onsetUpper,
+    stress,
+    syllable,
+    vowelSequence,
+    vowelCoverage,
+    consonantCoverage,
+  };
+}
+
 export function scorePreparedGermanRhymeAnalyses(preparedA,preparedB) {
   const a=preparedA.analysis;
   const b=preparedB.analysis;

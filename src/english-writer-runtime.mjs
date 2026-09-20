@@ -12,6 +12,11 @@ import {
   retrieveEnglishRuntimeCandidatesFromAnalysis,
 } from '../scripts/en-writer-runtime-core.mjs';
 import { analyzeEnglishIpa } from '../scripts/english-phonology.mjs';
+import { analyzeGermanIpa } from '../scripts/german-ipa.mjs';
+import {
+  eligibleGermanRhymeAnchorPositions,
+  germanAnalysisAtRhymeAnchor,
+} from '../scripts/german-rhyme-anchors.mjs';
 import { SERVING_V1_PRODUCT_SCHEMA } from '../scripts/serving-v1-product-core.mjs';
 import {
   ENGLISH_QUALITY_CANDIDATES,
@@ -519,19 +524,113 @@ function normalizeExternalEnglishIpa(value){
     .trim();
 }
 
-export function searchEnglishWriterFromExternalQuery(db,queryDetail,options={}){
-  const sourceIpa=normalizeExternalEnglishIpa(queryDetail?.preferredIpa||queryDetail?.ipa||'');
-  if(!sourceIpa) return null;
+const GERMAN_TO_ENGLISH_RHYME_TOKEN=new Map([
+  ['R','ɹ'],
+  ['R=','ɚ'],
+  ['ɔʏ','ɔɪ'],
+  ['iː','i'],
+  ['uː','u'],
+  ['ɑː','ɑ'],
+  ['aː','ɑ'],
+  ['ɔː','ɔ'],
+  ['ɛː','ɛ'],
+  ['eː','eɪ'],
+  ['oː','oʊ'],
+  ['y','i'],
+  ['yː','i'],
+  ['ʏ','ɪ'],
+  ['ø','eɪ'],
+  ['øː','eɪ'],
+  ['œ','ɛ'],
+  ['ts','ts'],
+  ['pf','pf'],
+]);
 
-  let queryAnalysis;
+function germanRhymeTokenForEnglish(token){
+  return GERMAN_TO_ENGLISH_RHYME_TOKEN.get(String(token||''))
+    ||String(token||'');
+}
+
+function germanAnchorTailAsEnglishIpa(analysis,anchorPosition){
+  const anchored=germanAnalysisAtRhymeAnchor(analysis,anchorPosition);
+  const start=Math.max(0,Number(anchorPosition||1)-1);
+  const syllables=(anchored?.syllables||[]).slice(start);
+  if(!syllables.length)return null;
+  return syllables.map((syllable,index)=>{
+    const tokens=[
+      ...(index===0?[]:(syllable?.onset||[])),
+      syllable?.nucleus,
+      ...(syllable?.coda||[]),
+    ].filter(Boolean).map(germanRhymeTokenForEnglish);
+    if(!tokens.length)return '';
+    return (index===0?'ˈ':'')+tokens.join('');
+  }).filter(Boolean).join('.');
+}
+
+export function adaptExternalQueryToEnglishAnalysis(queryDetail){
+  const sourceIpa=normalizeExternalEnglishIpa(
+    queryDetail?.preferredIpa||queryDetail?.ipa||''
+  );
+  if(!sourceIpa)return null;
+
+  const sourceLanguage=String(queryDetail?.language||'')
+    .trim()
+    .toLocaleLowerCase('en-US');
+
+  if(sourceLanguage==='de'){
+    try{
+      const german=analyzeGermanIpa(sourceIpa);
+      const positions=eligibleGermanRhymeAnchorPositions(german)
+        .slice()
+        .sort((a,b)=>b-a);
+      for(const position of positions){
+        const adaptedIpa=germanAnchorTailAsEnglishIpa(german,position);
+        if(!adaptedIpa)continue;
+        try{
+          const analysis=analyzeEnglishIpa(adaptedIpa,{
+            locale:'en-US',
+            source:'cross_language_right_edge_bridge',
+          });
+          return {
+            analysis,
+            sourceIpa,
+            adaptedIpa,
+            sourceLanguage:'de',
+            sourceAnchorPosition:position,
+            policy:'source-right-edge-rhyme-tail-to-target-phonology-v2',
+          };
+        }catch{}
+      }
+    }catch{}
+  }
+
   try{
-    queryAnalysis=analyzeEnglishIpa(sourceIpa,{
-      locale:'en-US',
-      source:'cross_language_query_bridge',
-    });
+    return {
+      analysis:analyzeEnglishIpa(sourceIpa,{
+        locale:'en-US',
+        source:'cross_language_query_bridge',
+      }),
+      sourceIpa,
+      adaptedIpa:sourceIpa,
+      sourceLanguage:sourceLanguage||null,
+      sourceAnchorPosition:null,
+      policy:'source-pronunciation-to-target-phonology-v1',
+    };
   }catch{
     return null;
   }
+}
+
+export function searchEnglishWriterFromExternalQuery(db,queryDetail,options={}){
+  const bridge=adaptExternalQueryToEnglishAnalysis(queryDetail);
+  if(!bridge)return null;
+  const {
+    analysis:queryAnalysis,
+    sourceIpa,
+    adaptedIpa,
+    sourceAnchorPosition,
+    policy,
+  }=bridge;
 
   const limit=clampInteger(options.limit,250,1,250);
   const requestedType=RHYME_TYPES.includes(String(options.type||''))
@@ -591,7 +690,9 @@ export function searchEnglishWriterFromExternalQuery(db,queryDetail,options={}){
       sourceLanguage:queryDetail?.language||null,
       targetLanguage:'en',
       sourceIpa,
-      policy:'source-pronunciation-to-target-phonology-v1',
+      adaptedIpa,
+      sourceAnchorPosition,
+      policy,
     },
     rankingPolicy:ENGLISH_WRITER_PRODUCT_POLICY,
     rankingEvidencePolicy:ENGLISH_WRITER_RANKING_V2_POLICY,

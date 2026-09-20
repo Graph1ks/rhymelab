@@ -740,6 +740,7 @@ export function findRhymes(db, word, options = {}) {
   const metrics=profileStages?{
     candidate_lookup_ms:0,
     candidate_hydration_ms:0,
+    safe_prefilter_ms:0,
     analysis_feature_preparation_ms:0,
     phonetic_scoring_ms:0,
     result_construction_ms:0,
@@ -750,6 +751,8 @@ export function findRhymes(db, word, options = {}) {
     candidates_hydrated:0,
     ranking_metadata_rows:0,
     rich_results_hydrated:0,
+    safe_prefilter_checks:0,
+    safe_prefilter_rejections:0,
     scoring_calls:0,
     unique_scoring_pairs:0,
     analysis_cache_hits:0,
@@ -836,6 +839,21 @@ export function findRhymes(db, word, options = {}) {
       let candidatePrepared;
       try {
         candidateAnalysis=analysisFor(candidate);
+        if(
+          options.disableSafePrefilter!==true
+          &&typeof profile.matchUpperBound==='function'
+        ){
+          const prefilterStarted=metrics?performance.now():0;
+          const bound=profile.matchUpperBound(queryAnalysis,candidateAnalysis);
+          if(metrics){
+            metrics.safe_prefilter_ms+=performance.now()-prefilterStarted;
+            metrics.safe_prefilter_checks+=1;
+          }
+          if(!bound?.possible){
+            if(metrics)metrics.safe_prefilter_rejections+=1;
+            continue;
+          }
+        }
         candidatePrepared=preparedFor(candidate,candidateAnalysis);
       } catch { continue; }
 

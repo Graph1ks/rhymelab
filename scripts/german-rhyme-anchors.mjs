@@ -1,4 +1,5 @@
 import {
+  germanRhymeMatchUpperBound,
   prepareGermanRhymeAnalysis,
   scoreGermanRhymeAnalyses,
   scorePreparedGermanRhymeAnalyses,
@@ -144,6 +145,63 @@ export function prepareGermanRhymeAnchorAnalysis(analysis){
     // The primary anchor is the same stressed-rhyme domain as the original
     // analysis. Reuse it instead of preparing the same feature vector twice.
     fallback:primaryPrepared||prepareGermanRhymeAnalysis(analysis),
+  };
+}
+
+export function germanWriterRhymeMatchUpperBound(preparedQuery,candidateAnalysis){
+  const candidateSyllables=Array.isArray(candidateAnalysis?.syllables)
+    ?candidateAnalysis.syllables
+    :[];
+  const candidatePositions=eligibleGermanRhymeAnchorPositions(candidateAnalysis);
+  let comparablePairs=0;
+  let bestUpperBound=0;
+
+  for(const leftAnchor of preparedQuery?.anchors||[]){
+    for(const position of candidatePositions){
+      const tailSyllables=Math.max(
+        0,
+        candidateSyllables.length-position+1,
+      );
+      if(Math.abs(leftAnchor.tailSyllables-tailSyllables)>1)continue;
+      comparablePairs+=1;
+      const anchored=germanAnalysisAtRhymeAnchor(candidateAnalysis,position);
+      const bound=germanRhymeMatchUpperBound(
+        leftAnchor.prepared.analysis,
+        anchored,
+      );
+      bestUpperBound=Math.max(
+        bestUpperBound,
+        Number(bound.overallUpperBound||0),
+      );
+      if(bound.possible){
+        return {
+          possible:true,
+          comparablePairs,
+          bestUpperBound,
+          fallback:false,
+        };
+      }
+    }
+  }
+
+  if(comparablePairs===0){
+    const fallback=germanRhymeMatchUpperBound(
+      preparedQuery?.fallback?.analysis||preparedQuery?.analysis,
+      candidateAnalysis,
+    );
+    return {
+      possible:fallback.possible,
+      comparablePairs:0,
+      bestUpperBound:Number(fallback.overallUpperBound||0),
+      fallback:true,
+    };
+  }
+
+  return {
+    possible:false,
+    comparablePairs,
+    bestUpperBound,
+    fallback:false,
   };
 }
 

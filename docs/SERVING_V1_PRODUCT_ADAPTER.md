@@ -130,6 +130,9 @@ The hotpath benchmark and Product Acceptance latency measurement both use this p
 
 **No cross-request search caching is introduced by this layer.** There is no result cache, score cache, analysis cache or prepared-feature cache shared between requests. Caching is intentionally deferred until after the existing Serving-v1/parallelization plan is completed and measured.
 
+The German Word path additionally uses a fail-closed scorer upper bound. It can bypass prepared-feature/full-score work only for candidates that are mathematically unable to reach any accepted primary rhyme or sound-relation threshold. Retrieval populations and accepted scoring/ranking semantics are unchanged. CI compares the optimized response against the same Serving fixture with the prefilter disabled.
+
+
 ### Product surface identity
 
 Serving-v1 already stores one `surface` row per `language + normalized` value and records lexical/phrase/Entity roles separately. The Product response now honors that identity instead of re-expanding it into duplicate visible cards.
@@ -194,7 +197,7 @@ A non-default product preview is available on `main`:
 npm run dev:serving
 ```
 
-It routes the normal browser UI and primary local API through this adapter using the same Serving-v1 file for DE Words, EN Words, Phrase/Mosaic and Entities. The five result channels above run through persistent workers rather than serially on the server thread. Core mode remains the preview default; the existing Generated UI toggle switches the worker connections to the adapter's All mode. This preview is explicitly for owner hands-on testing and does not satisfy or bypass the final Product Acceptance switch gate.
+It routes the normal browser UI and primary local API through this adapter using the same Serving-v1 file for DE Words, EN Words, Phrase/Mosaic and Entities. The five result channels above run through persistent workers rather than serially on the server thread. All mode is the preview product default when Generated data is available; unchecking the Generated UI toggle switches the worker connections to Core mode. This preview is explicitly for owner hands-on testing and does not satisfy or bypass the final Product Acceptance switch gate.
 
 ## Retrieval equivalence hardening
 

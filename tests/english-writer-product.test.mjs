@@ -14,6 +14,7 @@ import {
   ENGLISH_WRITER_DIVERSITY_WEIGHT,
   ENGLISH_WRITER_PRODUCT_POLICY,
   ENGLISH_WRITER_QUALITY_ID,
+  adaptExternalQueryToEnglishAnalysis,
   englishWriterCapabilities,
   getEnglishWord,
   searchEnglishWriter,
@@ -106,6 +107,7 @@ function fixtureEnglishDb(){
   insertEnglishPublishRow(insert,publishRow(6,'station','S T EY1 SH AH0 N',{rank:1700,zipf:4.7}));
   insertEnglishPublishRow(insert,publishRow(7,'wine','W AY1 N',{rank:2650,zipf:4.5}));
   insertEnglishPublishRow(insert,publishRow(8,'shine','SH AY1 N',{rank:4100,zipf:4.2}));
+  insertEnglishPublishRow(insert,publishRow(9,'wiser','W AY1 Z ER0',{rank:4500,zipf:4.1}));
   const meta=db.prepare('INSERT INTO meta(key,value) VALUES(?,?)');
   const values={
     schema:ACCEPTED_ENGLISH_DB_SCHEMA,
@@ -264,6 +266,57 @@ test('German source pronunciation can retrieve English rhymes without requiring 
     assert.equal(result.writerRetrieval.crossLanguage,true);
     assert.ok(result.results.some((row)=>row.normalized==='wine'));
     assert.ok(result.results.some((row)=>row.normalized==='shine'));
+  }finally{
+    db.close();
+  }
+});
+
+
+test('Arbeitsweise and Weise bridge to the same English right-edge rhyme neighborhood',()=>{
+  const arbeitsweise={
+    kind:'word',
+    language:'de',
+    surface:'Arbeitsweise',
+    normalized:'arbeitsweise',
+    preferredIpa:'ˈaʁbaɪ̯t͡sˌvaɪ̯zə',
+    syllableCount:4,
+  };
+  const weise={
+    kind:'word',
+    language:'de',
+    surface:'Weise',
+    normalized:'weise',
+    preferredIpa:'ˈvaɪ̯zə',
+    syllableCount:2,
+  };
+
+  const aBridge=adaptExternalQueryToEnglishAnalysis(arbeitsweise);
+  const wBridge=adaptExternalQueryToEnglishAnalysis(weise);
+  assert.ok(aBridge);
+  assert.ok(wBridge);
+  assert.equal(aBridge.policy,'source-right-edge-rhyme-tail-to-target-phonology-v2');
+  assert.equal(wBridge.policy,'source-right-edge-rhyme-tail-to-target-phonology-v2');
+  assert.equal(aBridge.analysis.exactTailKey,wBridge.analysis.exactTailKey);
+  assert.equal(aBridge.analysis.vowelKey,wBridge.analysis.vowelKey);
+  assert.equal(aBridge.analysis.codaKey,wBridge.analysis.codaKey);
+  assert.ok(aBridge.sourceAnchorPosition>1);
+
+  const db=fixtureEnglishDb();
+  try{
+    const a=searchEnglishWriterFromExternalQuery(db,arbeitsweise,{limit:20});
+    const w=searchEnglishWriterFromExternalQuery(db,weise,{limit:20});
+    assert.ok(a);
+    assert.ok(w);
+    assert.equal(a.crossLanguageQuery.policy,'source-right-edge-rhyme-tail-to-target-phonology-v2');
+    assert.equal(w.crossLanguageQuery.policy,'source-right-edge-rhyme-tail-to-target-phonology-v2');
+    assert.ok(a.results.length>0,'Arbeitsweise must not collapse to zero English rhymes');
+    assert.ok(w.results.length>0,'Weise control must keep English rhymes');
+    assert.ok(a.results.some((row)=>row.normalized==='wiser'));
+    assert.ok(w.results.some((row)=>row.normalized==='wiser'));
+    assert.deepEqual(
+      a.results.map((row)=>row.normalized),
+      w.results.map((row)=>row.normalized),
+    );
   }finally{
     db.close();
   }
