@@ -5,6 +5,12 @@ import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { findRhymes, getStats, getWord, openRhymeDb, searchWords } from './local-engine.mjs';
 import { DEFAULT_WRITER_DB_PATH, openWriterDb } from './experimental-writer-db.mjs';
+import {
+  DEFAULT_MARKOV_MODEL_DB_PATH,
+  generateCorpusMarkovCandidates,
+  markovModelHealth,
+  openMarkovModel,
+} from './markov-model-runtime.mjs';
 import { WRITER_RUNTIME_ID, selectRhymeRuntimeDatabases } from './runtime-db-routing.mjs';
 import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
@@ -61,6 +67,7 @@ const servingV1DbPath=resolve(
 const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYMELAB_DB || 'data/local/rhymelab.sqlite');
 const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
 const phraseDbPath = resolve(process.env.RHYMELAB_PHRASE_DB || 'data/local/rhymelab-phrases-v1.sqlite');
+const markovModelPath = resolve(process.env.RHYMELAB_MARKOV_DB || DEFAULT_MARKOV_MODEL_DB_PATH);
 const entityDbPath = resolve(process.env.RHYMELAB_ENTITY_DB || DEFAULT_ENTITY_DB_PATH);
 const englishDbPath = resolve(process.env.RHYMELAB_ENGLISH_DB || DEFAULT_ENGLISH_WRITER_DB_PATH);
 const englishMarkerPath = resolve(
@@ -206,6 +213,12 @@ const generatedOptinRuntime=servingV1Preview
 if(!servingV1Preview&&!generatedOptinRuntime.available){
   console.warn('Generated opt-in runtime unavailable: '+generatedOptinRuntime.reason);
   if(generatedOptinRuntime.error)console.warn(generatedOptinRuntime.error);
+}
+
+const markovRuntime=openMarkovModel(markovModelPath);
+if(!markovRuntime.available){
+  console.warn(`Markov corpus model unavailable at ${markovModelPath}: ${markovRuntime.reason}`);
+  console.warn('Build it with: npm run markov:model:build');
 }
 
 const acceptedRuntimeDatabases={
@@ -469,6 +482,44 @@ const server = createServer(async (req, res) => {
       return json(res, { saved, summary: state.summary, next_task: state.next_task }, 200, false);
     }
 
+    if (url.pathname === '/api/markov/generate') {
+      if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405, false);
+      if (!isAllowedLocalWriteOrigin(req)) return json(res, { error: 'Markov generation is localhost-only' }, 403, false);
+      if (!markovRuntime.available) {
+        return json(res, {
+          error: 'Markov corpus model unavailable.',
+          reason: markovRuntime.reason,
+          detail: markovRuntime.error,
+          build_command: 'npm run markov:model:build',
+        }, 503, false);
+      }
+      const body=await readJsonBody(req,512*1024);
+      const rows=Array.isArray(body?.rows)?body.rows.slice(0,600):[];
+      if(rows.length<2)return json(res,{error:'At least two Writer candidates are required.'},400,false);
+      const language=body?.language==='en'?'en':'de';
+      try{
+        const candidates=generateCorpusMarkovCandidates(markovRuntime,{
+          rows,
+          language,
+          seedText:String(body?.seedText||'').slice(0,1000),
+          target:String(body?.target||'').slice(0,240),
+          seed:Number(body?.seed)||0,
+          targetTokens:Number(body?.targetTokens)||10,
+          rhymePressure:Number(body?.rhymePressure)||0,
+          naturalness:Number(body?.naturalness)||0,
+          weirdness:Number(body?.weirdness)||0,
+          mode:String(body?.mode||'balanced').slice(0,40),
+          allowEntities:body?.allowEntities!==false,
+          allowPhrases:body?.allowPhrases!==false,
+          count:Number(body?.count)||8,
+          attempts:Number(body?.attempts)||48,
+        });
+        return json(res,{candidates,model:markovModelHealth(markovRuntime)},200,false);
+      }catch(error){
+        return json(res,{error:error instanceof Error?error.message:String(error)},400,false);
+      }
+    }
+
     if (req.method !== 'GET') return json(res, { error: 'Method not allowed' }, 405);
 
     if (url.pathname === '/api/benchmark/state') {
@@ -487,6 +538,7 @@ const server = createServer(async (req, res) => {
       return json(res, {
         status: 'ok',
         mode: 'local',
+        markov_generator: markovModelHealth(markovRuntime),
         package_runtime: servingV1Preview ? 'serving-v1-product-preview' : 'writer-v5-default',
         writer_database: canonicalRuntimeDatabases.writerDb ? canonicalRuntimePaths.writer : null,
         writer_runtime: servingV1Preview ? SERVING_V1_PRODUCT_RUNTIME : WRITER_RUNTIME_ID,
@@ -683,6 +735,7 @@ server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymePad workspace: http://${host}:${port}/pad`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
+  console.log(`Markov corpus model: ${markovRuntime.available ? markovModelPath : 'unavailable — npm run markov:model:build'}`);
   if(servingV1Preview){
     console.log(`Product runtime: Serving-v1 preview`);
     console.log(`Serving-v1 SQLite: ${servingV1DbPath}`);
@@ -711,6 +764,7 @@ function shutdown() {
     try { entityDb?.close(); } catch {}
     try { englishDb?.close(); } catch {}
     try { generatedOptinRuntime.close(); } catch {}
+    try { markovRuntime.close(); } catch {}
     try { servingV1Runtime?.close(); } catch {}
     process.exit(0);
   });
