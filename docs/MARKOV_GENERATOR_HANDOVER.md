@@ -227,7 +227,7 @@ Do not prematurely lock:
 - model storage format;
 - UI behavior.
 
-Those choices were open at handover creation. The experimental lyric-calibrated V1 now uses the existing RhymeLab Phrase/Mosaic catalog as its default transition source, while private owner lyrics contribute only aggregate structure. Model order, reverse generation and line-shape scoring remain acceptance-reversible.
+Those choices were open at handover creation. The experimental lyric-calibrated V1 now uses the canonical Serving-v1 database as its default transition source, while private owner lyrics contribute only aggregate structure. Model order, reverse generation and line-shape scoring remain acceptance-reversible.
 
 ## Experimental V1 implementation candidate
 
@@ -249,7 +249,7 @@ Current candidate behavior:
 - Naturalness affects transition sampling, tail support, opener joins and splice rejection;
 - aggregate lyric-line shape calibrates line-length scoring and UI defaults;
 - missing model disables generation; no hand-written template fallback exists;
-- the default transition source is the existing local `data/local/rhymelab-phrases-v1.sqlite` Phrase/Mosaic catalog;
+- the default transition source is the existing local `data/local/rhymelab-serving-v1.sqlite` Phrase/Mosaic catalog;
 - `npm run markov:model:build` deterministically exports modern 2–16-token phrase rows and materializes the transition model;
 - private owner lyrics are not used for the transition model;
 - the former implicit three-Leipzig-1M-corpus build default has been removed.
@@ -285,10 +285,10 @@ The report is written under ignored local data and is not a production artifact.
 
 ### Model build
 
-The default source is now RhymeLab's own materialized Phrase/Mosaic catalog:
+The default source is now the canonical Serving-v1 product database:
 
 ```text
-data/local/rhymelab-phrases-v1.sqlite
+data/local/rhymelab-serving-v1.sqlite
 ```
 
 Normal owner flow:
@@ -299,10 +299,11 @@ npm run markov:model:build
 npm run markov:model:status
 ```
 
-If the Phrase/Mosaic database itself is missing:
+If the Serving-v1 database is missing or invalid:
 
 ```powershell
-npm run phrase:catalog:bootstrap
+npm run serving:v1:product:status
+npm run serving:v1:product:build
 npm run markov:model:build
 npm run markov:model:status
 ```
