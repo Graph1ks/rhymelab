@@ -100,136 +100,128 @@ export function installServingV1CompatibilityViews(db,{mode='all'}={}){
 
     CREATE TEMP VIEW hot AS
     SELECT
-      p.pronunciation_id AS id,
-      dp.source_hot_id AS publish_order,
-      dp.display_surface AS surface,
-      s.normalized,
-      dp.usage_rank,
-      dp.usage_score,
-      dp.usage_count,
-      dp.usage_source_count,
-      dp.lemma,
-      dp.part_of_speech AS pos,
-      dp.gender,
-      dp.lexicon_layer,
-      dp.entity_kind,
-      COALESCE(dp.historical,0) AS historical,
-      dp.lexical_tags_json AS lexical_tags,
-      COALESCE(p.ipa,p.raw) AS ipa,
-      p.phonemes,
-      p.syllable_count,
-      p.stress_pattern AS stress,
-      p.primary_stress,
-      pp.rhyme_tail,
-      pp.final_tail,
-      pp.vowels,
-      pp.consonants,
-      p.exact_key,
-      p.multisyllable_key,
-      p.vowel_key,
-      p.vowel_family,
-      p.coda_key,
-      pp.coda_class,
-      pp.rhyme_syllables,
-      COALESCE(pp.pronunciation_rank,1) AS pronunciation_rank,
-      ${preferredExpression(mode,'p')} AS pronunciation_preferred,
-      p.eligible AS pronunciation_eligible,
-      pp.evidence_count AS pronunciation_evidence,
-      pp.source_order AS pronunciation_source_order,
-      pp.source AS pronunciation_source,
-      pp.tags_json AS pronunciation_tags,
-      pp.raw_tags_json AS pronunciation_raw_tags,
-      pp.flags_json AS pronunciation_flags,
-      pp.locale,
-      pp.dialect,
-      pp.register AS pronunciation_register,
+      o.id,
+      o.publish_order,
+      o.surface,
+      o.normalized,
+      o.usage_rank,
+      o.usage_score,
+      o.usage_count,
+      o.usage_source_count,
+      o.lemma,
+      o.pos,
+      o.gender,
+      o.lexicon_layer,
+      o.entity_kind,
+      o.historical,
+      o.lexical_tags,
+      o.ipa,
+      o.phonemes,
+      o.syllable_count,
+      o.stress,
+      o.primary_stress,
+      o.rhyme_tail,
+      o.final_tail,
+      o.vowels,
+      o.consonants,
+      o.exact_key,
+      o.multisyllable_key,
+      o.vowel_key,
+      o.vowel_family,
+      o.coda_key,
+      o.coda_class,
+      o.rhyme_syllables,
+      o.pronunciation_rank,
+      o.pronunciation_preferred,
+      o.pronunciation_eligible,
+      o.pronunciation_evidence,
+      o.pronunciation_source_order,
+      o.pronunciation_source,
+      o.pronunciation_tags,
+      o.pronunciation_raw_tags,
+      o.pronunciation_flags,
+      o.locale,
+      o.dialect,
+      o.pronunciation_register,
       p.canonical_available,
-      p.generated_available
-    FROM pronunciation p
-    JOIN surface s USING(surface_id)
-    JOIN runtime_de_surface_profile dp USING(surface_id)
-    JOIN runtime_pronunciation_profile pp USING(pronunciation_id)
-    WHERE s.language='de'
-      AND p.eligible=1
-      AND ${pronAvailability}
-      AND EXISTS(
-        SELECT 1 FROM surface_role sr
-        WHERE sr.surface_id=s.surface_id AND sr.role='lexical'
-      );
+      p.generated_available,
+      o.source_generated AS serving_source_generated,
+      o.genuine_generated AS serving_genuine_generated,
+      o.serving_pronunciation_id
+    FROM runtime_de_word_occurrence o
+    JOIN pronunciation p ON p.pronunciation_id=o.serving_pronunciation_id
+    WHERE ${mode==='core'?'o.source_generated=0 AND p.canonical_available=1':'1=1'};
 
     CREATE TEMP VIEW en_form AS
     SELECT
-      s.surface_id AS id,
-      s.display_surface AS surface,
-      s.normalized,
-      lp.en_surface_variants_json AS surface_variants,
-      lp.en_poses_json AS poses,
-      lp.en_lemmas_json AS lemmas,
-      lp.en_relation_kinds_json AS relation_kinds,
-      lp.lexical_tags_json AS lexical_tags,
-      lp.en_evidence_kinds_json AS evidence_kinds,
-      0 AS current_evidence_count,
-      0 AS historical_evidence_count,
-      0 AS proper_name_evidence_count,
-      0 AS common_lexical_evidence_count,
-      COALESCE(s.historical,0) AS historical_only,
-      0 AS proper_name_only,
-      1 AS analyzed_en_us,
-      lp.en_default_eligible AS default_eligible,
-      '[]' AS exclusion_reasons,
-      NULL AS esdb_min_size,
-      '[]' AS esdb_regions,
-      '[]' AS esdb_pos_classes,
-      lp.en_esdb_archaic AS esdb_archaic,
-      lp.en_esdb_uncommon AS esdb_uncommon,
-      0 AS esdb_invalid,
-      s.usage_rank AS wordfreq_rank,
-      lp.en_wordfreq_zipf AS wordfreq_zipf
-    FROM surface s
-    JOIN runtime_lexical_profile lp USING(surface_id)
-    WHERE s.language='en'
-      AND EXISTS(
-        SELECT 1 FROM pronunciation p
-        JOIN runtime_pronunciation_profile pp USING(pronunciation_id)
-        WHERE p.surface_id=s.surface_id
-          AND p.eligible=1
-          AND pp.default_profile_eligible=1
-          AND ${pronAvailability}
-      );
+      f.id,
+      f.surface,
+      f.normalized,
+      f.surface_variants,
+      f.poses,
+      f.lemmas,
+      f.relation_kinds,
+      f.lexical_tags,
+      f.evidence_kinds,
+      f.current_evidence_count,
+      f.historical_evidence_count,
+      f.proper_name_evidence_count,
+      f.common_lexical_evidence_count,
+      f.historical_only,
+      f.proper_name_only,
+      f.analyzed_en_us,
+      f.default_eligible,
+      f.exclusion_reasons,
+      f.esdb_min_size,
+      f.esdb_regions,
+      f.esdb_pos_classes,
+      f.esdb_archaic,
+      f.esdb_uncommon,
+      f.esdb_invalid,
+      f.wordfreq_rank,
+      f.wordfreq_zipf
+    FROM runtime_en_form_occurrence f
+    WHERE EXISTS(
+      SELECT 1
+      FROM runtime_en_pronunciation_occurrence p
+      WHERE p.form_id=f.id
+        AND ${mode==='core'?'p.source_generated=0':'1=1'}
+    );
 
     CREATE TEMP VIEW en_pronunciation AS
     SELECT
-      p.pronunciation_id AS id,
-      s.surface_id AS form_id,
-      pp.source,
+      p.id,
+      p.form_id,
+      p.source,
       p.notation,
       p.raw,
-      pp.locales_json AS locales,
-      pp.locale_us,
-      pp.locale_gb,
-      pp.source_attested_unprofiled,
-      pp.tags_json AS tags,
-      pp.evidence_count,
-      'ok' AS analysis_status,
+      p.locales,
+      p.locale_us,
+      p.locale_gb,
+      p.source_attested_unprofiled,
+      p.tags,
+      p.evidence_count,
+      p.analysis_status,
       p.phonemes,
       p.syllable_count,
-      p.stress_pattern AS stress,
+      p.stress,
       p.primary_stress,
-      pp.rhyme_tail,
-      pp.final_tail,
+      p.rhyme_tail,
+      p.final_tail,
       p.exact_key,
       p.multisyllable_key,
       p.vowel_key,
       p.vowel_family,
       p.coda_key,
-      pp.coda_class,
-      pp.rhyme_syllables,
-      pp.rhotic,
-      pp.default_profile_eligible
-    FROM pronunciation p
-    JOIN surface s USING(surface_id)
-    JOIN runtime_pronunciation_profile pp USING(pronunciation_id)
-    WHERE s.language='en' AND p.eligible=1 AND ${pronAvailability};
+      p.coda_class,
+      p.rhyme_syllables,
+      p.rhotic,
+      p.default_profile_eligible,
+      p.source_generated AS serving_source_generated,
+      p.genuine_generated AS serving_genuine_generated,
+      p.serving_pronunciation_id
+    FROM runtime_en_pronunciation_occurrence p
+    WHERE ${mode==='core'?'p.source_generated=0':'1=1'};
 
     CREATE TEMP VIEW entity AS
     SELECT
