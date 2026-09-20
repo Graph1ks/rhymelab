@@ -111,15 +111,24 @@ function mergeEntitySurfaceRows(rows){
     for(const entry of entityCategoryRows(row)){
       if(!categoryMap.has(entry.category))categoryMap.set(entry.category,entry);
     }
-    const qid=String(row?.entityQid||'').trim();
-    if(qid&&!seenQids.has(qid)){
+    const sourceIdentities=Array.isArray(row?.entityIdentities)
+      &&row.entityIdentities.length
+      ?row.entityIdentities
+      :[entityIdentity(row)];
+    for(const identity of sourceIdentities){
+      const qid=String(identity?.qid||'').trim();
+      if(!qid||seenQids.has(qid))continue;
       seenQids.add(qid);
-      identities.push(entityIdentity(row));
+      identities.push({...identity,qid});
     }
   }
 
   const entityCategories=[...categoryMap.values()];
-  const entityQids=uniqueStrings(candidates.map((row)=>row?.entityQid));
+  const entityQids=uniqueStrings(candidates.flatMap((row)=>
+    Array.isArray(row?.entityQids)&&row.entityQids.length
+      ?row.entityQids
+      :[row?.entityQid]
+  ));
   const surfacePronunciations=uniquePronunciations(
     candidates.flatMap((row)=>pronunciationRows(row,'entity')),
   );
@@ -142,7 +151,7 @@ function mergeEntitySurfaceRows(rows){
       ||entityCategories[0]?.category
       ||null,
     surfacePronunciations,
-    mergedEntityCount:identities.length,
+    mergedEntityCount:Math.max(identities.length,entityQids.length),
     mergedPronunciationCount:surfacePronunciations.length,
   };
 }
