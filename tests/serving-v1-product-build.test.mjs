@@ -112,7 +112,7 @@ function createEntity(path){
         model_id TEXT,confidence REAL,review_state TEXT
       );
       CREATE TABLE entity_phonetic_analysis(
-        pronunciation_id INTEGER,phonemes TEXT,stress_pattern TEXT
+        pronunciation_id INTEGER,analyzer_id TEXT,phonemes TEXT,stress_pattern TEXT
       );
       CREATE TABLE entity_rhyme_anchor(
         analyzer_id TEXT,channel TEXT,anchor_key TEXT,pronunciation_id INTEGER
@@ -125,7 +125,8 @@ function createEntity(path){
       .run(1,1,'Zeit','zeit','de','auto','label',1,1,'wikidata','Q1');
     db.prepare('INSERT INTO entity_pronunciation VALUES(?,?,?,?,?,?,?,?,?,?,?,?)')
       .run(1,1,'de-DE','source','tsaɪt',1,'wikidata_p898','Q1',0,null,1,'accepted_source_backed');
-    db.prepare('INSERT INTO entity_phonetic_analysis VALUES(?,?,?)').run(1,'t s aɪ t','1');
+    db.prepare('INSERT INTO entity_phonetic_analysis VALUES(?,?,?,?)')
+      .run(1,'de-ipa-v2','["t","s","aɪ","t"]','1');
     db.prepare('INSERT INTO entity_rhyme_anchor VALUES(?,?,?,?)')
       .run('de-ipa-v2','writer_secondary_anchor','aɪ-t',1);
   }finally{db.close();}
@@ -200,6 +201,7 @@ async function createServing(path,inputs){
 
     for(const [key,val] of Object.entries({
       schema:'rhymelab-serving-v1',status:'complete',
+      identity_revision:'canonical-phoneme-stress-v3',
       semantic_fingerprint:'a'.repeat(64),runtime_status:'complete',
       runtime_semantic_fingerprint:'b'.repeat(64),
       source_snapshot_json:JSON.stringify({inputs,generated_acceptance:{}}),
