@@ -124,25 +124,25 @@ export function createServingV1ProductStorage(db){
     );
 
     CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_exact
-      ON runtime_de_candidate(exact_key,syllable_count,usage_rank,source_order)
+      ON runtime_de_candidate(exact_key,syllable_count,(usage_rank IS NULL),usage_rank,source_order)
       WHERE exact_key IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_multi
-      ON runtime_de_candidate(multisyllable_key,syllable_count,usage_rank,source_order)
+      ON runtime_de_candidate(multisyllable_key,syllable_count,(usage_rank IS NULL),usage_rank,source_order)
       WHERE multisyllable_key IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_vowel
-      ON runtime_de_candidate(vowel_key,syllable_count,usage_rank,source_order)
+      ON runtime_de_candidate(vowel_key,syllable_count,(usage_rank IS NULL),usage_rank,source_order)
       WHERE vowel_key IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_family
-      ON runtime_de_candidate(vowel_family,syllable_count,usage_rank,source_order)
+      ON runtime_de_candidate(vowel_family,syllable_count,(usage_rank IS NULL),usage_rank,source_order)
       WHERE vowel_family IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_stressed_family
-      ON runtime_de_candidate(stressed_family,syllable_count,usage_rank,source_order)
+      ON runtime_de_candidate(stressed_family,syllable_count,(usage_rank IS NULL),usage_rank,source_order)
       WHERE stressed_family IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_family_coda
-      ON runtime_de_candidate(vowel_family,coda_class,syllable_count,usage_rank,source_order)
+      ON runtime_de_candidate(vowel_family,coda_class,syllable_count,(usage_rank IS NULL),usage_rank,source_order)
       WHERE vowel_family IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_runtime_de_candidate_coda
-      ON runtime_de_candidate(coda_key,syllable_count,usage_rank,source_order)
+      ON runtime_de_candidate(coda_key,syllable_count,(usage_rank IS NULL),usage_rank,source_order)
       WHERE coda_key IS NOT NULL;
 
     CREATE TABLE IF NOT EXISTS runtime_de_analysis(
@@ -168,7 +168,7 @@ export function createServingV1ProductStorage(db){
     ) WITHOUT ROWID;
 
     CREATE INDEX IF NOT EXISTS idx_runtime_de_writer_candidate_bucket
-      ON runtime_de_writer_candidate(key_value,syllable_count,usage_rank,source_order,pronunciation_id);
+      ON runtime_de_writer_candidate(key_value,syllable_count,(usage_rank IS NULL),usage_rank,source_order,pronunciation_id);
     CREATE INDEX IF NOT EXISTS idx_runtime_de_writer_candidate_pron
       ON runtime_de_writer_candidate(pronunciation_id,key_value);
 
