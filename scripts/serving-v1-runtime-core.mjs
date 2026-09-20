@@ -97,6 +97,7 @@ export function createServingV1RuntimeStorage(db){
       source_layer TEXT NOT NULL CHECK(source_layer IN ('core','generated')),
       source_phrase_id TEXT NOT NULL,
       source_phrase_pronunciation_id TEXT NOT NULL,
+      source_surface TEXT NOT NULL,
       surface_id INTEGER NOT NULL REFERENCES surface(surface_id) ON DELETE CASCADE,
       pronunciation_id INTEGER NOT NULL REFERENCES pronunciation(pronunciation_id) ON DELETE CASCADE,
       canonical_available INTEGER NOT NULL CHECK(canonical_available IN (0,1)),
