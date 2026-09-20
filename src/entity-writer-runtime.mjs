@@ -70,6 +70,22 @@ function metaValue(db, key) {
   }
 }
 
+function servingConnectionMode(db){
+  try{
+    return String(db.prepare('SELECT mode FROM temp.serving_runtime_connection').get()?.mode||'');
+  }catch{
+    return null;
+  }
+}
+
+function servingAvailabilitySql(mode,alias='sp'){
+  return mode==='core'
+    ?`${alias}.canonical_available=1`
+    :`(${alias}.canonical_available=1 OR ${alias}.generated_available=1)`;
+}
+
+const servingCapabilityCache=new WeakMap();
+
 function relationRows(score) {
   return ['assonance', 'consonance'].flatMap((type) => {
     const relation = score?.relations?.[type];
@@ -147,25 +163,31 @@ function runtimeLanguageState(db,tablesReady,language){
     &&metaValue(db,'product_adapter_schema')===SERVING_V1_PRODUCT_SCHEMA
     &&metaValue(db,'product_adapter_status')==='complete';
   if(servingProduct){
-    let pronunciations=0;
+    const mode=servingConnectionMode(db)||'all';
+    const availability=servingAvailabilitySql(mode,'sp');
+    let availableRow=null;
     try{
-      pronunciations=Number(db.prepare(`
-        SELECT COUNT(*) c
-        FROM entity_pronunciation p
-        JOIN entity_name n USING(name_id)
-        WHERE n.language=?
-      `).get(code)?.c||0);
+      availableRow=db.prepare(`
+        SELECT 1 AS available
+        FROM runtime_entity_pronunciation ep
+        JOIN runtime_entity_name n USING(name_id)
+        JOIN pronunciation sp ON sp.pronunciation_id=ep.serving_pronunciation_id
+        WHERE n.language=? AND ${availability}
+        LIMIT 1
+      `).get(code);
     }catch{}
+    const available=Boolean(tablesReady&&availableRow?.available);
     return {
-      available:Boolean(tablesReady&&pronunciations>0),
+      available,
       reason:!tablesReady
         ?'entity_runtime_tables_missing'
-        :pronunciations>0?null:`entity_${code}_pronunciations_unavailable`,
+        :available?null:`entity_${code}_pronunciations_unavailable`,
       runtime:expectedRuntime,
       analyzer:expectedAnalyzer,
-      pronunciations,
+      pronunciations:available?1:0,
       locale:code==='en'?'en-US':'de-DE',
       servingV1:true,
+      servingMode:mode,
     };
   }
   const runtime=metaValue(db,code==='en'?'entity_phonetic_runtime_en':'entity_phonetic_runtime');
@@ -208,6 +230,10 @@ export function openEntityWriterDb(dbPath = DEFAULT_ENTITY_DB_PATH) {
 }
 
 export function entityWriterCapabilities(db) {
+  if(db&&metaValue(db,'schema')==='rhymelab-serving-v1'){
+    const cached=servingCapabilityCache.get(db);
+    if(cached)return cached;
+  }
   if (!db) {
     const unavailable={
       available:false,
@@ -239,7 +265,7 @@ export function entityWriterCapabilities(db) {
         .all().map((row) => row.category)
     : [];
 
-  return {
+  const result={
     // Backward-compatible top-level DE state.
     available:de.available,
     reason:de.reason,
@@ -250,6 +276,10 @@ export function entityWriterCapabilities(db) {
     languages:{de,en},
     multilingualAvailable:Boolean(de.available||en.available),
   };
+  if(metaValue(db,'schema')==='rhymelab-serving-v1'){
+    servingCapabilityCache.set(db,result);
+  }
+  return result;
 }
 
 function analyzeEntityQuery(query,language,profile){
@@ -322,7 +352,13 @@ export function searchEntityRhymes(db, query, options = {}) {
   const anchors=entityRetrievalAnchors(queryAnalysis,language);
   const byPronunciation=new Map();
 
-  const lookup=db.prepare(`
+  const servingV1=languageCapability.servingV1===true;
+  const servingMode=languageCapability.servingMode||servingConnectionMode(db)||'all';
+  const servingAvailability=servingAvailabilitySql(servingMode,'sp');
+  const servingGenerated=generatedOnly
+    ?' AND sp.canonical_available=0 AND sp.generated_available=1'
+    :'';
+  const legacyLookup=servingV1?null:db.prepare(`
     SELECT
       a.channel,a.anchor_key,
       p.pronunciation_id,p.name_id,p.ipa,p.locale,p.pronunciation_role,
@@ -347,19 +383,102 @@ export function searchEntityRhymes(db, query, options = {}) {
     ORDER BY e.popularity_score DESC,n.preferred DESC,e.qid,n.name_id,p.pronunciation_id
     LIMIT ?
   `);
+  const servingIndexedLookup=servingV1?db.prepare(`
+    SELECT
+      ? AS channel,? AS anchor_key,
+      ep.product_pronunciation_id AS pronunciation_id,
+      ep.name_id,ep.ipa,ep.locale,ep.pronunciation_role,
+      ep.source_kind,ep.source_record,ep.generated,ep.model_id,ep.confidence,ep.review_state,
+      n.entity_id,n.surface,n.normalized,n.language,n.name_kind,n.preferred AS name_preferred,
+      e.qid,e.primary_category,e.popularity_score,e.popularity_percentile,e.popularity_tier
+    FROM runtime_key k
+    JOIN runtime_key_member km USING(key_id)
+    JOIN runtime_target t ON t.target_id=km.target_id AND t.target_kind='pronunciation'
+    JOIN pronunciation sp ON sp.pronunciation_id=t.pronunciation_id
+    JOIN runtime_entity_pronunciation ep ON ep.serving_pronunciation_id=sp.pronunciation_id
+    JOIN runtime_entity_name n USING(name_id)
+    JOIN runtime_entity_identity e USING(entity_id)
+    WHERE k.language=?
+      AND k.channel=?
+      AND k.key_value=?
+      AND ep.locale=?
+      AND n.language=?
+      AND ep.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+      AND ${servingAvailability}
+      ${servingGenerated}
+      AND (?='all' OR EXISTS(
+        SELECT 1 FROM runtime_entity_category ec
+        WHERE ec.entity_id=e.entity_id AND ec.category=?
+      ))
+    ORDER BY e.popularity_score DESC,n.preferred DESC,e.qid,n.name_id,ep.product_pronunciation_id
+    LIMIT ?
+  `):null;
+  const servingWriterLookup=servingV1?db.prepare(`
+    SELECT
+      a.channel,a.anchor_key,
+      ep.product_pronunciation_id AS pronunciation_id,
+      ep.name_id,ep.ipa,ep.locale,ep.pronunciation_role,
+      ep.source_kind,ep.source_record,ep.generated,ep.model_id,ep.confidence,ep.review_state,
+      n.entity_id,n.surface,n.normalized,n.language,n.name_kind,n.preferred AS name_preferred,
+      e.qid,e.primary_category,e.popularity_score,e.popularity_percentile,e.popularity_tier
+    FROM runtime_entity_writer_anchor a
+    JOIN pronunciation sp ON sp.pronunciation_id=a.serving_pronunciation_id
+    JOIN runtime_entity_pronunciation ep ON ep.serving_pronunciation_id=sp.pronunciation_id
+    JOIN runtime_entity_name n USING(name_id)
+    JOIN runtime_entity_identity e USING(entity_id)
+    WHERE a.analyzer_id=?
+      AND a.channel=?
+      AND a.anchor_key=?
+      AND ep.locale=?
+      AND n.language=?
+      AND ep.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+      AND ${servingAvailability}
+      ${servingGenerated}
+      AND (?='all' OR EXISTS(
+        SELECT 1 FROM runtime_entity_category ec
+        WHERE ec.entity_id=e.entity_id AND ec.category=?
+      ))
+    ORDER BY e.popularity_score DESC,n.preferred DESC,e.qid,n.name_id,ep.product_pronunciation_id
+    LIMIT ?
+  `):null;
+  const servingChannel=(channel)=>new Map([
+    ['exact_tail','entity_exact_tail'],
+    ['vowel_sequence','entity_vowel_sequence'],
+    ['vowel_family','entity_vowel_family'],
+    ['final_nucleus_coda','entity_final_nucleus_coda'],
+    ['final_nucleus','entity_final_nucleus'],
+  ]).get(channel)||null;
 
   for(const anchor of anchors){
-    const rows=lookup.all(
-      languageCapability.analyzer,
-      anchor.channel,
-      anchor.key,
-      languageCapability.locale,
-      language,
-      generatedOnly?1:0,
-      category,
-      category,
-      perChannelLimit,
-    );
+    let rows;
+    if(servingV1){
+      if(String(anchor.channel).startsWith('writer_')){
+        rows=servingWriterLookup.all(
+          languageCapability.analyzer,anchor.channel,anchor.key,
+          languageCapability.locale,language,category,category,perChannelLimit,
+        );
+      }else{
+        const indexedChannel=servingChannel(anchor.channel);
+        rows=indexedChannel
+          ?servingIndexedLookup.all(
+              anchor.channel,anchor.key,language,indexedChannel,anchor.key,
+              languageCapability.locale,language,category,category,perChannelLimit,
+            )
+          :[];
+      }
+    }else{
+      rows=legacyLookup.all(
+        languageCapability.analyzer,
+        anchor.channel,
+        anchor.key,
+        languageCapability.locale,
+        language,
+        generatedOnly?1:0,
+        category,
+        category,
+        perChannelLimit,
+      );
+    }
     for(const row of rows){
       if(queryNormalized&&profile.normalizeSurface(row.surface)===queryNormalized) continue;
       const current=byPronunciation.get(row.pronunciation_id);

@@ -15,6 +15,122 @@ const CHANNELS=Object.freeze([
   {kind:'coda',key:'coda_key',index:'idx_en_pron_coda'},
 ]);
 
+function metaValue(db,key){
+  try{return db.prepare('SELECT value FROM meta WHERE key=?').get(key)?.value??null;}
+  catch{return null;}
+}
+
+function servingConnectionMode(db){
+  try{return String(db.prepare('SELECT mode FROM temp.serving_runtime_connection').get()?.mode||'');}
+  catch{return null;}
+}
+
+function servingProductRuntime(db){
+  return metaValue(db,'schema')==='rhymelab-serving-v1'
+    &&metaValue(db,'runtime_status')==='complete'
+    &&metaValue(db,'product_adapter_status')==='complete';
+}
+
+function servingEnglishProjection({withRuntimeKey=false}={}){
+  return `
+    SELECT
+      s.surface_id AS form_id,
+      s.display_surface AS surface,
+      s.normalized,
+      lp.en_default_eligible AS form_default_eligible,
+      s.usage_rank AS wordfreq_rank,
+      lp.en_wordfreq_zipf AS wordfreq_zipf,
+      lp.en_surface_variants_json AS surface_variants,
+      lp.en_poses_json AS poses,
+      lp.en_lemmas_json AS lemmas,
+      lp.en_relation_kinds_json AS relation_kinds,
+      lp.lexical_tags_json AS lexical_tags,
+      lp.en_esdb_archaic AS esdb_archaic,
+      lp.en_esdb_uncommon AS esdb_uncommon,
+      p.pronunciation_id AS pronunciation_id,
+      pp.source,
+      p.notation,
+      p.raw,
+      pp.locales_json AS locales,
+      pp.locale_us,
+      pp.locale_gb,
+      pp.source_attested_unprofiled,
+      pp.tags_json AS tags,
+      pp.evidence_count,
+      'ok' AS analysis_status,
+      p.phonemes,
+      p.syllable_count,
+      p.stress_pattern AS stress,
+      p.primary_stress,
+      pp.rhyme_tail,
+      pp.final_tail,
+      p.exact_key,
+      p.multisyllable_key,
+      p.vowel_key,
+      p.vowel_family,
+      p.coda_key,
+      pp.coda_class,
+      pp.rhyme_syllables,
+      pp.rhotic,
+      pp.default_profile_eligible
+    FROM ${withRuntimeKey?'runtime_key k JOIN runtime_key_member km USING(key_id) JOIN runtime_target t ON t.target_id=km.target_id AND t.target_kind=\'pronunciation\' JOIN pronunciation p ON p.pronunciation_id=t.pronunciation_id':'pronunciation p'}
+    JOIN surface s USING(surface_id)
+    JOIN runtime_lexical_profile lp USING(surface_id)
+    JOIN runtime_pronunciation_profile pp USING(pronunciation_id)
+  `;
+}
+
+function prepareServingEnglishRuntimeStatements(db,{generatedOnly=false}={}){
+  const mode=servingConnectionMode(db)||'all';
+  const availability=mode==='core'
+    ?'p.canonical_available=1'
+    :'(p.canonical_available=1 OR p.generated_available=1)';
+  const generated=generatedOnly
+    ?' AND p.canonical_available=0 AND p.generated_available=1'
+    :'';
+  const query=db.prepare(`
+    ${servingEnglishProjection()}
+    WHERE s.language='en'
+      AND s.normalized=?
+      AND lp.en_default_eligible=1
+      AND pp.default_profile_eligible=1
+      AND p.eligible=1
+      AND ${availability}
+    ORDER BY p.pronunciation_id
+  `);
+  const byKey=db.prepare(`
+    ${servingEnglishProjection({withRuntimeKey:true})}
+    WHERE k.language='en'
+      AND k.channel=?
+      AND k.key_value=?
+      AND s.language='en'
+      AND lp.en_default_eligible=1
+      AND pp.default_profile_eligible=1
+      AND p.eligible=1
+      AND s.surface_id<>?
+      AND ${availability}
+      ${generated}
+    ORDER BY p.pronunciation_id
+    LIMIT ?
+  `);
+  const wrap=(channel,keyBuilder=(value)=>value)=>({
+    all:(...args)=>{
+      const limit=args.at(-1);
+      const formId=args.at(-2);
+      const key=keyBuilder(...args.slice(0,-2));
+      return byKey.all(channel,key,formId,limit);
+    },
+  });
+  return {
+    query,
+    exact:wrap('exact_tail'),
+    multi:wrap('multisyllable'),
+    vowel:wrap('vowel'),
+    family_coda:wrap('family_coda_class',(family,coda)=>String(family)+'\u001f'+String(coda)),
+    coda:wrap('coda'),
+  };
+}
+
 function rowProjection(){
   return `
     SELECT
@@ -63,6 +179,9 @@ function rowProjection(){
 }
 
 export function prepareEnglishRuntimeStatements(db,{generatedOnly=false}={}){
+  if(servingProductRuntime(db)){
+    return prepareServingEnglishRuntimeStatements(db,{generatedOnly});
+  }
   const base=rowProjection();
   const generated=generatedOnly?" AND p.source='espeak_ng_generated_secondary'":'';
   return {

@@ -31,7 +31,7 @@ import {
 
 export const SERVING_V1_PRODUCT_ACCEPTANCE_SCHEMA='rhymelab-serving-v1-product-acceptance-v1';
 export const SERVING_V1_PRODUCT_ACCEPTANCE_POLICY='legacy-semantic-order-and-latency-equivalence-v1';
-export const SERVING_V1_PRODUCT_ACCEPTANCE_REVISION='core-all-generated-query-matrix-v1';
+export const SERVING_V1_PRODUCT_ACCEPTANCE_REVISION='core-all-generated-query-matrix-v2-serving-native-hotpaths';
 
 const args=process.argv.slice(2);
 const value=(flag,fallback=null)=>{
@@ -491,6 +491,9 @@ async function main(){
         ' · legacy '+round(legacyRun.times.at(-1))+'ms · serving '+round(servingRun.times.at(-1))+'ms · '
         +(equivalent?'equal':'DIFF')+' · ETA '+(Number.isFinite(eta)?round(eta/1000)+'s':'—')
       );
+      if(!equivalent&&diffs.length){
+        console.log('[serving-accept]   first diff '+JSON.stringify(diffs[0]));
+      }
       if(stopRequested)break;
     }
 

@@ -15,7 +15,10 @@ import {
   servingV1ProductRuntimeState,
 } from '../src/serving-v1-product-runtime.mjs';
 import {getWord} from '../src/local-engine.mjs';
-import {getEnglishWord} from '../src/english-writer-runtime.mjs';
+import {getEnglishWord,searchEnglishWriter} from '../src/english-writer-runtime.mjs';
+import {searchEntityRhymes} from '../src/entity-writer-runtime.mjs';
+import {retrievePhraseMosaicCandidatesV2} from '../scripts/phrase-mosaic-retrieval-v2-core.mjs';
+import {enrichPhraseMosaicCandidates} from '../scripts/phrase-mosaic-ranking-evidence-core.mjs';
 import {
   lookupMaterializedWriterAnchorRows,
   materializedWriterRuntimeState,
@@ -133,6 +136,9 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       surface(db,{id:4,language:'en',normalized:'chime',surface:'chime',generated:true});
       pron(db,{id:4,surfaceId:4,generated:true,ipa:'tʃaɪm',phonemes:'tʃ aɪ m'});
       lexicalProfile(db,{surfaceId:4,pronunciationId:4,language:'en',generated:true,source:'espeak_ng_generated_secondary',zipf:3.1});
+      db.prepare("INSERT INTO runtime_key(language,channel,key_value) VALUES('en','exact_tail','tail')").run();
+      const enKeyId=Number(db.prepare("SELECT key_id FROM runtime_key WHERE language='en' AND channel='exact_tail'").get().key_id);
+      db.prepare('INSERT INTO runtime_key_member(key_id,target_id) VALUES(?,?)').run(enKeyId,4);
 
       surface(db,{id:5,language:'de',normalized:'bei klarer reise',surface:'bei klarer Reise',core:true,role:'phrase'});
       pron(db,{id:5,surfaceId:5,core:true,ipa:'baɪ klaːʁɐ ʁaɪzə',phonemes:'b aɪ k l a ʁ ɐ ʁ aɪ z ə',stress:'01010',syllables:5,exact:'tail-reise',vowel:'aɪ-a',family:'AI-A',coda:'z ə'});
@@ -153,6 +159,15 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
           canonical_available,generated_available
         ) VALUES('core:w1',1,'w1',0,2,2,0,4,4,0,1,2,1,0,0,'b aɪ','aɪ-a','10','z ə','tail-reise','ə','OPEN','AI-A',1,0)
       `).run();
+      db.prepare(`
+        INSERT INTO runtime_target(
+          target_id,target_kind,language,pronunciation_id,runtime_phrase_id,runtime_window_id,
+          syllable_count,canonical_available,generated_available,canonical_preferred,generated_preferred
+        ) VALUES(100,'phrase_window','de',5,1,'core:w1',2,1,0,1,0)
+      `).run();
+      db.prepare("INSERT INTO runtime_key(language,channel,key_value) VALUES('de','phrase_exact_tail','tail-reise')").run();
+      const phraseKeyId=Number(db.prepare("SELECT key_id FROM runtime_key WHERE channel='phrase_exact_tail'").get().key_id);
+      db.prepare('INSERT INTO runtime_key_member(key_id,target_id) VALUES(?,?)').run(phraseKeyId,100);
       db.prepare("INSERT INTO runtime_phrase_usage VALUES(1,'deu_news_2024_1M',1,1,1,1)").run();
       db.prepare('INSERT INTO runtime_phrase_attestation VALUES(?,?,?)').run(1,1,'["modern"]');
 
@@ -180,6 +195,21 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
 
       assert.equal(getEnglishWord(runtime.coreDb,'chime'),null);
       assert.equal(getEnglishWord(runtime.allDb,'chime').generatedPronunciation,true);
+
+      const englishSearch=searchEnglishWriter(runtime.allDb,'time',{generatedOnly:true,limit:10});
+      assert.equal(englishSearch.status,'ok');
+      assert.ok(englishSearch.results.some((row)=>row.normalized==='chime'));
+
+      const phraseRetrieval=retrievePhraseMosaicCandidatesV2(runtime.coreDb,'tsaɪt',{
+        perChannelLimit:8,maxCandidates:16,
+      });
+      const phraseEvidence=enrichPhraseMosaicCandidates(runtime.coreDb,'Zeit',phraseRetrieval);
+      assert.equal(phraseEvidence.retrievalCandidateCount,phraseRetrieval.candidates.length);
+
+      const entitySearch=searchEntityRhymes(runtime.coreDb,getWord(runtime.coreDb,'Zeit'),{
+        language:'de',limit:10,poolLimit:16,
+      });
+      assert.equal(entitySearch.available,true);
 
       const state=materializedWriterRuntimeState(runtime.allDb);
       assert.equal(state.active,true);
