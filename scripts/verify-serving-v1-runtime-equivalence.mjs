@@ -171,56 +171,72 @@ function entityCases(path,layer){
   try{
     const generated=layer==='generated';
     const marker=generated?" AND ep.source_kind='espeak_ng_generated_secondary'":'';
-    const sourceRows=db.prepare(`
+    const sampled=db.prepare(`
+      SELECT DISTINCT en.language,a.channel,a.anchor_key
+      FROM entity_rhyme_anchor a
+      JOIN entity_pronunciation ep ON ep.pronunciation_id=a.pronunciation_id
+      JOIN entity_name en ON en.name_id=ep.name_id
+      WHERE en.searchable=1
+        AND en.language IN ('de','en')
+        AND ep.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
+        AND (
+          (en.language='de' AND ep.locale='de-DE' AND a.analyzer_id='de-ipa-v2')
+          OR (en.language='en' AND ep.locale='en-US' AND a.analyzer_id='en-pron-v1-candidate')
+        )
+        ${marker}
+      ORDER BY en.language,a.channel,a.anchor_key
+      LIMIT ?
+    `).all(sampleSize);
+
+    const rows=db.prepare(`
       SELECT
         ep.pronunciation_id,en.language,en.normalized,ep.ipa,
         COALESCE(NULLIF(MIN(epa.phonemes),''),ep.ipa) phonemes,
         COALESCE(MIN(epa.stress_pattern),'') stress
-      FROM entity_pronunciation ep
+      FROM entity_rhyme_anchor a
+      JOIN entity_pronunciation ep ON ep.pronunciation_id=a.pronunciation_id
       JOIN entity_name en ON en.name_id=ep.name_id
       LEFT JOIN entity_phonetic_analysis epa ON epa.pronunciation_id=ep.pronunciation_id
-      WHERE en.searchable=1
-        AND en.language IN ('de','en')
+      WHERE en.language=?
+        AND a.channel=?
+        AND a.anchor_key=?
+        AND en.searchable=1
         AND ep.review_state IN ('accepted','reviewed','accepted_source_composition','accepted_source_backed')
-        AND ((en.language='de' AND ep.locale='de-DE') OR (en.language='en' AND ep.locale='en-US'))
+        AND (
+          (en.language='de' AND ep.locale='de-DE' AND a.analyzer_id='de-ipa-v2')
+          OR (en.language='en' AND ep.locale='en-US' AND a.analyzer_id='en-pron-v1-candidate')
+        )
         ${marker}
       GROUP BY ep.pronunciation_id
-    `).all();
-    const byId=new Map(sourceRows.map((row)=>[Number(row.pronunciation_id),row]));
-    const sampled=db.prepare(`
-      SELECT a.channel,a.anchor_key,a.pronunciation_id
-      FROM entity_rhyme_anchor a
-      ORDER BY a.channel,a.anchor_key,a.pronunciation_id
-    `).all();
-    const grouped=new Map();
-    for(const row of sampled){
-      const source=byId.get(Number(row.pronunciation_id));
-      if(!source)continue;
-      const analyzer=source.language==='en'?'en-pron-v1-candidate':'de-ipa-v2';
-      const actualAnchor=db.prepare(`
-        SELECT 1 FROM entity_rhyme_anchor
-        WHERE analyzer_id=? AND channel=? AND anchor_key=? AND pronunciation_id=?
-      `).get(analyzer,row.channel,row.anchor_key,row.pronunciation_id);
-      if(!actualAnchor)continue;
-      const channel=row.channel==='exact_tail'?'entity_exact_tail'
-        :row.channel==='vowel_sequence'?'entity_vowel_sequence'
-        :row.channel==='vowel_family'?'entity_vowel_family'
-        :row.channel==='final_nucleus_coda'?'entity_final_nucleus_coda'
-        :row.channel==='final_nucleus'?'entity_final_nucleus'
-        :String(row.channel).startsWith('writer_')?'entity_writer_right_edge'
-        :'entity_'+row.channel;
-      const signature=[source.language,channel,row.anchor_key].join('\u001f');
-      if(!grouped.has(signature))grouped.set(signature,{language:source.language,channel,key:row.anchor_key,ids:[]});
-      grouped.get(signature).ids.push(mapTarget(
-        source.language,source.normalized,
-        String(source.phonemes||source.ipa||'')+'|stress:'+String(source.stress||''),
+      ORDER BY ep.pronunciation_id
+    `);
+
+    for(const sampledKey of sampled){
+      const channel=sampledKey.channel==='exact_tail'?'entity_exact_tail'
+        :sampledKey.channel==='vowel_sequence'?'entity_vowel_sequence'
+        :sampledKey.channel==='vowel_family'?'entity_vowel_family'
+        :sampledKey.channel==='final_nucleus_coda'?'entity_final_nucleus_coda'
+        :sampledKey.channel==='final_nucleus'?'entity_final_nucleus'
+        :String(sampledKey.channel).startsWith('writer_')?'entity_writer_right_edge'
+        :'entity_'+sampledKey.channel;
+      const expected=rows.all(
+        sampledKey.language,
+        sampledKey.channel,
+        sampledKey.anchor_key,
+      ).map((row)=>mapTarget(
+        row.language,
+        row.normalized,
+        String(row.phonemes||row.ipa||'')+'|stress:'+String(row.stress||''),
         layer,
       ));
-    }
-    for(const entry of [...grouped.values()]
-      .sort((a,b)=>(a.language+'|'+a.channel+'|'+a.key).localeCompare(b.language+'|'+b.channel+'|'+b.key))
-      .slice(0,sampleSize)){
-      addCase('entity',layer,entry.language,entry.channel,String(entry.key),entry.ids);
+      addCase(
+        'entity',
+        layer,
+        sampledKey.language,
+        channel,
+        String(sampledKey.anchor_key),
+        expected,
+      );
     }
   }finally{db.close();}
 }
