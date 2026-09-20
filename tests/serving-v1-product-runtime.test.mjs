@@ -19,7 +19,10 @@ import {getWord} from '../src/local-engine.mjs';
 import {findWriterRhymes} from '../src/writer-search.mjs';
 import {getEnglishWord,searchEnglishWriter} from '../src/english-writer-runtime.mjs';
 import {searchEntityRhymes} from '../src/entity-writer-runtime.mjs';
-import {retrievePhraseMosaicCandidatesV2} from '../scripts/phrase-mosaic-retrieval-v2-core.mjs';
+import {
+  phraseMosaicV2QueryAnchors,
+  retrievePhraseMosaicCandidatesV2,
+} from '../scripts/phrase-mosaic-retrieval-v2-core.mjs';
 import {enrichPhraseMosaicCandidates} from '../scripts/phrase-mosaic-ranking-evidence-core.mjs';
 import {
   lookupMaterializedWriterAnchorRows,
@@ -28,6 +31,7 @@ import {
 } from '../src/writer-materialized-runtime.mjs';
 import {unifiedWriterCapabilities} from '../src/unified-writer-search.mjs';
 import {getPhonologyProfile} from '../scripts/phonology-profiles.mjs';
+import {analyzeGermanIpa} from '../scripts/german-ipa.mjs';
 
 function meta(db,key,value){
   db.prepare(`
@@ -99,6 +103,10 @@ function lexicalProfile(db,{surfaceId,pronunciationId,generated=false,source='Ge
 }
 
 test('Serving product adapter exposes one DB as Core/all legacy-compatible runtimes',async()=>{
+  const phraseQueryIpa='ˈliːbə';
+  const phraseAnchor=phraseMosaicV2QueryAnchors(analyzeGermanIpa(phraseQueryIpa))[0];
+  assert.ok(phraseAnchor);
+  assert.equal(phraseAnchor.syllableCount,2);
   const root=await mkdtemp(join(tmpdir(),'rhymelab-serving-product-'));
   const path=join(root,'serving.sqlite');
   try{
@@ -207,14 +215,35 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
         ) VALUES('core:w1',1,'w1',0,2,2,0,4,4,0,1,2,1,0,0,'b aɪ','aɪ-a','10','z ə','tail-reise','ə','OPEN','AI-A',1,0)
       `).run();
       db.prepare(`
+        INSERT INTO runtime_phrase_window(
+          runtime_window_id,runtime_phrase_id,source_window_id,syllable_start,syllable_end,syllable_count,
+          phoneme_start,phoneme_end,phoneme_count,token_start_index,token_end_index,token_count,
+          crossed_word_boundaries,starts_inside_token,ends_inside_token,phoneme_key,vowel_key,stress_pattern,
+          final_coda_key,exact_tail_key,final_nucleus,final_coda_class,vowel_family_key,
+          canonical_available,generated_available
+        )
+        SELECT
+          'core:w0',runtime_phrase_id,'w0',syllable_start,syllable_end,syllable_count,
+          phoneme_start,phoneme_end,phoneme_count,token_start_index,token_end_index,token_count,
+          crossed_word_boundaries,starts_inside_token,ends_inside_token,phoneme_key,vowel_key,stress_pattern,
+          final_coda_key,exact_tail_key,final_nucleus,final_coda_class,vowel_family_key,
+          canonical_available,generated_available
+        FROM runtime_phrase_window WHERE runtime_window_id='core:w1'
+      `).run();
+      db.prepare(`
         INSERT INTO runtime_target(
           target_id,target_kind,language,pronunciation_id,runtime_phrase_id,runtime_window_id,
           syllable_count,canonical_available,generated_available,canonical_preferred,generated_preferred
-        ) VALUES(100,'phrase_window','de',5,1,'core:w1',2,1,0,1,0)
+        ) VALUES
+          (100,'phrase_window','de',5,1,'core:w1',2,1,0,1,0),
+          (101,'phrase_window','de',5,1,'core:w0',2,1,0,1,0)
       `).run();
-      db.prepare("INSERT INTO runtime_key(language,channel,key_value) VALUES('de','phrase_exact_tail','tail-reise')").run();
+      db.prepare(
+        "INSERT INTO runtime_key(language,channel,key_value) VALUES('de','phrase_exact_tail',?)"
+      ).run(phraseAnchor.exactTailKey);
       const phraseKeyId=Number(db.prepare("SELECT key_id FROM runtime_key WHERE channel='phrase_exact_tail'").get().key_id);
       db.prepare('INSERT INTO runtime_key_member(key_id,target_id) VALUES(?,?)').run(phraseKeyId,100);
+      db.prepare('INSERT INTO runtime_key_member(key_id,target_id) VALUES(?,?)').run(phraseKeyId,101);
       db.prepare("INSERT INTO runtime_phrase_usage VALUES(1,'deu_news_2024_1M',1,1,1,1)").run();
       db.prepare('INSERT INTO runtime_phrase_attestation VALUES(?,?,?)').run(1,1,'["modern"]');
       db.prepare(
@@ -306,13 +335,15 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       assert.equal(englishSearch.status,'ok');
       assert.ok(englishSearch.results.some((row)=>row.normalized==='chime'));
 
-      const phraseRetrieval=retrievePhraseMosaicCandidatesV2(runtime.coreDb,'tsaɪt',{
-        perChannelLimit:8,maxCandidates:16,
+      const phraseRetrieval=retrievePhraseMosaicCandidatesV2(runtime.coreDb,phraseQueryIpa,{
+        perChannelLimit:1,maxCandidates:16,includeWeakUnrelated:true,
       });
-      const phraseEvidence=enrichPhraseMosaicCandidates(runtime.coreDb,'Zeit',phraseRetrieval);
+      const phraseEvidence=enrichPhraseMosaicCandidates(runtime.coreDb,'Liebe',phraseRetrieval);
       assert.equal(phraseEvidence.retrievalCandidateCount,phraseRetrieval.candidates.length);
       assert.equal(phraseRetrieval.bounds.channelsPerAnchor,5);
-      assert.ok(Array.isArray(phraseRetrieval.candidates));
+      assert.equal(phraseRetrieval.retrieval.rawAnchorWindowMatches,1);
+      assert.equal(phraseRetrieval.candidates.length,1);
+      assert.equal(phraseRetrieval.candidates[0].windowId,'w0');
 
       const entitySearch=searchEntityRhymes(runtime.coreDb,getWord(runtime.coreDb,'Zeit'),{
         language:'de',limit:10,poolLimit:16,profileStages:true,
