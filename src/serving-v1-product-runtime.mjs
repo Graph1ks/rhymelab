@@ -26,12 +26,14 @@ export function servingV1ProductRuntimeState(db){
   const productStatus=metaValue(db,'product_adapter_status');
   const productRevision=metaValue(db,'product_adapter_revision');
   const identityRevision=metaValue(db,'identity_revision');
+  const productIdentityRevision=metaValue(db,'product_adapter_identity_revision');
   const valid=schema==='rhymelab-serving-v1'
     &&runtimeStatus==='complete'
     &&productSchema===SERVING_V1_PRODUCT_SCHEMA
     &&productStatus==='complete'
     &&productRevision===SERVING_V1_PRODUCT_REVISION
-    &&identityRevision===SERVING_V1_PRONUNCIATION_IDENTITY_REVISION;
+    &&identityRevision===SERVING_V1_PRONUNCIATION_IDENTITY_REVISION
+    &&productIdentityRevision===SERVING_V1_PRONUNCIATION_IDENTITY_REVISION;
   return {
     available:valid,
     reason:valid?null:
@@ -40,13 +42,15 @@ export function servingV1ProductRuntimeState(db){
       productSchema!==SERVING_V1_PRODUCT_SCHEMA?'serving_v1_product_schema_mismatch':
       productStatus!=='complete'?'serving_v1_product_incomplete':
       productRevision!==SERVING_V1_PRODUCT_REVISION?'serving_v1_product_revision_mismatch':
-      'serving_v1_identity_revision_mismatch',
+      identityRevision!==SERVING_V1_PRONUNCIATION_IDENTITY_REVISION?'serving_v1_identity_revision_mismatch':
+      'serving_v1_product_identity_revision_mismatch',
     schema,
     runtimeStatus,
     productSchema,
     productStatus,
     productRevision,
     identityRevision,
+    productIdentityRevision,
     runtimeSemanticFingerprint:metaValue(db,'runtime_semantic_fingerprint'),
     productSemanticFingerprint:metaValue(db,'product_adapter_semantic_fingerprint'),
     runtime:valid?SERVING_V1_PRODUCT_RUNTIME:null,
