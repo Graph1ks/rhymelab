@@ -108,6 +108,58 @@ function normalizedEditSimilarityPrepared(a,b) {
   return clamp01(1-previous[y.length]/denominator);
 }
 
+function normalizedEditSimilarityAtLeastPrepared(a,b,threshold){
+  if(a===b)return 1;
+  if(!a.length||!b.length)return 0;
+
+  const denominator=Math.max(a.length,b.length);
+  const maxDistance=Math.floor((1-Number(threshold))*denominator+1e-12);
+  if(Math.abs(a.length-b.length)>maxDistance)return 0;
+
+  let prefix=0;
+  const prefixLimit=Math.min(a.length,b.length);
+  while(prefix<prefixLimit&&a[prefix]===b[prefix])prefix++;
+
+  let suffix=0;
+  const suffixLimit=Math.min(a.length-prefix,b.length-prefix);
+  while(
+    suffix<suffixLimit
+    &&a[a.length-1-suffix]===b[b.length-1-suffix]
+  )suffix++;
+
+  const left=a.slice(prefix,a.length-suffix);
+  const right=b.slice(prefix,b.length-suffix);
+  if(!left.length||!right.length){
+    const distance=Math.abs(left.length-right.length);
+    return distance<=maxDistance?clamp01(1-distance/denominator):0;
+  }
+  if(Math.abs(left.length-right.length)>maxDistance)return 0;
+
+  // If the final edit distance is <= maxDistance, an optimal path never needs
+  // to leave this diagonal band. Therefore the exact accepted similarity is
+  // retained for near-duplicates, while distant pairs avoid a full matrix.
+  const x=left;
+  const y=right;
+  const infinity=maxDistance+1;
+  let previous=new Array(y.length+1).fill(infinity);
+  let current=new Array(y.length+1).fill(infinity);
+  for(let j=0;j<=Math.min(y.length,maxDistance);j++)previous[j]=j;
+
+  for(let i=1;i<=x.length;i++){
+    current.fill(infinity);
+    if(i<=maxDistance)current[0]=i;
+    const from=Math.max(1,i-maxDistance);
+    const to=Math.min(y.length,i+maxDistance);
+    for(let j=from;j<=to;j++){
+      const substitution=previous[j-1]+Number(x[i-1]!==y[j-1]);
+      current[j]=Math.min(previous[j]+1,current[j-1]+1,substitution);
+    }
+    [previous,current]=[current,previous];
+  }
+  const distance=previous[y.length];
+  return distance<=maxDistance?clamp01(1-distance/denominator):0;
+}
+
 export function normalizedEditSimilarity(left, right, language = 'de') {
   const a = normalizeSurface(left, language);
   const b = normalizeSurface(right, language);
@@ -302,8 +354,8 @@ function lexicalRedundancyPrepared(left,right,currentMax=0){
   const similarityUpperBound=Math.min(a.length,b.length)/Math.max(a.length,b.length);
   if(Math.max(initialConstruction,similarityUpperBound)<=currentMax)return 0;
 
-  const surfaceSimilarity=normalizedEditSimilarityPrepared(a,b);
-  const nearDuplicate=surfaceSimilarity>=0.84?surfaceSimilarity:0;
+  const surfaceSimilarity=normalizedEditSimilarityAtLeastPrepared(a,b,0.84);
+  const nearDuplicate=surfaceSimilarity;
   return Number(Math.max(initialConstruction,nearDuplicate).toFixed(4));
 }
 
