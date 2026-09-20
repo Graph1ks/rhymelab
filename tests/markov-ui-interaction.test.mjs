@@ -84,7 +84,7 @@ test('Markov control preflight rejects incomplete UI surfaces',()=>{
   assert.throws(()=>assertMarkovControlSurface(document),/#generateButton/u);
 });
 
-test('Markov test surface preserves mobile behavior and uses the corpus API',async()=>{
+test('Markov test surface preserves mobile behavior and uses the Markov API',async()=>{
   const [html,styles,app,core]=await Promise.all([
     readFile('src/markov-test/index.html','utf8'),
     readFile('src/markov-test/styles.css','utf8'),
@@ -103,6 +103,10 @@ test('Markov test surface preserves mobile behavior and uses the corpus API',asy
   assert.match(styles,/\.token-corpus/u);
   assert.doesNotMatch(styles,/overflow-y:\s*(?:scroll|auto)/u);
   assert.match(app,/\/api\/markov\/generate/u);
+  assert.match(app,/Markov transition database missing/u);
+  assert.match(app,/npm run markov:model:build/u);
+  assert.match(app,/RhymeLab Phrase\/Mosaic/u);
+  assert.doesNotMatch(app,/accepted Leipzig sentences/u);
   assert.doesNotMatch(core,/MODEL_LINES/u);
   assert.doesNotMatch(core,/<CONTENT>/u);
 });
