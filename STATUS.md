@@ -980,3 +980,10 @@ Benchmark-v3 context-gold review and AI pronunciation evidence belong to the sep
 
 Updated AI collection policy: do **not** annotate the complete 704,989/705,050 unresolved long tail. The next campaign is limited to runtime-unresolved English names attached to the **top 100,000 retained Entities by accepted popularity ordering**. The exact target count must be measured locally before export; historical bulk queue IDs remain immutable. Everything outside that Top-100k scope stays unresolved unless the owner later changes the policy.
 
+
+
+## Pronunciation Backfill V2 — secondary catalog decision
+
+Owner result is complete: 3,365,814 eSpeak A/B rows form the active generated population. They are **second-class, user-opt-in-only** search data and must never enter default Writer search automatically. Client B (292), Client C (2,161), Client D (60), and U (25) are explicitly deferred for later review and are preserved in the Backfill V2 work DB plus the secondary deferred export.
+
+Materialization target: `data/local/pronunciation-secondary-v1.sqlite` under policy `opt-in-generated-pronunciation-secondary-v1`. It rehydrates full phonetic retrieval parity (including vowel/rhyme family, coda class, multisyllable key, stress/tails) and rejoins source metadata from pinned DE/EN sources. Kaikki etymology/senses are preserved as source metadata even though the current canonical hot Writer schema does not use them for ranking. See `docs/PRONUNCIATION_SECONDARY_V1.md`.
