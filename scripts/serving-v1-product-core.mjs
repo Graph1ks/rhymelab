@@ -145,6 +145,12 @@ export function createServingV1ProductStorage(db){
       ON runtime_de_candidate(coda_key,syllable_count,usage_rank,source_order)
       WHERE coda_key IS NOT NULL;
 
+    CREATE TABLE IF NOT EXISTS runtime_de_analysis(
+      pronunciation_id INTEGER PRIMARY KEY REFERENCES pronunciation(pronunciation_id) ON DELETE CASCADE,
+      analyzer_id TEXT NOT NULL,
+      analysis_json TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS runtime_phrase_profile(
       runtime_phrase_id INTEGER PRIMARY KEY REFERENCES runtime_phrase(runtime_phrase_id) ON DELETE CASCADE,
       token_count INTEGER NOT NULL,
@@ -310,6 +316,7 @@ export function resetServingV1ProductStorage(db){
   db.exec(`
     DROP TABLE IF EXISTS runtime_entity_anchor_ranked;
     DROP TABLE IF EXISTS runtime_en_key_candidate;
+    DROP TABLE IF EXISTS runtime_de_analysis;
     DROP TABLE IF EXISTS runtime_de_candidate;
     DROP TABLE IF EXISTS runtime_entity_anchor_occurrence;
     DROP TABLE IF EXISTS runtime_entity_analysis;
@@ -354,6 +361,7 @@ export function servingV1ProductSummary(db){
     entityAnalyses:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_analysis'),
     entityOccurrenceAnchors:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_anchor_occurrence'),
     deHotpathCandidates:scalar(db,'SELECT COUNT(*) c FROM runtime_de_candidate'),
+    dePrecomputedAnalyses:scalar(db,'SELECT COUNT(*) c FROM runtime_de_analysis'),
     enHotpathKeyCandidates:scalar(db,'SELECT COUNT(*) c FROM runtime_en_key_candidate'),
     entityRankedAnchors:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_anchor_ranked'),
     coreEntityPronunciations:scalar(db,`
