@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import {
   RHYME_TYPES,
   cachedResultAnalysis,
@@ -125,13 +126,109 @@ function compareSound(a, b) {
     || Number(a.usageRank ?? Number.MAX_SAFE_INTEGER) - Number(b.usageRank ?? Number.MAX_SAFE_INTEGER);
 }
 
-function rescoreWriterResult(row, queryAnalysis, profile, querySyllables) {
+function createWriterScoringContext(profile,queryAnalysis,enabled=false){
+  const metrics=enabled?{
+    writer_analysis_feature_preparation_ms:0,
+    writer_phonetic_scoring_ms:0,
+    writer_result_construction_ms:0,
+    right_edge_lookup_ms:0,
+    morphology_ms:0,
+    ranking_diversity_ms:0,
+    writer_scoring_calls:0,
+    writer_unique_scoring_pairs:0,
+    writer_score_cache_hits:0,
+    writer_analysis_cache_hits:0,
+    writer_analysis_cache_misses:0,
+  }:null;
+  const preparedStarted=metrics?performance.now():0;
+  const queryPrepared=typeof profile.prepareWriterAnalysis==='function'
+    ?profile.prepareWriterAnalysis(queryAnalysis)
+    :queryAnalysis;
+  if(metrics)metrics.writer_analysis_feature_preparation_ms+=performance.now()-preparedStarted;
+  return {
+    profile,
+    queryAnalysis,
+    queryPrepared,
+    analysisByKey:new Map(),
+    preparedByKey:new Map(),
+    scoreByKey:new Map(),
+    metrics,
+  };
+}
+
+function writerCandidateKey(row){
+  return String(
+    row?.id
+    ??row?.source_order_id
+    ??((row?.normalized||row?.word||'')+'\u0000'+(row?.ipa||'')),
+  );
+}
+
+function writerAnalysisForRow(row,profile,context,fallbackAnalysis=null){
+  const key=writerCandidateKey(row);
+  if(context?.analysisByKey.has(key)){
+    if(context.metrics)context.metrics.writer_analysis_cache_hits+=1;
+    return context.analysisByKey.get(key);
+  }
+  if(context?.metrics)context.metrics.writer_analysis_cache_misses+=1;
+  const started=context?.metrics?performance.now():0;
+  const analysis=fallbackAnalysis
+    ||(row?.serving_analysis_json
+      ?JSON.parse(row.serving_analysis_json)
+      :profile.analyzeIpa(row.ipa));
+  if(context?.metrics){
+    context.metrics.writer_analysis_feature_preparation_ms+=performance.now()-started;
+  }
+  context?.analysisByKey.set(key,analysis);
+  return analysis;
+}
+
+function writerPreparedForRow(row,analysis,profile,context){
+  if(typeof profile.prepareWriterAnalysis!=='function')return analysis;
+  const key=writerCandidateKey(row);
+  if(context?.preparedByKey.has(key))return context.preparedByKey.get(key);
+  const started=context?.metrics?performance.now():0;
+  const prepared=profile.prepareWriterAnalysis(analysis);
+  if(context?.metrics){
+    context.metrics.writer_analysis_feature_preparation_ms+=performance.now()-started;
+  }
+  context?.preparedByKey.set(key,prepared);
+  return prepared;
+}
+
+function writerScoreForRow(row,analysis,profile,context){
+  const key=writerCandidateKey(row);
+  if(context?.metrics)context.metrics.writer_scoring_calls+=1;
+  if(context?.scoreByKey.has(key)){
+    if(context.metrics)context.metrics.writer_score_cache_hits+=1;
+    return context.scoreByKey.get(key);
+  }
+  const prepared=writerPreparedForRow(row,analysis,profile,context);
+  const started=context?.metrics?performance.now():0;
+  const score=typeof profile.scorePreparedWriterAnalyses==='function'
+    ?profile.scorePreparedWriterAnalyses(context.queryPrepared,prepared)
+    :profile.scoreWriterAnalyses(context.queryAnalysis,analysis);
+  if(context?.metrics){
+    context.metrics.writer_phonetic_scoring_ms+=performance.now()-started;
+    context.metrics.writer_unique_scoring_pairs+=1;
+  }
+  context?.scoreByKey.set(key,score);
+  return score;
+}
+
+function rescoreWriterResult(row, queryAnalysis, profile, querySyllables, context=null) {
   if (typeof profile.scoreWriterAnalyses !== 'function') return row;
   let candidateAnalysis=cachedResultAnalysis(row);
   try {
-    if(!candidateAnalysis) candidateAnalysis=profile.analyzeIpa(row.ipa);
+    candidateAnalysis=writerAnalysisForRow(
+      row,
+      profile,
+      context,
+      candidateAnalysis||null,
+    );
   } catch { return row; }
-  const score = profile.scoreWriterAnalyses(queryAnalysis, candidateAnalysis);
+  const score=writerScoreForRow(row,candidateAnalysis,profile,context);
+  const resultStarted=context?.metrics?performance.now():0;
   const rescored = resultFromCandidateRow({
     surface: row.word,
     normalized: row.normalized,
@@ -153,6 +250,9 @@ function rescoreWriterResult(row, queryAnalysis, profile, querySyllables) {
     pos: row.partOfSpeech,
     syllable_count: row.syllableCount,
   }, score, querySyllables, row.language || profile.language);
+  if(context?.metrics){
+    context.metrics.writer_result_construction_ms+=performance.now()-resultStarted;
+  }
   return {
     ...rescored,
     ...(row.generatedPronunciation?{
@@ -166,7 +266,9 @@ function rescoreWriterResult(row, queryAnalysis, profile, querySyllables) {
   };
 }
 
-function collectRightEdgeCandidates(db, queryAnalysis, queryNormalized, querySyllables, profile, options = {}) {
+function collectRightEdgeCandidates(
+  db,queryAnalysis,queryNormalized,querySyllables,profile,options={},context=null
+) {
   if (typeof profile.writerRetrievalKeys !== 'function' || typeof profile.scoreWriterAnalyses !== 'function') {
     return { results: [], keys: [], runtime: null };
   }
@@ -184,6 +286,7 @@ function collectRightEdgeCandidates(db, queryAnalysis, queryNormalized, querySyl
   const byWord = new Map();
 
   for (const entry of keys) {
+    const lookupStarted=context?.metrics?performance.now():0;
     const rows = runtimeState.active
       ? lookupMaterializedWriterAnchorRows(db, entry.key, {
           queryNormalized,
@@ -202,17 +305,22 @@ function collectRightEdgeCandidates(db, queryAnalysis, queryNormalized, querySyl
           ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank, id
           LIMIT ?
         `).all(`%${entry.key}`, queryNormalized, querySyllables, querySyllables, perChannelLimit);
+    if(context?.metrics){
+      context.metrics.right_edge_lookup_ms+=performance.now()-lookupStarted;
+    }
 
     for (const row of rows) {
       let candidateAnalysis;
       try {
-        candidateAnalysis=row?.serving_analysis_json
-          ?JSON.parse(row.serving_analysis_json)
-          :profile.analyzeIpa(row.ipa);
+        candidateAnalysis=writerAnalysisForRow(row,profile,context);
       } catch { continue; }
-      const score = profile.scoreWriterAnalyses(queryAnalysis, candidateAnalysis);
+      const score=writerScoreForRow(row,candidateAnalysis,profile,context);
       if (score.type === 'weak' && !(score.relationTypes || []).length) continue;
+      const resultStarted=context?.metrics?performance.now():0;
       const result = resultFromCandidateRow(row, score, querySyllables, profile.language);
+      if(context?.metrics){
+        context.metrics.writer_result_construction_ms+=performance.now()-resultStarted;
+      }
       result.writerRetrievalChannel = entry.kind;
       result.writerRetrievalKey = entry.key;
       const current = byWord.get(row.normalized);
@@ -247,6 +355,11 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
     queryDetail?.syllableCount || queryAnalysis.syllableCount || 0,
   );
   const runtimeState = materializedWriterRuntimeState(db);
+  const scoringContext=createWriterScoringContext(
+    profile,
+    queryAnalysis,
+    options.profileStages===true,
+  );
   const retrieval = collectRightEdgeCandidates(
     db,
     queryAnalysis,
@@ -254,6 +367,7 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
     querySyllables,
     profile,
     options,
+    scoringContext,
   );
   const soundSorted = [...retrieval.results].sort(compareSound);
   const morphologyInput = [{
@@ -262,9 +376,13 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
     lemma: queryDetail?.lemma || null,
     partOfSpeech: queryDetail?.partOfSpeech || null,
   }, ...soundSorted];
+  const morphologyStarted=scoringContext.metrics?performance.now():0;
   const morphology = runtimeState.active
     ? resolveMaterializedWriterMorphologyBatch(db, morphologyInput, 'de')
     : resolveWriterMorphologyBatch(db, morphologyInput, 'de');
+  if(scoringContext.metrics){
+    scoringContext.metrics.morphology_ms+=performance.now()-morphologyStarted;
+  }
   const query = {
     ...queryDetail,
     kind: 'word',
@@ -280,8 +398,12 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
     ...row,
     writerMorphology: morphology.get(row.normalized) || null,
   }));
+  const rankingStarted=scoringContext.metrics?performance.now():0;
   const ranked = rankWriterRecommendedResults(morphologyRows, query, { limit });
   const results = ranked.slice(0, limit);
+  if(scoringContext.metrics){
+    scoringContext.metrics.ranking_diversity_ms+=performance.now()-rankingStarted;
+  }
   const resolvedMorphology = morphologyRows.filter(
     (row) => row.writerMorphology?.status === 'attested_right_head_candidate',
   ).length;
@@ -335,6 +457,18 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
       totalCandidates: morphologyRows.length,
       externalQuery: true,
     },
+    ...(scoringContext.metrics?{
+      performanceProfile:{
+        stages_ms:Object.fromEntries(
+          Object.entries(scoringContext.metrics)
+            .filter(([key])=>key.endsWith('_ms'))
+            .map(([key,value])=>[key,Number(value.toFixed(3))])
+        ),
+        counters:Object.fromEntries(
+          Object.entries(scoringContext.metrics).filter(([key])=>!key.endsWith('_ms'))
+        ),
+      },
+    }:{}),
     results,
     groups: groupsFor(results),
   };
@@ -354,11 +488,16 @@ export function findWriterRhymes(db, word, options = {}) {
   let queryAnalysis;
   try { queryAnalysis = profile.analyzeIpa(base.query.preferredIpa); }
   catch { queryAnalysis = null; }
+  const scoringContext=queryAnalysis
+    ?createWriterScoringContext(profile,queryAnalysis,options.profileStages===true)
+    :null;
 
   const merged = new Map();
   for (const row of base.results) {
     const rescored = queryAnalysis
-      ? rescoreWriterResult(row, queryAnalysis, profile, base.query.syllableCount)
+      ? rescoreWriterResult(
+          row,queryAnalysis,profile,base.query.syllableCount,scoringContext
+        )
       : row;
     merged.set(rescored.normalized, rescored);
   }
@@ -372,6 +511,7 @@ export function findWriterRhymes(db, word, options = {}) {
       base.query.syllableCount,
       profile,
       options,
+      scoringContext,
     );
     for (const row of retrieval.results) {
       const current = merged.get(row.normalized);
@@ -386,9 +526,13 @@ export function findWriterRhymes(db, word, options = {}) {
     lemma: base.query.lemma,
     partOfSpeech: base.query.partOfSpeech,
   }, ...soundSorted];
+  const morphologyStarted=scoringContext?.metrics?performance.now():0;
   const morphology = runtimeState.active
     ? resolveMaterializedWriterMorphologyBatch(db, morphologyInput, base.language)
     : resolveWriterMorphologyBatch(db, morphologyInput, base.language);
+  if(scoringContext?.metrics){
+    scoringContext.metrics.morphology_ms+=performance.now()-morphologyStarted;
+  }
   const query = {
     ...base.query,
     writerMorphology: morphology.get(base.query.normalized) || null,
@@ -400,8 +544,12 @@ export function findWriterRhymes(db, word, options = {}) {
   // Greedy diversity is prefix-stable: later selection rounds cannot change the
   // already-selected prefix. Rank only the rows the API can return instead of
   // completing O(n^2) greedy selection for candidates beyond the requested page.
+  const rankingStarted=scoringContext?.metrics?performance.now():0;
   const ranked = rankWriterRecommendedResults(morphologyRows, query, { limit });
   const results = ranked.slice(0, limit);
+  if(scoringContext?.metrics){
+    scoringContext.metrics.ranking_diversity_ms+=performance.now()-rankingStarted;
+  }
   const resolvedMorphology = morphologyRows.filter(
     (row) => row.writerMorphology?.status === 'attested_right_head_candidate',
   ).length;
@@ -455,6 +603,24 @@ export function findWriterRhymes(db, word, options = {}) {
         ? 'Source-supported multi-analysis morphology reconstructed from compact materialized evidence; unresolved analyses are represented by absence of positive evidence and conflicting families remain unresolved.'
         : 'Conservative inferred writer-family evidence: whole lemma must end in the candidate right-head lemma, noun/adjective POS must be compatible, and the left side must have measured local usage evidence. Unresolved is preferred over speculative morphology.',
     },
+    ...((base.performanceProfile||scoringContext?.metrics)?{
+      performanceProfile:{
+        stages_ms:{
+          ...(base.performanceProfile?.stages_ms||{}),
+          ...Object.fromEntries(
+            Object.entries(scoringContext?.metrics||{})
+              .filter(([key])=>key.endsWith('_ms'))
+              .map(([key,value])=>[key,Number(value.toFixed(3))])
+          ),
+        },
+        counters:{
+          ...(base.performanceProfile?.counters||{}),
+          ...Object.fromEntries(
+            Object.entries(scoringContext?.metrics||{}).filter(([key])=>!key.endsWith('_ms'))
+          ),
+        },
+      },
+    }:{}),
     results,
     groups: groupsFor(results),
   };
