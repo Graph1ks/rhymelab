@@ -864,7 +864,7 @@ function deHotpathCandidateStage(path){
         INSERT OR REPLACE INTO runtime_de_candidate(
           pronunciation_id,normalized,syllable_count,usage_rank,historical,
           core_preferred,all_preferred,canonical_available,generated_available,generated_only,
-          source_order,exact_key,multisyllable_key,vowel_key,vowel_family,coda_key,coda_class
+          source_order,exact_key,multisyllable_key,vowel_key,vowel_family,stressed_family,coda_key,coda_class
         )
         SELECT
           p.pronunciation_id,s.normalized,COALESCE(p.syllable_count,0),dp.usage_rank,dp.historical,
@@ -873,7 +873,13 @@ function deHotpathCandidateStage(path){
           p.canonical_available,p.generated_available,
           CASE WHEN p.canonical_available=0 AND p.generated_available=1 THEN 1 ELSE 0 END,
           COALESCE(pp.source_row_id,dp.source_hot_id,p.pronunciation_id),
-          p.exact_key,p.multisyllable_key,p.vowel_key,p.vowel_family,p.coda_key,pp.coda_class
+          p.exact_key,p.multisyllable_key,p.vowel_key,p.vowel_family,
+          CASE
+            WHEN p.vowel_family IS NULL OR p.vowel_family='' THEN NULL
+            WHEN instr(p.vowel_family,'-')>0 THEN substr(p.vowel_family,1,instr(p.vowel_family,'-')-1)
+            ELSE p.vowel_family
+          END,
+          p.coda_key,pp.coda_class
         FROM pronunciation p
         JOIN surface s USING(surface_id)
         JOIN runtime_de_surface_profile dp USING(surface_id)
