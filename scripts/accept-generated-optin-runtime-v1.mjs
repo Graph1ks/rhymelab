@@ -18,7 +18,10 @@ import { openPhraseBrowserDb } from '../src/phrase-browser-store.mjs';
 import {
   DEFAULT_GENERATED_ENGLISH_DB_PATH,
   DEFAULT_GENERATED_ENTITY_DB_PATH,
+  DEFAULT_GENERATED_OPTIN_MARKER_PATH,
   DEFAULT_GENERATED_OPTIN_REPORT_PATH,
+  GENERATED_OPTIN_MARKER_SCHEMA,
+  GENERATED_OPTIN_RUNTIME_POLICY,
   DEFAULT_GENERATED_PHRASE_DB_PATH,
   DEFAULT_GENERATED_WRITER_DB_PATH,
   openGeneratedOptinRuntime,
@@ -44,6 +47,7 @@ const englishPath=resolve(argValue('--english',DEFAULT_ENGLISH_WRITER_DB_PATH));
 const phrasePath=resolve(argValue('--phrases','data/local/rhymelab-phrases-v1.sqlite'));
 const entityPath=resolve(argValue('--entities',DEFAULT_ENTITY_DB_PATH));
 const reportPath=resolve(argValue('--parity-report',DEFAULT_GENERATED_OPTIN_REPORT_PATH));
+const markerOutPath=resolve(argValue('--marker',DEFAULT_GENERATED_OPTIN_MARKER_PATH));
 const generatedWriterPath=resolve(argValue('--generated-writer',DEFAULT_GENERATED_WRITER_DB_PATH));
 const generatedEnglishPath=resolve(argValue('--generated-english',DEFAULT_GENERATED_ENGLISH_DB_PATH));
 const generatedPhrasePath=resolve(argValue('--generated-phrases',DEFAULT_GENERATED_PHRASE_DB_PATH));
@@ -136,6 +140,8 @@ try{
   };
   generatedRuntime=openGeneratedOptinRuntime({
     reportPath,
+    acceptanceMarkerPath:markerOutPath,
+    requireRuntimeAcceptance:false,
     writerPath:generatedWriterPath,
     englishPath:generatedEnglishPath,
     phrasePath:generatedPhrasePath,
@@ -315,6 +321,19 @@ try{
   report.semantic_fingerprint=sha(report);
   await mkdir(dirname(outPath),{recursive:true});
   await writeFile(outPath,JSON.stringify(report,null,2)+'\n','utf8');
+  if(!failed.length){
+    const marker={
+      schema:GENERATED_OPTIN_MARKER_SCHEMA,
+      status:'accepted',
+      policy:GENERATED_OPTIN_RUNTIME_POLICY,
+      parity_report_fingerprint:generatedRuntime.reportFingerprint,
+      acceptance_report_fingerprint:report.semantic_fingerprint,
+      acceptance_report:outPath,
+    };
+    await mkdir(dirname(markerOutPath),{recursive:true});
+    await writeFile(markerOutPath,JSON.stringify(marker,null,2)+'\n','utf8');
+    report.enablement_marker=markerOutPath;
+  }
   console.log(JSON.stringify({...report,report:outPath},null,2));
   if(failed.length){
     throw new Error('Generated opt-in runtime acceptance failed: '+failed.join(', '));
