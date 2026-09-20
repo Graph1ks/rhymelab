@@ -24,8 +24,8 @@ import {
 
 const root=process.cwd();
 const args=process.argv.slice(2);
-let manifestPath='sources/leipzig/de10k-v1-frozen.json';
-let phraseWork='data/work/de-phrase-catalog-v1/extracted';
+let manifestPath='';
+let phraseWork='';
 let workPath='data/work/markov-v1/rhymelab-markov-v1.build.sqlite';
 let outPath='data/local/rhymelab-markov-v1.sqlite';
 let reportPath='data/local/markov-model-v1-report.json';
@@ -58,8 +58,8 @@ for(let i=0;i<args.length;i+=1){
   else throw new Error(`Unknown argument: ${arg}`);
 }
 
-manifestPath=resolve(root,manifestPath);
-phraseWork=resolve(root,phraseWork);
+manifestPath=manifestPath?resolve(root,manifestPath):'';
+phraseWork=phraseWork?resolve(root,phraseWork):'';
 workPath=resolve(root,workPath);
 outPath=resolve(root,outPath);
 reportPath=resolve(root,reportPath);
@@ -80,10 +80,13 @@ function lineReader(path){return readline.createInterface({input:createReadStrea
 function sentenceFromLine(line){const tab=line.indexOf('\t');return tab>=0?line.slice(tab+1):line;}
 
 async function resolveSources(){
-  const manifest=JSON.parse(await readFile(manifestPath,'utf8'));
+  let manifest={id:'explicit-local-v1',corpora:[]};
+  if(manifestPath)manifest=JSON.parse(await readFile(manifestPath,'utf8'));
   if(sentenceArgs.filter(Boolean).length){
     return {manifest,sources:sentenceArgs.filter(Boolean).map(parseSentenceArg)};
   }
+  if(!manifestPath)return {manifest,sources:[]};
+  if(!phraseWork)throw new Error('--phrase-work is required when --manifest is used without explicit --sentences.');
   const sources=(manifest.corpora||[]).map((corpus)=>({
     code:corpus.code,
     path:join(phraseWork,`${corpus.code}_sentences.txt`),
@@ -140,8 +143,8 @@ if(plan){
     sources:sourceRows.map(({code,path,available,bytes,manifest})=>({code,path,available,bytes,human_bytes:human(bytes),expected_sentences:manifest?.sentences??null,genre:manifest?.genre??null,year:manifest?.year??null})),
     config:{maxStates,topK,minTokenCount,batchSentences,maxSentencesPerCorpus},
     work:workPath,out:outPath,report:reportPath,
-    ready:sourceRows.every((row)=>row.available),
-    missing_hint:'Run npm run phrase:catalog:bootstrap first if the Leipzig extracted sentence files are missing.',
+    ready:sourceRows.length>0&&sourceRows.every((row)=>row.available),
+    missing_hint:sourceRows.length?'Fix missing explicit source paths before building.':'No implicit corpus is selected. Pass --sentences code=/path/file or --manifest ... --phrase-work ... . Owner-private lyrics are calibration-only.',
   },null,2));
   process.exit(sourceRows.every((row)=>row.available)?0:2);
 }
@@ -154,9 +157,12 @@ if(status){
   },null,2));
   process.exit(0);
 }
+if(!sourceRows.length){
+  throw new Error('No Markov training source configured. Pass --sentences code=/path/file or --manifest ... --phrase-work ... . Owner-private lyrics are calibration-only.');
+}
 if(!sourceRows.every((row)=>row.available)){
   const missing=sourceRows.filter((row)=>!row.available).map((row)=>row.path);
-  throw new Error(`Missing Leipzig sentence files:\n${missing.join('\n')}\nRun: npm run phrase:catalog:bootstrap`);
+  throw new Error(`Missing explicit Markov source files:\n${missing.join('\n')}`);
 }
 
 await mkdir(dirname(workPath),{recursive:true});
@@ -415,7 +421,8 @@ function pruneTransitions(){
 async function promote(){
   const scanRows=db.prepare("SELECT accepted_sentences FROM build_checkpoint WHERE phase='scan'").all();
   const acceptedSentences=scanRows.reduce((sum,row)=>sum+Number(row.accepted_sentences||0),0);
-  const sourceSentences=sourceRows.reduce((sum,row)=>sum+Number(row.manifest?.sentences||0),0);
+  const declaredSourceSentences=sourceRows.reduce((sum,row)=>sum+Number(row.manifest?.sentences||0),0);
+  const sourceSentences=declaredSourceSentences||acceptedSentences;
   const retainedStates=Number(db.prepare('SELECT COUNT(*) AS n FROM state_count WHERE retained=1').get()?.n||0);
   writeMeta(db,{source_sentences:sourceSentences,accepted_sentences:acceptedSentences,retained_states:retainedStates});
   db.exec('ANALYZE; PRAGMA optimize;');
