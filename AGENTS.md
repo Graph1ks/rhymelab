@@ -35,6 +35,7 @@ Before changing the project in a fresh thread/session, read:
 27. `docs/PRONUNCIATION_BACKFILL_V2.md` for the corrected owner-authorized source/stage → accepted diff plus resumable eSpeak → client-resolver staging workflow
 28. `docs/LOCAL_DATA_INVENTORY.md` before changing local source-path assumptions or full-data backfill adapters
 29. `docs/SERVING_V1.md` before changing the experimental unified Serving-v1 identity/dedupe build, Core authority, resume/promotion behavior, or later Serving-v1 runtime promotion
+30. `docs/SERVING_V1_RUNTIME_MATERIALIZATION.md` before changing Serving-v1 runtime targets, unified retrieval keys, precomputed morphology/Phrase evidence, retrieval equivalence, or runtime-materialization promotion
 
 ## Operating model — solo-dev / owner-controlled
 
