@@ -86,10 +86,13 @@ function findGeneratedOnlyGerman(canonical,generated){
   const rows=generated.prepare(`
     SELECT surface,normalized FROM hot
     WHERE pronunciation_flags LIKE '%secondary_opt_in%'
-    ORDER BY id LIMIT 2000
-  `).all();
+    ORDER BY id
+  `).iterate();
   const exists=canonical.prepare('SELECT 1 AS ok FROM hot WHERE normalized=? LIMIT 1');
-  return rows.find((row)=>!exists.get(row.normalized))||null;
+  for(const row of rows){
+    if(!exists.get(row.normalized))return row;
+  }
+  return null;
 }
 
 function findGeneratedOnlyEnglish(canonical,generated){
@@ -98,10 +101,13 @@ function findGeneratedOnlyEnglish(canonical,generated){
     FROM en_pronunciation p
     JOIN en_form f ON f.id=p.form_id
     WHERE p.source='espeak_ng_generated_secondary'
-    ORDER BY p.id LIMIT 2000
-  `).all();
+    ORDER BY p.id
+  `).iterate();
   const exists=canonical.prepare('SELECT 1 AS ok FROM en_form WHERE normalized=? LIMIT 1');
-  return rows.find((row)=>!exists.get(row.normalized))||null;
+  for(const row of rows){
+    if(!exists.get(row.normalized))return row;
+  }
+  return null;
 }
 
 function findGeneratedOnlyPhrasePronunciation(canonical,generated){
@@ -113,11 +119,8 @@ function findGeneratedOnlyPhrasePronunciation(canonical,generated){
   const exists=canonical.prepare(
     'SELECT 1 AS ok FROM phrase_pronunciation WHERE phrase_pronunciation_id=? LIMIT 1'
   );
-  let checked=0;
   for(const row of rows){
-    checked+=1;
     if(!exists.get(row.phrase_pronunciation_id))return row;
-    if(checked>=20000)break;
   }
   return null;
 }
@@ -169,8 +172,8 @@ try{
       generated:count(generated.englishDb,"SELECT COUNT(*) AS c FROM en_pronunciation WHERE source='espeak_ng_generated_secondary'"),
     },
     phrases:{
-      canonical:count(phraseDb,"SELECT COUNT(DISTINCT phrase_pronunciation_id) AS c FROM phrase_pronunciation_token WHERE LOWER(COALESCE(pronunciation_source,'')) LIKE '%espeak%'"),
-      generated:count(generated.phraseDb,"SELECT COUNT(DISTINCT phrase_pronunciation_id) AS c FROM phrase_pronunciation_token WHERE LOWER(COALESCE(pronunciation_source,'')) LIKE '%espeak%'"),
+      canonical:count(phraseDb,"SELECT COUNT(DISTINCT phrase_pronunciation_id) AS c FROM phrase_pronunciation_token WHERE pronunciation_source='eSpeak-NG Backfill V2'"),
+      generated:count(generated.phraseDb,"SELECT COUNT(DISTINCT phrase_pronunciation_id) AS c FROM phrase_pronunciation_token WHERE pronunciation_source='eSpeak-NG Backfill V2'"),
     },
     entities:{
       canonical:count(entityDb,"SELECT COUNT(*) AS c FROM entity_pronunciation WHERE source_kind='espeak_ng_generated_secondary'"),
