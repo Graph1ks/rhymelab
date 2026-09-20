@@ -8,6 +8,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Added
 
+- Added persistent Serving-v1 channel workers for DE Words, EN Words, Phrase/Mosaic, DE Entities and EN Entities. The real preview UI, hotpath benchmark and Product Acceptance latency path now execute eligible channels concurrently with one long-lived read-only SQLite connection per worker and no cross-request search caching.
 - Added `npm run dev:serving`, an explicit one-file Serving-v1 Product preview that drives the normal RhymeLab browser UI/API through Core/All read-only connections without changing the accepted default runtime.
 - Added a bounded IndexedDB cache for generated client query pronunciations, keyed by language/spelling and gated by resolver policy plus the current active-database revision.
 - Added `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md` as the focused fresh-thread continuation contract for client query pronunciation, cache revalidation and browser verification.
