@@ -1039,7 +1039,18 @@ async function collect(){
         if(stopRequested) break;
         const locale=language==='de'?'de-DE':'en-US';
         const missingWhere=[
-          'n.searchable=1 AND n.language=? AND NOT EXISTS (',
+          'n.searchable=1 AND n.language=?',
+          // Wikidata label language is a display/search locale, not pronunciation evidence.
+          // If the exact same normalized name exists for this Entity in both DE and EN
+          // label locales, do not create an unattended language-specific generated target.
+          'AND NOT EXISTS (',
+          ' SELECT 1 FROM entity_name sibling',
+          ' WHERE sibling.entity_id=n.entity_id',
+          ' AND sibling.normalized=n.normalized',
+          ' AND sibling.searchable=1',
+          " AND sibling.language=CASE n.language WHEN 'de' THEN 'en' WHEN 'en' THEN 'de' ELSE '' END",
+          ')',
+          'AND NOT EXISTS (',
           ' SELECT 1 FROM entity_pronunciation p',
           ' WHERE p.name_id=n.name_id AND p.locale=? AND p.generated=0',
           ' AND p.review_state IN ('+placeholders+')',
