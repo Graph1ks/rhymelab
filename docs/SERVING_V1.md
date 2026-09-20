@@ -72,6 +72,24 @@ Pronunciations are deduplicated per surface by:
 canonical phoneme identity + stress identity
 ```
 
+Identity revision:
+
+```text
+canonical-phoneme-stress-v3
+```
+
+The phoneme identity is **storage-format independent**. Source-specific representations are normalized before comparison. In particular:
+
+```text
+Word/Phrase:  m ɛ t a l ɪ k a
+Entity JSON: ["m","ɛ","t","a","l","ɪ","k","a"]
+
+=> canonical identity phonemes:
+   m ɛ t a l ɪ k a
+```
+
+This is required for cross-domain Core authority: a Generated Entity pronunciation that is phonetically identical to an existing Core word pronunciation collapses onto the Core pronunciation while its Entity/QID/role metadata remains attached.
+
 This intentionally keeps genuine stress/pronunciation variants separate.
 
 A pronunciation row tracks independent availability in:
@@ -102,6 +120,7 @@ Hard invariants:
 
 ```text
 core_never_displaced_by_generated = true
+cross_domain_identity_is_storage_format_independent = true
 identical_generated_is_absorbed_by_core = true
 generated_origins_on_canonical_pronunciations = 0
 canonical_pronunciations_marked_generated = 0
