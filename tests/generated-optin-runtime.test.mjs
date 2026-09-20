@@ -144,7 +144,7 @@ test('dataset stats split Core and Generated pronunciation records without doubl
   const db=()=>new DatabaseSync(':memory:');
   const canonical={writerDb:db(),englishDb:db(),phraseDb:db(),entityDb:db(),generatedOverlay:false};
   const generated={writerDb:db(),englishDb:db(),phraseDb:db(),entityDb:db(),generatedOverlay:true};
-  const all=[...Object.values(canonical).filter((value)=>value instanceof DatabaseSync),...Object.values(generated).filter((value)=>value instanceof DatabaseSync)];
+  const all=[canonical.writerDb,canonical.englishDb,canonical.phraseDb,canonical.entityDb,generated.writerDb,generated.englishDb,generated.phraseDb,generated.entityDb];
   try{
     canonical.writerDb.exec("CREATE TABLE hot(id INTEGER,pronunciation_flags TEXT); INSERT INTO hot VALUES(1,'[]'),(2,'[]');");
     generated.writerDb.exec("CREATE TABLE hot(id INTEGER,pronunciation_flags TEXT); INSERT INTO hot VALUES(1,'[]'),(2,'[]'),(3,'[\\\"generated\\\",\\\"secondary_opt_in\\\"]');");
