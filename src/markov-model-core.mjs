@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 export const MARKOV_MODEL_SCHEMA='rhymelab-markov-model-v1';
-export const MARKOV_MODEL_POLICY='rhymelab-markov-corpus-v1';
+export const MARKOV_MODEL_POLICY='rhymelab-markov-lyric-v1';
 export const MARKOV_MODEL_ORDER=2;
 export const START_TOKEN='<s>';
 export const END_TOKEN='</s>';
