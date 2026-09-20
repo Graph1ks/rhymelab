@@ -246,7 +246,7 @@ function renderPoolStats(pool,data){
 }
 
 async function generate(){
-  if(!markovHealth?.available)throw new Error('Lyric Markov model unavailable. Materialize it from an explicitly approved line source.');
+  if(!markovHealth?.available)throw new Error('Markov transition database missing. Run npm run markov:model:build.');
   const settings=settingsFromControls();
   if(settings.language!==markovHealth.language)throw new Error(`No ${settings.language.toUpperCase()} lyric model is materialized yet.`);
   setBusy(true);setStatus('Pulling rhyme candidates from RhymeLab…','busy');$('#uiError').hidden=true;
@@ -279,7 +279,7 @@ function applyModelHealth(){
     for(const option of language.options)option.disabled=option.value!==markovHealth.language;
     language.value=markovHealth.language;
   }else{
-    note.innerHTML='<strong>MODEL REQUIRED:</strong> no fake template fallback and no implicit 3M corpus. Build from an explicitly approved line source; owner-private lyrics are calibration-only.';
+    note.innerHTML='<strong>MODEL REQUIRED:</strong> lyric structure is loaded, but the transition database is missing. Run <code>npm run markov:model:build</code>. It builds from the existing RhymeLab Phrase/Mosaic catalog; owner-private lyrics are not used.';
     state.textContent='MODEL MISSING';state.dataset.tone='error';
   }
 }
@@ -297,7 +297,7 @@ async function initialize(){
     });
     for(const id of ['rhymePressure','naturalness','weirdness','targetTokens'])updateRangeLabel(id,document.getElementById(id).value);
     controls.randomSeed.value=String(integerSeed());applyPreset('balanced');applyModelHealth();setBusy(false);
-    setStatus(markovHealth?.available?'Lyric model ready. Pick a rhyme target.':'Lyric model missing — build it once before generation.',markovHealth?.available?'ok':'warn');
+    setStatus(markovHealth?.available?'Lyric model ready. Pick a rhyme target.':'Markov transition database missing — run npm run markov:model:build.',markovHealth?.available?'ok':'warn');
   }catch(error){
     document.documentElement.dataset.rhymelabControls='failed';$('#uiError').hidden=false;
     $('#uiError').textContent=`UI initialization failed: ${error instanceof Error?error.message:String(error)}`;console.error(error);
