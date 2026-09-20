@@ -5,6 +5,7 @@ import {mkdir,open,readFile,rename,rm,stat,writeFile} from 'node:fs/promises';
 import {dirname,resolve} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {DatabaseSync} from 'node:sqlite';
+import {getPhonologyProfile} from './phonology-profiles.mjs';
 import {
   SERVING_V1_PRONUNCIATION_IDENTITY_REVISION,
   entityAnalyzerSql,
@@ -973,6 +974,37 @@ function entityRankedAnchorStage(path){
   };
 }
 
+
+function deAnalysisHotpathStage(path){
+  const profile=getPhonologyProfile('de');
+  return {
+    name:'14_de_precomputed_analysis',label:'DE scorer-ready phonetic analyses',path,
+    total(db){return scalar(db,'SELECT COUNT(*) c FROM runtime_de_candidate');},
+    max(db){return scalar(db,'SELECT COALESCE(MAX(pronunciation_id),0) c FROM runtime_de_candidate');},
+    range(db,last,upper){return scalar(db,`
+      SELECT COUNT(*) c FROM runtime_de_candidate
+      WHERE pronunciation_id>${last} AND pronunciation_id<=${upper}
+    `);},
+    run(db,last,upper){
+      const rows=db.prepare(`
+        SELECT p.pronunciation_id,COALESCE(p.ipa,p.raw) ipa
+        FROM pronunciation p
+        JOIN runtime_de_candidate c USING(pronunciation_id)
+        WHERE p.pronunciation_id>? AND p.pronunciation_id<=?
+        ORDER BY p.pronunciation_id
+      `).all(last,upper);
+      const insert=db.prepare(`
+        INSERT OR REPLACE INTO runtime_de_analysis(pronunciation_id,analyzer_id,analysis_json)
+        VALUES(?,?,?)
+      `);
+      for(const row of rows){
+        const analysis=profile.analyzeIpa(row.ipa);
+        insert.run(row.pronunciation_id,profile.analyzerVersion,JSON.stringify(analysis));
+      }
+    },
+  };
+}
+
 function entityOccurrenceIntegrity(db,path){
   const accepted="'accepted','reviewed','accepted_source_composition','accepted_source_backed'";
   const eligible=`
@@ -1064,6 +1096,7 @@ function stageDefinitions(paths){
     deHotpathCandidateStage(paths.deGenerated),
     enHotpathCandidateStage(paths.enGenerated),
     entityRankedAnchorStage(paths.entityGenerated),
+    deAnalysisHotpathStage(paths.deGenerated),
   ];
 }
 
