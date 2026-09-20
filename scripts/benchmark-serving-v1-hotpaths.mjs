@@ -75,6 +75,7 @@ try{
         repeat:repeat+1,
         total_ms:Number(elapsed.toFixed(3)),
         stages_ms:result?.performanceProfile?.stages_ms||{},
+        performance_counters:result?.performanceProfile?.counters||{},
         counts:result?.counts||null,
         status:result?.status||null,
       });
