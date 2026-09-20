@@ -700,7 +700,7 @@ function deSurfaceProfileStage(path){
             AND COALESCE(excluded.selection_pronunciation_rank,9223372036854775807)
               = COALESCE(runtime_de_surface_profile.selection_pronunciation_rank,9223372036854775807)
             AND excluded.source_hot_id < runtime_de_surface_profile.source_hot_id
-          )          );
+          );
       `);
     },
   };
