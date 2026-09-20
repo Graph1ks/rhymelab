@@ -6,12 +6,23 @@ if(!parentPort)throw new Error('IPA analyzer worker requires parentPort.');
 
 function compactAnalysis(analysis){
   return {
+    ipa:analysis?.ipa??null,
+    canonicalPhonemes:analysis?.canonicalPhonemes??null,
+    syllables:analysis?.syllables??null,
     syllableCount:analysis?.syllableCount??null,
     primaryStressSyllable:analysis?.primaryStressSyllable??null,
     stressPattern:analysis?.stressPattern??null,
+    stressedTail:analysis?.stressedTail??null,
+    finalTail:analysis?.finalTail??null,
+    vowelSequence:analysis?.vowelSequence??null,
+    consonantSequence:analysis?.consonantSequence??null,
     exactTailKey:analysis?.exactTailKey??null,
+    multisyllableKey:analysis?.multisyllableKey??null,
     vowelKey:analysis?.vowelKey??null,
+    vowelFamilyKey:analysis?.vowelFamilyKey??null,
     codaKey:analysis?.codaKey??null,
+    stressedSyllableCount:analysis?.stressedSyllableCount??null,
+    rhotic:analysis?.rhotic??null,
   };
 }
 
