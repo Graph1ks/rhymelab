@@ -16,6 +16,7 @@ import {
   stateKey,
   tokenizeSurface,
 } from './markov-model-core.mjs';
+import {MARKOV_LYRIC_PROFILE,MARKOV_LYRIC_PROFILE_POLICY,lyricLengthFit} from './markov-lyric-profile.mjs';
 
 export const DEFAULT_MARKOV_MODEL_DB_PATH='data/local/rhymelab-markov-v1.sqlite';
 export const MARKOV_GENERATOR_RUNTIME='rhymelab-markov-runtime-v1';
@@ -261,8 +262,8 @@ export function markovModelHealth(runtime){
       reason:runtime?.reason||'model_missing',
       error:runtime?.error||null,
       database:runtime?.path||resolve(DEFAULT_MARKOV_MODEL_DB_PATH),
-      build_command:'npm run markov:model:build',
-      bootstrap_command:'npm run phrase:catalog:bootstrap && npm run markov:model:build',
+      build_command:'npm run markov:model:build -- --sentences approved=/absolute/path/to/approved-lines.txt',
+      source_requirement:'Explicit approved line source required. Owner-private lyrics are calibration-only and must not be used as a distributable model source.',
     };
   }
   let bytes=null;
@@ -283,6 +284,7 @@ export function markovModelHealth(runtime){
     tokens:runtime.stats.tokens,
     retained_states:runtime.stats.retainedStates,
     transitions:runtime.stats.transitions,
+    lyric_profile:MARKOV_LYRIC_PROFILE_POLICY,
   };
 }
 
@@ -409,7 +411,7 @@ function terminalTailFit(runtime,tailTokens){
 
 function generateBackwardPrefix(runtime,tail,random,options){
   const seedTokens=normalizeSeedTokens(options.seedText,options.language);
-  const target=Math.max(4,Math.min(28,Number(options.targetTokens)||10));
+  const target=Math.max(MARKOV_LYRIC_PROFILE.compactLineTokens,Math.min(28,Number(options.targetTokens)||MARKOV_LYRIC_PROFILE.defaultTargetTokens));
   const targetPrefix=Math.max(1,target-seedTokens.length-tail.candidate.tokens.length);
   const maxPrefix=Math.max(targetPrefix+4,Math.ceil(targetPrefix*(1.25+clamp(options.weirdness/100)*0.25)));
   const minPrefix=Math.max(1,Math.floor(targetPrefix*0.55));
@@ -556,9 +558,9 @@ function sourceCounts(tokens){
 function scoreCandidate(backward,tail,echo,tokenRows,options,runtime){
   const naturalControl=clamp(options.naturalness/100);
   const pressure=clamp(options.rhymePressure/100);
-  const target=Math.max(4,Number(options.targetTokens)||10);
+  const target=Math.max(MARKOV_LYRIC_PROFILE.compactLineTokens,Number(options.targetTokens)||MARKOV_LYRIC_PROFILE.defaultTargetTokens);
   const actual=tokenRows.reduce((sum,row)=>sum+(row.kind==='seed'?normalizeSeedTokens(row.text,options.language).length:tokenizeSurface(row.text,{language:options.language}).length),0);
-  const lengthFit=clamp(1-Math.abs(actual-target)/target);
+  const lengthFit=lyricLengthFit(actual,target);
   const transitionScore=clamp(Math.sqrt(backward.transitionNaturalness));
   const startScore=String(options.seedText||'').trim()?clamp(Math.sqrt(backward.boundary)):backward.reachedStart?1:0.35;
   const tailFit=clamp(Math.pow(Math.max(terminalTailFit(runtime,tail.candidate.tokens),1e-6),0.35));
@@ -594,7 +596,7 @@ export function generateCorpusMarkovCandidates(runtime,{
   seedText='',
   target='',
   seed=1337,
-  targetTokens=10,
+  targetTokens=MARKOV_LYRIC_PROFILE.defaultTargetTokens,
   rhymePressure=65,
   naturalness=72,
   weirdness=38,
@@ -648,6 +650,7 @@ export function generateCorpusMarkovCandidates(runtime,{
         language,
         fingerprint:runtime.meta.semantic_fingerprint||null,
         sourceSentences:Number(runtime.meta.source_sentences||0),
+        lyricProfile:MARKOV_LYRIC_PROFILE_POLICY,
       },
       seed:Number(seed)||0,
       mode,
