@@ -16,7 +16,12 @@ import {
   stateKey,
   tokenizeSurface,
 } from './markov-model-core.mjs';
-import {MARKOV_LYRIC_PROFILE,MARKOV_LYRIC_PROFILE_POLICY,lyricLengthFit} from './markov-lyric-profile.mjs';
+import {
+  MARKOV_LYRIC_PROFILE,
+  MARKOV_LYRIC_PROFILE_POLICY,
+  lyricLengthFit,
+  lyricTargetBounds,
+} from './markov-lyric-profile.mjs';
 
 export const DEFAULT_MARKOV_MODEL_DB_PATH='data/local/rhymelab-markov-v1.sqlite';
 export const MARKOV_GENERATOR_RUNTIME='rhymelab-markov-runtime-v1';
@@ -348,30 +353,42 @@ function chooseTail(runtime,pool,random,options,usedKeys){
 function nextReverseToken(runtime,context,random,options,{allowStart=true,seen}={}){
   const natural=clamp(options.naturalness/100);
   const weird=clamp(options.weirdness/100);
-  const result=runtime.choicesWithBackoff('reverse',context,{limit:64});
-  if(!result.rows.length)return {token:null,probability:0,contextLen:0};
-  const rows=[];
-  for(const row of result.rows){
-    if(row.token===END_TOKEN)continue;
-    if(row.token===START_TOKEN&&!allowStart)continue;
-    const repetitions=seen?.get(row.token)||0;
-    if(repetitions>=2&&!isPunctuationToken(row.token))continue;
-    const probability=row.count/Math.max(1,result.total);
-    const support=runtime.tokenSupport(row.token);
-    const repeatPenalty=repetitions?0.32*repetitions:0;
-    const score=Math.max(1e-8,probability*(0.6+natural*0.8)+support*(0.06+natural*0.2)-repeatPenalty);
-    rows.push({token:row.token,probability,score,count:row.count});
+  const clean=context.filter(Boolean);
+
+  // Back off *after* applying generation constraints. Previously an order-2
+  // state whose only predecessor was <s> stopped the walk even when <s> was
+  // forbidden and a valid order-1 predecessor existed.
+  for(let len=Math.min(MARKOV_MODEL_ORDER,clean.length);len>=1;len-=1){
+    const selected=clean.slice(0,len);
+    const result=runtime.choices('reverse',selected,{limit:64});
+    if(!result.rows.length)continue;
+    const rows=[];
+    for(const row of result.rows){
+      if(row.token===END_TOKEN)continue;
+      if(row.token===START_TOKEN&&!allowStart)continue;
+      const repetitions=seen?.get(row.token)||0;
+      if(repetitions>=2&&!isPunctuationToken(row.token))continue;
+      const probability=row.count/Math.max(1,result.total);
+      const support=runtime.tokenSupport(row.token);
+      const repeatPenalty=repetitions?0.32*repetitions:0;
+      const score=Math.max(
+        1e-8,
+        probability*(0.6+natural*0.8)+support*(0.06+natural*0.2)-repeatPenalty,
+      );
+      rows.push({token:row.token,probability,score,count:row.count});
+    }
+    if(!rows.length)continue;
+    rows.sort((a,b)=>b.score-a.score||b.count-a.count||a.token.localeCompare(b.token));
+    const depth=Math.max(1,Math.min(rows.length,Math.round(1+weird*12+(1-natural)*5)));
+    const temperature=0.5+(1-natural)*0.8+weird*0.35;
+    const shortlist=rows.slice(0,depth).map((row)=>({
+      ...row,
+      weight:Math.pow(Math.max(row.score,1e-8),1/temperature),
+    }));
+    const chosen=weightedChoice(shortlist,random)||shortlist[0];
+    return {...chosen,contextLen:result.contextLen};
   }
-  if(!rows.length)return {token:null,probability:0,contextLen:result.contextLen};
-  rows.sort((a,b)=>b.score-a.score||b.count-a.count||a.token.localeCompare(b.token));
-  const depth=Math.max(1,Math.min(rows.length,Math.round(1+weird*12+(1-natural)*5)));
-  const temperature=0.5+(1-natural)*0.8+weird*0.35;
-  const shortlist=rows.slice(0,depth).map((row)=>({
-    ...row,
-    weight:Math.pow(Math.max(row.score,1e-8),1/temperature),
-  }));
-  const chosen=weightedChoice(shortlist,random)||shortlist[0];
-  return {...chosen,contextLen:result.contextLen};
+  return {token:null,probability:0,contextLen:0};
 }
 
 function normalizeSeedTokens(seedText,language){
@@ -412,10 +429,15 @@ function terminalTailFit(runtime,tailTokens){
 
 function generateBackwardPrefix(runtime,tail,random,options){
   const seedTokens=normalizeSeedTokens(options.seedText,options.language);
-  const target=Math.max(MARKOV_LYRIC_PROFILE.compactLineTokens,Math.min(28,Number(options.targetTokens)||MARKOV_LYRIC_PROFILE.defaultTargetTokens));
-  const targetPrefix=Math.max(1,target-seedTokens.length-tail.candidate.tokens.length);
-  const maxPrefix=Math.max(targetPrefix+4,Math.ceil(targetPrefix*(1.25+clamp(options.weirdness/100)*0.25)));
-  const minPrefix=Math.max(1,Math.floor(targetPrefix*0.55));
+  const weird=clamp(options.weirdness/100);
+  const bounds=lyricTargetBounds(options.targetTokens,{weirdness:weird});
+  const fixedTokens=seedTokens.length+tail.candidate.tokens.length;
+  const targetPrefix=Math.max(0,bounds.target-fixedTokens);
+  const minPrefix=Math.max(0,bounds.min-fixedTokens);
+  const maxPrefix=Math.max(
+    minPrefix,
+    Math.min(28-fixedTokens,Math.max(targetPrefix,bounds.max-fixedTokens)),
+  );
   const suffix=tail.candidate.tokens.map((row)=>row.norm);
   if(suffix.length===1)suffix.push(END_TOKEN);
   const prefix=[];
@@ -432,17 +454,27 @@ function generateBackwardPrefix(runtime,tail,random,options){
     suffix.unshift(chosen.token);
     probs.unshift(chosen.probability);
     seen.set(chosen.token,(seen.get(chosen.token)||0)+1);
-    if(prefix.length>=targetPrefix&&seedTokens.length){
-      const fit=boundaryFit(runtime,seedTokens,prefix);
-      const stopChance=clamp(0.18+fit*0.65+clamp(options.naturalness/100)*0.12);
-      if(random()<stopChance)break;
+
+    if(prefix.length>=targetPrefix){
+      if(seedTokens.length){
+        const fit=boundaryFit(runtime,seedTokens,prefix);
+        const stopChance=clamp(0.18+fit*0.65+clamp(options.naturalness/100)*0.12);
+        if(random()<stopChance)break;
+      }else{
+        // A requested length is a generation constraint, not just a score.
+        // Once the target is reached, prefer stopping near it rather than
+        // wandering until a phrase boundary far beyond the slider value.
+        const overshoot=prefix.length-targetPrefix;
+        const stopChance=clamp(0.58+overshoot*0.2+(1-weird)*0.12);
+        if(random()<stopChance)break;
+      }
     }
   }
   const boundary=boundaryFit(runtime,seedTokens,prefix);
   const transitionNaturalness=probs.length
     ?Math.exp(probs.reduce((sum,p)=>sum+Math.log(Math.max(p,1e-9)),0)/probs.length)
     :0;
-  return {prefix,probs,reachedStart,boundary,transitionNaturalness,seedTokens};
+  return {prefix,probs,reachedStart,boundary,transitionNaturalness,seedTokens,bounds};
 }
 
 function formatTokens(rows,language){
@@ -559,9 +591,11 @@ function sourceCounts(tokens){
 function scoreCandidate(backward,tail,echo,tokenRows,options,runtime){
   const naturalControl=clamp(options.naturalness/100);
   const pressure=clamp(options.rhymePressure/100);
-  const target=Math.max(MARKOV_LYRIC_PROFILE.compactLineTokens,Number(options.targetTokens)||MARKOV_LYRIC_PROFILE.defaultTargetTokens);
+  const bounds=lyricTargetBounds(options.targetTokens,{weirdness:clamp(options.weirdness/100)});
+  const target=bounds.target;
   const actual=tokenRows.reduce((sum,row)=>sum+(row.kind==='seed'?normalizeSeedTokens(row.text,options.language).length:tokenizeSurface(row.text,{language:options.language}).length),0);
   const lengthFit=lyricLengthFit(actual,target);
+  const lengthWithinTarget=actual>=bounds.min&&actual<=bounds.max;
   const transitionScore=clamp(Math.sqrt(backward.transitionNaturalness));
   const startScore=String(options.seedText||'').trim()?clamp(Math.sqrt(backward.boundary)):backward.reachedStart?1:0.35;
   const tailFit=clamp(Math.pow(Math.max(terminalTailFit(runtime,tail.candidate.tokens),1e-6),0.35));
@@ -588,6 +622,10 @@ function scoreCandidate(backward,tail,echo,tokenRows,options,runtime){
     echoNaturalness:echo.echoNaturalness||0,
     lengthFit,
     actualLength:actual,
+    targetLength:target,
+    minimumLength:bounds.min,
+    maximumLength:bounds.max,
+    lengthWithinTarget,
   };
 }
 
@@ -637,6 +675,7 @@ export function generateCorpusMarkovCandidates(runtime,{
     if(!sentence||seenSentences.has(sentence))continue;
     seenSentences.add(sentence);
     const scores=scoreCandidate(backward,tail,echo,tokenRows,options,runtime);
+    if(!scores.lengthWithinTarget)continue;
     generated.push({
       id:`mk-${hashString(`${seedMaterial}|${sentence}`).toString(16)}`,
       sentence,
