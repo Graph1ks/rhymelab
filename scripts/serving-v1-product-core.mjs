@@ -141,6 +141,17 @@ export function createServingV1ProductStorage(db){
     CREATE INDEX IF NOT EXISTS idx_runtime_entity_pron_name
       ON runtime_entity_pronunciation(name_id,locale,preferred DESC,review_state,product_pronunciation_id);
 
+    CREATE TABLE IF NOT EXISTS runtime_entity_writer_anchor(
+      analyzer_id TEXT NOT NULL,
+      channel TEXT NOT NULL,
+      anchor_key TEXT NOT NULL,
+      serving_pronunciation_id INTEGER NOT NULL REFERENCES pronunciation(pronunciation_id) ON DELETE CASCADE,
+      PRIMARY KEY(analyzer_id,channel,anchor_key,serving_pronunciation_id)
+    ) WITHOUT ROWID;
+
+    CREATE INDEX IF NOT EXISTS idx_runtime_entity_writer_anchor_pron
+      ON runtime_entity_writer_anchor(serving_pronunciation_id,analyzer_id,channel);
+
     CREATE INDEX IF NOT EXISTS idx_runtime_phrase_window_exact
       ON runtime_phrase_window(exact_tail_key,syllable_count,runtime_window_id);
     CREATE INDEX IF NOT EXISTS idx_runtime_phrase_window_vowel_coda
@@ -167,6 +178,7 @@ export function servingV1ProductSummary(db){
     entityCategories:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_category'),
     entityNames:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_name'),
     entityPronunciations:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_pronunciation'),
+    entityWriterAnchors:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_writer_anchor'),
     coreEntityPronunciations:scalar(db,`
       SELECT COUNT(*) c
       FROM runtime_entity_pronunciation ep
