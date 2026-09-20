@@ -43,6 +43,7 @@ export function createServingV1ProductStorage(db){
       source_priority INTEGER NOT NULL,
       source TEXT NOT NULL,
       source_order INTEGER,
+      pronunciation_rank INTEGER,
       evidence_count INTEGER NOT NULL DEFAULT 0,
       tags_json TEXT NOT NULL DEFAULT '[]',
       raw_tags_json TEXT NOT NULL DEFAULT '[]',
