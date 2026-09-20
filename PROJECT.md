@@ -76,7 +76,11 @@ External models and online sources may be used during research, source acquisiti
 **Product surfaces:** local browser UI, unified Writer API, integrated RhymePad  
 **Canonical runtime posture:** local-only, deterministic, no required runtime network
 
-### Architecture constraints
+### Large-data build reliability
+
+Long-running local materialization, migration, enrichment, benchmark-generation, and similar data workflows are treated as durable build systems rather than disposable scripts. They should be resumable from persisted checkpoints, observable through progress/status output, bound to explicit source/build revisions, validated before promotion, and promote artifacts atomically without implicitly destroying the last known-good result.
+
+## Architecture constraints
 
 - Preserve accepted/frozen German and English baselines unless a concrete regression or new benchmarked candidate justifies reopening them.
 - Keep phonetic relation truth separate from writer utility/ranking and result-set diversity.
