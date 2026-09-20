@@ -1037,7 +1037,20 @@ export function searchUnifiedWriter(
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
         generatedOnly,
+        profileStages,
       }));
+      if(profileStages&&deEntityChannel?.performanceProfile?.stages_ms){
+        for(const [name,value] of Object.entries(
+          deEntityChannel.performanceProfile.stages_ms
+        )){
+          stageTimings['entities_de_'+name]=Number(value);
+        }
+        for(const [name,value] of Object.entries(
+          deEntityChannel.performanceProfile.counters||{}
+        )){
+          performanceCounters['entities_de_'+name]=Number(value);
+        }
+      }
     }else{
       deEntityChannel=emptyEntityLanguageChannel(
         'de',
@@ -1058,7 +1071,20 @@ export function searchUnifiedWriter(
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
         generatedOnly,
+        profileStages,
       }));
+      if(profileStages&&enEntityChannel?.performanceProfile?.stages_ms){
+        for(const [name,value] of Object.entries(
+          enEntityChannel.performanceProfile.stages_ms
+        )){
+          stageTimings['entities_en_'+name]=Number(value);
+        }
+        for(const [name,value] of Object.entries(
+          enEntityChannel.performanceProfile.counters||{}
+        )){
+          performanceCounters['entities_en_'+name]=Number(value);
+        }
+      }
     }else{
       enEntityChannel=emptyEntityLanguageChannel(
         'en',
