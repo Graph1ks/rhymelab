@@ -133,7 +133,9 @@ function surfaceUpsert(selectSql){
       language,normalized,display_surface,canonical_available,generated_available,
       authority_rank,authority_kind,usage_rank,usage_count,historical,lemma,part_of_speech,lexicon_layer
     )
-    ${selectSql}
+    SELECT * FROM (
+      ${selectSql}
+    ) AS incoming
     WHERE 1
     ON CONFLICT(language,normalized) DO UPDATE SET
       canonical_available=MAX(surface.canonical_available,excluded.canonical_available),
@@ -159,7 +161,9 @@ function pronunciationUpsert(selectSql){
       canonical_available,generated_available,canonical_preferred,generated_preferred,
       authority_rank,authority_kind
     )
-    ${selectSql}
+    SELECT * FROM (
+      ${selectSql}
+    ) AS incoming
     WHERE 1
     ON CONFLICT(surface_id,identity_key) DO UPDATE SET
       canonical_available=MAX(pronunciation.canonical_available,excluded.canonical_available),
@@ -187,7 +191,9 @@ function pronunciationUpsert(selectSql){
 function roleUpsert(selectSql){
   return `
     INSERT INTO surface_role(surface_id,role,canonical_available,generated_available)
-    ${selectSql}
+    SELECT * FROM (
+      ${selectSql}
+    ) AS incoming
     WHERE 1
     ON CONFLICT(surface_id,role) DO UPDATE SET
       canonical_available=MAX(surface_role.canonical_available,excluded.canonical_available),
@@ -198,7 +204,9 @@ function roleUpsert(selectSql){
 function originUpsert(selectSql){
   return `
     INSERT INTO pronunciation_origin(pronunciation_id,layer,domain,source_kind,origin_count)
-    ${selectSql}
+    SELECT * FROM (
+      ${selectSql}
+    ) AS incoming
     WHERE 1
     ON CONFLICT(pronunciation_id,layer,domain,source_kind) DO UPDATE SET
       origin_count=pronunciation_origin.origin_count+excluded.origin_count;
@@ -210,7 +218,9 @@ function entityUpsert(selectSql){
     INSERT INTO surface_entity(
       surface_id,entity_qid,primary_category,popularity_score,canonical_available,generated_available
     )
-    ${selectSql}
+    SELECT * FROM (
+      ${selectSql}
+    ) AS incoming
     WHERE 1
     ON CONFLICT(surface_id,entity_qid) DO UPDATE SET
       canonical_available=MAX(surface_entity.canonical_available,excluded.canonical_available),
