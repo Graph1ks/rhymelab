@@ -13,6 +13,7 @@ import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerfo
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
 import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
 import {collectStudioEnvironmentDiagnostics,diagnosticsFilename} from './diagnostics.mjs';
+import {createStudioDomLocalizer,normalizeStudioUiLanguage} from './i18n.mjs';
 import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacyStudioStateToStore} from './document-store.mjs';
 
 'use strict';
@@ -52,6 +53,7 @@ function expandFolderPaths(values){
   return out;
 }
 function normalizeStudioRuntimeState(){
+  state.uiLanguage=normalizeStudioUiLanguage(state.uiLanguage);
   state.customThemes=Array.isArray(state.customThemes)?state.customThemes:[];
   state.themeSlots=state.themeSlots&&typeof state.themeSlots==='object'?{light:state.themeSlots.light||null,dark:state.themeSlots.dark||null}:{light:null,dark:null};
   if(!['light','dark'].includes(state.theme)&&!state.customThemes.some(theme=>theme.id===state.theme))state.theme='dark';
@@ -103,6 +105,7 @@ let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writ
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
 let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all',analysisChainVisible=false;
 let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0,mobileViewportCleanup=null;
+let uiLocalizer=null;
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',
   query=sharedSearchState.anchor||'Nacht',
   scope=({words:'word',phrases:'phrase',entities:'entity'})[sharedSearchState.scope]||'all',
@@ -142,6 +145,24 @@ function saveStudioSearchState(overrides={}){
   });
   saveSearchState(sharedSearchState);
   return sharedSearchState;
+}
+function setStudioUiLanguage(value,{persistState=true,notifyUser=false}={}){
+  state.uiLanguage=normalizeStudioUiLanguage(value);
+  document.documentElement.lang=state.uiLanguage;
+  uiLocalizer?.setLanguage(state.uiLanguage);
+  const quick=$('#uiLanguageBtn');
+  if(quick){
+    quick.textContent=state.uiLanguage.toUpperCase();
+    quick.setAttribute('aria-label',state.uiLanguage==='de'?'Switch interface to English':'Oberfläche auf Deutsch umstellen');
+    quick.title=state.uiLanguage==='de'?'UI: Deutsch · click for English':'UI: English · Klick für Deutsch';
+  }
+  if($('#uiLanguageSelect'))$('#uiLanguageSelect').value=state.uiLanguage;
+  if(persistState)persist();
+  if(notifyUser)notify(state.uiLanguage==='en'?'Interface language: English':'Oberflächensprache: Deutsch');
+  return state.uiLanguage;
+}
+function toggleStudioUiLanguage(){
+  setStudioUiLanguage(state.uiLanguage==='de'?'en':'de',{notifyUser:true});
 }
 function syncFollowControls(){
   $('#followBtn')?.setAttribute('aria-pressed',String(followSelection));
@@ -1324,6 +1345,7 @@ const bindClick=(id,handler,{optional=false}={})=>{
 };
 bindClick('closeDialog',closeDialog);
 bindClick('themeBtn',toggleTheme);
+bindClick('uiLanguageBtn',toggleStudioUiLanguage);
 bindClick('clearDocBtn',clearCurrentDocument,{optional:true});
 bindClick('exportBtn',exportText);
 bindClick('commandBtn',showCommands);
@@ -1397,7 +1419,7 @@ document.addEventListener('keydown',e=>{
   if(e.altKey&&e.key==='1'){e.preventDefault();navigate('studio')}
   if(e.altKey&&e.key==='2'){e.preventDefault();navigate('search')}
   if(e.altKey&&key==='f'){e.preventDefault();toggleFocus()}
-});window.addEventListener('resize',()=>queryAll('#lyrics textarea').forEach(resizeArea));document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPlay();revision();persist()}});window.addEventListener('pagehide',()=>{revision();persist();mobileViewportCleanup?.()});document.body.dataset.controls='bound';}
+});window.addEventListener('resize',()=>queryAll('#lyrics textarea').forEach(resizeArea));document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPlay();revision();persist()}});window.addEventListener('pagehide',()=>{revision();persist();mobileViewportCleanup?.();uiLocalizer?.disconnect()});document.body.dataset.controls='bound';}
 // Version 2: direct desktop controls and docked surfaces.
 let density=normalizeDensity(state.density),syllableMode='all',followSelection=true,selectedResult='',selectedResultId='',dockTab='',resultSignature='',selectionProof=null;
 state.motion=state.motion||'auto';
@@ -1889,6 +1911,7 @@ async function applyPortableStudioBackup(payload){
 
   state=studioStateFromDocumentSnapshot(loaded,{...state,...parsed.preferences});
   normalizeStudioRuntimeState();
+  setStudioUiLanguage(state.uiLanguage,{persistState:false});
   writeStudioPreferences(state);
 
   if(parsed.searchState&&Object.keys(parsed.searchState).length){
@@ -2055,12 +2078,14 @@ function renderSettingsDock(body){
     return '<label class="theme-color-field"><span>'+label+'</span><input type="color" data-theme-color="'+key+'" value="'+colors[key]+'" aria-label="'+label+' Farbe"><input type="text" data-theme-hex="'+key+'" value="'+colors[key]+'" maxlength="7" spellcheck="false" aria-label="'+label+' Hex"></label>';
   }).join('');
   const preview=THEME_COLOR_FIELDS.map(function(field){return '<i data-preview-color="'+field[0]+'" style="background:'+colors[field[0]]+'"></i>'}).join('');
-  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label></div><div id="capabilitySummary" class="capability-summary">'+capabilityMarkup()+'</div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section><section class="theme-settings-card recovery-card"><div class="recovery-head"><div><h3>Data & Recovery</h3><p>Dokumente laufen primär über IndexedDB. Recovery-Punkte sichern den kompletten versionierten Studio-Snapshot vor größeren Änderungen. Portable Backups enthalten Dokumente, UI-Präferenzen und den gemeinsamen SearchState.</p></div><div class="recovery-head-actions"><button id="exportStudioBackup" class="outline">Backup exportieren</button><button id="importStudioBackup" class="outline">Backup importieren</button><button id="createRecoveryPoint" class="outline">Recovery-Punkt erstellen</button><input id="studioBackupFile" type="file" accept="application/json,.json" hidden></div></div><div id="recoveryPanel"></div></section><section class="theme-settings-card diagnostics-card"><div class="diagnostics-head"><div><h3>Browser & Runtime Diagnostics</h3><p>Lokaler Acceptance-Snapshot für Storage, Writer, Audio, VisualViewport, Touch/Pointer und Motion. Keine Daten werden hochgeladen.</p></div><div class="row"><button id="rerunDiagnostics" class="outline">Neu prüfen</button><button id="exportDiagnostics" class="outline">Diagnostics exportieren</button></div></div><div id="diagnosticsPanel"></div></section></div>';
+  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label><label>UI-Sprache<select id="uiLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select></label></div><div id="capabilitySummary" class="capability-summary">'+capabilityMarkup()+'</div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section><section class="theme-settings-card recovery-card"><div class="recovery-head"><div><h3>Data & Recovery</h3><p>Dokumente laufen primär über IndexedDB. Recovery-Punkte sichern den kompletten versionierten Studio-Snapshot vor größeren Änderungen. Portable Backups enthalten Dokumente, UI-Präferenzen und den gemeinsamen SearchState.</p></div><div class="recovery-head-actions"><button id="exportStudioBackup" class="outline">Backup exportieren</button><button id="importStudioBackup" class="outline">Backup importieren</button><button id="createRecoveryPoint" class="outline">Recovery-Punkt erstellen</button><input id="studioBackupFile" type="file" accept="application/json,.json" hidden></div></div><div id="recoveryPanel"></div></section><section class="theme-settings-card diagnostics-card"><div class="diagnostics-head"><div><h3>Browser & Runtime Diagnostics</h3><p>Lokaler Acceptance-Snapshot für Storage, Writer, Audio, VisualViewport, Touch/Pointer und Motion. Keine Daten werden hochgeladen.</p></div><div class="row"><button id="rerunDiagnostics" class="outline">Neu prüfen</button><button id="exportDiagnostics" class="outline">Diagnostics exportieren</button></div></div><div id="diagnosticsPanel"></div></section></div>';
   $('#fontRange').oninput=function(event){setFontSize(+event.target.value)};
   $('#editorFont').value=state.editorFont||'sans';
   $('#editorFont').onchange=function(event){state.editorFont=event.target.value;applyEditorFont();persist()};
   $('#motionSelect').value=state.motion;
   $('#motionSelect').onchange=function(event){state.motion=event.target.value;document.documentElement.dataset.motion=state.motion;persist()};
+  $('#uiLanguageSelect').value=state.uiLanguage;
+  $('#uiLanguageSelect').onchange=function(event){setStudioUiLanguage(event.target.value,{notifyUser:true})};
   $('#createRecoveryPoint').onclick=async function(){
     const button=this;button.disabled=true;
     try{
@@ -2363,8 +2388,14 @@ document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&
 const handle=$('#splitter');let drag=null;handle.addEventListener('pointerdown',e=>{if(window.innerWidth<=800)return;drag={x:e.clientX,width:+handle.getAttribute('aria-valuenow')};handle.setPointerCapture?.(e.pointerId);document.body.classList.add('resizing');e.preventDefault()});handle.addEventListener('pointermove',e=>{if(drag)setAssistWidth(drag.width+drag.x-e.clientX)});for(const event of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(event,()=>{if(!drag)return;drag=null;document.body.classList.remove('resizing');persist()});handle.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setAssistWidth(+handle.getAttribute('aria-valuenow')+(e.key==='ArrowLeft'?20:-20));persist()}if(e.key==='Home'){e.preventDefault();setAssistWidth(470);persist()}});if(window.innerWidth>800)setAssistWidth(state.assistWidth||470);if(window.innerWidth<=800){$('#directFilters').classList.add('hidden');$('#filterBtn').setAttribute('aria-expanded','false')}window.addEventListener('resize',()=>{if(window.innerWidth>800)setAssistWidth(state.assistWidth||470)});document.body.dataset.studioVersion='2';}
 
 async function startStudio(){
+  uiLocalizer=createStudioDomLocalizer({
+    root:document.body,
+    documentElement:document.documentElement,
+    initialLanguage:state.uiLanguage,
+  });
   bind();
   bindV2();
+  setStudioUiLanguage(state.uiLanguage,{persistState:false});
   await initializeDocumentStore();
   const capabilitiesReady=refreshStudioCapabilities();
   applyThemeChoice(state.theme,{persistState:false});
