@@ -310,7 +310,7 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
   assert.match(migration,/stable revision snapshots \/ restore\s+DONE/u);
   assert.match(migration,/authoritative DocumentStore cutover\s+DONE/u);
   assert.match(migration,/full Perform parity\s+DONE/u);
-  assert.match(parity,/UI language EN[\s\S]*READY/u);
+  assert.match(parity,/\| UI language EN \|[^\n]*\| READY(?: ·[^\n]*)? \|/u);
 });
 
 
