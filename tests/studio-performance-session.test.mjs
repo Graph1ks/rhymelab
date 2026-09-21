@@ -7,9 +7,14 @@ import {
   ensurePerformanceSong,
   getPerformanceCue,
   movePerformanceCue,
+  performanceBarDurationMs,
   performanceBarMetrics,
+  performanceFlowFingerprint,
   performanceNeedsReview,
+  performancePocketMetrics,
+  performancePreviousBarPlacements,
   performanceStepDurationMs,
+  performanceSyllablesPerSecond,
   setPerformanceConfig,
   setPerformanceCue,
 } from '../src/studio/performance-session.mjs';
@@ -82,4 +87,36 @@ test('auto-map and clear operate per stable Bar ID',()=>{
   assert.equal(performanceBarMetrics(song,'bar-b').cues,0);
   assert.equal(clearPerformanceBar(song,'bar-a'),4);
   assert.equal(performanceBarMetrics(song,'bar-a').cues,0);
+});
+
+
+test('Perform metrics expose bar time, pocket, breath load, fingerprint and previous placements',()=>{
+  const song={
+    id:'song',
+    lines:['alpha beta','gamma delta'],
+    barIds:['bar-a','bar-b'],
+    barRevisions:[0,0],
+  };
+  setPerformanceConfig(song,{bpm:120,grid:16,feel:'straight',tempoScale:1});
+  setPerformanceCue(song,'bar-a',0,'accent');
+  setPerformanceCue(song,'bar-a',4,'hit');
+  setPerformanceCue(song,'bar-a',6,'breath');
+  setPerformanceCue(song,'bar-b',0,'accent');
+  setPerformanceCue(song,'bar-b',5,'pause',{length:2});
+  setPerformanceCue(song,'bar-b',6,'hit');
+
+  assert.equal(performanceBarDurationMs(song),2000);
+  assert.equal(performanceSyllablesPerSecond(song,8),4);
+  assert.match(performanceFlowFingerprint(song,'bar-b'),/^▲/u);
+
+  const pocket=performancePocketMetrics(song,'bar-b');
+  assert.equal(pocket.onBeat,1);
+  assert.equal(pocket.offBeat,2);
+  assert.equal(pocket.pauseUnits,2);
+  assert.equal(pocket.breathLoad,2);
+
+  const previous=performancePreviousBarPlacements(song,'bar-b');
+  assert.equal(previous.previousBarId,'bar-a');
+  assert.deepEqual(previous.sharedSteps,[0,6]);
+  assert.equal(previous.sharedCount,2);
 });
