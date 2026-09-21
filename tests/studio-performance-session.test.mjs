@@ -112,6 +112,8 @@ test('Perform metrics expose bar time, pocket, breath load, fingerprint and prev
   const pocket=performancePocketMetrics(song,'bar-b');
   assert.equal(pocket.onBeat,1);
   assert.equal(pocket.offBeat,2);
+  assert.equal(pocket.hits,1);
+  assert.equal(pocket.accents,1);
   assert.equal(pocket.pauseUnits,2);
   assert.equal(pocket.breathLoad,2);
 
