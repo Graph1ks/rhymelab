@@ -677,7 +677,7 @@ function applyThemeChoice(choice,options){
   if(button){
     button.dataset.themeMode=resolved.mode;
     button.setAttribute('aria-label','Quickstyle wechseln · aktiv: '+(resolved.name||state.theme));
-    button.title=(resolved.name||state.theme)+' · Klick oder Hover: Quickstyles';
+    button.title=(resolved.name||state.theme)+' · Klick: Light/Dark · Hover: Quickstyles';
   }
   renderThemeQuickMenu();
   if(options.persistState!==false)persist();
@@ -722,13 +722,13 @@ function bindThemeQuickMenu(){
   if(!quick||!menu||!button)return;
   renderThemeQuickMenu();
 
-  // The old click handler toggled Light/Dark immediately. Once Quickstyles
-  // became a real menu that made the trigger fight the menu interaction.
-  // The trigger now owns the menu; the actual theme is chosen inside it.
+  // Click keeps the original fast Light/Dark switch. Hover exposes the
+  // full Quickstyle menu; ArrowDown opens it explicitly for keyboard users.
   button.onclick=function(event){
     event.preventDefault();
     event.stopPropagation();
-    setThemeQuickOpen(!quick.classList.contains('open'));
+    toggleTheme();
+    setThemeQuickOpen(false,{render:false});
   };
   button.addEventListener('keydown',function(event){
     if(event.key==='ArrowDown'){
