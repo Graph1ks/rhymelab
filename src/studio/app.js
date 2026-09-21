@@ -2298,12 +2298,12 @@ function renderDeviceAcceptancePanel(){
     }).join('')+'</div>';
   queryAll('[data-device-gate]').forEach((input)=>input.onchange=()=>{
     const id=input.dataset.deviceGate;
-    const note=$('[data-device-gate-note="'+CSS.escape(id)+'"]')?.value||'';
+    const note=queryAll('[data-device-gate-note]').find((row)=>row.dataset.deviceGateNote===id)?.value||'';
     setStudioDeviceGate(id,input.checked,note);
   });
   queryAll('[data-device-gate-note]').forEach((input)=>input.onchange=()=>{
     const id=input.dataset.deviceGateNote;
-    const checked=$('[data-device-gate="'+CSS.escape(id)+'"]')?.checked||false;
+    const checked=queryAll('[data-device-gate]').find((row)=>row.dataset.deviceGate===id)?.checked||false;
     setStudioDeviceGate(id,checked,input.value);
   });
   if($('#exportDeviceAcceptance'))$('#exportDeviceAcceptance').disabled=!summary.ready;
