@@ -9,6 +9,7 @@ export const REQUIRED_MARKOV_CONTROLS=[
   '#weirdness',
   '#targetTokens',
   '#allowEntities',
+  '#entityCategoryPanel',
   '#allowPhrases',
   '#allowGenerated',
   '#randomSeed',
@@ -38,6 +39,8 @@ export function assertMarkovControlSurface(documentRef=document){
     weirdness:documentRef.querySelector('#weirdness'),
     targetTokens:documentRef.querySelector('#targetTokens'),
     allowEntities:documentRef.querySelector('#allowEntities'),
+    entityCategoryPanel:documentRef.querySelector('#entityCategoryPanel'),
+    entityCategoryButtons:[...documentRef.querySelectorAll('[data-entity-category]')],
     allowPhrases:documentRef.querySelector('#allowPhrases'),
     allowGenerated:documentRef.querySelector('#allowGenerated'),
     randomSeed:documentRef.querySelector('#randomSeed'),
@@ -63,6 +66,9 @@ export function installMarkovControls(documentRef=document,callbacks={}){
   }
   for(const control of [controls.language,controls.mode,controls.allowEntities,controls.allowPhrases,controls.allowGenerated]){
     control.addEventListener('change',()=>callbacks.optionChange?.(control.id,control.type==='checkbox'?control.checked:control.value));
+  }
+  for(const button of controls.entityCategoryButtons){
+    button.addEventListener('click',()=>callbacks.entityCategory?.(button.dataset.entityCategory,button));
   }
   for(const button of controls.presets){
     button.addEventListener('click',()=>callbacks.preset?.(button.dataset.preset));
