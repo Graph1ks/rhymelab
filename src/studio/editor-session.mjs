@@ -54,6 +54,12 @@ export function editorSnapshot(song){
   return {
     lines:[...song.lines],
     steps:{...song.steps},
+    performance:song.performance&&typeof song.performance==='object'?{...song.performance}:{},
+    performanceCues:Object.fromEntries(Object.entries(song.performanceCues||{}).map(([key,value])=>[
+      key,
+      value&&typeof value==='object'?{...value}:value,
+    ])),
+    performanceAnchors:{...(song.performanceAnchors||{})},
     barIds:[...song.barIds],
     barRevisions:[...song.barRevisions],
     editorNextBarId:song.editorNextBarId,
@@ -64,6 +70,12 @@ export function restoreEditorSnapshot(song,snapshot){
   if(!song||!snapshot)return false;
   song.lines=Array.isArray(snapshot.lines)?snapshot.lines.map(text):[''];
   song.steps=snapshot.steps&&typeof snapshot.steps==='object'?{...snapshot.steps}:{};
+  song.performance=snapshot.performance&&typeof snapshot.performance==='object'?{...snapshot.performance}:{};
+  song.performanceCues=Object.fromEntries(Object.entries(snapshot.performanceCues||{}).map(([key,value])=>[
+    key,
+    value&&typeof value==='object'?{...value}:value,
+  ]));
+  song.performanceAnchors={...(snapshot.performanceAnchors||{})};
   song.barIds=Array.isArray(snapshot.barIds)?[...snapshot.barIds]:[];
   song.barRevisions=Array.isArray(snapshot.barRevisions)?[...snapshot.barRevisions]:[];
   song.editorNextBarId=integer(snapshot.editorNextBarId,1);
