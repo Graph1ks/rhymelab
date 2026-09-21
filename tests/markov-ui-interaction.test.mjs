@@ -105,7 +105,9 @@ test('Markov test surface preserves mobile behavior and uses the Markov API',asy
   assert.match(app,/\/api\/markov\/generate/u);
   assert.match(app,/Markov transition database missing/u);
   assert.match(app,/npm run markov:model:build/u);
-  assert.match(app,/Serving-v1 Phrase\/Mosaic/u);
+  assert.match(app,/DECODER V2/u);
+  assert.match(app,/novelty windows/u);
+  assert.match(app,/line shapes/u);
   assert.doesNotMatch(app,/accepted Leipzig sentences/u);
   assert.doesNotMatch(core,/MODEL_LINES/u);
   assert.doesNotMatch(core,/<CONTENT>/u);
