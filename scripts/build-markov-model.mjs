@@ -44,6 +44,7 @@ let plan=false;
 let status=false;
 let reset=false;
 const sentenceArgs=[];
+const sourceArgs=[];
 
 for(let i=0;i<args.length;i+=1){
   const arg=args[i];
@@ -59,6 +60,7 @@ for(let i=0;i<args.length;i+=1){
   else if(arg==='--batch-sentences')batchSentences=Math.max(100,Number(args[++i])||batchSentences);
   else if(arg==='--max-sentences-per-corpus')maxSentencesPerCorpus=Math.max(0,Number(args[++i])||0);
   else if(arg==='--sentences')sentenceArgs.push(args[++i]||'');
+  else if(arg==='--source')sourceArgs.push(args[++i]||'');
   else if(arg==='--plan')plan=true;
   else if(arg==='--status')status=true;
   else if(arg==='--reset')reset=true;
@@ -78,26 +80,76 @@ function human(bytes){
   while(n>=1024&&i<units.length-1){n/=1024;i+=1;}
   return `${n.toFixed(i?1:0)} ${units[i]}`;
 }
+const SOURCE_KINDS=new Set(['phrase','sentence','lyric']);
+
+function normalizeSourceKind(value,fallback='sentence'){
+  const kind=String(value||fallback).trim().toLocaleLowerCase('en-US');
+  if(!SOURCE_KINDS.has(kind)){
+    throw new Error(`Unsupported Markov source kind: ${kind}. Expected phrase, sentence, or lyric.`);
+  }
+  return kind;
+}
+
+function normalizeSourceWeight(value,fallback=1){
+  const parsed=Number.parseInt(String(value??fallback),10);
+  if(!Number.isFinite(parsed)||parsed<1||parsed>16){
+    throw new Error(`Invalid Markov source weight: ${value}. Expected integer 1..16.`);
+  }
+  return parsed;
+}
+
 function parseSentenceArg(value){
   const at=value.indexOf('=');
   if(at<=0||at===value.length-1)throw new Error(`Invalid --sentences ${value}; expected code=/path/file`);
-  return {code:value.slice(0,at),path:resolve(root,value.slice(at+1)),manifest:null};
+  return {
+    code:value.slice(0,at),
+    path:resolve(root,value.slice(at+1)),
+    manifest:null,
+    kind:'sentence',
+    weight:1,
+  };
+}
+
+function parseSourceArg(value){
+  const at=value.indexOf('=');
+  if(at<=0||at===value.length-1){
+    throw new Error(`Invalid --source ${value}; expected kind:code[:weight]=/path/file`);
+  }
+  const descriptor=value.slice(0,at);
+  const path=value.slice(at+1);
+  const parts=descriptor.split(':');
+  if(parts.length<2||parts.length>3||!parts[1]){
+    throw new Error(`Invalid --source descriptor: ${descriptor}; expected kind:code[:weight]`);
+  }
+  return {
+    kind:normalizeSourceKind(parts[0]),
+    code:parts[1],
+    weight:normalizeSourceWeight(parts[2]||1),
+    path:resolve(root,path),
+    manifest:null,
+  };
 }
 function lineReader(path){return readline.createInterface({input:createReadStream(path),crlfDelay:Infinity});}
 function sentenceFromLine(line){const tab=line.indexOf('\t');return tab>=0?line.slice(tab+1):line;}
 
 async function resolveSources(){
-  let manifest={id:'explicit-local-v1',corpora:[]};
+  let manifest={id:'explicit-local-v2',corpora:[]};
   if(manifestPath)manifest=JSON.parse(await readFile(manifestPath,'utf8'));
-  if(sentenceArgs.filter(Boolean).length){
-    return {manifest,sources:sentenceArgs.filter(Boolean).map(parseSentenceArg)};
-  }
+
+  const explicit=[
+    ...sourceArgs.filter(Boolean).map(parseSourceArg),
+    ...sentenceArgs.filter(Boolean).map(parseSentenceArg),
+  ];
+  if(explicit.length)return {manifest,sources:explicit};
+
   if(!manifestPath)return {manifest,sources:[]};
-  if(!phraseWork)throw new Error('--phrase-work is required when --manifest is used without explicit --sentences.');
+  if(!phraseWork)throw new Error('--phrase-work is required when --manifest is used without explicit --source/--sentences.');
   const sources=(manifest.corpora||[]).map((corpus)=>({
     code:corpus.code,
-    path:join(phraseWork,`${corpus.code}_sentences.txt`),
+    path:join(phraseWork,String(corpus.file||`${corpus.code}_sentences.txt`)),
     manifest:corpus,
+    kind:normalizeSourceKind(corpus.kind||'sentence'),
+    weight:normalizeSourceWeight(corpus.weight||1),
   }));
   return {manifest,sources};
 }
@@ -147,11 +199,18 @@ if(plan){
     policy:MARKOV_MODEL_POLICY,
     order:MARKOV_MODEL_ORDER,
     manifest:manifest.id,
-    sources:sourceRows.map(({code,path,available,bytes,manifest})=>({code,path,available,bytes,human_bytes:human(bytes),expected_sentences:manifest?.sentences??null,genre:manifest?.genre??null,year:manifest?.year??null})),
+    sources:sourceRows.map(({code,path,available,bytes,manifest,kind,weight})=>({
+      code,path,kind,weight,available,bytes,human_bytes:human(bytes),
+      expected_sentences:manifest?.sentences??null,
+      genre:manifest?.genre??null,
+      year:manifest?.year??null,
+    })),
     config:{maxStates,topK,minTokenCount,minimumSequenceTokens,batchSentences,maxSentencesPerCorpus},
     work:workPath,out:outPath,report:reportPath,
     ready:sourceRows.length>0&&sourceRows.every((row)=>row.available),
-    missing_hint:sourceRows.length?'Fix missing explicit source paths before building.':'No implicit corpus is selected. Pass --sentences code=/path/file or --manifest ... --phrase-work ... . Owner-private lyrics are calibration-only.',
+    missing_hint:sourceRows.length
+      ?'Fix missing explicit source paths before building.'
+      :'No implicit corpus is selected. Pass --source kind:code[:weight]=/path/file, --sentences code=/path/file, or --manifest ... --phrase-work ... . Owner-private lyrics are calibration-only.',
   },null,2));
   process.exit(sourceRows.length>0&&sourceRows.every((row)=>row.available)?0:2);
 }
@@ -160,12 +219,12 @@ if(status){
     schema:'rhymelab-markov-build-status-v1',
     work:await exists(workPath)?openStatus(workPath):{path:workPath,missing:true},
     output:await exists(outPath)?openStatus(outPath):{path:outPath,missing:true},
-    sources:sourceRows.map(({code,path,available,bytes})=>({code,path,available,bytes})),
+    sources:sourceRows.map(({code,path,kind,weight,available,bytes})=>({code,path,kind,weight,available,bytes})),
   },null,2));
   process.exit(0);
 }
 if(!sourceRows.length){
-  throw new Error('No Markov training source configured. Pass --sentences code=/path/file or --manifest ... --phrase-work ... . Owner-private lyrics are calibration-only.');
+  throw new Error('No Markov training source configured. Pass --source kind:code[:weight]=/path/file, --sentences code=/path/file, or --manifest ... --phrase-work ... . Owner-private lyrics are calibration-only.');
 }
 if(!sourceRows.every((row)=>row.available)){
   const missing=sourceRows.filter((row)=>!row.available).map((row)=>row.path);
@@ -183,7 +242,15 @@ const config={
   order:MARKOV_MODEL_ORDER,
   language:'de',
   source_manifest:manifest.id,
-  sources:sourceRows.map((row)=>({code:row.code,path:row.path,bytes:row.bytes,mtimeMs:row.mtimeMs,parent_sha256:row.manifest?.sha256??null})),
+  sources:sourceRows.map((row)=>({
+    code:row.code,
+    kind:row.kind,
+    weight:row.weight,
+    path:row.path,
+    bytes:row.bytes,
+    mtimeMs:row.mtimeMs,
+    parent_sha256:row.manifest?.sha256??null,
+  })),
   max_states:maxStates,
   top_k:topK,
   min_token_count:minTokenCount,
@@ -314,12 +381,13 @@ async function runPass1(){
       const sequence=sequenceFromSentence(sentenceFromLine(line),{language:'de',minimumTokens:minimumSequenceTokens});
       if(!sequence.length)continue;
       accepted+=1;batchAccepted+=1;
+      const sourceWeight=normalizeSourceWeight(source.weight||1);
       for(const row of sequence.slice(MARKOV_MODEL_ORDER,-1)){
         const current=tokenCounts.get(row.norm)||{count:0,title:0,upper:0};
-        current.count+=1;
+        current.count+=sourceWeight;
         const shape=tokenShape(row.surface);
-        if(shape==='title')current.title+=1;
-        else if(shape==='upper')current.upper+=1;
+        if(shape==='title')current.title+=sourceWeight;
+        else if(shape==='upper')current.upper+=sourceWeight;
         tokenCounts.set(row.norm,current);
       }
       const norms=sequence.map((row)=>row.norm);
@@ -327,7 +395,7 @@ async function runPass1(){
         for(let i=0;i+contextLen<=norms.length;i+=1){
           const state=stateKey(norms.slice(i,i+contextLen));
           const key=`${contextLen}\u0002${state}`;
-          stateCounts.set(key,(stateCounts.get(key)||0)+1);
+          stateCounts.set(key,(stateCounts.get(key)||0)+sourceWeight);
         }
       }
 
@@ -345,10 +413,15 @@ async function runPass1(){
             sourceWindows.set(hash,windowRow);
           }
         }
-        const shape=shapeKeyForTokens(lexical,'de');
-        if(shape){
-          const shapeId=`${lexical.length}\u0002${shape}`;
-          shapeCounts.set(shapeId,(shapeCounts.get(shapeId)||0)+1);
+        // Phrase/Mosaic rows are fragment evidence. They are useful for local
+        // transitions and anti-copy checks, but must never be learned as if
+        // they were complete grammatical lyric lines.
+        if(source.kind!=='phrase'){
+          const shape=shapeKeyForTokens(lexical,'de');
+          if(shape){
+            const shapeId=`${lexical.length}\u0002${shape}`;
+            shapeCounts.set(shapeId,(shapeCounts.get(shapeId)||0)+sourceWeight);
+          }
         }
       }
 
@@ -442,6 +515,7 @@ async function runPass2(){
       const sequence=sequenceFromSentence(sentenceFromLine(line),{language:'de',minimumTokens:minimumSequenceTokens});
       if(!sequence.length)continue;
       accepted+=1;batchAccepted+=1;
+      const sourceWeight=normalizeSourceWeight(source.weight||1);
       const norms=sequence.map((row)=>vocab.has(row.norm)||row.norm===START_TOKEN||row.norm===END_TOKEN?row.norm:null);
       for(let i=1;i<norms.length;i+=1){
         const next=norms[i];
@@ -452,7 +526,7 @@ async function runPass2(){
           const state=stateKey(context);
           if(contextLen>1&&!retained.has(`${contextLen}\u0002${state}`))continue;
           const key=`forward\u0002${contextLen}\u0002${state}\u0002${next}`;
-          counts.set(key,(counts.get(key)||0)+1);
+          counts.set(key,(counts.get(key)||0)+sourceWeight);
         }
       }
       for(let i=norms.length-2;i>=0;i-=1){
@@ -465,7 +539,7 @@ async function runPass2(){
           const state=stateKey(context);
           if(contextLen>1&&!retained.has(`${contextLen}\u0002${state}`))continue;
           const key=`reverse\u0002${contextLen}\u0002${state}\u0002${previous}`;
-          counts.set(key,(counts.get(key)||0)+1);
+          counts.set(key,(counts.get(key)||0)+sourceWeight);
         }
       }
       if(batchAccepted>=batchSentences){
@@ -547,7 +621,16 @@ async function promote(){
     source_manifest:manifest.id,
     config,
     config_fingerprint:configFingerprint,
-    sources:sourceRows.map((row)=>({code:row.code,path:row.path,bytes:row.bytes,genre:row.manifest?.genre??null,year:row.manifest?.year??null,parent_archive_sha256:row.manifest?.sha256??null})),
+    sources:sourceRows.map((row)=>({
+      code:row.code,
+      kind:row.kind,
+      weight:row.weight,
+      path:row.path,
+      bytes:row.bytes,
+      genre:row.manifest?.genre??null,
+      year:row.manifest?.year??null,
+      parent_archive_sha256:row.manifest?.sha256??null,
+    })),
     accepted_sentences:acceptedSentences,
     semantic_fingerprint:fingerprint,
     database:outPath,
