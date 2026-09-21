@@ -1,12 +1,12 @@
 {
   "project": "RhymeLab",
-  "updated": "2026-09-19",
-  "phase": "PHASE_12C_ENTITY_RUNTIME_AI_STAGING_ACCEPTANCE",
+  "updated": "2026-09-21",
+  "phase": "STUDIO_V2_LIVE_ACCEPTANCE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
     "protected_main": true,
-    "current_branch": "phase12c-entity-runtime-ai-staging",
+    "current_branch": "main",
     "writer_pull_request": 3,
     "writer_pull_request_status": "merged",
     "writer_owner_acceptance_review": "complete",
@@ -14,9 +14,9 @@
   },
   "runtime": {
     "mode": "local_only",
-    "default_database": "data/local/rhymelab-v5.sqlite",
-    "default_database_schema": "rhymelab-local-db-v5",
-    "default_runtime_id": "materialized-writer-v5-v1",
+    "default_database": "data/local/rhymelab-serving-v1.sqlite",
+    "default_database_schema": "rhymelab-serving-v1-product-adapter-v1",
+    "default_runtime_id": "serving-v1-single-db-product-candidate",
     "default_writer_promoted": true,
     "legacy_control_database": "data/local/rhymelab.sqlite",
     "legacy_control_database_schema": "rhymelab-local-db-v4",
@@ -3847,5 +3847,29 @@
     },
     "generated_token_cache_persisted": true,
     "generated_token_cache_canonical": false
+  },
+  "product_shell": {
+    "id": "studio-v2",
+    "status": "live_default_reversible",
+    "default_route": "/",
+    "direct_route": "/studio",
+    "legacy_search_routes": [
+      "/search",
+      "/legacy"
+    ],
+    "rhymepad_routes": [
+      "/pad",
+      "/pad-legacy"
+    ],
+    "rollback_command": "npm run dev:search-default",
+    "automated_gate": "passing",
+    "real_device_acceptance": "pending_7_gates"
+  },
+  "markov_v2": {
+    "status": "frozen_demo_only",
+    "product_navigation_linked": false,
+    "direct_demo_route": "/markov-test",
+    "development_authorized": false,
+    "handover": "docs/MARKOV_GENERATOR_HANDOVER.md"
   }
 }
