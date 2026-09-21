@@ -15,7 +15,7 @@ import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilen
 import {collectStudioEnvironmentDiagnostics,diagnosticsFilename} from './diagnostics.mjs';
 import {createStudioDomLocalizer,normalizeStudioUiLanguage} from './i18n.mjs';
 import {commandShortcutText,rankStudioCommands,studioCommandGroups} from './command-palette.mjs';
-import {STUDIO_DEVICE_GATES,createStudioDeviceAcceptance,mergeStudioDeviceAcceptanceReports,parseStudioDeviceAcceptance,studioDeviceAcceptanceFilename,studioDeviceAcceptanceSummary,studioDeviceEnvironmentLabel} from './device-acceptance.mjs';
+import {STUDIO_DEVICE_GATES,createStudioDeviceAcceptance,mergeStudioDeviceAcceptanceReports,parseStudioDeviceAcceptance,studioDeviceAcceptanceFilename,studioDeviceAcceptanceSummary,studioDeviceEnvironmentLabel,studioDeviceGateEnvironmentStatus} from './device-acceptance.mjs';
 import {createTypingUndoCoalescer} from './edit-history.mjs';
 import {studioParityGroups,studioParitySummary} from './parity-manifest.mjs';
 import {runStudioDomAcceptance} from './dom-acceptance.mjs';
@@ -2248,6 +2248,9 @@ function currentDeviceAcceptanceEnvironment(){
     viewportHeight:Number(viewport?.height||window.innerHeight||0),
     devicePixelRatio:Number(window.devicePixelRatio||1),
     maxTouchPoints:Number(navigator.maxTouchPoints||0),
+    coarsePointer:window.matchMedia?.('(pointer: coarse)')?.matches===true,
+    audioSupported:Boolean(window.AudioContext||window.webkitAudioContext),
+    visualViewportSupported:Boolean(window.visualViewport),
   };
 }
 function ensureStudioDeviceAcceptance(){
@@ -2262,17 +2265,25 @@ function persistStudioDeviceAcceptance(){
 }
 function setStudioDeviceGate(id,passed,note){
   const report=ensureStudioDeviceAcceptance();
-  report.environment=currentDeviceAcceptanceEnvironment();
+  const environment=currentDeviceAcceptanceEnvironment();
+  const eligibility=studioDeviceGateEnvironmentStatus(id,environment);
+  if(passed&&!eligibility.eligible){
+    notify('Dieses Gate kann hier nicht bestätigt werden: '+eligibility.reason+'.');
+    renderDeviceAcceptancePanel();
+    return false;
+  }
+  report.environment=environment;
   report.testedAt=Date.now();
   report.results[id]={
     passed:Boolean(passed),
     note:String(note??report.results[id]?.note??'').trim().slice(0,400),
     testedAt:Date.now(),
-    environment:currentDeviceAcceptanceEnvironment(),
+    environment,
   };
   studioDeviceAcceptance=createStudioDeviceAcceptance(report);
   persistStudioDeviceAcceptance();
   renderDeviceAcceptancePanel();
+  return true;
 }
 function resetStudioDeviceAcceptance(){
   studioDeviceAcceptance=createStudioDeviceAcceptance({environment:currentDeviceAcceptanceEnvironment()});
@@ -2299,6 +2310,69 @@ function exportStudioDeviceAcceptance(){
   );
   return report;
 }
+function launchDeviceAcceptanceGuide(id){
+  const environment=currentDeviceAcceptanceEnvironment();
+  const eligibility=studioDeviceGateEnvironmentStatus(id,environment);
+  if(!eligibility.eligible){
+    notify('Gate benötigt '+eligibility.reason+'.');
+    return false;
+  }
+  const closeSettings=()=>{if(dockTab==='settings')closeEditorDock()};
+  if(id==='editor.ime'){
+    closeSettings();navigate('studio');setMode('write');
+    requestAnimationFrame(()=>{
+      focusLine(activeLine);
+      notify('IME-Test: jetzt mit deiner IME Text eingeben → Commit → einmal Undo → einmal Redo.');
+    });
+    return true;
+  }
+  if(id==='perform.metronome'){
+    closeSettings();navigate('studio');setMode('perform');
+    requestAnimationFrame(()=>{
+      $('#playBtn')?.focus({preventScroll:true});
+      notify('Audio-Test: Metronom starten, BPM / Feel / Tempo ändern und hörbares Timing prüfen.');
+    });
+    return true;
+  }
+  if(id==='mobile.navigation'){
+    closeSettings();navigate('studio');setMode('write');
+    requestAnimationFrame(()=>notify('Mobile-Test: Bottom-Navigation Studio → Ergebnisse → Texte → Merkliste → Studio durchtesten.'));
+    return true;
+  }
+  if(id==='mobile.swap'){
+    closeSettings();navigate('studio');setMode('write');
+    requestAnimationFrame(()=>{
+      focusLine(activeLine);
+      notify('Swap-Test: Wort markieren → Ergebnisse öffnen → Treffer einsetzen → exakte Auswahlposition prüfen.');
+    });
+    return true;
+  }
+  if(id==='mobile.keyboard'){
+    closeSettings();navigate('studio');setMode('write');
+    const target=Math.max(0,song().lines.length-1);
+    activeLine=target;renderEditor();
+    requestAnimationFrame(()=>{
+      focusLine(target);
+      notify('Keyboard-Test: Software-Tastatur offen lassen und prüfen, ob die letzte aktive Bar erreichbar bleibt.');
+    });
+    return true;
+  }
+  if(id==='mobile.touch'){
+    closeSettings();navigate('studio');setMode('write');
+    requestAnimationFrame(()=>notify('Touch-Test: Topbar, Quicktools, Writer-Filter, Library und Perform ausschließlich per Touch bedienen.'));
+    return true;
+  }
+  if(id==='mobile.no-hover'){
+    closeSettings();navigate('studio');
+    requestAnimationFrame(()=>{
+      setThemeQuickOpen(true);
+      $('#themeMenuBtn')?.focus({preventScroll:true});
+      notify('No-Hover-Test: Quickstyles, Ergebnisaktionen, Library und Perform ohne Hover bedienen.');
+    });
+    return true;
+  }
+  return false;
+}
 function renderDeviceAcceptancePanel(){
   const panel=$('#deviceAcceptancePanel');
   if(!panel)return;
@@ -2308,10 +2382,13 @@ function renderDeviceAcceptancePanel(){
     '<div class="device-acceptance-summary '+(summary.ready?'is-ready':'')+'"><div><span class="eyebrow">REAL DEVICE GATES</span><b>'+summary.passed+'/'+summary.total+' bestätigt</b><small>'+(summary.ready?'Cutover Device-Gate vollständig':'Noch '+summary.pending.length+' reale Geräteprüfung'+(summary.pending.length===1?'':'en')+' offen')+'</small></div><div class="device-env">'+esc(report.environment.platform||'Unknown platform')+' · '+Math.round(report.environment.viewportWidth)+'×'+Math.round(report.environment.viewportHeight)+' · '+report.environment.maxTouchPoints+' touch</div></div>'+
     '<div class="device-gate-list">'+STUDIO_DEVICE_GATES.map((gate)=>{
       const row=report.results[gate.id]||{passed:false,note:''};
+      const eligibility=studioDeviceGateEnvironmentStatus(gate.id,currentDeviceAcceptanceEnvironment());
       const evidence=row.passed&&row.environment
         ?'<em class="device-gate-evidence">'+esc(studioDeviceEnvironmentLabel(row.environment))+(row.testedAt?' · '+new Date(row.testedAt).toLocaleString():'')+'</em>'
         :'';
-      return '<article class="device-gate '+(row.passed?'is-pass':'')+'"><label><input type="checkbox" data-device-gate="'+esc(gate.id)+'" '+(row.passed?'checked':'')+'><span><b>'+esc(gate.label)+'</b><small>'+esc(gate.instruction)+'</small>'+evidence+'</span></label><input type="text" data-device-gate-note="'+esc(gate.id)+'" value="'+esc(row.note||'')+'" placeholder="Notiz / Gerät / Browser …" maxlength="400"></article>';
+      const environmentHint='<em class="device-gate-environment '+(eligibility.eligible?'is-eligible':'is-ineligible')+'">'+esc(eligibility.eligible?'Dieses Gerät ist geeignet':eligibility.reason)+'</em>';
+      const disabled=!row.passed&&!eligibility.eligible?'disabled':'';
+      return '<article class="device-gate '+(row.passed?'is-pass ':'')+(eligibility.eligible?'is-eligible':'is-ineligible')+'"><div class="device-gate-main"><label><input type="checkbox" data-device-gate="'+esc(gate.id)+'" '+(row.passed?'checked ':'')+disabled+'><span><b>'+esc(gate.label)+'</b><small>'+esc(gate.instruction)+'</small>'+environmentHint+evidence+'</span></label><button type="button" class="outline device-gate-guide" data-device-gate-guide="'+esc(gate.id)+'" '+(eligibility.eligible?'':'disabled')+'>Test starten</button></div><input type="text" data-device-gate-note="'+esc(gate.id)+'" value="'+esc(row.note||'')+'" placeholder="Notiz / Gerät / Browser …" maxlength="400"></article>';
     }).join('')+'</div>';
   queryAll('[data-device-gate]').forEach((input)=>input.onchange=()=>{
     const id=input.dataset.deviceGate;
@@ -2322,6 +2399,9 @@ function renderDeviceAcceptancePanel(){
     const id=input.dataset.deviceGateNote;
     const checked=queryAll('[data-device-gate]').find((row)=>row.dataset.deviceGate===id)?.checked||false;
     setStudioDeviceGate(id,checked,input.value);
+  });
+  queryAll('[data-device-gate-guide]').forEach((button)=>button.onclick=()=>{
+    launchDeviceAcceptanceGuide(button.dataset.deviceGateGuide);
   });
   if($('#exportDeviceAcceptance')){
     $('#exportDeviceAcceptance').disabled=false;
