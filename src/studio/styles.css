@@ -900,3 +900,51 @@ html,*{
   .diagnostics-grid{grid-template-columns:1fr}
   .diagnostic-check{min-height:48px}
 }
+
+
+/* Studio command palette */
+dialog:has(.command-palette){max-width:680px;padding:20px}
+.command-palette{display:grid;gap:11px}
+.command-search{display:block}
+.command-search input{
+  width:100%;min-height:48px;padding:10px 13px;border:1px solid var(--line);border-radius:11px;
+  background:var(--bg);color:var(--ink);font-size:14px;outline:0
+}
+.command-search input:focus{
+  border-color:color-mix(in srgb,var(--accent) 55%,var(--line));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 10%,transparent)
+}
+.command-results{
+  display:grid;gap:10px;max-height:min(56dvh,520px);overflow:auto;overscroll-behavior:contain;
+  padding-right:3px;scrollbar-gutter:stable
+}
+.command-group{display:grid;gap:4px}
+.command-group-title{
+  padding:2px 6px;font-size:7px;letter-spacing:1px;font-weight:800;color:var(--muted);text-transform:uppercase
+}
+.command-group button{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;
+  min-height:48px;padding:8px 10px;border:1px solid transparent;border-radius:9px;text-align:left
+}
+.command-group button>span{display:grid;gap:2px;min-width:0}
+.command-group button b{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.command-group button small{font-size:7px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.command-group button kbd{
+  flex:0 0 auto;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel);
+  font:700 8px ui-monospace,monospace;color:var(--muted)
+}
+.command-group button:hover,.command-group button.active{
+  background:var(--tint);border-color:color-mix(in srgb,var(--accent) 20%,var(--line));color:var(--accent)
+}
+.command-group button.active kbd{border-color:color-mix(in srgb,var(--accent) 28%,var(--line));color:var(--accent)}
+.command-empty{
+  padding:24px;border:1px dashed var(--line);border-radius:10px;text-align:center;font-size:10px;color:var(--muted)
+}
+.command-palette .notice{margin:0;font-size:9px}
+
+@media(max-width:800px){
+  dialog:has(.command-palette){padding:14px;max-height:88dvh}
+  .command-search input{min-height:48px}
+  .command-results{max-height:58dvh}
+  .command-group button{min-height:52px}
+}
