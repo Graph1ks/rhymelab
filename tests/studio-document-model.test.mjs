@@ -61,6 +61,27 @@ test('Studio document migration is deterministic, non-destructive and reference-
   assert.deepEqual(validateStudioDocumentSnapshot(first.snapshot),{valid:true,errors:[]});
 });
 
+
+
+test('document migration preserves explicit empty folders as first-class records',()=>{
+  const legacy={
+    active:'song-a',
+    folders:['Drafts','Hooks','Archive'],
+    songs:[{
+      id:'song-a',
+      title:'Only Song',
+      folder:'Drafts',
+      lines:['line'],
+      revisions:[],
+    }],
+  };
+  const {snapshot,report}=migrateLegacyStudioState(legacy);
+  assert.equal(report.valid,true);
+  assert.equal(report.counts.folders,3);
+  assert.deepEqual(snapshot.folders.map((folder)=>folder.name),['Drafts','Hooks','Archive']);
+  assert.equal(snapshot.songs[0].folderId,snapshot.folders[0].id);
+});
+
 test('document/editor spike keeps stable bar identities across 200 bars, Unicode edits and splits',()=>{
   const lines=Array.from({length:200},(_,index)=>
     index===79
