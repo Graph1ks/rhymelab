@@ -2383,10 +2383,8 @@ function launchDeviceAcceptanceGuide(id){
   const closeSettings=()=>{if(dockTab==='settings')closeEditorDock()};
   if(id==='editor.ime'){
     closeSettings();navigate('studio');setMode('write');
-    requestAnimationFrame(()=>{
-      focusLine(activeLine);
-      notify('IME-Test: jetzt mit deiner IME Text eingeben → Commit → einmal Undo → einmal Redo.');
-    });
+    focusLine(activeLine);
+    notify('IME-Test: jetzt mit deiner IME Text eingeben → Commit → einmal Undo → einmal Redo.');
     return true;
   }
   if(id==='perform.metronome'){
@@ -2404,20 +2402,18 @@ function launchDeviceAcceptanceGuide(id){
   }
   if(id==='mobile.swap'){
     closeSettings();navigate('studio');setMode('write');
-    requestAnimationFrame(()=>{
-      focusLine(activeLine);
-      notify('Swap-Test: Wort markieren → Ergebnisse öffnen → Treffer einsetzen → exakte Auswahlposition prüfen.');
-    });
+    focusLine(activeLine);
+    notify('Swap-Test: Wort markieren → Ergebnisse öffnen → Treffer einsetzen → exakte Auswahlposition prüfen.');
     return true;
   }
   if(id==='mobile.keyboard'){
     closeSettings();navigate('studio');setMode('write');
     const target=Math.max(0,song().lines.length-1);
     activeLine=target;renderEditor();
-    requestAnimationFrame(()=>{
-      focusLine(target);
-      notify('Keyboard-Test: Software-Tastatur offen lassen und prüfen, ob die letzte aktive Bar erreichbar bleibt.');
-    });
+    // Keep focus inside the originating tap/click task. iOS may refuse to
+    // open the software keyboard when focus is delayed to requestAnimationFrame.
+    focusLine(target);
+    notify('Keyboard-Test: Software-Tastatur offen lassen und prüfen, ob die letzte aktive Bar erreichbar bleibt.');
     return true;
   }
   if(id==='mobile.touch'){
