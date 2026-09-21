@@ -481,7 +481,7 @@ function captureSelection(el){
   if(q&&q!==query){query=q;pageSize=6;queueWriterSearch()}
   activateLine(index);
 }
-function updateStats(){const s=song();const words=s.lines.join(' ').trim().split(/\s+/).filter(Boolean).length;$('#docStats').textContent=`${s.lines.length} Bars · ${words} Wörter`;$('#footerStats').textContent=`${s.lines.length} Bars · ${words} Wörter · Silben ≈ lokale Schätzung`;$('#miniDensity').innerHTML=s.lines.slice(0,16).map(x=>`<i style="height:${Math.max(3,syll(x)*1.5)}px"></i>`).join('');$('#savedCount').textContent=state.saved.length;activateLine(Math.min(activeLine,s.lines.length-1))}
+function updateStats(){const s=song();const words=s.lines.join(' ').trim().split(/\s+/).filter(Boolean).length,totalSyllables=s.lines.reduce((sum,line)=>sum+syll(line),0),durationSeconds=(performanceBarDurationMs(s)*s.lines.length)/1000;$('#docStats').textContent=`${s.lines.length} Bars · ${words} Wörter`;$('#footerStats').textContent=`${s.lines.length} Bars · ${words} Wörter · ${totalSyllables} Silben≈ · ${durationSeconds.toFixed(1)} s≈ @ ${performanceConfig(s).bpm} BPM`;$('#miniDensity').innerHTML=s.lines.slice(0,16).map(x=>`<i style="height:${Math.max(3,syll(x)*1.5)}px"></i>`).join('');$('#savedCount').textContent=state.saved.length;activateLine(Math.min(activeLine,s.lines.length-1))}
 function normalizeCandidateSurface(value){
   return String(value||'').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim();
 }
@@ -2032,7 +2032,7 @@ function renderBarInspectorDock(body){
         <div><small>SILBEN ≈</small><b>${syllables||0}</b><span>UI-Schätzung</span></div>
         <div><small>BAR TIME</small><b>${(durationMs/1000).toFixed(2)} s</b><span>${performanceConfig(s).bpm} BPM</span></div>
         <div><small>SYLL./SEC ≈</small><b>${syllablesPerSecond.toFixed(2)}</b><span>aus Bar Time</span></div>
-        <div><small>CUES</small><b>${pocket.cues}</b><span>${pocket.accents} Akzent · ${pocket.holds} Hold</span></div>
+        <div><small>CUES</small><b>${pocket.cues}</b><span>${pocket.hits} Hit · ${pocket.accents} Akzent · ${pocket.holds} Hold</span></div>
         <div><small>BREATH LOAD</small><b>${pocket.breathLoad}</b><span>${pocket.breaths} Atem · ${pocket.pauseUnits} Pause</span></div>
         <div><small>POCKET</small><b>${Math.round(pocket.offBeatShare*100)}% off</b><span>${pocket.onBeat} on · ${pocket.offBeat} off</span></div>
         <div><small>PREVIOUS</small><b>${previous.previousBarId?previous.sharedCount+' shared':'—'}</b><span>${previous.previousBarId?previous.currentSteps.length+' / '+previous.previousSteps.length+' placements':'erste Bar'}</span></div>
