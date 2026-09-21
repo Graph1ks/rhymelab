@@ -91,3 +91,69 @@ test('Markov model builder materializes a compact runnable SQLite from sentence 
     await rm(dir,{recursive:true,force:true});
   }
 });
+
+
+test('V2 builder weights source roles and excludes phrase fragments from line-shape learning',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'rhymelab-markov-source-roles-'));
+  try{
+    const lyric=join(dir,'lyrics.txt');
+    const phrase=join(dir,'phrases.txt');
+    const work=join(dir,'work.sqlite');
+    const out=join(dir,'model.sqlite');
+    const report=join(dir,'report.json');
+    const line='Heute klingt die Musik leise.\n';
+    await writeFile(lyric,line,'utf8');
+    await writeFile(phrase,line,'utf8');
+
+    const run=spawnSync(process.execPath,[
+      'scripts/build-markov-model.mjs',
+      '--source',`lyric:fixture_lyrics:3=${lyric}`,
+      '--source',`phrase:fixture_phrases:1=${phrase}`,
+      '--work',work,
+      '--out',out,
+      '--report',report,
+      '--min-token-count','1',
+      '--min-sequence-tokens','2',
+      '--max-states','1000',
+      '--top-k','8',
+      '--batch-sentences','100',
+    ],{
+      cwd:process.cwd(),
+      encoding:'utf8',
+      timeout:30_000,
+    });
+
+    assert.equal(run.status,0,run.stderr||run.stdout);
+    const payload=JSON.parse(await readFile(report,'utf8'));
+    assert.deepEqual(
+      payload.sources.map((row)=>[row.code,row.kind,row.weight]),
+      [
+        ['fixture_lyrics','lyric',3],
+        ['fixture_phrases','phrase',1],
+      ],
+    );
+
+    const db=new DatabaseSync(out,{readOnly:true});
+    try{
+      const shape=db.prepare(
+        'SELECT token_count,shape_key,count FROM shape_pattern ORDER BY count DESC LIMIT 1',
+      ).get();
+      assert.ok(shape);
+      assert.equal(Number(shape.count),3);
+
+      const sourceWindowCount=Number(
+        db.prepare('SELECT SUM(count) AS n FROM source_window_hash').get()?.n||0,
+      );
+      assert.ok(sourceWindowCount>=2);
+
+      const transition=db.prepare(
+        "SELECT count FROM transition WHERE direction='forward' AND context_len=1 AND next_token='klingt' ORDER BY count DESC LIMIT 1",
+      ).get();
+      assert.equal(Number(transition?.count||0),4);
+    }finally{
+      db.close();
+    }
+  }finally{
+    await rm(dir,{recursive:true,force:true});
+  }
+});
