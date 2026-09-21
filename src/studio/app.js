@@ -51,6 +51,8 @@ let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:ini
   generated=sharedSearchState.generated,
   generatedOnly=sharedSearchState.generatedOnly,
   advancedExpanded=false,
+  hideUsed=state.hideUsed!==false,
+  hiddenUsedCount=0,
   sort=sharedSearchState.sort,
   basis=sharedSearchState.queryBasis,
   resultLang=sharedSearchState.resultLanguage,
@@ -305,11 +307,35 @@ function captureSelection(el){
   activateLine(index);
 }
 function updateStats(){const s=song();const words=s.lines.join(' ').trim().split(/\s+/).filter(Boolean).length;$('#docStats').textContent=`${s.lines.length} Bars · ${words} Wörter`;$('#footerStats').textContent=`${s.lines.length} Bars · ${words} Wörter · Silben ≈ Demo-Schätzung`;$('#miniDensity').innerHTML=s.lines.slice(0,16).map(x=>`<i style="height:${Math.max(3,syll(x)*1.5)}px"></i>`).join('');$('#savedCount').textContent=state.saved.length;activateLine(Math.min(activeLine,s.lines.length-1))}
+function normalizeCandidateSurface(value){
+  return String(value||'').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim();
+}
+function lyricWordSet(){
+  return new Set(
+    (song().lines.join(' ').match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[])
+      .map(normalizeCandidateSurface)
+      .filter(Boolean),
+  );
+}
+function writerRowAlreadyUsed(row,words,normalizedLyrics){
+  const candidate=normalizeCandidateSurface(row.word);
+  if(!candidate)return true;
+  if(row.kind==='phrase'||row.kind==='entity')return normalizedLyrics.includes(candidate);
+  return words.has(candidate);
+}
 function data(){
-  return writerRows.filter((row)=>
+  let rows=writerRows.filter((row)=>
     (scope==='all'||scope===row.kind)
     &&(relation==='all'||relation===row.relation)
   );
+  hiddenUsedCount=0;
+  if(hideUsed&&rows.length){
+    const words=lyricWordSet(),normalizedLyrics=normalizeCandidateSurface(song().lines.join('\n'));
+    const unused=rows.filter((row)=>!writerRowAlreadyUsed(row,words,normalizedLyrics));
+    hiddenUsedCount=rows.length-unused.length;
+    rows=unused;
+  }
+  return rows;
 }
 function resultHTML(r){const saved=state.saved.some(s=>s.word===r.word);return `<div class="result"><div class="grow"><button class="result-word" data-detail="${esc(r.word)}">${esc(r.word)}</button><div class="result-meta"><b>${esc(r.relationLabel||'Klangtreffer')}</b><span>${r.syll||'—'} Silb.</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'} · ${r.lang.toUpperCase()}</span></div></div><div class="result-actions"><button data-save="${esc(r.word)}" class="${saved?'saved':''}" aria-pressed="${saved}" aria-label="${esc(r.word)} ${saved?'entmerken':'merken'}">${icon('book')}</button><button data-insert="${esc(r.word)}" aria-label="${esc(r.word)} einsetzen">${icon('plus')}</button></div></div>`}
 function renderResults(){
@@ -454,12 +480,40 @@ function animateSurface(el,name='surface-enter'){if(!el)return;el.classList.remo
 function sortedData(){return sortStudioWriterRows(data(),{sort,rhymeType,querySyllables:writerQuerySyllables||syll(query),locale:basis==='en'?'en':'de'})}
 data=function(){return filterStudioWriterRows(baseData(),{rhymeType,syllableMode,querySyllables:writerQuerySyllables||syll(query)})};
 resultHTML=function(r){const saved=state.saved.some(s=>s.word===r.word),kind=r.kind==='phrase'?'PHRASE':r.kind==='entity'?'NAME':'',active=selectedResultId?selectedResultId===r.id:selectedResult===r.word,shortRelation=({multisyllabic_perfect:'Multi-Voll',perfect:'Voll',multisyllabic_slant:'Multi-Slant',family:'Familie',slant:'Slant',assonance:'Asson.',consonance:'Konson.'})[r.relationType]||'Klang';return `<div class="result ${active?'is-selected':''}" data-result-word="${esc(r.word)}" data-result-id="${esc(r.id)}"><div class="grow"><button class="result-word" data-detail="${esc(r.word)}" data-detail-id="${esc(r.id)}" aria-label="Details zu ${esc(r.word)}" aria-pressed="${active}">${esc(r.word)}${kind?`<span class="result-kind">${kind}</span>`:''}</button><div class="result-meta"><b>${esc(r.relationLabel||'Klangtreffer')}</b><span>${r.syll||'—'} Silb.</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'} · ${r.lang.toUpperCase()}</span></div></div><span class="result-relation">${esc(shortRelation)}</span><span class="result-syll">${r.syll||'—'}</span><div class="result-actions"><button data-save="${esc(r.word)}" class="${saved?'saved':''}" aria-pressed="${saved}" aria-label="${esc(r.word)} ${saved?'entmerken':'merken'}">${icon('book')}</button><button data-insert="${esc(r.word)}" aria-label="${esc(r.word)} einsetzen">${icon('plus')}</button></div></div>`};
-renderResults=function(){baseRenderResults();const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===density));queryAll('[data-density]').forEach(b=>{b.classList.toggle('active',b.dataset.density===density);b.setAttribute('aria-pressed',b.dataset.density===density)});queryAll('#results .result').forEach((r,i)=>r.style.setProperty('--i',i));const sig=[query,scope,relation,rhymeType,variantMode,entityCategory,includeHistorical,generated,generatedOnly,sort,basis,resultLang,syllableMode,density].join('|');if(sig!==resultSignature){animateSurface($('#results'),'results-enter');animateSurface($('#anchorWord'),'anchor-change');resultSignature=sig;$('#resultsScroll').scrollTop=0}syncInline();if(selectedResult&&!data().some(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult)){selectedResult='';selectedResultId='';selectedDetail=null;$('#detailDock').classList.add('hidden')}if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();$('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer';$('#filterLabel').textContent=$('#directFilters').classList.contains('hidden')?'Filter öffnen':hasActiveSearchFilters()?'Filter aktiv':'Filter sichtbar'};
+renderResults=function(){baseRenderResults();const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===density));queryAll('[data-density]').forEach(b=>{b.classList.toggle('active',b.dataset.density===density);b.setAttribute('aria-pressed',b.dataset.density===density)});queryAll('#results .result').forEach((r,i)=>r.style.setProperty('--i',i));const sig=[query,scope,relation,rhymeType,variantMode,entityCategory,includeHistorical,generated,generatedOnly,sort,basis,resultLang,syllableMode,density].join('|');if(sig!==resultSignature){animateSurface($('#results'),'results-enter');animateSurface($('#anchorWord'),'anchor-change');resultSignature=sig;$('#resultsScroll').scrollTop=0}syncInline();if(selectedResult&&!data().some(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult)){selectedResult='';selectedResultId='';selectedDetail=null;$('#detailDock').classList.add('hidden')}if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();$('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer'+(hiddenUsedCount?' · '+hiddenUsedCount+' verwendet ausgeblendet':'');$('#filterLabel').textContent=$('#directFilters').classList.contains('hidden')?'Filter öffnen':hasActiveSearchFilters()?'Filter aktiv':'Filter sichtbar'};
 renderEditor=function(){baseRenderEditor();selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});$('#fontSizeLive').textContent=state.fontSize;if(dockTab==='saved')renderDock();};
 captureSelection=function(el){const old=query;baseCapture(el);if(!followSelection){query=old;renderResults()}selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail()};
 insertWord=function(word){if(selectionProof){const check=validateSelectionProof(song(),selectionProof);if(!check.valid){notify('Textstelle geändert. Bitte Zielwort erneut auswählen.');return}}baseInsert(word);animateSurface($(`#lyrics textarea[data-line="${activeLine}"]`)?.parentElement,'insert-flash');selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult)renderDetail()};
 toggleSave=function(word){baseToggleSave(word);const b=queryAll('[data-save]').find(b=>b.dataset.save===word);animateSurface(b,'bookmark-pop');if(dockTab==='saved')renderDock();if(selectedResult)renderDetail()};
 setMode=function(next){baseMode(next);animateSurface($(next==='write'?'#writeView':next==='rhyme'?'#rhymeView':'#performView'))};
+function currentSearchPreset(){
+  if(scope==='word'&&rhymeType==='all')return 'words';
+  if(scope==='phrase'&&rhymeType==='all')return 'phrases';
+  if(scope==='entity'&&rhymeType==='all')return 'entities';
+  if(scope==='all'&&STUDIO_RHYME_TYPE_LABELS[rhymeType])return rhymeType;
+  if(scope==='all'&&rhymeType==='all')return 'best';
+  return 'custom';
+}
+function syncScopeButtons(){
+  queryAll('[data-scope]').forEach((button)=>{
+    const active=button.dataset.scope===scope;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',String(active));
+  });
+}
+function applySearchPreset(value){
+  const preset=String(value||'best');
+  relation='all';
+  if(preset==='words'){scope='word';rhymeType='all'}
+  else if(preset==='phrases'){scope='phrase';rhymeType='all'}
+  else if(preset==='entities'){scope='entity';rhymeType='all'}
+  else if(STUDIO_RHYME_TYPE_LABELS[preset]){scope='all';rhymeType=preset}
+  else if(preset==='best'){scope='all';rhymeType='all'}
+  else return;
+  pageSize=density==='compact'?24:12;
+  syncScopeButtons();
+  void refreshWriterResults();
+}
 function advancedFilterCount(){
   return [
     rhymeType!=='all',
@@ -479,8 +533,10 @@ function syncAdvancedControls(){
   if(!panel||!toggle)return;
   panel.classList.toggle('hidden',!advancedExpanded);
   toggle.setAttribute('aria-expanded',String(advancedExpanded));
+  $('#advancedPreset').value=currentSearchPreset();
   $('#advancedRhymeType').value=rhymeType;
   $('#advancedVariants').value=variantMode;
+  $('#advancedHideUsed').checked=hideUsed;
   $('#advancedHistorical').checked=includeHistorical;
   $('#advancedGenerated').checked=generated;
   $('#advancedGeneratedOnly').checked=generatedOnly;
@@ -919,12 +975,14 @@ function renderDetail(){
 function closeDetail(){detailClient.cancel();detailRequest++;selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';saveStudioSearchState({selectedResultId:''});$('#detailDock').classList.add('hidden');$('#resultsScroll').focus()}
 function moveResult(delta){const rows=sortedData();if(!rows.length)return;let index=rows.findIndex(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult);index=index<0?(delta>0?0:rows.length-1):Math.max(0,Math.min(rows.length-1,index+delta));if(index>=pageSize){pageSize=index+12;renderResults()}openDetail(rows[index].word,rows[index].id);const row=queryAll('#results .result').find(r=>r.dataset.resultId===selectedResultId);row?.scrollIntoView?.({block:'nearest',behavior:'smooth'})}
 function setAssistWidth(value){const max=clamp(window.innerWidth-660,350,640);const width=clamp(value,350,max);document.documentElement.style.setProperty('--assist-width',width+'px');$('#splitter').setAttribute('aria-valuenow',width);$('#splitter').setAttribute('aria-valuemax',max);state.assistWidth=width;queryAll('#lyrics textarea').forEach(resizeArea);}
-function bindV2(){for(const id of ['directBasis','directLang','directRelation','directSyllables','directSort','advancedFiltersToggle','advancedFilters','advancedRhymeType','advancedVariants','advancedEntityCategory','advancedHistorical','advancedGenerated','advancedGeneratedOnly','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');$('#directBasis').onchange=e=>{basis=e.target.value;void refreshWriterResults()};
+function bindV2(){for(const id of ['directBasis','directLang','directRelation','directSyllables','directSort','advancedFiltersToggle','advancedFilters','advancedPreset','advancedRhymeType','advancedVariants','advancedEntityCategory','advancedHideUsed','advancedHistorical','advancedGenerated','advancedGeneratedOnly','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');$('#directBasis').onchange=e=>{basis=e.target.value;void refreshWriterResults()};
 $('#directLang').onchange=e=>{resultLang=e.target.value;void refreshWriterResults()};
 $('#directRelation').onchange=e=>{relation=e.target.value;renderResults()};
 $('#directSyllables').onchange=e=>{syllableMode=e.target.value;saveStudioSearchState();renderResults()};
 $('#directSort').onchange=e=>{sort=e.target.value;saveStudioSearchState();renderResults()};
 $('#advancedFiltersToggle').onclick=()=>{advancedExpanded=!advancedExpanded;syncAdvancedControls();if(advancedExpanded)animateSurface($('#advancedFilters'))};
+$('#advancedPreset').onchange=e=>applySearchPreset(e.target.value);
+$('#advancedHideUsed').onchange=e=>{hideUsed=e.target.checked;state.hideUsed=hideUsed;persist();renderResults()};
 $('#advancedRhymeType').onchange=e=>{rhymeType=e.target.value;void refreshWriterResults()};
 $('#advancedVariants').onchange=e=>{variantMode=e.target.value;void refreshWriterResults()};
 $('#advancedEntityCategory').onchange=e=>{entityCategory=e.target.value;void refreshWriterResults()};
