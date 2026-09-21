@@ -278,7 +278,12 @@ function applyModelHealth(){
   if(markovHealth?.available){
     const sentences=Number(markovHealth.accepted_sentences||0).toLocaleString();
     const transitions=Number(markovHealth.transitions||0).toLocaleString();
-    note.innerHTML=`<strong>DECODER V2:</strong> variable-order 1→${esc(markovHealth.order)} · <b>${sentences}</b> source lines · ${transitions} transitions · ${Number(markovHealth.source_windows||0).toLocaleString()} novelty windows · ${Number(markovHealth.shape_patterns||0).toLocaleString()} line shapes · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
+    const roleCounts={phrase:0,sentence:0,lyric:0};
+    for(const source of markovHealth.source_profile||[]){
+      if(Object.hasOwn(roleCounts,source.kind))roleCounts[source.kind]+=Number(source.accepted_sentences||0);
+    }
+    const roles=`P ${roleCounts.phrase.toLocaleString()} · S ${roleCounts.sentence.toLocaleString()} · L ${roleCounts.lyric.toLocaleString()}`;
+    note.innerHTML=`<strong>DECODER V2:</strong> variable-order 1→${esc(markovHealth.order)} · <b>${sentences}</b> source lines [${roles}] · ${transitions} transitions · ${Number(markovHealth.source_windows||0).toLocaleString()} novelty windows · ${Number(markovHealth.shape_patterns||0).toLocaleString()} line shapes · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
     state.textContent='MODEL READY';state.dataset.tone='ok';
     for(const option of language.options)option.disabled=option.value!==markovHealth.language;
     language.value=markovHealth.language;
