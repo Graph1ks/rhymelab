@@ -7,6 +7,10 @@ export function normalizeStudioUiLanguage(value){
 const EN=Object.freeze({
   'Studio':'Studio',
   'Real Device Acceptance':'Real Device Acceptance',
+  'Die sieben Gates müssen bewusst auf echter Hardware bestätigt werden. Reports von mehreren Geräten lassen sich zusammenführen; Studio markiert nie automatisch bestanden.':'The seven gates must be explicitly verified on real hardware. Reports from multiple devices can be merged; Studio never marks them as passed automatically.',
+  'Acceptance importieren':'Import acceptance',
+  'Acceptance-Datei ist größer als 8 MB.':'Acceptance file is larger than 8 MB.',
+  'Keine Acceptance-Datei ausgewählt.':'No acceptance file selected.',
   'Die sieben Gates müssen bewusst auf echter Hardware bestätigt werden. Studio markiert sie niemals automatisch als bestanden.':'The seven gates must be explicitly verified on real hardware. Studio never marks them as passed automatically.',
   'Zurücksetzen':'Reset',
   'Acceptance JSON exportieren':'Export acceptance JSON',
@@ -509,6 +513,8 @@ const PATTERNS=Object.freeze([
   [/^Noch (\d+) reale Geräteprüfungen offen$/u,'$1 real-device checks remaining'],
   [/^(\d+)\/(\d+) bestätigt$/u,'$1/$2 confirmed'],
   [/^Diagnostics als JSON exportiert\.$/u,'Diagnostics exported as JSON.'],
+  [/^Device-Acceptance zusammengeführt · (\d+)\/(\d+) bestätigt\.$/u,'Device acceptance merged · $1/$2 confirmed.'],
+  [/^Acceptance-Import fehlgeschlagen: (.+)$/u,'Acceptance import failed: $1'],
 ]);
 
 const SKIP_SELECTOR=[
