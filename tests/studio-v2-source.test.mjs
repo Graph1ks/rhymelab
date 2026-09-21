@@ -14,8 +14,15 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/src=["']\/studio\/app\.js["']/u);
 
   assert.match(css,/--assist-width:470px/u);
-  assert.match(css,/--accent:#7453db/u);
+  assert.match(css,/--bg:#EAE7DC/u);
+  assert.match(css,/--line:#D8C3A5/u);
+  assert.match(css,/--accent:#E85A4F/u);
+  assert.match(css,/--accent-2:#E98074/u);
   assert.match(css,/\[data-theme=dark\]/u);
+  assert.match(css,/--bg:#272727/u);
+  assert.match(css,/--accent:#FFE400/u);
+  assert.match(css,/--accent-2:#FF652F/u);
+  assert.match(css,/--green:#14A76C/u);
   assert.match(css,/prefers-reduced-motion:reduce/u);
   assert.match(css,/100dvh/u);
 
@@ -26,6 +33,17 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/data-density="compact"/u);
   assert.match(html,/data-density="tiles"/u);
   assert.match(app,/dataset\.studioVersion='2'/u);
+  assert.match(html,/id=["']themeQuick["']/u);
+  assert.match(html,/id=["']themeQuickMenu["']/u);
+  assert.match(css,/\.theme-quick:hover \.theme-quick-menu/u);
+  assert.match(css,/\.theme-builder-grid/u);
+  assert.match(app,/customThemes/u);
+  assert.match(app,/themeSlots/u);
+  assert.match(app,/Light-Style ersetzen/u);
+  assert.match(app,/Dark-Style ersetzen/u);
+  assert.match(app,/function saveThemeDraft\(/u);
+  assert.match(app,/function renderThemeQuickMenu\(/u);
+  assert.match(app,/function previewThemeDraft\(/u);
 });
 
 test('Studio preview route is parallel and leaves legacy Search and RhymePad routes in place',async()=>{
