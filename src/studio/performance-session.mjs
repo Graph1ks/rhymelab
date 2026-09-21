@@ -193,6 +193,7 @@ export function performanceBarMetrics(song,barId){
   }
   return {
     cues:cues.length,
+    hits:cues.filter((row)=>row.type==='hit').length,
     accents:cues.filter((row)=>row.type==='accent').length,
     pauses:cues.filter((row)=>row.type==='pause').length,
     breaths:cues.filter((row)=>row.type==='breath').length,
