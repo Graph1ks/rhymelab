@@ -346,8 +346,8 @@ verse totals + duration estimate          DONE
 full Perform parity                      DONE
 typing-burst undo coalescing              DONE
 stable-ID Bar Navigator + reorder          DONE
-source-backed parity manifest              DONE · 77 mapped capabilities
-static old-vs-new evidence audit            DONE · 70 source gates
+source-backed parity manifest              DONE · 80 mapped capabilities
+static old-vs-new evidence audit            DONE · 73 source gates
 real-device parity gates                    REQUIRED · 7 gates
 persistent DE / EN UI localization       DONE
 serialized autosave queue + lifecycle flush DONE
