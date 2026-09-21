@@ -1232,8 +1232,8 @@ function applyThemeChoice(choice,options){
   const button=$('#themeBtn');
   if(button){
     button.dataset.themeMode=resolved.mode;
-    button.setAttribute('aria-label','Quickstyle wechseln · aktiv: '+(resolved.name||state.theme));
-    button.title=(resolved.name||state.theme)+' · Klick: Light/Dark · Hover: Quickstyles';
+    button.setAttribute('aria-label','Light/Dark QuickSwitch · aktiv: '+(resolved.name||state.theme));
+    button.title=(resolved.name||state.theme)+' · Klick: gesetzten Light/Dark Style wechseln';
   }
   renderThemeQuickMenu();
   if(options.persistState!==false)persist();
@@ -1258,13 +1258,13 @@ function renderThemeQuickMenu(){
   menu.innerHTML=html;
 }
 function setThemeQuickOpen(open,{render=true}={}){
-  const quick=$('#themeQuick'),button=$('#themeBtn');
-  if(!quick||!button)return;
+  const quick=$('#themeQuick'),menuButton=$('#themeMenuBtn');
+  if(!quick||!menuButton)return;
   const wasOpen=quick.classList.contains('open');
   clearTimeout(themeQuickCloseTimer);
   themeQuickCloseTimer=0;
   quick.classList.toggle('open',Boolean(open));
-  button.setAttribute('aria-expanded',String(Boolean(open)));
+  menuButton.setAttribute('aria-expanded',String(Boolean(open)));
   // Never rebuild the menu while focus is moving into an existing item:
   // replacing the focused button between pointerdown and click cancels activation.
   if(open&&render&&!wasOpen)renderThemeQuickMenu();
@@ -1274,19 +1274,25 @@ function scheduleThemeQuickClose(delay=180){
   themeQuickCloseTimer=setTimeout(()=>setThemeQuickOpen(false,{render:false}),delay);
 }
 function bindThemeQuickMenu(){
-  const quick=$('#themeQuick'),menu=$('#themeQuickMenu'),button=$('#themeBtn');
-  if(!quick||!menu||!button)return;
+  const quick=$('#themeQuick'),menu=$('#themeQuickMenu'),button=$('#themeBtn'),menuButton=$('#themeMenuBtn');
+  if(!quick||!menu||!button||!menuButton)return;
   renderThemeQuickMenu();
 
-  // Click keeps the original fast Light/Dark switch. Hover exposes the
-  // full Quickstyle menu; ArrowDown opens it explicitly for keyboard users.
+  // Main control preserves the original one-click switch between configured
+  // Light/Dark slots. The adjacent chevron owns explicit menu opening so
+  // touch users are not forced to rely on hover.
   button.onclick=function(event){
     event.preventDefault();
     event.stopPropagation();
     toggleTheme();
     setThemeQuickOpen(false,{render:false});
   };
-  button.addEventListener('keydown',function(event){
+  menuButton.onclick=function(event){
+    event.preventDefault();
+    event.stopPropagation();
+    setThemeQuickOpen(!quick.classList.contains('open'));
+  };
+  const openFromKeyboard=function(event){
     if(event.key==='ArrowDown'){
       event.preventDefault();
       setThemeQuickOpen(true);
@@ -1296,17 +1302,16 @@ function bindThemeQuickMenu(){
       event.preventDefault();
       setThemeQuickOpen(false,{render:false});
     }
-  });
+  };
+  button.addEventListener('keydown',openFromKeyboard);
+  menuButton.addEventListener('keydown',openFromKeyboard);
 
   quick.addEventListener('mouseenter',()=>setThemeQuickOpen(true));
   quick.addEventListener('mouseleave',()=>scheduleThemeQuickClose());
   menu.addEventListener('mouseenter',()=>setThemeQuickOpen(true,{render:false}));
   menu.addEventListener('mouseleave',()=>scheduleThemeQuickClose());
   quick.addEventListener('focusin',function(event){
-    // Pointer focus on the trigger must not pre-open and then immediately
-    // close the menu when the trigger click toggles. Menu-item focus only
-    // keeps an already opened menu alive.
-    if(event.target!==button)setThemeQuickOpen(true,{render:false});
+    if(event.target!==button&&event.target!==menuButton)setThemeQuickOpen(true,{render:false});
   });
   quick.addEventListener('focusout',function(){
     requestAnimationFrame(function(){
