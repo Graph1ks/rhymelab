@@ -210,6 +210,81 @@ export function performanceStepDurationMs(song,step=0){
   return base*(Number(step)%2===0?4/3:2/3);
 }
 
+export function performanceBarDurationMs(song){
+  const config=performanceConfig(song);
+  let total=0;
+  for(let step=0;step<config.grid;step++)total+=performanceStepDurationMs(song,step);
+  return total;
+}
+
+export function performanceFlowFingerprint(song,barId){
+  const config=performanceConfig(song);
+  const symbols=[];
+  for(let step=0;step<config.grid;step++){
+    const cue=getPerformanceCue(song,barId,step);
+    symbols.push(cue?performanceCueSymbol(cue):'·');
+  }
+  return symbols.join('');
+}
+
+export function performancePocketMetrics(song,barId){
+  const config=performanceConfig(song);
+  const metrics=performanceBarMetrics(song,barId);
+  const quarter=Math.max(1,config.grid/4);
+  let onBeat=0,offBeat=0,pauseUnits=0;
+  for(let step=0;step<config.grid;step++){
+    const cue=getPerformanceCue(song,barId,step);
+    if(!cue)continue;
+    if(step%quarter===0)onBeat++;else offBeat++;
+    if(cue.type==='pause')pauseUnits+=Math.max(1,Number(cue.length)||1);
+  }
+  const rhythmicCues=Math.max(1,onBeat+offBeat);
+  return {
+    ...metrics,
+    onBeat,
+    offBeat,
+    onBeatShare:(onBeat+offBeat)?onBeat/rhythmicCues:0,
+    offBeatShare:(onBeat+offBeat)?offBeat/rhythmicCues:0,
+    pauseUnits,
+    breathLoad:metrics.breaths+pauseUnits,
+  };
+}
+
+export function performancePreviousBarPlacements(song,barId){
+  ensurePerformanceSong(song);
+  const index=song.barIds.indexOf(String(barId));
+  if(index<=0)return {
+    previousBarId:null,
+    previousSteps:[],
+    currentSteps:[],
+    sharedSteps:[],
+    sharedCount:0,
+  };
+  const previousBarId=song.barIds[index-1];
+  const config=performanceConfig(song);
+  const stepsFor=(id)=>{
+    const steps=[];
+    for(let step=0;step<config.grid;step++)if(getPerformanceCue(song,id,step))steps.push(step);
+    return steps;
+  };
+  const previousSteps=stepsFor(previousBarId),currentSteps=stepsFor(barId);
+  const previousSet=new Set(previousSteps);
+  const sharedSteps=currentSteps.filter((step)=>previousSet.has(step));
+  return {
+    previousBarId,
+    previousSteps,
+    currentSteps,
+    sharedSteps,
+    sharedCount:sharedSteps.length,
+  };
+}
+
+export function performanceSyllablesPerSecond(song,syllableCount){
+  const durationMs=performanceBarDurationMs(song);
+  if(durationMs<=0)return 0;
+  return Math.max(0,Number(syllableCount)||0)/(durationMs/1000);
+}
+
 export function performanceCueSymbol(cue){
   const type=typeof cue==='string'?cue:cue?.type;
   return ({hit:'●',accent:'▲',pause:'Ⅱ',breath:'◌',hold:'→'})[type]||'·';
