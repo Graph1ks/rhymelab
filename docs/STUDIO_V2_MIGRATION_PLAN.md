@@ -441,9 +441,9 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 4  route/design regression test            DONE
 5  extract CSS/JS without visual change     DONE
 6  reference palettes + custom Quickstyles DONE
-7  functional module split                  NEXT
-8  capability wiring
-9  live /api/writer search
+7  functional module split                  DONE
+8  capability wiring                         DONE
+9  live /api/writer search                   NEXT
 10 complete filter parity
 11 detail/provenance parity
 12 shared SearchState
