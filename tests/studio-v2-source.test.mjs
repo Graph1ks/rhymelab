@@ -41,6 +41,9 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.writer-loading:after/u);
   assert.match(css,/Studio production detail parity/u);
   assert.match(css,/\.detail-fact-grid/u);
+  assert.match(css,/\.advanced-filters/u);
+  assert.match(css,/\.advanced-filter-grid/u);
+  assert.match(css,/\.advanced-check/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
@@ -48,6 +51,13 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/class="mobile-nav"/u);
   assert.match(html,/data-density="compact"/u);
   assert.match(html,/data-density="tiles"/u);
+  assert.match(html,/id=["']advancedFiltersToggle["']/u);
+  assert.match(html,/id=["']advancedRhymeType["']/u);
+  assert.match(html,/id=["']advancedVariants["']/u);
+  assert.match(html,/id=["']advancedEntityCategory["']/u);
+  assert.match(html,/id=["']advancedHistorical["']/u);
+  assert.match(html,/id=["']advancedGenerated["']/u);
+  assert.match(html,/id=["']advancedGeneratedOnly["']/u);
   assert.match(app,/dataset\.studioVersion='2'/u);
   assert.match(html,/id=["']themeQuick["']/u);
   assert.match(html,/id=["']themeQuickMenu["']/u);
@@ -124,6 +134,12 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/refreshWriterResults\(\)/u);
   assert.match(app,/queryBasis:basis/u);
   assert.match(app,/resultLanguage:resultLang/u);
+  assert.match(app,/rhymeType,/u);
+  assert.match(app,/includeVariants:variantMode==='all'/u);
+  assert.match(app,/includeHistorical,/u);
+  assert.match(app,/generatedOnly,/u);
+  assert.match(app,/entityCategory,/u);
+  assert.match(app,/function syncAdvancedControls\(/u);
   assert.match(app,/writeStudioState\(state\)/u);
   assert.match(app,/from '\.\/capability-adapter\.mjs'/u);
   assert.match(app,/from '\.\/detail-adapter\.mjs'/u);
@@ -189,12 +205,25 @@ test('Studio Writer adapter maps runtime rows and preserves canonical recommende
     queryBasis:'de',
     resultLanguage:'both',
     scope:'phrase',
+    rhymeType:'multisyllabic_perfect',
+    includeVariants:true,
+    includeHistorical:true,
+    generated:true,
+    generatedOnly:true,
+    entityCategory:'musician',
   });
   assert.equal(params.get('q'),'Arbeitsweise');
   assert.equal(params.get('language'),'de');
   assert.equal(params.get('result_language'),'both');
   assert.equal(params.get('scope'),'phrases');
-  assert.equal(params.get('type'),'all');
+  assert.equal(params.get('type'),'multisyllabic_perfect');
+  assert.equal(params.get('variants'),'all');
+  assert.equal(params.get('historical'),'all');
+  assert.equal(params.get('generated'),'1');
+  assert.equal(params.get('generated_only'),'1');
+  assert.equal(params.get('entity_category'),'musician');
+  const relationOnly=buildWriterParams({query:'Zeit',rhymeType:'assonance'});
+  assert.equal(relationOnly.get('type'),'all');
 
   const mapped=mapWriterResult({
     resultKind:'word',
@@ -313,4 +342,35 @@ test('Studio detail adapter uses canonical detail endpoints and keeps entities o
   assert.equal(urls.length,before);
   assert.deepEqual(entityModel.categories,['person','composer']);
   assert.equal(entityModel.popularity,97);
+});
+
+
+test('Studio full Writer filter matrix is wired without changing canonical recommended ordering',async()=>{
+  const [html,app]=await Promise.all([
+    readFile('src/studio/index.html','utf8'),
+    readFile('src/studio/app.js','utf8'),
+  ]);
+
+  for(const id of [
+    'advancedFiltersToggle',
+    'advancedRhymeType',
+    'advancedVariants',
+    'advancedEntityCategory',
+    'advancedHistorical',
+    'advancedGenerated',
+    'advancedGeneratedOnly',
+  ]){
+    assert.match(html,new RegExp('id=["\\\']'+id+'["\\\']','u'));
+  }
+
+  assert.match(app,/function rowHasRhymeType\(/u);
+  assert.match(app,/function sortWriterRows\(/u);
+  assert.match(app,/sort==='closest'/u);
+  assert.match(app,/sort==='common'/u);
+  assert.match(app,/syllableMode==='near2'/u);
+  assert.match(app,/syllableMode==='near3'/u);
+  assert.match(app,/writerCapabilities=result\.capabilities/u);
+  assert.match(app,/entityCategories\(\)/u);
+  assert.match(app,/advancedFilterCount\(\)/u);
+  assert.match(app,/generatedOnly=e\.target\.checked/u);
 });
