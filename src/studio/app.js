@@ -664,7 +664,26 @@ function toggleAuto(){auto=!auto;$('#autoBtn').textContent='Auto-Scroll: '+(auto
 function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','filterBtn','autoBtn','moreBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
 $('#closeDialog').onclick=closeDialog;$('#themeBtn').onclick=toggleTheme;$('#exportBtn').onclick=exportText;$('#commandBtn').onclick=showCommands;$('#settingsBtn').onclick=showSettings;$('#settingsSide').onclick=showSettings;$('#filterBtn').onclick=showFilters;$('#languageBtn').onclick=showFilters;$('#historyBtn').onclick=showHistory;$('#infoBtn').onclick=showInfo;$('#focusBtn').onclick=toggleFocus;$('#newSongSidebar').onclick=newSong;$('#renameBtn').onclick=()=>nameDialog('Titel ändern',song().title,t=>{song().title=t;persist();renderEditor()});$('#addBar').onclick=()=>{pushUndo();const current=song(),last=current.lines.length-1;splitEditorBar(current,last,current.lines[last].length,current.lines[last].length);activeLine=current.lines.length-1;renderEditor();focusLine(activeLine,0);changed()};$('#undoBtn').onclick=performUndo;$('#redoBtn').onclick=performRedo;$('#searchForm').onsubmit=e=>{e.preventDefault();query=$('#searchInput').value.trim()||query;pageSize=6;void refreshWriterResults();$('#resultsScroll').scrollTop=0};$('#autoBtn').onclick=toggleAuto;$('#moreBtn').onclick=()=>{pageSize+=6;renderResults()};$('#resultsScroll').addEventListener('scroll',()=>{const el=$('#resultsScroll');if(el.scrollTop>0&&el.scrollHeight-el.scrollTop-el.clientHeight<90&&pageSize<data().length){pageSize+=6;renderResults()}},{passive:true});['wheel','touchstart','pointerdown','focusin'].forEach(ev=>$('#resultsScroll').addEventListener(ev,()=>pauseUntil=performance.now()+5000,{passive:true}));
 queryAll('[data-nav]').forEach(b=>b.onclick=()=>navigate(b.dataset.nav));queryAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));queryAll('[data-scope]').forEach(b=>b.onclick=()=>{scope=b.dataset.scope;pageSize=6;setExclusivePressed(queryAll('[data-scope]'),scope,'scope');void refreshWriterResults()});queryAll('[data-mobile]').forEach(b=>b.onclick=()=>{const dest=b.dataset.mobile;if(dest==='settings')return showSettings();if(dest==='results'){navigate('studio');document.body.classList.remove('focus');document.body.classList.add('mobile-results');setMobileActive('results')}else navigate(dest)});
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.insert)insertWord(b.dataset.insert);if(b.dataset.save)toggleSave(b.dataset.save);if(b.dataset.query){query=b.dataset.query;void refreshWriterResults()}if(b.dataset.retryWriter){void refreshWriterResults()}if(b.dataset.detail)openDetail(b.dataset.detail,b.dataset.detailId||'');if(b.dataset.song){revision();state.active=b.dataset.song;activeLine=0;selection={line:0,start:0,end:0};undo=[];redo=[];persist();renderEditor();navigate('studio');setMode('write')}if(b.dataset.trash){const s=state.songs.find(s=>s.id===b.dataset.trash);if(s.id===state.active){notify('Öffne zuerst einen anderen Text, um diesen abzulegen.');return}s.deleted=true;persist();renderLibrary();renderProjects();notify('Im Papierkorb · wiederherstellbar')}if(b.dataset.restore){state.songs.find(s=>s.id===b.dataset.restore).deleted=false;persist();renderLibrary(true);renderProjects()}});
+document.addEventListener('click',(event)=>{
+  const button=event.target.closest('button');
+  if(!button)return;
+  if(button.dataset.insert)insertWord(button.dataset.insert);
+  if(button.dataset.save)toggleSave(button.dataset.save);
+  if(button.dataset.query){query=button.dataset.query;void refreshWriterResults()}
+  if(button.dataset.retryWriter)void refreshWriterResults();
+  if(button.dataset.detail)openDetail(button.dataset.detail,button.dataset.detailId||'');
+  if(button.dataset.song)openSong(button.dataset.song);
+  if(button.dataset.trash)trashLibrarySong(button.dataset.trash);
+  if(button.dataset.restore)restoreLibrarySong(button.dataset.restore);
+  if(button.dataset.permanentDelete)permanentlyDeleteLibrarySong(button.dataset.permanentDelete);
+  if(button.dataset.renameSong)renameLibrarySong(button.dataset.renameSong);
+  if(button.dataset.moveSong)moveLibrarySong(button.dataset.moveSong);
+  if(button.dataset.folderFilter){
+    libraryView.folder=button.dataset.folderFilter;
+    renderLibrary(libraryView.trash);
+  }
+  if(button.dataset.folderDelete)deleteLibraryFolder(button.dataset.folderDelete);
+});
 document.addEventListener('keydown',e=>{
   const modifier=e.ctrlKey||e.metaKey,key=e.key.toLowerCase();
   if(modifier&&key==='z'){e.preventDefault();if(e.shiftKey)performRedo();else performUndo();return}
