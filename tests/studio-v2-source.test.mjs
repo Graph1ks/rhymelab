@@ -112,7 +112,10 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/from '\.\/document-adapter\.mjs'/u);
   assert.match(app,/from '\.\/search-adapter\.mjs'/u);
   assert.match(app,/from '\.\/studio-controls\.mjs'/u);
-  assert.match(app,/getDemoSearchRows\(\{query,scope,relation,resultLanguage:resultLang,queryBasis:basis\}\)/u);
+  assert.match(app,/createWriterSearchClient\(\)/u);
+  assert.match(app,/refreshWriterResults\(\)/u);
+  assert.match(app,/queryBasis:basis/u);
+  assert.match(app,/resultLanguage:resultLang/u);
   assert.match(app,/writeStudioState\(state\)/u);
   assert.match(app,/from '\.\/capability-adapter\.mjs'/u);
   assert.match(app,/refreshStudioCapabilities\(\)/u);
@@ -120,7 +123,9 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
 
   assert.match(core,/export const queryAll=/u);
   assert.match(controls,/export function normalizeDensity/u);
-  assert.match(search,/export function getDemoSearchRows/u);
+  assert.match(search,/export function createWriterSearchClient/u);
+  assert.match(search,/export function buildWriterParams/u);
+  assert.match(search,/export function mapWriterResult/u);
   assert.match(documents,/export function loadStudioState/u);
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(pronunciationClient,/CLIENT_QUERY_PRONUNCIATION_POLICY/u);
@@ -157,4 +162,72 @@ test('Studio capability adapter normalizes backend health without leaking backen
     queryPronunciationRevision:'abcdef1234567890',
     dataset:{core:100,generated:25,total:125,consistent:true},
   });
+});
+
+
+test('Studio Writer adapter maps runtime rows and preserves canonical recommended order',async()=>{
+  const {
+    buildWriterParams,
+    createWriterSearchClient,
+    mapWriterResult,
+    writerRelationGroup,
+  }=await import('../src/studio/search-adapter.mjs');
+
+  const params=buildWriterParams({
+    query:'Arbeitsweise',
+    queryBasis:'de',
+    resultLanguage:'both',
+    scope:'phrase',
+  });
+  assert.equal(params.get('q'),'Arbeitsweise');
+  assert.equal(params.get('language'),'de');
+  assert.equal(params.get('result_language'),'both');
+  assert.equal(params.get('scope'),'phrases');
+  assert.equal(params.get('type'),'all');
+
+  const mapped=mapWriterResult({
+    resultKind:'word',
+    resultId:'hochzeitsreise',
+    word:'Hochzeitsreise',
+    language:'de',
+    syllableCount:4,
+    syllableDistance:0,
+    primaryType:'multisyllabic_perfect',
+    score:.93,
+  });
+  assert.equal(mapped.word,'Hochzeitsreise');
+  assert.equal(mapped.relationType,'multisyllabic_perfect');
+  assert.equal(mapped.relation,'rein');
+  assert.equal(mapped.relationLabel,'Mehrsilbiger Vollreim');
+  assert.equal(writerRelationGroup('slant'),'nah');
+
+  const urls=[];
+  const payload={
+    status:'ok',
+    query:{surface:'Arbeitsweise',syllableCount:4,preferredIpa:'x'},
+    queries:{de:{surface:'Arbeitsweise',preferredIpa:'x'},en:null},
+    capabilities:{languages:{de:{available:true},en:{available:true}}},
+    results:[
+      {resultKind:'word',resultId:'b',word:'Zweiter',language:'de',syllableCount:2,primaryType:'slant',score:.7},
+      {resultKind:'word',resultId:'a',word:'Erster',language:'de',syllableCount:2,primaryType:'perfect',score:.9},
+    ],
+    warnings:[],
+    runtimeTiming:{currentMs:12},
+  };
+  const client=createWriterSearchClient({
+    fetchImpl:async(url)=>{
+      urls.push(String(url));
+      return {ok:true,status:200,json:async()=>payload};
+    },
+  });
+  const result=await client.search({
+    query:'Arbeitsweise',
+    queryBasis:'de',
+    resultLanguage:'de',
+    scope:'word',
+    queryPronunciationRevision:'rev-1',
+  });
+  assert.match(urls[0],/^\/api\/writer\?/u);
+  assert.deepEqual(result.rows.map((row)=>row.word),['Zweiter','Erster']);
+  assert.equal(result.querySyllables,4);
 });
