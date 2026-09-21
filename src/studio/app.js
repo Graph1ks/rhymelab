@@ -14,7 +14,7 @@ if(!['light','dark'].includes(state.theme)&&!state.customThemes.some(theme=>them
 const STUDIO_BUILTIN_THEMES={
   light:{
     id:'light',name:'Light',subtitle:'Warm Atelier',mode:'light',
-    colors:{bg:'#EAE7DC',panel:'#F4F0E6',ink:'#272727',muted:'#8E8D8A',line:'#D8C3A5',accent:'#E85A4F',accent2:'#E98074',signal:'#8E8D8A',nav:'#E3DCCF',tint:'#F1D5CE',onAccent:'#272727'}
+    colors:{bg:'#EAE7DC',panel:'#F4F0E6',ink:'#272727',muted:'#6B6965',line:'#D8C3A5',accent:'#E85A4F',accent2:'#E98074',signal:'#8E8D8A',nav:'#E3DCCF',tint:'#F1D5CE',onAccent:'#171717'}
   },
   dark:{
     id:'dark',name:'Dark',subtitle:'Signal Noir',mode:'dark',
