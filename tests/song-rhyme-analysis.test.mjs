@@ -30,6 +30,16 @@ test('canonical rhyme analysis builds scheme from Writer relations and keeps sof
     language:'de',
     searchAnchor:async(word)=>({
       status:'ok',
+      input:word,
+      query:{
+        surface:word,
+        normalized:word,
+        language:'de',
+        preferredIpa:word==='nacht'?'naxt':word==='macht'?'maxt':'taːk',
+        syllableCount:1,
+        stressPattern:'1',
+        primaryStressSyllable:1,
+      },
       results:rows[word]||[],
     }),
   });
@@ -40,6 +50,10 @@ test('canonical rhyme analysis builds scheme from Writer relations and keeps sof
   assert.equal(analysis.lineRelations[1].relation.type,'perfect');
   assert.equal(analysis.lineRelations[2].relation.type,'assonance');
   assert.equal(analysis.lineRelations[3].relation.type,'identity');
+  assert.equal(analysis.wordDetails[0].ipa,'naxt');
+  assert.equal(analysis.wordDetails[0].stressPattern,'1');
+  assert.equal(analysis.uniqueWordDetails[1].normalized,'macht');
+  assert.equal(analysis.uniqueWordDetails[1].primaryStressSyllable,1);
   assert.deepEqual(analysis.coverage,{unique:3,resolved:3,unresolved:[],truncated:false});
 });
 
@@ -52,4 +66,5 @@ test('canonical analysis reports unresolved Writer anchors without inventing rel
   assert.deepEqual(analysis.scheme,['A','B']);
   assert.deepEqual(analysis.coverage.unresolved,['unknown']);
   assert.equal(analysis.coverage.resolved,1);
+  assert.equal(analysis.uniqueWordDetails.find((row)=>row.normalized==='unknown').unresolved,true);
 });
