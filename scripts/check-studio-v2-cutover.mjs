@@ -6,6 +6,7 @@ import {
   studioParitySummary,
 } from '../src/studio/parity-manifest.mjs';
 import {
+  mergeStudioDeviceAcceptanceReports,
   parseStudioDeviceAcceptance,
   studioDeviceAcceptanceSummary,
 } from '../src/studio/device-acceptance.mjs';
@@ -13,16 +14,19 @@ import {
 const args=new Set(process.argv.slice(2));
 const codeOnly=args.has('--code-only');
 const jsonOnly=args.has('--json');
-const argValue=(name)=>{
-  const argv=process.argv.slice(2);
-  const index=argv.indexOf(name);
-  return index>=0?argv[index+1]:null;
+const argValues=(name)=>{
+  const argv=process.argv.slice(2),values=[];
+  for(let index=0;index<argv.length;index++){
+    if(argv[index]===name&&argv[index+1])values.push(argv[++index]);
+  }
+  return values;
 };
-const deviceReportPath=resolve(
-  argValue('--device-report')
-  ||process.env.RHYMELAB_STUDIO_DEVICE_ACCEPTANCE
-  ||'reports/studio-v2-device-acceptance.json',
-);
+const explicitDeviceReports=argValues('--device-report');
+const envDeviceReports=String(process.env.RHYMELAB_STUDIO_DEVICE_ACCEPTANCE||'')
+  .split(/[;,]/u).map((value)=>value.trim()).filter(Boolean);
+const deviceReportPaths=(explicitDeviceReports.length?explicitDeviceReports:envDeviceReports.length?envDeviceReports:[
+  'reports/studio-v2-device-acceptance.json',
+]).map((value)=>resolve(value));
 
 const checks=[];
 const add=(id,ok,detail)=>checks.push({id,ok:Boolean(ok),detail:String(detail||'')});
@@ -161,21 +165,25 @@ add(
 
 let device=null;
 if(!codeOnly){
-  if(!existsSync(deviceReportPath)){
+  const missing=deviceReportPaths.filter((path)=>!existsSync(path));
+  if(missing.length){
     add(
       'device.acceptance-report',
       false,
-      'missing '+deviceReportPath+'; export the seven-gate JSON from Studio Settings and pass --device-report <file>',
+      'missing '+missing.join(', ')+'; export/import the seven-gate JSON from Studio Settings and pass one or more --device-report <file>',
     );
   }else{
     try{
-      const parsed=parseStudioDeviceAcceptance(readFileSync(deviceReportPath,'utf8'));
-      device=studioDeviceAcceptanceSummary(parsed);
+      const parsed=deviceReportPaths.map((path)=>
+        parseStudioDeviceAcceptance(readFileSync(path,'utf8'))
+      );
+      const merged=mergeStudioDeviceAcceptanceReports(parsed);
+      device=studioDeviceAcceptanceSummary(merged);
       add(
         'device.acceptance-report',
         device.ready,
         device.ready
-          ?device.passed+'/'+device.total+' real-device gates passed'
+          ?device.passed+'/'+device.total+' real-device gates passed across '+parsed.length+' report'+(parsed.length===1?'':'s')
           :'pending: '+device.pending.join(', '),
       );
     }catch(error){
