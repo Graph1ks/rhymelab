@@ -76,6 +76,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/function renderThemeQuickMenu\(/u);
   assert.match(app,/function setThemeQuickOpen\(/u);
   assert.match(app,/function scheduleThemeQuickClose\(/u);
+  assert.match(app,/open&&render&&!wasOpen/u);
+  assert.match(app,/if\(event\.target!==button\)setThemeQuickOpen\(true,\{render:false\}\)/u);
   assert.match(app,/button\.onclick=function\(event\)/u);
   assert.match(app,/applyThemeChoice\(choice\)/u);
   assert.match(app,/function previewThemeDraft\(/u);
