@@ -4,12 +4,12 @@ RhymeLab can optionally build its local Markov V2 transition model from third-pa
 
 ## Leipzig Corpora Collection
 
-The default acquisition registries include downloadable German News 2024 and English News 2024 300K norm corpora from the Leipzig Corpora Collection.
+The default acquisition registries include downloadable German News 2024 and English News 2023 1M norm corpora from the Leipzig Corpora Collection.
 
 - Source: Leipzig Corpora Collection, German news corpus based on material from 2024.
 - German corpus ID: `deu_news_2024_300K`
 - German upstream corpus: `deu_news_2024`
-- English corpus ID: `eng_news_2024_300K`
+- English corpus ID: `eng_news_2023_1M`
 - License declaration for downloadable text corpora: Creative Commons Attribution (CC BY).
 - Project terms: https://wortschatz-leipzig.de/de/usage
 - Corpus information: https://dict.wortschatz-leipzig.de?corpusId=deu_news_2024
