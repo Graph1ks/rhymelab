@@ -245,13 +245,14 @@ function renderSettingsDock(body){
     return '<label class="theme-color-field"><span>'+label+'</span><input type="color" data-theme-color="'+key+'" value="'+colors[key]+'" aria-label="'+label+' Farbe"><input type="text" data-theme-hex="'+key+'" value="'+colors[key]+'" maxlength="7" spellcheck="false" aria-label="'+label+' Hex"></label>';
   }).join('');
   const preview=THEME_COLOR_FIELDS.map(function(field){return '<i data-preview-color="'+field[0]+'" style="background:'+colors[field[0]]+'"></i>'}).join('');
-  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label></div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section></div>';
+  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label></div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section></div>';
   $('#fontRange').oninput=function(event){setFontSize(+event.target.value)};
   $('#editorFont').value=state.editorFont||'sans';
   $('#editorFont').onchange=function(event){state.editorFont=event.target.value;applyEditorFont();persist()};
   $('#motionSelect').value=state.motion;
   $('#motionSelect').onchange=function(event){state.motion=event.target.value;document.documentElement.dataset.motion=state.motion;persist()};
   $('#themeMode').value=draft.mode==='light'?'light':'dark';
+  updateThemeContrast(draft);
   bindThemeSettings();
 }
 function readThemeDraft(){
@@ -262,6 +263,13 @@ function readThemeDraft(){
   });
   return {id:themeEditingId||'',name:(($('#themeName')&&$('#themeName').value)||'Mein Studio').trim().slice(0,40)||'Mein Studio',mode:$('#themeMode')&&$('#themeMode').value==='light'?'light':'dark',colors:completeThemeColors(colors)};
 }
+function updateThemeContrast(theme){
+  const colors=completeThemeColors(theme.colors);
+  const text=contrastRatio(colors.ink,colors.bg),accent=contrastRatio(colors.onAccent,colors.accent);
+  const textEl=$('#themeTextContrast'),accentEl=$('#themeAccentContrast');
+  if(textEl){textEl.textContent='Text '+text.toFixed(1)+':1 '+(text>=4.5?'AA':'LOW');textEl.dataset.tone=text>=4.5?'ok':'warn'}
+  if(accentEl){accentEl.textContent='Accent '+accent.toFixed(1)+':1 '+(accent>=4.5?'AA':'LOW');accentEl.dataset.tone=accent>=4.5?'ok':'warn'}
+}
 function previewThemeDraft(){
   const draft=readThemeDraft();
   themePreviewing=true;
@@ -270,16 +278,17 @@ function previewThemeDraft(){
     const key=field[0],preview=$('[data-preview-color="'+key+'"]');
     if(preview)preview.style.background=draft.colors[key];
   });
+  updateThemeContrast(draft);
 }
 function bindThemeSettings(){
-  $('[data-theme-color]').forEach(function(color){
+  Array.from(document.querySelectorAll('[data-theme-color]')).forEach(function(color){
     color.addEventListener('input',function(){
       const key=color.dataset.themeColor,hex=$('[data-theme-hex="'+key+'"]');
       if(hex)hex.value=normalizeThemeHex(color.value);
       previewThemeDraft();
     });
   });
-  $('[data-theme-hex]').forEach(function(input){
+  Array.from(document.querySelectorAll('[data-theme-hex]')).forEach(function(input){
     input.addEventListener('input',function(){
       const key=input.dataset.themeHex,value=String(input.value||'').trim().toUpperCase();
       if(!/^#[0-9A-F]{6}$/.test(value))return;
@@ -297,9 +306,9 @@ function bindThemeSettings(){
   $('#replaceDark').onchange=function(event){if(event.target.checked)$('#replaceLight').checked=false};
   $('#themeRevert').onclick=function(){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()};
   $('#themeSave').onclick=saveThemeDraft;
-  $('[data-theme-choice]').forEach(function(button){button.onclick=function(){themePreviewing=false;applyThemeChoice(button.dataset.themeChoice);if(dockTab==='settings')renderDock()}});
-  $('[data-theme-edit]').forEach(function(button){button.onclick=function(){themeEditingId=button.dataset.themeEdit;themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()}});
-  $('[data-theme-delete]').forEach(function(button){button.onclick=function(){deleteCustomTheme(button.dataset.themeDelete)}});
+  Array.from(document.querySelectorAll('[data-theme-choice]')).forEach(function(button){button.onclick=function(){themePreviewing=false;applyThemeChoice(button.dataset.themeChoice);if(dockTab==='settings')renderDock()}});
+  Array.from(document.querySelectorAll('[data-theme-edit]')).forEach(function(button){button.onclick=function(){themeEditingId=button.dataset.themeEdit;themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()}});
+  Array.from(document.querySelectorAll('[data-theme-delete]')).forEach(function(button){button.onclick=function(){deleteCustomTheme(button.dataset.themeDelete)}});
   $('[data-theme-new]').onclick=function(){themeEditingId='';themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()};
 }
 function saveThemeDraft(){
