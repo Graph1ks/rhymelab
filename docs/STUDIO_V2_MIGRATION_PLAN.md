@@ -490,15 +490,15 @@ Electron uses a narrow validated preload/IPC adapter.
 
 ## Stage 15 — Default-route switch
 
-The reversible cutover wiring is implemented but remains disabled by default until real-device acceptance passes.
+The reversible cutover wiring is implemented and active by default after the automated source/test gate passed and the owner approved release. Real-device acceptance remains open.
 
-Preview the exact production route shape with:
+Run the live product route with:
 
 ~~~bash
 npm run dev:studio-default
 ~~~
 
-Preview routing:
+Live routing:
 
 ~~~text
 /           -> Studio
@@ -529,7 +529,7 @@ npm run studio:v2:cutover:check
 npm run studio:v2:accepted-preview
 ~~~
 
-The accepted-preview command runs the full cutover gate before starting `--studio-default`. No old route is deleted in the first production switch commit.
+The historical accepted-preview command remains available for full device-gated verification. Normal startup now uses Studio V2; `npm run dev:search-default` restores Search at `/` without deleting any route.
 
 Startup failures expose a non-destructive recovery banner with reload, UI-preference reset, and the explicit `/legacy` escape hatch. Resetting UI preferences never deletes the versioned IndexedDB document store.
 
@@ -574,7 +574,7 @@ Entity category multi-select             DONE · shared SearchState + OR runtime
 33 Bar Navigator / stable-ID reorder           DONE
 34 source-backed exhaustive parity manifest      DONE
 35 acceptance center parity integration         DONE
-36 reversible default-route preview             DONE
+36 reversible default-route live switch          DONE
 37 deterministic cutover release gate           DONE
 38 guided real-device acceptance workflow      DONE
 39 environment eligibility enforcement          DONE
