@@ -9,7 +9,7 @@ import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
 import {createStudioAnalysisClient,studioAnalysisWords} from './analysis-adapter.mjs';
 import {barIdentity,createSelectionProof,editorSnapshot,ensureEditorSong,mergeEditorBarWithPrevious,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
-import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceNeedsReview,performanceStepDurationMs,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
+import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarDurationMs,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceFlowFingerprint,performanceNeedsReview,performancePocketMetrics,performancePreviousBarPlacements,performanceStepDurationMs,performanceSyllablesPerSecond,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
 import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacyStudioStateToStore} from './document-store.mjs';
 
@@ -771,6 +771,12 @@ function renderPerform(){
   const barId=bar.id;
   const config=performanceConfig(s);
   const metrics=performanceBarMetrics(s,barId);
+  const pocket=performancePocketMetrics(s,barId);
+  const previous=performancePreviousBarPlacements(s,barId);
+  const barDurationMs=performanceBarDurationMs(s);
+  const syllableEstimate=syll(s.lines[activeLine]);
+  const syllablesPerSecond=performanceSyllablesPerSecond(s,syllableEstimate);
+  const fingerprint=performanceFlowFingerprint(s,barId);
   const steps=config.grid;
   const stepButtons=Array.from({length:steps},(_,index)=>{
     const stored=getPerformanceCue(s,barId,index);
@@ -791,7 +797,7 @@ function renderPerform(){
     <div class="perform-head">
       <div><div class="eyebrow">Perform / Bar ${String(activeLine+1).padStart(2,'0')}</div><h2>Flow sequenzieren.</h2><p>${esc(s.lines[activeLine]||'Leere Bar')}</p></div>
       <div class="perform-metrics">
-        <span><b>${syll(s.lines[activeLine])||0}</b><small>Silben ≈</small></span>
+        <span><b>${syllableEstimate||0}</b><small>Silben ≈</small></span>
         <span><b>${metrics.cues}</b><small>Cues</small></span>
         <span><b>${metrics.accents}</b><small>Akzente</small></span>
         <span><b>${Math.round(metrics.density*100)}%</b><small>Dichte</small></span>
@@ -822,6 +828,14 @@ function renderPerform(){
         <label class="pause-length ${cue==='pause'?'':'hidden'}">Pause<select id="pauseLength"><option value="1">1 Step</option><option value="2">2 Steps</option><option value="3">3 Steps</option><option value="4">4 Steps</option></select></label>
       </div>
       <div class="beatgrid perform-grid-${steps}" id="performGrid">${stepButtons}</div>
+      <div class="perform-insights">
+        <div><small>BAR TIME</small><b>${(barDurationMs/1000).toFixed(2)} s</b><span>4/4 · BPM × Tempo-Faktor</span></div>
+        <div><small>SYLL./SEC ≈</small><b>${syllablesPerSecond.toFixed(2)}</b><span>lokale Silbenschätzung</span></div>
+        <div><small>POCKET</small><b>${Math.round(pocket.offBeatShare*100)}% off-beat</b><span>${pocket.onBeat} on · ${pocket.offBeat} off</span></div>
+        <div><small>BREATH LOAD</small><b>${pocket.breathLoad}</b><span>${pocket.breaths} Atem · ${pocket.pauseUnits} Pause-Steps</span></div>
+        <div class="perform-fingerprint"><small>FLOW FINGERPRINT</small><code>${esc(fingerprint)}</code><span>direkte Cue-Platzierungen</span></div>
+        <div><small>PREVIOUS BAR</small><b>${previous.previousBarId?previous.sharedCount+' gleiche Steps':'—'}</b><span>${previous.previousBarId?previous.currentSteps.length+' aktuell · '+previous.previousSteps.length+' vorher':'erste Bar'}</span></div>
+      </div>
       <div class="row between wrap perform-actions">
         <span class="small">${config.feel==='triplet'?'Triplet-Feel · 2:1 Puls':'Straight'} · ${config.tempoScale===0.5?'Half Time':config.tempoScale===2?'Double Time':'Normal Time'}</span>
         <div class="row"><button class="outline" id="autoMap">Auto-Map ≈</button><button id="clearCues">Cues leeren</button></div>
