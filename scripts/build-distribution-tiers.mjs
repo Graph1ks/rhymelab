@@ -24,6 +24,7 @@ import {
   sourceSchema,
   writeDistributionManifest,
 } from './distribution-materializer-core.mjs';
+import {verifyDistributionNestingFiles} from './distribution-nesting-core.mjs';
 
 function argValue(name,fallback=null){
   const index=process.argv.indexOf(name);
@@ -337,4 +338,14 @@ if(mode==='plan'){
   statusReport(ctx);
 }else{
   for(const edition of editions)await buildEdition(ctx,edition);
+  if(requested==='all'){
+    const nesting=verifyDistributionNestingFiles({
+      litePath:outputPath(baseDir,'lite'),
+      standardPath:outputPath(baseDir,'standard'),
+      fullPath:outputPath(baseDir,'full'),
+    });
+    const nestingReport=resolve(baseDir,'distribution-nesting-report-v1.json');
+    await writeFile(nestingReport,JSON.stringify(nesting,null,2)+'\n','utf8');
+    console.log(JSON.stringify({...nesting,report:nestingReport},null,2));
+  }
 }
