@@ -5,8 +5,27 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const icon=n=>`<svg aria-hidden="true"><use href="#i-${n}"/></svg>`;
 const initial=['Ich trag die Stadt noch unter meiner Haut','Die letzten Lichter werden langsam laut','Ein leeres Blatt, der ganze Kopf noch wach','Ich schreib uns einen Weg durch diese Nacht','Die Bahn zieht ihre Linien durch die Zeit','Wir waren für den nächsten Schritt bereit','Zwischen all dem Lärm hör ich uns leben','Und jede neue Zeile lässt uns schweben'];
 const key='rhymelab-studio-concept-v2';
-let state={songs:[{id:'demo',title:'Zwischen den Zeilen',lines:initial,folder:'Nachtschicht',revisions:[],steps:{}}],active:'demo',saved:[],theme:'dark',fontSize:21};
+let state={songs:[{id:'demo',title:'Zwischen den Zeilen',lines:initial,folder:'Nachtschicht',revisions:[],steps:{}}],active:'demo',saved:[],theme:'dark',themeSlots:{light:null,dark:null},customThemes:[],fontSize:21};
 try{const raw=localStorage.getItem(key);if(raw){const x=JSON.parse(raw);if(Array.isArray(x.songs)&&x.songs.length&&x.songs.every(s=>Array.isArray(s.lines))){state={...state,...x};}}}catch(e){}
+state.customThemes=Array.isArray(state.customThemes)?state.customThemes:[];
+state.themeSlots=state.themeSlots&&typeof state.themeSlots==='object'?{light:state.themeSlots.light||null,dark:state.themeSlots.dark||null}:{light:null,dark:null};
+if(!['light','dark'].includes(state.theme)&&!state.customThemes.some(theme=>theme.id===state.theme))state.theme='dark';
+
+const STUDIO_BUILTIN_THEMES={
+  light:{
+    id:'light',name:'Light',subtitle:'Warm Atelier',mode:'light',
+    colors:{bg:'#EAE7DC',panel:'#F4F0E6',ink:'#272727',muted:'#8E8D8A',line:'#D8C3A5',accent:'#E85A4F',accent2:'#E98074',signal:'#8E8D8A',nav:'#E3DCCF',tint:'#F1D5CE',onAccent:'#272727'}
+  },
+  dark:{
+    id:'dark',name:'Dark',subtitle:'Signal Noir',mode:'dark',
+    colors:{bg:'#272727',panel:'#303030',ink:'#F5F4EC',muted:'#A3A3A3',line:'#474747',accent:'#FFE400',accent2:'#FF652F',signal:'#14A76C',nav:'#232323',tint:'#3A3823',onAccent:'#272727'}
+  }
+};
+const THEME_COLOR_FIELDS=[
+  ['bg','Background'],['panel','Surface'],['ink','Text'],['muted','Muted'],
+  ['accent','Primary'],['accent2','Secondary'],['signal','Signal']
+];
+let themeEditingId='',themePreviewing=false;
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',query='Nacht',scope='all',relation='all',sort='recommended',basis='de',resultLang='both',pageSize=6,auto=false,pauseUntil=0,scrollFrame=0,lastFrame=0,undo=[],saveTimer,toastTimer,playing=false,tick=0,playTimer,cue='hit',bpm=92,audioContext;
 const datasets={nacht:[['Macht','word','rein',1],['gedacht','word','rein',2],['erwacht','word','rein',2],['vollbracht','word','rein',2],['gute Nacht','phrase','rein',3],['Acht','word','rein',1],['über Nacht','phrase','rein',3],['entfacht','word','rein',2],['Wacht','word','rein',1],['Bracht','entity','rein',1],['lacht','word','rein',1],['sacht','word','rein',1]],zeit:[['bereit','word','rein',2],['weit','word','rein',1],['Ewigkeit','word','rein',3],['mit der Zeit','phrase','rein',3],['befreit','word','rein',2],['zu zweit','phrase','rein',2],['Kleid','word','rein',1],['Leid','word','rein',1]],leben:[['schweben','word','rein',2],['geben','word','rein',2],['daneben','word','rein',3],['erleben','word','rein',3],['nach den Sternen streben','phrase','rein',5],['eben','word','rein',2],['Regen','word','nah',2],['Segen','word','nah',2]],nation:[['station','word','rein',2,'en'],['creation','word','rein',3,'en'],['vibration','word','rein',3,'en'],['imagination','word','rein',5,'en'],['destination','word','rein',4,'en']],haut:[['laut','word','rein',1],['vertraut','word','rein',2],['gebaut','word','rein',2],['aufgetaut','word','rein',3]],wach:[['Dach','word','rein',1],['Bach','entity','rein',1],['danach','word','rein',2],['nach und nach','phrase','rein',3]]};
 function song(){return state.songs.find(s=>s.id===state.active)||state.songs[0]}
