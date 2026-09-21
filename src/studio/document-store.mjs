@@ -6,7 +6,7 @@ import {
 } from './document-model.mjs';
 
 export const STUDIO_DOCUMENT_DB='rhymelab-studio';
-export const STUDIO_DOCUMENT_DB_VERSION=1;
+export const STUDIO_DOCUMENT_DB_VERSION=2;
 
 const STORE_NAMES=Object.freeze({
   meta:'meta',
@@ -162,6 +162,7 @@ export function createStudioDocumentStore({indexedDBImpl=globalThis.indexedDB}={
       const id=`legacy:${report.sourceSignature}`;
       store.put({
         id,
+        kind:'legacy',
         createdAt:Date.now(),
         sourceSchema:report.sourceSchema,
         sourceSignature:report.sourceSignature,
@@ -171,6 +172,43 @@ export function createStudioDocumentStore({indexedDBImpl=globalThis.indexedDB}={
       await done;
       return {saved:true,id};
     },
+    async saveDocumentBackup(snapshot,{reason='manual'}={}){
+      const validation=validateStudioDocumentSnapshot(snapshot);
+      if(!validation.valid)throw new Error(`Invalid Studio document backup: ${validation.errors.join(', ')}`);
+      const db=await database();
+      if(!db)return {saved:false,reason:'indexeddb_unavailable'};
+      const transaction=db.transaction([STORE_NAMES.backups],'readwrite');
+      const done=transactionDone(transaction);
+      const store=transaction.objectStore(STORE_NAMES.backups);
+      const createdAt=Date.now();
+      const id=`document:${createdAt}:${Math.random().toString(36).slice(2,8)}`;
+      store.put({
+        id,
+        kind:'document',
+        createdAt,
+        reason:String(reason||'manual'),
+        schema:snapshot.schema,
+        schemaVersion:snapshot.schemaVersion,
+        counts:{
+          songs:snapshot.songs.length,
+          bars:snapshot.bars.length,
+          revisions:snapshot.revisions.length,
+          folders:snapshot.folders.length,
+        },
+        snapshot,
+      });
+      await done;
+      return {saved:true,id};
+    },
+    async getBackup(id){
+      const db=await database();
+      if(!db)return null;
+      const transaction=db.transaction([STORE_NAMES.backups],'readonly');
+      const done=transactionDone(transaction);
+      const row=await requestResult(transaction.objectStore(STORE_NAMES.backups).get(String(id||'')));
+      await done;
+      return row||null;
+    },
     async listBackups(){
       const db=await database();
       if(!db)return [];
@@ -179,6 +217,17 @@ export function createStudioDocumentStore({indexedDBImpl=globalThis.indexedDB}={
       const rows=await getAll(transaction.objectStore(STORE_NAMES.backups));
       await done;
       return rows.sort((a,b)=>Number(b.createdAt)-Number(a.createdAt));
+    },
+    async restoreDocumentBackup(id){
+      const row=await this.getBackup(id);
+      if(!row||row.kind!=='document'||!row.snapshot)return {restored:false,reason:'backup_not_found'};
+      const before=await this.loadSnapshot();
+      if(before)await this.saveDocumentBackup(before,{reason:'before_recovery_restore'});
+      const saveResult=await this.saveSnapshot(row.snapshot);
+      const loaded=await this.loadSnapshot();
+      const validation=loaded?validateStudioDocumentSnapshot(loaded):{valid:false,errors:['load_failed']};
+      if(!validation.valid)throw new Error(`Studio backup restore verification failed: ${validation.errors.join(', ')}`);
+      return {restored:true,saveResult,snapshot:loaded,backup:row};
     },
     close(){
       databasePromise?.then((db)=>db?.close?.()).catch(()=>{});
