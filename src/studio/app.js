@@ -346,7 +346,7 @@ function renderEditor(){
   $('#songTitle').textContent=s.title;
   $('#lyrics').innerHTML=s.lines.map((line,index)=>{
     const bar=barIdentity(s,index);
-    return `<div class="lyric-line ${index===activeLine?'active':''}" data-bar-id="${esc(bar.id)}"><button class="line-no" data-line="${index}" data-bar-id="${esc(bar.id)}" aria-label="Bar ${index+1} auswählen">${String(index+1).padStart(2,'0')}</button><textarea aria-label="Text Bar ${index+1}" data-line="${index}" data-bar-id="${esc(bar.id)}" data-bar-revision="${bar.revision}" rows="1" spellcheck="false">${esc(line)}</textarea><span class="syllable" title="Lokale Silbenschätzung · Approximation">${syll(line)||'—'}</span></div>`;
+    return `<div class="lyric-line ${index===activeLine?'active':''}" data-bar-id="${esc(bar.id)}"><button class="line-no" data-line="${index}" data-bar-id="${esc(bar.id)}" aria-label="Bar ${index+1} auswählen">${String(index+1).padStart(2,'0')}</button><textarea aria-label="Text Bar ${index+1}" data-line="${index}" data-bar-id="${esc(bar.id)}" data-bar-revision="${bar.revision}" rows="1" spellcheck="false">${esc(line)}</textarea><button class="syllable" data-bar-inspect="${index}" aria-label="Bar ${index+1} analysieren" title="Lokale Silbenschätzung · Klick für Bar Inspector">${syll(line)||'—'}</button></div>`;
   }).join('');
   queryAll('#lyrics textarea').forEach((el)=>{
     resizeArea(el);
@@ -441,6 +441,11 @@ function renderEditor(){
     });
   });
   queryAll('.line-no').forEach((el)=>el.onclick=()=>focusLine(+el.dataset.line));
+  queryAll('[data-bar-inspect]').forEach((el)=>el.onclick=()=>{
+    activeLine=+el.dataset.barInspect;
+    activateLine(activeLine);
+    openEditorDock('bar');
+  });
   updateStats();
   renderProjects();
   updateUndoRedoButtons();
@@ -460,6 +465,7 @@ function activateLine(index){
   queryAll('.lyric-line').forEach((el,n)=>el.classList.toggle('active',n===index));
   $('#activeBarLabel').textContent=`Bar ${String(index+1).padStart(2,'0')} ausgewählt`;
   $('#mobileAnchor').textContent=`Bar ${index+1}: ${song().lines[index]||'Neue Zeile'}`;
+  if(dockTab==='bar'&&!$('#editorDock')?.classList.contains('hidden'))renderDock();
 }
 function captureSelection(el){
   if(composingBarId===el.dataset.barId)return;
@@ -1992,12 +1998,75 @@ function deleteCustomTheme(id){
   notify(theme.name+' gelöscht.');
 }
 
+function renderBarInspectorDock(body){
+  const s=song(),bar=barIdentity(s,activeLine);
+  if(!bar){body.innerHTML='<p class="small">Keine aktive Bar.</p>';return}
+  const text=s.lines[activeLine]||'';
+  const words=(text.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[]).length;
+  const syllables=syll(text);
+  const pocket=performancePocketMetrics(s,bar.id);
+  const durationMs=performanceBarDurationMs(s);
+  const syllablesPerSecond=performanceSyllablesPerSecond(s,syllables);
+  const fingerprint=performanceFlowFingerprint(s,bar.id);
+  const previous=performancePreviousBarPlacements(s,bar.id);
+  const canonicalReady=analysisStatus==='ready'&&analysisData&&analysisSignature===analysisKey();
+  const detail=canonicalReady?analysisData.wordDetails?.[activeLine]:null;
+  const relation=canonicalReady?analysisData.lineRelations?.[activeLine]:null;
+  const endWord=studioAnalysisWords([text])[0]||'—';
+  const stress=detail?.stressPattern||(
+    detail?.primaryStressSyllable!=null?'Primary · Silbe '+detail.primaryStressSyllable:'—'
+  );
+  const canonicalState=canonicalReady
+    ?'<span class="bar-source canonical">WRITER CANONICAL</span>'
+    :analysisStatus==='loading'
+      ?'<span class="bar-source">WRITER LÄDT …</span>'
+      :'<button id="loadBarAnalysis" class="outline">Kanonische Analyse laden</button>';
+  body.innerHTML=`
+    <div class="bar-inspector">
+      <div class="bar-inspector-head">
+        <div><span class="eyebrow">BAR ${String(activeLine+1).padStart(2,'0')}</span><h3>${esc(endWord)}</h3><p>${esc(text||'Leere Bar')}</p></div>
+        <div class="row"><button data-bar-nav="-1" aria-label="Vorherige Bar" ${activeLine<=0?'disabled':''}>←</button><button data-bar-nav="1" aria-label="Nächste Bar" ${activeLine>=s.lines.length-1?'disabled':''}>→</button>${canonicalState}</div>
+      </div>
+      <div class="bar-inspector-grid">
+        <div><small>WÖRTER</small><b>${words}</b><span>tokenisiert lokal</span></div>
+        <div><small>SILBEN ≈</small><b>${syllables||0}</b><span>UI-Schätzung</span></div>
+        <div><small>BAR TIME</small><b>${(durationMs/1000).toFixed(2)} s</b><span>${performanceConfig(s).bpm} BPM</span></div>
+        <div><small>SYLL./SEC ≈</small><b>${syllablesPerSecond.toFixed(2)}</b><span>aus Bar Time</span></div>
+        <div><small>CUES</small><b>${pocket.cues}</b><span>${pocket.accents} Akzent · ${pocket.holds} Hold</span></div>
+        <div><small>BREATH LOAD</small><b>${pocket.breathLoad}</b><span>${pocket.breaths} Atem · ${pocket.pauseUnits} Pause</span></div>
+        <div><small>POCKET</small><b>${Math.round(pocket.offBeatShare*100)}% off</b><span>${pocket.onBeat} on · ${pocket.offBeat} off</span></div>
+        <div><small>PREVIOUS</small><b>${previous.previousBarId?previous.sharedCount+' shared':'—'}</b><span>${previous.previousBarId?previous.currentSteps.length+' / '+previous.previousSteps.length+' placements':'erste Bar'}</span></div>
+      </div>
+      <div class="bar-inspector-canonical">
+        <div><small>ENDWORT</small><b>${esc(endWord)}</b></div>
+        <div><small>IPA</small><code>${detail?.ipa?'/'+esc(detail.ipa)+'/':'—'}</code></div>
+        <div><small>STRESS</small><b>${esc(stress)}</b></div>
+        <div><small>REIM IM VERSE</small><b>${esc(relation?analysisRelationLabel(relation):'—')}</b></div>
+      </div>
+      <div class="bar-flow-row"><small>FLOW FINGERPRINT</small><code>${esc(fingerprint||'·')}</code><button id="openPerformFromBar" class="outline">Perform öffnen ↗</button></div>
+    </div>`;
+  queryAll('[data-bar-nav]').forEach((button)=>button.onclick=()=>{
+    const next=Math.max(0,Math.min(s.lines.length-1,activeLine+Number(button.dataset.barNav||0)));
+    activeLine=next;activateLine(next);
+    if(mode==='write')focusLine(next);
+  });
+  if($('#loadBarAnalysis'))$('#loadBarAnalysis').onclick=async()=>{
+    const button=$('#loadBarAnalysis');button.disabled=true;button.textContent='Writer analysiert …';
+    analysisSignature='';
+    await refreshSongAnalysis(true);
+    if(dockTab==='bar')renderDock();
+  };
+  if($('#openPerformFromBar'))$('#openPerformFromBar').onclick=()=>{
+    closeEditorDock();setMode('perform');
+  };
+}
+
 function showFilters(){const hidden=$('#directFilters').classList.toggle('hidden');$('#filterBtn').setAttribute('aria-expanded',!hidden);$('#filterLabel').textContent=hidden?'Filter öffnen':'Filter sichtbar';if(!hidden)animateSurface($('#directFilters'))}
 function showSettings(){openEditorDock('settings')}
 function showHistory(){revision();openEditorDock('history')}
 function openEditorDock(tab){if(page!=='studio')navigate('studio');document.body.classList.remove('mobile-results');document.body.classList.add('editor-dock-open');setMobileActive('studio');dockTab=tab;$('#editorDock').dataset.tab=tab;$('#editorDock').classList.remove('hidden');renderDock();animateSurface($('#editorDock'))}
 function closeEditorDock(){if(themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}document.body.classList.remove('editor-dock-open');$('#editorDock').classList.add('hidden');delete $('#editorDock').dataset.tab;dockTab='';}
-function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else if(dockTab==='settings'){renderSettingsDock(body)}else{body.innerHTML=`<div class="studio-note"><b>Studio 02 · Desktop Workbench</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details sind angedockt. Kompakt zeigt dieselben Treffer dichter, Wortfeld lädt zum Stöbern ein.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste, Versionen und Darstellung hier unten öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln · In Treffern: <kbd>↑ ↓</kbd> auswählen, <kbd>Enter</kbd> einsetzen, <kbd>Space</kbd> merken.</p><p style="margin-top:9px"><b>Motion</b> · kurze gestaffelte Trefferwechsel, weiche Panel-Einblendung, Auswahl- und Einsetzfeedback. Systemseitig reduzierte Bewegung wird respektiert. Kein externer Dienst, keine Motion-Bibliothek erforderlich.</p><p style="margin-top:9px"><b>Runtime</b> · Reimtreffer kommen live aus /api/writer; Song-Reimschema und Reimrelationen laufen kanonisch über Writer; nur UI-Silbenzählung und Perform Auto-Map bleiben explizite Approximationen. Die vollständige Funktionsmatrix aus Konzept 1.0 bleibt verbindlich. Version 2 ersetzt dessen Popup-orientierte Desktop-Bedienung.</p><p style="margin-top:9px"><b>Prüfung</b> · Source-/Modell-Gates decken die migrierten Zustände ab. Reale Browser-, Touch- und Audio-Geräteabnahme bleibt vor dem Route-Cutover erforderlich.</p></div>`}}
+function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='bar'){renderBarInspectorDock(body)}else if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else if(dockTab==='settings'){renderSettingsDock(body)}else{body.innerHTML=`<div class="studio-note"><b>Studio 02 · Desktop Workbench</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details sind angedockt. Kompakt zeigt dieselben Treffer dichter, Wortfeld lädt zum Stöbern ein.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste, Versionen und Darstellung hier unten öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln · In Treffern: <kbd>↑ ↓</kbd> auswählen, <kbd>Enter</kbd> einsetzen, <kbd>Space</kbd> merken.</p><p style="margin-top:9px"><b>Motion</b> · kurze gestaffelte Trefferwechsel, weiche Panel-Einblendung, Auswahl- und Einsetzfeedback. Systemseitig reduzierte Bewegung wird respektiert. Kein externer Dienst, keine Motion-Bibliothek erforderlich.</p><p style="margin-top:9px"><b>Runtime</b> · Reimtreffer kommen live aus /api/writer; Song-Reimschema und Reimrelationen laufen kanonisch über Writer; nur UI-Silbenzählung und Perform Auto-Map bleiben explizite Approximationen. Die vollständige Funktionsmatrix aus Konzept 1.0 bleibt verbindlich. Version 2 ersetzt dessen Popup-orientierte Desktop-Bedienung.</p><p style="margin-top:9px"><b>Prüfung</b> · Source-/Modell-Gates decken die migrierten Zustände ab. Reale Browser-, Touch- und Audio-Geräteabnahme bleibt vor dem Route-Cutover erforderlich.</p></div>`}}
 function setFontSize(n){state.fontSize=clamp(n,16,28);document.documentElement.style.setProperty('--editor',state.fontSize+'px');$('#fontSizeLive').textContent=state.fontSize;queryAll('#lyrics textarea').forEach(resizeArea);persist()}
 function applyEditorFont(){const value=({sans:'var(--font)',serif:'Georgia, serif',mono:'ui-monospace, monospace'})[state.editorFont||'sans'];document.documentElement.style.setProperty('--lyric-font',value);queryAll('#lyrics textarea').forEach(resizeArea)}
 function humanizeDetail(value){
