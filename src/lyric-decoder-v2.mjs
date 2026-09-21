@@ -77,6 +77,13 @@ function tailFamilyKey(candidate){
   return candidate.tokens.slice(-2).map((row)=>row.norm).join(' ');
 }
 
+function entityCategoriesFor(row){
+  return (Array.isArray(row?.entityCategories)?row.entityCategories:[])
+    .map((entry)=>typeof entry==='string'?entry:entry?.category)
+    .map((value)=>String(value||'').trim())
+    .filter(Boolean);
+}
+
 function normalizePool(rows,{language='de',allowEntities=true,entityCategories=[],allowPhrases=true,target=''}={}){
   const locale=language==='en'?'en-US':'de-DE';
   const targetNorm=String(target||'').normalize('NFKC').trim().toLocaleLowerCase(locale);
@@ -86,7 +93,7 @@ function normalizePool(rows,{language='de',allowEntities=true,entityCategories=[
     const kind=normalizeKind(row);
     if(kind==='entity'&&!allowEntities)continue;
     if(kind==='entity'&&Array.isArray(entityCategories)&&entityCategories.length){
-      const categories=Array.isArray(row?.entityCategories)?row.entityCategories.map(String):[];
+      const categories=entityCategoriesFor(row);
       if(!categories.some((category)=>entityCategories.includes(category)))continue;
     }
     if(kind==='phrase'&&!allowPhrases)continue;
@@ -350,9 +357,7 @@ function internalEntityVariants(runtime,beam,pool,tail,random,options){
     .filter((candidate)=>candidate.normalized!==tail.candidate.normalized)
     .filter((candidate)=>{
       if(!explicitCategories.length)return true;
-      const categories=Array.isArray(candidate.raw?.entityCategories)
-        ?candidate.raw.entityCategories.map(String)
-        :[];
+      const categories=entityCategoriesFor(candidate.raw);
       return categories.some((category)=>explicitCategories.includes(category));
     })
     .filter((candidate)=>candidate.tokens.length>=1&&candidate.tokens.length<=Math.min(4,beam.prefix.length))
@@ -442,9 +447,7 @@ function buildTokenRows(runtime,beam,tail,options){
         kind:'entity',
         generated:splice.candidate.generated,
         score:splice.candidate.writerScore,
-        entityCategories:Array.isArray(splice.candidate.raw?.entityCategories)
-          ?splice.candidate.raw.entityCategories.slice(0,8)
-          :[],
+        entityCategories:entityCategoriesFor(splice.candidate.raw).slice(0,8),
         placeholder:'<ENTITY>',
       });
       index+=splice.length-1;
