@@ -15,10 +15,10 @@ feature/studio-v2-ui-redesign
 Base:
 
 ~~~text
-033b64ddaa96d32563b08f279da53b5bd1315684
+main (Serving-v1 release base)
 ~~~
 
-The base includes the intentionally paused Markov V2 work. Markov is not part of the first Studio integration gate.
+The release base includes Serving-v1 plus the intentionally frozen Markov V2 demo infrastructure. Markov remains outside the RhymeLab product navigation.
 
 ---
 
