@@ -693,7 +693,7 @@ test('Studio full Writer filter matrix is wired without changing canonical recom
     'advancedGenerated',
     'advancedGeneratedOnly',
   ]){
-    assert.match(html,new RegExp('id=["\\\']'+id+'["\\\']'));
+    assert.match(html,new RegExp("id=[\\\"']"+id+"[\\\"']"));
   }
 
   assert.match(app,/filterStudioWriterRows\(baseData\(\)/u);
