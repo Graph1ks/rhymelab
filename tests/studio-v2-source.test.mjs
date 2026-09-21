@@ -193,6 +193,13 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/createPortableStudioBackup/u);
   assert.match(app,/parsePortableStudioBackup/u);
   assert.match(app,/function collectCurrentStudioDiagnostics\(/u);
+  assert.match(app,/from '\.\/device-acceptance\.mjs'/u);
+  assert.match(app,/function currentDeviceAcceptanceEnvironment\(/u);
+  assert.match(app,/function renderDeviceAcceptancePanel\(/u);
+  assert.match(app,/function exportStudioDeviceAcceptance\(/u);
+  assert.match(app,/STUDIO_DEVICE_GATES/u);
+  assert.match(app,/DEVICE_ACCEPTANCE_STORAGE_KEY/u);
+  assert.match(app,/id="deviceAcceptancePanel"/u);
   assert.match(app,/function renderDiagnosticsPanel\(/u);
   assert.match(app,/function exportStudioDiagnostics\(/u);
   assert.match(app,/collectStudioEnvironmentDiagnostics/u);
@@ -239,6 +246,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.diagnostics-grid/u);
   assert.match(css,/\.diagnostic-check/u);
   assert.match(css,/\.diagnostics-section-title/u);
+  assert.match(css,/Studio real-device acceptance/u);
+  assert.match(css,/\.device-acceptance-summary/u);
+  assert.match(css,/\.device-gate-list/u);
+  assert.match(css,/\.device-gate/u);
   assert.match(css,/\.parity-summary/u);
   assert.match(css,/\.parity-group-grid/u);
   assert.match(css,/\.perform-transport/u);
@@ -298,6 +309,11 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/i18n\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/dom-acceptance\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/command-palette\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/device-acceptance\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/studioDefaultRoute\?studioHtml:writerHtml/u);
+  assert.match(server,/'\/legacy': \{ type: 'text\/html; charset=utf-8', body: writerHtml \}/u);
+  assert.match(server,/'\/pad-legacy': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/u);
+  assert.match(server,/'\/api\/studio\/route-mode'/u);
   assert.match(server,/'\/studio\/edit-history\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/parity-manifest\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
