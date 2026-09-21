@@ -20,6 +20,8 @@ const args=process.argv.slice(2);
 let registryPath='sources/markov-sentence-sources-v1.json';
 let outDir='data/local/markov-sources';
 let rawDir='data/raw/markov-sources';
+let outDirExplicit=false;
+let rawDirExplicit=false;
 let sourceFilter='all';
 let refresh=false;
 let plan=false;
@@ -29,8 +31,8 @@ let maxPerSource=Infinity;
 for(let i=0;i<args.length;i+=1){
   const arg=args[i];
   if(arg==='--registry')registryPath=args[++i]||registryPath;
-  else if(arg==='--out-dir')outDir=args[++i]||outDir;
-  else if(arg==='--raw-dir')rawDir=args[++i]||rawDir;
+  else if(arg==='--out-dir'){outDir=args[++i]||outDir;outDirExplicit=true;}
+  else if(arg==='--raw-dir'){rawDir=args[++i]||rawDir;rawDirExplicit=true;}
   else if(arg==='--source')sourceFilter=args[++i]||sourceFilter;
   else if(arg==='--max-per-source')maxPerSource=Math.max(1,Number(args[++i])||Infinity);
   else if(arg==='--refresh')refresh=true;
@@ -40,8 +42,6 @@ for(let i=0;i<args.length;i+=1){
 }
 
 registryPath=resolve(root,registryPath);
-outDir=resolve(root,outDir);
-rawDir=resolve(root,rawDir);
 
 async function exists(path){
   try{await access(path);return true;}catch{return false;}
@@ -108,7 +108,9 @@ function parseSource(source,archiveBuffer){
   }
   if(source.format==='tatoeba-detailed-bz2'){
     const decoded=Bunzip.decode(archiveBuffer);
-    return parseTatoebaDetailedFile(decoded.toString('utf8'),{language:'deu'});
+    return parseTatoebaDetailedFile(decoded.toString('utf8'),{
+      language:source.tatoeba_language||(language==='en'?'eng':'deu'),
+    });
   }
   throw new Error('Unsupported source format: '+source.format);
 }
@@ -149,6 +151,13 @@ async function currentStatus(sources){
 }
 
 const registry=await readRegistry();
+const language=registry.language==='en'?'en':'de';
+if(language==='en'){
+  if(!outDirExplicit)outDir='data/local/markov-sources/en';
+  if(!rawDirExplicit)rawDir='data/raw/markov-sources/en';
+}
+outDir=resolve(root,outDir);
+rawDir=resolve(root,rawDir);
 const sources=selectedSources(registry);
 
 if(plan){
@@ -199,6 +208,7 @@ for(const source of sources){
   const stage=sourceStageRows(parsed,{
     seen,
     sourceCode:source.code,
+    language,
     maxRows:maxPerSource,
   });
 
@@ -212,7 +222,7 @@ for(const source of sources){
     code:source.code,
     kind:source.kind,
     weight:source.weight,
-    language:'de',
+    language,
     format:source.format,
     genre:source.genre,
     year:source.year??null,
@@ -249,7 +259,7 @@ for(const source of sources){
 
 const manifest={
   schema:'rhymelab-markov-source-manifest-v1',
-  language:'de',
+  language,
   generated_at:new Date().toISOString(),
   registry:registryPath,
   global_unique_sentences:seen.size,
