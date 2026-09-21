@@ -9,7 +9,7 @@ This file is the durable continuation checkpoint for the Studio 02 redesign bran
 
 Studio 02 has moved well beyond the original static redesign shell. The branch now contains the Writer integration, production document model, IndexedDB authority, recovery, Library hierarchy, Perform sequencing, canonical song analysis, mobile acceptance engineering, DE/EN localization, diagnostics, and desktop command/navigation improvements.
 
-The old `/pad` and search surfaces remain regression controls until real-device/browser acceptance and the final old-vs-new interaction audit are closed.
+Studio V2 is now the default root product route. The previous Search remains at `/search` and `/legacy`; RhymePad remains at `/pad` and `/pad-legacy`. `--search-default` / `RHYMELAB_SEARCH_DEFAULT=1` provides an explicit rollback mode while real-device/browser acceptance is completed.
 
 ## Major implemented areas
 
@@ -192,21 +192,21 @@ Dedicated tests/modules now cover at least:
 - DE/EN translation helpers.
 - Command palette ranking/grouping.
 
-Source-level syntax checks were repeatedly run for the changed JS/MJS modules. Those checks passed at the last validation point.
+`npm run studio:v2:verify` and the repository source/test suite pass on GitHub Actions at the live-cutover checkpoint. The Markov demo isolation is regression-tested so product surfaces do not link `/markov-test`.
 
 ## Important validation limitation
 
-No claim is made that full browser E2E, touch-device, Web Audio, Electron, or the complete `npm test` suite has been executed inside the editing environment.
+No claim is made that full physical browser E2E, touch-device, Web Audio, or Electron acceptance has been executed inside the editing environment. The complete repository test suite is exercised by CI.
 
-Real runtime/device acceptance is still required before replacing the legacy default route.
+The owner explicitly approved the reversible live default-route cutover on 2026-09-21 while the seven real-device acceptance checks remain pending.
 
 ## Remaining high-priority work
 
-1. Real browser/device/audio acceptance across the release viewport matrix.
-2. Final exhaustive old `/pad` + old search versus Studio interaction audit.
-3. Fix any discrepancies found by that audit.
-4. Run the complete repository test/lint/benchmark commands in a normal checkout.
-5. Only after those gates pass: decide/default-route cutover and Electron packaging work.
+1. Complete real browser/device/audio acceptance across the release viewport matrix.
+2. Finish the exhaustive old `/pad` + old Search versus Studio interaction audit.
+3. Fix any discrepancies found by that audit; use the explicit Search-root rollback only if a material regression requires it.
+4. Keep the complete repository CI/source/test gates green on the release branch/main.
+5. After browser/device acceptance: continue Electron packaging work when explicitly requested.
 
 ## Continuation rule
 
@@ -219,4 +219,5 @@ Do not regress the production-direction contracts already established here:
 - Permanent/destructive operations require recoverability.
 - One-click Light/Dark QuickSwitch must remain intact.
 - Touch functionality must not depend on hover.
-- Legacy routes stay available until explicit cutover approval.
+- Legacy Search/RhymePad routes remain available as regression/fallback surfaces after cutover.
+- Markov remains frozen, direct-demo-only, and unlinked from the RhymeLab product UI.
