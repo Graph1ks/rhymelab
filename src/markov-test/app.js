@@ -1,6 +1,7 @@
 import {
   MARKOV_GENERATOR_POLICY,
   compactWriterRows,
+  entityCategoryValues,
   markovMaterialKind,
   summarizePool,
 } from '/markov-test/markov-core.mjs';
@@ -103,8 +104,8 @@ function writerRowKey(row){
 
 function entityMatchesSelection(row,selected){
   if(!selected?.length)return true;
-  const categories=Array.isArray(row?.entityCategories)?row.entityCategories:[];
-  return categories.some((category)=>selected.includes(String(category)));
+  const categories=entityCategoryValues(row);
+  return categories.some((category)=>selected.includes(category));
 }
 
 async function fetchCandidatePool(target,settings){
