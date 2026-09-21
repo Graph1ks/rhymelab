@@ -247,3 +247,71 @@ The Markov wrapper fingerprints:
 - source code, accepted-row count, and deterministic weight.
 
 If that mix changes, the resumable Markov work database is reset automatically before rebuilding. A stale transition model therefore cannot silently survive a changed corpus mix.
+
+
+## English V2 source/model pipeline
+
+English uses the same source-role contract but is materialized into a completely separate transition database.
+
+Registry:
+
+```text
+sources/markov-sentence-sources-en-v1.json
+```
+
+Initial enabled English sources:
+
+| Code | Source | Era | Role | Initial weight |
+| --- | --- | ---: | --- | ---: |
+| `leipzig_eng_news_2024_300k` | Leipzig English News 2024, 300K norm corpus | 2024 | `sentence` | 1 |
+| `tatoeba_eng` | Tatoeba weekly English detailed export | contemporary/community | `sentence` | 1 |
+
+The two languages never share transition tables.
+
+```text
+DE → data/local/rhymelab-markov-v2.sqlite
+EN → data/local/rhymelab-markov-en-v2.sqlite
+```
+
+English acquisition:
+
+```powershell
+npm run markov:sources:plan:en
+npm run markov:sources:acquire:en
+npm run markov:sources:status:en
+```
+
+English model:
+
+```powershell
+npm run markov:model:plan:en
+npm run markov:model:build:en
+npm run markov:model:status:en
+```
+
+Language-specific all-in-one:
+
+```powershell
+npm run markov:data:bootstrap:en
+```
+
+Both languages:
+
+```powershell
+npm run markov:data:bootstrap
+```
+
+The bilingual bootstrap acquires DE, acquires EN, builds DE V2, then builds EN V2.
+
+English local acquisition files live below:
+
+```text
+data/raw/markov-sources/en/
+data/local/markov-sources/en/
+```
+
+and remain ignored local artifacts.
+
+The server opens both compact models independently. `/api/markov/generate` selects the model by request language, and `/api/health` exposes both under `markov_generators.de` and `markov_generators.en`.
+
+The Markov Lab language control enables each language only when its corresponding transition model is available.
