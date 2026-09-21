@@ -540,13 +540,16 @@ function scoreDraft(runtime,beam,tail,tokenRows,options){
   const structureWeight=0.12;
   const noveltyWeight=0.12+weird*0.05;
   const supportWeight=0.08;
+  const internalEntityFit=beam.internalEntity?clamp(beam.internalEntity.score||0):0;
+  const internalEntityWeight=beam.internalEntity?0.035:0;
   const utility=clamp((
     naturalness*naturalWeight
     +rhyme*rhymeWeight
     +(shape.patterns?shape.fit:0.5)*structureWeight
     +sourceNovelty*noveltyWeight
     +tail.support*supportWeight
-  )/(naturalWeight+rhymeWeight+structureWeight+noveltyWeight+supportWeight));
+    +internalEntityFit*internalEntityWeight
+  )/(naturalWeight+rhymeWeight+structureWeight+noveltyWeight+supportWeight+internalEntityWeight));
 
   return {
     utility,
@@ -569,6 +572,7 @@ function scoreDraft(runtime,beam,tail,tokenRows,options){
     lengthWithinTarget:actual===target,
     startBoundary:start,
     tailFit:terminal,
+    internalEntityFit,
     zeroTransitionRate:forward.zeroRate,
     copiedTooFar,
   };
