@@ -344,6 +344,9 @@ Writer runtime + rolling AVG100 telemetry DONE
 live Bar Inspector metrics                DONE
 verse totals + duration estimate          DONE
 full Perform parity                      DONE
+persistent DE / EN UI localization       DONE
+portable full-workspace backup           DONE
+browser/runtime diagnostics dashboard    DONE
 ~~~
 
 The textarea geometry remains the Studio 02 visual baseline while the production document model is introduced behind it.
@@ -518,7 +521,10 @@ Entity category multi-select             DONE · shared SearchState + OR runtime
 22 hierarchical Library tree                   DONE
 23 Analysis workbench / Word Laboratory        DONE
 24 Bar Inspector + verse totals                DONE
-25 real device/browser acceptance              REQUIRED
+25 portable backup + restore                    DONE
+26 browser/runtime diagnostics                  DONE
+27 DE / EN interface localization               DONE
+28 real device/browser acceptance              REQUIRED
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
