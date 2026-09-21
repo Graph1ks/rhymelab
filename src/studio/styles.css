@@ -146,3 +146,64 @@ html{transition:background-color .25s,color .25s}.app{grid-template-columns:184p
 .theme-contrast span{font-size:8px;font-weight:800;letter-spacing:.35px;border-radius:999px;padding:4px 7px;border:1px solid var(--line);background:var(--panel)}
 .theme-contrast span[data-tone=ok]{color:var(--green);border-color:color-mix(in srgb,var(--green) 40%,var(--line))}
 .theme-contrast span[data-tone=warn]{color:var(--accent-2,var(--accent));border-color:color-mix(in srgb,var(--accent-2,var(--accent)) 48%,var(--line))}
+
+
+/* Studio 02: bounded settings dock + themed scrollbars */
+html,*{
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb,var(--muted) 52%,var(--line)) transparent;
+}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{
+  min-height:34px;
+  border:2px solid transparent;
+  border-radius:999px;
+  background:color-mix(in srgb,var(--muted) 52%,var(--line));
+  background-clip:padding-box;
+}
+*::-webkit-scrollbar-thumb:hover{
+  background:color-mix(in srgb,var(--accent) 58%,var(--muted));
+  background-clip:padding-box;
+}
+*::-webkit-scrollbar-corner{background:transparent}
+
+.editor-dock{overflow:hidden}
+.editor-dock-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+#editorDock[data-tab=settings]{
+  flex:1 1 460px;
+  min-height:0;
+  max-height:min(68dvh,620px);
+}
+#editorDock[data-tab=settings] .editor-dock-body{
+  min-height:0;
+  padding-bottom:20px;
+}
+#editorDock[data-tab=settings] .theme-builder-actions{
+  position:sticky;
+  bottom:-20px;
+  z-index:4;
+  margin:12px -1px -1px;
+  padding:12px 1px 1px;
+  background:linear-gradient(to bottom,transparent 0,var(--panel) 22px);
+}
+@media(max-width:800px){
+  #editorDock[data-tab=settings]{
+    flex:1 1 420px;
+    max-height:none;
+  }
+  #editorDock[data-tab=settings] .editor-dock-body{
+    padding-bottom:calc(16px + env(safe-area-inset-bottom));
+  }
+  #editorDock[data-tab=settings] .theme-builder-actions{
+    bottom:calc(-16px - env(safe-area-inset-bottom));
+    padding-bottom:calc(1px + env(safe-area-inset-bottom));
+  }
+}
