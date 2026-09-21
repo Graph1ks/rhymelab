@@ -12,6 +12,7 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/RhymeLab Studio 02 — Desktop Workbench/u);
   assert.match(html,/href=["']\/studio\/styles\.css["']/u);
   assert.match(html,/src=["']\/studio\/app\.js["']/u);
+  assert.match(html,/type=["']module["'][^>]*src=["']\/studio\/app\.js["']/u);
 
   assert.match(css,/--assist-width:470px/u);
   assert.match(css,/--bg:#EAE7DC/u);
@@ -61,6 +62,12 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
   assert.match(server,/'\/studio\/styles\.css': \{ type: 'text\/css; charset=utf-8'/u);
   assert.match(server,/'\/studio\/app\.js': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/studio-core\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/search-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/document-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
   assert.match(server,/'\/': \{ type: 'text\/html; charset=utf-8', body: writerHtml \}/u);
   assert.match(server,/'\/pad': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/u);
@@ -82,4 +89,33 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
   assert.match(migration,/exact Studio 02 import\s+DONE/u);
   assert.match(migration,/parallel \/studio route\s+DONE/u);
   assert.match(migration,/parity matrix\s+DONE/u);
+});
+
+
+test('Studio orchestrator is split behind maintainable module boundaries',async()=>{
+  const [app,core,controls,search,documents,capabilities,pronunciationClient,pronunciationCache]=await Promise.all([
+    readFile('src/studio/app.js','utf8'),
+    readFile('src/studio/studio-core.mjs','utf8'),
+    readFile('src/studio/studio-controls.mjs','utf8'),
+    readFile('src/studio/search-adapter.mjs','utf8'),
+    readFile('src/studio/document-adapter.mjs','utf8'),
+    readFile('src/studio/capability-adapter.mjs','utf8'),
+    readFile('src/studio/query-pronunciation-client.mjs','utf8'),
+    readFile('src/studio/query-pronunciation-cache.mjs','utf8'),
+  ]);
+
+  assert.match(app,/from '\.\/studio-core\.mjs'/u);
+  assert.match(app,/from '\.\/document-adapter\.mjs'/u);
+  assert.match(app,/from '\.\/search-adapter\.mjs'/u);
+  assert.match(app,/from '\.\/studio-controls\.mjs'/u);
+  assert.match(app,/getDemoSearchRows\(\{query,scope,relation,resultLanguage:resultLang,queryBasis:basis\}\)/u);
+  assert.match(app,/writeStudioState\(state\)/u);
+
+  assert.match(core,/export const queryAll=/u);
+  assert.match(controls,/export function normalizeDensity/u);
+  assert.match(search,/export function getDemoSearchRows/u);
+  assert.match(documents,/export function loadStudioState/u);
+  assert.match(capabilities,/export async function loadStudioCapabilities/u);
+  assert.match(pronunciationClient,/CLIENT_QUERY_PRONUNCIATION_POLICY/u);
+  assert.match(pronunciationCache,/QUERY_PRONUNCIATION_CACHE_SCHEMA/u);
 });
