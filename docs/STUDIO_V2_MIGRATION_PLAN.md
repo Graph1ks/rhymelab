@@ -439,14 +439,15 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 2  parallel /studio route                  DONE
 3  parity matrix                           DONE
 4  route/design regression test            DONE
-5  split prototype into modules            NEXT
-6  capability wiring
-7  live /api/writer search
-8  complete filter parity
-9  detail/provenance parity
-10 shared SearchState
-11 document/editor spike
-12 RhymePad migration
+5  extract CSS/JS without visual change     DONE
+6  functional module split                  NEXT
+7  capability wiring
+8  live /api/writer search
+9  complete filter parity
+10 detail/provenance parity
+11 shared SearchState
+12 document/editor spike
+13 RhymePad migration
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
