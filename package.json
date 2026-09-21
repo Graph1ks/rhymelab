@@ -198,7 +198,9 @@
     "markov:lyrics:structure:analyze": "node --no-warnings scripts/analyze-lyric-structure.mjs",
     "dev:studio-default": "node src/server.mjs --studio-default",
     "studio:v2:cutover:code": "node --no-warnings scripts/check-studio-v2-cutover.mjs --code-only",
-    "studio:v2:cutover:check": "node --no-warnings scripts/check-studio-v2-cutover.mjs"
+    "studio:v2:cutover:check": "node --no-warnings scripts/check-studio-v2-cutover.mjs",
+    "studio:v2:cutover:json": "node --no-warnings scripts/check-studio-v2-cutover.mjs --json",
+    "studio:v2:accepted-preview": "npm run studio:v2:cutover:check && node src/server.mjs --studio-default"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"
