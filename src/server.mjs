@@ -63,6 +63,8 @@ const serverRuntimeMode=resolveServerRuntimeMode({
   env:process.env,
 });
 const servingV1Active=isServingV1(serverRuntimeMode);
+const studioDefaultRoute=process.argv.includes('--studio-default')
+  ||String(process.env.RHYMELAB_STUDIO_DEFAULT||'').trim()==='1';
 const servingV1DbPath=resolve(
   process.env.RHYMELAB_SERVING_V1_DB||DEFAULT_SERVING_V1_PRODUCT_DB_PATH,
 );
@@ -392,8 +394,14 @@ const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const queryPronunciationTestHtml = readFileSync(resolve(queryPronunciationTestDir, 'index.html'));
 const markovTestHtml = readFileSync(resolve(markovTestDir, 'index.html'));
 const assets = {
-  '/': { type: 'text/html; charset=utf-8', body: writerHtml },
+  '/': { type: 'text/html; charset=utf-8', body: studioDefaultRoute?studioHtml:writerHtml },
+  '/search': { type: 'text/html; charset=utf-8', body: writerHtml },
+  '/search/': { type: 'text/html; charset=utf-8', body: writerHtml },
+  '/legacy': { type: 'text/html; charset=utf-8', body: writerHtml },
+  '/legacy/': { type: 'text/html; charset=utf-8', body: writerHtml },
   '/pad': { type: 'text/html; charset=utf-8', body: padHtml },
+  '/pad-legacy': { type: 'text/html; charset=utf-8', body: padHtml },
+  '/pad-legacy/': { type: 'text/html; charset=utf-8', body: padHtml },
   '/pad/': { type: 'text/html; charset=utf-8', body: padHtml },
   '/studio': { type: 'text/html; charset=utf-8', body: studioHtml },
   '/studio/': { type: 'text/html; charset=utf-8', body: studioHtml },
@@ -446,6 +454,17 @@ const assets = {
   '/markov-test/markov-core.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(markovTestDir, 'markov-core.mjs')) },
   '/markov-test/markov-controls.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(markovTestDir, 'markov-controls.mjs')) },
 };
+
+function studioRouteModePayload(){
+  return {
+    studioDefaultRoute,
+    defaultRoute:studioDefaultRoute?'studio':'search',
+    studio:'/studio',
+    search:'/search',
+    legacySearch:'/legacy',
+    legacyPad:'/pad-legacy',
+  };
+}
 
 function json(res, data, status = 200, allowCors = true) {
   const headers = {
@@ -640,6 +659,11 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/dataset-stats') {
       return json(res,runtimeDatasetStats());
+    }
+
+    if(url.pathname==='/api/studio/route-mode'){
+      json(res,studioRouteModePayload());
+      return;
     }
 
     if (url.pathname === '/api/writer') {
