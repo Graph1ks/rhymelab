@@ -314,7 +314,7 @@ async function runPass1(){
       const sequence=sequenceFromSentence(sentenceFromLine(line),{language:'de',minimumTokens:minimumSequenceTokens});
       if(!sequence.length)continue;
       accepted+=1;batchAccepted+=1;
-      for(const row of sequence.slice(2,-1)){
+      for(const row of sequence.slice(MARKOV_MODEL_ORDER,-1)){
         const current=tokenCounts.get(row.norm)||{count:0,title:0,upper:0};
         current.count+=1;
         const shape=tokenShape(row.surface);
