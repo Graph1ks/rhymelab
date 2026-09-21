@@ -63,8 +63,11 @@ const serverRuntimeMode=resolveServerRuntimeMode({
   env:process.env,
 });
 const servingV1Active=isServingV1(serverRuntimeMode);
+const searchDefaultRoute=process.argv.includes('--search-default')
+  ||String(process.env.RHYMELAB_SEARCH_DEFAULT||'').trim()==='1';
 const studioDefaultRoute=process.argv.includes('--studio-default')
-  ||String(process.env.RHYMELAB_STUDIO_DEFAULT||'').trim()==='1';
+  ||String(process.env.RHYMELAB_STUDIO_DEFAULT||'').trim()==='1'
+  ||!searchDefaultRoute;
 const servingV1DbPath=resolve(
   process.env.RHYMELAB_SERVING_V1_DB||DEFAULT_SERVING_V1_PRODUCT_DB_PATH,
 );
@@ -862,7 +865,8 @@ const server = createServer(async (req, res) => {
 server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymePad workspace: http://${host}:${port}/pad`);
-  console.log(`Studio 02 preview: http://${host}:${port}/studio`);
+  console.log(`Studio V2: http://${host}:${port}${studioDefaultRoute?' / (default)':'/studio'}`);
+  console.log(`Legacy Search: http://${host}:${port}/search${studioDefaultRoute?'':' (default)'}`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
   console.log(`Markov DE database: ${markovRuntime.available ? markovModelPath : 'unavailable — npm run markov:model:build'}`);
   console.log(`Markov EN database: ${markovEnglishRuntime.available ? markovEnglishModelPath : 'unavailable — npm run markov:model:build:en'}`);
