@@ -357,7 +357,7 @@ writeMeta(db,{
   build_started_at:existingMeta.build_started_at||new Date().toISOString(),
 });
 
-db.exec(\`
+db.exec(`
   CREATE TEMP TABLE IF NOT EXISTS token_batch(
     norm TEXT NOT NULL,
     count INTEGER NOT NULL,
@@ -393,9 +393,9 @@ db.exec(\`
     next_token TEXT NOT NULL,
     count INTEGER NOT NULL
   );
-\`);
+`);
 
-const checkpointUpsert=db.prepare(\`
+const checkpointUpsert=db.prepare(`
   INSERT INTO build_checkpoint(phase,source_index,source_code,line_number,accepted_sentences,updated_at)
   VALUES(?,?,?,?,?,?)
   ON CONFLICT(phase,source_index) DO UPDATE SET
@@ -403,7 +403,7 @@ const checkpointUpsert=db.prepare(\`
     line_number=excluded.line_number,
     accepted_sentences=excluded.accepted_sentences,
     updated_at=excluded.updated_at
-\`);
+`);
 const checkpointGet=db.prepare('SELECT * FROM build_checkpoint WHERE phase=? AND source_index=?');
 
 const BULK_SQL_ROWS=400;
@@ -413,12 +413,12 @@ function bulkInsert(table,columnCount,rows){
   let chunk=[];
   const flush=()=>{
     if(!chunk.length)return;
-    const cacheKey=\`\${table}:\${columnCount}:\${chunk.length}\`;
+    const cacheKey=`\${table}:\${columnCount}:\${chunk.length}`;
     let stmt=bulkStatementCache.get(cacheKey);
     if(!stmt){
       const rowSql='('+Array.from({length:columnCount},()=>'?').join(',')+')';
       stmt=db.prepare(
-        \`INSERT INTO \${table} VALUES \${Array.from({length:chunk.length},()=>rowSql).join(',')}\`
+        `INSERT INTO \${table} VALUES \${Array.from({length:chunk.length},()=>rowSql).join(',')}`
       );
       bulkStatementCache.set(cacheKey,stmt);
     }
@@ -490,7 +490,7 @@ function flushPass1(
   db.exec('BEGIN');
   try{
     bulkInsert('token_batch',4,tokenBatchRows(tokenCounts));
-    db.exec(\`
+    db.exec(`
       INSERT INTO token(norm,count,title_count,upper_count,preferred_surface)
       SELECT norm,count,title_count,upper_count,norm FROM token_batch WHERE true
       ON CONFLICT(norm) DO UPDATE SET
@@ -498,39 +498,39 @@ function flushPass1(
         title_count=title_count+excluded.title_count,
         upper_count=upper_count+excluded.upper_count;
       DELETE FROM token_batch;
-    \`);
+    `);
 
     bulkInsert('state_batch',3,stateBatchRows(stateCounts));
-    db.exec(\`
+    db.exec(`
       INSERT INTO state_count(context_len,state_key,count,retained)
       SELECT context_len,state_key,count,0 FROM state_batch WHERE true
       ON CONFLICT(context_len,state_key) DO UPDATE SET count=count+excluded.count;
       DELETE FROM state_batch;
-    \`);
+    `);
 
     bulkInsert('source_sequence_batch',4,sourceSequenceBatchRows(sourceSequences));
-    db.exec(\`
+    db.exec(`
       INSERT INTO source_sequence_hash(source_kind,hash,token_count,count)
       SELECT source_kind,hash,token_count,count FROM source_sequence_batch WHERE true
       ON CONFLICT(source_kind,hash) DO UPDATE SET count=count+excluded.count;
       DELETE FROM source_sequence_batch;
-    \`);
+    `);
 
     bulkInsert('source_window_batch',4,sourceWindowBatchRows(sourceWindows));
-    db.exec(\`
+    db.exec(`
       INSERT INTO source_window_hash(source_kind,hash,window_size,count)
       SELECT source_kind,hash,window_size,count FROM source_window_batch WHERE true
       ON CONFLICT(source_kind,hash) DO UPDATE SET count=count+excluded.count;
       DELETE FROM source_window_batch;
-    \`);
+    `);
 
     bulkInsert('shape_batch',3,shapeBatchRows(shapeCounts));
-    db.exec(\`
+    db.exec(`
       INSERT INTO shape_pattern(token_count,shape_key,count)
       SELECT token_count,shape_key,count FROM shape_batch WHERE true
       ON CONFLICT(token_count,shape_key) DO UPDATE SET count=count+excluded.count;
       DELETE FROM shape_batch;
-    \`);
+    `);
 
     checkpointUpsert.run('scan',sourceIndex,sourceCode,lineNumber,accepted,new Date().toISOString());
     db.exec('COMMIT');
@@ -724,7 +724,7 @@ function flushTransitions(counts,sourceIndex,sourceCode,lineNumber,accepted){
   db.exec('BEGIN');
   try{
     bulkInsert('transition_batch',5,transitionBatchRows(counts));
-    db.exec(\`
+    db.exec(`
       INSERT INTO transition(direction,context_len,state_key,next_token,count)
       SELECT direction,context_len,state_key,next_token,count
       FROM transition_batch
@@ -732,7 +732,7 @@ function flushTransitions(counts,sourceIndex,sourceCode,lineNumber,accepted){
       ON CONFLICT(direction,context_len,state_key,next_token)
       DO UPDATE SET count=count+excluded.count;
       DELETE FROM transition_batch;
-    \`);
+    `);
     checkpointUpsert.run('transitions',sourceIndex,sourceCode,lineNumber,accepted,new Date().toISOString());
     db.exec('COMMIT');
   }catch(error){db.exec('ROLLBACK');throw error;}
