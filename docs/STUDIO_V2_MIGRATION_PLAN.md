@@ -514,6 +514,7 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 19 canonical analysis                         DONE
 20 mobile acceptance engineering              DONE
 21 legacy metadata badges + runtime telemetry DONE
+Entity category multi-select             DONE · shared SearchState + OR runtime retrieval
 22 hierarchical Library tree                   DONE
 23 Analysis workbench / Word Laboratory        DONE
 24 Bar Inspector + verse totals                DONE
