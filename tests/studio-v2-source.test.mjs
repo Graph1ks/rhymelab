@@ -117,6 +117,11 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/analysisData\.wordDetails/u);
   assert.match(app,/analysisData\.uniqueWordDetails/u);
   assert.match(app,/analysisData\.pairs/u);
+  assert.match(app,/analysisChainToggle/u);
+  assert.match(app,/analysisChainVisible/u);
+  assert.match(app,/Stress Fingerprint/u);
+  assert.match(app,/rhyme-chain/u);
+  assert.match(app,/analysis-stress-strip/u);
   assert.match(app,/function restoreStudioRevision\(/u);
   assert.match(app,/snapshot=editorSnapshot\(s\)/u);
   assert.match(app,/restoreEditorSnapshot\(current,entry\.snapshot\)/u);
@@ -155,6 +160,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.analysis-word-grid/u);
   assert.match(css,/\.analysis-word-card/u);
   assert.match(css,/\.analysis-language-toggle/u);
+  assert.match(css,/\.rhyme-chain/u);
+  assert.match(css,/\.rhyme-chain-group/u);
+  assert.match(css,/\.analysis-stress-workbench/u);
+  assert.match(css,/\.analysis-stress-strip/u);
   assert.match(css,/Studio mobile acceptance engineering/u);
   assert.match(css,/--visual-viewport-height/u);
   assert.match(css,/html\[data-mobile-keyboard="true"\] \.mobile-nav\{display:none!important\}/u);
