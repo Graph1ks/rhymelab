@@ -370,10 +370,16 @@ html,*{
   background:var(--bg);border:1px solid var(--line);font-size:8px
 }
 .library-folder-row>button:first-child.active{background:var(--tint);color:var(--accent)}
-.library-folder-delete{
-  width:30px;min-height:36px;padding:4px;color:var(--muted);opacity:.38
+.library-folder-actions{
+  display:flex;align-items:center;gap:2px;opacity:.38;transition:opacity .15s
 }
-.library-folder-row:hover .library-folder-delete,.library-folder-delete:focus-visible{opacity:1}
+.library-folder-actions button{
+  width:26px;min-height:36px;padding:3px;color:var(--muted);font-size:10px;border-radius:7px
+}
+.library-folder-actions button:disabled{opacity:.24}
+.library-folder-delete{color:var(--accent-2,var(--accent))!important}
+.library-folder-row:hover .library-folder-actions,
+.library-folder-row:focus-within .library-folder-actions{opacity:1}
 .library-content{min-width:0}
 .library-results-head{
   min-height:36px;display:flex;justify-content:space-between;align-items:center;gap:10px;
@@ -417,7 +423,8 @@ html,*{
   .library-folder-head{flex:0 0 auto;gap:6px}
   .library-folder-row{flex:0 0 auto;display:flex}
   .library-folder-row>button:first-child{white-space:nowrap}
-  .library-folder-delete{opacity:.72}
+  .library-folder-actions{opacity:.82}
+  .library-folder-actions button{width:36px;min-height:44px}
   .library-content .song-grid{grid-template-columns:1fr}
   .songcard{min-height:0}
   .songcard-actions button{min-height:44px;flex:1 1 calc(50% - 6px)}
