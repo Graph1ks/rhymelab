@@ -866,6 +866,10 @@ html,*{
 .diagnostics-runtime{display:grid;grid-template-columns:repeat(2,auto);gap:4px 12px}
 .diagnostics-runtime span{font-size:8px;color:var(--muted);white-space:nowrap}
 .diagnostics-runtime b{color:var(--ink);font-variant-numeric:tabular-nums}
+.diagnostics-section-title{
+  margin-top:13px;padding-top:10px;border-top:1px solid var(--line);
+  font-size:7px;letter-spacing:1px;font-weight:800;color:var(--muted)
+}
 .diagnostics-grid{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px
 }
