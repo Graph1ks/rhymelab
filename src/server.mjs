@@ -7,10 +7,10 @@ import { findRhymes, getStats, getWord, openRhymeDb, searchWords } from './local
 import { DEFAULT_WRITER_DB_PATH, openWriterDb } from './experimental-writer-db.mjs';
 import {
   DEFAULT_MARKOV_MODEL_DB_PATH,
-  generateCorpusMarkovCandidates,
   markovModelHealth,
   openMarkovModel,
-} from './markov-model-runtime.mjs';
+ } from './markov-model-runtime.mjs';
+import {generateLyricCandidatesV2} from './lyric-decoder-v2.mjs';
 import { WRITER_RUNTIME_ID, selectRhymeRuntimeDatabases } from './runtime-db-routing.mjs';
 import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
@@ -500,13 +500,13 @@ const server = createServer(async (req, res) => {
       if(rows.length<2)return json(res,{error:'At least two Writer candidates are required.'},400,false);
       const language=body?.language==='en'?'en':'de';
       try{
-        const candidates=generateCorpusMarkovCandidates(markovRuntime,{
+        const candidates=generateLyricCandidatesV2(markovRuntime,{
           rows,
           language,
           seedText:String(body?.seedText||'').slice(0,1000),
           target:String(body?.target||'').slice(0,240),
           seed:Number(body?.seed)||0,
-          targetTokens:Number(body?.targetTokens)||10,
+          targetTokens:Number(body?.targetTokens)||6,
           rhymePressure:Number(body?.rhymePressure)||0,
           naturalness:Number(body?.naturalness)||0,
           weirdness:Number(body?.weirdness)||0,
