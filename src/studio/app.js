@@ -2323,7 +2323,12 @@ function renderDeviceAcceptancePanel(){
     const checked=queryAll('[data-device-gate]').find((row)=>row.dataset.deviceGate===id)?.checked||false;
     setStudioDeviceGate(id,checked,input.value);
   });
-  if($('#exportDeviceAcceptance'))$('#exportDeviceAcceptance').disabled=!summary.ready;
+  if($('#exportDeviceAcceptance')){
+    $('#exportDeviceAcceptance').disabled=false;
+    $('#exportDeviceAcceptance').title=summary.ready
+      ?'Vollständigen Acceptance-Report exportieren'
+      :'Teilreport exportieren · auf anderem Gerät importierbar';
+  }
 }
 function collectCurrentStudioDiagnostics(){
   const environment=collectStudioEnvironmentDiagnostics({
