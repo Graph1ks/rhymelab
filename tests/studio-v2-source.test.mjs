@@ -368,12 +368,12 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/analyzeSongEndRhymes/u);
 });
 
-test('Studio migration contract keeps old routes until exhaustive parity acceptance',async()=>{
+test('Studio live migration contract keeps fallback routes through acceptance',async()=>{
   const parity=await readFile('docs/UI_REDESIGN_PARITY.md','utf8');
   const migration=await readFile('docs/STUDIO_V2_MIGRATION_PLAN.md','utf8');
 
-  assert.match(parity,/Do not switch \/ to Studio until/u);
-  assert.match(parity,/exhaustive old-vs-new feature audit/u);
+  assert.match(parity,/Do not remove the fallback routes until/u);
+  assert.match(parity,/Continue the deliberate old-vs-new audit/u);
   assert.match(parity,/Library folder hierarchy/u);
   assert.match(parity,/legacy tags\/badges/u);
   assert.match(parity,/optional rhyme-chain visualization/u);
