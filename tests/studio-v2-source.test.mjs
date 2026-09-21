@@ -39,6 +39,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.local\.degraded/u);
   assert.match(css,/Studio live Writer states/u);
   assert.match(css,/\.writer-loading:after/u);
+  assert.match(css,/Studio production detail parity/u);
+  assert.match(css,/\.detail-fact-grid/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
@@ -73,6 +75,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/search-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/detail-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
@@ -101,13 +104,14 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
 
 
 test('Studio orchestrator is split behind maintainable module boundaries',async()=>{
-  const [app,core,controls,search,documents,capabilities,pronunciationClient,pronunciationCache]=await Promise.all([
+  const [app,core,controls,search,documents,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
     readFile('src/studio/app.js','utf8'),
     readFile('src/studio/studio-core.mjs','utf8'),
     readFile('src/studio/studio-controls.mjs','utf8'),
     readFile('src/studio/search-adapter.mjs','utf8'),
     readFile('src/studio/document-adapter.mjs','utf8'),
     readFile('src/studio/capability-adapter.mjs','utf8'),
+    readFile('src/studio/detail-adapter.mjs','utf8'),
     readFile('src/studio/query-pronunciation-client.mjs','utf8'),
     readFile('src/studio/query-pronunciation-cache.mjs','utf8'),
   ]);
@@ -122,6 +126,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/resultLanguage:resultLang/u);
   assert.match(app,/writeStudioState\(state\)/u);
   assert.match(app,/from '\.\/capability-adapter\.mjs'/u);
+  assert.match(app,/from '\.\/detail-adapter\.mjs'/u);
   assert.match(app,/refreshStudioCapabilities\(\)/u);
   assert.match(app,/id="capabilitySummary"/u);
 
@@ -132,6 +137,8 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(search,/export function mapWriterResult/u);
   assert.match(documents,/export function loadStudioState/u);
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
+  assert.match(details,/export function createStudioDetailClient/u);
+  assert.match(details,/export function buildStudioDetailModel/u);
   assert.match(pronunciationClient,/CLIENT_QUERY_PRONUNCIATION_POLICY/u);
   assert.match(pronunciationCache,/QUERY_PRONUNCIATION_CACHE_SCHEMA/u);
 });
@@ -234,4 +241,76 @@ test('Studio Writer adapter maps runtime rows and preserves canonical recommende
   assert.match(urls[0],/^\/api\/writer\?/u);
   assert.deepEqual(result.rows.map((row)=>row.word),['Zweiter','Erster']);
   assert.equal(result.querySyllables,4);
+});
+
+
+test('Studio detail adapter uses canonical detail endpoints and keeps entities on Writer metadata',async()=>{
+  const {createStudioDetailClient,buildStudioDetailModel}=await import('../src/studio/detail-adapter.mjs');
+  const urls=[];
+  const client=createStudioDetailClient({
+    fetchImpl:async(url)=>{
+      urls.push(String(url));
+      return {
+        ok:true,
+        json:async()=>({
+          surface:'Hochzeitsreise',
+          preferredIpa:'hɔx',
+          syllableCount:4,
+          partOfSpeech:'noun',
+          lemma:'Hochzeitsreise',
+          pronunciations:[{ipa:'hɔx',preferred:true,locale:'de-DE',source:'writer'}],
+        }),
+      };
+    },
+  });
+  const word={
+    kind:'word',
+    lang:'de',
+    id:'word-1',
+    word:'Hochzeitsreise',
+    relationLabel:'Mehrsilbiger Vollreim',
+    relationType:'multisyllabic_perfect',
+    score:.93,
+    syll:4,
+    raw:{
+      resultKind:'word',
+      word:'Hochzeitsreise',
+      language:'de',
+      relations:[{type:'assonance',score:.8}],
+      usageRank:120,
+    },
+  };
+  const payload=await client.load(word);
+  const model=buildStudioDetailModel(word,payload);
+  assert.match(urls[0],/^\/api\/word\/Hochzeitsreise\?language=de&generated=0$/u);
+  assert.equal(model.partOfSpeech,'noun');
+  assert.equal(model.usageRank,120);
+  assert.equal(model.relations[0].type,'assonance');
+
+  const before=urls.length;
+  const entity={
+    kind:'entity',
+    lang:'en',
+    id:'entity-1',
+    word:'Bach',
+    relationLabel:'Vollreim',
+    relationType:'perfect',
+    score:.8,
+    raw:{
+      resultKind:'entity',
+      word:'Bach',
+      language:'en',
+      ipa:'bɑːk',
+      entityQid:'Q1',
+      primaryCategory:'person',
+      entityCategories:['composer'],
+      popularityPercentile:.97,
+      popularityTier:'top',
+    },
+  };
+  const entityPayload=await client.load(entity);
+  const entityModel=buildStudioDetailModel(entity,entityPayload);
+  assert.equal(urls.length,before);
+  assert.deepEqual(entityModel.categories,['person','composer']);
+  assert.equal(entityModel.popularity,97);
 });
