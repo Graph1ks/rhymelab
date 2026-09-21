@@ -82,6 +82,38 @@ test('document migration preserves explicit empty folders as first-class records
   assert.equal(snapshot.songs[0].folderId,snapshot.folders[0].id);
 });
 
+
+
+test('revision migration keeps stable editor bar IDs when snapshots are available',()=>{
+  const {snapshot}=migrateLegacyStudioState({
+    active:'song',
+    songs:[{
+      id:'song',
+      title:'Revision IDs',
+      lines:['current'],
+      revisions:[{
+        at:123,
+        text:'alpha\nbeta',
+        snapshot:{
+          lines:['alpha','beta'],
+          barIds:['stable-alpha','stable-beta'],
+          barRevisions:[4,2],
+          steps:{},
+          editorNextBarId:9,
+        },
+      }],
+    }],
+  });
+  assert.deepEqual(
+    snapshot.revisions[0].documentSnapshot.bars.map((bar)=>bar.id),
+    ['stable-alpha','stable-beta'],
+  );
+  assert.deepEqual(
+    snapshot.revisions[0].documentSnapshot.bars.map((bar)=>bar.text),
+    ['alpha','beta'],
+  );
+});
+
 test('document/editor spike keeps stable bar identities across 200 bars, Unicode edits and splits',()=>{
   const lines=Array.from({length:200},(_,index)=>
     index===79
