@@ -15,6 +15,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/id=["']runtimeStatus["']/u);
   assert.match(html,/Live Writer · lokale Datenbank/u);
   assert.match(html,/type=["']module["'][^>]*src=["']\/studio\/app\.js["']/u);
+  assert.match(html,/STUDIO 02 · PREVIEW/u);
+  assert.doesNotMatch(html,/STUDIO 02 · DEMO/u);
 
   assert.match(css,/--assist-width:470px/u);
   assert.match(css,/--bg:#EAE7DC/u);
@@ -97,6 +99,12 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/performanceNeedsReview/u);
   assert.match(app,/movePerformanceCue/u);
   assert.match(app,/autoMapPerformanceBar/u);
+  assert.match(app,/function ensureActiveBarVisible\(/u);
+  assert.match(app,/function bindMobileViewport\(/u);
+  assert.match(app,/mobileScrollDeltaForRect/u);
+  assert.match(app,/installMobileViewportController/u);
+  assert.match(app,/Speichert in IndexedDB/u);
+  assert.match(app,/IndexedDB gespeichert/u);
   assert.match(app,/function refreshSongAnalysis\(/u);
   assert.match(app,/canonical Writer-Runtime-Pfad/u);
   assert.match(app,/analysisData\.lineRelations/u);
@@ -134,6 +142,11 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.analysis-lines/u);
   assert.match(css,/\.analysis-scheme-letter/u);
   assert.match(css,/\.analysis-density-list/u);
+  assert.match(css,/Studio mobile acceptance engineering/u);
+  assert.match(css,/--visual-viewport-height/u);
+  assert.match(css,/html\[data-mobile-keyboard="true"\] \.mobile-nav\{display:none!important\}/u);
+  assert.match(css,/\.editor-dock-open \.editor-scroll\{overflow:hidden/u);
+  assert.match(css,/\.topbar \.icon\{width:44px;height:44px;min-height:44px/u);
 });
 
 test('Studio preview route is parallel and leaves legacy Search and RhymePad routes in place',async()=>{
@@ -154,6 +167,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/document-store\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/editor-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/performance-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/mobile-viewport\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/detail-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/analysis-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
@@ -242,6 +256,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/from '\.\/detail-adapter\.mjs'/u);
   assert.match(app,/from '\.\/editor-session\.mjs'/u);
   assert.match(app,/from '\.\/performance-session\.mjs'/u);
+  assert.match(app,/from '\.\/mobile-viewport\.mjs'/u);
   assert.match(app,/from '\.\/analysis-adapter\.mjs'/u);
   assert.match(app,/refreshStudioCapabilities\(\)/u);
   assert.match(app,/id="capabilitySummary"/u);
