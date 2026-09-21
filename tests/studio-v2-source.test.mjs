@@ -197,6 +197,11 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/function currentDeviceAcceptanceEnvironment\(/u);
   assert.match(app,/function renderDeviceAcceptancePanel\(/u);
   assert.match(app,/function exportStudioDeviceAcceptance\(/u);
+  assert.match(app,/function importStudioDeviceAcceptanceFile\(/u);
+  assert.match(app,/mergeStudioDeviceAcceptanceReports/u);
+  assert.match(app,/id="importDeviceAcceptance"/u);
+  assert.match(app,/id="deviceAcceptanceFile"/u);
+  assert.match(app,/Teilreport exportieren/u);
   assert.match(app,/STUDIO_DEVICE_GATES/u);
   assert.match(app,/DEVICE_ACCEPTANCE_STORAGE_KEY/u);
   assert.match(app,/id="deviceAcceptancePanel"/u);
@@ -250,6 +255,7 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.device-acceptance-summary/u);
   assert.match(css,/\.device-gate-list/u);
   assert.match(css,/\.device-gate/u);
+  assert.match(css,/\.device-gate-evidence/u);
   assert.match(css,/\.parity-summary/u);
   assert.match(css,/\.parity-group-grid/u);
   assert.match(css,/\.perform-transport/u);
