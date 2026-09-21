@@ -163,6 +163,9 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/function renderDiagnosticsPanel\(/u);
   assert.match(app,/function exportStudioDiagnostics\(/u);
   assert.match(app,/collectStudioEnvironmentDiagnostics/u);
+  assert.match(app,/runStudioDomAcceptance/u);
+  assert.match(app,/domAcceptance/u);
+  assert.match(app,/combinedSummary/u);
   assert.match(app,/IndexedDB · autoritativ/u);
   assert.match(app,/function renderLibrary\(/u);
   assert.match(app,/function createLibraryFolder\(/u);
@@ -193,6 +196,7 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/Studio diagnostics/u);
   assert.match(css,/\.diagnostics-grid/u);
   assert.match(css,/\.diagnostic-check/u);
+  assert.match(css,/\.diagnostics-section-title/u);
   assert.match(css,/\.perform-transport/u);
   assert.match(css,/\.perform-review/u);
   assert.match(css,/\.perform-sequencer/u);
@@ -245,6 +249,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/backup-portability\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/diagnostics\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/i18n\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/dom-acceptance\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
