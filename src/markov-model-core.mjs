@@ -125,17 +125,21 @@ export function createMarkovStorage(db){
     CREATE INDEX IF NOT EXISTS transition_lookup_idx
       ON transition(direction,context_len,state_key,count DESC,next_token);
     CREATE TABLE IF NOT EXISTS source_sequence_hash(
-      hash TEXT PRIMARY KEY,
+      source_kind TEXT NOT NULL CHECK(source_kind IN ('phrase','sentence','lyric')),
+      hash TEXT NOT NULL,
       token_count INTEGER NOT NULL,
-      count INTEGER NOT NULL DEFAULT 1
+      count INTEGER NOT NULL DEFAULT 1,
+      PRIMARY KEY(source_kind,hash)
     ) WITHOUT ROWID;
     CREATE TABLE IF NOT EXISTS source_window_hash(
-      hash TEXT PRIMARY KEY,
+      source_kind TEXT NOT NULL CHECK(source_kind IN ('phrase','sentence','lyric')),
+      hash TEXT NOT NULL,
       window_size INTEGER NOT NULL,
-      count INTEGER NOT NULL DEFAULT 1
+      count INTEGER NOT NULL DEFAULT 1,
+      PRIMARY KEY(source_kind,hash)
     ) WITHOUT ROWID;
     CREATE INDEX IF NOT EXISTS source_window_size_idx
-      ON source_window_hash(window_size,hash);
+      ON source_window_hash(source_kind,window_size,hash);
     CREATE TABLE IF NOT EXISTS shape_pattern(
       token_count INTEGER NOT NULL,
       shape_key TEXT NOT NULL,
@@ -179,11 +183,11 @@ export function semanticFingerprint(db){
   for(const row of tokenRows)hash.update(`T\t${row.norm}\t${row.count}\t${row.title_count}\t${row.upper_count}\t${row.preferred_surface}\n`);
   const transitions=db.prepare('SELECT direction,context_len,state_key,next_token,count FROM transition ORDER BY direction,context_len,state_key,next_token').iterate();
   for(const row of transitions)hash.update(`R\t${row.direction}\t${row.context_len}\t${row.state_key}\t${row.next_token}\t${row.count}\n`);
-  for(const row of db.prepare('SELECT hash,token_count,count FROM source_sequence_hash ORDER BY hash').iterate()){
-    hash.update(`S\t${row.hash}\t${row.token_count}\t${row.count}\n`);
+  for(const row of db.prepare('SELECT source_kind,hash,token_count,count FROM source_sequence_hash ORDER BY source_kind,hash').iterate()){
+    hash.update(`S\t${row.source_kind}\t${row.hash}\t${row.token_count}\t${row.count}\n`);
   }
-  for(const row of db.prepare('SELECT hash,window_size,count FROM source_window_hash ORDER BY window_size,hash').iterate()){
-    hash.update(`W\t${row.hash}\t${row.window_size}\t${row.count}\n`);
+  for(const row of db.prepare('SELECT source_kind,hash,window_size,count FROM source_window_hash ORDER BY source_kind,window_size,hash').iterate()){
+    hash.update(`W\t${row.source_kind}\t${row.hash}\t${row.window_size}\t${row.count}\n`);
   }
   for(const row of db.prepare('SELECT token_count,shape_key,count FROM shape_pattern ORDER BY token_count,shape_key').iterate()){
     hash.update(`G\t${row.token_count}\t${row.shape_key}\t${row.count}\n`);
