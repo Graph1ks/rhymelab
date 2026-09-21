@@ -42,4 +42,5 @@ test('package exposes Studio cutover preview and release gates',()=>{
   assert.equal(pkg.scripts['studio:v2:cutover:json'],'node --no-warnings scripts/check-studio-v2-cutover.mjs --json');
   assert.match(pkg.scripts['studio:v2:accepted-preview'],/studio:v2:cutover:check/u);
   assert.match(pkg.scripts['studio:v2:accepted-preview'],/--studio-default/u);
+  assert.equal(pkg.scripts['studio:v2:acceptance:merge'],'node --no-warnings scripts/merge-studio-device-acceptance.mjs');
 });
