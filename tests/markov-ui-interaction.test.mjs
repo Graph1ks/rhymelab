@@ -39,12 +39,22 @@ function fakeDocument(){
     new FakeElement({dataset:{preset:'balanced'}}),
     new FakeElement({dataset:{preset:'chain'}}),
   ];
+  const entityCategories=[
+    new FakeElement({dataset:{entityCategory:'all'}}),
+    new FakeElement({dataset:{entityCategory:'person.rapper'}}),
+    new FakeElement({dataset:{entityCategory:'work.film'}}),
+  ];
   return {
     documentElement:{dataset:{}},
     querySelector(selector){return singles.get(selector)||null;},
-    querySelectorAll(selector){return selector==='[data-preset]'?presets:[];},
+    querySelectorAll(selector){
+      if(selector==='[data-preset]')return presets;
+      if(selector==='[data-entity-category]')return entityCategories;
+      return [];
+    },
     singles,
     presets,
+    entityCategories,
   };
 }
 
@@ -56,6 +66,7 @@ test('Markov test page binds its primary controls and dispatches runtime state c
     reroll:()=>calls.push(['reroll']),
     rangeChange:(id,value)=>calls.push(['range',id,value]),
     optionChange:(id,value)=>calls.push(['option',id,value]),
+    entityCategory:(category)=>calls.push(['entity-category',category]),
     preset:(name)=>calls.push(['preset',name]),
   });
   assert.equal(document.documentElement.dataset.rhymelabControls,'bound');
@@ -67,6 +78,7 @@ test('Markov test page binds its primary controls and dispatches runtime state c
   document.singles.get('#mode').dispatch('change');
   document.singles.get('#allowEntities').checked=false;
   document.singles.get('#allowEntities').dispatch('change');
+  document.entityCategories[1].dispatch('click');
   document.presets[1].dispatch('click');
   assert.deepEqual(calls,[
     ['generate'],
@@ -74,6 +86,7 @@ test('Markov test page binds its primary controls and dispatches runtime state c
     ['range','rhymePressure','88'],
     ['option','mode','chain'],
     ['option','allowEntities',false],
+    ['entity-category','person.rapper'],
     ['preset','chain'],
   ]);
 });
@@ -97,6 +110,11 @@ test('Markov test surface preserves mobile behavior and uses the Markov API',asy
   }
   assert.match(html,/id=["']modelState["']/u);
   assert.match(html,/id=["']modelNote["']/u);
+  assert.match(html,/id=["']allowPhrases["'][^>]*type=["']checkbox["'](?![^>]*checked)/u);
+  assert.match(html,/data-entity-category=["']person\.rapper["']/u);
+  assert.match(html,/data-entity-category=["']person\.musician["']/u);
+  assert.match(html,/data-entity-category=["']work\.film["']/u);
+  assert.match(html,/data-entity-category=["']work\.video_game["']/u);
   assert.match(styles,/@media\(max-width:620px\)/u);
   assert.match(styles,/@media\(prefers-reduced-motion:reduce\)/u);
   assert.match(styles,/\.hero-sentence\.animate-in \.sentence-token/u);
@@ -113,6 +131,9 @@ test('Markov test surface preserves mobile behavior and uses the Markov API',asy
   assert.match(app,/npm run markov:model:build/u);
   assert.match(app,/npm run markov:model:build:en/u);
   assert.match(app,/markovHealthByLanguage/u);
+  assert.match(app,/selectedEntityCategories/u);
+  assert.match(app,/entityCategory/u);
+  assert.match(app,/entity_category/u);
   assert.match(app,/DECODER V2/u);
   assert.match(app,/novelty windows/u);
   assert.match(app,/line shapes/u);
