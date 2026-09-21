@@ -87,7 +87,7 @@ The Search workspace and Studio assistant use the same SearchState. Changing sur
 | Generated-only | capability-driven | no current Pad control | missing | Advanced origin control | READY |
 | Entity category filter | yes | yes | demo generic only | Contextual Entity controls | READY |
 | Full Entity taxonomy | yes | reviewed subset in Pad | missing | Contextual chips/dialog | READY · capability-driven taxonomy |
-| Entity multi-select | accepted newer interaction | no | missing | Contextual chips | TODO |
+| Entity multi-select | accepted newer interaction | no | missing | Contextual chips | READY · shared SearchState + Writer OR retrieval |
 | List density | yes | no | yes | Result toolbar | READY |
 | Compact density | yes | compact/live suggestions | yes | Result toolbar | READY |
 | Tile/field density | no canonical search | no | yes | Result toolbar | READY · Studio-specific |
@@ -348,7 +348,6 @@ Minimum audit method:
 Current unresolved cutover blockers:
 
 ~~~text
-Entity category multi-select
 English Studio UI locale / UI-language switch
 real browser/device/audio acceptance across the release viewport matrix
 final exhaustive old-vs-new interaction audit
