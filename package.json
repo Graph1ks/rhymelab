@@ -194,7 +194,8 @@
     "markov:model:build:en": "node --no-warnings scripts/build-markov-en-v2.mjs",
     "markov:model:status:en": "node --no-warnings scripts/build-markov-en-v2.mjs --status",
     "markov:data:bootstrap:de": "npm run markov:sources:acquire && npm run markov:model:build",
-    "markov:data:bootstrap:en": "npm run markov:sources:acquire:en && npm run markov:model:build:en"
+    "markov:data:bootstrap:en": "npm run markov:sources:acquire:en && npm run markov:model:build:en",
+    "markov:lyrics:structure:analyze": "node --no-warnings scripts/analyze-lyric-structure.mjs"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"
