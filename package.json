@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "node src/server.mjs",
-    "dev:serving": "node src/server.mjs --serving-v1",
+    "dev:serving": "node src/server.mjs",
+    "dev:legacy": "node src/server.mjs --legacy-runtime",
     "start": "node src/server.mjs",
     "check": "node scripts/check-source.mjs",
     "test": "node --test tests/*.test.mjs",
@@ -60,6 +61,16 @@
     "local:run": "npm run dev",
     "phrase:catalog": "node scripts/build-de-phrase-catalog.mjs",
     "phrase:catalog:bootstrap": "node scripts/bootstrap-de-phrase-catalog-local.mjs",
+    "markov:sources:plan": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --plan",
+    "markov:sources:acquire": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs",
+    "markov:sources:refresh": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --refresh",
+    "markov:sources:status": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --status",
+    "markov:data:bootstrap": "npm run markov:sources:acquire && npm run markov:sources:acquire:en && npm run markov:model:build && npm run markov:model:build:en",
+    "markov:model:plan": "node --no-warnings scripts/build-markov-from-rhymelab.mjs --plan",
+    "markov:model:build": "node --no-warnings scripts/build-markov-from-rhymelab.mjs",
+    "markov:model:status": "node --no-warnings scripts/build-markov-from-rhymelab.mjs --status",
+    "markov:model:build:explicit": "node --no-warnings scripts/build-markov-model.mjs",
+    "markov:lyrics:analyze": "node --no-warnings scripts/analyze-private-lyrics.mjs",
     "phrase:catalog:diagnose": "node --no-warnings scripts/diagnose-de-phrase-catalog.mjs",
     "phrase:register:cologne": "node --no-warnings scripts/enrich-de-phrase-register-cologne.mjs",
     "phrase:register:cologne:bootstrap": "node scripts/bootstrap-cologne-kiezdeutsch-local.mjs",
@@ -174,6 +185,19 @@
     "serving:v1:product:accept:status": "node --no-warnings scripts/accept-serving-v1-product.mjs --status",
     "serving:v1:hotpath:benchmark": "node --no-warnings scripts/benchmark-serving-v1-hotpaths.mjs",
     "serving:v1:hotpath:owner": "node --no-warnings scripts/run-serving-v1-hotpath-owner.mjs",
-    "serving:v1:report:benchmark": "node --no-warnings scripts/benchmark-serving-v1-report.mjs"
+    "serving:v1:report:benchmark": "node --no-warnings scripts/benchmark-serving-v1-report.mjs",
+    "markov:sources:plan:en": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --registry sources/markov-sentence-sources-en-v1.json --plan",
+    "markov:sources:acquire:en": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --registry sources/markov-sentence-sources-en-v1.json",
+    "markov:sources:refresh:en": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --registry sources/markov-sentence-sources-en-v1.json --refresh",
+    "markov:sources:status:en": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --registry sources/markov-sentence-sources-en-v1.json --status",
+    "markov:model:plan:en": "node --no-warnings scripts/build-markov-en-v2.mjs --plan",
+    "markov:model:build:en": "node --no-warnings scripts/build-markov-en-v2.mjs",
+    "markov:model:status:en": "node --no-warnings scripts/build-markov-en-v2.mjs --status",
+    "markov:data:bootstrap:de": "npm run markov:sources:acquire && npm run markov:model:build",
+    "markov:data:bootstrap:en": "npm run markov:sources:acquire:en && npm run markov:model:build:en",
+    "markov:lyrics:structure:analyze": "node --no-warnings scripts/analyze-lyric-structure.mjs"
+  },
+  "dependencies": {
+    "seek-bzip": "2.0.0"
   }
 }

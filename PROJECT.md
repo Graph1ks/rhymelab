@@ -74,7 +74,9 @@ External models and online sources may be used during research, source acquisiti
 **Runtime/language:** Node.js ESM, Node.js 22.5+  
 **Storage:** local SQLite plus versioned source/manifests and generated local artifacts  
 **Product surfaces:** local browser UI, unified Writer API, integrated RhymePad  
-**Canonical runtime posture:** local-only, deterministic, no required runtime network
+**Canonical runtime posture:** local-only, deterministic, no required runtime network  
+**Canonical runtime database:** `data/local/rhymelab-serving-v1.sqlite` for RhymeLab Writer, RhymePad, DE/EN Words, Phrase/Mosaic, Entities, Generated/Core selection, and Markov source materialization  
+**Archived runtime predecessors:** documented in `docs/DATABASE_RUNTIME.md`; they are not normal product fallbacks  
 **Planned distribution editions:** Lite / Standard / Full derived reproducibly from one accepted Master/Developer Serving dataset; authoritative contract: `docs/DISTRIBUTION_TIERS.md`
 
 ### Large-data build reliability

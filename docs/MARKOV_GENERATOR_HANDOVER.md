@@ -1,268 +1,547 @@
-# Markov Phrase / Sentence Generator — Thread Handover
+# Markov / Constrained Lyric Decoder V2 — Pause / Resume Handover
 
-## Purpose
+## Status
 
-This is the focused continuation document for the **next engineering thread**.
+**PAUSED intentionally. Do not continue this work unless the owner explicitly reopens it. The current implementation may ship only as frozen demo infrastructure; it must not be linked or promoted from the RhymeLab product UI.**
 
-The next thread is **not** a continuation of Serving-v1 micro-optimization work. The immediate focus moves to the planned **Markov phrase/sentence generator**.
+This document is the authoritative restart point for the Markov / constrained lyric generation work.
 
-Read first:
+Pause checkpoint:
 
-1. `AGENTS.md`
-2. `PROJECT.md`
+~~~text
+date        2026-09-21
+branch      feature/markov-generator-testpage-v1
+draft PR    #184
+head        033b64d
+CI          #872 PASS
+~~~
+
+CI at this checkpoint:
+
+~~~text
+Source check             PASS
+Test suite               PASS
+Public-readiness audit   PASS
+~~~
+
+The owner authorized PR #184 to ship as technical release infrastructure on 2026-09-21. This authorization does not reopen Markov development: keep the demo route isolated and unlinked from RhymeLab.
+
+## Read first when resuming
+
+1. AGENTS.md
+2. PROJECT.md
 3. this file
-4. `docs/DISTRIBUTION_TIERS.md`
-5. `docs/SERVING_V1_PRODUCT_ADAPTER.md`
-6. `docs/PHASE_11_ACCEPTANCE.md`
-7. any additional Markov requirements the owner supplies in the new thread
+4. docs/MARKOV_GENERATOR_V1.md
+5. docs/MARKOV_DATA_SOURCES.md
+6. docs/LYRIC_STRUCTURE_V2.md
+7. docs/DISTRIBUTION_TIERS.md
 
-Repository state is authoritative. Do not reconstruct current design from old chat history.
+Repository state is authoritative. Do not reconstruct the design from old chat history.
 
-## Current repository checkpoint
+---
 
-Current main checkpoint at handover creation:
+## Product boundary
 
-```text
-Serving-v1 Product preview          implemented
-persistent parallel workers         implemented
-Generated product default           ON / explicit opt-out
-cross-request runtime caching       intentionally deferred
-Entity language-routing fix         merged
-DE -> EN compound bridge            merged
-safe scorer prefilter               merged
-report-grade benchmark              implemented
-distribution tier contract          documented
-```
+RhymeLab remains a deterministic, local-first rhyme/songwriting system.
 
-Important merged architecture document:
+Frozen constraints:
 
-```text
-docs/DISTRIBUTION_TIERS.md
-```
+- RhymeLab Writer remains authoritative for pronunciation and rhyme truth.
+- Markov generation must not replace phonetic/rhyme scoring.
+- canonical core runtime has no mandatory hosted service;
+- no LLM/neural dependency in canonical generation/ranking;
+- no telemetry requirement;
+- no giant pre-rendered generated phrase corpus;
+- generated output remains distinct from source-backed Phrase/Mosaic data;
+- accepted German Writer, English Writer, Phrase/Mosaic and Entity semantics remain frozen unless explicitly reopened.
 
-The distribution contract defines:
+---
 
-```text
-Lite      50k Core
-          DE/EN Words only
+## Canonical databases
 
-Standard  250k Core
-          Words + Phrase/Mosaic + Entities
+Canonical Serving runtime:
 
-Full      400k Core + 200k Generated
-          Words + Phrase/Mosaic + Entities
-          + Generated layer
-          + Markov live generator
+~~~text
+data/local/rhymelab-serving-v1.sqlite
+~~~
 
-Master    complete Developer/Serving population
-```
+Markov V2 databases:
 
-The numeric tier cuts are **Word/Pronunciation population cuts, not Entity counts**.
+~~~text
+DE  data/local/rhymelab-markov-v2.sqlite
+EN  data/local/rhymelab-markov-en-v2.sqlite
+~~~
 
-Hard invariant:
+The owner completed both DE and EN local model builds before this pause.
 
-```text
-LITE ⊂ STANDARD ⊂ FULL ⊂ MASTER
-```
+Recent UI/entity/lyric-structure changes do **not** require rebuilding those model databases.
 
-## Performance checkpoint
+Canonical development route:
 
-The report-grade Serving benchmark exists as:
+~~~text
+http://127.0.0.1:3030/markov-test
+~~~
 
-```powershell
-npm run serving:v1:report:benchmark
-```
+Decoder/model identities:
 
-Most recent owner report at handover time:
+~~~text
+decoder policy   rhymelab-constrained-lyric-decoder-v2
+runtime          rhymelab-constrained-lyric-runtime-v2
+model schema     rhymelab-markov-model-v2
+structure policy rhymelab-lyric-structure-v2
+order            1 → 4 variable-order
+~~~
 
-```text
-execution       persistent-worker-threads-v1-steady-state
-dataset         all
-cases           20
-warmup rounds   1 discarded
-measured        7 repeats / 140 samples
+---
 
-overall
-p50             145.366 ms
-p95             280.296 ms
-max             425.638 ms
-average         144.716 ms
+## Current language/source model
 
-integrity       PASS
-p50 target      MISS (<=100 ms)
-p95 target      MISS (<=250 ms)
-max target      PASS (<=1500 ms)
-```
+### DE
 
-Language summary:
+Owner-local DE model is built from:
 
-```text
-DE     p50 162.884 ms   p95 370.565 ms
-EN     p50  54.674 ms   p95 194.018 ms
-Both   p50 162.338 ms   p95 219.789 ms
-```
+~~~text
+Serving-v1 Phrase/Mosaic   role=phrase
+Leipzig sentence corpus    role=sentence
+Tatoeba DE                 role=sentence
+~~~
 
-Highest-average major stages:
+### EN
 
-```text
-words_de      ~171.4 ms average
-entities_de    ~84.8 ms
-words_en       ~60.8 ms
-entities_en    ~42.8 ms
-phrases_de     ~29.3 ms
-```
+Owner-local EN model is built from:
 
-The pathological current case remains `Arbeitsweise` at roughly 371 ms median in the report workload.
+~~~text
+Leipzig English corpus     role=sentence
+Tatoeba EN                 role=sentence
+~~~
 
-## Explicit performance decision
+EN does not require a separate Phrase/Mosaic source to operate. Writer remains responsible for English rhyme-tail candidates.
 
-**Stop further Serving-v1 micro-optimization for now.**
+Source acquisition/build commands are documented in docs/MARKOV_DATA_SOURCES.md.
 
-Do not continue optimizing merely because the current Master/Developer preview misses the historical 100/250 ms target.
+Useful status commands:
 
-Reason:
+~~~powershell
+npm run markov:sources:status
+npm run markov:sources:status:en
+npm run markov:model:status
+npm run markov:model:status:en
+~~~
 
-1. the current local Serving database is about 18.8 GiB;
-2. shipping editions will intentionally have materially smaller Word/Pronunciation populations and different feature sets;
-3. smaller B-trees, smaller working sets, fewer eligible rows and absent feature channels in Lite should improve real latency;
-4. a meaningful part of current DE cost is CPU scorer/ranking work, so file-size reduction is not expected to produce a simple linear or 10x speedup;
-5. optimizing the Master before measuring the actual distributions risks spending time on bottlenecks users will not experience.
+Full bootstrap exists but should not be rerun merely to resume UI/decoder work:
 
-### Expected tier performance — hypothesis, not acceptance evidence
+~~~powershell
+npm run markov:data:bootstrap
+~~~
 
-Current expectation:
+---
 
-- **Lite:** should be substantially faster than the current Master preview. It has only 50k Core Words and no Phrase/Entity/Generated/Markov channels. It is not expected to feel slow on ordinary queries.
-- **Standard:** should be materially faster than the Master Word path because the Core Word population is capped at 250k. Phrase and Entity channels remain, so exact latency depends strongly on the eventual Entity distribution/closure.
-- **Full:** should still benefit from the 400k Core + 200k Generated Word cut and a smaller shipping working set, but it retains Phrase/Entity and adds Markov. It may still expose noticeable delay on expensive DE outliers.
-- **Worst-case CPU-heavy queries:** database reduction alone cannot eliminate Writer scoring/diversity/feature-preparation costs. Reopen optimization only if measured shipping-tier latency justifies it.
+## V2 architecture implemented
 
-Do **not** claim a specific tier speedup before building and benchmarking the actual distribution files.
+### Transition model
 
-## Performance reopening gate
+Implemented:
 
-Serving/search optimization resumes only after at least one real distribution exists and the report benchmark has been run against it.
+- forward + reverse transition evidence;
+- variable context order 4 → 3 → 2 → 1;
+- deterministic high-order backoff;
+- exact requested target-token count;
+- reverse beam search;
+- fixed-opener bidirectional bridge completion;
+- token support and source-profile diagnostics;
+- complete-sequence and 4–8-token novelty hashes;
+- coarse line-shape evidence from complete sentence/lyric roles only.
 
-Expected future comparison:
+### Rhyme-tail selection
 
-```text
-Tier       DB size   p50   p95   max
-Lite       ?         ?     ?     ?
-Standard   ?         ?     ?     ?
-Full       ?         ?     ?     ?
-Master     ~18.8 GiB historical reference
-```
+Implemented:
 
-If Lite/Standard/Full meet product usability expectations, do not reopen low-value micro-optimization work.
+- Writer-provided rhyme candidates remain authoritative;
+- larger quality-qualified tail reservoir;
+- deterministic temperature/exploration;
+- Naturalness acts as a quality floor/support signal rather than pure maximum probability;
+- exact-tail, final-token and rhyme-family reuse penalties;
+- result-set diversification.
 
-If a tier remains slow:
+### Anti-copy/source behavior
 
-1. use the report-stage breakdown;
-2. identify whether the bottleneck is SQLite retrieval, hydration, scoring, ranking/diversity, Phrase, Entity, or Markov;
-3. preserve exact result semantics;
-4. optimize only the measured tier bottleneck.
+Typed source roles:
 
-Cross-request result/scoring caches remain deferred unless the owner explicitly reopens caching after tier benchmarks.
+~~~text
+phrase
+sentence
+lyric
+~~~
 
-## Markov direction already decided
+Rules:
 
-The Full distribution contract already establishes one boundary:
+- strict anti-copy applies to complete sentence and lyric sources;
+- long copied source runs are blocked;
+- attested Phrase/Mosaic overlap is support evidence, not automatically plagiarism;
+- Phrase/Mosaic fragments do not populate complete-line shape patterns;
+- original source text is not stored in novelty tables.
 
-**Markov is a live phrase/sentence generator, not a pre-rendered giant phrase database.**
+### Section/song planning
 
-High-level intended path:
+Implemented:
 
-```text
-context / seed
-      ↓
-Markov model
-      ↓
-generated token sequence
-      ↓
-existing token / pronunciation lookup
-      ↓
-phrase phonology
-      ↓
-existing rhyme / mosaic scoring
-      ↓
-writer-facing result
-```
+- deterministic rhyme-slot section planning;
+- ABAB/AABB/AAAA/ABBA-style slot plans;
+- cross-line lexical-overlap penalties;
+- exact-tail reuse blocking within rhyme slots;
+- rhyme-family continuity/collision handling;
+- candidate-set diagnostics;
+- deterministic abstract song planner;
+- language-specific DE/EN structure defaults.
 
-The model may contain compact state such as:
+---
 
-```text
-vocabulary
-n-gram / transition state
-counts / weights
-start/end-state metadata
-```
+## Lyric Structure V2
 
-Do not create millions of pre-generated phrase rows merely to support Markov.
+The supplied DE/EN lyric files were used **only for aggregate structure calibration**.
 
-The generator should reuse existing lexical/pronunciation/phonology infrastructure wherever practical instead of introducing a second phonological truth store.
+Committed runtime profile:
 
-## Important: Markov design is not finalized yet
+~~~text
+src/markov-lyric-structure-profile.mjs
+~~~
 
-The owner will provide **additional Markov requirements in the next thread**.
+Local analyzer:
 
-Therefore the first task in the new thread is:
+~~~text
+scripts/lyric-structure-core.mjs
+scripts/analyze-lyric-structure.mjs
+~~~
 
-1. read the additional owner requirements;
-2. inspect the existing Phrase/Mosaic/Writer architecture and any older Markov/retrieval-first design notes;
-3. reconcile the requested product behavior with frozen Phase-11 phonology/retrieval/ranking contracts;
-4. propose a concrete Markov architecture, data/model source strategy, runtime contract, storage model, training/materialization pipeline and acceptance benchmark;
-5. only then implement.
+Documentation:
 
-Do not prematurely lock:
+~~~text
+docs/LYRIC_STRUCTURE_V2.md
+~~~
 
-- n-gram order;
-- training corpus;
-- context conditioning;
-- sentence length policy;
-- rhyme-target conditioning;
-- backward vs forward generation;
-- beam/sampling strategy;
-- diversity policy;
-- Standard-vs-Full availability beyond the current Full-only contract;
-- model storage format;
-- UI behavior.
+Calibration totals:
 
-Those choices depend on the owner's next-thread requirements and measured source/model properties.
+| Language | Source files | Songs seen | Structured songs | Lyric lines |
+| --- | ---: | ---: | ---: | ---: |
+| DE | 2 | 210 | 202 | 12,018 |
+| EN | 1 | 131 | 128 | 10,507 |
 
-## Frozen boundaries to preserve
+Representative defaults:
 
-Unless the owner explicitly changes them:
+| Language | Section | Median lines | Median tokens/line |
+| --- | --- | ---: | ---: |
+| DE | Verse/Part | 16 | 9 |
+| DE | Hook/Chorus | 8 | 6 |
+| EN | Verse/Part | 20 | 9 |
+| EN | Hook/Chorus | 8 | 8 |
 
-- accepted German single-word Writer semantics remain frozen;
-- accepted Phase-11 Phrase/Mosaic semantics remain frozen;
-- accepted English Writer semantics remain frozen;
-- Entity identity/pronunciation provenance remains explicit;
-- deterministic rhyme/scoring truth remains authoritative;
-- Markov generation must not replace phonetic rhyme truth;
-- local/offline runtime remains the product posture;
-- no mandatory hosted service;
-- no LLM/neural runtime dependency in canonical core search;
-- no bulk pre-rendered generated phrase corpus;
-- generated content must remain distinguishable from source-backed Phrase data.
+Aggregate profile includes:
 
-## Distribution work remains planned, not current
+- section counts/order;
+- start/end section probabilities;
+- section-to-section transition probabilities;
+- line and section lengths;
+- repetition/hook profiles;
+- rhyme-distance 1–4 structural priors.
 
-Do not interrupt Markov work to build Lite/Standard/Full unless the owner explicitly asks.
+### Hard lyric privacy boundary
 
-When distribution work resumes, follow `docs/DISTRIBUTION_TIERS.md`:
+Never commit or ship:
 
-1. finalize/freeze Master;
-2. storage census / analyzer;
-3. canonical distribution rank;
-4. relational/runtime closure;
-5. positive materialization of Lite/Standard/Full;
-6. semantic/integrity acceptance;
-7. VACUUM + dbstat;
-8. benchmark each edition.
+- raw supplied lyrics;
+- lyric lines;
+- titles;
+- URLs;
+- source IDs;
+- source filenames;
+- lyric-derived n-grams;
+- lyric text transitions;
+- reconstructable source windows.
 
-## New-thread starting point
+Only non-reconstructable aggregate structure is product-safe.
 
-The next thread can start with:
+The one-time rhyme-distance calibration proxy is structural only. Writer phonetics remain authoritative.
 
-> Read `AGENTS.md`, `PROJECT.md`, `docs/MARKOV_GENERATOR_HANDOVER.md`, `docs/DISTRIBUTION_TIERS.md`, and the existing Phrase/Mosaic acceptance/design docs first. Performance optimization of the current Master Serving DB is intentionally paused until Lite/Standard/Full are materialized and benchmarked. The active task is now the Markov phrase/sentence generator. I will provide additional generator requirements in this thread; incorporate those before proposing or implementing the architecture.
+---
 
+## Markov Lab material controls
+
+Current behavior at the pause checkpoint:
+
+### Phrases
+
+**Phrases are OFF by default.**
+
+When disabled:
+
+- the Phrase channel is not queried;
+- phrase results are not added to the generation pool.
+
+This is intentional.
+
+### Entities
+
+Entities remain enabled by default.
+
+When enabled, the UI exposes multi-select category chips based on the reviewed Entity taxonomy:
+
+~~~text
+ALL
+Rapper
+Sänger / Musiker
+Schauspieler
+Regisseure
+Musikgruppen
+Automarken
+Fashion
+Firmen
+Filme
+Games
+Alben
+Songs
+Figuren
+~~~
+
+Canonical category IDs:
+
+~~~text
+person.rapper
+person.musician
+person.actor
+person.director
+group.music_group
+organization.car_brand
+organization.fashion_house
+organization.company
+work.film
+work.video_game
+work.album
+work.song
+fictional.character
+~~~
+
+Behavior:
+
+- ALL uses the complete Entity pool;
+- selecting one or more category chips forms a union of those category-specific Writer pools;
+- selected category IDs are also passed to the decoder as a hard filter;
+- both legacy object-style and compact string-style entityCategories payloads are normalized.
+
+### Entity placement
+
+Entities are no longer limited to rhyme-tail/end position.
+
+The decoder supports:
+
+~~~text
+corpus → ENTITY → corpus → rhyme tail
+~~~
+
+Internal Entity placement:
+
+- replaces an equal-sized corpus token span;
+- therefore preserves exact requested token count;
+- requires transition support;
+- is rescored for Naturalness, transition quality, novelty and source-copy constraints;
+- gets only a small bounded quality bonus after passing normal gates;
+- respects the selected Entity categories.
+
+Entities may still appear as rhyme tails when Writer/rhyme scoring selects them.
+
+---
+
+## Build performance work completed
+
+The original large-data builder was functionally correct but insufficiently optimized.
+
+Implemented improvements:
+
+- child-process progress streams live instead of being buffered;
+- long builds report phase, source, processed/total, percentage, throughput, elapsed time, ETA and checkpoint duration;
+- download/staging reports live bytes, rate, ETA and row progress;
+- Runtime secondary indexes are removed from the bulk-write hot path;
+- batch data is staged into TEMP tables;
+- SQLite merges are set-based rather than one conflict-upsert per JS map entry;
+- state-ranking index is temporary;
+- final runtime indexes are materialized after bulk writes/pruning;
+- build checkpoints/resume remain intact.
+
+Do not quote a fixed speedup factor without a measured A/B benchmark.
+
+---
+
+## Windows fixture-test bug already fixed
+
+A local test once appeared to keep building after the real DE/EN databases were finished.
+
+Root cause:
+
+tests/markov-rhymelab-source.test.mjs accidentally discovered the owner's real local sentence manifest. The supposedly tiny fixture therefore began processing the full local corpora, hit its 30-second timeout, and could leave a child builder holding a temporary SQLite file on Windows.
+
+Symptoms included:
+
+~~~text
+EBUSY ... Temp\rhymelab-markov-serving-source-...\work.sqlite
+test duration ~30 seconds
+~~~
+
+Fix:
+
+- fixture now supplies its own nonexistent/test-local sentence manifest;
+- it cannot ingest owner-local corpora;
+- Windows cleanup retries were added.
+
+Do not revert this isolation.
+
+---
+
+## Builder UX contract
+
+Long local jobs must never appear frozen.
+
+Future builders/acquisition jobs should expose, where applicable:
+
+~~~text
+phase/stage
+source
+processed / total
+percentage
+throughput
+elapsed
+ETA
+checkpoint/batch duration
+final completion
+~~~
+
+Do not wrap long child jobs with buffered stdout/stderr if live progress is expected.
+
+---
+
+## Current Markov Lab UI state
+
+The Markov Lab is still an **experimental development surface**, not a promoted RhymePad feature.
+
+Implemented UI state includes:
+
+- DE/EN model switching based on actual model health;
+- desktop viewport containment for normal browser chrome at common 1080p-class screens;
+- mobile stacked responsive behavior;
+- no fake generated fallback;
+- deterministic seed/reroll;
+- rhyme mode;
+- Rhyme pressure;
+- Naturalness;
+- Weirdness;
+- exact Target length;
+- Phrase toggle default OFF;
+- Entity toggle + category multi-select;
+- Generated-layer toggle when available;
+- candidate source counts;
+- score diagnostics;
+- eight diversified variants.
+
+Recent desktop containment uses:
+
+~~~text
+@media(min-width:1050px) and (max-height:1050px)
+@media(min-width:1050px) and (max-height:720px)
+~~~
+
+and hard 100dvh containment on desktop.
+
+---
+
+## Known limitations / intentionally unfinished work
+
+This work is paused before product promotion.
+
+Do **not** assume the following are accepted merely because primitives exist:
+
+1. single-line output quality has not received final owner acceptance;
+2. source-role/source-weight tuning has not been comprehensively benchmarked;
+3. internal Entity insertion is new and needs broader hands-on review against real Entity pools;
+4. multi-line/verse generation core exists but has not been promoted to the UI/product;
+5. full-song planning is an abstract planner, not yet a finished songwriting workflow;
+6. no RhymePad integration yet;
+7. no final shipping Full-distribution integration yet;
+8. no final quality benchmark corpus/acceptance thresholds have been frozen;
+9. EN has sentence-transition data but no dedicated Phrase/Mosaic channel;
+10. Phrase toggle being OFF by default is intentional at this checkpoint.
+
+Serving-v1 micro-optimization also remains paused until actual Lite/Standard/Full distributions are materialized and benchmarked.
+
+---
+
+## Resume checklist
+
+When the owner reopens this work:
+
+~~~powershell
+git fetch origin
+git switch feature/markov-generator-testpage-v1
+git pull --ff-only origin feature/markov-generator-testpage-v1
+
+npm install
+
+npm run markov:model:status
+npm run markov:model:status:en
+
+npm run check
+npm test
+
+npm run dev
+~~~
+
+Open:
+
+~~~text
+http://127.0.0.1:3030/markov-test
+~~~
+
+First hands-on regression pass should cover:
+
+~~~text
+DE + EN
+Phrases OFF / ON
+Entities OFF
+Entities ALL
+single Entity category
+multiple Entity categories
+internal Entity placement
+Entity as rhyme tail
+short/normal/long target lengths
+Balanced / End / Multi / Mosaic / Slant / Assonance / Chain / Consonance / Internal
+high/low Naturalness
+high/low Weirdness
+fixed opener
+no opener
+deterministic seed repeatability
+~~~
+
+Do not rebuild the Markov databases unless model/source code or data actually requires it.
+
+---
+
+## Recommended next work when reopened
+
+Order of work:
+
+1. **hands-on quality acceptance** on representative DE/EN rhyme targets;
+2. capture bad-output classes rather than tuning individual examples;
+3. benchmark generation latency and candidate diversity on the finished DE/EN models;
+4. tune source roles/weights only from measured evidence;
+5. validate internal Entity placement across all taxonomy categories;
+6. expose/test multi-line Verse/Hook generation in the Markov Lab;
+7. evaluate complete song-section planning;
+8. only then consider RhymePad integration;
+9. only after acceptance integrate into the Full shipping tier.
+
+Do not reopen unrelated Serving-v1 micro-optimization while doing this unless a measured shipping-tier bottleneck justifies it.
+
+---
+
+## One-line restart prompt
+
+A future thread can start with:
+
+> Read AGENTS.md, PROJECT.md, and docs/MARKOV_GENERATOR_HANDOVER.md first. Markov / Constrained Lyric Decoder V2 was intentionally paused at draft PR #184 after DE+EN model builds, Lyric Structure V2, Phrase-default-OFF controls, Entity multi-select and internal Entity placement were implemented. Verify the branch/PR/CI state, preserve the frozen boundaries, then continue from the Resume checklist rather than redesigning from scratch.

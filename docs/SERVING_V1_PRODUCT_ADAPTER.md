@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 3 candidate. The current product runtime remains on the accepted legacy Core / Generated-opt-in database bundle until the owner-local Product Acceptance report passes.
+Phase 3 Serving-v1 is now the **canonical/default local product runtime by owner decision**. Product Acceptance reports remain quality/performance evidence, but the old split Core / Generated-opt-in bundle is no longer the normal RhymeLab or RhymePad runtime.
 
 Required predecessor:
 
@@ -21,7 +21,7 @@ data/local/rhymelab-serving-v1.sqlite
 
 Runtime modes:
 
-- `all`: Core plus genuine Generated-only pronunciation identities — **future default**;
+- `all`: Core plus genuine Generated-only pronunciation identities — **default**;
 - `core`: Core only — Generated explicitly disabled by the user;
 - `generated`: genuine Generated-only candidates.
 
@@ -126,7 +126,7 @@ entities_de
 entities_en
 ```
 
-The workers are created once, before the preview server or benchmark begins accepting measured work. Each worker owns one read-only connection to the same Serving-v1 file and runs the existing synchronous channel implementation unchanged. Core/All selection changes only the connection-local compatibility views between requests; workers are not spawned per request.
+The workers are created once, before the canonical server or benchmark begins accepting measured work. Each worker owns one read-only connection to the same Serving-v1 file and runs the existing synchronous channel implementation unchanged. Core/All selection changes only the connection-local compatibility views between requests; workers are not spawned per request.
 
 For `scope=all`, eligible channels execute concurrently. The parent merges channel-local results using the same deterministic language/channel ordering rules as `searchUnifiedWriter()`. Regression coverage compares the parallel response directly against the synchronous reference response on the Serving fixture.
 
@@ -201,15 +201,17 @@ The previous Phase-2 file is retained at:
 data/local/rhymelab-serving-v1.pre-product.sqlite
 ```
 
-The Product builder still does **not** rewire `npm start`.
+`npm start`, `npm run dev`, and `npm run dev:serving` now all route the normal browser UI and primary local API through the Serving-v1 adapter.
 
-A non-default product preview is available on `main`:
+The same `data/local/rhymelab-serving-v1.sqlite` file supplies DE Words, EN Words, Phrase/Mosaic and Entities. The five result channels above run through persistent workers rather than serially on the server thread. All mode is the product default when Generated data is available; unchecking the Generated UI toggle switches the worker connections to Core mode.
+
+The previous split runtime is retained only as an explicit archive/regression mode:
 
 ```powershell
-npm run dev:serving
+npm run dev:legacy
 ```
 
-It routes the normal browser UI and primary local API through this adapter using the same Serving-v1 file for DE Words, EN Words, Phrase/Mosaic and Entities. The five result channels above run through persistent workers rather than serially on the server thread. All mode is the preview product default when Generated data is available; unchecking the Generated UI toggle switches the worker connections to Core mode. This preview is explicitly for owner hands-on testing and does not satisfy or bypass the final Product Acceptance switch gate.
+See `docs/DATABASE_RUNTIME.md` for the canonical database and archived predecessor filenames.
 
 ## Retrieval equivalence hardening
 
@@ -311,14 +313,16 @@ A Product runtime switch is permitted only when:
 ready_for_product_runtime_switch = true
 ```
 
-## Deliberately deferred until owner-local acceptance passes
+## Current switch boundary
 
-Phase 3 does not yet:
+The runtime switch is complete:
 
-- make Serving-v1 the default `npm start` runtime; `npm run dev:serving` is an explicit owner preview only;
-- remove the legacy runtime opening code;
-- change the already-established Generated-default/opt-out policy;
-- delete source/legacy DB artifacts;
-- claim the 80–100 ms objective has been achieved.
+- Serving-v1 is the default `npm start` / `npm run dev` database;
+- RhymeLab and RhymePad use the same Serving-v1 runtime;
+- old split databases are not opened during canonical startup;
+- the legacy bundle remains explicit archive/regression tooling only;
+- the Generated-default/opt-out policy is unchanged;
+- source/legacy DB artifacts are retained for provenance and rebuild workflows;
+- no claim is made that the historical 80–100 ms objective has been achieved.
 
-Those changes belong to the final switch PR after reviewing the owner-local Product Acceptance report.
+Product Acceptance and performance reports remain required evidence for further optimization and distribution work; they are no longer a switch preventing use of the owner-selected canonical database.

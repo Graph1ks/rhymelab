@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>RhymeLab · Markov Lab</title>
+  <link rel="stylesheet" href="/markov-test/styles.css">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">RHYME LAB · EXPERIMENTAL</p>
+        <h1>MARKOV <span>LAB</span></h1>
+      </div>
+      <nav aria-label="RhymeLab destinations">
+        <a href="/">Writer</a>
+        <a href="/pad">RhymePad</a>
+      </nav>
+    </header>
+
+    <div id="uiError" class="ui-error" role="alert" hidden></div>
+
+    <section class="lab-grid">
+      <aside class="control-panel" aria-label="Markov generator controls">
+        <div class="panel-head">
+          <div>
+            <p class="micro">CONSTRAINED LYRIC DECODER · LIVE RHYME POOL</p>
+            <h2>Feed the machine</h2>
+          </div>
+          <span id="modelState" class="live-dot" data-tone="neutral">MODEL…</span>
+        </div>
+
+        <form id="markovForm">
+          <label class="field field-wide">
+            <span>Start / opener</span>
+            <input id="seedText" value="Nachts in der Stadt" autocomplete="off" spellcheck="false" maxlength="180">
+          </label>
+
+          <label class="field field-wide target-field">
+            <span>Rhyme target</span>
+            <input id="target" value="Arbeitsweise" autocomplete="off" spellcheck="false" maxlength="120">
+            <small>Drives the real RhymeLab candidate pool.</small>
+          </label>
+
+          <div class="field-pair">
+            <label class="field">
+              <span>Language</span>
+              <select id="language">
+                <option value="de">DE</option>
+                <option value="en">EN</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Rhyme mode</span>
+              <select id="mode">
+                <option value="balanced">Balanced</option>
+                <option value="end">End rhyme</option>
+                <option value="multi">Multisyllabic</option>
+                <option value="mosaic">Mosaic</option>
+                <option value="slant">Slant</option>
+                <option value="assonance">Assonance</option>
+                <option value="chain">Assonance chain</option>
+                <option value="consonance">Consonance</option>
+                <option value="internal">Internal rhyme</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="preset-row" aria-label="Generator presets">
+            <button type="button" data-preset="balanced">Balanced</button>
+            <button type="button" data-preset="rap">Rap</button>
+            <button type="button" data-preset="chain">Chain</button>
+            <button type="button" data-preset="natural">Natural</button>
+            <button type="button" data-preset="chaos">Chaos</button>
+          </div>
+
+          <div class="range-stack">
+            <label class="range-field">
+              <span><b>Rhyme pressure</b><output data-range-value="rhymePressure">62%</output></span>
+              <input id="rhymePressure" type="range" min="0" max="100" value="62">
+              <small>Natural language ←→ phonetic obsession</small>
+            </label>
+            <label class="range-field">
+              <span><b>Naturalness</b><output data-range-value="naturalness">82%</output></span>
+              <input id="naturalness" type="range" min="0" max="100" value="82">
+              <small>Transition probability + context fit guard.</small>
+            </label>
+            <label class="range-field">
+              <span><b>Weirdness</b><output data-range-value="weirdness">34%</output></span>
+              <input id="weirdness" type="range" min="0" max="100" value="34">
+              <small>Safe shortlist ←→ deeper candidate pool.</small>
+            </label>
+            <label class="range-field">
+              <span><b>Target length</b><output data-range-value="targetTokens">7 tok</output></span>
+              <input id="targetTokens" type="range" min="3" max="16" value="7">
+              <small>Lyric-line profile: compact 3 · typical 6 · common ceiling ~9.</small>
+            </label>
+          </div>
+
+          <fieldset class="source-box">
+            <legend>Allowed material</legend>
+            <label class="switch-row">
+              <span><b>Entities</b><small>Only when corpus context supports the splice</small></span>
+              <input id="allowEntities" type="checkbox" checked>
+              <i aria-hidden="true"></i>
+            </label>
+            <label class="switch-row">
+              <span><b>Phrases</b><small>Attested chunks, context-gated</small></span>
+              <input id="allowPhrases" type="checkbox">
+              <i aria-hidden="true"></i>
+            </label>
+            <label class="switch-row">
+              <span><b>Generated layer</b><small id="generatedHint">checking runtime…</small></span>
+              <input id="allowGenerated" type="checkbox">
+              <i aria-hidden="true"></i>
+            </label>
+            <div id="entityCategoryPanel" class="entity-category-panel">
+              <div class="entity-category-head">
+                <span>Entity groups</span>
+                <button type="button" class="entity-category-chip active" data-entity-category="all" aria-pressed="true">ALL</button>
+              </div>
+              <div class="entity-category-grid" aria-label="Entity category filters">
+                <button type="button" class="entity-category-chip" data-entity-category="person.rapper" aria-pressed="false">Rapper</button>
+                <button type="button" class="entity-category-chip" data-entity-category="person.musician" aria-pressed="false">Sänger / Musiker</button>
+                <button type="button" class="entity-category-chip" data-entity-category="person.actor" aria-pressed="false">Schauspieler</button>
+                <button type="button" class="entity-category-chip" data-entity-category="person.director" aria-pressed="false">Regisseure</button>
+                <button type="button" class="entity-category-chip" data-entity-category="group.music_group" aria-pressed="false">Musikgruppen</button>
+                <button type="button" class="entity-category-chip" data-entity-category="organization.car_brand" aria-pressed="false">Automarken</button>
+                <button type="button" class="entity-category-chip" data-entity-category="organization.fashion_house" aria-pressed="false">Fashion</button>
+                <button type="button" class="entity-category-chip" data-entity-category="organization.company" aria-pressed="false">Firmen</button>
+                <button type="button" class="entity-category-chip" data-entity-category="work.film" aria-pressed="false">Filme</button>
+                <button type="button" class="entity-category-chip" data-entity-category="work.video_game" aria-pressed="false">Games</button>
+                <button type="button" class="entity-category-chip" data-entity-category="work.album" aria-pressed="false">Alben</button>
+                <button type="button" class="entity-category-chip" data-entity-category="work.song" aria-pressed="false">Songs</button>
+                <button type="button" class="entity-category-chip" data-entity-category="fictional.character" aria-pressed="false">Figuren</button>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="seed-row">
+            <label class="field">
+              <span>Deterministic seed</span>
+              <input id="randomSeed" type="number" min="0" step="1" value="1337" inputmode="numeric">
+            </label>
+            <button id="rerollSeed" class="icon-button" type="button" aria-label="Choose a new seed" title="New seed">↻</button>
+          </div>
+
+          <button id="generateButton" class="generate-button" type="submit">
+            <span>COOK THE LINE</span>
+            <b>→</b>
+          </button>
+        </form>
+
+        <p id="modelNote" class="model-note"><strong>MODEL:</strong> checking local lyric-transition runtime…</p>
+      </aside>
+
+      <section class="output-column" aria-label="Generated Markov results">
+        <div class="stage-wrap">
+          <div class="stage-head">
+            <div>
+              <p class="micro">CURRENT LINE</p>
+              <h2>Plan the line. Constrain the rhyme. Diversify the result set.</h2>
+            </div>
+            <div id="status" class="status-pill" data-tone="neutral" aria-live="polite">Initializing…</div>
+          </div>
+
+          <div id="sentenceStage" class="sentence-stage" aria-live="polite">
+            <div class="empty-stage">
+              <span>⌁ ♪ ⌁</span>
+              <strong>THE MACHINE IS BORED</strong>
+              <p>Hit generate. It has words and questionable judgment.</p>
+            </div>
+          </div>
+
+          <div id="poolStats" class="pool-stats" aria-label="Candidate pool statistics">
+            <span><b>—</b> candidates</span>
+            <span><b>—</b> words</span>
+            <span><b>—</b> phrases</span>
+            <span><b>—</b> entities</span>
+            <span><b>—</b> ms lookup</span>
+          </div>
+        </div>
+
+        <section class="variants-section">
+          <div class="variants-head">
+            <div>
+              <p class="micro">ALTERNATE UNIVERSES</p>
+              <h2>Other deterministic variants</h2>
+            </div>
+            <span>tap one to promote it</span>
+          </div>
+          <div id="resultList" class="result-list">
+            <div class="placeholder-card"></div>
+            <div class="placeholder-card"></div>
+            <div class="placeholder-card"></div>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+  <script type="module" src="/markov-test/app.js"></script>
+</body>
+</html>

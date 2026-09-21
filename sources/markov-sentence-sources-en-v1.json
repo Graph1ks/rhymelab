@@ -1,0 +1,43 @@
+{
+  "schema": "rhymelab-markov-source-registry-v1",
+  "language": "en",
+  "sources": [
+    {
+      "code": "leipzig_eng_news_2023_1m",
+      "kind": "sentence",
+      "weight": 1,
+      "enabled": true,
+      "format": "leipzig-tar-gz",
+      "url": "https://downloads.wortschatz-leipzig.de/corpora/eng_news_2023_1M.tar.gz",
+      "member_suffix": "eng_news_2023_1M-sentences.txt",
+      "license": "CC BY",
+      "license_url": "https://wortschatz-leipzig.de/en/usage",
+      "source_url": "https://wortschatz.uni-leipzig.de/en/download",
+      "genre": "news",
+      "year": 2023,
+      "expected_rows": 1000000,
+      "commercial_use": true,
+      "notes": "Verified English News 2023 1M Leipzig norm corpus; RhymeLab stages at most 300K accepted rows for the initial balanced model.",
+      "max_rows": 300000
+    },
+    {
+      "code": "tatoeba_eng",
+      "kind": "sentence",
+      "weight": 1,
+      "enabled": true,
+      "format": "tatoeba-detailed-bz2",
+      "tatoeba_language": "eng",
+      "url": "https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences_detailed.tsv.bz2",
+      "license": "CC BY 2.0 FR",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/fr/",
+      "source_url": "https://tatoeba.org",
+      "attribution_url": "https://tatoeba.org",
+      "genre": "conversational/learner",
+      "year": 2026,
+      "commercial_use": true,
+      "notes": "Weekly English detailed export. Attribution required.",
+      "max_rows": 300000,
+      "selection": "newest"
+    }
+  ]
+}
