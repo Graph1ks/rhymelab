@@ -1,5 +1,6 @@
 import { CLIENT_QUERY_PRONUNCIATION_POLICY, resolveUnknownClientPronunciation } from './query-pronunciation-client.mjs';
 import { readGeneratedPronunciationCache, writeGeneratedPronunciationCache } from './query-pronunciation-cache.mjs';
+import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchState,searchStateFromUrl,searchStateToWriterParams,writeSearchStateToUrl} from './search-state.mjs';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -146,11 +147,58 @@ const state={
   sectionVisible:new Map(),query:'',scrollObserver:null,wordCache:new Map(),pronunciationMisses:new Set(),
   detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null,searchAutoCompactThreshold:null,stickyPanelOverride:null,
 };
+let sharedSearchState=createSearchState({
+  queryBasis:state.basis,
+  resultLanguage:state.resultLanguage,
+  generated:state.generatedOptIn,
+  generatedOnly:state.generatedOnly,
+});
+
 const esc=(value)=>String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const t=(key)=>I18N[state.lang][key]??I18N.en[key]??key;
 const number=(value)=>Number(value).toLocaleString(state.lang==='de'?'de-DE':'en-US');
 const normalizeKey=(value,language='de')=>String(value??'').normalize('NFKC').trim().toLocaleLowerCase(language==='en'?'en-US':'de-DE');
 const wordCacheKey=(language,value,generated=state.generatedOptIn)=>`${generated?'generated':'canonical'}:${language||'de'}:${normalizeKey(value,language||'de')}`;
+
+function captureSharedSearchState(anchor=state.query){
+  sharedSearchState=createSearchState({
+    ...sharedSearchState,
+    anchor,
+    queryBasis:state.basis,
+    resultLanguage:state.resultLanguage,
+    scope:$('#scopeFilter')?.value||sharedSearchState.scope,
+    rhymeType:$('#typeFilter')?.value||sharedSearchState.rhymeType,
+    syllableFilter:$('#syllableFilter')?.value||sharedSearchState.syllableFilter,
+    sort:$('#sortMode')?.value||sharedSearchState.sort,
+    variantMode:$('#variantMode')?.value||sharedSearchState.variantMode,
+    historical:Boolean($('#historicalMode')?.checked),
+    generated:state.generatedOptIn,
+    generatedOnly:state.generatedOnly,
+    entityCategory:$('#entityCategory')?.value||sharedSearchState.entityCategory,
+    selectedResultId:state.inspectedResult?.resultId||state.inspectedResult?.windowId||state.inspectedResult?.normalized||'',
+  });
+  saveSearchState(sharedSearchState);
+  return sharedSearchState;
+}
+function applySharedSearchState(searchState,{entityCategory=true}={}){
+  const next=createSearchState(searchState);
+  sharedSearchState=next;
+  state.basis=next.queryBasis;
+  state.resultLanguage=next.resultLanguage;
+  state.generatedOptIn=next.generated;
+  state.generatedOnly=next.generatedOnly;
+  if($('#scopeFilter'))$('#scopeFilter').value=next.scope;
+  if($('#typeFilter'))$('#typeFilter').value=next.rhymeType;
+  if($('#syllableFilter'))$('#syllableFilter').value=next.syllableFilter;
+  if($('#sortMode'))$('#sortMode').value=next.sort;
+  if($('#variantMode'))$('#variantMode').value=next.variantMode;
+  if($('#historicalMode'))$('#historicalMode').checked=next.historical;
+  if(entityCategory&&$('#entityCategory')){
+    const valid=[...$('#entityCategory').options].some((option)=>option.value===next.entityCategory);
+    $('#entityCategory').value=valid?next.entityCategory:'all';
+  }
+  return next;
+}
 
 function humanize(value){return String(value??'').replace(/^wiktionary:/,'').replaceAll('_',' ').replaceAll('-',' ').replace(/\b\p{L}/gu,(char)=>char.toLocaleUpperCase(state.lang==='de'?'de-DE':'en-US'));}
 function lexicalTagLabel(tag){return LEXICAL_TAG_LABELS[state.lang]?.[tag]??LEXICAL_TAG_LABELS.en[tag]??humanize(tag);}
@@ -702,27 +750,9 @@ async function search(word){
   state.scrollObserver?.disconnect();
 
   try{
-    const requestedType=$('#typeFilter').value;
-    const backendType=SOUND_RELATION_TYPES.includes(requestedType)?'all':requestedType;
-    const params=new URLSearchParams({
-      q:state.query,
-      language:state.basis,
-      result_language:state.resultLanguage,
-      scope:$('#scopeFilter').value,
-      word_limit:'250',
-      word_pool:'800',
-      phrase_limit:'250',
-      phrase_pool:'512',
-      phrase_per_channel:'128',
-      entity_limit:'250',
-      entity_pool:'512',
-      entity_category:$('#entityCategory')?.value||'all',
-      variants:$('#variantMode').value,
-      historical:$('#historicalMode').checked?'all':'current',
-      generated:state.generatedOptIn?'1':'0',
-      generated_only:state.generatedOnly?'1':'0',
-      type:backendType,
-    });
+    const searchState=captureSharedSearchState(state.query);
+    const requestedType=searchState.rhymeType;
+    const params=searchStateToWriterParams(searchState);
     let {response,data}=await requestWriter(params);
     const generated=await resolveMissingQueryPronunciations(data);
     if(Object.values(generated).some((detail)=>detail?.ipa)){
@@ -740,15 +770,8 @@ async function search(word){
     updateSyllableLabels();
     if(data.query?.kind==='word')state.wordCache.set(wordCacheKey(data.query.language||'de',data.query?.surface||state.query),data.query);
 
-    const url=new URL(location.href);
-    url.searchParams.set('q',state.query);
-    url.searchParams.set('lang',state.basis);
-    url.searchParams.set('result_lang',state.resultLanguage);
-    url.searchParams.set('scope',$('#scopeFilter').value);
-    url.searchParams.set('type',requestedType);
-    const entityCategory=$('#entityCategory')?.value||'all';
-    if(entityCategory==='all')url.searchParams.delete('entity_category');
-    else url.searchParams.set('entity_category',entityCategory);
+    sharedSearchState=captureSharedSearchState(state.query);
+    const url=writeSearchStateToUrl(new URL(location.href),sharedSearchState);
     history.replaceState(null,'',url);
     render();
     syncSearchSectionControls();
@@ -799,7 +822,7 @@ function installInteractiveControls(){
   $$('.result-language-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.resultLanguage=['de','en','both'].includes(button.dataset.resultLanguage)?button.dataset.resultLanguage:'de';localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);state.sectionVisible.clear();syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
   $$('.scope-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;setScope(button.dataset.scope,{rerun:true});renderCapabilityNotice();}));
   ['typeFilter','variantMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{if(state.query)search(state.query);else renderCapabilityNotice();}));
-  ['syllableFilter','sortMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{state.visibleCount=state.pageSize;state.sectionVisible.clear();if(state.data)render();}));
+  ['syllableFilter','sortMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{state.visibleCount=state.pageSize;state.sectionVisible.clear();captureSharedSearchState();if(state.data)render();}));
   $('#historicalMode').addEventListener('change',()=>{if(state.query)search(state.query);});
   $('#generatedMode').addEventListener('change',()=>{
     state.generatedOptIn=Boolean($('#generatedMode').checked&&state.generatedCapability?.available);
@@ -843,31 +866,41 @@ function installInteractiveControls(){
 
 async function bootstrap(){
   const initialUrl=new URL(location.href);
-  const initialBasis=initialUrl.searchParams.get('lang');
-  const initialResultLanguage=initialUrl.searchParams.get('result_lang');
-  const initialScope=initialUrl.searchParams.get('scope');
-  const initialType=initialUrl.searchParams.get('type');
-  const initialEntityCategory=initialUrl.searchParams.get('entity_category');
-
-  if(['de','en','both'].includes(initialBasis))state.basis=initialBasis;
-  if(['de','en','both'].includes(initialResultLanguage))state.resultLanguage=initialResultLanguage;
-  if(['all','words','phrases','entities'].includes(initialScope))$('#scopeFilter').value=initialScope;
-  if(['all',...RHYME_TYPES].includes(initialType))$('#typeFilter').value=initialType;
+  const hasSharedState=Boolean(localStorage.getItem(SEARCH_STATE_STORAGE_KEY));
+  const legacySeed=createSearchState({
+    queryBasis:state.basis,
+    resultLanguage:state.resultLanguage,
+    scope:$('#scopeFilter').value,
+    rhymeType:$('#typeFilter').value,
+    syllableFilter:$('#syllableFilter').value,
+    sort:$('#sortMode').value,
+    variantMode:$('#variantMode').value,
+    historical:$('#historicalMode').checked,
+    generated:state.generatedOptIn,
+    generatedOnly:state.generatedOnly,
+  });
+  sharedSearchState=searchStateFromUrl(
+    initialUrl,
+    hasSharedState?loadSearchState():legacySeed,
+  );
+  applySharedSearchState(sharedSearchState,{entityCategory:false});
 
   setScope($('#scopeFilter').value);
   syncSearchSectionControls();
   applyLanguage();
   await loadCapabilities();
 
-  if(initialEntityCategory&&[...($('#entityCategory')?.options||[])].some((option)=>option.value===initialEntityCategory)){
-    $('#entityCategory').value=initialEntityCategory;
-  }
+  applySharedSearchState(sharedSearchState,{entityCategory:true});
+  setScope($('#scopeFilter').value);
+  syncGeneratedOptinControl();
   syncContextFilters();
 
-  const initial=initialUrl.searchParams.get('q');
+  const initial=sharedSearchState.anchor;
   if(initial){
     $('#searchInput').value=initial;
     await search(initial);
+  }else{
+    saveSearchState(captureSharedSearchState(''));
   }
 }
 function reportUiInitializationFailure(error){

@@ -49,6 +49,7 @@ import {
   resolveServerRuntimeMode,
 } from './server-runtime-mode.mjs';
 import {createServingV1ParallelWriterRuntime} from './unified-writer-parallel.mjs';
+import {analyzeSongEndRhymes} from './song-rhyme-analysis.mjs';
 import {
   generatedDataExplicitlyRequired,
   generatedDataRequested,
@@ -62,6 +63,11 @@ const serverRuntimeMode=resolveServerRuntimeMode({
   env:process.env,
 });
 const servingV1Active=isServingV1(serverRuntimeMode);
+const searchDefaultRoute=process.argv.includes('--search-default')
+  ||String(process.env.RHYMELAB_SEARCH_DEFAULT||'').trim()==='1';
+const studioDefaultRoute=process.argv.includes('--studio-default')
+  ||String(process.env.RHYMELAB_STUDIO_DEFAULT||'').trim()==='1'
+  ||!searchDefaultRoute;
 const servingV1DbPath=resolve(
   process.env.RHYMELAB_SERVING_V1_DB||DEFAULT_SERVING_V1_PRODUCT_DB_PATH,
 );
@@ -97,6 +103,7 @@ const generatedEntityDbPath=resolve(
 );
 const uiDir = resolve('src/ui');
 const padUiDir = resolve('src/pad');
+const studioUiDir = resolve('src/studio');
 const benchmarkUiDir = resolve('src/benchmark-ui');
 const queryPronunciationTestDir = resolve('src/query-pronunciation-test');
 const markovTestDir = resolve('src/markov-test');
@@ -385,18 +392,55 @@ function generatedRuntimeHealth(){
 
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
 const padHtml = Buffer.from(materializeRhymePadV14().html);
+const studioHtml = readFileSync(resolve(studioUiDir, 'index.html'));
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const queryPronunciationTestHtml = readFileSync(resolve(queryPronunciationTestDir, 'index.html'));
 const markovTestHtml = readFileSync(resolve(markovTestDir, 'index.html'));
 const assets = {
-  '/': { type: 'text/html; charset=utf-8', body: writerHtml },
+  '/': { type: 'text/html; charset=utf-8', body: studioDefaultRoute?studioHtml:writerHtml },
+  '/search': { type: 'text/html; charset=utf-8', body: writerHtml },
+  '/search/': { type: 'text/html; charset=utf-8', body: writerHtml },
+  '/legacy': { type: 'text/html; charset=utf-8', body: writerHtml },
+  '/legacy/': { type: 'text/html; charset=utf-8', body: writerHtml },
   '/pad': { type: 'text/html; charset=utf-8', body: padHtml },
+  '/pad-legacy': { type: 'text/html; charset=utf-8', body: padHtml },
+  '/pad-legacy/': { type: 'text/html; charset=utf-8', body: padHtml },
   '/pad/': { type: 'text/html; charset=utf-8', body: padHtml },
+  '/studio': { type: 'text/html; charset=utf-8', body: studioHtml },
+  '/studio/': { type: 'text/html; charset=utf-8', body: studioHtml },
+  '/studio/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'styles.css')) },
+  '/studio/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'app.js')) },
+  '/studio/studio-core.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'studio-core.mjs')) },
+  '/studio/studio-controls.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'studio-controls.mjs')) },
+  '/studio/search-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'search-adapter.mjs')) },
+  '/studio/search-filters.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'search-filters.mjs')) },
+  '/studio/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'search-state.mjs')) },
+  '/studio/document-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'document-adapter.mjs')) },
+  '/studio/document-model.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'document-model.mjs')) },
+  '/studio/document-store.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'document-store.mjs')) },
+  '/studio/editor-session.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'editor-session.mjs')) },
+  '/studio/performance-session.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'performance-session.mjs')) },
+  '/studio/mobile-viewport.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'mobile-viewport.mjs')) },
+  '/studio/capability-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'capability-adapter.mjs')) },
+  '/studio/detail-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'detail-adapter.mjs')) },
+  '/studio/analysis-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'analysis-adapter.mjs')) },
+  '/studio/backup-portability.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'backup-portability.mjs')) },
+  '/studio/diagnostics.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'diagnostics.mjs')) },
+  '/studio/i18n.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'i18n.mjs')) },
+  '/studio/dom-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'dom-acceptance.mjs')) },
+  '/studio/command-palette.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'command-palette.mjs')) },
+  '/studio/device-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'device-acceptance.mjs')) },
+  '/studio/edit-history.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'edit-history.mjs')) },
+  '/studio/parity-manifest.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'parity-manifest.mjs')) },
+  '/studio/revision-diff.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'revision-diff.mjs')) },
+  '/studio/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'query-pronunciation-client.mjs')) },
+  '/studio/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'query-pronunciation-cache.mjs')) },
   '/pad/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(padUiDir, 'styles.css')) },
   '/pad/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(padUiDir, 'app.js')) },
   '/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'styles.css')) },
   '/assets/mobile.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'mobile.css')) },
   '/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'app.js')) },
+  '/assets/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'search-state.mjs')) },
   '/assets/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-client.mjs')) },
   '/assets/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-cache.mjs')) },
   '/benchmark': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
@@ -414,6 +458,17 @@ const assets = {
   '/markov-test/markov-core.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(markovTestDir, 'markov-core.mjs')) },
   '/markov-test/markov-controls.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(markovTestDir, 'markov-controls.mjs')) },
 };
+
+function studioRouteModePayload(){
+  return {
+    studioDefaultRoute,
+    defaultRoute:studioDefaultRoute?'studio':'search',
+    studio:'/studio',
+    search:'/search',
+    legacySearch:'/legacy',
+    legacyPad:'/pad-legacy',
+  };
+}
 
 function json(res, data, status = 200, allowCors = true) {
   const headers = {
@@ -610,6 +665,11 @@ const server = createServer(async (req, res) => {
       return json(res,runtimeDatasetStats());
     }
 
+    if(url.pathname==='/api/studio/route-mode'){
+      json(res,studioRouteModePayload());
+      return;
+    }
+
     if (url.pathname === '/api/writer') {
       const q = url.searchParams.get('q') || '';
       if (!q.trim()) return json(res, { error: 'q is required' }, 400);
@@ -635,6 +695,12 @@ const server = createServer(async (req, res) => {
         entityLimit: url.searchParams.get('entity_limit') || url.searchParams.get('limit'),
         entityPoolLimit: url.searchParams.get('entity_pool'),
         entityCategory: url.searchParams.get('entity_category') || 'all',
+        entityCategories: [
+          ...url.searchParams.getAll('entity_category'),
+          ...(url.searchParams.get('entity_categories')||'').split(','),
+        ].map((value)=>String(value||'').trim()).filter((value,index,array)=>
+          value&&value!=='all'&&array.indexOf(value)===index
+        ).slice(0,24),
         generatedOnly:generatedOnlyRequested(url),
         queryPronunciations: {
           de: clientQueryPronunciation(url, 'de'),
@@ -654,6 +720,46 @@ const server = createServer(async (req, res) => {
           ? 404
           : 200;
       return json(res, {...result,runtimeTiming}, status);
+    }
+
+    if (url.pathname === '/api/analysis/rhyme-scheme') {
+      const words=url.searchParams.getAll('word').map((word)=>String(word||'').trim()).slice(0,200);
+      if(!words.some(Boolean))return json(res,{error:'at least one word is required'},400);
+      const language=String(url.searchParams.get('language')||'de').trim().toLocaleLowerCase('en-US');
+      const normalizedLanguage=['de','en','both'].includes(language)?language:'de';
+      const runtimeDatabases=requestRuntimeDatabases(url);
+      if(!runtimeDatabases){
+        return json(res,{
+          error:'Generated opt-in runtime is unavailable.',
+          reason:activeGeneratedRuntime.reason,
+        },503);
+      }
+      const started=performance.now();
+      const searchAnchor=async(word)=>{
+        const options={
+          language:normalizedLanguage,
+          resultLanguage:normalizedLanguage,
+          scope:'words',
+          type:'all',
+          includeVariants:true,
+          includeHistorical:false,
+          wordLimit:250,
+          wordPoolLimit:1200,
+          generatedOnly:generatedOnlyRequested(url),
+        };
+        return servingV1Active
+          ?parallelWriterRuntime.search(word,options,{generatedOverlay:generatedOptinRequested(url)})
+          :searchUnifiedWriter(runtimeDatabases,word,options);
+      };
+      const analysis=await analyzeSongEndRhymes(words,{
+        searchAnchor,
+        language:normalizedLanguage,
+        maxUnique:64,
+      });
+      return json(res,{
+        ...analysis,
+        runtimeTiming:{currentMs:Number((performance.now()-started).toFixed(3))},
+      });
     }
 
     if (url.pathname === '/api/phrases/stats') {
@@ -759,6 +865,8 @@ const server = createServer(async (req, res) => {
 server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymePad workspace: http://${host}:${port}/pad`);
+  console.log(`Studio V2: http://${host}:${port}${studioDefaultRoute?' / (default)':'/studio'}`);
+  console.log(`Legacy Search: http://${host}:${port}/search${studioDefaultRoute?'':' (default)'}`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
   console.log(`Markov DE database: ${markovRuntime.available ? markovModelPath : 'unavailable — npm run markov:model:build'}`);
   console.log(`Markov EN database: ${markovEnglishRuntime.available ? markovEnglishModelPath : 'unavailable — npm run markov:model:build:en'}`);

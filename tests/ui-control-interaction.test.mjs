@@ -2,6 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
+async function uiRuntimeSource(app){
+  const shared=await readFile('src/ui/search-state.mjs','utf8');
+  const sharedRuntime=shared
+    .replace(/\bexport\s+/gu,'')
+    .replace(/\bRHYME_TYPES\b/gu,'SEARCH_STATE_RHYME_TYPES');
+  const appRuntime=app
+    .replace(/^import .*?;\s*$/gmu,'')
+    .replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
+  return sharedRuntime+'\n'+appRuntime;
+}
+
 class FakeClassList {
   constructor(){ this.values=new Set(); }
   toggle(name,force){
@@ -173,9 +184,7 @@ test('unified UI primary controls bind and change state at runtime', async () =>
   const app=await readFile('src/ui/app.js','utf8');
   assert.doesNotMatch(app,/\$\$\$/);
 
-  const testable=app
-    .replace(/^import .*?;\s*$/gmu,'')
-    .replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
+  const testable=await uiRuntimeSource(app);
   const dom=buildFakeDom();
   const localStorage=makeStorage();
 
@@ -287,17 +296,15 @@ test('unified UI control binding preflights the complete interactive surface', a
   assert.match(app,/rhymelab\.searchOptionsExpanded\.v2/);
   assert.match(app,/rhymelab\.resultFiltersExpanded\.v2/);
   assert.match(app,/const defaultSearchSectionsExpanded=true/);
-  assert.match(app,/generated:state\.generatedOptIn\?'1':'0'/);
-  assert.match(app,/generated_only:state\.generatedOnly\?'1':'0'/);
+  assert.match(app,/captureSharedSearchState/);
+  assert.match(app,/searchStateToWriterParams\(searchState\)/);
   assert.doesNotMatch(app,/localStorage\.(?:getItem|setItem)\(['"]rhymelab\.generated/);
 });
 
 
 test('entity result presentation uses concrete taxonomy labels instead of generic Entity', async () => {
   const app=await readFile('src/ui/app.js','utf8');
-  const testable=app
-    .replace(/^import .*?;\s*$/gmu,'')
-    .replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
+  const testable=await uiRuntimeSource(app);
   const dom=buildFakeDom();
   const localStorage=makeStorage();
 
@@ -373,9 +380,7 @@ test('entity result presentation uses concrete taxonomy labels instead of generi
 
 test('surface results render merged Entity tags and choose one default sound section', async () => {
   const app=await readFile('src/ui/app.js','utf8');
-  const testable=app
-    .replace(/^import .*?;\s*$/gmu,'')
-    .replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
+  const testable=await uiRuntimeSource(app);
   const dom=buildFakeDom();
   const localStorage=makeStorage();
 
@@ -436,9 +441,7 @@ test('surface results render merged Entity tags and choose one default sound sec
 
 test('control-surface preflight rejects a missing required control group', async () => {
   const app=await readFile('src/ui/app.js','utf8');
-  const testable=app
-    .replace(/^import .*?;\s*$/gmu,'')
-    .replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
+  const testable=await uiRuntimeSource(app);
   const dom=buildFakeDom();
   dom.groups.set('.basis-option',[]);
   const localStorage=makeStorage();

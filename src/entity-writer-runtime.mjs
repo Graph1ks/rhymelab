@@ -125,6 +125,19 @@ function normalizeCategory(value) {
   const category = String(value || 'all').trim();
   return category || 'all';
 }
+function normalizeCategories(value,fallback='all'){
+  const source=Array.isArray(value)?value:String(value??'').split(',');
+  const categories=[];
+  for(const entry of source){
+    const category=normalizeCategory(entry);
+    if(category==='all')continue;
+    if(!categories.includes(category))categories.push(category);
+    if(categories.length>=24)break;
+  }
+  if(categories.length)return categories;
+  const legacy=normalizeCategory(fallback);
+  return legacy==='all'?[]:[legacy];
+}
 
 function categoryRowsByEntity(db, entityIds, chunkSize = 400) {
   const ids = [...new Set((entityIds || []).map(Number).filter(Number.isFinite))];
@@ -431,7 +444,8 @@ export function searchEntityRhymes(db, query, options = {}) {
     };
   }
 
-  const category=normalizeCategory(options.category);
+  const requestedCategories=normalizeCategories(options.categories,options.category);
+  const category=requestedCategories.length===1?requestedCategories[0]:requestedCategories.length?requestedCategories.join(','):'all';
   const requestedType=RHYME_TYPES.has(String(options.type||''))
     ?String(options.type)
     :'all';
@@ -593,8 +607,8 @@ export function searchEntityRhymes(db, query, options = {}) {
   let anchorRowsSeen=0;
   timed('anchor_lookup_ms',()=>{
   for(const anchor of anchors){
-    let rows;
-    if(servingV1&&category==='all'){
+    let rows=[];
+    if(servingV1&&!requestedCategories.length){
       rows=servingLookupIds.all(
         languageCapability.analyzer,
         anchor.channel,
@@ -603,33 +617,39 @@ export function searchEntityRhymes(db, query, options = {}) {
         language,
         perChannelLimit,
       );
-    }else if(servingV1){
-      rows=servingLookup.all(
-        languageCapability.analyzer,
-        anchor.channel,
-        anchor.key,
-        languageCapability.locale,
-        language,
-        category,
-        category,
-        perChannelLimit,
-      );
     }else{
-      rows=legacyLookup.all(
-        languageCapability.analyzer,
-        anchor.channel,
-        anchor.key,
-        languageCapability.locale,
-        language,
-        generatedOnly?1:0,
-        category,
-        category,
-        perChannelLimit,
-      );
+      const categoryQueries=requestedCategories.length?requestedCategories:['all'];
+      const merged=new Map();
+      for(const selectedCategory of categoryQueries){
+        const selectedRows=servingV1
+          ?servingLookup.all(
+              languageCapability.analyzer,
+              anchor.channel,
+              anchor.key,
+              languageCapability.locale,
+              language,
+              selectedCategory,
+              selectedCategory,
+              perChannelLimit,
+            )
+          :legacyLookup.all(
+              languageCapability.analyzer,
+              anchor.channel,
+              anchor.key,
+              languageCapability.locale,
+              language,
+              generatedOnly?1:0,
+              selectedCategory,
+              selectedCategory,
+              perChannelLimit,
+            );
+        for(const row of selectedRows)merged.set(Number(row.pronunciation_id),row);
+      }
+      rows=[...merged.values()];
     }
     anchorRowsSeen+=rows.length;
     for(const row of rows){
-      if(!(servingV1&&category==='all')
+      if(!(servingV1&&!requestedCategories.length)
         &&queryNormalized
         &&profile.normalizeSurface(row.surface)===queryNormalized) continue;
       const pronunciationId=Number(row.pronunciation_id);
@@ -649,7 +669,7 @@ export function searchEntityRhymes(db, query, options = {}) {
   counters.anchor_count=anchors.length;
   counters.anchor_rows=anchorRowsSeen;
 
-  if(servingV1&&category==='all'&&byPronunciation.size){
+  if(servingV1&&!requestedCategories.length&&byPronunciation.size){
     timed('anchor_hydration_ms',()=>{
       const hydrated=hydrateServingEntityPronunciations(
         [...byPronunciation.keys()],
@@ -692,10 +712,10 @@ export function searchEntityRhymes(db, query, options = {}) {
     if(!types.length) continue;
     if(requestedType!=='all'&&!types.includes(requestedType)) continue;
     const relations=relationRows(score);
-    const categories=categoryIndex.rowsByEntity.get(Number(row.entity_id))||[];
-    const selectedCategory=category==='all'
-      ?categories.find((entry)=>entry.category===row.primary_category)||categories[0]||null
-      :categories.find((entry)=>entry.category===category)||null;
+    const entityCategories=categoryIndex.rowsByEntity.get(Number(row.entity_id))||[];
+    const selectedCategory=!requestedCategories.length
+      ?entityCategories.find((entry)=>entry.category===row.primary_category)||entityCategories[0]||null
+      :requestedCategories.map((value)=>entityCategories.find((entry)=>entry.category===value)).find(Boolean)||null;
 
     results.push({
       resultKind:'entity',
@@ -730,7 +750,7 @@ export function searchEntityRhymes(db, query, options = {}) {
       entityId:Number(row.entity_id),
       entityNameId:Number(row.name_id),
       primaryCategory:row.primary_category,
-      entityCategories:categories,
+      entityCategories,
       selectedCategory,
       popularityScore:Number(row.popularity_score||0),
       popularityPercentile:Number(row.popularity_percentile||0),
@@ -768,6 +788,7 @@ export function searchEntityRhymes(db, query, options = {}) {
     language,
     locale:languageCapability.locale,
     category,
+    categories:requestedCategories,
     retrievalAnchors:anchors,
     candidateCount:byPronunciation.size,
     scoredCandidateCount:results.length,
