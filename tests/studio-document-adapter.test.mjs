@@ -20,6 +20,7 @@ test('Studio preferences exclude document authority fields',()=>{
     fontSize:22,
     density:'compact',
     motion:'off',
+    uiLanguage:'en',
   };
   assert.deepEqual(studioPreferencesFromState(state),{
     saved:[{word:'night'}],
@@ -27,6 +28,7 @@ test('Studio preferences exclude document authority fields',()=>{
     fontSize:22,
     density:'compact',
     motion:'off',
+    uiLanguage:'en',
   });
 
   const values=new Map();
