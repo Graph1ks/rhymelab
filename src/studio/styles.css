@@ -517,6 +517,9 @@ html,*{
 /* Studio authoritative persistence + Perform parity */
 .recovery-card{grid-column:1/-1}
 .recovery-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.recovery-head-actions{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.recovery-head-actions button{min-height:34px;font-size:9px}
+
 .recovery-head p{max-width:720px}
 #recoveryPanel{margin-top:12px}
 .recovery-list{display:grid;gap:6px}
@@ -620,6 +623,8 @@ html,*{
 }
 @media(max-width:800px){
   .recovery-head{display:grid}
+  .recovery-head-actions{display:grid;grid-template-columns:1fr}
+  .recovery-head-actions button{min-height:44px}
   .recovery-row{grid-template-columns:1fr}
   .recovery-row button{min-height:44px}
   .perform-head{grid-template-columns:1fr}
