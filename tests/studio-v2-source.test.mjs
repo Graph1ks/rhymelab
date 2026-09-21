@@ -113,6 +113,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/validateSelectionProof\(song\(\),selectionProof\)/u);
   assert.match(app,/performUndo/u);
   assert.match(app,/performRedo/u);
+  assert.match(app,/createTypingUndoCoalescer/u);
+  assert.match(app,/typingUndo\.shouldCheckpoint/u);
+  assert.match(app,/coalesced:true/u);
+  assert.match(app,/typingUndo\.noteBoundary/u);
   assert.match(app,/data-perform-feel/u);
   assert.match(app,/data-perform-grid/u);
   assert.match(app,/data-perform-scale/u);
@@ -271,6 +275,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/i18n\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/dom-acceptance\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/command-palette\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/edit-history\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
