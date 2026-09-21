@@ -6,36 +6,43 @@ export const STUDIO_DEVICE_GATES=Object.freeze([
     id:'editor.ime',
     label:'IME composition input',
     instruction:'Compose text with an IME, commit it, undo once, redo once, and verify one coherent edit transaction.',
+    requirements:Object.freeze({}),
   }),
   Object.freeze({
     id:'perform.metronome',
     label:'Web Audio metronome',
     instruction:'Start/stop the metronome, change BPM/feel/tempo scale, and verify audible timing follows the current grid.',
+    requirements:Object.freeze({audio:true}),
   }),
   Object.freeze({
     id:'mobile.navigation',
     label:'Mobile bottom navigation',
     instruction:'Switch Studio, Results, Library and Saved from the bottom navigation without losing active Bar or selection.',
+    requirements:Object.freeze({mobile:true,touch:true}),
   }),
   Object.freeze({
     id:'mobile.swap',
     label:'Single-surface editor/results swap',
     instruction:'Open Results from a selected range, insert a result, and verify Studio returns to the exact insertion target.',
+    requirements:Object.freeze({mobile:true,touch:true}),
   }),
   Object.freeze({
     id:'mobile.keyboard',
     label:'Software-keyboard viewport',
     instruction:'Focus Bars near the bottom of the document and verify the active line remains reachable above the software keyboard.',
+    requirements:Object.freeze({mobile:true,touch:true,visualViewport:true}),
   }),
   Object.freeze({
     id:'mobile.touch',
     label:'Primary touch targets',
     instruction:'Operate primary Studio controls by touch and verify controls are comfortably tappable with no clipped rails.',
+    requirements:Object.freeze({mobile:true,touch:true}),
   }),
   Object.freeze({
     id:'mobile.no-hover',
     label:'No hover-only primary action',
     instruction:'Use Quickstyles, Library actions, result actions and Perform controls using touch only.',
+    requirements:Object.freeze({mobile:true,touch:true}),
   }),
 ]);
 
@@ -52,6 +59,27 @@ function normalizeEnvironment(environment={}){
     viewportHeight:Number(environment.viewportHeight)||0,
     devicePixelRatio:Number(environment.devicePixelRatio)||1,
     maxTouchPoints:Number(environment.maxTouchPoints)||0,
+    coarsePointer:environment.coarsePointer===true,
+    audioSupported:environment.audioSupported!==false,
+    visualViewportSupported:environment.visualViewportSupported!==false,
+  };
+}
+
+export function studioDeviceGateEnvironmentStatus(gateId,environment={}){
+  const gate=STUDIO_DEVICE_GATES.find((entry)=>entry.id===gateId);
+  if(!gate)return {eligible:false,reason:'unknown gate'};
+  const env=normalizeEnvironment(environment);
+  const requirements=gate.requirements||{};
+  const failures=[];
+  if(requirements.mobile&&!(env.viewportWidth>0&&env.viewportWidth<=800))failures.push('viewport <= 800 CSS px');
+  if(requirements.touch&&env.maxTouchPoints<1&&!env.coarsePointer)failures.push('touch/coarse pointer');
+  if(requirements.audio&&env.audioSupported===false)failures.push('Web Audio support');
+  if(requirements.visualViewport&&env.visualViewportSupported===false)failures.push('VisualViewport support');
+  return {
+    eligible:failures.length===0,
+    reason:failures.length?'requires '+failures.join(' + '):'environment eligible',
+    failures,
+    environment:env,
   };
 }
 
@@ -75,14 +103,16 @@ export function createStudioDeviceAcceptance({
   const normalizedResults={};
   for(const gate of STUDIO_DEVICE_GATES){
     const row=results?.[gate.id];
-    const passed=row===true||row?.passed===true;
+    const requestedPass=row===true||row?.passed===true;
+    const evidenceEnvironment=normalizeEnvironment(row?.environment||(requestedPass?baseEnvironment:{}));
+    const eligibility=studioDeviceGateEnvironmentStatus(gate.id,evidenceEnvironment);
+    const passed=requestedPass&&eligibility.eligible;
     normalizedResults[gate.id]={
       passed,
       note:text(row?.note),
       testedAt:Number(row?.testedAt)||0,
-      environment:normalizeEnvironment(
-        row?.environment||(passed?baseEnvironment:{}),
-      ),
+      environment:evidenceEnvironment,
+      eligibility:eligibility.reason,
     };
   }
   return {
