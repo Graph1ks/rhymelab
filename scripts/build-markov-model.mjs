@@ -34,6 +34,7 @@ let phraseWork='';
 let workPath='data/work/markov-v2/rhymelab-markov-v2.build.sqlite';
 let outPath='data/local/rhymelab-markov-v2.sqlite';
 let reportPath='data/local/markov-model-v2-report.json';
+let language='de';
 let maxStates=600_000;
 let topK=24;
 let minTokenCount=3;
@@ -53,6 +54,11 @@ for(let i=0;i<args.length;i+=1){
   else if(arg==='--work')workPath=args[++i]||workPath;
   else if(arg==='--out')outPath=args[++i]||outPath;
   else if(arg==='--report')reportPath=args[++i]||reportPath;
+  else if(arg==='--language'){
+    const value=String(args[++i]||'de').toLocaleLowerCase('en-US');
+    if(!['de','en'].includes(value))throw new Error('Unsupported --language '+value+'; expected de or en.');
+    language=value;
+  }
   else if(arg==='--max-states')maxStates=Math.max(1_000,Number(args[++i])||maxStates);
   else if(arg==='--top-k')topK=Math.max(4,Math.min(96,Number(args[++i])||topK));
   else if(arg==='--min-token-count')minTokenCount=Math.max(1,Number(args[++i])||minTokenCount);
@@ -240,7 +246,7 @@ const config={
   schema:MARKOV_MODEL_SCHEMA,
   policy:MARKOV_MODEL_POLICY,
   order:MARKOV_MODEL_ORDER,
-  language:'de',
+  language,
   source_manifest:manifest.id,
   sources:sourceRows.map((row)=>({
     code:row.code,
@@ -272,7 +278,7 @@ if(existed&&existingMeta.build_config_fingerprint&&existingMeta.build_config_fin
 writeMeta(db,{
   schema:MARKOV_MODEL_SCHEMA,
   policy:MARKOV_MODEL_POLICY,
-  language:'de',
+  language,
   order:MARKOV_MODEL_ORDER,
   source_manifest:manifest.id,
   max_states:maxStates,
@@ -384,7 +390,7 @@ async function runPass1(){
       lineNumber+=1;
       if(lineNumber<=resumeLine)continue;
       if(maxSentencesPerCorpus&&accepted>=maxSentencesPerCorpus)break;
-      const sequence=sequenceFromSentence(sentenceFromLine(line),{language:'de',minimumTokens:minimumSequenceTokens});
+      const sequence=sequenceFromSentence(sentenceFromLine(line),{language,minimumTokens:minimumSequenceTokens});
       if(!sequence.length)continue;
       accepted+=1;batchAccepted+=1;
       const sourceWeight=normalizeSourceWeight(source.weight||1);
@@ -425,7 +431,7 @@ async function runPass1(){
         // transitions and anti-copy checks, but must never be learned as if
         // they were complete grammatical lyric lines.
         if(source.kind!=='phrase'){
-          const shape=shapeKeyForTokens(lexical,'de');
+          const shape=shapeKeyForTokens(lexical,language);
           if(shape){
             const shapeId=`${lexical.length}\u0002${shape}`;
             shapeCounts.set(shapeId,(shapeCounts.get(shapeId)||0)+sourceWeight);
@@ -520,7 +526,7 @@ async function runPass2(){
       lineNumber+=1;
       if(lineNumber<=resumeLine)continue;
       if(maxSentencesPerCorpus&&accepted>=maxSentencesPerCorpus)break;
-      const sequence=sequenceFromSentence(sentenceFromLine(line),{language:'de',minimumTokens:minimumSequenceTokens});
+      const sequence=sequenceFromSentence(sentenceFromLine(line),{language,minimumTokens:minimumSequenceTokens});
       if(!sequence.length)continue;
       accepted+=1;batchAccepted+=1;
       const sourceWeight=normalizeSourceWeight(source.weight||1);
@@ -640,7 +646,7 @@ async function promote(){
     built_at:builtAt,
     model_schema:MARKOV_MODEL_SCHEMA,
     policy:MARKOV_MODEL_POLICY,
-    language:'de',
+    language,
     order:MARKOV_MODEL_ORDER,
     source_manifest:manifest.id,
     config,
