@@ -125,6 +125,13 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/data-perform-step/u);
   assert.match(app,/performanceNeedsReview/u);
   assert.match(app,/function renderBarNavigatorDock\(/u);
+  assert.match(app,/function addStudioBarAfter\(/u);
+  assert.match(app,/function duplicateStudioBar\(/u);
+  assert.match(app,/function deleteStudioBar\(/u);
+  assert.match(app,/duplicateEditorBar/u);
+  assert.match(app,/insertEditorBar/u);
+  assert.match(app,/data-bar-duplicate/u);
+  assert.match(app,/data-bar-delete/u);
   assert.match(app,/function moveStudioBar\(/u);
   assert.match(app,/function jumpToStudioBar\(/u);
   assert.match(app,/moveEditorBar/u);
