@@ -36,6 +36,21 @@ function cleanCategory(value){
   const text=String(value||'all').trim();
   return text||'all';
 }
+function cleanCategories(value,fallback='all'){
+  const source=Array.isArray(value)
+    ?value
+    :String(value??'').split(',');
+  const categories=[];
+  for(const entry of source){
+    const category=cleanCategory(entry);
+    if(category==='all')continue;
+    if(!categories.includes(category))categories.push(category);
+    if(categories.length>=24)break;
+  }
+  if(categories.length)return categories;
+  const legacy=cleanCategory(fallback);
+  return legacy==='all'?[]:[legacy];
+}
 
 export function createSearchState(input={}){
   const queryBasis=normalizeEnum(input.queryBasis??input.basis,QUERY_BASES,'de');
@@ -45,6 +60,7 @@ export function createSearchState(input={}){
     queryBasis,
   );
   const generatedOnly=normalizeBoolean(input.generatedOnly);
+  const entityCategories=cleanCategories(input.entityCategories,input.entityCategory);
   return {
     schema:SEARCH_STATE_SCHEMA,
     anchor:String(input.anchor??input.query??'').normalize('NFKC').trim(),
@@ -58,7 +74,8 @@ export function createSearchState(input={}){
     historical:normalizeBoolean(input.historical),
     generated:generatedOnly||normalizeBoolean(input.generated),
     generatedOnly,
-    entityCategory:cleanCategory(input.entityCategory),
+    entityCategory:entityCategories[0]||'all',
+    entityCategories,
     selectedResultId:String(input.selectedResultId||''),
   };
 }
@@ -107,6 +124,9 @@ export function searchStateFromUrl(urlLike,current={}){
     generated:params.has('generated')?params.get('generated'):base.generated,
     generatedOnly:params.has('generated_only')?params.get('generated_only'):base.generatedOnly,
     entityCategory:params.get('entity_category')??base.entityCategory,
+    entityCategories:params.has('entity_categories')
+      ?params.get('entity_categories')
+      :base.entityCategories,
   });
 }
 
@@ -132,7 +152,13 @@ export function writeSearchStateToUrl(urlLike,value){
   setOrDelete(params,'historical',state.historical?'all':'','');
   setOrDelete(params,'generated',state.generated?'1':'','');
   setOrDelete(params,'generated_only',state.generatedOnly?'1':'','');
-  setOrDelete(params,'entity_category',state.entityCategory,'all');
+  if(state.entityCategories.length>1){
+    params.delete('entity_category');
+    params.set('entity_categories',state.entityCategories.join(','));
+  }else{
+    params.delete('entity_categories');
+    setOrDelete(params,'entity_category',state.entityCategory,'all');
+  }
   return url;
 }
 
@@ -147,7 +173,7 @@ export function searchStateToWriterParams(value,{
 }={}){
   const state=createSearchState(value);
   const backendType=SOUND_RELATIONS.has(state.rhymeType)?'all':state.rhymeType;
-  return new URLSearchParams({
+  const params=new URLSearchParams({
     q:state.anchor,
     language:state.queryBasis,
     result_language:state.resultLanguage,
@@ -166,4 +192,6 @@ export function searchStateToWriterParams(value,{
     generated_only:state.generatedOnly?'1':'0',
     type:backendType,
   });
+  if(state.entityCategories.length>1)params.set('entity_categories',state.entityCategories.join(','));
+  return params;
 }
