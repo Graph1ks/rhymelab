@@ -57,6 +57,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/data-density="tiles"/u);
   assert.match(html,/id=["']redoBtn["']/u);
   assert.match(html,/data-dock=["']bar["']/u);
+  assert.match(html,/data-dock=["']navigator["']/u);
+  assert.match(html,/Bar Navigator/u);
   assert.match(html,/Bar Inspector/u);
   assert.match(html,/id=["']advancedFiltersToggle["']/u);
   assert.match(html,/id=["']advancedPreset["']/u);
@@ -122,6 +124,12 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/data-perform-scale/u);
   assert.match(app,/data-perform-step/u);
   assert.match(app,/performanceNeedsReview/u);
+  assert.match(app,/function renderBarNavigatorDock\(/u);
+  assert.match(app,/function moveStudioBar\(/u);
+  assert.match(app,/function jumpToStudioBar\(/u);
+  assert.match(app,/moveEditorBar/u);
+  assert.match(app,/application\/x-rhymelab-bar/u);
+  assert.match(app,/Alt\+B/u);
   assert.match(app,/function renderBarInspectorDock\(/u);
   assert.match(app,/data-bar-inspect/u);
   assert.match(app,/performancePocketMetrics/u);
@@ -224,6 +232,9 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.perform-transport/u);
   assert.match(css,/\.perform-review/u);
   assert.match(css,/\.perform-sequencer/u);
+  assert.match(css,/Studio Bar Navigator/u);
+  assert.match(css,/\.bar-navigator-row/u);
+  assert.match(css,/\.bar-navigator-row\.is-drop-target/u);
   assert.match(css,/Studio Bar Inspector/u);
   assert.match(css,/\.bar-inspector-grid/u);
   assert.match(css,/\.bar-inspector-canonical/u);
