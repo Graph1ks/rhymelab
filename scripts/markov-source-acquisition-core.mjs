@@ -148,6 +148,8 @@ export function sourceStageRows(rows,{
   language='de',
   maxRows=Infinity,
   assessOptions={},
+  onProgress=null,
+  progressEvery=25_000,
 }={}){
   const accepted=[];
   const rejected={};
@@ -155,6 +157,9 @@ export function sourceStageRows(rows,{
   let scanned=0;
   for(const row of rows){
     scanned+=1;
+    if(onProgress&&scanned%Math.max(1,progressEvery)===0){
+      onProgress({scanned,accepted:accepted.length,duplicates,rejected});
+    }
     const assessed=assessSentence(row?.sentence,{language,...assessOptions});
     if(!assessed.accepted){
       rejected[assessed.reason]=(rejected[assessed.reason]||0)+1;
