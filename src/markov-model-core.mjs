@@ -91,7 +91,7 @@ export function preferredSurfaceFor({norm,count=0,title_count=0,upper_count=0}){
   return String(norm);
 }
 
-export function createMarkovStorage(db){
+export function createMarkovStorage(db,{secondaryIndexes=true}={}){
   db.exec(`
     PRAGMA foreign_keys=ON;
     CREATE TABLE IF NOT EXISTS meta(
@@ -112,8 +112,6 @@ export function createMarkovStorage(db){
       retained INTEGER NOT NULL DEFAULT 0 CHECK(retained IN (0,1)),
       PRIMARY KEY(context_len,state_key)
     ) WITHOUT ROWID;
-    CREATE INDEX IF NOT EXISTS state_count_retained_idx
-      ON state_count(context_len,retained,count DESC,state_key);
     CREATE TABLE IF NOT EXISTS transition(
       direction TEXT NOT NULL CHECK(direction IN ('forward','reverse')),
       context_len INTEGER NOT NULL CHECK(context_len BETWEEN 1 AND 4),
@@ -122,8 +120,6 @@ export function createMarkovStorage(db){
       count INTEGER NOT NULL,
       PRIMARY KEY(direction,context_len,state_key,next_token)
     ) WITHOUT ROWID;
-    CREATE INDEX IF NOT EXISTS transition_lookup_idx
-      ON transition(direction,context_len,state_key,count DESC,next_token);
     CREATE TABLE IF NOT EXISTS source_sequence_hash(
       source_kind TEXT NOT NULL CHECK(source_kind IN ('phrase','sentence','lyric')),
       hash TEXT NOT NULL,
@@ -138,16 +134,12 @@ export function createMarkovStorage(db){
       count INTEGER NOT NULL DEFAULT 1,
       PRIMARY KEY(source_kind,hash)
     ) WITHOUT ROWID;
-    CREATE INDEX IF NOT EXISTS source_window_size_idx
-      ON source_window_hash(source_kind,window_size,hash);
     CREATE TABLE IF NOT EXISTS shape_pattern(
       token_count INTEGER NOT NULL,
       shape_key TEXT NOT NULL,
       count INTEGER NOT NULL DEFAULT 1,
       PRIMARY KEY(token_count,shape_key)
     ) WITHOUT ROWID;
-    CREATE INDEX IF NOT EXISTS shape_pattern_lookup_idx
-      ON shape_pattern(token_count,count DESC,shape_key);
     CREATE TABLE IF NOT EXISTS build_checkpoint(
       phase TEXT NOT NULL,
       source_index INTEGER NOT NULL,
@@ -157,6 +149,30 @@ export function createMarkovStorage(db){
       updated_at TEXT NOT NULL,
       PRIMARY KEY(phase,source_index)
     ) WITHOUT ROWID;
+  `);
+  if(secondaryIndexes)createMarkovSecondaryIndexes(db);
+}
+
+export function createMarkovSecondaryIndexes(db){
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS state_count_retained_idx
+      ON state_count(context_len,retained,count DESC,state_key);
+    CREATE INDEX IF NOT EXISTS transition_lookup_idx
+      ON transition(direction,context_len,state_key,count DESC,next_token);
+    CREATE INDEX IF NOT EXISTS source_window_size_idx
+      ON source_window_hash(source_kind,window_size,hash);
+    CREATE INDEX IF NOT EXISTS shape_pattern_lookup_idx
+      ON shape_pattern(token_count,count DESC,shape_key);
+  `);
+}
+
+export function dropMarkovSecondaryIndexes(db){
+  db.exec(`
+    DROP INDEX IF EXISTS state_count_retained_idx;
+    DROP INDEX IF EXISTS transition_lookup_idx;
+    DROP INDEX IF EXISTS source_window_size_idx;
+    DROP INDEX IF EXISTS shape_pattern_lookup_idx;
+    DROP INDEX IF EXISTS state_count_rank_build_idx;
   `);
 }
 
