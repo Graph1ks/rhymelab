@@ -98,6 +98,7 @@ export function buildWriterParams({
   generated=false,
   generatedOnly=false,
   entityCategory='all',
+  entityCategories=[],
   rhymeType='all',
 }={}){
   const state=createSearchState({
@@ -111,6 +112,7 @@ export function buildWriterParams({
     generated,
     generatedOnly,
     entityCategory,
+    entityCategories,
   });
   return searchStateToWriterParams(state);
 }
