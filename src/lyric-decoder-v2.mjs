@@ -414,6 +414,7 @@ function scoreDraft(runtime,beam,tail,tokenRows,options){
 
   const copyLimit=target>=14?7:target>=10?6:5;
   const copiedTooFar=novelty.exactSource||novelty.longestSourceRun>=copyLimit;
+  const phraseSupport=clamp(novelty.phraseSupport||0);
   const transition=clamp(
     Math.pow(Math.max(forward.probability,1e-9),0.24)
       *(1-forward.zeroRate),
@@ -431,8 +432,6 @@ function scoreDraft(runtime,beam,tail,tokenRows,options){
   const sourceNovelty=novelty.exactSource?0:clamp(
     novelty.novelty*0.72+(1-Math.min(1,novelty.matchedWindows/6))*0.28,
   );
-  const phraseSupport=clamp(novelty.phraseSupport||0);
-
   const naturalWeight=0.38+naturalControl*0.3;
   const rhymeWeight=0.22+pressure*0.32;
   const structureWeight=0.12;
