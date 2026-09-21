@@ -63,6 +63,7 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/id=["']advancedHistorical["']/u);
   assert.match(html,/id=["']advancedGenerated["']/u);
   assert.match(html,/id=["']advancedGeneratedOnly["']/u);
+  assert.match(html,/id=["']runtimeInline["']/u);
   assert.match(app,/dataset\.studioVersion='2'/u);
   assert.match(html,/id=["']themeQuick["']/u);
   assert.match(html,/id=["']themeQuickMenu["']/u);
@@ -146,6 +147,9 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.library-shell/u);
   assert.match(css,/\.library-folder-row/u);
   assert.match(css,/\.songcard-actions/u);
+  assert.match(css,/\.result-badges/u);
+  assert.match(css,/\.runtime-inline/u);
+  assert.match(css,/\.density-compact \.result-meta,\.density-compact \.result-badges\{display:none\}/u);
   assert.match(css,/Studio authoritative persistence \+ Perform parity/u);
   assert.match(css,/\.recovery-list/u);
   assert.match(css,/\.perform-transport/u);
@@ -272,6 +276,11 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/function syncAdvancedControls\(/u);
   assert.match(app,/function applySearchPreset\(/u);
   assert.match(app,/function filterUnusedWriterRows\(/u);
+  assert.match(app,/function resultBadges\(/u);
+  assert.match(app,/function resultBadgeMarkup\(/u);
+  assert.match(app,/function writerTimingText\(/u);
+  assert.match(app,/averageLast100Ms/u);
+  assert.match(app,/Usage #/u);
   assert.match(app,/writerRowAlreadyUsed/u);
   assert.match(app,/writeStudioState\(state\)/u);
   assert.match(app,/from '\.\/capability-adapter\.mjs'/u);
