@@ -518,7 +518,18 @@ npm run studio:v2:cutover:code
 npm run studio:v2:cutover:check
 ~~~
 
-The full gate requires an exported seven-gate real-device acceptance report. No old route is deleted in the first production switch commit.
+The full gate requires explicit real-device evidence for all seven gates. Settings provides guided launchers for each gate and records the hardware/browser environment with the evidence. Mobile gates can only be confirmed on a touch/coarse-pointer viewport at or below 800 CSS px; invalid evidence is rejected during normalization and called out by the cutover CLI.
+
+Multi-device flow:
+
+~~~bash
+# export partial reports from Settings on the tested devices
+npm run studio:v2:acceptance:merge -- desktop.json mobile.json
+npm run studio:v2:cutover:check
+npm run studio:v2:accepted-preview
+~~~
+
+The accepted-preview command runs the full cutover gate before starting `--studio-default`. No old route is deleted in the first production switch commit.
 
 ---
 
@@ -563,7 +574,10 @@ Entity category multi-select             DONE · shared SearchState + OR runtime
 35 acceptance center parity integration         DONE
 36 reversible default-route preview             DONE
 37 deterministic cutover release gate           DONE
-38 real device/browser acceptance              REQUIRED · 7 device gates
+38 guided real-device acceptance workflow      DONE
+39 environment eligibility enforcement          DONE
+40 multi-device acceptance merge CLI            DONE
+41 real device/browser acceptance              REQUIRED · 7 device gates
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
