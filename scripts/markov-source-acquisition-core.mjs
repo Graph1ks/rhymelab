@@ -6,6 +6,7 @@ const URL_RE=/https?:\/\/|www\./iu;
 const CONTROL_RE=/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/gu;
 const LETTER_RE=/\p{L}/gu;
 const GERMAN_HINT_RE=/[äöüßÄÖÜ]|\b(?:der|die|das|den|dem|des|ein|eine|einer|einen|und|oder|aber|nicht|ist|sind|war|wird|ich|du|er|sie|wir|ihr|mit|von|für|auf|im|in|zu|zum|zur)\b/iu;
+const ENGLISH_HINT_RE=/\b(?:the|a|an|and|or|but|not|is|are|was|were|be|been|being|i|you|he|she|we|they|it|with|from|for|on|in|at|to|of|this|that|these|those)\b/iu;
 
 export function normalizeSourceSentence(value){
   return String(value??'')
@@ -31,11 +32,12 @@ export function tokenCount(value){
   return matches?.length||0;
 }
 
-export function assessGermanSentence(value,{
+function assessSentenceBase(value,{
   minTokens=4,
   maxTokens=32,
   minChars=18,
   maxChars=320,
+  language='de',
 }={}){
   const sentence=normalizeSourceSentence(value);
   if(!sentence)return {accepted:false,reason:'empty',sentence,tokens:0};
@@ -53,19 +55,41 @@ export function assessGermanSentence(value,{
   const visible=[...sentence].filter((char)=>!(/\s/u.test(char))).length;
   if(!visible||letters/visible<0.58)return {accepted:false,reason:'low_letter_ratio',sentence,tokens};
 
+  const locale=language==='en'?'en-US':'de-DE';
   const alphaTokens=sentence.match(/\p{L}+/gu)||[];
-  const upperHeavy=alphaTokens.filter((word)=>word.length>=3&&word===word.toLocaleUpperCase('de-DE')).length;
+  const upperHeavy=alphaTokens.filter((word)=>word.length>=3&&word===word.toLocaleUpperCase(locale)).length;
   if(alphaTokens.length>=4&&upperHeavy/alphaTokens.length>0.55){
     return {accepted:false,reason:'upper_noise',sentence,tokens};
   }
 
-  const hasGermanHint=GERMAN_HINT_RE.test(sentence);
   const latinLetters=(sentence.match(/[A-Za-zÄÖÜäöüß]/gu)||[]).length;
-  if(!hasGermanHint&&letters>=12&&latinLetters/letters<0.88){
-    return {accepted:false,reason:'non_german_script_mix',sentence,tokens};
+  if(letters>=12&&latinLetters/letters<0.88){
+    return {accepted:false,reason:'non_latin_script_mix',sentence,tokens};
+  }
+
+  const hint=language==='en'?ENGLISH_HINT_RE:GERMAN_HINT_RE;
+  const hasHint=hint.test(sentence);
+  if(alphaTokens.length>=8&&!hasHint){
+    const asciiWords=alphaTokens.filter((word)=>/^[A-Za-z'-]+$/u.test(word)).length;
+    if(language==='en'&&asciiWords/alphaTokens.length<0.92){
+      return {accepted:false,reason:'language_guard',sentence,tokens};
+    }
   }
 
   return {accepted:true,reason:'ok',sentence,tokens};
+}
+
+export function assessGermanSentence(value,options={}){
+  return assessSentenceBase(value,{...options,language:'de'});
+}
+
+export function assessEnglishSentence(value,options={}){
+  return assessSentenceBase(value,{...options,language:'en'});
+}
+
+export function assessSentence(value,{language='de',...options}={}){
+  if(language==='en')return assessEnglishSentence(value,options);
+  return assessGermanSentence(value,options);
 }
 
 export function parseLeipzigSentenceFile(text){
@@ -121,6 +145,7 @@ export function extractTarMember(tarBuffer,predicate){
 export function sourceStageRows(rows,{
   seen=new Set(),
   sourceCode='source',
+  language='de',
   maxRows=Infinity,
   assessOptions={},
 }={}){
@@ -130,7 +155,7 @@ export function sourceStageRows(rows,{
   let scanned=0;
   for(const row of rows){
     scanned+=1;
-    const assessed=assessGermanSentence(row?.sentence,assessOptions);
+    const assessed=assessSentence(row?.sentence,{language,...assessOptions});
     if(!assessed.accepted){
       rejected[assessed.reason]=(rejected[assessed.reason]||0)+1;
       continue;
