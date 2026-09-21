@@ -463,7 +463,7 @@ Production gates:
 - no hover-only action; **ENGINEERED; Quickstyles has an explicit touch/menu trigger while the main button remains the Light/Dark QuickSwitch**
 - reduced motion works; **ENGINEERED**
 
-These gates still require real device/browser acceptance before the default-route switch.
+These gates still require real device/browser acceptance before the live Studio V2 release can be declared physically accepted across the target matrix.
 
 Full offline mobile Writer runtime remains a separate technical project.
 
