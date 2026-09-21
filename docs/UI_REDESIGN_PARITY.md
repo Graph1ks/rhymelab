@@ -108,8 +108,8 @@ The Search workspace and Studio assistant use the same SearchState. Changing sur
 | Dataset stats | yes | no | missing | Settings/Data | READY |
 | Query runtime | yes | no | missing | Diagnostics | READY |
 | rolling AVG 100 runtime | yes | no | missing | Diagnostics | READY |
-| UI language DE | yes | no dedicated Pad UI locale | prototype DE | App setting | ADAPTED · current Studio UI |
-| UI language EN | yes | no | missing | App setting | TODO |
+| UI language DE | yes | no dedicated Pad UI locale | prototype DE | App setting + quick switch | READY |
+| UI language EN | yes | no | missing | App setting + quick switch | READY · persistent DOM localization |
 | Unknown query client IPA resolver | yes | through Writer endpoint | missing | SearchService adapter | READY |
 | query-pronunciation cache/revision invalidation | yes | indirect | missing | SearchService adapter | READY |
 | true zero-result state | yes | yes | demo | Results state | READY |
@@ -348,7 +348,6 @@ Minimum audit method:
 Current unresolved cutover blockers:
 
 ~~~text
-English Studio UI locale / UI-language switch
 real browser/device/audio acceptance across the release viewport matrix
 final exhaustive old-vs-new interaction audit
 ~~~
