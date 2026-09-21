@@ -31,9 +31,9 @@ let themeEditingId='',themePreviewing=false;
 let studioCapabilities={status:'loading'};
 const writerSearch=createWriterSearchClient();
 const detailClient=createStudioDetailClient();
-let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerDebounce=0;
+let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerCapabilities=null,writerDebounce=0;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
-let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',query='Nacht',scope='all',relation='all',sort='recommended',basis='de',resultLang='both',pageSize=6,auto=false,pauseUntil=0,scrollFrame=0,lastFrame=0,undo=[],saveTimer,toastTimer,playing=false,tick=0,playTimer,cue='hit',bpm=92,audioContext;
+let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',query='Nacht',scope='all',relation='all',rhymeType='all',variantMode='preferred',entityCategory='all',includeHistorical=false,generated=false,generatedOnly=false,advancedExpanded=false,sort='recommended',basis='de',resultLang='both',pageSize=6,auto=false,pauseUntil=0,scrollFrame=0,lastFrame=0,undo=[],saveTimer,toastTimer,playing=false,tick=0,playTimer,cue='hit',bpm=92,audioContext;
 function song(){return state.songs.find(s=>s.id===state.active)||state.songs[0]}
 const syll=estimateSyllables;
 function persist(){try{writeStudioState(state);$('#saveState').textContent='Lokal gespeichert';return true}catch(e){$('#saveState').textContent='Speichern nicht möglich · bitte exportieren';return false}}
@@ -47,12 +47,53 @@ function focusLine(i,pos){const el=$(`#lyrics textarea[data-line="${i}"]`);if(el
 function activateLine(i){activeLine=i;queryAll('.lyric-line').forEach((el,n)=>el.classList.toggle('active',n===i));$('#activeBarLabel').textContent=`Bar ${String(i+1).padStart(2,'0')} ausgewählt`;$('#mobileAnchor').textContent=`Bar ${i+1}: ${song().lines[i]||'Neue Zeile'}`}
 function captureSelection(el){const i=+el.dataset.line,text=el.value;let start=el.selectionStart,end=el.selectionEnd;if(start===end){while(start>0&&/[\p{L}\p{N}'’-]/u.test(text[start-1]))start--;while(end<text.length&&/[\p{L}\p{N}'’-]/u.test(text[end]))end++}selection={line:i,start,end};const q=text.slice(start,end).trim();if(q&&q!==query){query=q;pageSize=6;queueWriterSearch()}activateLine(i)}
 function updateStats(){const s=song();const words=s.lines.join(' ').trim().split(/\s+/).filter(Boolean).length;$('#docStats').textContent=`${s.lines.length} Bars · ${words} Wörter`;$('#footerStats').textContent=`${s.lines.length} Bars · ${words} Wörter · Silben ≈ Demo-Schätzung`;$('#miniDensity').innerHTML=s.lines.slice(0,16).map(x=>`<i style="height:${Math.max(3,syll(x)*1.5)}px"></i>`).join('');$('#savedCount').textContent=state.saved.length;activateLine(Math.min(activeLine,s.lines.length-1))}
-function data(){return writerRows.filter(r=>(scope==='all'||scope===r.kind)&&(relation==='all'||relation===r.relation))}
+const RHYME_TYPE_LABELS=Object.freeze({
+  multisyllabic_perfect:'Mehrsilbiger Vollreim',
+  perfect:'Vollreim',
+  multisyllabic_slant:'Mehrsilbiger Slant-Reim',
+  family:'Reimfamilie',
+  slant:'Slant-Reim',
+  assonance:'Assonanz',
+  consonance:'Konsonanz',
+});
+function rowHasRhymeType(row,type){
+  if(type==='all')return true;
+  if(row.relationType===type)return true;
+  return Array.isArray(row.raw?.relations)&&row.raw.relations.some((item)=>item?.type===type);
+}
+function data(){
+  return writerRows.filter((row)=>
+    (scope==='all'||scope===row.kind)
+    &&(relation==='all'||relation===row.relation)
+    &&rowHasRhymeType(row,rhymeType)
+  );
+}
+function syllableDistanceFor(row){
+  if(Number.isFinite(row.syllableDistance))return Math.abs(row.syllableDistance);
+  const anchor=writerQuerySyllables||syll(query);
+  return anchor&&Number.isFinite(row.syll)?Math.abs(row.syll-anchor):Number.MAX_SAFE_INTEGER;
+}
+function commonnessFor(row){
+  const raw=row.raw||{};
+  const popularity=Number(raw.popularityPercentile);
+  if(Number.isFinite(popularity)&&popularity>0)return 1000000+popularity*100000;
+  const count=Number(row.usageCount??raw.usageCount);
+  if(Number.isFinite(count)&&count>0)return count;
+  const rank=Number(row.usageRank??raw.usageRank);
+  if(Number.isFinite(rank)&&rank>0)return 1/(rank+1);
+  return 0;
+}
+function sortWriterRows(rows){
+  const sorted=[...rows];
+  if(sort==='alpha')return sorted.sort((a,b)=>a.word.localeCompare(b.word,'de',{sensitivity:'base'}));
+  if(sort==='syllables')return sorted.sort((a,b)=>syllableDistanceFor(a)-syllableDistanceFor(b)||a.word.localeCompare(b.word,'de'));
+  if(sort==='closest')return sorted.sort((a,b)=>Number(b.score||0)-Number(a.score||0)||syllableDistanceFor(a)-syllableDistanceFor(b));
+  if(sort==='common')return sorted.sort((a,b)=>commonnessFor(b)-commonnessFor(a)||Number(b.score||0)-Number(a.score||0));
+  return sorted;
+}
 function resultHTML(r){const saved=state.saved.some(s=>s.word===r.word);return `<div class="result"><div class="grow"><button class="result-word" data-detail="${esc(r.word)}">${esc(r.word)}</button><div class="result-meta"><b>${esc(r.relationLabel||'Klangtreffer')}</b><span>${r.syll||'—'} Silb.</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'} · ${r.lang.toUpperCase()}</span></div></div><div class="result-actions"><button data-save="${esc(r.word)}" class="${saved?'saved':''}" aria-pressed="${saved}" aria-label="${esc(r.word)} ${saved?'entmerken':'merken'}">${icon('book')}</button><button data-insert="${esc(r.word)}" aria-label="${esc(r.word)} einsetzen">${icon('plus')}</button></div></div>`}
 function renderResults(){
-  let rows=data();
-  if(sort==='alpha')rows=[...rows].sort((a,b)=>a.word.localeCompare(b.word));
-  if(sort==='syllables')rows=[...rows].sort((a,b)=>a.syll-b.syll);
+  const rows=sortWriterRows(data());
   $('#anchorWord').textContent=query;
   $('#languageBtn').textContent=(basis==='both'?'DE+EN':basis.toUpperCase())+' ↓';
   $('#anchorSub').textContent=writerStatus==='loading'
@@ -110,6 +151,12 @@ async function refreshWriterResults(){
       queryBasis:basis,
       resultLanguage:resultLang,
       scope,
+      rhymeType,
+      includeVariants:variantMode==='all',
+      includeHistorical,
+      generated,
+      generatedOnly,
+      entityCategory,
       queryPronunciationRevision:studioCapabilities.queryPronunciationRevision||'',
     });
     if(requestedQuery!==query)return;
@@ -117,6 +164,7 @@ async function refreshWriterResults(){
     writerQuerySyllables=result.querySyllables;
     writerWarnings=result.warnings;
     writerRuntimeTiming=result.runtimeTiming;
+    writerCapabilities=result.capabilities||writerCapabilities;
     writerStatus='ready';
     pageSize=density==='compact'?24:12;
     renderResults();
@@ -169,17 +217,94 @@ let density=normalizeDensity(state.density),syllableMode='all',followSelection=t
 state.motion=state.motion||'auto';
 const baseData=data, baseRenderResults=renderResults, baseRenderEditor=renderEditor, baseCapture=captureSelection, baseInsert=insertWord, baseToggleSave=toggleSave, baseMode=setMode;
 function animateSurface(el,name='surface-enter'){if(!el)return;el.classList.remove(name);void el.offsetWidth;el.classList.add(name)}
-function sortedData(){const rows=data();if(sort==='alpha')rows.sort((a,b)=>a.word.localeCompare(b.word));if(sort==='syllables')rows.sort((a,b)=>a.syll-b.syll);return rows}
-data=function(){const anchorSyllables=writerQuerySyllables||syll(query);return baseData().filter(r=>syllableMode==='all'||syllableMode==='same'&&r.syll===anchorSyllables||syllableMode==='near'&&Math.abs(r.syll-anchorSyllables)<=1||syllableMode==='3'&&r.syll>=3||['1','2'].includes(syllableMode)&&r.syll===+syllableMode)};
+function sortedData(){return sortWriterRows(data())}
+data=function(){const anchorSyllables=writerQuerySyllables||syll(query);return baseData().filter(r=>syllableMode==='all'||syllableMode==='same'&&r.syll===anchorSyllables||syllableMode==='near'&&Math.abs(r.syll-anchorSyllables)<=1||syllableMode==='near2'&&Math.abs(r.syll-anchorSyllables)<=2||syllableMode==='near3'&&Math.abs(r.syll-anchorSyllables)<=3||syllableMode==='3'&&r.syll>=3||['1','2'].includes(syllableMode)&&r.syll===+syllableMode)};
 resultHTML=function(r){const saved=state.saved.some(s=>s.word===r.word),kind=r.kind==='phrase'?'PHRASE':r.kind==='entity'?'NAME':'',active=selectedResultId?selectedResultId===r.id:selectedResult===r.word,shortRelation=({multisyllabic_perfect:'Multi-Voll',perfect:'Voll',multisyllabic_slant:'Multi-Slant',family:'Familie',slant:'Slant',assonance:'Asson.',consonance:'Konson.'})[r.relationType]||'Klang';return `<div class="result ${active?'is-selected':''}" data-result-word="${esc(r.word)}" data-result-id="${esc(r.id)}"><div class="grow"><button class="result-word" data-detail="${esc(r.word)}" data-detail-id="${esc(r.id)}" aria-label="Details zu ${esc(r.word)}" aria-pressed="${active}">${esc(r.word)}${kind?`<span class="result-kind">${kind}</span>`:''}</button><div class="result-meta"><b>${esc(r.relationLabel||'Klangtreffer')}</b><span>${r.syll||'—'} Silb.</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'} · ${r.lang.toUpperCase()}</span></div></div><span class="result-relation">${esc(shortRelation)}</span><span class="result-syll">${r.syll||'—'}</span><div class="result-actions"><button data-save="${esc(r.word)}" class="${saved?'saved':''}" aria-pressed="${saved}" aria-label="${esc(r.word)} ${saved?'entmerken':'merken'}">${icon('book')}</button><button data-insert="${esc(r.word)}" aria-label="${esc(r.word)} einsetzen">${icon('plus')}</button></div></div>`};
-renderResults=function(){baseRenderResults();const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===density));queryAll('[data-density]').forEach(b=>{b.classList.toggle('active',b.dataset.density===density);b.setAttribute('aria-pressed',b.dataset.density===density)});queryAll('#results .result').forEach((r,i)=>r.style.setProperty('--i',i));const sig=[query,scope,relation,sort,basis,resultLang,syllableMode,density].join('|');if(sig!==resultSignature){animateSurface($('#results'),'results-enter');animateSurface($('#anchorWord'),'anchor-change');resultSignature=sig;$('#resultsScroll').scrollTop=0}syncInline();if(selectedResult&&!data().some(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult)){selectedResult='';selectedResultId='';selectedDetail=null;$('#detailDock').classList.add('hidden')}if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();$('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer';$('#filterLabel').textContent=$('#directFilters').classList.contains('hidden')?'Filter öffnen':'Filter sichtbar'};
+renderResults=function(){baseRenderResults();const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===density));queryAll('[data-density]').forEach(b=>{b.classList.toggle('active',b.dataset.density===density);b.setAttribute('aria-pressed',b.dataset.density===density)});queryAll('#results .result').forEach((r,i)=>r.style.setProperty('--i',i));const sig=[query,scope,relation,rhymeType,variantMode,entityCategory,includeHistorical,generated,generatedOnly,sort,basis,resultLang,syllableMode,density].join('|');if(sig!==resultSignature){animateSurface($('#results'),'results-enter');animateSurface($('#anchorWord'),'anchor-change');resultSignature=sig;$('#resultsScroll').scrollTop=0}syncInline();if(selectedResult&&!data().some(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult)){selectedResult='';selectedResultId='';selectedDetail=null;$('#detailDock').classList.add('hidden')}if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();$('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer';$('#filterLabel').textContent=$('#directFilters').classList.contains('hidden')?'Filter öffnen':hasActiveSearchFilters()?'Filter aktiv':'Filter sichtbar'};
 renderEditor=function(){baseRenderEditor();selectionProof={songId:song().id,line:selection.line,start:selection.start,end:selection.end,text:(song().lines[selection.line]||'').slice(selection.start,selection.end)};$('#fontSizeLive').textContent=state.fontSize;if(dockTab==='saved')renderDock();};
 captureSelection=function(el){const old=query;baseCapture(el);if(!followSelection){query=old;renderResults()}selectionProof={songId:song().id,line:selection.line,start:selection.start,end:selection.end,text:(song().lines[selection.line]||'').slice(selection.start,selection.end)};if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail()};
 insertWord=function(word){if(selectionProof&&(selectionProof.songId!==song().id||(song().lines[selectionProof.line]||'').slice(selectionProof.start,selectionProof.end)!==selectionProof.text)){notify('Textstelle geändert. Bitte Zielwort erneut auswählen.');return}baseInsert(word);animateSurface($(`#lyrics textarea[data-line="${activeLine}"]`)?.parentElement,'insert-flash');selectionProof={songId:song().id,line:selection.line,start:selection.start,end:selection.end,text:word};if(selectedResult)renderDetail()};
 toggleSave=function(word){baseToggleSave(word);const b=queryAll('[data-save]').find(b=>b.dataset.save===word);animateSurface(b,'bookmark-pop');if(dockTab==='saved')renderDock();if(selectedResult)renderDetail()};
 setMode=function(next){baseMode(next);animateSurface($(next==='write'?'#writeView':next==='rhyme'?'#rhymeView':'#performView'))};
-function syncInline(){for(const [id,value]of [['directBasis',basis],['directLang',resultLang],['directRelation',relation],['directSyllables',syllableMode],['directSort',sort]])$('#'+id).value=value;const items=[];if(scope!=='all')items.push(['scope',scope==='word'?'Wörter':scope==='phrase'?'Phrasen':'Namen']);if(relation!=='all')items.push(['relation',relation==='rein'?'Rein':'Naher Klang']);if(syllableMode!=='all')items.push(['syllables','Silben: '+({same:'wie Anker',near:'±1','1':'1','2':'2','3':'3+'})[syllableMode]]);if(resultLang!=='both')items.push(['lang','Ergebnis: '+resultLang.toUpperCase()]);if(basis!=='de')items.push(['basis','Anker: '+(basis==='both'?'DE+EN':'EN')]);if(sort!=='recommended')items.push(['sort',sort==='alpha'?'A–Z':'Silben ↑']);$('#activeFilters').innerHTML=items.map(([id,label])=>`<button data-clear-filter="${id}" aria-label="Filter ${esc(label)} entfernen">${esc(label)} ×</button>`).join('');}
-function resetInline(){scope='all';relation='all';sort='recommended';basis='de';resultLang='both';syllableMode='all';pageSize=12;queryAll('[data-scope]').forEach(b=>{b.classList.toggle('active',b.dataset.scope==='all');b.setAttribute('aria-pressed',b.dataset.scope==='all')});void refreshWriterResults()}
+function advancedFilterCount(){
+  return [
+    rhymeType!=='all',
+    variantMode!=='preferred',
+    entityCategory!=='all',
+    includeHistorical,
+    generated,
+    generatedOnly,
+  ].filter(Boolean).length;
+}
+function entityCategories(){
+  const values=writerCapabilities?.entities?.categories;
+  return Array.isArray(values)?values:[];
+}
+function syncAdvancedControls(){
+  const panel=$('#advancedFilters'),toggle=$('#advancedFiltersToggle');
+  if(!panel||!toggle)return;
+  panel.classList.toggle('hidden',!advancedExpanded);
+  toggle.setAttribute('aria-expanded',String(advancedExpanded));
+  $('#advancedRhymeType').value=rhymeType;
+  $('#advancedVariants').value=variantMode;
+  $('#advancedHistorical').checked=includeHistorical;
+  $('#advancedGenerated').checked=generated;
+  $('#advancedGeneratedOnly').checked=generatedOnly;
+
+  const categorySelect=$('#advancedEntityCategory');
+  const categories=entityCategories();
+  const categoryValue=entityCategory;
+  categorySelect.innerHTML='<option value="all">Alle Entities</option>'+categories.map((value)=>'<option value="'+esc(value)+'">'+esc(humanizeDetail(value))+'</option>').join('');
+  categorySelect.value=categories.includes(categoryValue)?categoryValue:'all';
+  if(categoryValue!=='all'&&!categories.includes(categoryValue))entityCategory='all';
+
+  const categoryAvailable=categories.length>0&&(scope==='all'||scope==='entity');
+  const categoryField=$('#advancedEntityCategoryField');
+  categoryField.classList.toggle('is-unavailable',!categoryAvailable);
+  categorySelect.disabled=!categoryAvailable;
+
+  const variantsAvailable=scope==='all'||scope==='word';
+  $('#advancedVariants').disabled=!variantsAvailable;
+  $('#advancedVariants').closest('label')?.classList.toggle('is-unavailable',!variantsAvailable);
+
+  const generatedAvailable=studioCapabilities.generated===true;
+  const generatedField=$('#advancedGeneratedField');
+  const generatedOnlyField=$('#advancedGeneratedOnlyField');
+  generatedField.classList.toggle('is-unavailable',!generatedAvailable);
+  generatedOnlyField.classList.toggle('is-unavailable',!generatedAvailable||!generated);
+  $('#advancedGenerated').disabled=!generatedAvailable;
+  $('#advancedGeneratedOnly').disabled=!generatedAvailable||!generated;
+
+  const count=advancedFilterCount(),countEl=$('#advancedFilterCount');
+  countEl.textContent=String(count);
+  countEl.classList.toggle('hidden',count===0);
+}
+function hasActiveSearchFilters(){
+  return scope!=='all'||relation!=='all'||rhymeType!=='all'||syllableMode!=='all'||resultLang!=='both'||basis!=='de'||sort!=='recommended'||variantMode!=='preferred'||entityCategory!=='all'||includeHistorical||generated||generatedOnly;
+}
+function syncInline(){
+  for(const [id,value]of [['directBasis',basis],['directLang',resultLang],['directRelation',relation],['directSyllables',syllableMode],['directSort',sort]])$('#'+id).value=value;
+  syncAdvancedControls();
+  const items=[];
+  if(scope!=='all')items.push(['scope',scope==='word'?'Wörter':scope==='phrase'?'Phrasen':'Namen']);
+  if(relation!=='all')items.push(['relation',relation==='rein'?'Vollreime':'Slant / Klang']);
+  if(rhymeType!=='all')items.push(['rhymeType',RHYME_TYPE_LABELS[rhymeType]||rhymeType]);
+  if(syllableMode!=='all')items.push(['syllables','Silben: '+({same:'wie Anker',near:'±1',near2:'±2',near3:'±3','1':'1','2':'2','3':'3+'})[syllableMode]]);
+  if(resultLang!=='both')items.push(['lang','Ergebnis: '+resultLang.toUpperCase()]);
+  if(basis!=='de')items.push(['basis','Anker: '+(basis==='both'?'DE+EN':'EN')]);
+  if(sort!=='recommended')items.push(['sort',({alpha:'A–Z',syllables:'Silbendistanz',closest:'Klangnähe',common:'Häufigkeit'})[sort]||sort]);
+  if(variantMode!=='preferred')items.push(['variants','Alle Aussprachevarianten']);
+  if(entityCategory!=='all')items.push(['entityCategory','Entity: '+humanizeDetail(entityCategory)]);
+  if(includeHistorical)items.push(['historical','Historisch']);
+  if(generated)items.push(['generated','Generated']);
+  if(generatedOnly)items.push(['generatedOnly','Nur Generated']);
+  $('#activeFilters').innerHTML=items.map(([id,label])=>`<button data-clear-filter="${id}" aria-label="Filter ${esc(label)} entfernen">${esc(label)} ×</button>`).join('');
+}
+function resetInline(){
+  scope='all';relation='all';rhymeType='all';variantMode='preferred';entityCategory='all';includeHistorical=false;generated=false;generatedOnly=false;sort='recommended';basis='de';resultLang='both';syllableMode='all';pageSize=12;
+  queryAll('[data-scope]').forEach(b=>{b.classList.toggle('active',b.dataset.scope==='all');b.setAttribute('aria-pressed',b.dataset.scope==='all')});
+  void refreshWriterResults();
+}
 function setDensity(v){density=v;state.density=v;pageSize=v==='compact'?24:12;renderResults();persist()}
 function toggleFollow(){followSelection=!followSelection;$('#followBtn').setAttribute('aria-pressed',followSelection);$('#followBtn').textContent=followSelection?'↗ Auswahl folgen':'⌖ Anker fixiert';$('#pinAnchor').setAttribute('aria-pressed',!followSelection);$('#pinAnchor').textContent=followSelection?'⌖ Fixieren':'⌖ Fixiert';$('#anchorLive').textContent=followSelection?'FOLGT DEINER AUSWAHL':'ANKER FIXIERT';if(followSelection){const el=$(`#lyrics textarea[data-line="${activeLine}"]`);if(el&&el.selectionEnd>0)captureSelection(el)}}
 
@@ -360,6 +485,7 @@ function updateCapabilitySurface(){
   }
   const summary=$('#capabilitySummary');
   if(summary)summary.innerHTML=capabilityMarkup();
+  syncAdvancedControls();
 }
 async function refreshStudioCapabilities(){
   try{
@@ -558,8 +684,34 @@ function renderDetail(){
 function closeDetail(){detailClient.cancel();detailRequest++;selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';$('#detailDock').classList.add('hidden');$('#resultsScroll').focus()}
 function moveResult(delta){const rows=sortedData();if(!rows.length)return;let index=rows.findIndex(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult);index=index<0?(delta>0?0:rows.length-1):Math.max(0,Math.min(rows.length-1,index+delta));if(index>=pageSize){pageSize=index+12;renderResults()}openDetail(rows[index].word,rows[index].id);const row=queryAll('#results .result').find(r=>r.dataset.resultId===selectedResultId);row?.scrollIntoView?.({block:'nearest',behavior:'smooth'})}
 function setAssistWidth(value){const max=clamp(window.innerWidth-660,350,640);const width=clamp(value,350,max);document.documentElement.style.setProperty('--assist-width',width+'px');$('#splitter').setAttribute('aria-valuenow',width);$('#splitter').setAttribute('aria-valuemax',max);state.assistWidth=width;queryAll('#lyrics textarea').forEach(resizeArea);}
-function bindV2(){for(const id of ['directBasis','directLang','directRelation','directSyllables','directSort','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');$('#directBasis').onchange=e=>{basis=e.target.value;void refreshWriterResults()};$('#directLang').onchange=e=>{resultLang=e.target.value;void refreshWriterResults()};$('#directRelation').onchange=e=>{relation=e.target.value;renderResults()};$('#directSyllables').onchange=e=>{syllableMode=e.target.value;renderResults()};$('#directSort').onchange=e=>{sort=e.target.value;renderResults()};queryAll('[data-density]').forEach(b=>b.onclick=()=>setDensity(b.dataset.density));queryAll('[data-dock]').forEach(b=>b.onclick=()=>{if(dockTab===b.dataset.dock)closeEditorDock();else{if(b.dataset.dock==='history')revision();openEditorDock(b.dataset.dock)}});$('#resultsScroll').addEventListener('keydown',e=>{if(e.target.closest('input')||e.target.closest('select')||e.target.closest('.view-choices'))return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();moveResult(e.key==='ArrowDown'?1:-1)}else if(e.key==='Enter'&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();insertWord(selectedResult)}else if(e.key===' '&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();toggleSave(selectedResult)}else if(e.key==='Escape')closeDetail()});
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.clearFilter){const f=b.dataset.clearFilter;if(f==='scope'){scope='all';queryAll('[data-scope]').forEach(x=>{x.classList.toggle('active',x.dataset.scope==='all');x.setAttribute('aria-pressed',x.dataset.scope==='all')})}if(f==='relation')relation='all';if(f==='syllables')syllableMode='all';if(f==='lang')resultLang='both';if(f==='basis')basis='de';if(f==='sort')sort='recommended';if(['scope','lang','basis'].includes(f))void refreshWriterResults();else renderResults()}if(b.dataset.restoreVersion){const text=song().revisions[+b.dataset.restoreVersion].text;pushUndo();revision();song().lines=text.split('\n');activeLine=0;selection={line:0,start:0,end:0};renderEditor();changed();renderDock();notify('Fassung wiederhergestellt · aktuelle Fassung gesichert')}});
+function bindV2(){for(const id of ['directBasis','directLang','directRelation','directSyllables','directSort','advancedFiltersToggle','advancedFilters','advancedRhymeType','advancedVariants','advancedEntityCategory','advancedHistorical','advancedGenerated','advancedGeneratedOnly','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');$('#directBasis').onchange=e=>{basis=e.target.value;void refreshWriterResults()};
+$('#directLang').onchange=e=>{resultLang=e.target.value;void refreshWriterResults()};
+$('#directRelation').onchange=e=>{relation=e.target.value;renderResults()};
+$('#directSyllables').onchange=e=>{syllableMode=e.target.value;renderResults()};
+$('#directSort').onchange=e=>{sort=e.target.value;renderResults()};
+$('#advancedFiltersToggle').onclick=()=>{advancedExpanded=!advancedExpanded;syncAdvancedControls();if(advancedExpanded)animateSurface($('#advancedFilters'))};
+$('#advancedRhymeType').onchange=e=>{rhymeType=e.target.value;void refreshWriterResults()};
+$('#advancedVariants').onchange=e=>{variantMode=e.target.value;void refreshWriterResults()};
+$('#advancedEntityCategory').onchange=e=>{entityCategory=e.target.value;void refreshWriterResults()};
+$('#advancedHistorical').onchange=e=>{includeHistorical=e.target.checked;void refreshWriterResults()};
+$('#advancedGenerated').onchange=e=>{generated=e.target.checked;if(!generated)generatedOnly=false;syncAdvancedControls();void refreshWriterResults()};
+$('#advancedGeneratedOnly').onchange=e=>{generatedOnly=e.target.checked;if(generatedOnly)generated=true;syncAdvancedControls();void refreshWriterResults()};queryAll('[data-density]').forEach(b=>b.onclick=()=>setDensity(b.dataset.density));queryAll('[data-dock]').forEach(b=>b.onclick=()=>{if(dockTab===b.dataset.dock)closeEditorDock();else{if(b.dataset.dock==='history')revision();openEditorDock(b.dataset.dock)}});$('#resultsScroll').addEventListener('keydown',e=>{if(e.target.closest('input')||e.target.closest('select')||e.target.closest('.view-choices'))return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();moveResult(e.key==='ArrowDown'?1:-1)}else if(e.key==='Enter'&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();insertWord(selectedResult)}else if(e.key===' '&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();toggleSave(selectedResult)}else if(e.key==='Escape')closeDetail()});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.clearFilter){
+  const f=b.dataset.clearFilter;
+  if(f==='scope'){scope='all';queryAll('[data-scope]').forEach(x=>{x.classList.toggle('active',x.dataset.scope==='all');x.setAttribute('aria-pressed',x.dataset.scope==='all')})}
+  if(f==='relation')relation='all';
+  if(f==='rhymeType')rhymeType='all';
+  if(f==='syllables')syllableMode='all';
+  if(f==='lang')resultLang='both';
+  if(f==='basis')basis='de';
+  if(f==='sort')sort='recommended';
+  if(f==='variants')variantMode='preferred';
+  if(f==='entityCategory')entityCategory='all';
+  if(f==='historical')includeHistorical=false;
+  if(f==='generated'){generated=false;generatedOnly=false}
+  if(f==='generatedOnly')generatedOnly=false;
+  if(['scope','rhymeType','lang','basis','variants','entityCategory','historical','generated','generatedOnly'].includes(f))void refreshWriterResults();else renderResults();
+}if(b.dataset.restoreVersion){const text=song().revisions[+b.dataset.restoreVersion].text;pushUndo();revision();song().lines=text.split('\n');activeLine=0;selection={line:0,start:0,end:0};renderEditor();changed();renderDock();notify('Fassung wiederhergestellt · aktuelle Fassung gesichert')}});
 document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
 const handle=$('#splitter');let drag=null;handle.addEventListener('pointerdown',e=>{if(window.innerWidth<=800)return;drag={x:e.clientX,width:+handle.getAttribute('aria-valuenow')};handle.setPointerCapture?.(e.pointerId);document.body.classList.add('resizing');e.preventDefault()});handle.addEventListener('pointermove',e=>{if(drag)setAssistWidth(drag.width+drag.x-e.clientX)});for(const event of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(event,()=>{if(!drag)return;drag=null;document.body.classList.remove('resizing');persist()});handle.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setAssistWidth(+handle.getAttribute('aria-valuenow')+(e.key==='ArrowLeft'?20:-20));persist()}if(e.key==='Home'){e.preventDefault();setAssistWidth(470);persist()}});if(window.innerWidth>800)setAssistWidth(state.assistWidth||470);if(window.innerWidth<=800){$('#directFilters').classList.add('hidden');$('#filterBtn').setAttribute('aria-expanded','false')}window.addEventListener('resize',()=>{if(window.innerWidth>800)setAssistWidth(state.assistWidth||470)});document.body.dataset.studioVersion='2';}
 
