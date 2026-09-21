@@ -471,6 +471,43 @@ Read-only plan:
 npm run distribution:plan
 ```
 
+Both plan and materialization are **checkpointed and console-observable**. Long-running
+commands print the current stage, stage/table progress, elapsed time, work-file size,
+row counts where available, and the exact checkpoint/resume state.
+
+Typical output shape:
+
+```text
+[distribution] Master: D:\\rhymelab\\data\\local\\rhymelab-serving-v1.sqlite · 18.78 GiB
+[distribution] Resumability: ON · rerun the same command after interruption
+[distribution] PLAN [1/6 16%] START · rank_core
+[distribution] PLAN ROWS · rank/core · 963,167 rows
+[distribution] PLAN [1/6 16%] DONE · rank_core · checkpointed
+[distribution] PLAN [3/6 50%] START · selection_lite
+...
+```
+
+Resume contract:
+
+- rerun the **same command** after interruption;
+- completed plan/build stages are restored or skipped from persistent checkpoints;
+- an interrupted transactional copy stage rolls back and only that stage is repeated;
+- a late build interruption after materialization does not recompute ranking/selection/copy;
+- `npm run distribution:status` shows plan and per-edition checkpoint state;
+- use `--reset` only for an intentional restart from zero.
+
+The plan checkpoint is intentionally kept at:
+
+```text
+data/local/distribution/.distribution-plan-v1.sqlite
+```
+
+The final JSON report remains:
+
+```text
+data/local/distribution/distribution-plan-v1.json
+```
+
 Build all three editions:
 
 ```powershell

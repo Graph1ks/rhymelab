@@ -162,21 +162,29 @@ export function lexicalRankSelectSql({alias='main',layer='core'}={}){
   `;
 }
 
-export function createRankTables(db,{alias='main',replace=true}={}){
-  if(replace){
-    db.exec('DROP TABLE IF EXISTS _dist_core_rank; DROP TABLE IF EXISTS _dist_generated_rank;');
-  }
+export function createRankTable(db,{alias='main',layer='core',replace=true,onProgress=null}={}){
+  if(!['core','generated'].includes(layer))throw new Error('Rank layer must be core or generated.');
+  const table=layer==='core'?'_dist_core_rank':'_dist_generated_rank';
+  if(replace)db.exec('DROP TABLE IF EXISTS '+table+';');
+  onProgress?.({phase:'rank',layer,status:'start',table});
   db.exec(`
-    CREATE TABLE IF NOT EXISTS _dist_core_rank AS
-    ${lexicalRankSelectSql({alias,layer:'core'})};
-    CREATE UNIQUE INDEX IF NOT EXISTS _dist_core_rank_surface ON _dist_core_rank(surface_id);
-    CREATE UNIQUE INDEX IF NOT EXISTS _dist_core_rank_order ON _dist_core_rank(distribution_rank);
-
-    CREATE TABLE IF NOT EXISTS _dist_generated_rank AS
-    ${lexicalRankSelectSql({alias,layer:'generated'})};
-    CREATE UNIQUE INDEX IF NOT EXISTS _dist_generated_rank_surface ON _dist_generated_rank(surface_id);
-    CREATE UNIQUE INDEX IF NOT EXISTS _dist_generated_rank_order ON _dist_generated_rank(distribution_rank);
+    CREATE TABLE IF NOT EXISTS ${table} AS
+    ${lexicalRankSelectSql({alias,layer})};
   `);
+  onProgress?.({
+    phase:'rank',layer,status:'rows',table,
+    rows:Number(db.prepare('SELECT COUNT(*) c FROM '+table).get()?.c||0),
+  });
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS ${table}_surface ON ${table}(surface_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS ${table}_order ON ${table}(distribution_rank);
+  `);
+  onProgress?.({phase:'rank',layer,status:'complete',table});
+}
+
+export function createRankTables(db,{alias='main',replace=true,onProgress=null}={}){
+  createRankTable(db,{alias,layer:'core',replace,onProgress});
+  createRankTable(db,{alias,layer:'generated',replace,onProgress});
 }
 
 function countByLanguage(db,table,target){
@@ -257,6 +265,7 @@ export function populateDistributionSelection(db,{
   alias='src',
   totalTarget:totalTargetOverride=null,
   entityPerCategory:entityPerCategoryOverride=null,
+  onProgress=null,
 }){
   const contract=editionContract(edition);
   const totalTarget=totalTargetOverride==null
@@ -268,8 +277,10 @@ export function populateDistributionSelection(db,{
   const p=prefix(alias);
   createSelectionStorage(db);
   clearSelectionStorage(db);
+  onProgress?.({phase:'selection',edition,status:'start'});
 
   if(contract.features.phrases){
+    onProgress?.({phase:'selection',edition,step:'phrases',status:'start'});
     const phraseAvailability=contract.phraseMode==='core'
       ?'rp.canonical_available=1'
       :'(rp.canonical_available=1 OR rp.generated_available=1)';
@@ -288,9 +299,15 @@ export function populateDistributionSelection(db,{
       JOIN _dist_phrase dp USING(runtime_phrase_id)
       WHERE ${windowAvailability};
     `);
+    onProgress?.({
+      phase:'selection',edition,step:'phrases',status:'complete',
+      phrases:scalar(db,'SELECT COUNT(*) c FROM _dist_phrase'),
+      windows:scalar(db,'SELECT COUNT(*) c FROM _dist_phrase_window'),
+    });
   }
 
   if(contract.features.entities&&entityPerCategory>0){
+    onProgress?.({phase:'selection',edition,step:'entities',status:'start'});
     const entityAvailability=contract.mode==='core'
       ?'sp.canonical_available=1'
       :'(sp.canonical_available=1 OR sp.generated_available=1)';
@@ -391,11 +408,21 @@ export function populateDistributionSelection(db,{
       FROM ${p}runtime_entity_pronunciation ep
       JOIN _dist_entity_pronunciation dep USING(product_pronunciation_id);
     `);
+    onProgress?.({
+      phase:'selection',edition,step:'entities',status:'complete',
+      entities:scalar(db,'SELECT COUNT(*) c FROM _dist_entity'),
+      memberships:scalar(db,'SELECT COUNT(*) c FROM _dist_entity_membership'),
+      names:scalar(db,'SELECT COUNT(*) c FROM _dist_entity_name'),
+    });
   }
 
   const phraseCount=scalar(db,'SELECT COUNT(*) c FROM _dist_phrase');
   const entityCount=scalar(db,'SELECT COUNT(*) c FROM _dist_entity');
   const wordTarget=totalTarget-phraseCount-entityCount;
+  onProgress?.({
+    phase:'selection',edition,step:'budget',status:'complete',
+    totalTarget,phraseCount,entityCount,wordTarget,
+  });
   if(wordTarget<=0){
     throw new Error(
       'Distribution non-word populations exceed total budget: '
@@ -471,13 +498,19 @@ export function populateDistributionSelection(db,{
     throw new Error('Core word population too small: '+coreAvailable+' < '+wordTarget);
   }
 
+  onProgress?.({phase:'selection',edition,step:'words',status:'start',wordTarget});
   db.prepare(`
     INSERT INTO _dist_word_surface(surface_id,layer)
     SELECT surface_id,'core'
     FROM _dist_core_rank
     WHERE distribution_rank<=?
   `).run(wordTarget);
+  onProgress?.({
+    phase:'selection',edition,step:'words',status:'complete',
+    words:scalar(db,"SELECT COUNT(*) c FROM _dist_word_surface WHERE layer='core'"),
+  });
 
+  onProgress?.({phase:'selection',edition,step:'pronunciation_closure',status:'start'});
   db.exec(`
     INSERT OR IGNORE INTO _dist_pronunciation(pronunciation_id,reason)
     SELECT p.pronunciation_id,'word_core'
@@ -550,6 +583,13 @@ export function populateDistributionSelection(db,{
     `);
   }
 
+  onProgress?.({
+    phase:'selection',edition,step:'pronunciation_closure',status:'complete',
+    pronunciations:scalar(db,'SELECT COUNT(*) c FROM _dist_pronunciation'),
+    surfaces:scalar(db,'SELECT COUNT(*) c FROM _dist_surface'),
+  });
+
+  onProgress?.({phase:'selection',edition,step:'runtime_closure',status:'start'});
   db.exec(`
     INSERT OR IGNORE INTO _dist_target(target_id)
     SELECT t.target_id
@@ -569,12 +609,20 @@ export function populateDistributionSelection(db,{
     JOIN _dist_target dt USING(target_id);
   `);
 
-  return distributionSelectionSummary(db,{
+  const summary=distributionSelectionSummary(db,{
     edition,
     alias,
     totalTarget,
     entityPerCategory,
   });
+  onProgress?.({
+    phase:'selection',edition,step:'runtime_closure',status:'complete',
+    runtime_targets:summary.selected.runtime_targets,
+    runtime_keys:summary.selected.runtime_keys,
+    runtime_key_members:summary.selected.runtime_key_members,
+  });
+  onProgress?.({phase:'selection',edition,status:'complete',summary});
+  return summary;
 }
 
 function scalar(db,sql){
@@ -739,18 +787,35 @@ export function createTargetSchema(db,{alias='src'}={}){
   return schema;
 }
 
-export function copyDistributionStage(db,stage,{alias='src'}={}){
+export function copyDistributionStage(db,stage,{alias='src',onProgress=null}={}){
   const p=prefix(alias);
+  const entries=Object.entries(stage.tables);
   db.exec('BEGIN IMMEDIATE;');
   try{
-    for(const [table,where] of Object.entries(stage.tables)){
-      if(table==='meta'){
-        db.exec(`INSERT OR IGNORE INTO meta SELECT * FROM ${p}meta WHERE ${where};`);
+    for(let index=0;index<entries.length;index+=1){
+      const [table,where]=entries[index];
+      const targetCount=table==='meta'?0:scalar(db,'SELECT COUNT(*) c FROM '+q(table));
+      if(table!=='meta'&&targetCount>0){
+        onProgress?.({
+          phase:'copy',stage:stage.name,table,index:index+1,total:entries.length,
+          status:'skip_existing',rows:targetCount,
+        });
         continue;
       }
-      const targetCount=scalar(db,'SELECT COUNT(*) c FROM '+q(table));
-      if(targetCount>0)continue;
-      db.exec(`INSERT INTO ${q(table)} SELECT * FROM ${p}${q(table)} WHERE ${where};`);
+      onProgress?.({
+        phase:'copy',stage:stage.name,table,index:index+1,total:entries.length,
+        status:'start',
+      });
+      if(table==='meta'){
+        db.exec(`INSERT OR IGNORE INTO meta SELECT * FROM ${p}meta WHERE ${where};`);
+      }else{
+        db.exec(`INSERT INTO ${q(table)} SELECT * FROM ${p}${q(table)} WHERE ${where};`);
+      }
+      const rows=table==='meta'?scalar(db,'SELECT COUNT(*) c FROM meta'):scalar(db,'SELECT COUNT(*) c FROM '+q(table));
+      onProgress?.({
+        phase:'copy',stage:stage.name,table,index:index+1,total:entries.length,
+        status:'complete',rows,
+      });
     }
     db.prepare(`
       INSERT INTO distribution_build_stage(stage,status,completed_at,detail_json)
