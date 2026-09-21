@@ -1087,6 +1087,10 @@ dialog:has(.command-palette){max-width:680px;padding:20px}
 .device-gate>label span{display:grid;gap:3px}
 .device-gate>label b{font-size:10px}
 .device-gate>label small{font-size:8px;line-height:1.4;color:var(--muted)}
+.device-gate-evidence{
+  display:block;margin-top:2px;font:700 7px/1.35 ui-monospace,monospace;font-style:normal;
+  color:var(--green);overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
 .device-gate>input{
   width:100%;min-height:34px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;
   background:var(--bg);color:var(--ink);font-size:8px
