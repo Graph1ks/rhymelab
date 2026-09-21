@@ -68,6 +68,13 @@ export function normalizeMarkovPool(rows,{target='',allowEntities=true,allowPhra
   return out;
 }
 
+export function entityCategoryValues(row){
+  return (Array.isArray(row?.entityCategories)?row.entityCategories:[])
+    .map((entry)=>typeof entry==='string'?entry:entry?.category)
+    .map((value)=>String(value||'').trim())
+    .filter(Boolean);
+}
+
 export function summarizePool(rows){
   const counts={total:0,word:0,phrase:0,entity:0,generated:0};
   for(const row of rows||[]){
@@ -95,7 +102,7 @@ export function compactWriterRows(rows){
     popularityPercentile:row?.popularityPercentile,
     leipzigCommonness:row?.leipzigCommonness,
     crossedWordBoundaries:row?.crossedWordBoundaries,
-    entityCategories:Array.isArray(row?.entityCategories)?row.entityCategories.slice(0,8):[],
+    entityCategories:entityCategoryValues(row).slice(0,8),
     generatedPronunciation:Boolean(row?.generatedPronunciation),
     lexiconLayer:row?.lexiconLayer,
     relations:Array.isArray(row?.relations)
