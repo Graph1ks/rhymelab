@@ -1,6 +1,6 @@
 
 import {$,queryAll,esc,icon,clamp} from './studio-core.mjs';
-import {STUDIO_DEMO_LINES,loadStudioPreferences,loadStudioState,studioPreferencesFromState,studioStateFromDocumentSnapshot,writeStudioPreferences,writeStudioState} from './document-adapter.mjs';
+import {STUDIO_DEMO_LINES,STUDIO_PREFERENCES_KEY,loadStudioPreferences,loadStudioState,studioPreferencesFromState,studioStateFromDocumentSnapshot,writeStudioPreferences,writeStudioState} from './document-adapter.mjs';
 import {createWriterSearchClient,estimateSyllables} from './search-adapter.mjs';
 import {STUDIO_RHYME_TYPE_LABELS,filterStudioWriterRows,sortStudioWriterRows} from './search-filters.mjs';
 import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchState} from './search-state.mjs';
@@ -3096,12 +3096,36 @@ async function startStudio(){
   revision('startup');
   persist();
 }
-void startStudio().catch((error)=>{
+function renderStartupFailure(error){
   document.body.dataset.controls='failed';
-  const banner=document.createElement('div');
+  const existing=document.querySelector('.startup-failure');
+  if(existing)existing.remove();
+  const banner=document.createElement('section');
   banner.className='startup-failure';
-  banner.textContent='Das Studio konnte nicht vollständig starten. Bitte neu laden. '+error.message;
+  banner.setAttribute('role','alert');
+  const message=error instanceof Error?error.message:String(error);
+  const stack=error instanceof Error&&error.stack?error.stack:message;
+  banner.innerHTML=`
+    <div class="startup-failure-copy">
+      <span class="eyebrow">STUDIO STARTUP RECOVERY</span>
+      <b>Das Studio konnte nicht vollständig starten.</b>
+      <p>${esc(message)}</p>
+      <details><summary>Technische Details</summary><pre>${esc(stack)}</pre></details>
+    </div>
+    <div class="startup-failure-actions">
+      <button type="button" data-startup-action="reload" class="primary">Neu laden</button>
+      <button type="button" data-startup-action="reset-ui" class="outline">Nur UI-Einstellungen zurücksetzen</button>
+      <a href="/legacy" class="outline">Legacy Search öffnen</a>
+    </div>`;
   document.body.prepend(banner);
+  banner.querySelector('[data-startup-action="reload"]').onclick=()=>window.location.reload();
+  banner.querySelector('[data-startup-action="reset-ui"]').onclick=()=>{
+    try{localStorage.removeItem(STUDIO_PREFERENCES_KEY)}catch{}
+    window.location.reload();
+  };
+}
+void startStudio().catch((error)=>{
+  renderStartupFailure(error);
   console.error(error);
 });
 
