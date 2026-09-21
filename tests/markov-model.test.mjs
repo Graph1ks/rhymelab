@@ -73,10 +73,10 @@ function fixtureRuntime(){
   const tokenCounts=new Map();
   const transitions=new Map();
   const sourceSequenceUpsert=db.prepare(
-    'INSERT INTO source_sequence_hash(hash,token_count,count) VALUES(?,?,1) ON CONFLICT(hash) DO UPDATE SET count=count+1',
+    "INSERT INTO source_sequence_hash(source_kind,hash,token_count,count) VALUES('sentence',?,?,1) ON CONFLICT(source_kind,hash) DO UPDATE SET count=count+1",
   );
   const sourceWindowUpsert=db.prepare(
-    'INSERT INTO source_window_hash(hash,window_size,count) VALUES(?,?,1) ON CONFLICT(hash) DO UPDATE SET count=count+1',
+    "INSERT INTO source_window_hash(source_kind,hash,window_size,count) VALUES('sentence',?,?,1) ON CONFLICT(source_kind,hash) DO UPDATE SET count=count+1",
   );
   const shapeUpsert=db.prepare(
     'INSERT INTO shape_pattern(token_count,shape_key,count) VALUES(?,?,1) ON CONFLICT(token_count,shape_key) DO UPDATE SET count=count+1',
@@ -167,6 +167,8 @@ test('V2 runtime exposes variable-order, novelty and shape evidence',()=>{
   const novelty=runtime.sourceNovelty(tokens);
   assert.equal(novelty.exactSource,true);
   assert.ok(novelty.longestSourceRun>=4);
+  assert.equal(novelty.byKind.sentence.exact,true);
+  assert.equal(novelty.byKind.phrase.exact,false);
   assert.ok(runtime.shapeEvidence(tokens).fit>0);
   runtime.close();
 });
