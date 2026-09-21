@@ -263,7 +263,7 @@ Initial enabled English sources:
 
 | Code | Source | Era | Role | Initial weight |
 | --- | --- | ---: | --- | ---: |
-| `leipzig_eng_news_2024_300k` | Leipzig English News 2024, 300K norm corpus | 2024 | `sentence` | 1 |
+| `leipzig_eng_news_2023_1m` | Leipzig English News 2023, 1M norm corpus capped to 300K staged sentences | 2024 | `sentence` | 1 |
 | `tatoeba_eng` | Tatoeba weekly English detailed export | contemporary/community | `sentence` | 1 |
 
 The two languages never share transition tables.
