@@ -346,6 +346,9 @@ verse totals + duration estimate          DONE
 full Perform parity                      DONE
 typing-burst undo coalescing              DONE
 stable-ID Bar Navigator + reorder          DONE
+source-backed parity manifest              DONE · 77 mapped capabilities
+static old-vs-new evidence audit            DONE · 70 source gates
+real-device parity gates                    REQUIRED · 7 gates
 persistent DE / EN UI localization       DONE
 serialized autosave queue + lifecycle flush DONE
 portable backup import/export             DONE
@@ -538,7 +541,9 @@ Entity category multi-select             DONE · shared SearchState + OR runtime
 31 live DOM acceptance audit                   DONE
 32 typing undo coalescing                    DONE
 33 Bar Navigator / stable-ID reorder           DONE
-34 real device/browser acceptance              REQUIRED
+34 source-backed exhaustive parity manifest      DONE
+35 acceptance center parity integration         DONE
+36 real device/browser acceptance              REQUIRED · 7 device gates
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
