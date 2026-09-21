@@ -13,6 +13,7 @@ const root=process.cwd();
 const args=process.argv.slice(2);
 let servingDbPath=DEFAULT_SERVING_V1_PRODUCT_DB_PATH;
 let sourceOut='data/work/markov-v2/rhymelab-serving-phrase-lines.txt';
+let sentenceManifest='data/local/markov-sources/manifest.json';
 let plan=false;
 let status=false;
 const forwarded=[];
@@ -21,6 +22,7 @@ for(let i=0;i<args.length;i+=1){
   const arg=args[i];
   if(arg==='--serving-db')servingDbPath=args[++i]||servingDbPath;
   else if(arg==='--source-out')sourceOut=args[++i]||sourceOut;
+  else if(arg==='--sentence-manifest')sentenceManifest=args[++i]||sentenceManifest;
   else if(arg==='--phrase-db'){
     throw new Error('--phrase-db is archived for the old split runtime. Markov now uses --serving-db / rhymelab-serving-v1.sqlite.');
   }
@@ -31,6 +33,7 @@ for(let i=0;i<args.length;i+=1){
 
 servingDbPath=resolve(root,servingDbPath);
 sourceOut=resolve(root,sourceOut);
+sentenceManifest=resolve(root,sentenceManifest);
 
 async function exists(path){try{await access(path);return true;}catch{return false;}}
 
@@ -110,10 +113,45 @@ async function writeIfChanged(path,text){
   return true;
 }
 
-function runBuilder(extraArgs){
+async function sentenceSources(){
+  if(!await exists(sentenceManifest))return [];
+  const parsed=JSON.parse(await readFile(sentenceManifest,'utf8'));
+  if(parsed?.schema!=='rhymelab-markov-source-manifest-v1'){
+    throw new Error('Unsupported Markov sentence manifest: '+String(parsed?.schema||'missing'));
+  }
+  const rows=[];
+  for(const source of parsed.sources||[]){
+    const stagedPath=resolve(root,String(source.staged_path||''));
+    if(!source.code||source.kind!=='sentence'||!stagedPath)continue;
+    if(!await exists(stagedPath)){
+      throw new Error('Staged Markov sentence source missing: '+stagedPath);
+    }
+    rows.push({
+      code:String(source.code),
+      kind:'sentence',
+      weight:Math.max(1,Math.min(16,Number(source.weight)||1)),
+      path:stagedPath,
+      accepted:Number(source.accepted||0),
+      staged_sha256:String(source.staged_sha256||''),
+      license:String(source.license||''),
+      year:source.year??null,
+    });
+  }
+  return rows;
+}
+
+function sourceCliArgs(rows){
+  return rows.flatMap((row)=>[
+    '--source',
+    row.kind+':'+row.code+':'+row.weight+'='+row.path,
+  ]);
+}
+
+function runBuilder(extraArgs,additionalSources=[]){
   const result=spawnSync(process.execPath,[
     'scripts/build-markov-model.mjs',
     '--source',`phrase:serving_v1_phrases:1=${sourceOut}`,
+    ...sourceCliArgs(additionalSources),
     ...extraArgs,
   ],{
     cwd:root,
@@ -122,10 +160,11 @@ function runBuilder(extraArgs){
   });
   if(result.stdout)process.stdout.write(result.stdout);
   if(result.stderr)process.stderr.write(result.stderr);
-  process.exit(result.status??1);
+  return result.status??1;
 }
 
 const servingAvailable=await exists(servingDbPath);
+const additionalSources=await sentenceSources();
 
 if(plan){
   let info=null;
@@ -146,6 +185,10 @@ if(plan){
     exported_line_file:sourceOut,
     private_lyrics_used:false,
     archived_split_phrase_database_used:false,
+    sentence_manifest:sentenceManifest,
+    sentence_sources:additionalSources,
+    sentence_source_count:additionalSources.length,
+    sentence_rows:additionalSources.reduce((sum,row)=>sum+row.accepted,0),
     error,
     build_command:'npm run markov:model:build',
     prerequisite_status_command:'npm run serving:v1:product:status',
@@ -170,7 +213,7 @@ if(status){
     },null,2));
     process.exit(0);
   }
-  runBuilder(['--status',...forwarded]);
+  process.exit(runBuilder(['--status',...forwarded],additionalSources));
 }
 
 if(!servingAvailable){
@@ -188,8 +231,19 @@ if(info.eligible<1){
 }
 
 const exported=exportPhraseLines();
-const changed=await writeIfChanged(sourceOut,exported.text);
+const phraseChanged=await writeIfChanged(sourceOut,exported.text);
 const sourceInfo=await stat(sourceOut);
+const mixFingerprint=createHash('sha256')
+  .update(exported.fingerprint)
+  .update('\n')
+  .update(additionalSources.map((row)=>[
+    row.code,row.weight,row.staged_sha256,row.accepted,
+  ].join(':')).join('\n'))
+  .digest('hex');
+const mixFingerprintPath=resolve(root,'data/work/markov-v2/source-mix-fingerprint.txt');
+let previousMixFingerprint='';
+try{previousMixFingerprint=(await readFile(mixFingerprintPath,'utf8')).trim();}catch{}
+const sourceMixChanged=previousMixFingerprint!==mixFingerprint;
 
 console.error(JSON.stringify({
   source:'rhymelab_serving_v1_runtime_phrase',
@@ -200,7 +254,16 @@ console.error(JSON.stringify({
   exported_lines:exported.rows,
   source_fingerprint:exported.fingerprint,
   source_bytes:sourceInfo.size,
-  source_changed:changed,
+  source_changed:phraseChanged||sourceMixChanged,
+  source_mix_fingerprint:mixFingerprint,
+  sentence_sources:additionalSources.map((row)=>({
+    code:row.code,
+    weight:row.weight,
+    accepted:row.accepted,
+    license:row.license,
+    year:row.year,
+    staged_sha256:row.staged_sha256,
+  })),
   private_lyrics_used:false,
   archived_split_phrase_database_used:false,
 },null,2));
@@ -209,9 +272,13 @@ const hasReset=forwarded.includes('--reset');
 const hasMinTokenCount=forwarded.includes('--min-token-count');
 const hasMinSequenceTokens=forwarded.includes('--min-sequence-tokens');
 const buildArgs=[
-  ...(changed&&!hasReset?['--reset']:[]),
+  ...((phraseChanged||sourceMixChanged)&&!hasReset?['--reset']:[]),
   ...(!hasMinTokenCount?['--min-token-count','1']:[]),
   ...(!hasMinSequenceTokens?['--min-sequence-tokens','2']:[]),
   ...forwarded,
 ];
-runBuilder(buildArgs);
+const resultArgs=buildArgs;
+await mkdir(dirname(mixFingerprintPath),{recursive:true});
+const buildStatus=runBuilder(resultArgs,additionalSources);
+if(buildStatus===0)await writeFile(mixFingerprintPath,mixFingerprint+'\n','utf8');
+process.exit(buildStatus);
