@@ -97,6 +97,7 @@ export function createStudioDocumentStore({indexedDBImpl=globalThis.indexedDB}={
       if(!db)return {saved:false,reason:'indexeddb_unavailable'};
       const names=[STORE_NAMES.meta,STORE_NAMES.songs,STORE_NAMES.bars,STORE_NAMES.revisions,STORE_NAMES.folders];
       const transaction=db.transaction(names,'readwrite');
+      const done=transactionDone(transaction);
       const stores=Object.fromEntries(names.map((name)=>[name,transaction.objectStore(name)]));
       for(const name of [STORE_NAMES.songs,STORE_NAMES.bars,STORE_NAMES.revisions,STORE_NAMES.folders])stores[name].clear();
       stores.meta.put({
@@ -111,7 +112,7 @@ export function createStudioDocumentStore({indexedDBImpl=globalThis.indexedDB}={
       for(const row of snapshot.bars)stores.bars.put(row);
       for(const row of snapshot.revisions)stores.revisions.put(row);
       for(const row of snapshot.folders)stores.folders.put(row);
-      await transactionDone(transaction);
+      await done;
       return {
         saved:true,
         counts:{
@@ -127,6 +128,7 @@ export function createStudioDocumentStore({indexedDBImpl=globalThis.indexedDB}={
       if(!db)return null;
       const names=[STORE_NAMES.meta,STORE_NAMES.songs,STORE_NAMES.bars,STORE_NAMES.revisions,STORE_NAMES.folders];
       const transaction=db.transaction(names,'readonly');
+      const done=transactionDone(transaction);
       const metaStore=transaction.objectStore(STORE_NAMES.meta);
       const [meta,songs,bars,revisions,folders]=await Promise.all([
         requestResult(metaStore.get('document')),
@@ -135,7 +137,7 @@ export function createStudioDocumentStore({indexedDBImpl=globalThis.indexedDB}={
         getAll(transaction.objectStore(STORE_NAMES.revisions)),
         getAll(transaction.objectStore(STORE_NAMES.folders)),
       ]);
-      await transactionDone(transaction);
+      await done;
       if(!meta)return null;
       const snapshot={
         schema:meta.schema,
@@ -155,6 +157,7 @@ export function createStudioDocumentStore({indexedDBImpl=globalThis.indexedDB}={
       const db=await database();
       if(!db)return {saved:false,reason:'indexeddb_unavailable'};
       const transaction=db.transaction([STORE_NAMES.backups],'readwrite');
+      const done=transactionDone(transaction);
       const store=transaction.objectStore(STORE_NAMES.backups);
       const id=`legacy:${report.sourceSignature}`;
       store.put({
@@ -165,15 +168,16 @@ export function createStudioDocumentStore({indexedDBImpl=globalThis.indexedDB}={
         backupSignature:report.backupSignature,
         backup,
       });
-      await transactionDone(transaction);
+      await done;
       return {saved:true,id};
     },
     async listBackups(){
       const db=await database();
       if(!db)return [];
       const transaction=db.transaction([STORE_NAMES.backups],'readonly');
+      const done=transactionDone(transaction);
       const rows=await getAll(transaction.objectStore(STORE_NAMES.backups));
-      await transactionDone(transaction);
+      await done;
       return rows.sort((a,b)=>Number(b.createdAt)-Number(a.createdAt));
     },
     close(){
