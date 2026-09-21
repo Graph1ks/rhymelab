@@ -15,7 +15,7 @@ import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilen
 import {collectStudioEnvironmentDiagnostics,diagnosticsFilename} from './diagnostics.mjs';
 import {createStudioDomLocalizer,normalizeStudioUiLanguage} from './i18n.mjs';
 import {commandShortcutText,rankStudioCommands,studioCommandGroups} from './command-palette.mjs';
-import {STUDIO_DEVICE_GATES,createStudioDeviceAcceptance,parseStudioDeviceAcceptance,studioDeviceAcceptanceFilename,studioDeviceAcceptanceSummary} from './device-acceptance.mjs';
+import {STUDIO_DEVICE_GATES,createStudioDeviceAcceptance,mergeStudioDeviceAcceptanceReports,parseStudioDeviceAcceptance,studioDeviceAcceptanceFilename,studioDeviceAcceptanceSummary,studioDeviceEnvironmentLabel} from './device-acceptance.mjs';
 import {createTypingUndoCoalescer} from './edit-history.mjs';
 import {studioParityGroups,studioParitySummary} from './parity-manifest.mjs';
 import {runStudioDomAcceptance} from './dom-acceptance.mjs';
@@ -2267,6 +2267,8 @@ function setStudioDeviceGate(id,passed,note){
   report.results[id]={
     passed:Boolean(passed),
     note:String(note??report.results[id]?.note??'').trim().slice(0,400),
+    testedAt:Date.now(),
+    environment:currentDeviceAcceptanceEnvironment(),
   };
   studioDeviceAcceptance=createStudioDeviceAcceptance(report);
   persistStudioDeviceAcceptance();
@@ -2276,6 +2278,18 @@ function resetStudioDeviceAcceptance(){
   studioDeviceAcceptance=createStudioDeviceAcceptance({environment:currentDeviceAcceptanceEnvironment()});
   persistStudioDeviceAcceptance();
   renderDeviceAcceptancePanel();
+}
+async function importStudioDeviceAcceptanceFile(file){
+  if(!file)throw new Error('Keine Acceptance-Datei ausgewählt.');
+  if(file.size>8*1024*1024)throw new Error('Acceptance-Datei ist größer als 8 MB.');
+  const incoming=parseStudioDeviceAcceptance(await file.text());
+  studioDeviceAcceptance=mergeStudioDeviceAcceptanceReports([
+    ensureStudioDeviceAcceptance(),
+    incoming,
+  ]);
+  persistStudioDeviceAcceptance();
+  renderDeviceAcceptancePanel();
+  return studioDeviceAcceptanceSummary(studioDeviceAcceptance);
 }
 function exportStudioDeviceAcceptance(){
   const report=ensureStudioDeviceAcceptance();
@@ -2294,7 +2308,10 @@ function renderDeviceAcceptancePanel(){
     '<div class="device-acceptance-summary '+(summary.ready?'is-ready':'')+'"><div><span class="eyebrow">REAL DEVICE GATES</span><b>'+summary.passed+'/'+summary.total+' bestätigt</b><small>'+(summary.ready?'Cutover Device-Gate vollständig':'Noch '+summary.pending.length+' reale Geräteprüfung'+(summary.pending.length===1?'':'en')+' offen')+'</small></div><div class="device-env">'+esc(report.environment.platform||'Unknown platform')+' · '+Math.round(report.environment.viewportWidth)+'×'+Math.round(report.environment.viewportHeight)+' · '+report.environment.maxTouchPoints+' touch</div></div>'+
     '<div class="device-gate-list">'+STUDIO_DEVICE_GATES.map((gate)=>{
       const row=report.results[gate.id]||{passed:false,note:''};
-      return '<article class="device-gate '+(row.passed?'is-pass':'')+'"><label><input type="checkbox" data-device-gate="'+esc(gate.id)+'" '+(row.passed?'checked':'')+'><span><b>'+esc(gate.label)+'</b><small>'+esc(gate.instruction)+'</small></span></label><input type="text" data-device-gate-note="'+esc(gate.id)+'" value="'+esc(row.note||'')+'" placeholder="Notiz / Gerät / Browser …" maxlength="400"></article>';
+      const evidence=row.passed&&row.environment
+        ?'<em class="device-gate-evidence">'+esc(studioDeviceEnvironmentLabel(row.environment))+(row.testedAt?' · '+new Date(row.testedAt).toLocaleString():'')+'</em>'
+        :'';
+      return '<article class="device-gate '+(row.passed?'is-pass':'')+'"><label><input type="checkbox" data-device-gate="'+esc(gate.id)+'" '+(row.passed?'checked':'')+'><span><b>'+esc(gate.label)+'</b><small>'+esc(gate.instruction)+'</small>'+evidence+'</span></label><input type="text" data-device-gate-note="'+esc(gate.id)+'" value="'+esc(row.note||'')+'" placeholder="Notiz / Gerät / Browser …" maxlength="400"></article>';
     }).join('')+'</div>';
   queryAll('[data-device-gate]').forEach((input)=>input.onchange=()=>{
     const id=input.dataset.deviceGate;
@@ -2372,7 +2389,7 @@ function renderSettingsDock(body){
     return '<label class="theme-color-field"><span>'+label+'</span><input type="color" data-theme-color="'+key+'" value="'+colors[key]+'" aria-label="'+label+' Farbe"><input type="text" data-theme-hex="'+key+'" value="'+colors[key]+'" maxlength="7" spellcheck="false" aria-label="'+label+' Hex"></label>';
   }).join('');
   const preview=THEME_COLOR_FIELDS.map(function(field){return '<i data-preview-color="'+field[0]+'" style="background:'+colors[field[0]]+'"></i>'}).join('');
-  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label><label>UI-Sprache<select id="uiLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select></label></div><div id="capabilitySummary" class="capability-summary">'+capabilityMarkup()+'</div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section><section class="theme-settings-card recovery-card"><div class="recovery-head"><div><h3>Data & Recovery</h3><p>Dokumente laufen primär über IndexedDB. Recovery-Punkte sichern den kompletten versionierten Studio-Snapshot vor größeren Änderungen. Portable Backups enthalten Dokumente, UI-Präferenzen und den gemeinsamen SearchState.</p></div><div class="recovery-head-actions"><button id="exportStudioBackup" class="outline">Backup exportieren</button><button id="importStudioBackup" class="outline">Backup importieren</button><button id="createRecoveryPoint" class="outline">Recovery-Punkt erstellen</button><input id="studioBackupFile" type="file" accept="application/json,.json" hidden></div></div><div id="recoveryPanel"></div></section><section class="theme-settings-card diagnostics-card"><div class="diagnostics-head"><div><h3>Browser & Runtime Diagnostics</h3><p>Acceptance Center für Parity-Manifest, Storage, Writer, Audio, VisualViewport, Touch/Pointer und Motion. Keine Daten werden hochgeladen.</p></div><div class="row"><button id="rerunDiagnostics" class="outline">Neu prüfen</button><button id="exportDiagnostics" class="outline">Diagnostics exportieren</button></div></div><div id="diagnosticsPanel"></div></section><section class="theme-settings-card device-acceptance-card"><div class="diagnostics-head"><div><h3>Real Device Acceptance</h3><p>Die sieben Gates müssen bewusst auf echter Hardware bestätigt werden. Studio markiert sie niemals automatisch als bestanden.</p></div><div class="row"><button id="resetDeviceAcceptance" class="outline">Zurücksetzen</button><button id="exportDeviceAcceptance" class="outline">Acceptance JSON exportieren</button></div></div><div id="deviceAcceptancePanel"></div></section></div>';
+  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label><label>UI-Sprache<select id="uiLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select></label></div><div id="capabilitySummary" class="capability-summary">'+capabilityMarkup()+'</div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section><section class="theme-settings-card recovery-card"><div class="recovery-head"><div><h3>Data & Recovery</h3><p>Dokumente laufen primär über IndexedDB. Recovery-Punkte sichern den kompletten versionierten Studio-Snapshot vor größeren Änderungen. Portable Backups enthalten Dokumente, UI-Präferenzen und den gemeinsamen SearchState.</p></div><div class="recovery-head-actions"><button id="exportStudioBackup" class="outline">Backup exportieren</button><button id="importStudioBackup" class="outline">Backup importieren</button><button id="createRecoveryPoint" class="outline">Recovery-Punkt erstellen</button><input id="studioBackupFile" type="file" accept="application/json,.json" hidden></div></div><div id="recoveryPanel"></div></section><section class="theme-settings-card diagnostics-card"><div class="diagnostics-head"><div><h3>Browser & Runtime Diagnostics</h3><p>Acceptance Center für Parity-Manifest, Storage, Writer, Audio, VisualViewport, Touch/Pointer und Motion. Keine Daten werden hochgeladen.</p></div><div class="row"><button id="rerunDiagnostics" class="outline">Neu prüfen</button><button id="exportDiagnostics" class="outline">Diagnostics exportieren</button></div></div><div id="diagnosticsPanel"></div></section><section class="theme-settings-card device-acceptance-card"><div class="diagnostics-head"><div><h3>Real Device Acceptance</h3><p>Die sieben Gates müssen bewusst auf echter Hardware bestätigt werden. Reports von mehreren Geräten lassen sich zusammenführen; Studio markiert nie automatisch bestanden.</p></div><div class="row"><button id="resetDeviceAcceptance" class="outline">Zurücksetzen</button><button id="importDeviceAcceptance" class="outline">Acceptance importieren</button><button id="exportDeviceAcceptance" class="outline">Acceptance JSON exportieren</button><input id="deviceAcceptanceFile" type="file" accept="application/json,.json" hidden></div></div><div id="deviceAcceptancePanel"></div></section></div>';
   $('#fontRange').oninput=function(event){setFontSize(+event.target.value)};
   $('#editorFont').value=state.editorFont||'sans';
   $('#editorFont').onchange=function(event){state.editorFont=event.target.value;applyEditorFont();persist()};
@@ -2407,6 +2424,17 @@ function renderSettingsDock(body){
   $('#rerunDiagnostics').onclick=()=>{renderDiagnosticsPanel();notify('Browser-Diagnostics aktualisiert.')};
   $('#exportDiagnostics').onclick=()=>{exportStudioDiagnostics();notify('Diagnostics als JSON exportiert.')};
   $('#resetDeviceAcceptance').onclick=()=>{resetStudioDeviceAcceptance();notify('Device-Acceptance zurückgesetzt.')};
+  $('#importDeviceAcceptance').onclick=()=>$('#deviceAcceptanceFile').click();
+  $('#deviceAcceptanceFile').onchange=async function(){
+    const file=this.files?.[0];this.value='';
+    if(!file)return;
+    try{
+      const summary=await importStudioDeviceAcceptanceFile(file);
+      notify('Device-Acceptance zusammengeführt · '+summary.passed+'/'+summary.total+' bestätigt.');
+    }catch(error){
+      notify('Acceptance-Import fehlgeschlagen: '+(error instanceof Error?error.message:String(error)));
+    }
+  };
   $('#exportDeviceAcceptance').onclick=()=>{exportStudioDeviceAcceptance();notify('Device-Acceptance als JSON exportiert.')};
   renderDiagnosticsPanel();
   renderDeviceAcceptancePanel();
