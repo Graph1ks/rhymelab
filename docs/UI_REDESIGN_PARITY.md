@@ -201,7 +201,14 @@ The Search workspace and Studio assistant use the same SearchState. Changing sur
 | Editor bottom dock | READY-visual |
 | Focus mode | READY-visual |
 | Command menu | READY-visual |
-| Light/dark theme system | READY-visual |
+| Light/dark theme system | READY-functional |
+| Reference light palette (#EAE7DC / #D8C3A5 / #8E8D8A / #E98074 / #E85A4F) | READY-functional |
+| Reference dark palette (#272727 / #747474 / #FF652F / #FFE400 / #14A76C) | READY-functional |
+| Custom semantic color-theme builder | READY-functional |
+| Live custom-theme preview + contrast feedback | READY-functional |
+| Save/delete local custom themes | READY-functional |
+| Custom theme replaces Light or Dark slot | READY-functional |
+| Extra custom themes in Quickstyle hover menu | READY-functional |
 | Selection-follow / pinned anchor | READY-visual |
 | Keyboard result navigation | READY-visual |
 | Restrained insert/save/result motion | READY-visual |
