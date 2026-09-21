@@ -531,6 +531,8 @@ npm run studio:v2:accepted-preview
 
 The accepted-preview command runs the full cutover gate before starting `--studio-default`. No old route is deleted in the first production switch commit.
 
+Startup failures expose a non-destructive recovery banner with reload, UI-preference reset, and the explicit `/legacy` escape hatch. Resetting UI preferences never deletes the versioned IndexedDB document store.
+
 ---
 
 # Immediate implementation sequence
@@ -576,8 +578,11 @@ Entity category multi-select             DONE · shared SearchState + OR runtime
 37 deterministic cutover release gate           DONE
 38 guided real-device acceptance workflow      DONE
 39 environment eligibility enforcement          DONE
-40 multi-device acceptance merge CLI            DONE
-41 real device/browser acceptance              REQUIRED · 7 device gates
+40 persistent in-test verdict overlay            DONE
+41 multi-device acceptance merge CLI            DONE
+42 cutover readiness dashboard                   DONE
+43 startup recovery / UI-pref reset              DONE
+44 real device/browser acceptance              REQUIRED · 7 device gates
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
