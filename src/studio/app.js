@@ -323,19 +323,19 @@ function writerRowAlreadyUsed(row,words,normalizedLyrics){
   if(row.kind==='phrase'||row.kind==='entity')return normalizedLyrics.includes(candidate);
   return words.has(candidate);
 }
+function filterUnusedWriterRows(rows){
+  hiddenUsedCount=0;
+  if(!hideUsed||!rows.length)return rows;
+  const words=lyricWordSet(),normalizedLyrics=normalizeCandidateSurface(song().lines.join('\n'));
+  const unused=rows.filter((row)=>!writerRowAlreadyUsed(row,words,normalizedLyrics));
+  hiddenUsedCount=rows.length-unused.length;
+  return unused;
+}
 function data(){
-  let rows=writerRows.filter((row)=>
+  return writerRows.filter((row)=>
     (scope==='all'||scope===row.kind)
     &&(relation==='all'||relation===row.relation)
   );
-  hiddenUsedCount=0;
-  if(hideUsed&&rows.length){
-    const words=lyricWordSet(),normalizedLyrics=normalizeCandidateSurface(song().lines.join('\n'));
-    const unused=rows.filter((row)=>!writerRowAlreadyUsed(row,words,normalizedLyrics));
-    hiddenUsedCount=rows.length-unused.length;
-    rows=unused;
-  }
-  return rows;
 }
 function resultHTML(r){const saved=state.saved.some(s=>s.word===r.word);return `<div class="result"><div class="grow"><button class="result-word" data-detail="${esc(r.word)}">${esc(r.word)}</button><div class="result-meta"><b>${esc(r.relationLabel||'Klangtreffer')}</b><span>${r.syll||'—'} Silb.</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'} · ${r.lang.toUpperCase()}</span></div></div><div class="result-actions"><button data-save="${esc(r.word)}" class="${saved?'saved':''}" aria-pressed="${saved}" aria-label="${esc(r.word)} ${saved?'entmerken':'merken'}">${icon('book')}</button><button data-insert="${esc(r.word)}" aria-label="${esc(r.word)} einsetzen">${icon('plus')}</button></div></div>`}
 function renderResults(){
@@ -478,7 +478,7 @@ state.motion=state.motion||'auto';
 const baseData=data, baseRenderResults=renderResults, baseRenderEditor=renderEditor, baseCapture=captureSelection, baseInsert=insertWord, baseToggleSave=toggleSave, baseMode=setMode;
 function animateSurface(el,name='surface-enter'){if(!el)return;el.classList.remove(name);void el.offsetWidth;el.classList.add(name)}
 function sortedData(){return sortStudioWriterRows(data(),{sort,rhymeType,querySyllables:writerQuerySyllables||syll(query),locale:basis==='en'?'en':'de'})}
-data=function(){return filterStudioWriterRows(baseData(),{rhymeType,syllableMode,querySyllables:writerQuerySyllables||syll(query)})};
+data=function(){return filterUnusedWriterRows(filterStudioWriterRows(baseData(),{rhymeType,syllableMode,querySyllables:writerQuerySyllables||syll(query)}))};
 resultHTML=function(r){const saved=state.saved.some(s=>s.word===r.word),kind=r.kind==='phrase'?'PHRASE':r.kind==='entity'?'NAME':'',active=selectedResultId?selectedResultId===r.id:selectedResult===r.word,shortRelation=({multisyllabic_perfect:'Multi-Voll',perfect:'Voll',multisyllabic_slant:'Multi-Slant',family:'Familie',slant:'Slant',assonance:'Asson.',consonance:'Konson.'})[r.relationType]||'Klang';return `<div class="result ${active?'is-selected':''}" data-result-word="${esc(r.word)}" data-result-id="${esc(r.id)}"><div class="grow"><button class="result-word" data-detail="${esc(r.word)}" data-detail-id="${esc(r.id)}" aria-label="Details zu ${esc(r.word)}" aria-pressed="${active}">${esc(r.word)}${kind?`<span class="result-kind">${kind}</span>`:''}</button><div class="result-meta"><b>${esc(r.relationLabel||'Klangtreffer')}</b><span>${r.syll||'—'} Silb.</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'} · ${r.lang.toUpperCase()}</span></div></div><span class="result-relation">${esc(shortRelation)}</span><span class="result-syll">${r.syll||'—'}</span><div class="result-actions"><button data-save="${esc(r.word)}" class="${saved?'saved':''}" aria-pressed="${saved}" aria-label="${esc(r.word)} ${saved?'entmerken':'merken'}">${icon('book')}</button><button data-insert="${esc(r.word)}" aria-label="${esc(r.word)} einsetzen">${icon('plus')}</button></div></div>`};
 renderResults=function(){baseRenderResults();const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===density));queryAll('[data-density]').forEach(b=>{b.classList.toggle('active',b.dataset.density===density);b.setAttribute('aria-pressed',b.dataset.density===density)});queryAll('#results .result').forEach((r,i)=>r.style.setProperty('--i',i));const sig=[query,scope,relation,rhymeType,variantMode,entityCategory,includeHistorical,generated,generatedOnly,sort,basis,resultLang,syllableMode,density].join('|');if(sig!==resultSignature){animateSurface($('#results'),'results-enter');animateSurface($('#anchorWord'),'anchor-change');resultSignature=sig;$('#resultsScroll').scrollTop=0}syncInline();if(selectedResult&&!data().some(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult)){selectedResult='';selectedResultId='';selectedDetail=null;$('#detailDock').classList.add('hidden')}if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();$('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer'+(hiddenUsedCount?' · '+hiddenUsedCount+' verwendet ausgeblendet':'');$('#filterLabel').textContent=$('#directFilters').classList.contains('hidden')?'Filter öffnen':hasActiveSearchFilters()?'Filter aktiv':'Filter sichtbar'};
 renderEditor=function(){baseRenderEditor();selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});$('#fontSizeLive').textContent=state.fontSize;if(dockTab==='saved')renderDock();};
