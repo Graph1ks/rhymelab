@@ -65,7 +65,7 @@
     "markov:sources:acquire": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs",
     "markov:sources:refresh": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --refresh",
     "markov:sources:status": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --status",
-    "markov:data:bootstrap": "npm run markov:sources:acquire && npm run markov:model:build",
+    "markov:data:bootstrap": "npm run markov:sources:acquire && npm run markov:sources:acquire:en && npm run markov:model:build && npm run markov:model:build:en",
     "markov:model:plan": "node --no-warnings scripts/build-markov-from-rhymelab.mjs --plan",
     "markov:model:build": "node --no-warnings scripts/build-markov-from-rhymelab.mjs",
     "markov:model:status": "node --no-warnings scripts/build-markov-from-rhymelab.mjs --status",
@@ -185,7 +185,16 @@
     "serving:v1:product:accept:status": "node --no-warnings scripts/accept-serving-v1-product.mjs --status",
     "serving:v1:hotpath:benchmark": "node --no-warnings scripts/benchmark-serving-v1-hotpaths.mjs",
     "serving:v1:hotpath:owner": "node --no-warnings scripts/run-serving-v1-hotpath-owner.mjs",
-    "serving:v1:report:benchmark": "node --no-warnings scripts/benchmark-serving-v1-report.mjs"
+    "serving:v1:report:benchmark": "node --no-warnings scripts/benchmark-serving-v1-report.mjs",
+    "markov:sources:plan:en": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --registry sources/markov-sentence-sources-en-v1.json --plan",
+    "markov:sources:acquire:en": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --registry sources/markov-sentence-sources-en-v1.json",
+    "markov:sources:refresh:en": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --registry sources/markov-sentence-sources-en-v1.json --refresh",
+    "markov:sources:status:en": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --registry sources/markov-sentence-sources-en-v1.json --status",
+    "markov:model:plan:en": "node --no-warnings scripts/build-markov-en-v2.mjs --plan",
+    "markov:model:build:en": "node --no-warnings scripts/build-markov-en-v2.mjs",
+    "markov:model:status:en": "node --no-warnings scripts/build-markov-en-v2.mjs --status",
+    "markov:data:bootstrap:de": "npm run markov:sources:acquire && npm run markov:model:build",
+    "markov:data:bootstrap:en": "npm run markov:sources:acquire:en && npm run markov:model:build:en"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"
