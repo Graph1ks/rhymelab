@@ -1214,7 +1214,7 @@ function renderLibrary(showTrash=libraryView.trash){
   const rows=state.songs.filter((item)=>{
     const deleted=Boolean(item.deleted||item.deletedAt);
     if(deleted!==libraryView.trash)return false;
-    if(libraryView.folder!=='all'&&item.folder!==libraryView.folder)return false;
+    if(libraryView.folder!=='all'&&!folderContains(libraryView.folder,item.folder))return false;
     if(!needle)return true;
     const haystack=[item.title,item.folder,...(Array.isArray(item.lines)?item.lines:[])].join('\n').toLocaleLowerCase('de-DE');
     return haystack.includes(needle);
@@ -1229,13 +1229,15 @@ function renderLibrary(showTrash=libraryView.trash){
   const folders=libraryFolders();
   const sourceRows=state.songs.filter((item)=>Boolean(item.deleted||item.deletedAt)===libraryView.trash);
   const folderButton=(folder)=>{
-    const count=sourceRows.filter((item)=>item.folder===folder).length;
+    const count=sourceRows.filter((item)=>folderContains(folder,item.folder)).length;
     const active=libraryView.folder===folder;
-    const position=state.folders.indexOf(folder);
+    const siblings=folderChildren(folderParent(folder));
+    const position=siblings.indexOf(folder),depth=Math.max(0,folderDepth(folder));
     const actions=!libraryView.trash
-      ?`<span class="library-folder-actions">${folder!=='Entwürfe'?'<button data-folder-rename="'+esc(folder)+'" aria-label="Ordner '+esc(folder)+' umbenennen" title="Umbenennen">✎</button>':''}<button data-folder-move-up="${esc(folder)}" aria-label="Ordner nach oben" title="Nach oben" ${position<=0?'disabled':''}>↑</button><button data-folder-move-down="${esc(folder)}" aria-label="Ordner nach unten" title="Nach unten" ${position>=state.folders.length-1?'disabled':''}>↓</button>${folder!=='Entwürfe'?'<button class="library-folder-delete" data-folder-delete="'+esc(folder)+'" aria-label="Ordner '+esc(folder)+' löschen" title="Ordner löschen">×</button>':''}</span>`
+      ?`<span class="library-folder-actions"><button data-folder-subfolder="${esc(folder)}" aria-label="Unterordner in ${esc(folder)} anlegen" title="Unterordner">＋</button>${folder!=='Entwürfe'?'<button data-folder-rename="'+esc(folder)+'" aria-label="Ordner '+esc(folder)+' umbenennen" title="Umbenennen">✎</button>':''}<button data-folder-move-up="${esc(folder)}" aria-label="Ordner nach oben" title="Nach oben" ${position<=0?'disabled':''}>↑</button><button data-folder-move-down="${esc(folder)}" aria-label="Ordner nach unten" title="Nach unten" ${position>=siblings.length-1?'disabled':''}>↓</button>${folder!=='Entwürfe'?'<button class="library-folder-delete" data-folder-delete="'+esc(folder)+'" aria-label="Ordner '+esc(folder)+' löschen" title="Ordnerstruktur löschen">×</button>':''}</span>`
       :'';
-    return `<div class="library-folder-row"><button data-folder-filter="${esc(folder)}" class="${active?'active':''}" aria-pressed="${active}"><span>${esc(folder)}</span><small>${count}</small></button>${actions}</div>`;
+    const parent=folderParent(folder);
+    return `<div class="library-folder-row" data-depth="${depth}" style="--folder-depth:${depth}"><button data-folder-filter="${esc(folder)}" class="${active?'active':''}" aria-pressed="${active}" title="${esc(folder)}"><span class="library-folder-label"><i aria-hidden="true">${depth?'↳':'▱'}</i><b>${esc(folderLeaf(folder))}</b>${parent?'<em>'+esc(parent)+'</em>':''}</span><small>${count}</small></button>${actions}</div>`;
   };
   const allActive=libraryView.folder==='all';
   const cards=rows.map((item)=>{
@@ -1269,7 +1271,7 @@ function renderLibrary(showTrash=libraryView.trash){
     </div>
     <div class="library-shell">
       <aside class="library-folders" aria-label="Ordner">
-        <div class="library-folder-head"><span class="eyebrow">ORDNER</span>${libraryView.trash?'':'<button id="newFolderBtn" class="icon" aria-label="Neuer Ordner" title="Neuer Ordner">＋</button>'}</div>
+        <div class="library-folder-head"><span class="eyebrow">ORDNERSTRUKTUR</span>${libraryView.trash?'':'<button id="newFolderBtn" class="icon" aria-label="Neuer Hauptordner" title="Neuer Hauptordner">＋</button>'}</div>
         <div class="library-folder-row"><button data-folder-filter="all" class="${allActive?'active':''}" aria-pressed="${allActive}"><span>Alle Texte</span><small>${sourceRows.length}</small></button></div>
         ${folders.map(folderButton).join('')}
       </aside>
@@ -1362,6 +1364,7 @@ document.addEventListener('click',(event)=>{
     renderLibrary(libraryView.trash);
   }
   if(button.dataset.folderDelete)deleteLibraryFolder(button.dataset.folderDelete);
+  if(button.dataset.folderSubfolder)createLibrarySubfolder(button.dataset.folderSubfolder);
   if(button.dataset.folderRename)renameLibraryFolder(button.dataset.folderRename);
   if(button.dataset.folderMoveUp)reorderLibraryFolder(button.dataset.folderMoveUp,-1);
   if(button.dataset.folderMoveDown)reorderLibraryFolder(button.dataset.folderMoveDown,1);
