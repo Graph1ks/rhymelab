@@ -1,6 +1,6 @@
 
 import {$,queryAll,esc,icon,clamp} from './studio-core.mjs';
-import {STUDIO_DEMO_LINES,loadStudioState,writeStudioState} from './document-adapter.mjs';
+import {STUDIO_DEMO_LINES,loadStudioPreferences,loadStudioState,studioStateFromDocumentSnapshot,writeStudioPreferences,writeStudioState} from './document-adapter.mjs';
 import {createWriterSearchClient,estimateSyllables} from './search-adapter.mjs';
 import {STUDIO_RHYME_TYPE_LABELS,filterStudioWriterRows,sortStudioWriterRows} from './search-filters.mjs';
 import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchState} from './search-state.mjs';
@@ -12,29 +12,34 @@ import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacySt
 
 'use strict';
 const initial=STUDIO_DEMO_LINES;
-let state=loadStudioState();
-state.customThemes=Array.isArray(state.customThemes)?state.customThemes:[];
-state.themeSlots=state.themeSlots&&typeof state.themeSlots==='object'?{light:state.themeSlots.light||null,dark:state.themeSlots.dark||null}:{light:null,dark:null};
-if(!['light','dark'].includes(state.theme)&&!state.customThemes.some(theme=>theme.id===state.theme))state.theme='dark';
-
+const legacyStudioState=loadStudioState();
+let state={...legacyStudioState,...loadStudioPreferences()};
 function normalizeFolderName(value){return String(value??'').normalize('NFKC').trim().slice(0,80)}
-state.folders=Array.from(new Set([
-  ...(Array.isArray(state.folders)?state.folders:[]).map(normalizeFolderName),
-  ...state.songs.map((item)=>normalizeFolderName(item.folder)),
-  'Entwürfe',
-].filter(Boolean)));
-state.songs.forEach((item)=>{
-  item.folder=normalizeFolderName(item.folder)||'Entwürfe';
-  item.createdAt=Number.isFinite(Number(item.createdAt))?Number(item.createdAt):0;
-  const latestRevision=Array.isArray(item.revisions)
-    ?item.revisions.reduce((latest,row)=>Math.max(latest,Number(row?.at)||0),0)
-    :0;
-  item.updatedAt=Math.max(Number(item.updatedAt)||0,latestRevision,item.createdAt);
-  if(item.deleted&&item.deletedAt==null)item.deletedAt=Math.max(item.updatedAt,1);
-});
-if(!state.songs.some((item)=>item.id===state.active&&!item.deleted&&!item.deletedAt)){
-  state.active=state.songs.find((item)=>!item.deleted&&!item.deletedAt)?.id||state.songs[0]?.id||null;
+function normalizeStudioRuntimeState(){
+  state.customThemes=Array.isArray(state.customThemes)?state.customThemes:[];
+  state.themeSlots=state.themeSlots&&typeof state.themeSlots==='object'?{light:state.themeSlots.light||null,dark:state.themeSlots.dark||null}:{light:null,dark:null};
+  if(!['light','dark'].includes(state.theme)&&!state.customThemes.some(theme=>theme.id===state.theme))state.theme='dark';
+  state.songs=Array.isArray(state.songs)?state.songs:[];
+  state.folders=Array.from(new Set([
+    ...(Array.isArray(state.folders)?state.folders:[]).map(normalizeFolderName),
+    ...state.songs.map((item)=>normalizeFolderName(item.folder)),
+    'Entwürfe',
+  ].filter(Boolean)));
+  state.songs.forEach((item)=>{
+    item.folder=normalizeFolderName(item.folder)||'Entwürfe';
+    item.createdAt=Number.isFinite(Number(item.createdAt))?Number(item.createdAt):0;
+    const latestRevision=Array.isArray(item.revisions)
+      ?item.revisions.reduce((latest,row)=>Math.max(latest,Number(row?.at)||0),0)
+      :0;
+    item.updatedAt=Math.max(Number(item.updatedAt)||0,latestRevision,item.createdAt);
+    if(item.deleted&&item.deletedAt==null)item.deletedAt=Math.max(item.updatedAt,1);
+    ensureEditorSong(item);
+  });
+  if(!state.songs.some((item)=>item.id===state.active&&!item.deleted&&!item.deletedAt)){
+    state.active=state.songs.find((item)=>!item.deleted&&!item.deletedAt)?.id||state.songs[0]?.id||null;
+  }
 }
+normalizeStudioRuntimeState();
 let libraryView={trash:false,query:'',folder:'all',sort:'updated'};
 
 const STUDIO_BUILTIN_THEMES={
@@ -59,7 +64,7 @@ const detailClient=createStudioDetailClient();
 const documentStore=createStudioDocumentStore();
 let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerCapabilities=null,writerDebounce=0;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
-let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentShadowTimer=0;
+let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0;
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',
   query=sharedSearchState.anchor||'Nacht',
   scope=({words:'word',phrases:'phrase',entities:'entity'})[sharedSearchState.scope]||'all',
@@ -111,13 +116,13 @@ function song(){
 }
 const syll=estimateSyllables;
 function documentStoreDetail(){
-  if(documentStoreStatus==='ready')return 'IndexedDB · Shadow verifiziert';
+  if(documentStoreStatus==='ready')return documentStoreAuthority?'IndexedDB · autoritativ':'IndexedDB · bereit';
   if(documentStoreStatus==='saving')return 'IndexedDB · synchronisiert …';
-  if(documentStoreStatus==='unsupported')return 'nicht verfügbar · LocalStorage bleibt aktiv';
+  if(documentStoreStatus==='unsupported')return 'nicht verfügbar · LocalStorage-Fallback';
   if(documentStoreStatus==='error')return documentStoreError||'Fehler';
   return 'wird vorbereitet';
 }
-function queueDocumentShadow(delay=220){
+function queueDocumentShadow(delay=180){
   if(!documentStoreInitialized)return;
   clearTimeout(documentShadowTimer);
   documentShadowTimer=setTimeout(()=>{void syncDocumentShadow()},delay);
@@ -127,6 +132,7 @@ async function syncDocumentShadow(){
   documentStoreStatus='saving';updateCapabilitySurface();
   try{
     await shadowLegacyStudioStateToStore(state,documentStore);
+    documentStoreAuthority=true;
     documentStoreStatus='ready';documentStoreError='';
   }catch(error){
     documentStoreStatus='error';
@@ -139,20 +145,57 @@ async function initializeDocumentStore(){
     const available=await documentStore.available();
     if(!available){
       documentStoreStatus='unsupported';
+      documentStoreAuthority=false;
       updateCapabilitySurface();
-      return;
+      return false;
     }
     documentStoreStatus='saving';updateCapabilitySurface();
-    await migrateLegacyStudioStateToStore(state,documentStore);
+
+    let snapshot=null;
+    try{
+      snapshot=await documentStore.loadSnapshot();
+    }catch{
+      // Existing v1/corrupt snapshots are never trusted over the still-intact
+      // legacy source. Re-migrate from that source and verify before cutover.
+      snapshot=null;
+    }
+    if(!snapshot){
+      const migrated=await migrateLegacyStudioStateToStore(legacyStudioState,documentStore);
+      snapshot=migrated.migration.snapshot;
+    }
+    state=studioStateFromDocumentSnapshot(snapshot,{...state,...loadStudioPreferences()});
+    normalizeStudioRuntimeState();
+    writeStudioPreferences(state);
     documentStoreInitialized=true;
+    documentStoreAuthority=true;
     documentStoreStatus='ready';documentStoreError='';
+    updateCapabilitySurface();
+    return true;
   }catch(error){
+    documentStoreAuthority=false;
     documentStoreStatus='error';
     documentStoreError=error instanceof Error?error.message:String(error);
+    try{writeStudioState(state)}catch{}
+    updateCapabilitySurface();
+    return false;
   }
-  updateCapabilitySurface();
 }
-function persist(){try{writeStudioState(state);$('#saveState').textContent='Lokal gespeichert';queueDocumentShadow();return true}catch(e){$('#saveState').textContent='Speichern nicht möglich · bitte exportieren';return false}}
+function persist(){
+  try{
+    writeStudioPreferences(state);
+    if(documentStoreAuthority||documentStoreInitialized){
+      queueDocumentShadow();
+      $('#saveState').textContent='IndexedDB gespeichert';
+    }else{
+      writeStudioState(state);
+      $('#saveState').textContent='Lokal gespeichert · Fallback';
+    }
+    return true;
+  }catch(e){
+    $('#saveState').textContent='Speichern nicht möglich · bitte exportieren';
+    return false;
+  }
+}
 function updateUndoRedoButtons(){
   const undoButton=$('#undoBtn'),redoButton=$('#redoBtn');
   if(undoButton){undoButton.disabled=undo.length===0;undoButton.setAttribute('aria-disabled',String(undo.length===0))}
@@ -1324,5 +1367,34 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
 document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
 const handle=$('#splitter');let drag=null;handle.addEventListener('pointerdown',e=>{if(window.innerWidth<=800)return;drag={x:e.clientX,width:+handle.getAttribute('aria-valuenow')};handle.setPointerCapture?.(e.pointerId);document.body.classList.add('resizing');e.preventDefault()});handle.addEventListener('pointermove',e=>{if(drag)setAssistWidth(drag.width+drag.x-e.clientX)});for(const event of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(event,()=>{if(!drag)return;drag=null;document.body.classList.remove('resizing');persist()});handle.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setAssistWidth(+handle.getAttribute('aria-valuenow')+(e.key==='ArrowLeft'?20:-20));persist()}if(e.key==='Home'){e.preventDefault();setAssistWidth(470);persist()}});if(window.innerWidth>800)setAssistWidth(state.assistWidth||470);if(window.innerWidth<=800){$('#directFilters').classList.add('hidden');$('#filterBtn').setAttribute('aria-expanded','false')}window.addEventListener('resize',()=>{if(window.innerWidth>800)setAssistWidth(state.assistWidth||470)});document.body.dataset.studioVersion='2';}
 
-try{bind();bindV2();void initializeDocumentStore();const capabilitiesReady=refreshStudioCapabilities();applyThemeChoice(state.theme,{persistState:false});document.documentElement.style.setProperty('--editor',state.fontSize+'px');activeLine=Math.min(activeLine,song().lines.length-1);const initialText=song().lines[activeLine]||'';const lastWord=initialText.match(/[\p{L}\p{N}'’-]+$/u);selection={line:activeLine,start:lastWord?initialText.length-lastWord[0].length:initialText.length,end:initialText.length};if(sharedSearchState.anchor){query=sharedSearchState.anchor;followSelection=!lastWord||lastWord[0]===sharedSearchState.anchor}else if(lastWord)query=lastWord[0];syncFollowControls();renderEditor();renderResults();capabilitiesReady.finally(()=>{void refreshWriterResults()});revision();persist();}catch(e){document.body.dataset.controls='failed';const banner=document.createElement('div');banner.className='startup-failure';banner.textContent='Die Demo konnte nicht vollständig starten. Bitte neu laden. '+e.message;document.body.prepend(banner);console.error(e)}
+async function startStudio(){
+  bind();
+  bindV2();
+  await initializeDocumentStore();
+  const capabilitiesReady=refreshStudioCapabilities();
+  applyThemeChoice(state.theme,{persistState:false});
+  document.documentElement.style.setProperty('--editor',state.fontSize+'px');
+  activeLine=Math.min(activeLine,Math.max(0,song().lines.length-1));
+  const initialText=song().lines[activeLine]||'';
+  const lastWord=initialText.match(/[\p{L}\p{N}'’-]+$/u);
+  selection={line:activeLine,start:lastWord?initialText.length-lastWord[0].length:initialText.length,end:initialText.length};
+  if(sharedSearchState.anchor){
+    query=sharedSearchState.anchor;
+    followSelection=!lastWord||lastWord[0]===sharedSearchState.anchor;
+  }else if(lastWord)query=lastWord[0];
+  syncFollowControls();
+  renderEditor();
+  renderResults();
+  capabilitiesReady.finally(()=>{void refreshWriterResults()});
+  revision('startup');
+  persist();
+}
+void startStudio().catch((error)=>{
+  document.body.dataset.controls='failed';
+  const banner=document.createElement('div');
+  banner.className='startup-failure';
+  banner.textContent='Das Studio konnte nicht vollständig starten. Bitte neu laden. '+error.message;
+  document.body.prepend(banner);
+  console.error(error);
+});
 
