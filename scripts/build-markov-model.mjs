@@ -298,12 +298,12 @@ const stateUpsert=db.prepare(`
   ON CONFLICT(context_len,state_key) DO UPDATE SET count=count+excluded.count
 `);
 const sourceSequenceUpsert=db.prepare(`
-  INSERT INTO source_sequence_hash(hash,token_count,count) VALUES(?,?,?)
-  ON CONFLICT(hash) DO UPDATE SET count=count+excluded.count
+  INSERT INTO source_sequence_hash(source_kind,hash,token_count,count) VALUES(?,?,?,?)
+  ON CONFLICT(source_kind,hash) DO UPDATE SET count=count+excluded.count
 `);
 const sourceWindowUpsert=db.prepare(`
-  INSERT INTO source_window_hash(hash,window_size,count) VALUES(?,?,?)
-  ON CONFLICT(hash) DO UPDATE SET count=count+excluded.count
+  INSERT INTO source_window_hash(source_kind,hash,window_size,count) VALUES(?,?,?,?)
+  ON CONFLICT(source_kind,hash) DO UPDATE SET count=count+excluded.count
 `);
 const shapeUpsert=db.prepare(`
   INSERT INTO shape_pattern(token_count,shape_key,count) VALUES(?,?,?)
@@ -343,8 +343,14 @@ function flushPass1(
       const sep=key.indexOf('\u0002');
       stateUpsert.run(Number(key.slice(0,sep)),key.slice(sep+1),count);
     }
-    for(const [hash,row] of sourceSequences)sourceSequenceUpsert.run(hash,row.tokenCount,row.count);
-    for(const [hash,row] of sourceWindows)sourceWindowUpsert.run(hash,row.windowSize,row.count);
+    for(const [key,row] of sourceSequences){
+      const sep=key.indexOf('\u0002');
+      sourceSequenceUpsert.run(key.slice(0,sep),key.slice(sep+1),row.tokenCount,row.count);
+    }
+    for(const [key,row] of sourceWindows){
+      const sep=key.indexOf('\u0002');
+      sourceWindowUpsert.run(key.slice(0,sep),key.slice(sep+1),row.windowSize,row.count);
+    }
     for(const [key,count] of shapeCounts){
       const sep=key.indexOf('\u0002');
       shapeUpsert.run(Number(key.slice(0,sep)),key.slice(sep+1),count);
@@ -402,15 +408,17 @@ async function runPass1(){
       const lexical=lexicalNorms(sequence);
       if(lexical.length){
         const fullHash=sequenceHash(lexical);
-        const sourceRow=sourceSequences.get(fullHash)||{tokenCount:lexical.length,count:0};
+        const sourceHashKey=`${source.kind}\u0002${fullHash}`;
+        const sourceRow=sourceSequences.get(sourceHashKey)||{tokenCount:lexical.length,count:0};
         sourceRow.count+=1;
-        sourceSequences.set(fullHash,sourceRow);
+        sourceSequences.set(sourceHashKey,sourceRow);
         for(let size=MARKOV_SOURCE_WINDOW_MIN;size<=Math.min(MARKOV_SOURCE_WINDOW_MAX,lexical.length);size+=1){
           for(let start=0;start+size<=lexical.length;start+=1){
             const hash=sequenceHash(lexical.slice(start,start+size));
-            const windowRow=sourceWindows.get(hash)||{windowSize:size,count:0};
+            const windowHashKey=`${source.kind}\u0002${hash}`;
+            const windowRow=sourceWindows.get(windowHashKey)||{windowSize:size,count:0};
             windowRow.count+=1;
-            sourceWindows.set(hash,windowRow);
+            sourceWindows.set(windowHashKey,windowRow);
           }
         }
         // Phrase/Mosaic rows are fragment evidence. They are useful for local
