@@ -17,8 +17,8 @@ const rows=[
   {resultKind:'phrase',surface:'auf leise Weise',normalized:'auf leise weise',ipa:'aʊf laɪzə vaɪzə',score:.91,crossedWordBoundaries:2,leipzigCommonness:.8,relations:[{type:'assonance',score:.96}]},
 ];
 
-test('browser Markov policy points at the corpus runtime',()=>{
-  assert.equal(MARKOV_GENERATOR_POLICY,'rhymelab-markov-lyric-v1');
+test('browser Markov policy points at constrained decoder V2',()=>{
+  assert.equal(MARKOV_GENERATOR_POLICY,'rhymelab-constrained-lyric-decoder-v2');
 });
 
 test('pool summary retains Writer feature populations',()=>{
