@@ -13,6 +13,8 @@ import {
   DISTRIBUTION_RANK_POLICY,
   copyDistributionStage,
   createRankTables,
+  createSelectionStorage,
+  clearSelectionStorage,
   createTargetSchema,
   distributionIntegrityReport,
   editionContract,
@@ -24,6 +26,9 @@ import {
 import {
   servingV1DistributionCapabilities,
 } from '../src/serving-v1-product-runtime.mjs';
+import {
+  verifyDistributionNestingFiles,
+} from '../scripts/distribution-nesting-core.mjs';
 
 function putMeta(db,key,value){
   db.prepare('INSERT INTO meta(key,value) VALUES(?,?)').run(key,String(value));
@@ -217,4 +222,76 @@ test('distribution edition contracts use total package budgets with per-category
       },
     },
   );
+});
+
+
+test('selection reset clears Entity quota memberships between edition plans',()=>{
+  const db=new DatabaseSync(':memory:');
+  try{
+    createSelectionStorage(db);
+    db.prepare(`
+      INSERT INTO _dist_entity_membership(
+        entity_id,category,edition_category_rank,selection_source
+      ) VALUES(1,'person.actor',1,'edition_quota')
+    `).run();
+    assert.equal(
+      db.prepare('SELECT COUNT(*) c FROM _dist_entity_membership').get().c,
+      1,
+    );
+    clearSelectionStorage(db);
+    assert.equal(
+      db.prepare('SELECT COUNT(*) c FROM _dist_entity_membership').get().c,
+      0,
+    );
+  }finally{db.close();}
+});
+
+async function makeNestingFixture(path,edition,surfaceIds){
+  const db=new DatabaseSync(path);
+  try{
+    createServingV1Storage(db);
+    createServingV1RuntimeStorage(db);
+    createServingV1ProductStorage(db);
+    putMeta(db,'distribution_edition',edition);
+    const insert=db.prepare(`
+      INSERT INTO surface(
+        surface_id,language,normalized,display_surface,
+        canonical_available,generated_available,authority_rank,authority_kind,
+        usage_rank,usage_count,historical
+      ) VALUES(?,?,?,?,1,0,10,'fixture',?,100,0)
+    `);
+    for(const id of surfaceIds){
+      insert.run(id,'de','word-'+id,'Word '+id,id);
+    }
+  }finally{db.close();}
+}
+
+test('hard nesting verifier rejects missing lower-tier identities and accepts strict supersets',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'rhymelab-nesting-'));
+  const lite=join(dir,'lite.sqlite');
+  const standard=join(dir,'standard.sqlite');
+  const full=join(dir,'full.sqlite');
+  try{
+    await makeNestingFixture(lite,'lite',[1]);
+    await makeNestingFixture(standard,'standard',[2]);
+    await makeNestingFixture(full,'full',[1,2,3]);
+
+    assert.throws(
+      ()=>verifyDistributionNestingFiles({
+        litePath:lite,standardPath:standard,fullPath:full,
+      }),
+      /nesting verification failed/,
+    );
+
+    await rm(standard,{force:true});
+    await makeNestingFixture(standard,'standard',[1,2]);
+    const report=verifyDistributionNestingFiles({
+      litePath:lite,standardPath:standard,fullPath:full,
+    });
+    assert.equal(report.ok,true);
+    assert.equal(report.lite_standard.ok,true);
+    assert.equal(report.standard_full.ok,true);
+  }finally{
+    await rm(dir,{recursive:true,force:true});
+  }
 });

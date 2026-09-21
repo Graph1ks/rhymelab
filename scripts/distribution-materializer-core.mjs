@@ -234,6 +234,7 @@ export function createSelectionStorage(db){
       entity_id INTEGER NOT NULL,
       category TEXT NOT NULL,
       edition_category_rank INTEGER NOT NULL,
+      selection_source TEXT NOT NULL,
       PRIMARY KEY(entity_id,category)
     ) WITHOUT ROWID;
     CREATE TABLE IF NOT EXISTS _dist_entity_name(name_id INTEGER PRIMARY KEY);
@@ -246,7 +247,7 @@ export function createSelectionStorage(db){
 export function clearSelectionStorage(db){
   for(const table of [
     '_dist_word_surface','_dist_pronunciation','_dist_surface','_dist_phrase',
-    '_dist_phrase_window','_dist_entity','_dist_entity_name',
+    '_dist_phrase_window','_dist_entity','_dist_entity_membership','_dist_entity_name',
     '_dist_entity_pronunciation','_dist_target','_dist_key',
   ])db.exec('DELETE FROM '+table+';');
 }
@@ -293,6 +294,8 @@ export function populateDistributionSelection(db,{
     const entityAvailability=contract.mode==='core'
       ?'sp.canonical_available=1'
       :'(sp.canonical_available=1 OR sp.generated_available=1)';
+    const quota=Math.max(0,Math.trunc(entityPerCategory));
+
     db.exec(`
       WITH eligible AS (
         SELECT
@@ -321,11 +324,56 @@ export function populateDistributionSelection(db,{
               AND ${entityAvailability}
           )
       )
-      INSERT OR IGNORE INTO _dist_entity_membership(entity_id,category,edition_category_rank)
-      SELECT entity_id,category,edition_category_rank
+      INSERT OR IGNORE INTO _dist_entity_membership(
+        entity_id,category,edition_category_rank,selection_source
+      )
+      SELECT entity_id,category,edition_category_rank,'edition_quota'
       FROM eligible
-      WHERE edition_category_rank<=${Math.max(0,Math.trunc(entityPerCategory))};
+      WHERE edition_category_rank<=${quota};
+    `);
 
+    // Hard nesting rule: Full must contain every Entity membership that would
+    // be selected by Standard's Core-only Top-1k/category cut, even if extra
+    // Generated-only Full candidates would otherwise push it below Full's
+    // Top-5k/category boundary.
+    if(edition==='full'){
+      const standardQuota=DISTRIBUTION_EDITIONS.standard.entityPerCategory;
+      db.exec(`
+        WITH standard_eligible AS (
+          SELECT
+            ec.entity_id,
+            ec.category,
+            ROW_NUMBER() OVER(
+              PARTITION BY ec.category
+              ORDER BY
+                CASE WHEN ec.category_rank IS NOT NULL AND ec.category_rank>0 THEN 0 ELSE 1 END,
+                ec.category_rank ASC,
+                ec.category_score DESC,
+                ec.entity_id ASC
+            ) AS standard_category_rank
+          FROM ${p}runtime_entity_category ec
+          WHERE ec.retained_by_category=1
+            AND EXISTS(
+              SELECT 1
+              FROM ${p}runtime_entity_name n
+              JOIN ${p}runtime_entity_pronunciation ep USING(name_id)
+              JOIN ${p}pronunciation sp
+                ON sp.pronunciation_id=ep.serving_pronunciation_id
+              WHERE n.entity_id=ec.entity_id
+                AND sp.eligible=1
+                AND sp.canonical_available=1
+            )
+        )
+        INSERT OR IGNORE INTO _dist_entity_membership(
+          entity_id,category,edition_category_rank,selection_source
+        )
+        SELECT entity_id,category,standard_category_rank,'standard_required'
+        FROM standard_eligible
+        WHERE standard_category_rank<=${Math.max(0,Math.trunc(standardQuota))};
+      `);
+    }
+
+    db.exec(`
       INSERT OR IGNORE INTO _dist_entity(entity_id)
       SELECT DISTINCT entity_id FROM _dist_entity_membership;
 
@@ -359,6 +407,63 @@ export function populateDistributionSelection(db,{
       'Words must remain the majority of the edition budget: '
       +JSON.stringify({edition,totalTarget,phraseCount,entityCount,wordTarget}),
     );
+  }
+
+  // Word IDs are the first N rows of one canonical rank. Enforce monotonic
+  // cut sizes so Lite Words ⊂ Standard Words ⊂ Full Words is guaranteed by ID.
+  if(edition==='standard'&&wordTarget<DISTRIBUTION_EDITIONS.lite.totalTarget){
+    throw new Error(
+      'Standard Word cut would not contain all Lite Words: '
+      +JSON.stringify({wordTarget,liteWords:DISTRIBUTION_EDITIONS.lite.totalTarget}),
+    );
+  }
+
+  if(edition==='full'){
+    const standardPhraseCount=scalar(db,`
+      SELECT COUNT(*) c
+      FROM ${p}runtime_phrase rp
+      WHERE rp.canonical_available=1
+    `);
+    const standardEntityCount=Number(db.prepare(`
+      WITH eligible AS (
+        SELECT
+          ec.entity_id,
+          ec.category,
+          ROW_NUMBER() OVER(
+            PARTITION BY ec.category
+            ORDER BY
+              CASE WHEN ec.category_rank IS NOT NULL AND ec.category_rank>0 THEN 0 ELSE 1 END,
+              ec.category_rank ASC,
+              ec.category_score DESC,
+              ec.entity_id ASC
+          ) AS standard_category_rank
+        FROM ${p}runtime_entity_category ec
+        WHERE ec.retained_by_category=1
+          AND EXISTS(
+            SELECT 1
+            FROM ${p}runtime_entity_name n
+            JOIN ${p}runtime_entity_pronunciation ep USING(name_id)
+            JOIN ${p}pronunciation sp
+              ON sp.pronunciation_id=ep.serving_pronunciation_id
+            WHERE n.entity_id=ec.entity_id
+              AND sp.eligible=1
+              AND sp.canonical_available=1
+          )
+      )
+      SELECT COUNT(DISTINCT entity_id) c
+      FROM eligible
+      WHERE standard_category_rank<=?
+    `).get(DISTRIBUTION_EDITIONS.standard.entityPerCategory)?.c||0);
+    const standardWordTarget=
+      DISTRIBUTION_EDITIONS.standard.totalTarget
+      -standardPhraseCount
+      -standardEntityCount;
+    if(wordTarget<standardWordTarget){
+      throw new Error(
+        'Full Word cut would not contain all Standard Words: '
+        +JSON.stringify({wordTarget,standardWordTarget}),
+      );
+    }
   }
 
   const coreAvailable=Number(db.prepare('SELECT COUNT(*) c FROM _dist_core_rank').get()?.c||0);
@@ -488,7 +593,11 @@ export function distributionSelectionSummary(db,{
   const entities=scalar(db,'SELECT COUNT(*) c FROM _dist_entity');
   const categoryRows=entityPerCategory>0
     ?db.prepare(`
-      SELECT category,COUNT(*) AS selected_memberships,MAX(edition_category_rank) AS last_rank
+      SELECT
+        category,
+        COUNT(*) AS selected_memberships,
+        MAX(edition_category_rank) AS last_rank,
+        SUM(CASE WHEN selection_source='standard_required' THEN 1 ELSE 0 END) AS nesting_additions
       FROM _dist_entity_membership
       GROUP BY category
       ORDER BY category
@@ -496,6 +605,7 @@ export function distributionSelectionSummary(db,{
       category:String(row.category),
       selected_memberships:Number(row.selected_memberships||0),
       last_rank:Number(row.last_rank||0),
+      nesting_additions:Number(row.nesting_additions||0),
     }))
     :[];
   return {

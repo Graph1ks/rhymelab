@@ -136,12 +136,21 @@ LITE ⊂ STANDARD ⊂ FULL ⊂ MASTER
 
 Hard requirements:
 
-- the first 50k Word surfaces retained by Lite remain identical in Standard and Full;
-- all Standard Word surfaces remain in Full;
-- Standard Core Phrase rows remain in Full;
-- every Standard Top-1k/category Entity membership is contained in Full's Top-5k/category cut;
+- **identity superset, not approximate coverage:** `LITE ⊂ STANDARD ⊂ FULL`;
+- every Lite Word surface and its retained pronunciation/runtime closure is present in Standard and Full;
+- every Standard Word surface and its retained pronunciation/runtime closure is present in Full;
+- every Standard Core Phrase identity/window retained for the product is present in Full;
+- every Standard Top-1k/category Entity identity is present in Full even if Full-only Generated candidates would otherwise shift its category rank;
+- every retained Standard Entity name/pronunciation/analysis/anchor closure is present in Full;
 - Phrase and Entity behavior for overlapping retained source data remains semantically identical;
 - one canonical Word ranking/selection policy is used for all editions.
+
+This is enforced twice:
+
+1. construction rules explicitly preserve the lower-tier selection;
+2. `npm run distribution:verify:nesting` runs SQLite `EXCEPT` checks across the finished databases and fails on any missing lower-tier identity/runtime key.
+
+A complete `npm run distribution:build` automatically runs the nesting verifier after all three editions are promoted.
 
 The Word cut is dynamic because Standard and Full are **total-budget** editions:
 
@@ -417,9 +426,13 @@ edition manifest                 valid
 Required nesting checks:
 
 ```text
-Lite Core IDs      ⊂ Standard Core IDs
-Standard Core IDs  ⊂ Full Core IDs
+Lite Word/surface/pronunciation/runtime identities      ⊂ Standard
+Standard Word/surface/pronunciation/runtime identities  ⊂ Full
+Standard Phrase identities/windows/evidence             ⊂ Full
+Standard Entity identities/names/pronunciations/anchors ⊂ Full
 ```
+
+These are release gates, not statistical expectations. A single missing lower-tier identity fails the nesting report.
 
 Semantic checks should verify:
 
@@ -476,6 +489,12 @@ Status:
 
 ```powershell
 npm run distribution:status
+```
+
+Explicit cross-edition identity-superset verification:
+
+```powershell
+npm run distribution:verify:nesting
 ```
 
 Safe reset of incomplete work only:
