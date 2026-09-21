@@ -426,6 +426,7 @@ const assets = {
   '/studio/i18n.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'i18n.mjs')) },
   '/studio/dom-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'dom-acceptance.mjs')) },
   '/studio/command-palette.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'command-palette.mjs')) },
+  '/studio/device-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'device-acceptance.mjs')) },
   '/studio/edit-history.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'edit-history.mjs')) },
   '/studio/parity-manifest.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'parity-manifest.mjs')) },
   '/studio/revision-diff.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'revision-diff.mjs')) },
