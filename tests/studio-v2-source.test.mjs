@@ -83,6 +83,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/app\.js': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/studio-core\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/search-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/search-filters\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/detail-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
@@ -114,11 +115,12 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
 
 
 test('Studio orchestrator is split behind maintainable module boundaries',async()=>{
-  const [app,core,controls,search,documents,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
+  const [app,core,controls,search,filters,documents,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
     readFile('src/studio/app.js','utf8'),
     readFile('src/studio/studio-core.mjs','utf8'),
     readFile('src/studio/studio-controls.mjs','utf8'),
     readFile('src/studio/search-adapter.mjs','utf8'),
+    readFile('src/studio/search-filters.mjs','utf8'),
     readFile('src/studio/document-adapter.mjs','utf8'),
     readFile('src/studio/capability-adapter.mjs','utf8'),
     readFile('src/studio/detail-adapter.mjs','utf8'),
@@ -129,6 +131,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/from '\.\/studio-core\.mjs'/u);
   assert.match(app,/from '\.\/document-adapter\.mjs'/u);
   assert.match(app,/from '\.\/search-adapter\.mjs'/u);
+  assert.match(app,/from '\.\/search-filters\.mjs'/u);
   assert.match(app,/from '\.\/studio-controls\.mjs'/u);
   assert.match(app,/createWriterSearchClient\(\)/u);
   assert.match(app,/refreshWriterResults\(\)/u);
@@ -151,6 +154,8 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(search,/export function createWriterSearchClient/u);
   assert.match(search,/export function buildWriterParams/u);
   assert.match(search,/export function mapWriterResult/u);
+  assert.match(filters,/export function filterStudioWriterRows/u);
+  assert.match(filters,/export function sortStudioWriterRows/u);
   assert.match(documents,/export function loadStudioState/u);
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(details,/export function createStudioDetailClient/u);
@@ -363,8 +368,8 @@ test('Studio full Writer filter matrix is wired without changing canonical recom
     assert.match(html,new RegExp('id=["\\\']'+id+'["\\\']','u'));
   }
 
-  assert.match(app,/function rowHasRhymeType\(/u);
-  assert.match(app,/function sortWriterRows\(/u);
+  assert.match(app,/filterStudioWriterRows\(baseData\(\)/u);
+  assert.match(app,/sortStudioWriterRows\(data\(\)/u);
   assert.match(app,/sort==='closest'/u);
   assert.match(app,/sort==='common'/u);
   assert.match(app,/syllableMode==='near2'/u);
@@ -373,4 +378,41 @@ test('Studio full Writer filter matrix is wired without changing canonical recom
   assert.match(app,/entityCategories\(\)/u);
   assert.match(app,/advancedFilterCount\(\)/u);
   assert.match(app,/generatedOnly=e\.target\.checked/u);
+});
+
+
+test('Studio filter module covers exact sound relations, syllable windows and deterministic sorts',async()=>{
+  const {
+    filterStudioWriterRows,
+    sortStudioWriterRows,
+    studioRowMatchesType,
+  }=await import('../src/studio/search-filters.mjs');
+
+  const rows=[
+    {
+      id:'a',word:'Alpha',relationType:'perfect',syll:3,syllableDistance:0,score:.82,usageRank:120,
+      raw:{relations:[{type:'assonance',score:.91}]},
+    },
+    {
+      id:'b',word:'Beta',relationType:'slant',syll:4,syllableDistance:1,score:.94,usageRank:20,
+      raw:{relations:[{type:'consonance',score:.88}]},
+    },
+    {
+      id:'c',word:'Gamma',relationType:'family',syll:6,syllableDistance:3,score:.72,usageCount:900},
+  ];
+
+  assert.equal(studioRowMatchesType(rows[0],'assonance'),true);
+  assert.equal(studioRowMatchesType(rows[1],'assonance'),false);
+  assert.deepEqual(
+    filterStudioWriterRows(rows,{rhymeType:'all',syllableMode:'near2',querySyllables:3}).map((row)=>row.id),
+    ['a','b'],
+  );
+  assert.deepEqual(
+    sortStudioWriterRows(rows,{sort:'closest',rhymeType:'all',querySyllables:3}).map((row)=>row.id),
+    ['b','a','c'],
+  );
+  assert.deepEqual(
+    sortStudioWriterRows(rows,{sort:'syllables',querySyllables:3}).map((row)=>row.id),
+    ['a','b','c'],
+  );
 });
