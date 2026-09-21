@@ -17,7 +17,8 @@
       "year": 2024,
       "expected_rows": 300000,
       "commercial_use": true,
-      "notes": "English 2024 news norm corpus using Leipzig's standard language_genre_year_size naming convention."
+      "notes": "English 2024 news norm corpus using Leipzig's standard language_genre_year_size naming convention.",
+      "max_rows": 300000
     },
     {
       "code": "tatoeba_eng",
@@ -34,7 +35,9 @@
       "genre": "conversational/learner",
       "year": 2026,
       "commercial_use": true,
-      "notes": "Weekly English detailed export. Attribution required."
+      "notes": "Weekly English detailed export. Attribution required.",
+      "max_rows": 300000,
+      "selection": "newest"
     }
   ]
 }
