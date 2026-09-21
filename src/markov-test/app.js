@@ -121,7 +121,7 @@ async function requestMarkovGeneration(rows,settings){
       rows:compactWriterRows(rows),
       ...settings,
       count:8,
-      attempts:settings.targetTokens>=12?128:72,
+      attempts:settings.targetTokens>=12?192:128,
     }),
   });
   let data={};
@@ -214,9 +214,11 @@ function renderHero(candidate,{animate=true}={}){
       ${scoreBar('Natural',candidate.scores.naturalness)}
       ${scoreBar('Rhyme',candidate.scores.rhyme)}
       ${scoreBar('Transitions',candidate.scores.transition)}
-      ${scoreBar('Context join',candidate.scores.boundary)}
+      ${scoreBar('Context depth',candidate.scores.contextDepth)}
+      ${scoreBar('Line shape',candidate.scores.shapeFit)}
+      ${scoreBar('Source novelty',candidate.scores.sourceNovelty)}
+      ${scoreBar('Set diversity',candidate.scores.resultDiversity)}
       ${scoreBar('Tail fit',candidate.scores.tailFit)}
-      ${scoreBar('Internal echo',candidate.scores.echo)}
       ${scoreBar(`Length ${candidate.scores.actualLength}/${candidate.scores.targetLength}`,candidate.scores.lengthFit)}
     </div>`;
   $('#copySentence')?.addEventListener('click',async()=>{
@@ -230,7 +232,7 @@ function renderCandidateList(candidates){
     <button class="candidate-card ${candidate.rank===1?'active':''}" type="button" data-candidate-id="${esc(candidate.id)}">
       <span class="candidate-rank">${candidate.rank}</span><span class="candidate-copy">${esc(candidate.sentence)}</span>
       <span class="candidate-score">${percentage(candidate.scores.utility)}</span>
-      <span class="candidate-mini">R ${percentage(candidate.scores.rhyme)} · N ${percentage(candidate.scores.naturalness)} · T ${percentage(candidate.scores.transition)} · L ${candidate.scores.actualLength}/${candidate.scores.targetLength}</span>
+      <span class="candidate-mini">R ${percentage(candidate.scores.rhyme)} · N ${percentage(candidate.scores.naturalness)} · D ${percentage(candidate.scores.resultDiversity)} · L ${candidate.scores.actualLength}/${candidate.scores.targetLength}</span>
     </button>`).join('');
   document.querySelectorAll('[data-candidate-id]').forEach((button)=>button.addEventListener('click',()=>{
     const candidate=currentCandidates.find((row)=>row.id===button.dataset.candidateId);if(!candidate)return;
@@ -255,7 +257,7 @@ async function generate(){
   try{
     const {rows,data}=await fetchCandidatePool(settings.target,settings);currentPool=rows;
     if(rows.length<2)throw new Error('Too few RhymeLab candidates for constrained generation. Try another rhyme target.');
-    renderPoolStats(rows,data);await runSlotMachine(rows);setStatus('Walking reverse model transitions from the rhyme tail…','busy');
+    renderPoolStats(rows,data);await runSlotMachine(rows);setStatus('Searching constrained variable-order paths from the rhyme tail…','busy');
     const generated=await requestMarkovGeneration(rows,settings);
     currentCandidates=generated?.candidates||[];
     if(!currentCandidates.length)throw new Error('The lyric model found no line that satisfies these constraints. Lower Naturalness or change the rhyme target.');
@@ -276,7 +278,7 @@ function applyModelHealth(){
   if(markovHealth?.available){
     const sentences=Number(markovHealth.accepted_sentences||0).toLocaleString();
     const transitions=Number(markovHealth.transitions||0).toLocaleString();
-    note.innerHTML=`<strong>LYRIC V1:</strong> reverse/forward order-${esc(markovHealth.order)} model over <b>${sentences}</b> Serving-v1 Phrase/Mosaic source lines · ${transitions} pruned transitions · shape ${esc(markovHealth.lyric_profile||'rhymelab-lyric-shape-v1')} · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
+    note.innerHTML=`<strong>DECODER V2:</strong> variable-order 1→${esc(markovHealth.order)} · <b>${sentences}</b> source lines · ${transitions} transitions · ${Number(markovHealth.source_windows||0).toLocaleString()} novelty windows · ${Number(markovHealth.shape_patterns||0).toLocaleString()} line shapes · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
     state.textContent='MODEL READY';state.dataset.tone='ok';
     for(const option of language.options)option.disabled=option.value!==markovHealth.language;
     language.value=markovHealth.language;
