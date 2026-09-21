@@ -45,10 +45,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.x'
-          cache: npm
-
-      - name: Install
-        run: npm ci
 
       - name: Studio V2 verification bundle
         run: npm run studio:v2:verify
