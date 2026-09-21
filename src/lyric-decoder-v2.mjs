@@ -272,9 +272,27 @@ function beamReverse(runtime,tail,random,options){
     const next=[];
     for(const state of beam){
       const context=state.suffix.slice(0,runtime.order);
-      const optionsHere=reverseOptions(runtime,context,random,options,state.prefix,{
+      let optionsHere=reverseOptions(runtime,context,random,options,state.prefix,{
         allowStart:false,
       });
+
+      // The final slot next to a fixed opener is a true bidirectional
+      // completion: it must be observed after the left context and before the
+      // already-built right context.
+      if(fixedSeed.length&&step===needed-1){
+        const bridges=runtime.bridgeChoices(fixedSeed.slice(-runtime.order),context,{limit:96})
+          .filter((row)=>row.token!==START_TOKEN&&row.token!==END_TOKEN)
+          .map((row)=>({
+            token:row.token,
+            probability:Math.sqrt(row.forwardProbability*row.reverseProbability),
+            contextLen:Math.min(row.forwardContextLen,row.reverseContextLen),
+            count:1,
+            score:Math.log(Math.max(row.score,1e-12))+0.4,
+            weight:row.score,
+          }));
+        if(bridges.length)optionsHere=bridges;
+      }
+
       for(const choice of optionsHere){
         if(choice.token===START_TOKEN)continue;
         const prefix=[choice.token,...state.prefix];
@@ -382,7 +400,15 @@ function scoreDraft(runtime,beam,tail,tokenRows,options){
   const forward=runtime.sequenceForwardScore(beam.full);
   const novelty=runtime.sourceNovelty(beam.full,{maxWindow:8,minWindow:4});
   const shape=runtime.shapeEvidence(beam.full,{limit:96});
-  const start=String(options.seedText||'').trim()?1:startBoundary(runtime,beam.prefix);
+  const fixedSeed=seedTokens(options.seedText,options.language);
+  let start=startBoundary(runtime,beam.prefix);
+  if(fixedSeed.length){
+    const first=beam.prefix[0]||tail.candidate.tokens[0]?.norm;
+    const detail=first
+      ?runtime.transitionProbability('forward',fixedSeed.slice(-runtime.order),first)
+      :{probability:0};
+    start=detail.probability>0?clamp(Math.sqrt(detail.probability)):0;
+  }
   const terminal=tailBoundary(runtime,tail.candidate.tokens.map((row)=>row.norm));
   const contextDepth=clamp(beam.contextMean/runtime.order);
 
