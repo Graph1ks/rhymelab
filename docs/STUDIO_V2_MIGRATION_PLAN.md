@@ -325,12 +325,14 @@ folder create/delete/move              DONE
 trash + restore + permanent delete     DONE
 stable revision snapshots / restore     DONE
 empty-folder migration to DocumentStore DONE
-legacy localStorage authority          TEMPORARY
-IndexedDB DocumentStore shadow         DONE
-authoritative DocumentStore cutover     NEXT
-save/revision IndexedDB authority       NEXT
-canonical analysis                      NEXT
-full Perform parity                     NEXT
+legacy LocalStorage migration source    READ-ONLY / FALLBACK
+IndexedDB DocumentStore shadow          DONE
+authoritative DocumentStore cutover     DONE
+UI preferences split to LocalStorage    DONE
+manual recovery points + restore        DONE
+save/revision IndexedDB authority        DONE
+canonical analysis                       NEXT
+full Perform parity                      DONE
 ~~~
 
 The textarea geometry remains the Studio 02 visual baseline while the production document model is introduced behind it.
@@ -355,26 +357,29 @@ Do not present word-ending string comparisons as canonical rhyme analysis.
 
 ## Stage 11 — Perform mode
 
-Preserve:
+Implementation parity is now wired in Studio:
 
 ~~~text
-move
-accent
-pause
-breath
-hold
-erase
-drag + accessible alternative
-pause length
-auto-map
-clear
-straight/triplet
-double/half time
-8/16 grid
-bar metrics
+move                          DONE
+accent                        DONE
+pause                         DONE
+breath                        DONE
+hold                          DONE
+erase                         DONE
+drag + accessible alternative DONE
+pause length                  DONE
+auto-map                      DONE · explicit approximation
+clear                         DONE
+straight/triplet              DONE
+double/half time              DONE
+8/16 grid                     DONE
+bar metrics                   DONE
+stable Bar-ID cue anchors     DONE
+text-edit review invalidation DONE
+variable-timing metronome     DONE
 ~~~
 
-Cues reference stable Bar/token anchors. Text edits mark invalidated cues for review rather than silently moving them.
+Cues now reference stable Bar IDs instead of line indexes. When the text revision of a cued Bar changes, Studio keeps the cue mapping but marks it for explicit review rather than silently moving it. Final browser/audio/touch acceptance remains part of Stage 13.
 
 ---
 
@@ -400,7 +405,7 @@ export               PRESENT
 recovery             legacy backup present; recovery UI pending
 ~~~
 
-Until the authoritative IndexedDB cutover, these document workflows still write the legacy Studio state first and shadow the verified versioned snapshot into DocumentStore.
+IndexedDB is now the authoritative browser document source after a verified migration. The old Studio LocalStorage document blob is retained only as the non-destructive migration/fallback source; normal saves write UI preferences to the small preferences key and documents to the versioned IndexedDB DocumentStore. Settings exposes manual recovery points and restore.
 
 Electron persistence remains a later adapter.
 
@@ -477,6 +482,11 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 12 shared SearchState                        DONE
 13 document/editor spike                     DONE
 14 RhymePad migration                        IN PROGRESS
+15 IndexedDB authoritative cutover            DONE
+16 Library / folders / trash workflows        DONE
+17 stable revision + recovery workflow         DONE
+18 Perform parity                              DONE
+19 canonical analysis                         NEXT
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
