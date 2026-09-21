@@ -17,17 +17,48 @@ import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacySt
 const initial=STUDIO_DEMO_LINES;
 const legacyStudioState=loadStudioState();
 let state={...legacyStudioState,...loadStudioPreferences()};
-function normalizeFolderName(value){return String(value??'').normalize('NFKC').trim().slice(0,80)}
+function normalizeFolderSegment(value){
+  return String(value??'').normalize('NFKC').replace(/[\\/]+/g,' ').replace(/\s+/g,' ').trim().slice(0,60);
+}
+function normalizeFolderName(value){
+  return String(value??'').normalize('NFKC').split(/[\\/]+/g).map(normalizeFolderSegment).filter(Boolean).join('/').slice(0,180);
+}
+function folderParent(folder){
+  const normalized=normalizeFolderName(folder),index=normalized.lastIndexOf('/');
+  return index<0?'':normalized.slice(0,index);
+}
+function folderLeaf(folder){
+  const normalized=normalizeFolderName(folder),index=normalized.lastIndexOf('/');
+  return index<0?normalized:normalized.slice(index+1);
+}
+function folderDepth(folder){return normalizeFolderName(folder).split('/').filter(Boolean).length-1}
+function folderContains(parent,folder){
+  const root=normalizeFolderName(parent),candidate=normalizeFolderName(folder);
+  return Boolean(root&&candidate&&(candidate===root||candidate.startsWith(root+'/')));
+}
+function expandFolderPaths(values){
+  const out=[],seen=new Set();
+  for(const value of values){
+    const path=normalizeFolderName(value);
+    if(!path)continue;
+    const parts=path.split('/');
+    for(let index=1;index<=parts.length;index++){
+      const current=parts.slice(0,index).join('/');
+      if(!seen.has(current)){seen.add(current);out.push(current)}
+    }
+  }
+  return out;
+}
 function normalizeStudioRuntimeState(){
   state.customThemes=Array.isArray(state.customThemes)?state.customThemes:[];
   state.themeSlots=state.themeSlots&&typeof state.themeSlots==='object'?{light:state.themeSlots.light||null,dark:state.themeSlots.dark||null}:{light:null,dark:null};
   if(!['light','dark'].includes(state.theme)&&!state.customThemes.some(theme=>theme.id===state.theme))state.theme='dark';
   state.songs=Array.isArray(state.songs)?state.songs:[];
-  state.folders=Array.from(new Set([
-    ...(Array.isArray(state.folders)?state.folders:[]).map(normalizeFolderName),
-    ...state.songs.map((item)=>normalizeFolderName(item.folder)),
+  state.folders=expandFolderPaths([
+    ...(Array.isArray(state.folders)?state.folders:[]),
+    ...state.songs.map((item)=>item.folder),
     'Entwürfe',
-  ].filter(Boolean)));
+  ]);
   state.songs.forEach((item)=>{
     item.folder=normalizeFolderName(item.folder)||'Entwürfe';
     item.createdAt=Number.isFinite(Number(item.createdAt))?Number(item.createdAt):0;
