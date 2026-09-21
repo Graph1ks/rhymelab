@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assessEnglishSentence,
   assessGermanSentence,
   extractTarMember,
   parseLeipzigSentenceFile,
@@ -104,4 +105,25 @@ test('global source staging deduplicates across source boundaries',()=>{
   assert.equal(second.stats.accepted,1);
   assert.equal(second.stats.duplicates,1);
   assert.equal(seen.size,3);
+});
+
+
+test('English staging accepts modern English sentences and shares deterministic filters',()=>{
+  assert.equal(
+    assessEnglishSentence('The music sounds different when the whole city finally goes quiet.').accepted,
+    true,
+  );
+  assert.equal(
+    assessEnglishSentence('This is a complete sentence with enough words for training.').accepted,
+    true,
+  );
+  assert.equal(assessEnglishSentence('www.example.com this is not corpus text').reason,'url');
+});
+
+test('global staging keeps English and German acquisition logic language-specific',()=>{
+  const seen=new Set();
+  const english=sourceStageRows([
+    {id:'e1',sentence:'The music sounds different when the whole city finally goes quiet.'},
+  ],{seen,sourceCode:'english',language:'en'});
+  assert.equal(english.stats.accepted,1);
 });
