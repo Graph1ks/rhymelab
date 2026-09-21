@@ -594,10 +594,65 @@ html,*{
 .analysis-density-row>strong{text-align:right;color:var(--ink)}
 .analysis-density-row>i{display:block;height:7px;border-radius:999px;background:var(--bg);overflow:hidden;border:1px solid var(--line)}
 .analysis-density-row>i>b{display:block;height:100%;border-radius:999px;background:var(--accent)}
+
+.analysis-language-toggle,.analysis-relation-toggle{
+  display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--panel)
+}
+.analysis-language-toggle button,.analysis-relation-toggle button{
+  min-height:30px;padding:4px 8px;font-size:8px;color:var(--muted)
+}
+.analysis-language-toggle button.active,.analysis-relation-toggle button.active{
+  background:var(--tint);color:var(--accent)
+}
+.analysis-end-word{display:grid;gap:2px}
+.analysis-end-word small{font-size:7px;color:var(--muted);font-weight:600}
+.analysis-relations-card,.analysis-word-lab{grid-column:1/-1}
+.analysis-pairs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:13px}
+.analysis-pair{
+  display:grid;grid-template-columns:minmax(0,1.4fr) minmax(110px,.9fr) 54px 38px;
+  align-items:center;gap:8px;min-height:42px;padding:7px 9px;border:1px solid var(--line);
+  border-radius:9px;background:var(--panel);text-align:left
+}
+.analysis-pair:hover{background:var(--tint);border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
+.analysis-pair-words{display:flex;align-items:center;gap:7px;min-width:0}
+.analysis-pair-words b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+.analysis-pair-words i{font-style:normal;color:var(--muted)}
+.analysis-pair>span:not(.analysis-pair-words){font-size:8px;color:var(--muted)}
+.analysis-pair>strong{font:700 9px ui-monospace,monospace;text-align:right}
+.analysis-pair>small{font-size:7px;color:var(--muted);text-align:right}
+.analysis-word-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:13px
+}
+.analysis-word-card{
+  display:grid;gap:9px;min-width:0;padding:11px;border:1px solid var(--line);border-radius:10px;
+  background:var(--panel)
+}
+.analysis-word-card.unresolved{border-style:dashed;opacity:.72}
+.analysis-word-card>.row>span{font-size:7px;letter-spacing:.7px;color:var(--muted)}
+.analysis-word-title{
+  min-width:0;padding:0;text-align:left;font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.analysis-word-title:hover{color:var(--accent)}
+.analysis-word-card code{
+  display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:11px;color:var(--accent)
+}
+.analysis-word-facts{display:grid;grid-template-columns:72px minmax(0,1fr);gap:7px}
+.analysis-word-facts span{
+  display:grid;gap:3px;min-width:0;padding:6px 7px;border-radius:7px;background:var(--bg);border:1px solid var(--line)
+}
+.analysis-word-facts small,.analysis-word-card>small{font-size:7px;color:var(--muted);letter-spacing:.4px}
+.analysis-word-facts b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px}
+.analysis-generated{color:var(--accent)!important}
+.analysis-empty{
+  padding:12px;border:1px dashed var(--line);border-radius:9px;font-size:9px;color:var(--muted)
+}
 .analysis-card .analysis-note{margin-top:11px}
 
 @media(max-width:1000px){
   .analysis-layout{grid-template-columns:1fr}
+  .analysis-word-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .analysis-pairs{grid-template-columns:1fr}
 }
 @media(max-width:800px){
   .analysis-head{align-items:flex-start}
@@ -605,6 +660,13 @@ html,*{
   .analysis-head>.row button{min-height:44px;flex:1}
   .analysis-line{grid-template-columns:30px 30px minmax(90px,.7fr) minmax(120px,1.3fr);min-height:44px}
   .analysis-relation{white-space:normal;line-height:1.3}
+  .analysis-language-toggle,.analysis-relation-toggle{width:100%;overflow-x:auto}
+  .analysis-language-toggle button,.analysis-relation-toggle button{min-height:44px;flex:1 0 auto}
+  .analysis-word-grid{grid-template-columns:1fr}
+  .analysis-pair{grid-template-columns:minmax(0,1fr) 84px 44px}
+  .analysis-pair>small{display:none}
+  .analysis-pair{min-height:48px}
+
 }
 
 
