@@ -413,12 +413,12 @@ function bulkInsert(table,columnCount,rows){
   let chunk=[];
   const flush=()=>{
     if(!chunk.length)return;
-    const cacheKey=`\${table}:\${columnCount}:\${chunk.length}`;
+    const cacheKey=`${table}:${columnCount}:${chunk.length}`;
     let stmt=bulkStatementCache.get(cacheKey);
     if(!stmt){
       const rowSql='('+Array.from({length:columnCount},()=>'?').join(',')+')';
       stmt=db.prepare(
-        `INSERT INTO \${table} VALUES \${Array.from({length:chunk.length},()=>rowSql).join(',')}`
+        `INSERT INTO ${table} VALUES ${Array.from({length:chunk.length},()=>rowSql).join(',')}`
       );
       bulkStatementCache.set(cacheKey,stmt);
     }
