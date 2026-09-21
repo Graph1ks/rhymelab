@@ -59,7 +59,7 @@ function showDialog(title,html){$('#dialogTitle').textContent=title;$('#dialogBo
 function closeDialog(){$('#dialog').close()}
 function legacyFilters(){showDialog('Dein Klang. Deine Suche.',`<div class="formgrid"><label class="field">Aussprache der Suchanfrage<select id="basis"><option value="de">Deutsch</option><option value="en">Englisch</option><option value="both">DE + EN</option></select></label><label class="field">Sprache der Ergebnisse<select id="resultLanguage"><option value="both">DE + EN</option><option value="de">Deutsch</option><option value="en">Englisch</option></select></label><label class="field">Reimbeziehung<select id="relation"><option value="all">Alle Beispiele</option><option value="rein">Reiner Reim</option><option value="nah">Naher Klang</option></select></label><label class="field">Reihenfolge<select id="sort"><option value="recommended">Demo-Reihenfolge</option><option value="alpha">A–Z</option><option value="syllables">Silben aufsteigend</option></select></label></div><p class="notice">Die Produktions-App behält alle sieben bestehenden Reimfilter, Aussprachevarianten, historische Formen und Datenherkunft. Hier werden nur die vorhandenen Demo-Beispiele gefiltert.</p><div class="dialogactions"><button id="resetFilters">Zurücksetzen</button><button id="applyFilters" class="primary">Anwenden</button></div>`);$('#basis').value=basis;$('#resultLanguage').value=resultLang;$('#relation').value=relation;$('#sort').value=sort;$('#applyFilters').onclick=()=>{basis=$('#basis').value;resultLang=$('#resultLanguage').value;relation=$('#relation').value;sort=$('#sort').value;pageSize=6;renderResults();closeDialog()};$('#resetFilters').onclick=()=>{basis='de';resultLang='both';relation='all';sort='recommended';renderResults();closeDialog()}}
 function legacySettings(){showDialog('Dein Studio einrichten',`<label class="field">Schriftgröße im Editor<input id="fontRange" type="range" min="16" max="28" value="${state.fontSize}"></label><p class="small" id="fontValue">${state.fontSize} px</p><div class="row wrap" style="margin-top:20px"><button id="settingTheme" class="outline">Hell / Dunkel wechseln</button><button id="settingHistory" class="outline">Versionsverlauf</button></div><p class="notice">Diese Demo speichert Texte, Cues und Merkliste nur in diesem Browser. Exportiere deine Texte zur Sicherung. Keine Analyse- oder Cloud-Dienste.</p><div class="row wrap"><button id="sourceInfo" class="outline">Über diese Demo</button><button id="commandsSettings" class="outline">Tastenkürzel</button></div>`);$('#fontRange').oninput=e=>{state.fontSize=+e.target.value;document.documentElement.style.setProperty('--editor',state.fontSize+'px');$$('#lyrics textarea').forEach(resizeArea);$('#fontValue').textContent=state.fontSize+' px';persist()};$('#settingTheme').onclick=toggleTheme;$('#settingHistory').onclick=showHistory;$('#sourceInfo').onclick=showInfo;$('#commandsSettings').onclick=showCommands}
-function toggleTheme(){state.theme=state.theme==='light'?'dark':'light';document.documentElement.dataset.theme=state.theme;persist()}
+function legacyToggleTheme(){toggleTheme()}
 function legacyHistory(){revision();showDialog('Deine letzten Fassungen',`<p class="notice">Wiederherstellen erzeugt zuvor eine Sicherung der aktuellen Fassung.</p>${(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,65))}…</p></div><button class="outline" data-revision="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p>Noch keine ältere Fassung vorhanden.</p>'}`);$$('[data-revision]').forEach(b=>b.onclick=()=>{const text=song().revisions[+b.dataset.revision].text;pushUndo();revision();song().lines=text.split('\n');activeLine=0;selection={line:0,start:0,end:0};renderEditor();changed();closeDialog();notify('Fassung wiederhergestellt.')})}
 function showInfo(){showDialog('RhymeLab Studio Konzept',`<p>Ein gemeinsamer Schreibraum für Browser, Mobile und Electron.</p><p class="notice">Funktionsfähiger UI-Prototyp: Textbearbeitung, Wortersetzung, lokale Speicherung, Verlauf, Merkliste, Filter, Themes, Timing-Cues und Metronom. Reime sind kuratierte Beispiele; Silben werden grob geschätzt. Kein echter RhymeLab-Server und keine SQLite-Datenbanken angeschlossen.</p><p class="notice">Repository geprüft: 21.09.2026, Commit 08d26fcd595a. Vollständiges Funktionsinventar, Produktionsarchitektur, Lizenzquellen und Abnahmekriterien stehen im beigefügten Konzept.</p><p class="notice">Beispielanker: Nacht, Zeit, Leben, Haut, wach und nation (Aussprache EN auswählen).</p>`)}
 function showCommands(){showDialog('Schnell zu deinem nächsten Schritt',`<div class="commandlist"><button data-command="studio">Studio öffnen <span class="small">Alt + 1</span></button><button data-command="search">Reimsuche öffnen <span class="small">Alt + 2</span></button><button data-command="focus">Fokusmodus wechseln <span class="small">Alt + F</span></button><button data-command="history">Versionsverlauf</button><button data-command="settings">Einstellungen</button><button data-command="export">Text exportieren</button></div><p class="notice">Strg / ⌘ + K öffnet dieses Menü. Escape schließt Dialoge. Native Textbearbeitung und Undo bleiben verfügbar.</p>`);$$('[data-command]').forEach(b=>b.onclick=()=>{closeDialog();({studio:()=>navigate('studio'),search:()=>navigate('search'),focus:toggleFocus,history:showHistory,settings:showSettings,export:exportText})[b.dataset.command]()})}
@@ -94,6 +94,241 @@ function syncInline(){for(const [id,value]of [['directBasis',basis],['directLang
 function resetInline(){scope='all';relation='all';sort='recommended';basis='de';resultLang='both';syllableMode='all';pageSize=12;$$('[data-scope]').forEach(b=>{b.classList.toggle('active',b.dataset.scope==='all');b.setAttribute('aria-pressed',b.dataset.scope==='all')});renderResults()}
 function setDensity(v){density=v;state.density=v;pageSize=v==='compact'?24:12;renderResults();persist()}
 function toggleFollow(){followSelection=!followSelection;$('#followBtn').setAttribute('aria-pressed',followSelection);$('#followBtn').textContent=followSelection?'↗ Auswahl folgen':'⌖ Anker fixiert';$('#pinAnchor').setAttribute('aria-pressed',!followSelection);$('#pinAnchor').textContent=followSelection?'⌖ Fixieren':'⌖ Fixiert';$('#anchorLive').textContent=followSelection?'FOLGT DEINER AUSWAHL':'ANKER FIXIERT';if(followSelection){const el=$(`#lyrics textarea[data-line="${activeLine}"]`);if(el&&el.selectionEnd>0)captureSelection(el)}}
+
+function normalizeThemeHex(value,fallback){
+  fallback=fallback||'#000000';
+  const text=String(value||'').trim().toUpperCase();
+  if(/^#[0-9A-F]{6}$/.test(text))return text;
+  if(/^[0-9A-F]{6}$/.test(text))return '#'+text;
+  return fallback;
+}
+function hexRgb(value){
+  const hex=normalizeThemeHex(value);
+  return [parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];
+}
+function rgbHex(rgb){
+  return '#'+rgb.map(function(value){return Math.max(0,Math.min(255,Math.round(value))).toString(16).padStart(2,'0')}).join('').toUpperCase();
+}
+function mixThemeHex(a,b,ratio){
+  ratio=ratio==null?.5:Math.max(0,Math.min(1,Number(ratio)||0));
+  const left=hexRgb(a),right=hexRgb(b);
+  return rgbHex(left.map(function(value,index){return value*(1-ratio)+right[index]*ratio}));
+}
+function relativeLuminance(value){
+  return hexRgb(value).map(function(channel){return channel/255}).map(function(channel){return channel<=.03928?channel/12.92:Math.pow((channel+.055)/1.055,2.4)}).reduce(function(sum,value,index){return sum+value*[.2126,.7152,.0722][index]},0);
+}
+function contrastRatio(a,b){
+  const left=relativeLuminance(a),right=relativeLuminance(b),high=Math.max(left,right),low=Math.min(left,right);
+  return (high+.05)/(low+.05);
+}
+function readableAccentText(accent){
+  return contrastRatio(accent,'#171717')>=contrastRatio(accent,'#FFFFFF')?'#171717':'#FFFFFF';
+}
+function completeThemeColors(colors){
+  const next={
+    bg:normalizeThemeHex(colors&&colors.bg,'#272727'),
+    panel:normalizeThemeHex(colors&&colors.panel,'#303030'),
+    ink:normalizeThemeHex(colors&&colors.ink,'#F5F4EC'),
+    muted:normalizeThemeHex(colors&&colors.muted,'#A3A3A3'),
+    accent:normalizeThemeHex(colors&&colors.accent,'#FFE400'),
+    accent2:normalizeThemeHex(colors&&colors.accent2,'#FF652F'),
+    signal:normalizeThemeHex(colors&&colors.signal,'#14A76C')
+  };
+  return Object.assign({},next,{
+    line:normalizeThemeHex(colors&&colors.line,mixThemeHex(next.muted,next.bg,.52)),
+    nav:normalizeThemeHex(colors&&colors.nav,mixThemeHex(next.panel,next.bg,.54)),
+    tint:normalizeThemeHex(colors&&colors.tint,mixThemeHex(next.accent,next.bg,.82)),
+    onAccent:normalizeThemeHex(colors&&colors.onAccent,readableAccentText(next.accent))
+  });
+}
+function customThemeById(id){return state.customThemes.find(function(theme){return theme.id===id})||null}
+function resolveThemeChoice(choice){
+  if(choice==='light'||choice==='dark'){
+    const replacement=customThemeById(state.themeSlots&&state.themeSlots[choice]);
+    if(replacement)return Object.assign({},replacement,{slot:choice,colors:completeThemeColors(replacement.colors)});
+    const builtin=STUDIO_BUILTIN_THEMES[choice];
+    return Object.assign({},builtin,{slot:choice,colors:completeThemeColors(builtin.colors)});
+  }
+  const custom=customThemeById(choice);
+  if(custom)return Object.assign({},custom,{colors:completeThemeColors(custom.colors)});
+  const fallback=STUDIO_BUILTIN_THEMES.dark;
+  return Object.assign({},fallback,{slot:'dark',colors:completeThemeColors(fallback.colors)});
+}
+function themePaletteMarkup(theme){
+  const colors=completeThemeColors(theme.colors);
+  return '<span class="theme-mini-palette" aria-hidden="true"><i style="background:'+colors.bg+'"></i><i style="background:'+colors.panel+'"></i><i style="background:'+colors.accent+'"></i><i style="background:'+colors.signal+'"></i></span>';
+}
+function applyThemeObject(theme){
+  const colors=completeThemeColors(theme.colors),root=document.documentElement;
+  root.dataset.theme=theme.mode==='light'?'light':'dark';
+  const vars={'--bg':colors.bg,'--panel':colors.panel,'--ink':colors.ink,'--muted':colors.muted,'--line':colors.line,'--accent':colors.accent,'--accent-2':colors.accent2,'--tint':colors.tint,'--green':colors.signal,'--nav':colors.nav,'--on-accent':colors.onAccent};
+  Object.entries(vars).forEach(function(entry){root.style.setProperty(entry[0],entry[1])});
+}
+function applyThemeChoice(choice,options){
+  options=options||{};
+  const resolved=resolveThemeChoice(choice);
+  state.theme=(choice==='light'||choice==='dark'||customThemeById(choice))?choice:resolved.mode;
+  themePreviewing=false;
+  applyThemeObject(resolved);
+  const button=$('#themeBtn');
+  if(button){
+    button.dataset.themeMode=resolved.mode;
+    button.setAttribute('aria-label','Quickstyle wechseln · aktiv: '+(resolved.name||state.theme));
+    button.title=(resolved.name||state.theme)+' · Klick: Light/Dark · Hover: Quickstyles';
+  }
+  renderThemeQuickMenu();
+  if(options.persistState!==false)persist();
+}
+function slotThemeButton(slot){
+  const theme=resolveThemeChoice(slot),replaced=Boolean(customThemeById(state.themeSlots&&state.themeSlots[slot])),active=state.theme===slot;
+  return '<button class="theme-choice '+(active?'active':'')+'" data-theme-choice="'+slot+'" role="menuitem">'+themePaletteMarkup(theme)+'<span class="theme-choice-copy"><b>'+(slot==='light'?'Light':'Dark')+'</b><small>'+(replaced?'ersetzt durch '+esc(theme.name):esc(theme.subtitle||theme.name))+'</small></span><span class="theme-choice-check">'+(active?'✓':'')+'</span></button>';
+}
+function renderThemeQuickMenu(){
+  const menu=$('#themeQuickMenu');
+  if(!menu)return;
+  const slotted=new Set([state.themeSlots&&state.themeSlots.light,state.themeSlots&&state.themeSlots.dark].filter(Boolean));
+  const extras=state.customThemes.filter(function(theme){return !slotted.has(theme.id)});
+  let html='<div class="theme-quick-title">Quickstyle</div>'+slotThemeButton('light')+slotThemeButton('dark');
+  if(extras.length){
+    html+='<div class="theme-quick-divider"></div>';
+    html+=extras.map(function(theme){
+      const active=state.theme===theme.id;
+      return '<button class="theme-choice '+(active?'active':'')+'" data-theme-choice="'+esc(theme.id)+'" role="menuitem">'+themePaletteMarkup(theme)+'<span class="theme-choice-copy"><b>'+esc(theme.name)+'</b><small>Eigener Style · '+(theme.mode==='light'?'Light':'Dark')+' Basis</small></span><span class="theme-choice-check">'+(active?'✓':'')+'</span></button>';
+    }).join('');
+  }
+  menu.innerHTML=html;
+}
+function bindThemeQuickMenu(){
+  const quick=$('#themeQuick'),menu=$('#themeQuickMenu'),button=$('#themeBtn');
+  if(!quick||!menu||!button)return;
+  renderThemeQuickMenu();
+  quick.addEventListener('mouseenter',function(){button.setAttribute('aria-expanded','true');renderThemeQuickMenu()});
+  quick.addEventListener('mouseleave',function(){button.setAttribute('aria-expanded','false')});
+  quick.addEventListener('focusin',function(){button.setAttribute('aria-expanded','true');renderThemeQuickMenu()});
+  quick.addEventListener('focusout',function(){requestAnimationFrame(function(){if(!quick.contains(document.activeElement))button.setAttribute('aria-expanded','false')})});
+  menu.addEventListener('click',function(event){
+    const target=event.target.closest('[data-theme-choice]');
+    if(!target)return;
+    applyThemeChoice(target.dataset.themeChoice);
+    button.setAttribute('aria-expanded','false');
+  });
+}
+function toggleTheme(){
+  const current=resolveThemeChoice(state.theme);
+  applyThemeChoice(current.mode==='dark'?'light':'dark');
+}
+function activeThemeForBuilder(){
+  if(themeEditingId){
+    const editing=customThemeById(themeEditingId);
+    if(editing)return Object.assign({},editing,{colors:completeThemeColors(editing.colors)});
+  }
+  const active=resolveThemeChoice(state.theme);
+  return {id:'',name:'Mein Studio',mode:active.mode,colors:completeThemeColors(active.colors)};
+}
+function themeSlotCard(slot){
+  const theme=resolveThemeChoice(slot),active=state.theme===slot,replaced=Boolean(customThemeById(state.themeSlots&&state.themeSlots[slot]));
+  return '<button class="theme-slot '+(active?'active':'')+'" data-theme-choice="'+slot+'">'+themePaletteMarkup(theme)+'<span class="theme-slot-copy"><b>'+(slot==='light'?'Light':'Dark')+' · '+esc(theme.name)+'</b><small>'+(replaced?'eigener Style ersetzt Standard':esc(theme.subtitle||'Studio Standard'))+'</small></span><span class="theme-mode-badge">'+slot+'</span></button>';
+}
+function savedThemeRows(){
+  if(!state.customThemes.length)return '<div class="theme-empty">Noch keine eigenen Styles gespeichert.</div>';
+  return state.customThemes.map(function(theme){
+    const slots=['light','dark'].filter(function(slot){return state.themeSlots&&state.themeSlots[slot]===theme.id});
+    return '<div class="theme-saved-row">'+themePaletteMarkup(theme)+'<div><b>'+esc(theme.name)+'</b><small>'+(slots.length?'ersetzt '+slots.join(' + '):'Quickstyle · '+theme.mode)+'</small></div><div class="theme-saved-actions"><button data-theme-choice="'+esc(theme.id)+'" title="Anwenden">✓</button><button data-theme-edit="'+esc(theme.id)+'" title="Bearbeiten">✎</button><button data-theme-delete="'+esc(theme.id)+'" title="Löschen">×</button></div></div>';
+  }).join('');
+}
+function renderSettingsDock(body){
+  const draft=activeThemeForBuilder(),colors=completeThemeColors(draft.colors);
+  const lightChecked=Boolean(themeEditingId&&state.themeSlots&&state.themeSlots.light===themeEditingId);
+  const darkChecked=Boolean(themeEditingId&&state.themeSlots&&state.themeSlots.dark===themeEditingId);
+  const fields=THEME_COLOR_FIELDS.map(function(field){
+    const key=field[0],label=field[1];
+    return '<label class="theme-color-field"><span>'+label+'</span><input type="color" data-theme-color="'+key+'" value="'+colors[key]+'" aria-label="'+label+' Farbe"><input type="text" data-theme-hex="'+key+'" value="'+colors[key]+'" maxlength="7" spellcheck="false" aria-label="'+label+' Hex"></label>';
+  }).join('');
+  const preview=THEME_COLOR_FIELDS.map(function(field){return '<i data-preview-color="'+field[0]+'" style="background:'+colors[field[0]]+'"></i>'}).join('');
+  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label></div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section></div>';
+  $('#fontRange').oninput=function(event){setFontSize(+event.target.value)};
+  $('#editorFont').value=state.editorFont||'sans';
+  $('#editorFont').onchange=function(event){state.editorFont=event.target.value;applyEditorFont();persist()};
+  $('#motionSelect').value=state.motion;
+  $('#motionSelect').onchange=function(event){state.motion=event.target.value;document.documentElement.dataset.motion=state.motion;persist()};
+  $('#themeMode').value=draft.mode==='light'?'light':'dark';
+  bindThemeSettings();
+}
+function readThemeDraft(){
+  const current=activeThemeForBuilder(),colors={};
+  THEME_COLOR_FIELDS.forEach(function(field){
+    const key=field[0],input=$('[data-theme-hex="'+key+'"]');
+    colors[key]=normalizeThemeHex(input&&input.value,current.colors[key]);
+  });
+  return {id:themeEditingId||'',name:(($('#themeName')&&$('#themeName').value)||'Mein Studio').trim().slice(0,40)||'Mein Studio',mode:$('#themeMode')&&$('#themeMode').value==='light'?'light':'dark',colors:completeThemeColors(colors)};
+}
+function previewThemeDraft(){
+  const draft=readThemeDraft();
+  themePreviewing=true;
+  applyThemeObject(draft);
+  THEME_COLOR_FIELDS.forEach(function(field){
+    const key=field[0],preview=$('[data-preview-color="'+key+'"]');
+    if(preview)preview.style.background=draft.colors[key];
+  });
+}
+function bindThemeSettings(){
+  $('[data-theme-color]').forEach(function(color){
+    color.addEventListener('input',function(){
+      const key=color.dataset.themeColor,hex=$('[data-theme-hex="'+key+'"]');
+      if(hex)hex.value=normalizeThemeHex(color.value);
+      previewThemeDraft();
+    });
+  });
+  $('[data-theme-hex]').forEach(function(input){
+    input.addEventListener('input',function(){
+      const key=input.dataset.themeHex,value=String(input.value||'').trim().toUpperCase();
+      if(!/^#[0-9A-F]{6}$/.test(value))return;
+      const color=$('[data-theme-color="'+key+'"]');
+      if(color)color.value=value;
+      previewThemeDraft();
+    });
+    input.addEventListener('blur',function(){
+      const key=input.dataset.themeHex,color=$('[data-theme-color="'+key+'"]');
+      input.value=normalizeThemeHex(input.value,color&&color.value||'#000000');
+    });
+  });
+  $('#themeMode').onchange=previewThemeDraft;
+  $('#replaceLight').onchange=function(event){if(event.target.checked)$('#replaceDark').checked=false};
+  $('#replaceDark').onchange=function(event){if(event.target.checked)$('#replaceLight').checked=false};
+  $('#themeRevert').onclick=function(){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()};
+  $('#themeSave').onclick=saveThemeDraft;
+  $('[data-theme-choice]').forEach(function(button){button.onclick=function(){themePreviewing=false;applyThemeChoice(button.dataset.themeChoice);if(dockTab==='settings')renderDock()}});
+  $('[data-theme-edit]').forEach(function(button){button.onclick=function(){themeEditingId=button.dataset.themeEdit;themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()}});
+  $('[data-theme-delete]').forEach(function(button){button.onclick=function(){deleteCustomTheme(button.dataset.themeDelete)}});
+  $('[data-theme-new]').onclick=function(){themeEditingId='';themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()};
+}
+function saveThemeDraft(){
+  const draft=readThemeDraft(),id=themeEditingId||'custom-'+Date.now().toString(36);
+  const replace=$('#replaceLight')&&$('#replaceLight').checked?'light':$('#replaceDark')&&$('#replaceDark').checked?'dark':null;
+  const saved=Object.assign({},draft,{id:id,mode:replace||draft.mode,colors:completeThemeColors(draft.colors)});
+  const index=state.customThemes.findIndex(function(theme){return theme.id===id});
+  if(index>=0)state.customThemes[index]=saved;else state.customThemes.push(saved);
+  ['light','dark'].forEach(function(slot){if(state.themeSlots&&state.themeSlots[slot]===id)state.themeSlots[slot]=null});
+  if(replace)state.themeSlots[replace]=id;
+  themeEditingId=id;
+  themePreviewing=false;
+  applyThemeChoice(replace||id);
+  renderDock();
+  notify(replace?saved.name+' ersetzt jetzt '+(replace==='light'?'Light':'Dark')+'.':saved.name+' als Quickstyle gespeichert.');
+}
+function deleteCustomTheme(id){
+  const theme=customThemeById(id);
+  if(!theme)return;
+  const activeWasCustom=state.theme===id;
+  const activeSlot=['light','dark'].find(function(slot){return state.theme===slot&&state.themeSlots&&state.themeSlots[slot]===id});
+  ['light','dark'].forEach(function(slot){if(state.themeSlots&&state.themeSlots[slot]===id)state.themeSlots[slot]=null});
+  state.customThemes=state.customThemes.filter(function(item){return item.id!==id});
+  themeEditingId='';
+  applyThemeChoice(activeWasCustom?(theme.mode||'dark'):(activeSlot||state.theme));
+  renderDock();
+  notify(theme.name+' gelöscht.');
+}
+
 function showFilters(){const hidden=$('#directFilters').classList.toggle('hidden');$('#filterBtn').setAttribute('aria-expanded',!hidden);$('#filterLabel').textContent=hidden?'Filter öffnen':'Filter sichtbar';if(!hidden)animateSurface($('#directFilters'))}
 function showSettings(){openEditorDock('settings')}
 function showHistory(){revision();openEditorDock('history')}
