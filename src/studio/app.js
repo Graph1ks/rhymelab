@@ -1,6 +1,6 @@
 
 import {$,queryAll,esc,icon,clamp} from './studio-core.mjs';
-import {STUDIO_DEMO_LINES,loadStudioPreferences,loadStudioState,studioStateFromDocumentSnapshot,writeStudioPreferences,writeStudioState} from './document-adapter.mjs';
+import {STUDIO_DEMO_LINES,loadStudioPreferences,loadStudioState,studioPreferencesFromState,studioStateFromDocumentSnapshot,writeStudioPreferences,writeStudioState} from './document-adapter.mjs';
 import {createWriterSearchClient,estimateSyllables} from './search-adapter.mjs';
 import {STUDIO_RHYME_TYPE_LABELS,filterStudioWriterRows,sortStudioWriterRows} from './search-filters.mjs';
 import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchState} from './search-state.mjs';
@@ -11,6 +11,7 @@ import {createStudioAnalysisClient,studioAnalysisWords} from './analysis-adapter
 import {barIdentity,createSelectionProof,editorSnapshot,ensureEditorSong,mergeEditorBarWithPrevious,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
 import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarDurationMs,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceFlowFingerprint,performanceNeedsReview,performancePocketMetrics,performancePreviousBarPlacements,performanceStepDurationMs,performanceSyllablesPerSecond,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
+import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
 import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacyStudioStateToStore} from './document-store.mjs';
 
 'use strict';
@@ -1298,7 +1299,16 @@ function renderLibrary(showTrash=libraryView.trash){
   if($('#newFolderBtn'))$('#newFolderBtn').onclick=createLibraryFolder;
 }
 function renderSaved(){$('#largeView').innerHTML=`<div class="eyebrow">Wörter für später</div><h1 style="margin-top:9px">Deine Merkliste.</h1><p class="muted" style="margin-top:14px">Gute Funde, direkt zurück in deinen Text.</p><div class="collection-list">${state.saved.map(r=>`<div class="result"><div class="grow"><h3>${esc(r.word)}</h3><small>Gefunden zu „${esc(r.anchor)}“</small></div><button data-insert="${esc(r.word)}" class="outline">Einsetzen</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entfernen">×</button></div>`).join('')||'<div class="empty">Merke ein Wort über das Lesezeichen neben einem Reim.</div>'}</div>`}
-function exportText(){const blob=new Blob([song().title+'\n\n'+song().lines.join('\n')],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(song().title.replace(/[^\p{L}\p{N} -]/gu,'')||'rhymelab')+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Text als TXT exportiert.')}
+function downloadBlob(blob,filename){
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportText(){
+  const blob=new Blob([song().title+'\n\n'+song().lines.join('\n')],{type:'text/plain;charset=utf-8'});
+  downloadBlob(blob,(song().title.replace(/[^\p{L}\p{N} -]/gu,'')||'rhymelab')+'.txt');
+  notify('Text als TXT exportiert.');
+}
 function runAuto(t){if(!auto)return;const el=$('#resultsScroll');if(t>pauseUntil&&!document.hidden&&!$('#dialog').open&&el.clientHeight>0){el.scrollTop+=(t-(lastFrame||t))*.018;if(el.scrollTop+el.clientHeight>=el.scrollHeight-2){if(pageSize<data().length){pageSize+=6;renderResults()}else{el.scrollTop=0;pauseUntil=t+1200}}}lastFrame=t;scrollFrame=requestAnimationFrame(runAuto)}
 function toggleAuto(){auto=!auto;$('#autoBtn').textContent='Auto-Scroll: '+(auto?'An':'Aus');$('#autoBtn').setAttribute('aria-pressed',auto);cancelAnimationFrame(scrollFrame);lastFrame=0;if(auto){pauseUntil=performance.now()+1000;scrollFrame=requestAnimationFrame(runAuto)}}
 function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','filterBtn','autoBtn','moreBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
@@ -1853,6 +1863,90 @@ function applyDocumentSnapshotState(snapshot){
   if(page==='library')renderLibrary(libraryView.trash);
   writeStudioPreferences(state);
 }
+async function exportPortableStudioBackup(){
+  if(!documentStoreInitialized)throw new Error('DocumentStore ist nicht verfügbar.');
+  await syncDocumentShadow();
+  const snapshot=await documentStore.loadSnapshot();
+  if(!snapshot)throw new Error('Kein Dokument-Snapshot vorhanden.');
+  const payload=createPortableStudioBackup({
+    snapshot,
+    preferences:studioPreferencesFromState(state),
+    searchState:sharedSearchState,
+  });
+  const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{type:'application/json;charset=utf-8'});
+  downloadBlob(blob,portableBackupFilename(song()?.title||'studio'));
+  return payload;
+}
+async function applyPortableStudioBackup(payload){
+  if(!documentStoreInitialized)throw new Error('DocumentStore ist nicht verfügbar.');
+  const parsed=parsePortableStudioBackup(payload);
+  const current=await documentStore.loadSnapshot();
+  if(current)await documentStore.saveDocumentBackup(current,{reason:'before_portable_import'});
+  await documentStore.saveSnapshot(parsed.snapshot);
+  const loaded=await documentStore.loadSnapshot();
+  if(!loaded)throw new Error('Import konnte nicht verifiziert werden.');
+
+  state=studioStateFromDocumentSnapshot(loaded,{...state,...parsed.preferences});
+  normalizeStudioRuntimeState();
+  writeStudioPreferences(state);
+
+  if(parsed.searchState&&Object.keys(parsed.searchState).length){
+    sharedSearchState=createSearchState(parsed.searchState);
+    saveSearchState(sharedSearchState);
+    query=sharedSearchState.anchor||query;
+    basis=sharedSearchState.queryBasis;
+    resultLang=sharedSearchState.resultLanguage;
+    scope=({words:'word',phrases:'phrase',entities:'entity'})[sharedSearchState.scope]||'all';
+    rhymeType=sharedSearchState.rhymeType;
+    variantMode=sharedSearchState.variantMode;
+    entityCategory=sharedSearchState.entityCategory;
+    entityCategories=Array.isArray(sharedSearchState.entityCategories)?[...sharedSearchState.entityCategories]:[];
+    includeHistorical=sharedSearchState.historical;
+    generated=sharedSearchState.generated;
+    generatedOnly=sharedSearchState.generatedOnly;
+    sort=sharedSearchState.sort;
+    syllableMode=sharedSearchState.syllableFilter||'all';
+  }
+
+  activeLine=0;selection={line:0,start:0,end:0};selectionProof=null;
+  undo=[];redo=[];analysisSignature='';
+  documentStoreAuthority=true;documentStoreStatus='ready';documentStoreError='';
+  applyThemeChoice(state.theme,{persistState:false});
+  document.documentElement.style.setProperty('--editor',state.fontSize+'px');
+  applyEditorFont();
+  renderEditor();renderProjects();renderResults();
+  if(page==='library')renderLibrary(libraryView.trash);
+  updateCapabilitySurface();
+  return parsed;
+}
+function confirmPortableStudioImport(parsed,fileName='Backup'){
+  const counts={
+    songs:parsed.snapshot.songs.length,
+    bars:parsed.snapshot.bars.length,
+    revisions:parsed.snapshot.revisions.length,
+    folders:parsed.snapshot.folders.length,
+  };
+  showDialog('Studio Backup importieren',`<p class="notice"><b>${esc(fileName)}</b> enthält ${counts.songs} Texte, ${counts.bars} Bars, ${counts.revisions} Revisionen und ${counts.folders} Ordner.</p><p class="notice">Der aktuelle IndexedDB-Stand wird automatisch als Recovery-Punkt gesichert, bevor das Backup übernommen wird.</p><div class="dialogactions"><button id="cancelPortableImport">Abbrechen</button><button id="confirmPortableImport" class="primary">Backup importieren</button></div>`);
+  $('#cancelPortableImport').onclick=closeDialog;
+  $('#confirmPortableImport').onclick=async()=>{
+    const button=$('#confirmPortableImport');button.disabled=true;
+    try{
+      await applyPortableStudioBackup(parsed);
+      closeDialog();
+      notify('Studio Backup importiert und verifiziert.');
+      if(dockTab==='settings')renderDock();
+    }catch(error){
+      notify('Backup-Import fehlgeschlagen: '+(error instanceof Error?error.message:String(error)));
+      button.disabled=false;
+    }
+  };
+}
+async function readPortableStudioBackupFile(file){
+  if(!file)throw new Error('Keine Backup-Datei ausgewählt.');
+  if(file.size>64*1024*1024)throw new Error('Backup-Datei ist größer als 64 MB.');
+  return parsePortableStudioBackup(await file.text());
+}
+
 async function createRecoveryPoint(reason='manual_recovery_point'){
   if(!documentStoreInitialized)throw new Error('DocumentStore ist nicht verfügbar.');
   await syncDocumentShadow();
@@ -1928,7 +2022,7 @@ function renderSettingsDock(body){
     return '<label class="theme-color-field"><span>'+label+'</span><input type="color" data-theme-color="'+key+'" value="'+colors[key]+'" aria-label="'+label+' Farbe"><input type="text" data-theme-hex="'+key+'" value="'+colors[key]+'" maxlength="7" spellcheck="false" aria-label="'+label+' Hex"></label>';
   }).join('');
   const preview=THEME_COLOR_FIELDS.map(function(field){return '<i data-preview-color="'+field[0]+'" style="background:'+colors[field[0]]+'"></i>'}).join('');
-  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label></div><div id="capabilitySummary" class="capability-summary">'+capabilityMarkup()+'</div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section><section class="theme-settings-card recovery-card"><div class="recovery-head"><div><h3>Data & Recovery</h3><p>Dokumente laufen primär über IndexedDB. Recovery-Punkte sichern den kompletten versionierten Studio-Snapshot vor größeren Änderungen.</p></div><button id="createRecoveryPoint" class="outline">Recovery-Punkt erstellen</button></div><div id="recoveryPanel"></div></section></div>';
+  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label></div><div id="capabilitySummary" class="capability-summary">'+capabilityMarkup()+'</div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section><section class="theme-settings-card recovery-card"><div class="recovery-head"><div><h3>Data & Recovery</h3><p>Dokumente laufen primär über IndexedDB. Recovery-Punkte sichern den kompletten versionierten Studio-Snapshot vor größeren Änderungen. Portable Backups enthalten Dokumente, UI-Präferenzen und den gemeinsamen SearchState.</p></div><div class="recovery-head-actions"><button id="exportStudioBackup" class="outline">Backup exportieren</button><button id="importStudioBackup" class="outline">Backup importieren</button><button id="createRecoveryPoint" class="outline">Recovery-Punkt erstellen</button><input id="studioBackupFile" type="file" accept="application/json,.json" hidden></div></div><div id="recoveryPanel"></div></section></div>';
   $('#fontRange').oninput=function(event){setFontSize(+event.target.value)};
   $('#editorFont').value=state.editorFont||'sans';
   $('#editorFont').onchange=function(event){state.editorFont=event.target.value;applyEditorFont();persist()};
@@ -1943,6 +2037,19 @@ function renderSettingsDock(body){
     }catch(error){
       notify('Recovery nicht möglich: '+(error instanceof Error?error.message:String(error)));
     }finally{button.disabled=false}
+  };
+  $('#exportStudioBackup').onclick=async function(){
+    const button=this;button.disabled=true;
+    try{await exportPortableStudioBackup();notify('Portables Studio Backup exportiert.')}
+    catch(error){notify('Backup-Export fehlgeschlagen: '+(error instanceof Error?error.message:String(error)))}
+    finally{button.disabled=false}
+  };
+  $('#importStudioBackup').onclick=()=>$('#studioBackupFile').click();
+  $('#studioBackupFile').onchange=async function(){
+    const file=this.files?.[0];this.value='';
+    if(!file)return;
+    try{confirmPortableStudioImport(await readPortableStudioBackupFile(file),file.name)}
+    catch(error){notify('Backup-Datei ungültig: '+(error instanceof Error?error.message:String(error)))}
   };
   void renderRecoveryPanel();
   $('#themeMode').value=draft.mode==='light'?'light':'dark';
