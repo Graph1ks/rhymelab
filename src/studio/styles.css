@@ -31,14 +31,14 @@ html{transition:background-color .25s,color .25s}.app{grid-template-columns:184p
   --bg:#EAE7DC;
   --panel:#F4F0E6;
   --ink:#272727;
-  --muted:#747474;
+  --muted:#6B6965;
   --line:#D8C3A5;
   --accent:#E85A4F;
   --accent-2:#E98074;
   --tint:#F1D5CE;
   --green:#747474;
   --nav:#E3DCCF;
-  --on-accent:#272727;
+  --on-accent:#171717;
   --shadow:0 24px 80px #5f4d3424;
   --panel-shadow:0 3px 9px #5f4d3408,0 16px 35px #5f4d3410;
   color-scheme:light
