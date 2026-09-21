@@ -403,6 +403,7 @@ const assets = {
   '/studio/search-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'search-adapter.mjs')) },
   '/studio/document-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'document-adapter.mjs')) },
   '/studio/capability-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'capability-adapter.mjs')) },
+  '/studio/detail-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'detail-adapter.mjs')) },
   '/studio/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'query-pronunciation-client.mjs')) },
   '/studio/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'query-pronunciation-cache.mjs')) },
   '/pad/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(padUiDir, 'styles.css')) },
