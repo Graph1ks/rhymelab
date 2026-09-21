@@ -284,11 +284,13 @@ function applyModelHealth(){
     }
     const roles=`P ${roleCounts.phrase.toLocaleString()} · S ${roleCounts.sentence.toLocaleString()} · L ${roleCounts.lyric.toLocaleString()}`;
     note.innerHTML=`<strong>DECODER V2:</strong> variable-order 1→${esc(markovHealth.order)} · <b>${sentences}</b> source lines [${roles}] · ${transitions} transitions · ${Number(markovHealth.source_windows||0).toLocaleString()} novelty windows · ${Number(markovHealth.shape_patterns||0).toLocaleString()} line shapes · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
+    note.title=note.textContent.trim();
     state.textContent='MODEL READY';state.dataset.tone='ok';
     for(const option of language.options)option.disabled=option.value!==markovHealth.language;
     language.value=markovHealth.language;
   }else{
     note.innerHTML='<strong>MODEL REQUIRED:</strong> lyric structure is loaded, but the transition database is missing. Run <code>npm run markov:model:build</code>. It builds from Phrase/Mosaic rows inside the canonical <code>rhymelab-serving-v1.sqlite</code>; owner-private lyrics are not used.';
+    note.title=note.textContent.trim();
     state.textContent='MODEL MISSING';state.dataset.tone='error';
   }
 }
