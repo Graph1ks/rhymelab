@@ -679,9 +679,10 @@ test('Studio detail adapter uses canonical detail endpoints and keeps entities o
 
 
 test('Studio full Writer filter matrix is wired without changing canonical recommended ordering',async()=>{
-  const [html,app]=await Promise.all([
+  const [html,app,filters]=await Promise.all([
     readFile('src/studio/index.html','utf8'),
     readFile('src/studio/app.js','utf8'),
+    readFile('src/studio/search-filters.mjs','utf8'),
   ]);
 
   for(const id of [
@@ -698,10 +699,10 @@ test('Studio full Writer filter matrix is wired without changing canonical recom
 
   assert.match(app,/filterStudioWriterRows\(baseData\(\)/u);
   assert.match(app,/sortStudioWriterRows\(data\(\)/u);
-  assert.match(app,/sort==='closest'/u);
-  assert.match(app,/sort==='common'/u);
-  assert.match(app,/syllableMode==='near2'/u);
-  assert.match(app,/syllableMode==='near3'/u);
+  assert.match(filters,/sort==='closest'/u);
+  assert.match(filters,/sort==='common'/u);
+  assert.match(filters,/mode==='near2'/u);
+  assert.match(filters,/mode==='near3'/u);
   assert.match(app,/writerCapabilities=result\.capabilities/u);
   assert.match(app,/availableEntityCategories\(\)/u);
   assert.match(html,/id=["']advancedEntityCategoryMulti["']/u);
