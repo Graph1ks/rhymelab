@@ -647,6 +647,35 @@ html,*{
 .analysis-empty{
   padding:12px;border:1px dashed var(--line);border-radius:9px;font-size:9px;color:var(--muted)
 }
+.rhyme-chain{
+  display:grid;gap:8px;margin-top:12px;padding:11px;border:1px solid var(--line);border-radius:10px;
+  background:color-mix(in srgb,var(--panel) 82%,var(--bg))
+}
+.rhyme-chain-group{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:9px}
+.rhyme-chain-group>div{display:flex;align-items:center;gap:6px;min-width:0;overflow-x:auto;padding-bottom:2px}
+.rhyme-chain-group>div>i{font-style:normal;color:var(--muted);font-size:9px;flex:0 0 auto}
+.rhyme-chain-group button{
+  display:grid;gap:2px;min-width:90px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;
+  background:var(--panel);text-align:left
+}
+.rhyme-chain-group button:hover{background:var(--tint)}
+.rhyme-chain-group button small{font-size:7px;color:var(--muted);letter-spacing:.55px}
+.rhyme-chain-group button b{font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.analysis-stress-workbench{
+  margin-top:13px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)
+}
+.analysis-stress-workbench h4{font-size:10px}
+.analysis-stress-workbench p{margin-top:3px}
+.analysis-stress-strip{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(54px,1fr));gap:5px;margin-top:9px
+}
+.analysis-stress-strip button{
+  display:grid;gap:2px;min-width:0;min-height:44px;padding:6px;border:1px solid var(--line);border-radius:7px;background:var(--panel)
+}
+.analysis-stress-strip button:hover{background:var(--tint)}
+.analysis-stress-strip small{font-size:7px;color:var(--muted)}
+.analysis-stress-strip b{font:700 9px ui-monospace,monospace;overflow:hidden;text-overflow:ellipsis}
+
 .analysis-card .analysis-note{margin-top:11px}
 
 @media(max-width:1000px){
@@ -666,6 +695,9 @@ html,*{
   .analysis-pair{grid-template-columns:minmax(0,1fr) 84px 44px}
   .analysis-pair>small{display:none}
   .analysis-pair{min-height:48px}
+  .rhyme-chain-group{grid-template-columns:30px minmax(0,1fr)}
+  .rhyme-chain-group button{min-height:44px}
+  .analysis-stress-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
 
 }
 
