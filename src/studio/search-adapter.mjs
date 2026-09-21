@@ -97,7 +97,19 @@ export function buildWriterParams({
   generated=false,
   generatedOnly=false,
   entityCategory='all',
+  rhymeType='all',
 }={}){
+  const requestedType=[
+    'all',
+    'multisyllabic_perfect',
+    'perfect',
+    'multisyllabic_slant',
+    'family',
+    'slant',
+    'assonance',
+    'consonance',
+  ].includes(rhymeType)?rhymeType:'all';
+  const backendType=SOUND_RELATION_TYPES.includes(requestedType)?'all':requestedType;
   return new URLSearchParams({
     q:String(query||'').trim(),
     language:['de','en','both'].includes(queryBasis)?queryBasis:'de',
@@ -115,7 +127,7 @@ export function buildWriterParams({
     historical:includeHistorical?'all':'current',
     generated:generated?'1':'0',
     generated_only:generatedOnly?'1':'0',
-    type:'all',
+    type:backendType,
   });
 }
 
