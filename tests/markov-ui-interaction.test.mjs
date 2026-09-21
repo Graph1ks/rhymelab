@@ -101,7 +101,9 @@ test('Markov test surface preserves mobile behavior and uses the Markov API',asy
   assert.match(styles,/@media\(prefers-reduced-motion:reduce\)/u);
   assert.match(styles,/\.hero-sentence\.animate-in \.sentence-token/u);
   assert.match(styles,/\.token-corpus/u);
-  assert.match(styles,/@media\(min-width:1200px\) and \(min-height:760px\) and \(max-height:980px\)/u);
+  assert.match(styles,/@media\(min-width:1050px\) and \(max-height:1050px\)/u);
+  assert.match(styles,/@media\(min-width:1050px\) and \(max-height:720px\)/u);
+  assert.doesNotMatch(styles,/@media\(min-width:1050px\)[^{]*min-height/u);
   assert.match(styles,/height:100dvh/u);
   assert.match(styles,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/u);
   assert.match(styles,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/u);
