@@ -77,7 +77,7 @@ function tailFamilyKey(candidate){
   return candidate.tokens.slice(-2).map((row)=>row.norm).join(' ');
 }
 
-function normalizePool(rows,{language='de',allowEntities=true,allowPhrases=true,target=''}={}){
+function normalizePool(rows,{language='de',allowEntities=true,entityCategories=[],allowPhrases=true,target=''}={}){
   const locale=language==='en'?'en-US':'de-DE';
   const targetNorm=String(target||'').normalize('NFKC').trim().toLocaleLowerCase(locale);
   const seen=new Set();
@@ -85,6 +85,10 @@ function normalizePool(rows,{language='de',allowEntities=true,allowPhrases=true,
   for(const row of rows||[]){
     const kind=normalizeKind(row);
     if(kind==='entity'&&!allowEntities)continue;
+    if(kind==='entity'&&Array.isArray(entityCategories)&&entityCategories.length){
+      const categories=Array.isArray(row?.entityCategories)?row.entityCategories.map(String):[];
+      if(!categories.some((category)=>entityCategories.includes(category)))continue;
+    }
     if(kind==='phrase'&&!allowPhrases)continue;
     const surface=String(row?.surface||row?.word||'').normalize('NFKC').trim();
     if(!surface)continue;
@@ -338,6 +342,80 @@ function beamReverse(runtime,tail,random,options){
   }));
 }
 
+function internalEntityVariants(runtime,beam,pool,tail,random,options){
+  if(!options.allowEntities||!beam.prefix.length)return [beam];
+  const explicitCategories=Array.isArray(options.entityCategories)?options.entityCategories:[];
+  const entities=pool
+    .filter((candidate)=>candidate.kind==='entity')
+    .filter((candidate)=>candidate.normalized!==tail.candidate.normalized)
+    .filter((candidate)=>{
+      if(!explicitCategories.length)return true;
+      const categories=Array.isArray(candidate.raw?.entityCategories)
+        ?candidate.raw.entityCategories.map(String)
+        :[];
+      return categories.some((category)=>explicitCategories.includes(category));
+    })
+    .filter((candidate)=>candidate.tokens.length>=1&&candidate.tokens.length<=Math.min(4,beam.prefix.length))
+    .map((candidate)=>({
+      candidate,
+      quality:clamp(
+        candidate.writerScore*0.48
+        +candidate.usage*0.22
+        +modelSupport(runtime,candidate)*0.30
+      ),
+    }))
+    .sort((a,b)=>b.quality-a.quality||a.candidate.surface.localeCompare(b.candidate.surface))
+    .slice(0,24);
+
+  if(!entities.length)return [beam];
+
+  const fixedSeed=seedTokens(options.seedText,options.language);
+  const tailNorms=tail.candidate.tokens.map((row)=>row.norm);
+  const variants=[beam];
+
+  for(const row of entities){
+    const candidate=row.candidate;
+    const length=candidate.tokens.length;
+    const entityNorms=candidate.tokens.map((token)=>token.norm);
+    for(let start=0;start+length<=beam.prefix.length;start+=1){
+      const prefix=[
+        ...beam.prefix.slice(0,start),
+        ...entityNorms,
+        ...beam.prefix.slice(start+length),
+      ];
+      const full=[...fixedSeed,...prefix,...tailNorms];
+      const forward=runtime.sequenceForwardScore(full);
+      if(forward.zeroRate>0.18)continue;
+      const support=clamp(1-forward.zeroRate);
+      const localScore=row.quality*0.58+support*0.34+random()*0.08;
+      variants.push({
+        ...beam,
+        prefix,
+        full,
+        internalEntity:{
+          start,
+          length,
+          candidate,
+          score:localScore,
+        },
+      });
+    }
+  }
+
+  variants.sort((a,b)=>{
+    const as=Number(a.internalEntity?.score??0.52);
+    const bs=Number(b.internalEntity?.score??0.52);
+    return bs-as;
+  });
+  const kept=[beam];
+  for(const variant of variants){
+    if(!variant.internalEntity)continue;
+    kept.push(variant);
+    if(kept.length>=6)break;
+  }
+  return kept;
+}
+
 function startBoundary(runtime,prefix){
   if(!prefix.length)return 0;
   const context=prefix.slice(0,runtime.order);
@@ -355,8 +433,24 @@ function buildTokenRows(runtime,beam,tail,options){
   const rows=[];
   const seed=String(options.seedText||'').trim().replace(/[.!?…,:;]+$/u,'');
   if(seed)rows.push({text:seed,kind:'seed',generated:false});
-  for(const norm of beam.prefix){
-    rows.push({text:runtime.surfaceFor(norm),norm,kind:'corpus',generated:false});
+  const splice=beam.internalEntity||null;
+  for(let index=0;index<beam.prefix.length;index+=1){
+    if(splice&&index===splice.start){
+      rows.push({
+        text:splice.candidate.surface,
+        norm:splice.candidate.tokens.map((row)=>row.norm).join(' '),
+        kind:'entity',
+        generated:splice.candidate.generated,
+        score:splice.candidate.writerScore,
+        entityCategories:Array.isArray(splice.candidate.raw?.entityCategories)
+          ?splice.candidate.raw.entityCategories.slice(0,8)
+          :[],
+        placeholder:'<ENTITY>',
+      });
+      index+=splice.length-1;
+      continue;
+    }
+    rows.push({text:runtime.surfaceFor(beam.prefix[index]),norm:beam.prefix[index],kind:'corpus',generated:false});
   }
   rows.push({
     text:tail.candidate.surface,
@@ -685,6 +779,7 @@ export function generateLyricCandidatesV2(runtime,{
   weirdness=38,
   mode='balanced',
   allowEntities=true,
+  entityCategories=[],
   allowPhrases=true,
   count=8,
   attempts=128,
@@ -694,7 +789,7 @@ export function generateLyricCandidatesV2(runtime,{
 
   const options={
     language,seedText,target,seed,targetTokens,rhymePressure,naturalness,weirdness,
-    mode,allowEntities,allowPhrases,
+    mode,allowEntities,entityCategories,allowPhrases,
   };
   const pool=normalizePool(rows,options);
   if(!pool.length)return [];
@@ -720,15 +815,18 @@ export function generateLyricCandidatesV2(runtime,{
     if(!beams.length)continue;
 
     const beamCandidates=[];
-    for(const beam of beams.slice(0,12)){
-      const tokenRows=buildTokenRows(runtime,beam,tail,options);
-      const sentence=formatTokens(tokenRows,language);
-      if(!sentence||seen.has(sentence))continue;
-      const scores=scoreDraft(runtime,beam,tail,tokenRows,options);
-      if(!scores.lengthWithinTarget||scores.copiedTooFar)continue;
-      if(Number(naturalness)>=70&&scores.zeroTransitionRate>0.08)continue;
-      if(Number(naturalness)>=82&&scores.naturalness<0.42)continue;
-      beamCandidates.push({beam,tokenRows,sentence,scores});
+    for(const baseBeam of beams.slice(0,12)){
+      const variants=internalEntityVariants(runtime,baseBeam,pool,tail,random,options);
+      for(const beam of variants){
+        const tokenRows=buildTokenRows(runtime,beam,tail,options);
+        const sentence=formatTokens(tokenRows,language);
+        if(!sentence||seen.has(sentence))continue;
+        const scores=scoreDraft(runtime,beam,tail,tokenRows,options);
+        if(!scores.lengthWithinTarget||scores.copiedTooFar)continue;
+        if(Number(naturalness)>=70&&scores.zeroTransitionRate>0.08)continue;
+        if(Number(naturalness)>=82&&scores.naturalness<0.42)continue;
+        beamCandidates.push({beam,tokenRows,sentence,scores});
+      }
     }
     beamCandidates.sort((a,b)=>b.scores.utility-a.scores.utility||b.scores.naturalness-a.scores.naturalness);
     const best=beamCandidates[0];
@@ -837,6 +935,7 @@ export function generateLyricSectionV2(runtime,{
   weirdness=38,
   mode='balanced',
   allowEntities=true,
+  entityCategories=[],
   allowPhrases=true,
   candidatesPerLine=8,
   attemptsPerLine=192,
@@ -872,6 +971,7 @@ export function generateLyricSectionV2(runtime,{
       weirdness,
       mode,
       allowEntities,
+      entityCategories,
       allowPhrases,
       count:Math.max(3,Math.min(12,Number(candidatesPerLine)||8)),
       attempts:Math.max(64,Math.min(256,Number(attemptsPerLine)||192)),
