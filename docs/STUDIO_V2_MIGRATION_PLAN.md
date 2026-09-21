@@ -331,7 +331,7 @@ authoritative DocumentStore cutover     DONE
 UI preferences split to LocalStorage    DONE
 manual recovery points + restore        DONE
 save/revision IndexedDB authority        DONE
-canonical analysis                       NEXT
+canonical analysis                       DONE
 full Perform parity                      DONE
 ~~~
 
@@ -341,17 +341,20 @@ The textarea geometry remains the Studio 02 visual baseline while the production
 
 ## Stage 10 — Analysis mode
 
-Replace demo heuristics.
-
-Every visible metric declares its source as one of:
+Canonical end-rhyme analysis is now wired through the Writer runtime:
 
 ~~~text
-canonical Writer/backend
-existing RhymePad heuristic
-explicit approximation
+batch song rhyme-scheme endpoint       DONE
+canonical Writer rhyme relations       DONE
+scheme assignment from primary types   DONE
+assonance/consonance shown descriptively DONE
+unresolved-anchor coverage              DONE
+analysis runtime timing                 DONE
+bar navigation from analysis            DONE
+silable-density estimate labeling       DONE · explicit approximation
 ~~~
 
-Do not present word-ending string comparisons as canonical rhyme analysis.
+Every visible analysis metric declares its source. Rhyme classification comes from the canonical Writer/backend path; the separate Bar-density chart remains explicitly marked as a local syllable estimate. Word-ending string comparison is no longer presented as rhyme analysis.
 
 ---
 
@@ -486,7 +489,8 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 16 Library / folders / trash workflows        DONE
 17 stable revision + recovery workflow         DONE
 18 Perform parity                              DONE
-19 canonical analysis                         NEXT
+19 canonical analysis                         DONE
+20 mobile / browser acceptance                 NEXT
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
