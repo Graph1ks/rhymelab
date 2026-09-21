@@ -134,3 +134,10 @@ html{transition:background-color .25s,color .25s}.app{grid-template-columns:184p
   .theme-quick-menu{position:fixed;top:58px;right:10px;width:min(300px,calc(100vw - 20px))}
   .theme-builder-grid,.theme-builder-meta{grid-template-columns:1fr}
 }
+
+#editorDock[data-tab=settings]{max-height:min(68dvh,620px)}
+#editorDock[data-tab=settings] .editor-dock-body{padding:16px 20px 20px}
+@media(max-width:800px){
+  #editorDock[data-tab=settings]{max-height:72dvh}
+  #editorDock[data-tab=settings] .editor-dock-body{padding:12px}
+}
