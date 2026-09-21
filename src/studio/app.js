@@ -579,7 +579,7 @@ function ensureLibraryFolder(name){
   if(!state.folders.includes(normalized))state.folders.push(normalized);
   return normalized;
 }
-function libraryFolders(){return state.folders.slice().sort((a,b)=>a.localeCompare(b,'de',{sensitivity:'base'}))}
+function libraryFolders(){return state.folders.slice()}
 function openSong(id){
   const target=state.songs.find((item)=>item.id===id&&!item.deleted);
   if(!target)return;
@@ -612,6 +612,32 @@ function createLibraryFolder(){
     renderLibrary(false);
     notify('Ordner angelegt.');
   });
+}
+function renameLibraryFolder(name){
+  const folder=normalizeFolderName(name);
+  if(!folder||folder==='Entwürfe'){notify('„Entwürfe“ bleibt der feste Standardordner.');return}
+  nameDialog('Ordner umbenennen',folder,(value)=>{
+    const next=normalizeFolderName(value);
+    if(!next||next===folder)return;
+    if(state.folders.some((item)=>item!==folder&&item.localeCompare(next,'de',{sensitivity:'base'})===0)){
+      notify('Ordner existiert bereits.');
+      return;
+    }
+    state.folders=state.folders.map((item)=>item===folder?next:item);
+    state.songs.forEach((item)=>{if(item.folder===folder){item.folder=next;touchSong(item)}});
+    if(libraryView.folder===folder)libraryView.folder=next;
+    persist();renderLibrary(libraryView.trash);renderProjects();notify('Ordner umbenannt.');
+  });
+}
+function reorderLibraryFolder(name,direction){
+  const folder=normalizeFolderName(name);
+  const index=state.folders.indexOf(folder);
+  const target=index+(direction<0?-1:1);
+  if(index<0||target<0||target>=state.folders.length)return;
+  const next=state.folders.slice();
+  [next[index],next[target]]=[next[target],next[index]];
+  state.folders=next;
+  persist();renderLibrary(libraryView.trash);
 }
 function deleteLibraryFolder(name){
   const folder=normalizeFolderName(name);
@@ -673,6 +699,35 @@ function permanentlyDeleteLibrarySong(id){
     state.songs=state.songs.filter((row)=>row.id!==id);
     if(state.active===id)state.active=state.songs.find((row)=>!row.deleted&&!row.deletedAt)?.id||state.songs[0]?.id||null;
     persist();closeDialog();renderLibrary(true);renderProjects();notify('Text endgültig gelöscht.');
+  };
+}
+function clearCurrentDocument(){
+  const current=song();
+  showDialog('Text leeren',`<p class="notice"><b>${esc(current.title)}</b> leeren? Der aktuelle Stand wird vorher als Revision und – wenn IndexedDB verfügbar ist – als Recovery-Punkt gesichert.</p><div class="dialogactions"><button id="cancelClearDocument">Abbrechen</button><button id="confirmClearDocument" class="primary">Text leeren</button></div>`);
+  $('#cancelClearDocument').onclick=closeDialog;
+  $('#confirmClearDocument').onclick=async()=>{
+    const button=$('#confirmClearDocument');
+    button.disabled=true;
+    revision('before_clear_document');
+    try{if(documentStoreInitialized)await createRecoveryPoint('before_clear_document')}catch{}
+    pushUndo();
+    current.lines=[''];
+    current.barIds=['bar:'+String(current.id)+':clear:'+Date.now().toString(36)];
+    current.barRevisions=[0];
+    current.steps={};
+    current.performanceCues={};
+    current.performanceAnchors={};
+    ensurePerformanceSong(ensureEditorSong(current));
+    activeLine=0;
+    selection={line:0,barId:current.barIds[0],barRevision:0,start:0,end:0};
+    selectionProof=null;
+    analysisSignature='';
+    touchSong(current);
+    closeDialog();
+    renderEditor();
+    changed();
+    focusLine(0,0);
+    notify('Text geleert · vorheriger Stand bleibt wiederherstellbar.');
   };
 }
 function navigate(target){stopPlay();page=target;document.body.classList.remove('mobile-results','find-only');if(target!=='studio')document.body.classList.remove('focus');$('#workspace').classList.toggle('hidden',target==='library'||target==='saved');$('#largeView').classList.toggle('hidden',target!=='library'&&target!=='saved');$('#breadcrumb').textContent=({studio:'Studio',search:'Reimsuche',library:'Meine Texte',saved:'Merkliste'})[target];document.body.classList.toggle('find-only',target==='search');queryAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===target));setMobileActive(target==='search'?'results':target);if(target==='library')renderLibrary();if(target==='saved')renderSaved();if(target==='studio'){requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea))}}
@@ -952,7 +1007,7 @@ async function startPlay(){
 }
 function showDialog(title,html){$('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=html;if(!$('#dialog').open)$('#dialog').showModal()}
 function closeDialog(){$('#dialog').close()}
-function legacyFilters(){showDialog('Dein Klang. Deine Suche.',`<div class="formgrid"><label class="field">Aussprache der Suchanfrage<select id="basis"><option value="de">Deutsch</option><option value="en">Englisch</option><option value="both">DE + EN</option></select></label><label class="field">Sprache der Ergebnisse<select id="resultLanguage"><option value="both">DE + EN</option><option value="de">Deutsch</option><option value="en">Englisch</option></select></label><label class="field">Reimbeziehung<select id="relation"><option value="all">Alle Beispiele</option><option value="rein">Reiner Reim</option><option value="nah">Naher Klang</option></select></label><label class="field">Reihenfolge<select id="sort"><option value="recommended">Writer-Empfehlung</option><option value="alpha">A–Z</option><option value="syllables">Silben aufsteigend</option></select></label></div><p class="notice">Die Live-Suche nutzt bereits die lokale Writer-Runtime. Die vollständige Filtermatrix, Varianten, historische Formen und Provenienz werden im nächsten Paritätsschritt in diese Studio-Fläche gezogen.</p><div class="dialogactions"><button id="resetFilters">Zurücksetzen</button><button id="applyFilters" class="primary">Anwenden</button></div>`);$('#basis').value=basis;$('#resultLanguage').value=resultLang;$('#relation').value=relation;$('#sort').value=sort;$('#applyFilters').onclick=()=>{basis=$('#basis').value;resultLang=$('#resultLanguage').value;relation=$('#relation').value;sort=$('#sort').value;pageSize=6;void refreshWriterResults();closeDialog()};$('#resetFilters').onclick=()=>{basis='de';resultLang='both';relation='all';sort='recommended';void refreshWriterResults();closeDialog()}}
+function legacyFilters(){showDialog('Dein Klang. Deine Suche.',`<div class="formgrid"><label class="field">Aussprache der Suchanfrage<select id="basis"><option value="de">Deutsch</option><option value="en">Englisch</option><option value="both">DE + EN</option></select></label><label class="field">Sprache der Ergebnisse<select id="resultLanguage"><option value="both">DE + EN</option><option value="de">Deutsch</option><option value="en">Englisch</option></select></label><label class="field">Reimbeziehung<select id="relation"><option value="all">Alle Beispiele</option><option value="rein">Reiner Reim</option><option value="nah">Naher Klang</option></select></label><label class="field">Reihenfolge<select id="sort"><option value="recommended">Writer-Empfehlung</option><option value="alpha">A–Z</option><option value="syllables">Silben aufsteigend</option></select></label></div><p class="notice">Die Live-Suche nutzt die lokale Writer-Runtime. Die vollständige Filtermatrix, Varianten, historische Formen, Generated-Daten und Provenienz sind im Studio über direkte und erweiterte Filter verfügbar.</p><div class="dialogactions"><button id="resetFilters">Zurücksetzen</button><button id="applyFilters" class="primary">Anwenden</button></div>`);$('#basis').value=basis;$('#resultLanguage').value=resultLang;$('#relation').value=relation;$('#sort').value=sort;$('#applyFilters').onclick=()=>{basis=$('#basis').value;resultLang=$('#resultLanguage').value;relation=$('#relation').value;sort=$('#sort').value;pageSize=6;void refreshWriterResults();closeDialog()};$('#resetFilters').onclick=()=>{basis='de';resultLang='both';relation='all';sort='recommended';void refreshWriterResults();closeDialog()}}
 function legacySettings(){showDialog('Dein Studio einrichten',`<label class="field">Schriftgröße im Editor<input id="fontRange" type="range" min="16" max="28" value="${state.fontSize}"></label><p class="small" id="fontValue">${state.fontSize} px</p><div class="row wrap" style="margin-top:20px"><button id="settingTheme" class="outline">Hell / Dunkel wechseln</button><button id="settingHistory" class="outline">Versionsverlauf</button></div><p class="notice">Texte, Revisionen und Performance-Cues werden lokal im versionierten IndexedDB-DocumentStore gespeichert. UI-Präferenzen bleiben in LocalStorage; Recovery-Punkte sind in den Studio-Einstellungen verfügbar.</p><div class="row wrap"><button id="sourceInfo" class="outline">Über Studio 02</button><button id="commandsSettings" class="outline">Tastenkürzel</button></div>`);$('#fontRange').oninput=e=>{state.fontSize=+e.target.value;document.documentElement.style.setProperty('--editor',state.fontSize+'px');queryAll('#lyrics textarea').forEach(resizeArea);$('#fontValue').textContent=state.fontSize+' px';persist()};$('#settingTheme').onclick=toggleTheme;$('#settingHistory').onclick=showHistory;$('#sourceInfo').onclick=showInfo;$('#commandsSettings').onclick=showCommands}
 function legacyToggleTheme(){toggleTheme()}
 function legacyHistory(){revision('history_open');showDialog('Deine letzten Fassungen',`<p class="notice">Wiederherstellen erzeugt zuvor eine Sicherung der aktuellen Fassung.</p>${(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,65))}…</p></div><button class="outline" data-revision="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p>Noch keine ältere Fassung vorhanden.</p>'}`);queryAll('[data-revision]').forEach(b=>b.onclick=()=>{if(restoreStudioRevision(song().revisions[+b.dataset.revision])){closeDialog();notify('Fassung wiederhergestellt · Bar-IDs und Cues erhalten.')}})}
@@ -995,7 +1050,11 @@ function renderLibrary(showTrash=libraryView.trash){
   const folderButton=(folder)=>{
     const count=sourceRows.filter((item)=>item.folder===folder).length;
     const active=libraryView.folder===folder;
-    return `<div class="library-folder-row"><button data-folder-filter="${esc(folder)}" class="${active?'active':''}" aria-pressed="${active}"><span>${esc(folder)}</span><small>${count}</small></button>${!libraryView.trash&&folder!=='Entwürfe'? `<button class="library-folder-delete" data-folder-delete="${esc(folder)}" aria-label="Ordner ${esc(folder)} löschen" title="Ordner löschen">×</button>`:''}</div>`;
+    const position=state.folders.indexOf(folder);
+    const actions=!libraryView.trash
+      ?`<span class="library-folder-actions">${folder!=='Entwürfe'?'<button data-folder-rename="'+esc(folder)+'" aria-label="Ordner '+esc(folder)+' umbenennen" title="Umbenennen">✎</button>':''}<button data-folder-move-up="${esc(folder)}" aria-label="Ordner nach oben" title="Nach oben" ${position<=0?'disabled':''}>↑</button><button data-folder-move-down="${esc(folder)}" aria-label="Ordner nach unten" title="Nach unten" ${position>=state.folders.length-1?'disabled':''}>↓</button>${folder!=='Entwürfe'?'<button class="library-folder-delete" data-folder-delete="'+esc(folder)+'" aria-label="Ordner '+esc(folder)+' löschen" title="Ordner löschen">×</button>':''}</span>`
+      :'';
+    return `<div class="library-folder-row"><button data-folder-filter="${esc(folder)}" class="${active?'active':''}" aria-pressed="${active}"><span>${esc(folder)}</span><small>${count}</small></button>${actions}</div>`;
   };
   const allActive=libraryView.folder==='all';
   const cards=rows.map((item)=>{
@@ -1051,7 +1110,7 @@ function exportText(){const blob=new Blob([song().title+'\n\n'+song().lines.join
 function runAuto(t){if(!auto)return;const el=$('#resultsScroll');if(t>pauseUntil&&!document.hidden&&!$('#dialog').open&&el.clientHeight>0){el.scrollTop+=(t-(lastFrame||t))*.018;if(el.scrollTop+el.clientHeight>=el.scrollHeight-2){if(pageSize<data().length){pageSize+=6;renderResults()}else{el.scrollTop=0;pauseUntil=t+1200}}}lastFrame=t;scrollFrame=requestAnimationFrame(runAuto)}
 function toggleAuto(){auto=!auto;$('#autoBtn').textContent='Auto-Scroll: '+(auto?'An':'Aus');$('#autoBtn').setAttribute('aria-pressed',auto);cancelAnimationFrame(scrollFrame);lastFrame=0;if(auto){pauseUntil=performance.now()+1000;scrollFrame=requestAnimationFrame(runAuto)}}
 function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','filterBtn','autoBtn','moreBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
-$('#closeDialog').onclick=closeDialog;$('#themeBtn').onclick=toggleTheme;$('#exportBtn').onclick=exportText;$('#commandBtn').onclick=showCommands;$('#settingsBtn').onclick=showSettings;$('#settingsSide').onclick=showSettings;$('#filterBtn').onclick=showFilters;$('#languageBtn').onclick=showFilters;$('#historyBtn').onclick=showHistory;$('#infoBtn').onclick=showInfo;$('#focusBtn').onclick=toggleFocus;$('#newSongSidebar').onclick=newSong;$('#renameBtn').onclick=()=>nameDialog('Titel ändern',song().title,t=>{song().title=t;persist();renderEditor()});$('#addBar').onclick=()=>{pushUndo();const current=song(),last=current.lines.length-1;splitEditorBar(current,last,current.lines[last].length,current.lines[last].length);activeLine=current.lines.length-1;renderEditor();focusLine(activeLine,0);changed()};$('#undoBtn').onclick=performUndo;$('#redoBtn').onclick=performRedo;$('#searchForm').onsubmit=e=>{e.preventDefault();query=$('#searchInput').value.trim()||query;pageSize=6;void refreshWriterResults();$('#resultsScroll').scrollTop=0};$('#autoBtn').onclick=toggleAuto;$('#moreBtn').onclick=()=>{pageSize+=6;renderResults()};$('#resultsScroll').addEventListener('scroll',()=>{const el=$('#resultsScroll');if(el.scrollTop>0&&el.scrollHeight-el.scrollTop-el.clientHeight<90&&pageSize<data().length){pageSize+=6;renderResults()}},{passive:true});['wheel','touchstart','pointerdown','focusin'].forEach(ev=>$('#resultsScroll').addEventListener(ev,()=>pauseUntil=performance.now()+5000,{passive:true}));
+$('#closeDialog').onclick=closeDialog;$('#themeBtn').onclick=toggleTheme;$('#clearDocBtn').onclick=clearCurrentDocument;$('#exportBtn').onclick=exportText;$('#commandBtn').onclick=showCommands;$('#settingsBtn').onclick=showSettings;$('#settingsSide').onclick=showSettings;$('#filterBtn').onclick=showFilters;$('#languageBtn').onclick=showFilters;$('#historyBtn').onclick=showHistory;$('#infoBtn').onclick=showInfo;$('#focusBtn').onclick=toggleFocus;$('#newSongSidebar').onclick=newSong;$('#renameBtn').onclick=()=>nameDialog('Titel ändern',song().title,t=>{song().title=t;persist();renderEditor()});$('#addBar').onclick=()=>{pushUndo();const current=song(),last=current.lines.length-1;splitEditorBar(current,last,current.lines[last].length,current.lines[last].length);activeLine=current.lines.length-1;renderEditor();focusLine(activeLine,0);changed()};$('#undoBtn').onclick=performUndo;$('#redoBtn').onclick=performRedo;$('#searchForm').onsubmit=e=>{e.preventDefault();query=$('#searchInput').value.trim()||query;pageSize=6;void refreshWriterResults();$('#resultsScroll').scrollTop=0};$('#autoBtn').onclick=toggleAuto;$('#moreBtn').onclick=()=>{pageSize+=6;renderResults()};$('#resultsScroll').addEventListener('scroll',()=>{const el=$('#resultsScroll');if(el.scrollTop>0&&el.scrollHeight-el.scrollTop-el.clientHeight<90&&pageSize<data().length){pageSize+=6;renderResults()}},{passive:true});['wheel','touchstart','pointerdown','focusin'].forEach(ev=>$('#resultsScroll').addEventListener(ev,()=>pauseUntil=performance.now()+5000,{passive:true}));
 queryAll('[data-nav]').forEach(b=>b.onclick=()=>navigate(b.dataset.nav));queryAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));queryAll('[data-scope]').forEach(b=>b.onclick=()=>{scope=b.dataset.scope;pageSize=6;setExclusivePressed(queryAll('[data-scope]'),scope,'scope');void refreshWriterResults()});queryAll('[data-mobile]').forEach(b=>b.onclick=()=>{const dest=b.dataset.mobile;if(dest==='settings')return showSettings();if(dest==='results'){navigate('studio');document.body.classList.remove('focus');document.body.classList.add('mobile-results');setMobileActive('results')}else navigate(dest)});
 document.addEventListener('click',(event)=>{
   const button=event.target.closest('button');
@@ -1072,6 +1131,9 @@ document.addEventListener('click',(event)=>{
     renderLibrary(libraryView.trash);
   }
   if(button.dataset.folderDelete)deleteLibraryFolder(button.dataset.folderDelete);
+  if(button.dataset.folderRename)renameLibraryFolder(button.dataset.folderRename);
+  if(button.dataset.folderMoveUp)reorderLibraryFolder(button.dataset.folderMoveUp,-1);
+  if(button.dataset.folderMoveDown)reorderLibraryFolder(button.dataset.folderMoveDown,1);
 });
 document.addEventListener('keydown',e=>{
   const modifier=e.ctrlKey||e.metaKey,key=e.key.toLowerCase();
