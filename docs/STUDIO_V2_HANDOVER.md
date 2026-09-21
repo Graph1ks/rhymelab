@@ -1,13 +1,13 @@
-# Studio 02 Continuation Handover
+# Studio V2 Release Handover
 
 Branch: `feature/studio-v2-ui-redesign`  
-PR: #185 — `feat: introduce Studio 02 UI redesign surface`
+PR: #185 — `feat: release Studio V2 as default RhymeLab shell`
 
-This file is the durable continuation checkpoint for the Studio 02 redesign branch. It records the implemented production-direction work so a later session can continue without reconstructing context from chat history.
+This file is the durable continuation checkpoint for the Studio V2 release branch. It records the implemented production-direction work so a later session can continue without reconstructing context from chat history.
 
 ## Current checkpoint
 
-Studio 02 has moved well beyond the original static redesign shell. The branch now contains the Writer integration, production document model, IndexedDB authority, recovery, Library hierarchy, Perform sequencing, canonical song analysis, mobile acceptance engineering, DE/EN localization, diagnostics, and desktop command/navigation improvements.
+Studio V2 has moved well beyond the original static redesign shell. The branch now contains the Writer integration, production document model, IndexedDB authority, recovery, Library hierarchy, Perform sequencing, canonical song analysis, mobile acceptance engineering, DE/EN localization, diagnostics, and desktop command/navigation improvements.
 
 Studio V2 is now the default root product route. The previous Search remains at `/search` and `/legacy`; RhymePad remains at `/pad` and `/pad-legacy`. `--search-default` / `RHYMELAB_SEARCH_DEFAULT=1` provides an explicit rollback mode while real-device/browser acceptance is completed.
 
