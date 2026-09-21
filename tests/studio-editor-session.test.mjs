@@ -4,8 +4,10 @@ import assert from 'node:assert/strict';
 import {
   barIdentity,
   createSelectionProof,
+  duplicateEditorBar,
   editorSnapshot,
   ensureEditorSong,
+  insertEditorBar,
   mergeEditorBarWithPrevious,
   moveEditorBar,
   pasteEditorText,
@@ -135,4 +137,60 @@ test('moveEditorBar rejects invalid indexes and reports no-op moves',()=>{
     to:1,
     bar:barIdentity(song,1),
   });
+});
+
+
+test('insert and duplicate Bars get new identities without copying cue state',()=>{
+  const song={
+    id:'insert-duplicate',
+    lines:['alpha','beta'],
+    barIds:['a','b'],
+    barRevisions:[2,3],
+    editorNextBarId:5,
+    steps:{},
+    performanceCues:{'a:0':{type:'accent',length:1}},
+    performanceAnchors:{a:2},
+  };
+  ensureEditorSong(song);
+
+  const inserted=insertEditorBar(song,1,'middle');
+  assert.equal(inserted.index,1);
+  assert.equal(inserted.text,'middle');
+  assert.notEqual(inserted.id,'a');
+  assert.notEqual(inserted.id,'b');
+  assert.equal(inserted.revision,0);
+
+  const duplicate=duplicateEditorBar(song,0);
+  assert.equal(duplicate.text,'alpha');
+  assert.notEqual(duplicate.id,'a');
+  assert.equal(duplicate.revision,0);
+  assert.equal(song.performanceCues['a:0'].type,'accent');
+  assert.equal(
+    Object.keys(song.performanceCues).some((key)=>key.startsWith(duplicate.id+':')),
+    false,
+  );
+});
+
+test('removing a Bar also removes Bar-scoped Performance cues and anchors',()=>{
+  const song={
+    id:'cleanup',
+    lines:['alpha','beta'],
+    barIds:['a','b'],
+    barRevisions:[1,4],
+    editorNextBarId:3,
+    steps:{},
+    performanceCues:{
+      'a:0':{type:'hit',length:1},
+      'b:4':{type:'breath',length:1},
+    },
+    performanceAnchors:{a:1,b:4},
+  };
+  ensureEditorSong(song);
+
+  const removed=removeEditorBar(song,1);
+  assert.equal(removed.id,'b');
+  assert.equal(song.performanceCues['b:4'],undefined);
+  assert.equal(song.performanceAnchors.b,undefined);
+  assert.equal(song.performanceCues['a:0'].type,'hit');
+  assert.equal(song.performanceAnchors.a,1);
 });
