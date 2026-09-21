@@ -39,6 +39,7 @@ function cloneSongRow(row){
     steps:cloneMap(row?.steps),
     performance:row?.performance&&typeof row.performance==='object'?{...row.performance}: {},
     performanceCues:cloneMap(row?.performanceCues),
+    performanceAnchors:cloneMap(row?.performanceAnchors),
   };
 }
 function cloneSnapshot(snapshot){
@@ -57,6 +58,7 @@ function cloneSnapshot(snapshot){
           ?{...row.documentSnapshot.performance}
           :{},
         performanceCues:cloneMap(row.documentSnapshot?.performanceCues),
+        performanceAnchors:cloneMap(row.documentSnapshot?.performanceAnchors),
         bars:(row.documentSnapshot?.bars||[]).map((bar)=>({...bar})),
       },
     })),
@@ -150,6 +152,7 @@ export function migrateLegacyStudioState(legacyState={}){
         ?{...legacySong.performance}
         :{},
       performanceCues:cloneMap(legacySong.performanceCues),
+      performanceAnchors:cloneMap(legacySong.performanceAnchors),
       schemaVersion:STUDIO_DOCUMENT_VERSION,
     });
 
@@ -191,6 +194,7 @@ export function migrateLegacyStudioState(legacyState={}){
             ?{...legacySnapshot.performance}
             :{},
           performanceCues:cloneMap(legacySnapshot?.performanceCues),
+          performanceAnchors:cloneMap(legacySnapshot?.performanceAnchors),
           bars:snapshotBarsForLegacyRevision(songId,legacyRevision),
         },
       });
@@ -363,6 +367,7 @@ export function captureSongRevision(snapshot,songId,{reason='manual',createdAt=D
       steps:cloneMap(song.steps),
       performance:song.performance&&typeof song.performance==='object'?{...song.performance}:{},
       performanceCues:cloneMap(song.performanceCues),
+      performanceAnchors:cloneMap(song.performanceAnchors),
       bars:barsForSong(next,songId).map((bar)=>({
         id:bar.id,
         orderKey:bar.orderKey,
