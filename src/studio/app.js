@@ -8,6 +8,7 @@ import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-control
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
 import {barIdentity,createSelectionProof,editorSnapshot,ensureEditorSong,mergeEditorBarWithPrevious,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
+import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacyStudioStateToStore} from './document-store.mjs';
 
 'use strict';
 const initial=STUDIO_DEMO_LINES;
@@ -35,8 +36,10 @@ let studioCapabilities={status:'loading'};
 let sharedSearchState=localStorage.getItem(SEARCH_STATE_STORAGE_KEY)?loadSearchState():createSearchState({queryBasis:'de',resultLanguage:'both'}),pendingSharedResultId=sharedSearchState.selectedResultId||'';
 const writerSearch=createWriterSearchClient();
 const detailClient=createStudioDetailClient();
+const documentStore=createStudioDocumentStore();
 let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerCapabilities=null,writerDebounce=0;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
+let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentShadowTimer=0;
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',
   query=sharedSearchState.anchor||'Nacht',
   scope=({words:'word',phrases:'phrase',entities:'entity'})[sharedSearchState.scope]||'all',
@@ -85,7 +88,49 @@ function song(){
   return ensureEditorSong(current);
 }
 const syll=estimateSyllables;
-function persist(){try{writeStudioState(state);$('#saveState').textContent='Lokal gespeichert';return true}catch(e){$('#saveState').textContent='Speichern nicht möglich · bitte exportieren';return false}}
+function documentStoreDetail(){
+  if(documentStoreStatus==='ready')return 'IndexedDB · Shadow verifiziert';
+  if(documentStoreStatus==='saving')return 'IndexedDB · synchronisiert …';
+  if(documentStoreStatus==='unsupported')return 'nicht verfügbar · LocalStorage bleibt aktiv';
+  if(documentStoreStatus==='error')return documentStoreError||'Fehler';
+  return 'wird vorbereitet';
+}
+function queueDocumentShadow(delay=220){
+  if(!documentStoreInitialized)return;
+  clearTimeout(documentShadowTimer);
+  documentShadowTimer=setTimeout(()=>{void syncDocumentShadow()},delay);
+}
+async function syncDocumentShadow(){
+  if(!documentStoreInitialized)return;
+  documentStoreStatus='saving';updateCapabilitySurface();
+  try{
+    await shadowLegacyStudioStateToStore(state,documentStore);
+    documentStoreStatus='ready';documentStoreError='';
+  }catch(error){
+    documentStoreStatus='error';
+    documentStoreError=error instanceof Error?error.message:String(error);
+  }
+  updateCapabilitySurface();
+}
+async function initializeDocumentStore(){
+  try{
+    const available=await documentStore.available();
+    if(!available){
+      documentStoreStatus='unsupported';
+      updateCapabilitySurface();
+      return;
+    }
+    documentStoreStatus='saving';updateCapabilitySurface();
+    await migrateLegacyStudioStateToStore(state,documentStore);
+    documentStoreInitialized=true;
+    documentStoreStatus='ready';documentStoreError='';
+  }catch(error){
+    documentStoreStatus='error';
+    documentStoreError=error instanceof Error?error.message:String(error);
+  }
+  updateCapabilitySurface();
+}
+function persist(){try{writeStudioState(state);$('#saveState').textContent='Lokal gespeichert';queueDocumentShadow();return true}catch(e){$('#saveState').textContent='Speichern nicht möglich · bitte exportieren';return false}}
 function updateUndoRedoButtons(){
   const undoButton=$('#undoBtn'),redoButton=$('#redoBtn');
   if(undoButton){undoButton.disabled=undo.length===0;undoButton.setAttribute('aria-disabled',String(undo.length===0))}
@@ -656,6 +701,7 @@ function capabilityMarkup(){
     +item('Entities',c.entities)
     +item('Generated',c.generated,c.generated?(c.generatedDefault?'aktiv':'verfügbar'):'nicht verfügbar')
     +item('Query IPA',Boolean(c.queryPronunciationRevision),c.queryPronunciationRevision?c.queryPronunciationRevision.slice(0,8):'keine Revision')
+    +item('DocumentStore',!['error','unsupported'].includes(documentStoreStatus),documentStoreDetail())
     +'</div>';
 }
 function updateCapabilitySurface(){
@@ -904,5 +950,5 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
 document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
 const handle=$('#splitter');let drag=null;handle.addEventListener('pointerdown',e=>{if(window.innerWidth<=800)return;drag={x:e.clientX,width:+handle.getAttribute('aria-valuenow')};handle.setPointerCapture?.(e.pointerId);document.body.classList.add('resizing');e.preventDefault()});handle.addEventListener('pointermove',e=>{if(drag)setAssistWidth(drag.width+drag.x-e.clientX)});for(const event of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(event,()=>{if(!drag)return;drag=null;document.body.classList.remove('resizing');persist()});handle.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setAssistWidth(+handle.getAttribute('aria-valuenow')+(e.key==='ArrowLeft'?20:-20));persist()}if(e.key==='Home'){e.preventDefault();setAssistWidth(470);persist()}});if(window.innerWidth>800)setAssistWidth(state.assistWidth||470);if(window.innerWidth<=800){$('#directFilters').classList.add('hidden');$('#filterBtn').setAttribute('aria-expanded','false')}window.addEventListener('resize',()=>{if(window.innerWidth>800)setAssistWidth(state.assistWidth||470)});document.body.dataset.studioVersion='2';}
 
-try{bind();bindV2();const capabilitiesReady=refreshStudioCapabilities();applyThemeChoice(state.theme,{persistState:false});document.documentElement.style.setProperty('--editor',state.fontSize+'px');activeLine=Math.min(activeLine,song().lines.length-1);const initialText=song().lines[activeLine]||'';const lastWord=initialText.match(/[\p{L}\p{N}'’-]+$/u);selection={line:activeLine,start:lastWord?initialText.length-lastWord[0].length:initialText.length,end:initialText.length};if(sharedSearchState.anchor){query=sharedSearchState.anchor;followSelection=!lastWord||lastWord[0]===sharedSearchState.anchor}else if(lastWord)query=lastWord[0];syncFollowControls();renderEditor();renderResults();capabilitiesReady.finally(()=>{void refreshWriterResults()});revision();persist();}catch(e){document.body.dataset.controls='failed';const banner=document.createElement('div');banner.className='startup-failure';banner.textContent='Die Demo konnte nicht vollständig starten. Bitte neu laden. '+e.message;document.body.prepend(banner);console.error(e)}
+try{bind();bindV2();void initializeDocumentStore();const capabilitiesReady=refreshStudioCapabilities();applyThemeChoice(state.theme,{persistState:false});document.documentElement.style.setProperty('--editor',state.fontSize+'px');activeLine=Math.min(activeLine,song().lines.length-1);const initialText=song().lines[activeLine]||'';const lastWord=initialText.match(/[\p{L}\p{N}'’-]+$/u);selection={line:activeLine,start:lastWord?initialText.length-lastWord[0].length:initialText.length,end:initialText.length};if(sharedSearchState.anchor){query=sharedSearchState.anchor;followSelection=!lastWord||lastWord[0]===sharedSearchState.anchor}else if(lastWord)query=lastWord[0];syncFollowControls();renderEditor();renderResults();capabilitiesReady.finally(()=>{void refreshWriterResults()});revision();persist();}catch(e){document.body.dataset.controls='failed';const banner=document.createElement('div');banner.className='startup-failure';banner.textContent='Die Demo konnte nicht vollständig starten. Bitte neu laden. '+e.message;document.body.prepend(banner);console.error(e)}
 
