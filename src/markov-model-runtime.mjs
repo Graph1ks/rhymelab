@@ -484,7 +484,7 @@ function nextReverseToken(runtime,context,random,options,{allowStart=true,seen}=
   // Back off *after* applying generation constraints. Previously an order-2
   // state whose only predecessor was <s> stopped the walk even when <s> was
   // forbidden and a valid order-1 predecessor existed.
-  for(let len=Math.min(order,clean.length);len>=1;len-=1){
+  for(let len=Math.min(runtime.order,clean.length);len>=1;len-=1){
     const selected=clean.slice(0,len);
     const result=runtime.choices('reverse',selected,{limit:64});
     if(!result.rows.length)continue;
@@ -650,7 +650,7 @@ function localReplacementFit(runtime,leftContext,candidateTokens,rightTokens){
     log+=Math.log(detail.probability);
     count+=1;
     context.push(token);
-    if(context.length>MARKOV_MODEL_ORDER)context.shift();
+    if(context.length>runtime.order)context.shift();
   }
   return count?Math.exp(log/count):0;
 }
@@ -812,7 +812,7 @@ export function generateCorpusMarkovCandidates(runtime,{
         policy:MARKOV_MODEL_POLICY,
         runtime:MARKOV_GENERATOR_RUNTIME,
         schema:runtime.meta.schema,
-        order:Number(runtime.meta.order||MARKOV_MODEL_ORDER),
+        order:runtime.order,
         language,
         fingerprint:runtime.meta.semantic_fingerprint||null,
         sourceSentences:Number(runtime.meta.source_sentences||0),
