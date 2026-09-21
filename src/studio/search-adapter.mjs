@@ -7,6 +7,25 @@ import {
   writeGeneratedPronunciationCache,
 } from './query-pronunciation-cache.mjs';
 
+const PRIMARY_TYPES=Object.freeze([
+  'multisyllabic_perfect',
+  'perfect',
+  'multisyllabic_slant',
+  'family',
+  'slant',
+]);
+const SOUND_RELATION_TYPES=Object.freeze(['assonance','consonance']);
+const RELATION_LABELS=Object.freeze({
+  multisyllabic_perfect:'Mehrsilbiger Vollreim',
+  perfect:'Vollreim',
+  multisyllabic_slant:'Mehrsilbiger Slant-Reim',
+  family:'Reimfamilie',
+  slant:'Slant-Reim',
+  assonance:'Assonanz',
+  consonance:'Konsonanz',
+  weak:'Klangtreffer',
+});
+
 export function estimateSyllables(surface){
   return (String(surface||'').toLowerCase().match(/[aeiouyäöü]+/g)||[]).length;
 }
