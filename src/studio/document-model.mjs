@@ -79,6 +79,7 @@ export function migrateLegacyStudioState(legacyState={}){
   const songs=[];
   const bars=[];
   const revisions=[];
+  const usedBarIds=new Set();
 
   legacySongs.forEach((legacySong,songIndex)=>{
     const songId=legacySongId(legacySong,songIndex);
@@ -102,13 +103,22 @@ export function migrateLegacyStudioState(legacyState={}){
     });
 
     const lines=Array.isArray(legacySong.lines)?legacySong.lines.map(asText):[''];
+    const legacyBarIds=Array.isArray(legacySong.barIds)?legacySong.barIds.map(asText):[];
+    const legacyBarRevisions=Array.isArray(legacySong.barRevisions)?legacySong.barRevisions:[];
     lines.forEach((line,barIndex)=>{
+      const fallback=`bar:${songId}:${String(barIndex+1).padStart(4,'0')}`;
+      let barId=legacyBarIds[barIndex]||fallback;
+      if(usedBarIds.has(barId))barId=fallback;
+      let suffix=1;
+      const base=barId;
+      while(usedBarIds.has(barId))barId=`${base}:${suffix++}`;
+      usedBarIds.add(barId);
       bars.push({
-        id:`bar:${songId}:${String(barIndex+1).padStart(4,'0')}`,
+        id:barId,
         songId,
         orderKey:(barIndex+1)*ORDER_STEP,
         text:line,
-        revision:0,
+        revision:integer(legacyBarRevisions[barIndex],0),
       });
     });
 
