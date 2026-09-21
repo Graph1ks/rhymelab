@@ -443,9 +443,9 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 6  reference palettes + custom Quickstyles DONE
 7  functional module split                  DONE
 8  capability wiring                         DONE
-9  live /api/writer search                   NEXT
-10 complete filter parity
-11 detail/provenance parity
+9  live /api/writer search                   DONE
+10 detail/provenance parity                  NEXT
+11 complete filter parity
 12 shared SearchState
 13 document/editor spike
 14 RhymePad migration
