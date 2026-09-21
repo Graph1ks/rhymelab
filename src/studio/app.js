@@ -3,6 +3,7 @@ import {$,queryAll,esc,icon,clamp} from './studio-core.mjs';
 import {STUDIO_DEMO_LINES,loadStudioState,writeStudioState} from './document-adapter.mjs';
 import {estimateSyllables,getDemoSearchRows} from './search-adapter.mjs';
 import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-controls.mjs';
+import {loadStudioCapabilities} from './capability-adapter.mjs';
 
 'use strict';
 const initial=STUDIO_DEMO_LINES;
@@ -26,6 +27,7 @@ const THEME_COLOR_FIELDS=[
   ['accent','Primary'],['accent2','Secondary'],['signal','Signal']
 ];
 let themeEditingId='',themePreviewing=false;
+let studioCapabilities={status:'loading'};
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',query='Nacht',scope='all',relation='all',sort='recommended',basis='de',resultLang='both',pageSize=6,auto=false,pauseUntil=0,scrollFrame=0,lastFrame=0,undo=[],saveTimer,toastTimer,playing=false,tick=0,playTimer,cue='hit',bpm=92,audioContext;
 function song(){return state.songs.find(s=>s.id===state.active)||state.songs[0]}
 const syll=estimateSyllables;
@@ -235,6 +237,52 @@ function savedThemeRows(){
     return '<div class="theme-saved-row">'+themePaletteMarkup(theme)+'<div><b>'+esc(theme.name)+'</b><small>'+(slots.length?'ersetzt '+slots.join(' + '):'Quickstyle · '+theme.mode)+'</small></div><div class="theme-saved-actions"><button data-theme-choice="'+esc(theme.id)+'" title="Anwenden">✓</button><button data-theme-edit="'+esc(theme.id)+'" title="Bearbeiten">✎</button><button data-theme-delete="'+esc(theme.id)+'" title="Löschen">×</button></div></div>';
   }).join('');
 }
+function formatCapabilityCount(value){
+  const count=Number(value||0);
+  return new Intl.NumberFormat('de-DE',{notation:count>=100000?'compact':'standard',maximumFractionDigits:1}).format(count);
+}
+function capabilityMarkup(){
+  if(studioCapabilities.status==='loading')return '<div class="capability-head"><b>Runtime</b><span>prüft Backend …</span></div>';
+  if(studioCapabilities.status==='error')return '<div class="capability-head" data-state="off"><b>Runtime</b><span>nicht erreichbar</span></div>';
+  const c=studioCapabilities;
+  const item=function(label,enabled,detail){
+    return '<span class="capability-item" data-state="'+(enabled?'on':'off')+'"><i></i><b>'+esc(label)+'</b><small>'+esc(detail||(enabled?'bereit':'nicht verfügbar'))+'</small></span>';
+  };
+  return '<div class="capability-head"><b>Runtime</b><span>'+esc(c.runtime)+(c.dataset&&c.dataset.total?' · '+formatCapabilityCount(c.dataset.total)+' Records':'')+'</span></div><div class="capability-grid">'
+    +item('DE Writer',c.deWriter)
+    +item('EN Writer',c.enWriter)
+    +item('Phrase / Mosaic',c.phrases)
+    +item('Entities',c.entities)
+    +item('Generated',c.generated,c.generated?(c.generatedDefault?'aktiv':'verfügbar'):'nicht verfügbar')
+    +item('Query IPA',Boolean(c.queryPronunciationRevision),c.queryPronunciationRevision?c.queryPronunciationRevision.slice(0,8):'keine Revision')
+    +'</div>';
+}
+function updateCapabilitySurface(){
+  const status=$('#runtimeStatus');
+  if(status){
+    const ready=studioCapabilities.status==='ready';
+    status.classList.toggle('degraded',!ready);
+    status.textContent=studioCapabilities.status==='loading'
+      ?'Runtime prüfen …'
+      :ready
+        ?(studioCapabilities.servingV1?'Serving v1 · bereit':'Writer · bereit')
+        :'Runtime eingeschränkt';
+    status.title=studioCapabilities.status==='error'
+      ?String(studioCapabilities.error||'Backend nicht erreichbar')
+      :'Live aus /api/health und /api/dataset-stats';
+  }
+  const summary=$('#capabilitySummary');
+  if(summary)summary.innerHTML=capabilityMarkup();
+}
+async function refreshStudioCapabilities(){
+  try{
+    studioCapabilities=await loadStudioCapabilities();
+  }catch(error){
+    studioCapabilities={status:'error',error:error instanceof Error?error.message:String(error)};
+  }
+  updateCapabilitySurface();
+}
+
 function renderSettingsDock(body){
   const draft=activeThemeForBuilder(),colors=completeThemeColors(draft.colors);
   const lightChecked=Boolean(themeEditingId&&state.themeSlots&&state.themeSlots.light===themeEditingId);
@@ -244,7 +292,7 @@ function renderSettingsDock(body){
     return '<label class="theme-color-field"><span>'+label+'</span><input type="color" data-theme-color="'+key+'" value="'+colors[key]+'" aria-label="'+label+' Farbe"><input type="text" data-theme-hex="'+key+'" value="'+colors[key]+'" maxlength="7" spellcheck="false" aria-label="'+label+' Hex"></label>';
   }).join('');
   const preview=THEME_COLOR_FIELDS.map(function(field){return '<i data-preview-color="'+field[0]+'" style="background:'+colors[field[0]]+'"></i>'}).join('');
-  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label></div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section></div>';
+  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label></div><div id="capabilitySummary" class="capability-summary">'+capabilityMarkup()+'</div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section></div>';
   $('#fontRange').oninput=function(event){setFontSize(+event.target.value)};
   $('#editorFont').value=state.editorFont||'sans';
   $('#editorFont').onchange=function(event){state.editorFont=event.target.value;applyEditorFont();persist()};
@@ -355,5 +403,5 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
 document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
 const handle=$('#splitter');let drag=null;handle.addEventListener('pointerdown',e=>{if(window.innerWidth<=800)return;drag={x:e.clientX,width:+handle.getAttribute('aria-valuenow')};handle.setPointerCapture?.(e.pointerId);document.body.classList.add('resizing');e.preventDefault()});handle.addEventListener('pointermove',e=>{if(drag)setAssistWidth(drag.width+drag.x-e.clientX)});for(const event of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(event,()=>{if(!drag)return;drag=null;document.body.classList.remove('resizing');persist()});handle.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setAssistWidth(+handle.getAttribute('aria-valuenow')+(e.key==='ArrowLeft'?20:-20));persist()}if(e.key==='Home'){e.preventDefault();setAssistWidth(470);persist()}});if(window.innerWidth>800)setAssistWidth(state.assistWidth||470);if(window.innerWidth<=800){$('#directFilters').classList.add('hidden');$('#filterBtn').setAttribute('aria-expanded','false')}window.addEventListener('resize',()=>{if(window.innerWidth>800)setAssistWidth(state.assistWidth||470)});document.body.dataset.studioVersion='2';}
 
-try{bind();bindV2();applyThemeChoice(state.theme,{persistState:false});document.documentElement.style.setProperty('--editor',state.fontSize+'px');activeLine=Math.min(activeLine,song().lines.length-1);const initialText=song().lines[activeLine]||'';const lastWord=initialText.match(/[\p{L}\p{N}'’-]+$/u);selection={line:activeLine,start:lastWord?initialText.length-lastWord[0].length:initialText.length,end:initialText.length};if(lastWord)query=lastWord[0];renderEditor();renderResults();revision();persist();}catch(e){document.body.dataset.controls='failed';const banner=document.createElement('div');banner.className='startup-failure';banner.textContent='Die Demo konnte nicht vollständig starten. Bitte neu laden. '+e.message;document.body.prepend(banner);console.error(e)}
+try{bind();bindV2();refreshStudioCapabilities();applyThemeChoice(state.theme,{persistState:false});document.documentElement.style.setProperty('--editor',state.fontSize+'px');activeLine=Math.min(activeLine,song().lines.length-1);const initialText=song().lines[activeLine]||'';const lastWord=initialText.match(/[\p{L}\p{N}'’-]+$/u);selection={line:activeLine,start:lastWord?initialText.length-lastWord[0].length:initialText.length,end:initialText.length};if(lastWord)query=lastWord[0];renderEditor();renderResults();revision();persist();}catch(e){document.body.dataset.controls='failed';const banner=document.createElement('div');banner.className='startup-failure';banner.textContent='Die Demo konnte nicht vollständig starten. Bitte neu laden. '+e.message;document.body.prepend(banner);console.error(e)}
 
