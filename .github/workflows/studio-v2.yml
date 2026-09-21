@@ -50,11 +50,5 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Source check
-        run: npm run check
-
-      - name: Test suite
-        run: npm test
-
-      - name: Studio V2 source cutover gate
-        run: npm run studio:v2:cutover:code
+      - name: Studio V2 verification bundle
+        run: npm run studio:v2:verify
