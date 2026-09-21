@@ -1,16 +1,17 @@
-# CURRENT CONTINUATION — Markov phrase / sentence generator
+# CURRENT CONTINUATION — Studio V2 live acceptance
 
-The active engineering continuation has moved beyond the historical Phase 12C / Generated-opt-in material below.
+The active product continuation is Studio V2 release acceptance.
 
-**Read first:** `docs/MARKOV_GENERATOR_HANDOVER.md`.
+**Read first:** `docs/STUDIO_V2_HANDOVER.md`, then `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`.
 
-Current decision: stop further Serving-v1 micro-optimization until real Lite/Standard/Full distribution files exist and have been measured with `npm run serving:v1:report:benchmark`. The current Master/Developer preview is reference evidence, not the next optimization target.
+Studio V2 is the default RhymeLab root route. The previous Search remains available at `/search` and `/legacy`; `npm run dev:search-default` is the explicit reversible root-route fallback.
 
-The next thread focuses on the Markov phrase/sentence generator. The owner will provide additional Markov requirements there; incorporate them before locking architecture or implementation details.
+Serving-v1 is the canonical product runtime. Markov / Constrained Lyric Decoder V2 remains intentionally frozen and may ship only as unlinked direct-demo infrastructure. Do not continue Markov work unless the owner explicitly reopens it.
 
-Distribution contract: `docs/DISTRIBUTION_TIERS.md`.
+Further Serving-v1 micro-optimization remains paused until real Lite/Standard/Full distributions are materialized and benchmarked. Distribution contract: `docs/DISTRIBUTION_TIERS.md`.
 
 ---
+
 
 # CURRENT BRANCH HANDOVER — Phase 12C runtime + AI staging
 
