@@ -132,7 +132,8 @@ test('default Markov source wrapper builds transitions from canonical Serving-v1
       assert.equal(meta.build_status,'complete');
       assert.equal(Number(meta.order),4);
       assert.ok(Number(db.prepare('SELECT COUNT(*) AS n FROM source_window_hash').get()?.n||0)>0);
-      assert.ok(Number(db.prepare('SELECT COUNT(*) AS n FROM shape_pattern').get()?.n||0)>0);
+      // Serving Phrase/Mosaic rows are fragments, not full-line grammar examples.
+      assert.equal(Number(db.prepare('SELECT COUNT(*) AS n FROM shape_pattern').get()?.n||0),0);
       assert.equal(Number(meta.accepted_sentences),8);
       assert.ok(Number(db.prepare('SELECT COUNT(*) AS n FROM transition').get()?.n||0)>0);
       assert.ok(Number(db.prepare("SELECT COUNT(*) AS n FROM transition WHERE direction='reverse'").get()?.n||0)>0);
