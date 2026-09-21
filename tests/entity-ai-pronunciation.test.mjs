@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import {
   analyzeEntityAiArpabet,
@@ -154,9 +155,9 @@ test('Entity AI importer is idempotent for an identical already-imported artifac
       writeFile(mapPath,map,'utf8'),
     ]);
 
-    const script=new URL('../scripts/import-entity-ai-pronunciation-result.mjs',import.meta.url);
+    const script=fileURLToPath(new URL('../scripts/import-entity-ai-pronunciation-result.mjs',import.meta.url));
     const args=[
-      script.pathname,
+      script,
       '--artifact',artifact,
       '--map',mapPath,
       '--out',dbPath,
