@@ -1,8 +1,8 @@
-# Markov Generator V1 — lyric-shaped, RhymeLab-trained experimental surface
+# Constrained Lyric Decoder V2
 
 ## Status
 
-**Experimental implementation candidate. Not product-accepted and not yet integrated into RhymePad.**
+**Experimental implementation candidate. Not yet promoted into RhymePad or a shipping Full distribution.**
 
 Development route:
 
@@ -10,251 +10,310 @@ Development route:
 /markov-test
 ```
 
-Generator policy:
+Decoder policy:
 
 ```text
-rhymelab-markov-lyric-v1
+rhymelab-constrained-lyric-decoder-v2
 ```
 
 Model schema:
 
 ```text
-rhymelab-markov-model-v1
+rhymelab-markov-model-v2
 ```
 
-## Architecture in one sentence
-
-Private owner lyrics contributed only **aggregate songwriting structure**; the actual distributable Markov transition model is built from the canonical Serving-v1 database.
+Default model:
 
 ```text
-private lyrics
-    ↓ one-time aggregate analysis only
-public lyric-shape profile
-    +
-Serving-v1 Phrase/Mosaic runtime
-    ↓
-forward + reverse transition model
-    +
-RhymeLab Writer rhyme truth
-    ↓
-generated lyric-shaped line
+data/local/rhymelab-markov-v2.sqlite
 ```
 
-## Private lyric boundary
+## Architecture
 
-Owner-provided lyrics are **not model transition data**.
+V2 separates authoritative rhyme truth, language evidence, structure evidence, source novelty, and result-set diversity.
 
-The repository and shipped model contain none of the following from the private source:
+```text
+Serving-v1 Writer rhyme candidates
+          │
+          ▼
+large diversified rhyme-tail reservoir
+          │
+          ▼
+variable-order reverse beam search
+order 4 → 3 → 2 → 1
+          │
+          ├── fixed opener: bidirectional bridge check
+          ├── exact target length
+          ├── transition quality floor
+          ├── learned line-shape evidence
+          └── source-copy constraints
+          │
+          ▼
+candidate scoring
+          │
+          ▼
+result-set diversification
+          │
+          ▼
+distinct deterministic lyric-line variants
+```
 
-- lyric text;
+RhymeLab Writer remains authoritative for pronunciation and rhyme relations. The decoder never invents a second rhyme truth system.
+
+## Why V2 replaced the original decoder
+
+The first implementation exposed several structural failures:
+
+- a large Writer pool collapsed to a tiny high-probability tail shortlist;
+- Naturalness acted too much like maximum-probability selection;
+- result dedupe detected exact lines but not near-duplicate endings/path families;
+- order-2 transitions over Phrase/Mosaic fragments produced locally plausible but globally weak lines;
+- Phrase/Mosaic fragments were incorrectly capable of behaving like complete line-shape examples;
+- target length began as a ranking preference instead of a construction constraint.
+
+V2 addresses these at the decoder/model-contract level rather than tuning around individual bad outputs.
+
+## Variable-order model
+
+The V2 model materializes forward and reverse transitions for context lengths 1 through 4.
+
+The decoder prefers stronger higher-order evidence but can back off when a high-order state is sparse or constrained away. A narrow order-4 state can borrow alternatives from lower-order evidence rather than forcing one repeated path.
+
+The model also stores per-token support and retained high-order states.
+
+## Tail reservoir
+
+The Writer candidate pool is no longer collapsed to roughly a handful of tails before generation.
+
+V2 builds a substantially larger quality-qualified reservoir using:
+
+- authoritative Writer phonetic score;
+- usage/commonness evidence;
+- model support;
+- mode-specific evidence.
+
+Sampling then applies temperature and cross-attempt penalties for:
+
+- exact tail reuse;
+- final-token reuse;
+- tail-family reuse.
+
+Naturalness defines a quality floor and transition support preference. It does not mean "always pick the most frequent path."
+
+## Exact target length
+
+Target token count is a construction constraint.
+
+For V2 generation, the reverse beam is built to the exact requested token count after accounting for:
+
+- fixed opener tokens;
+- selected rhyme-tail tokens.
+
+Candidates that miss the target length are not returned.
+
+The aggregate public lyric profile remains a useful default prior but never silently clamps an explicit user target.
+
+## Bidirectional opener bridge
+
+When the user supplies a fixed opener, the final open slot adjacent to that opener is evaluated against both sides:
+
+```text
+fixed left context
+       ↓
+ candidate bridge token
+       ↑
+already-built right/rhyme context
+```
+
+The runtime intersects forward and reverse transition evidence for that bridge instead of relying only on reverse generation.
+
+## Source novelty and attested Phrase support
+
+The model stores source-kind-aware hashes for:
+
+- complete accepted sequences;
+- 4–8-token source windows.
+
+Strict anti-copy applies to `sentence` and `lyric` sources.
+
+Known `phrase` evidence is different: an attested phrase/idiom may legitimately appear inside a generated line. Phrase matches therefore provide support rather than being automatically treated as copied source text.
+
+Exact or excessive runs copied from strict sources are rejected.
+
+Original source text is not stored in the compact model.
+
+## Line-shape evidence
+
+V2 materializes coarse deterministic line-shape patterns from complete `sentence` and `lyric` sources.
+
+Phrase/Mosaic rows do not populate this table because a fragment is not a complete grammatical line.
+
+The current shape representation is deliberately lightweight and local-first. It distinguishes common function classes and content slots without adding a hosted NLP or neural runtime dependency.
+
+If no complete sentence/lyric source has been materialized yet, missing shape evidence is treated as unavailable/neutral rather than proof that a candidate is bad.
+
+## Result-set diversity
+
+V2 chooses the returned set jointly rather than treating eight independent samples as eight useful alternatives.
+
+Similarity evidence includes:
+
+- lexical token overlap;
+- identical final token;
+- identical final bigram;
+- identical final trigram;
+- exact rhyme-tail reuse;
+- rhyme-tail family reuse.
+
+Near duplicates can be rejected; remaining candidates receive a result-diversity score and diversity-adjusted selection utility.
+
+This specifically prevents one attractive Markov path from filling the entire result list with superficial prefix variations.
+
+## Section planning primitive
+
+V2 includes a deterministic section planner capable of producing line plans for rhyme-slot schemes such as:
+
+```text
+ABAB
+AABB
+AAAA
+ABBA
+```
+
+A line plan includes:
+
+- line index;
+- rhyme slot;
+- target-token count;
+- section type;
+- repetition policy hint.
+
+This is the planning foundation for future multi-line generation. Single-line quality remains the immediate acceptance gate before RhymePad promotion.
+
+## Typed training sources
+
+Authoritative contract:
+
+```text
+docs/MARKOV_DATA_SOURCES.md
+```
+
+Supported roles:
+
+```text
+phrase
+sentence
+lyric
+```
+
+The default wrapper always injects Serving-v1 Phrase/Mosaic as `phrase` evidence.
+
+Additional complete sources can be supplied without changing the decoder:
+
+```powershell
+npm run markov:model:build -- \
+  --source sentence:de_sentences:2=C:\data\de-sentences.txt \
+  --source lyric:de_lyric_lines:3=C:\data\de-lyric-lines.txt
+```
+
+Weights are deterministic integer evidence weights, not probabilistic hidden tuning.
+
+## Private owner lyrics
+
+Private owner lyrics remain calibration-only.
+
+The repo and distributable model contain none of their:
+
+- raw lines;
 - titles;
-- song IDs;
+- IDs;
 - URLs;
-- private n-grams;
-- private transition tables;
-- private model SQLite.
+- token sequences;
+- private transition tables.
 
-The public code contains only aggregate structure in:
+The public aggregate profile remains in:
 
 ```text
 src/markov-lyric-profile.mjs
 ```
 
-Current profile:
+The optional privacy-safe local analyzer remains available for aggregate recalibration only.
 
-```text
-policy                rhymelab-lyric-shape-v1
-default target        6 tokens
-compact line floor    3 tokens
-common line ceiling   ~9 tokens
-long-line envelope    ~12 tokens
-median stanza shape   4 lines
-```
+## Default build
 
-Those parameters are intentionally generic and reusable by every RhymeLab installation.
-
-An optional developer-only analyzer remains available for future recalibration:
-
-```bash
-npm run markov:lyrics:analyze -- --input /absolute/path/to/private-lyrics.json
-```
-
-Its report contains aggregate numbers only and is written to ignored local data.
-
-## Default transition source
-
-The old automatic three-million-Leipzig-sentence build is gone.
-
-The default model source is now the already-materialized RhymeLab German Phrase/Mosaic database:
+The canonical Serving-v1 database is:
 
 ```text
 data/local/rhymelab-serving-v1.sqlite
 ```
 
-Eligible source rows are:
+Default owner flow:
 
-```sql
-phrase.modern_eligible = 1
-AND phrase.token_count BETWEEN 2 AND 16
-```
-
-The source wrapper exports a deterministic ignored work file, ordered by stable `phrase_id`, and feeds that into the compact transition builder. Historical-only phrases are excluded.
-
-The export is an intermediate local build artifact, not committed product source.
-
-## Build commands
-
-After pulling the branch:
-
-```bash
+```powershell
 npm run markov:model:plan
 npm run markov:model:build
 npm run markov:model:status
 ```
 
-If `data/local/rhymelab-serving-v1.sqlite` is missing or invalid:
-
-```bash
-npm run serving:v1:product:status
-npm run serving:v1:product:build
-npm run markov:model:build
-npm run markov:model:status
-```
-
-The normal user does **not** provide a corpus or private lyric file.
-
-The default build:
-
-1. reads Phrase/Mosaic runtime rows from the canonical Serving-v1 database;
-2. exports eligible phrases to `data/work/markov-v1/rhymelab-phrase-lines.txt`;
-3. retains two-word and longer phrase transitions;
-4. builds/resumes the compact forward/reverse transition SQLite;
-5. promotes the final model to `data/local/rhymelab-markov-v1.sqlite`.
-
-For development experiments only, an explicit arbitrary source can still be used through:
-
-```bash
-npm run markov:model:build:explicit -- --sentences experiment=/absolute/path/to/lines.txt
-```
-
-That is not the default product path.
-
-## Model builder
-
-Current experimental model:
-
-- order 2;
-- order-1 backoff;
-- forward and reverse transitions;
-- minimum sequence length: 2 tokens for the Phrase/Mosaic source;
-- minimum token frequency: 1 for the Phrase/Mosaic source;
-- up to 300,000 retained order-2 states;
-- up to 24 outgoing transitions per state/direction/order;
-- resumable 5,000-line checkpoint batches;
-- deterministic semantic fingerprint;
-- compact final SQLite with build-only census/checkpoint tables removed.
-
-When the Phrase/Mosaic export changes, the wrapper resets the resumable work DB automatically so stale transitions cannot survive a source change.
-
-## Runtime responsibilities
-
-### RhymeLab Writer
-
-Writer remains authoritative for:
-
-- pronunciation;
-- rhyme type/family;
-- perfect/slant/multisyllabic relations;
-- assonance/consonance;
-- Phrase/Mosaic candidates;
-- Entity candidates;
-- usage/popularity evidence.
-
-### Markov transition model
-
-The transition DB provides:
-
-- local word-order evidence;
-- backward generation from a rhyme tail;
-- forward opener/context validation;
-- local support for Phrase/Entity/internal-rhyme splices.
-
-### Public lyric-shape profile
-
-The structure profile provides:
-
-- compact song-line length prior;
-- line-length scoring envelope;
-- future stanza/repetition/rhyme-distance priors.
-
-It does not contain vocabulary learned from the private lyrics.
-
-## Generation path
+This materializes:
 
 ```text
-rhyme target
-    ↓
-RhymeLab Writer candidate pool
-    ↓
-select Writer-backed rhyme tail
-    ↓
-reverse transition walk from tail
-    ↓
-forward context validation
-    ↓
-lyric-shape length prior
-    ↓
-naturalness + rhyme + length scoring
-    ↓
-deterministic variants
+data/work/markov-v2/rhymelab-serving-phrase-lines.txt
+data/work/markov-v2/rhymelab-markov-v2.build.sqlite
+data/local/rhymelab-markov-v2.sqlite
+data/local/markov-model-v2-report.json
 ```
 
-Reverse generation makes the rhyme a hard construction constraint instead of generating arbitrary text and replacing the last word afterward.
+The old local V1 model filename is not used by the V2 runtime.
 
-## Model availability
+## Health diagnostics
 
-The local server exposes model status at:
+`/api/health → markov_generator` reports:
+
+- schema/policy/runtime;
+- model order;
+- transition count;
+- novelty sequence/window counts;
+- learned shape-pattern count;
+- source-role profile;
+- semantic fingerprint.
+
+The test UI exposes the materialized source mix as:
 
 ```text
-/api/health → markov_generator
+P <phrase rows> · S <sentence rows> · L <lyric rows>
 ```
 
-If the final transition DB is absent, the UI states:
+so a phrase-only development model cannot masquerade as a fully trained syntax/lyric model.
 
-```text
-Markov transition database missing — run npm run markov:model:build.
-```
-
-This is deliberately distinct from the lyric-shape profile, which is compiled into the code and is always present.
-
-## Acceptance state
+## Current acceptance boundary
 
 Implemented and covered:
 
-- public aggregate lyric-shape profile;
-- private lyric source excluded from model/runtime;
-- privacy-safe aggregate analyzer;
-- RhymeLab Phrase/Mosaic as the default transition source;
-- one-command default model build;
-- deterministic phrase export;
-- historical-only phrase exclusion;
-- two-token phrase support;
-- compact forward/reverse model materialization;
-- deterministic generation;
-- Writer-backed rhyme tails;
-- Phrase/Entity context gating;
-- explicit missing-model UI command;
-- mobile/reduced-motion control coverage.
+- Serving-v1 as canonical rhyme/data runtime;
+- order 1–4 forward/reverse model;
+- larger tail reservoir;
+- deterministic temperature-driven exploration;
+- exact target length;
+- reverse beam search;
+- bidirectional fixed-opener bridge;
+- typed weighted data sources;
+- strict source-copy detection for sentence/lyric;
+- attested Phrase support separated from copy detection;
+- learned line-shape evidence from complete sources only;
+- result-set diversification;
+- deterministic rhyme-slot section planner;
+- private owner lyric boundary;
+- no fake template fallback.
 
-Still pending product acceptance:
+Still requires owner-local evidence before product promotion:
 
-- owner build against the full local Serving-v1 Phrase/Mosaic runtime;
-- resulting model row counts, bytes and semantic fingerprint;
-- generation latency;
-- representative human quality review;
-- coverage diagnostics for difficult rhyme tails;
-- multi-line rhyme-scheme generation;
+- rebuild of the V2 model;
+- owner review on representative DE targets;
+- complete sentence source acquisition;
+- distributable full-line lyric source acquisition if available;
+- source-weight benchmark;
+- latency/DB-size evidence;
+- multi-line quality acceptance;
 - RhymePad integration;
-- Full-edition packaging.
-
-Until those gates are completed, `/markov-test` remains experimental.
+- Full-distribution packaging.
