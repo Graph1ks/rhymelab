@@ -115,6 +115,7 @@ function revisionFromDocumentRow(row){
     steps:{...(row?.documentSnapshot?.steps||{})},
     performance:{...(row?.documentSnapshot?.performance||{})},
     performanceCues:{...(row?.documentSnapshot?.performanceCues||{})},
+    performanceAnchors:{...(row?.documentSnapshot?.performanceAnchors||{})},
   };
   return {
     at:Number(row?.createdAt)||0,
@@ -147,6 +148,7 @@ export function studioStateFromDocumentSnapshot(snapshot,baseState=createStudioS
       steps:{...(row.steps||{})},
       performance:{...(row.performance||{})},
       performanceCues:{...(row.performanceCues||{})},
+      performanceAnchors:{...(row.performanceAnchors||{})},
       revisions:revisionsBySong.get(row.id)||[],
       createdAt:Number(row.createdAt)||0,
       updatedAt:Number(row.updatedAt)||0,
