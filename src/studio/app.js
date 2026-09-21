@@ -31,7 +31,7 @@ const THEME_COLOR_FIELDS=[
   ['bg','Background'],['panel','Surface'],['ink','Text'],['muted','Muted'],
   ['accent','Primary'],['accent2','Secondary'],['signal','Signal']
 ];
-let themeEditingId='',themePreviewing=false;
+let themeEditingId='',themePreviewing=false,themeQuickCloseTimer=0;
 let studioCapabilities={status:'loading'};
 let sharedSearchState=localStorage.getItem(SEARCH_STATE_STORAGE_KEY)?loadSearchState():createSearchState({queryBasis:'de',resultLanguage:'both'}),pendingSharedResultId=sharedSearchState.selectedResultId||'';
 const writerSearch=createWriterSearchClient();
@@ -677,7 +677,7 @@ function applyThemeChoice(choice,options){
   if(button){
     button.dataset.themeMode=resolved.mode;
     button.setAttribute('aria-label','Quickstyle wechseln · aktiv: '+(resolved.name||state.theme));
-    button.title=(resolved.name||state.theme)+' · Klick: Light/Dark · Hover: Quickstyles';
+    button.title=(resolved.name||state.theme)+' · Klick oder Hover: Quickstyles';
   }
   renderThemeQuickMenu();
   if(options.persistState!==false)persist();
@@ -701,19 +701,74 @@ function renderThemeQuickMenu(){
   }
   menu.innerHTML=html;
 }
+function setThemeQuickOpen(open,{render=true}={}){
+  const quick=$('#themeQuick'),button=$('#themeBtn');
+  if(!quick||!button)return;
+  clearTimeout(themeQuickCloseTimer);
+  themeQuickCloseTimer=0;
+  quick.classList.toggle('open',Boolean(open));
+  button.setAttribute('aria-expanded',String(Boolean(open)));
+  if(open&&render)renderThemeQuickMenu();
+}
+function scheduleThemeQuickClose(delay=180){
+  clearTimeout(themeQuickCloseTimer);
+  themeQuickCloseTimer=setTimeout(()=>setThemeQuickOpen(false,{render:false}),delay);
+}
 function bindThemeQuickMenu(){
   const quick=$('#themeQuick'),menu=$('#themeQuickMenu'),button=$('#themeBtn');
   if(!quick||!menu||!button)return;
   renderThemeQuickMenu();
-  quick.addEventListener('mouseenter',function(){button.setAttribute('aria-expanded','true');renderThemeQuickMenu()});
-  quick.addEventListener('mouseleave',function(){button.setAttribute('aria-expanded','false')});
-  quick.addEventListener('focusin',function(){button.setAttribute('aria-expanded','true');renderThemeQuickMenu()});
-  quick.addEventListener('focusout',function(){requestAnimationFrame(function(){if(!quick.contains(document.activeElement))button.setAttribute('aria-expanded','false')})});
+
+  // The old click handler toggled Light/Dark immediately. Once Quickstyles
+  // became a real menu that made the trigger fight the menu interaction.
+  // The trigger now owns the menu; the actual theme is chosen inside it.
+  button.onclick=function(event){
+    event.preventDefault();
+    event.stopPropagation();
+    setThemeQuickOpen(!quick.classList.contains('open'));
+  };
+  button.addEventListener('keydown',function(event){
+    if(event.key==='ArrowDown'){
+      event.preventDefault();
+      setThemeQuickOpen(true);
+      requestAnimationFrame(()=>menu.querySelector('[data-theme-choice]')?.focus());
+    }
+    if(event.key==='Escape'){
+      event.preventDefault();
+      setThemeQuickOpen(false,{render:false});
+    }
+  });
+
+  quick.addEventListener('mouseenter',()=>setThemeQuickOpen(true));
+  quick.addEventListener('mouseleave',()=>scheduleThemeQuickClose());
+  menu.addEventListener('mouseenter',()=>setThemeQuickOpen(true,{render:false}));
+  menu.addEventListener('mouseleave',()=>scheduleThemeQuickClose());
+  quick.addEventListener('focusin',()=>setThemeQuickOpen(true));
+  quick.addEventListener('focusout',function(){
+    requestAnimationFrame(function(){
+      if(!quick.contains(document.activeElement))scheduleThemeQuickClose(80);
+    });
+  });
+
   menu.addEventListener('click',function(event){
     const target=event.target.closest('[data-theme-choice]');
     if(!target)return;
-    applyThemeChoice(target.dataset.themeChoice);
-    button.setAttribute('aria-expanded','false');
+    event.preventDefault();
+    event.stopPropagation();
+    const choice=target.dataset.themeChoice;
+    applyThemeChoice(choice);
+    setThemeQuickOpen(false,{render:false});
+    button.focus({preventScroll:true});
+  });
+
+  document.addEventListener('pointerdown',function(event){
+    if(!quick.contains(event.target))setThemeQuickOpen(false,{render:false});
+  });
+  document.addEventListener('keydown',function(event){
+    if(event.key==='Escape'&&quick.classList.contains('open')){
+      setThemeQuickOpen(false,{render:false});
+      button.focus({preventScroll:true});
+    }
   });
 }
 function toggleTheme(){
