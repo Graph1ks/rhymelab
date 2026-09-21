@@ -46,12 +46,14 @@ function legacySongId(song,index){
   const source=asText(song?.id).trim();
   return source||`legacy-song-${String(index+1).padStart(4,'0')}`;
 }
-function folderRows(legacySongs){
+function folderRows(legacyState,legacySongs){
   const names=[];
-  for(const song of legacySongs){
-    const name=asText(song?.folder).trim();
+  const addName=(value)=>{
+    const name=asText(typeof value==='string'?value:value?.name).trim();
     if(name&&!names.includes(name))names.push(name);
-  }
+  };
+  if(Array.isArray(legacyState?.folders))legacyState.folders.forEach(addName);
+  for(const song of legacySongs)addName(song?.folder);
   return names.map((name,index)=>({
     id:`folder:${slug(name)}:${String(index+1).padStart(3,'0')}`,
     name,
@@ -78,7 +80,7 @@ export function serializeLegacyStudioBackup(legacyState){
 
 export function migrateLegacyStudioState(legacyState={}){
   const legacySongs=Array.isArray(legacyState.songs)?legacyState.songs:[];
-  const folders=folderRows(legacySongs);
+  const folders=folderRows(legacyState,legacySongs);
   const folderByName=new Map(folders.map((row)=>[row.name,row.id]));
   const songs=[];
   const bars=[];
