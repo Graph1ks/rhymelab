@@ -67,6 +67,12 @@ html{transition:background-color .25s,color .25s}.app{grid-template-columns:184p
 .demo-label{background:color-mix(in srgb,var(--accent) 13%,var(--panel));color:var(--accent)}
 .pill{background:color-mix(in srgb,var(--accent) 12%,var(--panel));color:var(--accent)}
 
+.language-quick{
+  min-width:36px;min-height:30px;padding:4px 7px;border:1px solid var(--line);border-radius:8px;
+  background:color-mix(in srgb,var(--panel) 84%,var(--bg));color:var(--muted);
+  font:800 8px/1 ui-monospace,monospace;letter-spacing:.8px
+}
+.language-quick:hover,.language-quick:focus-visible{background:var(--tint);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 34%,var(--line))}
 .theme-quick{position:relative;display:flex;align-items:center;gap:2px}
 .theme-quick-menu{
   position:absolute;top:calc(100% + 8px);right:-8px;width:238px;padding:9px;
@@ -822,6 +828,7 @@ html,*{
     min-height:44px;
   }
   .topbar .icon{width:44px;height:44px;min-height:44px;padding:8px}
+  .topbar .language-quick{min-width:44px;min-height:44px;padding:6px}
   .topbar #exportBtn{min-height:44px}
   .theme-menu-trigger{width:44px;min-height:44px}
 
