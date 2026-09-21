@@ -1298,6 +1298,7 @@ function sortedData(){return sortStudioWriterRows(data(),{sort,rhymeType,querySy
 
 function resultBadges(row){
   const raw=row?.raw||{},badges=[];
+  const list=(value)=>Array.isArray(value)?value:(value==null||value===''?[]:[value]);
   const push=(value,kind='meta')=>{
     const label=String(value??'').trim();
     if(!label||badges.some((item)=>item.label===label))return;
@@ -1306,10 +1307,10 @@ function resultBadges(row){
   if(raw.historical)push('Historisch','warn');
   if(raw.generatedPronunciation||row.generatedPronunciation)push('Generated','generated');
   if(raw.partOfSpeech&&raw.partOfSpeech!=='phrase')push(humanizeDetail(raw.partOfSpeech),'pos');
-  for(const value of raw.lexicalTags||[])push(humanizeDetail(value),'lexical');
-  for(const value of raw.phraseTypes||[])push(humanizeDetail(value),'phrase');
+  for(const value of list(raw.lexicalTags))push(humanizeDetail(value),'lexical');
+  for(const value of list(raw.phraseTypes))push(humanizeDetail(value),'phrase');
   if(raw.primaryCategory)push(humanizeDetail(raw.primaryCategory),'entity');
-  for(const entry of raw.entityCategories||[]){
+  for(const entry of list(raw.entityCategories)){
     push(humanizeDetail(typeof entry==='string'?entry:entry?.category),'entity');
   }
   if(raw.lexiconLayer&&raw.lexiconLayer!=='phrase')push(humanizeDetail(raw.lexiconLayer),'source');
@@ -1326,12 +1327,12 @@ function resultBadgeMarkup(row){
 function writerTimingText(){
   if(writerStatus==='loading')return 'Runtime …';
   if(writerStatus!=='ready'||!writerRuntimeTiming)return '';
-  const current=Number(writerRuntimeTiming.searchMs);
-  const average=Number(writerRuntimeTiming.averageLast100Ms);
+  const current=writerRuntimeTiming.searchMs==null?null:Number(writerRuntimeTiming.searchMs);
+  const average=writerRuntimeTiming.averageLast100Ms==null?null:Number(writerRuntimeTiming.averageLast100Ms);
   const count=Number(writerRuntimeTiming.sampleCount||0);
   const parts=[];
-  if(Number.isFinite(current))parts.push(current.toFixed(current<10?1:0)+' ms');
-  if(Number.isFinite(average))parts.push('Ø100 '+average.toFixed(average<10?1:0)+' ms');
+  if(current!=null&&Number.isFinite(current))parts.push(current.toFixed(current<10?1:0)+' ms');
+  if(average!=null&&Number.isFinite(average))parts.push('Ø100 '+average.toFixed(average<10?1:0)+' ms');
   if(count)parts.push('n='+count);
   return parts.join(' · ');
 }
