@@ -10,13 +10,18 @@ import {
   MARKOV_MODEL_ORDER,
   MARKOV_MODEL_POLICY,
   MARKOV_MODEL_SCHEMA,
+  MARKOV_SOURCE_WINDOW_MAX,
+  MARKOV_SOURCE_WINDOW_MIN,
   START_TOKEN,
   createMarkovStorage,
+  lexicalNorms,
   modelStats,
   preferredSurfaceFor,
   readMeta,
   semanticFingerprint,
   sequenceFromSentence,
+  sequenceHash,
+  shapeKeyForTokens,
   stateKey,
   tokenShape,
   writeMeta,
@@ -26,10 +31,10 @@ const root=process.cwd();
 const args=process.argv.slice(2);
 let manifestPath='';
 let phraseWork='';
-let workPath='data/work/markov-v1/rhymelab-markov-v1.build.sqlite';
-let outPath='data/local/rhymelab-markov-v1.sqlite';
-let reportPath='data/local/markov-model-v1-report.json';
-let maxStates=300_000;
+let workPath='data/work/markov-v2/rhymelab-markov-v2.build.sqlite';
+let outPath='data/local/rhymelab-markov-v2.sqlite';
+let reportPath='data/local/markov-model-v2-report.json';
+let maxStates=600_000;
 let topK=24;
 let minTokenCount=3;
 let minimumSequenceTokens=3;
@@ -183,6 +188,8 @@ const config={
   top_k:topK,
   min_token_count:minTokenCount,
   minimum_sequence_tokens:minimumSequenceTokens,
+  source_window_min:MARKOV_SOURCE_WINDOW_MIN,
+  source_window_max:MARKOV_SOURCE_WINDOW_MAX,
   max_sentences_per_corpus:maxSentencesPerCorpus,
 };
 const configFingerprint=sha(config);
@@ -205,6 +212,8 @@ writeMeta(db,{
   top_k:topK,
   min_token_count:minTokenCount,
   minimum_sequence_tokens:minimumSequenceTokens,
+  source_window_min:MARKOV_SOURCE_WINDOW_MIN,
+  source_window_max:MARKOV_SOURCE_WINDOW_MAX,
   build_config_fingerprint:configFingerprint,
   build_started_at:existingMeta.build_started_at||new Date().toISOString(),
 });
@@ -218,8 +227,20 @@ const tokenUpsert=db.prepare(`
     upper_count=upper_count+excluded.upper_count
 `);
 const stateUpsert=db.prepare(`
-  INSERT INTO state_count(state_key,count,retained) VALUES(?,?,0)
-  ON CONFLICT(state_key) DO UPDATE SET count=count+excluded.count
+  INSERT INTO state_count(context_len,state_key,count,retained) VALUES(?,?,?,0)
+  ON CONFLICT(context_len,state_key) DO UPDATE SET count=count+excluded.count
+`);
+const sourceSequenceUpsert=db.prepare(`
+  INSERT INTO source_sequence_hash(hash,token_count,count) VALUES(?,?,1)
+  ON CONFLICT(hash) DO UPDATE SET count=count+1
+`);
+const sourceWindowUpsert=db.prepare(`
+  INSERT INTO source_window_hash(hash,window_size,count) VALUES(?,?,1)
+  ON CONFLICT(hash) DO UPDATE SET count=count+1
+`);
+const shapeUpsert=db.prepare(`
+  INSERT INTO shape_pattern(token_count,shape_key,count) VALUES(?,?,1)
+  ON CONFLICT(token_count,shape_key) DO UPDATE SET count=count+1
 `);
 const transitionUpsert=db.prepare(`
   INSERT INTO transition(direction,context_len,state_key,next_token,count)
@@ -237,15 +258,38 @@ const checkpointUpsert=db.prepare(`
 `);
 const checkpointGet=db.prepare('SELECT * FROM build_checkpoint WHERE phase=? AND source_index=?');
 
-function flushPass1(tokenCounts,stateCounts,sourceIndex,sourceCode,lineNumber,accepted){
+function flushPass1(
+  tokenCounts,
+  stateCounts,
+  sourceSequences,
+  sourceWindows,
+  shapeCounts,
+  sourceIndex,
+  sourceCode,
+  lineNumber,
+  accepted,
+){
   db.exec('BEGIN');
   try{
     for(const [norm,row] of tokenCounts)tokenUpsert.run(norm,row.count,row.title,row.upper,norm);
-    for(const [key,count] of stateCounts)stateUpsert.run(key,count);
+    for(const [key,count] of stateCounts){
+      const sep=key.indexOf('\u0002');
+      stateUpsert.run(Number(key.slice(0,sep)),key.slice(sep+1),count);
+    }
+    for(const [hash,row] of sourceSequences)sourceSequenceUpsert.run(hash,row.tokenCount);
+    for(const [hash,row] of sourceWindows)sourceWindowUpsert.run(hash,row.windowSize);
+    for(const [key,count] of shapeCounts){
+      const sep=key.indexOf('\u0002');
+      shapeUpsert.run(Number(key.slice(0,sep)),key.slice(sep+1),count);
+    }
     checkpointUpsert.run('scan',sourceIndex,sourceCode,lineNumber,accepted,new Date().toISOString());
     db.exec('COMMIT');
   }catch(error){db.exec('ROLLBACK');throw error;}
-  tokenCounts.clear();stateCounts.clear();
+  tokenCounts.clear();
+  stateCounts.clear();
+  sourceSequences.clear();
+  sourceWindows.clear();
+  shapeCounts.clear();
 }
 
 async function runPass1(){
@@ -259,6 +303,9 @@ async function runPass1(){
     let batchAccepted=0;
     const tokenCounts=new Map();
     const stateCounts=new Map();
+    const sourceSequences=new Map();
+    const sourceWindows=new Map();
+    const shapeCounts=new Map();
     console.log(`  ${source.code}: resume line ${resumeLine.toLocaleString('en-US')}`);
     for await(const line of lineReader(source.path)){
       lineNumber+=1;
@@ -276,36 +323,68 @@ async function runPass1(){
         tokenCounts.set(row.norm,current);
       }
       const norms=sequence.map((row)=>row.norm);
-      for(let i=0;i<norms.length-1;i+=1){
-        const key=stateKey([norms[i],norms[i+1]]);
-        stateCounts.set(key,(stateCounts.get(key)||0)+1);
+      for(let contextLen=2;contextLen<=MARKOV_MODEL_ORDER;contextLen+=1){
+        for(let i=0;i+contextLen<=norms.length;i+=1){
+          const state=stateKey(norms.slice(i,i+contextLen));
+          const key=`${contextLen}\u0002${state}`;
+          stateCounts.set(key,(stateCounts.get(key)||0)+1);
+        }
       }
+
+      const lexical=lexicalNorms(sequence);
+      if(lexical.length){
+        const fullHash=sequenceHash(lexical);
+        sourceSequences.set(fullHash,{tokenCount:lexical.length});
+        for(let size=MARKOV_SOURCE_WINDOW_MIN;size<=Math.min(MARKOV_SOURCE_WINDOW_MAX,lexical.length);size+=1){
+          for(let start=0;start+size<=lexical.length;start+=1){
+            const hash=sequenceHash(lexical.slice(start,start+size));
+            sourceWindows.set(hash,{windowSize:size});
+          }
+        }
+        const shape=shapeKeyForTokens(lexical,'de');
+        if(shape){
+          const shapeId=`${lexical.length}\u0002${shape}`;
+          shapeCounts.set(shapeId,(shapeCounts.get(shapeId)||0)+1);
+        }
+      }
+
       if(batchAccepted>=batchSentences){
-        flushPass1(tokenCounts,stateCounts,sourceIndex,source.code,lineNumber,accepted);
+        flushPass1(tokenCounts,stateCounts,sourceSequences,sourceWindows,shapeCounts,sourceIndex,source.code,lineNumber,accepted);
         batchAccepted=0;
         console.log(`    ${accepted.toLocaleString('en-US')} accepted · line ${lineNumber.toLocaleString('en-US')}`);
       }
     }
-    if(tokenCounts.size||stateCounts.size||lineNumber>resumeLine)flushPass1(tokenCounts,stateCounts,sourceIndex,source.code,lineNumber,accepted);
+    if(tokenCounts.size||stateCounts.size||sourceSequences.size||sourceWindows.size||shapeCounts.size||lineNumber>resumeLine){
+      flushPass1(tokenCounts,stateCounts,sourceSequences,sourceWindows,shapeCounts,sourceIndex,source.code,lineNumber,accepted);
+    }
   }
 }
 
 function finalizeCensus(){
   const already=readMeta(db).census_finalized==='1';
   if(already)return;
-  console.log('Markov build phase 2/3: prune vocabulary + retain frequent order-2 states');
+  console.log(`Markov build phase 2/3: prune vocabulary + retain frequent order-2..${MARKOV_MODEL_ORDER} states`);
   db.exec('BEGIN');
   try{
     db.prepare('DELETE FROM token WHERE count < ?').run(minTokenCount);
     tokenUpsert.run(START_TOKEN,1,0,0,START_TOKEN);
     tokenUpsert.run(END_TOKEN,1,0,0,END_TOKEN);
     db.prepare('UPDATE state_count SET retained=0').run();
-    db.prepare(`
+    const orders=Math.max(1,MARKOV_MODEL_ORDER-1);
+    const quota=Math.max(1,Math.floor(maxStates/orders));
+    const retainByOrder=db.prepare(`
       UPDATE state_count SET retained=1
-      WHERE state_key IN (
-        SELECT state_key FROM state_count ORDER BY count DESC,state_key LIMIT ?
-      )
-    `).run(maxStates);
+      WHERE context_len=?
+        AND state_key IN (
+          SELECT state_key FROM state_count
+          WHERE context_len=?
+          ORDER BY count DESC,state_key
+          LIMIT ?
+        )
+    `);
+    for(let contextLen=2;contextLen<=MARKOV_MODEL_ORDER;contextLen+=1){
+      retainByOrder.run(contextLen,contextLen,quota);
+    }
     db.prepare("UPDATE state_count SET retained=1 WHERE state_key LIKE ? OR state_key LIKE ?")
       .run(`${START_TOKEN}%`,`%${END_TOKEN}`);
     db.exec('COMMIT');
@@ -338,7 +417,10 @@ async function runPass2(){
   if(readMeta(db).transitions_complete==='1')return;
   console.log('Markov build phase 3/3: forward + reverse transitions');
   const vocab=new Set(db.prepare('SELECT norm FROM token').all().map((row)=>String(row.norm)));
-  const retained=new Set(db.prepare('SELECT state_key FROM state_count WHERE retained=1').all().map((row)=>String(row.state_key)));
+  const retained=new Set(
+    db.prepare('SELECT context_len,state_key FROM state_count WHERE retained=1').all()
+      .map((row)=>`${Number(row.context_len)}\u0002${String(row.state_key)}`),
+  );
   const valid=(token)=>token===START_TOKEN||token===END_TOKEN||vocab.has(token);
   for(let sourceIndex=0;sourceIndex<sourceRows.length;sourceIndex+=1){
     const source=sourceRows[sourceIndex];
@@ -357,33 +439,29 @@ async function runPass2(){
       if(!sequence.length)continue;
       accepted+=1;batchAccepted+=1;
       const norms=sequence.map((row)=>vocab.has(row.norm)||row.norm===START_TOKEN||row.norm===END_TOKEN?row.norm:null);
-      for(let i=2;i<norms.length;i+=1){
-        const next=norms[i],prev=norms[i-1],prev2=norms[i-2];
-        if(valid(prev)&&valid(next)){
-          const s1=prev;
-          const k1=`forward\u00021\u0002${s1}\u0002${next}`;
-          counts.set(k1,(counts.get(k1)||0)+1);
-        }
-        if(valid(prev2)&&valid(prev)&&valid(next)){
-          const s2=stateKey([prev2,prev]);
-          if(retained.has(s2)){
-            const k2=`forward\u00022\u0002${s2}\u0002${next}`;
-            counts.set(k2,(counts.get(k2)||0)+1);
-          }
+      for(let i=1;i<norms.length;i+=1){
+        const next=norms[i];
+        if(!valid(next))continue;
+        for(let contextLen=1;contextLen<=Math.min(MARKOV_MODEL_ORDER,i);contextLen+=1){
+          const context=norms.slice(i-contextLen,i);
+          if(!context.every(valid))continue;
+          const state=stateKey(context);
+          if(contextLen>1&&!retained.has(`${contextLen}\u0002${state}`))continue;
+          const key=`forward\u0002${contextLen}\u0002${state}\u0002${next}`;
+          counts.set(key,(counts.get(key)||0)+1);
         }
       }
-      for(let i=norms.length-3;i>=1;i-=1){
-        const previous=norms[i],next1=norms[i+1],next2=norms[i+2];
-        if(valid(previous)&&valid(next1)){
-          const k1=`reverse\u00021\u0002${next1}\u0002${previous}`;
-          counts.set(k1,(counts.get(k1)||0)+1);
-        }
-        if(valid(previous)&&valid(next1)&&valid(next2)){
-          const s2=stateKey([next1,next2]);
-          if(retained.has(s2)){
-            const k2=`reverse\u00022\u0002${s2}\u0002${previous}`;
-            counts.set(k2,(counts.get(k2)||0)+1);
-          }
+      for(let i=norms.length-2;i>=0;i-=1){
+        const previous=norms[i];
+        if(!valid(previous))continue;
+        const remaining=norms.length-i-1;
+        for(let contextLen=1;contextLen<=Math.min(MARKOV_MODEL_ORDER,remaining);contextLen+=1){
+          const context=norms.slice(i+1,i+1+contextLen);
+          if(!context.every(valid))continue;
+          const state=stateKey(context);
+          if(contextLen>1&&!retained.has(`${contextLen}\u0002${state}`))continue;
+          const key=`reverse\u0002${contextLen}\u0002${state}\u0002${previous}`;
+          counts.set(key,(counts.get(key)||0)+1);
         }
       }
       if(batchAccepted>=batchSentences){
@@ -455,7 +533,7 @@ async function promote(){
   await rm(previous,{force:true});
   const outBytes=(await stat(outPath)).size;
   const report={
-    schema:'rhymelab-markov-model-build-report-v1',
+    schema:'rhymelab-markov-model-build-report-v2',
     status:'ok',
     built_at:builtAt,
     model_schema:MARKOV_MODEL_SCHEMA,
