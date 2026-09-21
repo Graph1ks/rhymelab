@@ -14,6 +14,7 @@ import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportM
 import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
 import {collectStudioEnvironmentDiagnostics,diagnosticsFilename} from './diagnostics.mjs';
 import {createStudioDomLocalizer,normalizeStudioUiLanguage} from './i18n.mjs';
+import {commandShortcutText,rankStudioCommands,studioCommandGroups} from './command-palette.mjs';
 import {runStudioDomAcceptance} from './dom-acceptance.mjs';
 import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacyStudioStateToStore} from './document-store.mjs';
 
@@ -1226,7 +1227,93 @@ function legacySettings(){showDialog('Dein Studio einrichten',`<label class="fie
 function legacyToggleTheme(){toggleTheme()}
 function legacyHistory(){revision('history_open');showDialog('Deine letzten Fassungen',`<p class="notice">Wiederherstellen erzeugt zuvor eine Sicherung der aktuellen Fassung.</p>${(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,65))}…</p></div><button class="outline" data-revision="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p>Noch keine ältere Fassung vorhanden.</p>'}`);queryAll('[data-revision]').forEach(b=>b.onclick=()=>{if(restoreStudioRevision(song().revisions[+b.dataset.revision])){closeDialog();notify('Fassung wiederhergestellt · Bar-IDs und Cues erhalten.')}})}
 function showInfo(){showDialog('RhymeLab Studio 02',`<p>Ein gemeinsamer Schreibraum für Browser, Mobile und den späteren Electron-Adapter.</p><p class="notice">Reimsuche, Detail-/Provenienzflächen und Song-Reimschema laufen über die lokale Writer-Runtime. Dokumente, Revisionen und Performance-Cues liegen im versionierten IndexedDB-DocumentStore mit Recovery-Punkten.</p><p class="notice">Explizite Approximationen bleiben die UI-Silbenzählung und das darauf basierende Perform Auto-Map. Browser-, Touch- und Audio-Geräteabnahme bleibt vor dem Default-Route-Cutover erforderlich.</p>`)}
-function showCommands(){showDialog('Schnell zu deinem nächsten Schritt',`<div class="commandlist"><button data-command="studio">Studio öffnen <span class="small">Alt + 1</span></button><button data-command="search">Reimsuche öffnen <span class="small">Alt + 2</span></button><button data-command="focus">Fokusmodus wechseln <span class="small">Alt + F</span></button><button data-command="history">Versionsverlauf</button><button data-command="settings">Einstellungen</button><button data-command="export">Text exportieren</button></div><p class="notice">Strg / ⌘ + K öffnet dieses Menü. Escape schließt Dialoge. Native Textbearbeitung und Undo bleiben verfügbar.</p>`);queryAll('[data-command]').forEach(b=>b.onclick=()=>{closeDialog();({studio:()=>navigate('studio'),search:()=>navigate('search'),focus:toggleFocus,history:showHistory,settings:showSettings,export:exportText})[b.dataset.command]()})}
+function studioCommandRegistry(){
+  return [
+    {id:'studio',group:'Navigation',label:'Studio öffnen',keywords:['studio','write','schreiben'],shortcut:'Alt+1',run:()=>navigate('studio')},
+    {id:'search',group:'Navigation',label:'Reimsuche öffnen',keywords:['search','rhyme','reim','writer'],shortcut:'Alt+2',run:()=>navigate('search')},
+    {id:'library',group:'Navigation',label:'Meine Texte öffnen',keywords:['library','texts','songs','bibliothek'],run:()=>navigate('library')},
+    {id:'saved',group:'Navigation',label:'Merkliste öffnen',keywords:['saved','bookmarks','merkliste'],run:()=>navigate('saved')},
+    {id:'write-mode',group:'Modus',label:'Schreibmodus',keywords:['write','editor','composer'],shortcut:'Alt+E',run:()=>{navigate('studio');setMode('write');focusLine(activeLine)}},
+    {id:'rhyme-mode',group:'Modus',label:'Reimanalyse',keywords:['analysis','rhymes','reime','word laboratory'],run:()=>{navigate('studio');setMode('rhyme')}},
+    {id:'perform-mode',group:'Modus',label:'Perform-Modus',keywords:['perform','timing','flow','cues'],shortcut:'Alt+3',run:()=>{navigate('studio');setMode('perform')}},
+    {id:'bar-inspector',group:'Modus',label:'Bar Inspector öffnen',keywords:['bar','metrics','stress','pocket'],run:()=>openEditorDock('bar')},
+    {id:'new-song',group:'Dokument',label:'Neuen Text anlegen',keywords:['new','song','document','text'],run:newSong},
+    {id:'rename-song',group:'Dokument',label:'Titel umbenennen',keywords:['rename','title','name'],run:()=>nameDialog('Titel ändern',song().title,(title)=>{song().title=title;persist();renderEditor();renderProjects()})},
+    {id:'history',group:'Dokument',label:'Versionsverlauf öffnen',keywords:['history','versions','revision'],run:showHistory},
+    {id:'clear',group:'Dokument',label:'Text sicher leeren',keywords:['clear','empty','delete text'],run:clearCurrentDocument},
+    {id:'export-text',group:'Dokument',label:'Text als TXT exportieren',keywords:['export','txt','download'],run:exportText},
+    {id:'export-backup',group:'Dokument',label:'Workspace-Backup exportieren',keywords:['backup','json','workspace','export'],run:async()=>{await exportPortableStudioBackup();notify('Portables Studio Backup exportiert.')}},
+    {id:'search-focus',group:'Writer',label:'Reimanker suchen',keywords:['anchor','search','writer','query'],shortcut:'Alt+R',run:()=>{if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}},
+    {id:'filters',group:'Writer',label:'Filter ein-/ausblenden',keywords:['filters','writer','options'],run:showFilters},
+    {id:'hide-used',group:'Writer',label:hideUsed?'Verwendete Treffer wieder zeigen':'Verwendete Treffer ausblenden',keywords:['hide used','used','duplicates'],run:()=>{hideUsed=!hideUsed;state.hideUsed=hideUsed;persist();renderResults()}},
+    {id:'auto-scroll',group:'Writer',label:auto?'Auto-Scroll ausschalten':'Auto-Scroll einschalten',keywords:['scroll','automatic','results'],run:toggleAuto},
+    {id:'density',group:'Writer',label:'Trefferdichte wechseln',keywords:['density','compact','tiles','list'],shortcut:'Alt+L',run:()=>setDensity(nextDensity(density))},
+    {id:'focus',group:'Ansicht',label:'Fokusmodus wechseln',keywords:['focus','distraction free'],shortcut:'Alt+F',run:toggleFocus},
+    {id:'settings',group:'Ansicht',label:'Einstellungen öffnen',keywords:['settings','appearance','preferences'],run:showSettings},
+    {id:'theme',group:'Ansicht',label:'Light / Dark wechseln',keywords:['theme','light','dark','appearance'],run:toggleTheme},
+    {id:'language',group:'Ansicht',label:state.uiLanguage==='de'?'Interface auf English':'Interface auf Deutsch',keywords:['language','sprache','english','deutsch'],run:toggleStudioUiLanguage},
+    {id:'diagnostics',group:'System',label:'Browser-Diagnostics öffnen',keywords:['diagnostics','browser','runtime','acceptance'],run:()=>{showSettings();requestAnimationFrame(()=>$('#diagnosticsPanel')?.scrollIntoView({block:'nearest',behavior:'smooth'}))}},
+    {id:'recovery',group:'System',label:'Recovery-Punkt erstellen',keywords:['recovery','backup','snapshot'],run:async()=>{await createRecoveryPoint();notify('Recovery-Punkt erstellt.');if(dockTab==='settings')renderDock()}},
+  ];
+}
+function renderCommandPalette(queryValue=''){
+  const results=$('#commandResults');
+  if(!results)return [];
+  const commands=rankStudioCommands(studioCommandRegistry(),queryValue);
+  const groups=studioCommandGroups(commands);
+  results.innerHTML=groups.length
+    ?groups.map((group)=>'<section class="command-group"><span class="command-group-title">'+esc(group.name)+'</span>'+group.commands.map((command,index)=>'<button data-command-id="'+esc(command.id)+'" data-command-index="'+index+'"><span><b>'+esc(command.label)+'</b>'+(command.keywords?.length?'<small>'+esc(command.keywords.slice(0,3).join(' · '))+'</small>':'')+'</span>'+(command.shortcut?'<kbd>'+esc(commandShortcutText(command.shortcut))+'</kbd>':'')+'</button>').join('')+'</section>').join('')
+    :'<div class="command-empty">Kein passender Befehl.</div>';
+  const buttons=queryAll('#commandResults [data-command-id]');
+  buttons.forEach((button,index)=>{
+    button.dataset.commandIndex=String(index);
+    button.classList.toggle('active',index===0);
+    button.setAttribute('aria-selected',String(index===0));
+    button.onclick=()=>executeStudioCommand(button.dataset.commandId);
+  });
+  return commands;
+}
+function executeStudioCommand(id){
+  const command=studioCommandRegistry().find((item)=>item.id===id);
+  if(!command)return;
+  closeDialog();
+  Promise.resolve(command.run()).catch((error)=>notify('Befehl fehlgeschlagen: '+(error instanceof Error?error.message:String(error))));
+}
+function showCommands(){
+  showDialog('Schnell zu deinem nächsten Schritt',`<div class="command-palette"><label class="command-search"><span class="screenreader">Befehle durchsuchen</span><input id="commandSearch" type="search" placeholder="Aktion, Modus, Filter oder Einstellung …" autocomplete="off" spellcheck="false"></label><div id="commandResults" class="command-results" role="listbox" aria-label="Befehle"></div><p class="notice">Strg / ⌘ + K öffnet die Palette · ↑↓ wählen · Enter ausführen · Escape schließen.</p></div>`);
+  const input=$('#commandSearch');
+  let activeIndex=0;
+  const refresh=()=>{
+    const commands=renderCommandPalette(input.value);
+    activeIndex=0;
+    return commands;
+  };
+  const move=(delta)=>{
+    const buttons=queryAll('#commandResults [data-command-id]');
+    if(!buttons.length)return;
+    activeIndex=(activeIndex+delta+buttons.length)%buttons.length;
+    buttons.forEach((button,index)=>{
+      const active=index===activeIndex;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-selected',String(active));
+    });
+    buttons[activeIndex]?.scrollIntoView({block:'nearest'});
+  };
+  input.oninput=refresh;
+  input.onkeydown=(event)=>{
+    if(event.key==='ArrowDown'){event.preventDefault();move(1)}
+    else if(event.key==='ArrowUp'){event.preventDefault();move(-1)}
+    else if(event.key==='Enter'){
+      event.preventDefault();
+      const button=queryAll('#commandResults [data-command-id]')[activeIndex];
+      if(button)executeStudioCommand(button.dataset.commandId);
+    }else if(event.key==='Escape'){
+      event.preventDefault();closeDialog();
+    }
+  };
+  refresh();
+  requestAnimationFrame(()=>input.focus());
+}
 function toggleFocus(){navigate('studio');document.body.classList.toggle('focus');$('#focusBtn').setAttribute('aria-pressed',document.body.classList.contains('focus'));notify(document.body.classList.contains('focus')?'Fokus an · Alt + F zum Verlassen':'Fokus aus')}
 function nameDialog(title,value,callback){showDialog(title,`<label class="field">Titel<input id="nameInput" value="${esc(value)}" maxlength="100"></label><div class="dialogactions"><button id="cancelName">Abbrechen</button><button id="saveName" class="primary">Speichern</button></div>`);$('#cancelName').onclick=closeDialog;$('#saveName').onclick=()=>{const text=$('#nameInput').value.trim();if(!text)return;callback(text);closeDialog()};$('#nameInput').onkeydown=e=>{if(e.key==='Enter')$('#saveName').click()};$('#nameInput').focus();$('#nameInput').select()}
 function newSong(){
