@@ -1110,7 +1110,57 @@ function exportText(){const blob=new Blob([song().title+'\n\n'+song().lines.join
 function runAuto(t){if(!auto)return;const el=$('#resultsScroll');if(t>pauseUntil&&!document.hidden&&!$('#dialog').open&&el.clientHeight>0){el.scrollTop+=(t-(lastFrame||t))*.018;if(el.scrollTop+el.clientHeight>=el.scrollHeight-2){if(pageSize<data().length){pageSize+=6;renderResults()}else{el.scrollTop=0;pauseUntil=t+1200}}}lastFrame=t;scrollFrame=requestAnimationFrame(runAuto)}
 function toggleAuto(){auto=!auto;$('#autoBtn').textContent='Auto-Scroll: '+(auto?'An':'Aus');$('#autoBtn').setAttribute('aria-pressed',auto);cancelAnimationFrame(scrollFrame);lastFrame=0;if(auto){pauseUntil=performance.now()+1000;scrollFrame=requestAnimationFrame(runAuto)}}
 function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','filterBtn','autoBtn','moreBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
-$('#closeDialog').onclick=closeDialog;$('#themeBtn').onclick=toggleTheme;$('#clearDocBtn').onclick=clearCurrentDocument;$('#exportBtn').onclick=exportText;$('#commandBtn').onclick=showCommands;$('#settingsBtn').onclick=showSettings;$('#settingsSide').onclick=showSettings;$('#filterBtn').onclick=showFilters;$('#languageBtn').onclick=showFilters;$('#historyBtn').onclick=showHistory;$('#infoBtn').onclick=showInfo;$('#focusBtn').onclick=toggleFocus;$('#newSongSidebar').onclick=newSong;$('#renameBtn').onclick=()=>nameDialog('Titel ändern',song().title,t=>{song().title=t;persist();renderEditor()});$('#addBar').onclick=()=>{pushUndo();const current=song(),last=current.lines.length-1;splitEditorBar(current,last,current.lines[last].length,current.lines[last].length);activeLine=current.lines.length-1;renderEditor();focusLine(activeLine,0);changed()};$('#undoBtn').onclick=performUndo;$('#redoBtn').onclick=performRedo;$('#searchForm').onsubmit=e=>{e.preventDefault();query=$('#searchInput').value.trim()||query;pageSize=6;void refreshWriterResults();$('#resultsScroll').scrollTop=0};$('#autoBtn').onclick=toggleAuto;$('#moreBtn').onclick=()=>{pageSize+=6;renderResults()};$('#resultsScroll').addEventListener('scroll',()=>{const el=$('#resultsScroll');if(el.scrollTop>0&&el.scrollHeight-el.scrollTop-el.clientHeight<90&&pageSize<data().length){pageSize+=6;renderResults()}},{passive:true});['wheel','touchstart','pointerdown','focusin'].forEach(ev=>$('#resultsScroll').addEventListener(ev,()=>pauseUntil=performance.now()+5000,{passive:true}));
+const bindClick=(id,handler,{optional=false}={})=>{
+  const element=document.getElementById(id);
+  if(!element){
+    if(optional)return null;
+    throw new Error('Fehlendes interaktives Element: '+id);
+  }
+  element.onclick=handler;
+  return element;
+};
+bindClick('closeDialog',closeDialog);
+bindClick('themeBtn',toggleTheme);
+bindClick('clearDocBtn',clearCurrentDocument,{optional:true});
+bindClick('exportBtn',exportText);
+bindClick('commandBtn',showCommands);
+bindClick('settingsBtn',showSettings);
+bindClick('settingsSide',showSettings);
+bindClick('filterBtn',showFilters);
+bindClick('languageBtn',showFilters);
+bindClick('historyBtn',showHistory);
+bindClick('infoBtn',showInfo);
+bindClick('focusBtn',toggleFocus);
+bindClick('newSongSidebar',newSong);
+bindClick('renameBtn',()=>nameDialog('Titel ändern',song().title,t=>{song().title=t;persist();renderEditor()}));
+bindClick('addBar',()=>{
+  pushUndo();
+  const current=song(),last=current.lines.length-1;
+  splitEditorBar(current,last,current.lines[last].length,current.lines[last].length);
+  activeLine=current.lines.length-1;
+  renderEditor();focusLine(activeLine,0);changed();
+});
+bindClick('undoBtn',performUndo);
+bindClick('redoBtn',performRedo);
+const searchForm=$('#searchForm');
+searchForm.onsubmit=e=>{
+  e.preventDefault();
+  query=$('#searchInput').value.trim()||query;
+  pageSize=6;
+  void refreshWriterResults();
+  $('#resultsScroll').scrollTop=0;
+};
+bindClick('autoBtn',toggleAuto);
+bindClick('moreBtn',()=>{pageSize+=6;renderResults()});
+const resultsScroll=$('#resultsScroll');
+resultsScroll.addEventListener('scroll',()=>{
+  if(resultsScroll.scrollTop>0&&resultsScroll.scrollHeight-resultsScroll.scrollTop-resultsScroll.clientHeight<90&&pageSize<data().length){
+    pageSize+=6;renderResults();
+  }
+},{passive:true});
+['wheel','touchstart','pointerdown','focusin'].forEach((eventName)=>
+  resultsScroll.addEventListener(eventName,()=>pauseUntil=performance.now()+5000,{passive:true})
+);
 queryAll('[data-nav]').forEach(b=>b.onclick=()=>navigate(b.dataset.nav));queryAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));queryAll('[data-scope]').forEach(b=>b.onclick=()=>{scope=b.dataset.scope;pageSize=6;setExclusivePressed(queryAll('[data-scope]'),scope,'scope');void refreshWriterResults()});queryAll('[data-mobile]').forEach(b=>b.onclick=()=>{const dest=b.dataset.mobile;if(dest==='settings')return showSettings();if(dest==='results'){navigate('studio');document.body.classList.remove('focus');document.body.classList.add('mobile-results');setMobileActive('results')}else navigate(dest)});
 document.addEventListener('click',(event)=>{
   const button=event.target.closest('button');
