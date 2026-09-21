@@ -138,6 +138,13 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/IndexedDB · autoritativ/u);
   assert.match(app,/function renderLibrary\(/u);
   assert.match(app,/function createLibraryFolder\(/u);
+  assert.match(app,/function createLibrarySubfolder\(/u);
+  assert.match(app,/function renameLibraryFolder\(/u);
+  assert.match(app,/function reorderLibraryFolder\(/u);
+  assert.match(app,/function folderContains\(/u);
+  assert.match(app,/function expandFolderPaths\(/u);
+  assert.match(app,/data-folder-subfolder/u);
+  assert.match(app,/ORDNERSTRUKTUR/u);
   assert.match(app,/function deleteLibraryFolder\(/u);
   assert.match(app,/function moveLibrarySong\(/u);
   assert.match(app,/function permanentlyDeleteLibrarySong\(/u);
@@ -146,6 +153,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/Studio library parity/u);
   assert.match(css,/\.library-shell/u);
   assert.match(css,/\.library-folder-row/u);
+  assert.match(css,/\.library-folder-label/u);
+  assert.match(css,/--folder-depth/u);
   assert.match(css,/\.songcard-actions/u);
   assert.match(css,/\.result-badges/u);
   assert.match(css,/\.runtime-inline/u);
