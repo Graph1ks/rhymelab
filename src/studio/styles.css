@@ -326,3 +326,93 @@ html,*{
   .advanced-filter-toggle{min-height:32px}
   .direct-filters .advanced-check{min-height:44px;align-items:center}
 }
+
+
+/* Studio library parity */
+.library-head{gap:20px}
+.library-head h1{margin-top:9px}
+.library-head p{margin-top:10px}
+.library-toolbar{
+  display:grid;grid-template-columns:minmax(260px,1fr) 190px;gap:12px;align-items:end;
+  margin-top:24px;padding:12px;border:1px solid var(--line);border-radius:13px;
+  background:color-mix(in srgb,var(--panel) 72%,var(--bg))
+}
+.library-search input,.library-sort select{
+  width:100%;min-height:40px;border:1px solid var(--line);border-radius:9px;
+  background:var(--panel);color:var(--ink);padding:8px 11px;outline:0
+}
+.library-search input:focus,.library-sort select:focus{
+  border-color:color-mix(in srgb,var(--accent) 64%,var(--line));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 11%,transparent)
+}
+.library-sort{display:grid;gap:5px;font-size:8px;letter-spacing:.9px;font-weight:800;color:var(--muted)}
+.library-shell{display:grid;grid-template-columns:210px minmax(0,1fr);gap:22px;margin-top:18px;align-items:start}
+.library-folders{
+  position:sticky;top:0;display:grid;gap:5px;padding:10px;border:1px solid var(--line);
+  border-radius:13px;background:color-mix(in srgb,var(--panel) 78%,var(--bg))
+}
+.library-folder-head{display:flex;align-items:center;justify-content:space-between;padding:3px 4px 7px}
+.library-folder-head .icon{width:30px;min-height:30px;padding:3px;font-size:18px}
+.library-folder-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px}
+.library-folder-row>button:first-child{
+  min-width:0;min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:7px 9px;text-align:left;color:var(--muted)
+}
+.library-folder-row>button:first-child span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.library-folder-row>button:first-child small{
+  min-width:22px;padding:2px 5px;border-radius:999px;text-align:center;
+  background:var(--bg);border:1px solid var(--line);font-size:8px
+}
+.library-folder-row>button:first-child.active{background:var(--tint);color:var(--accent)}
+.library-folder-delete{
+  width:30px;min-height:36px;padding:4px;color:var(--muted);opacity:.38
+}
+.library-folder-row:hover .library-folder-delete,.library-folder-delete:focus-visible{opacity:1}
+.library-content{min-width:0}
+.library-results-head{
+  min-height:36px;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:0 2px 8px;font-size:10px;color:var(--muted)
+}
+.library-results-head button{font-size:9px;min-height:28px;padding:3px 7px}
+.library-content .song-grid{margin-top:0;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.songcard{
+  position:relative;display:flex;flex-direction:column;min-height:230px;
+  transition:transform .18s var(--ease),border-color .18s var(--ease),box-shadow .18s var(--ease)
+}
+.songcard:hover{transform:translateY(-2px);box-shadow:var(--panel-shadow)}
+.songcard.is-active{border-color:color-mix(in srgb,var(--accent) 48%,var(--line))}
+.songcard-top{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.song-active-badge{
+  font-size:7px;letter-spacing:.8px;font-weight:800;padding:3px 5px;border-radius:999px;
+  background:var(--tint);color:var(--accent)
+}
+.songcard p{
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  line-height:1.55;min-height:58px
+}
+.songcard-meta{display:flex;gap:6px;margin-top:auto;padding-top:13px;font-size:9px;color:var(--muted)}
+.songcard-actions{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)
+}
+.songcard-actions button{min-height:32px;padding:5px 8px;font-size:9px}
+.danger-ghost{color:var(--accent-2,var(--accent))}
+.library-empty{
+  grid-column:1/-1;min-height:180px;display:grid;place-items:center;align-content:center;gap:6px;
+  border:1px dashed var(--line);border-radius:13px;color:var(--muted)
+}
+.library-empty b{color:var(--ink);font-size:13px}
+.library-empty span{font-size:10px}
+
+@media(max-width:800px){
+  .library-toolbar{grid-template-columns:1fr;margin-top:18px}
+  .library-shell{grid-template-columns:1fr;gap:14px}
+  .library-folders{position:static;display:flex;gap:6px;overflow-x:auto;padding:8px;scrollbar-width:none}
+  .library-folders::-webkit-scrollbar{display:none}
+  .library-folder-head{flex:0 0 auto;gap:6px}
+  .library-folder-row{flex:0 0 auto;display:flex}
+  .library-folder-row>button:first-child{white-space:nowrap}
+  .library-folder-delete{opacity:.72}
+  .library-content .song-grid{grid-template-columns:1fr}
+  .songcard{min-height:0}
+  .songcard-actions button{min-height:44px;flex:1 1 calc(50% - 6px)}
+}
