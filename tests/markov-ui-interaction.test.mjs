@@ -101,6 +101,10 @@ test('Markov test surface preserves mobile behavior and uses the Markov API',asy
   assert.match(styles,/@media\(prefers-reduced-motion:reduce\)/u);
   assert.match(styles,/\.hero-sentence\.animate-in \.sentence-token/u);
   assert.match(styles,/\.token-corpus/u);
+  assert.match(styles,/@media\(min-width:1200px\) and \(min-height:760px\) and \(max-height:980px\)/u);
+  assert.match(styles,/height:100dvh/u);
+  assert.match(styles,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/u);
+  assert.match(styles,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/u);
   assert.doesNotMatch(styles,/overflow-y:\s*(?:scroll|auto)/u);
   assert.match(app,/\/api\/markov\/generate/u);
   assert.match(app,/Markov transition database missing/u);
@@ -108,6 +112,7 @@ test('Markov test surface preserves mobile behavior and uses the Markov API',asy
   assert.match(app,/DECODER V2/u);
   assert.match(app,/novelty windows/u);
   assert.match(app,/line shapes/u);
+  assert.match(app,/note\.title=note\.textContent\.trim\(\)/u);
   assert.doesNotMatch(app,/accepted Leipzig sentences/u);
   assert.doesNotMatch(core,/MODEL_LINES/u);
   assert.doesNotMatch(core,/<CONTENT>/u);
