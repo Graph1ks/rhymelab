@@ -112,6 +112,36 @@ export function splitEditorBar(song,index,start,end=start){
   };
 }
 
+function removeBarScopedState(song,barId){
+  const id=String(barId||'');
+  if(!id)return;
+  if(song.performanceCues&&typeof song.performanceCues==='object'){
+    const prefix=id+':';
+    for(const key of Object.keys(song.performanceCues)){
+      if(key.startsWith(prefix))delete song.performanceCues[key];
+    }
+  }
+  if(song.performanceAnchors&&typeof song.performanceAnchors==='object'){
+    delete song.performanceAnchors[id];
+  }
+}
+
+export function insertEditorBar(song,index,value=''){
+  ensureEditorSong(song);
+  const target=Math.max(0,Math.min(song.lines.length,integer(index,song.lines.length)));
+  const id=nextBarId(song);
+  song.lines.splice(target,0,text(value).replace(/[\r\n]+/g,' '));
+  song.barIds.splice(target,0,id);
+  song.barRevisions.splice(target,0,0);
+  return barIdentity(song,target);
+}
+
+export function duplicateEditorBar(song,index){
+  ensureEditorSong(song);
+  if(index<0||index>=song.lines.length)return null;
+  return insertEditorBar(song,index+1,song.lines[index]);
+}
+
 export function removeEditorBar(song,index){
   ensureEditorSong(song);
   if(song.lines.length<=1||index<0||index>=song.lines.length)return null;
@@ -119,6 +149,7 @@ export function removeEditorBar(song,index){
   song.lines.splice(index,1);
   song.barIds.splice(index,1);
   song.barRevisions.splice(index,1);
+  removeBarScopedState(song,removed.id);
   return removed;
 }
 
