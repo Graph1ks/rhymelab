@@ -132,3 +132,118 @@ Owner-private lyrics remain calibration/benchmark material only.
 They are not an implicit `lyric` source and are never consumed by the production wrapper unless the owner deliberately supplies them to the low-level builder for a private local experiment. Such a private model must not be distributed or committed.
 
 The public aggregate lyric-shape profile remains separate from all corpus text.
+
+
+## Default acquisition pipeline
+
+The repository now includes a deterministic acquisition registry:
+
+```text
+sources/markov-sentence-sources-v1.json
+```
+
+The initial production-oriented German sentence mix is intentionally small and modern:
+
+| Code | Source | Era | Role | Initial weight |
+| --- | --- | ---: | --- | ---: |
+| `leipzig_news_2024_300k` | Leipzig German News 2024, 300K sentence package | 2024 | `sentence` | 1 |
+| `tatoeba_deu` | Tatoeba weekly German detailed export | contemporary/community | `sentence` | 1 |
+
+Weights start neutral. They are not tuned until quality/latency benchmarks show a reason to change them.
+
+Verified access/licensing notes:
+
+- Leipzig currently exposes standardized German corpora in 10K/30K/100K/300K/1M sizes; the downloadable text corpora are declared CC BY in the project's terms of use.
+- The selected Leipzig upstream corpus is `deu_news_2024`, whose corpus page reports 36,033,067 source sentences and 565,841,855 tokens; RhymeLab deliberately acquires only the normalized 300K download package for the first model.
+- Tatoeba publishes weekly per-language exports. The detailed German export contains sentence ID, language, text, contributor username, date added, and date modified. Tatoeba documents its textual corpus as CC BY 2.0 FR and requires attribution.
+
+Attribution contract:
+
+```text
+docs/DATA_ATTRIBUTION.md
+```
+
+### Commands
+
+Inspect the acquisition plan without downloading:
+
+```powershell
+npm run markov:sources:plan
+```
+
+Acquire, parse, filter, globally deduplicate, checksum and stage all enabled sources:
+
+```powershell
+npm run markov:sources:acquire
+```
+
+Force refresh of the upstream archives:
+
+```powershell
+npm run markov:sources:refresh
+```
+
+Inspect local staged-source state:
+
+```powershell
+npm run markov:sources:status
+```
+
+Acquire sources and build Markov V2 in one command:
+
+```powershell
+npm run markov:data:bootstrap
+```
+
+After acquisition, ordinary:
+
+```powershell
+npm run markov:model:build
+```
+
+automatically discovers `data/local/markov-sources/manifest.json` and includes every staged `sentence` source in addition to the canonical Serving-v1 Phrase/Mosaic source.
+
+### Local data layout
+
+```text
+data/raw/markov-sources/
+  leipzig_news_2024_300k.tar.gz
+  tatoeba_deu.tsv.bz2
+
+data/local/markov-sources/
+  manifest.json
+  ATTRIBUTION.txt
+  leipzig_news_2024_300k.txt
+  leipzig_news_2024_300k.meta.json
+  tatoeba_deu.txt
+  tatoeba_deu.meta.json
+```
+
+All of these paths are already covered by repository ignore rules.
+
+### Staging policy
+
+The acquisition stage rejects obvious non-sentence/noise rows using deterministic rules before model building:
+
+- 4–32 lexical tokens;
+- 18–320 characters;
+- URL rows;
+- markup-heavy rows;
+- repeated-character garbage;
+- low letter-ratio rows;
+- extreme all-caps noise;
+- obvious non-Latin-script mixtures.
+
+It then hashes normalized sentences and deduplicates **globally across all acquired sources**, not merely within each source. Source order in the registry therefore also defines deterministic duplicate ownership.
+
+The staged sentence files contain one clean sentence per line. Raw contributor metadata and upstream checksums remain in source-specific metadata reports; raw archives remain ignored local data.
+
+### Source-mix invalidation
+
+The Markov wrapper fingerprints:
+
+- the canonical Serving-v1 Phrase/Mosaic export;
+- every staged sentence-source SHA256;
+- source code, accepted-row count, and deterministic weight.
+
+If that mix changes, the resumable Markov work database is reset automatically before rebuilding. A stale transition model therefore cannot silently survive a changed corpus mix.
