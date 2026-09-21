@@ -49,6 +49,7 @@ import {
   resolveServerRuntimeMode,
 } from './server-runtime-mode.mjs';
 import {createServingV1ParallelWriterRuntime} from './unified-writer-parallel.mjs';
+import {analyzeSongEndRhymes} from './song-rhyme-analysis.mjs';
 import {
   generatedDataExplicitlyRequired,
   generatedDataRequested,
@@ -675,6 +676,46 @@ const server = createServer(async (req, res) => {
           ? 404
           : 200;
       return json(res, {...result,runtimeTiming}, status);
+    }
+
+    if (url.pathname === '/api/analysis/rhyme-scheme') {
+      const words=url.searchParams.getAll('word').map((word)=>String(word||'').trim()).filter(Boolean).slice(0,200);
+      if(!words.length)return json(res,{error:'at least one word is required'},400);
+      const language=String(url.searchParams.get('language')||'de').trim().toLocaleLowerCase('en-US');
+      const normalizedLanguage=['de','en','both'].includes(language)?language:'de';
+      const runtimeDatabases=requestRuntimeDatabases(url);
+      if(!runtimeDatabases){
+        return json(res,{
+          error:'Generated opt-in runtime is unavailable.',
+          reason:activeGeneratedRuntime.reason,
+        },503);
+      }
+      const started=performance.now();
+      const searchAnchor=async(word)=>{
+        const options={
+          language:normalizedLanguage,
+          resultLanguage:normalizedLanguage,
+          scope:'words',
+          type:'all',
+          includeVariants:true,
+          includeHistorical:false,
+          wordLimit:250,
+          wordPoolLimit:1200,
+          generatedOnly:generatedOnlyRequested(url),
+        };
+        return servingV1Active
+          ?parallelWriterRuntime.search(word,options,{generatedOverlay:generatedOptinRequested(url)})
+          :searchUnifiedWriter(runtimeDatabases,word,options);
+      };
+      const analysis=await analyzeSongEndRhymes(words,{
+        searchAnchor,
+        language:normalizedLanguage,
+        maxUnique:64,
+      });
+      return json(res,{
+        ...analysis,
+        runtimeTiming:{currentMs:Number((performance.now()-started).toFixed(3))},
+      });
     }
 
     if (url.pathname === '/api/phrases/stats') {
