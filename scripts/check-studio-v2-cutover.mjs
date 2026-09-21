@@ -128,8 +128,12 @@ const requiredRoutes=[
   '/studio/document-store.mjs',
   '/studio/performance-session.mjs',
   '/studio/analysis-adapter.mjs',
+  '/studio/backup-portability.mjs',
+  '/studio/diagnostics.mjs',
   '/studio/i18n.mjs',
   '/studio/dom-acceptance.mjs',
+  '/studio/command-palette.mjs',
+  '/studio/edit-history.mjs',
   '/studio/parity-manifest.mjs',
   '/studio/device-acceptance.mjs',
 ];
@@ -149,10 +153,17 @@ add(
 
 const requiredTests=[
   'tests/studio-v2-source.test.mjs',
+  'tests/studio-cutover-gate.test.mjs',
+  'tests/studio-parity-manifest.test.mjs',
   'tests/studio-device-acceptance.test.mjs',
   'tests/studio-dom-acceptance.test.mjs',
   'tests/studio-i18n.test.mjs',
+  'tests/studio-command-palette.test.mjs',
+  'tests/studio-backup-portability.test.mjs',
+  'tests/studio-diagnostics.test.mjs',
+  'tests/studio-edit-history.test.mjs',
   'tests/studio-performance-session.test.mjs',
+  'tests/studio-document-adapter.test.mjs',
   'tests/studio-document-model.test.mjs',
   'tests/studio-document-store.test.mjs',
 ];
