@@ -539,11 +539,18 @@ async function runPass1(){
 
 function finalizeCensus(){
   const already=readMeta(db).census_finalized==='1';
-  if(already)return;
-  console.log(`Markov build phase 2/3: prune vocabulary + retain frequent order-2..${MARKOV_MODEL_ORDER} states`);
+  if(already){
+    console.log(`[markov ${language.toUpperCase()} 2/3] census already finalized · resume`);
+    return;
+  }
+  const phaseStarted=Date.now();
+  console.log(`[markov ${language.toUpperCase()} 2/3] prune vocabulary + retain frequent order-2..${MARKOV_MODEL_ORDER} states`);
   db.exec('BEGIN');
   try{
+    const beforeTokens=Number(db.prepare('SELECT COUNT(*) AS n FROM token').get()?.n||0);
     db.prepare('DELETE FROM token WHERE count < ?').run(minTokenCount);
+    const afterTokens=Number(db.prepare('SELECT COUNT(*) AS n FROM token').get()?.n||0);
+    console.log(`[markov ${language.toUpperCase()} 2/3] vocabulary · ${beforeTokens.toLocaleString('en-US')} → ${afterTokens.toLocaleString('en-US')} tokens`);
     tokenUpsert.run(START_TOKEN,1,0,0,START_TOKEN);
     tokenUpsert.run(END_TOKEN,1,0,0,END_TOKEN);
     db.prepare('UPDATE state_count SET retained=0').run();
@@ -560,21 +567,41 @@ function finalizeCensus(){
         )
     `);
     for(let contextLen=2;contextLen<=MARKOV_MODEL_ORDER;contextLen+=1){
+      const orderStarted=Date.now();
       retainByOrder.run(contextLen,contextLen,quota);
+      const retained=Number(db.prepare(
+        'SELECT COUNT(*) AS n FROM state_count WHERE context_len=? AND retained=1'
+      ).get(contextLen)?.n||0);
+      console.log(
+        `[markov ${language.toUpperCase()} 2/3] order-${contextLen} retained `
+        +`${retained.toLocaleString('en-US')} states · ${duration(Date.now()-orderStarted)}`
+      );
     }
     db.prepare("UPDATE state_count SET retained=1 WHERE state_key LIKE ? OR state_key LIKE ?")
       .run(`${START_TOKEN}%`,`%${END_TOKEN}`);
     db.exec('COMMIT');
   }catch(error){db.exec('ROLLBACK');throw error;}
+
   const updateSurface=db.prepare('UPDATE token SET preferred_surface=? WHERE norm=?');
+  const tokenTotal=Number(db.prepare('SELECT COUNT(*) AS n FROM token').get()?.n||0);
+  let surfaceDone=0;
   db.exec('BEGIN');
   try{
     for(const row of db.prepare('SELECT norm,count,title_count,upper_count FROM token').iterate()){
       updateSurface.run(preferredSurfaceFor(row),row.norm);
+      surfaceDone+=1;
+      if(surfaceDone%50_000===0){
+        console.log(
+          `[markov ${language.toUpperCase()} 2/3] surfaces `
+          +`${surfaceDone.toLocaleString('en-US')}/${tokenTotal.toLocaleString('en-US')} `
+          +`(${((surfaceDone/Math.max(1,tokenTotal))*100).toFixed(1)}%)`
+        );
+      }
     }
     db.exec('COMMIT');
   }catch(error){db.exec('ROLLBACK');throw error;}
   writeMeta(db,{census_finalized:'1'});
+  console.log(`[markov ${language.toUpperCase()} 2/3] DONE · elapsed ${duration(Date.now()-phaseStarted)}`);
 }
 
 function flushTransitions(counts,sourceIndex,sourceCode,lineNumber,accepted){
@@ -679,8 +706,16 @@ async function runPass2(){
 }
 
 function pruneTransitions(){
-  if(readMeta(db).transitions_pruned==='1')return;
-  console.log(`Prune transitions to top ${topK} per state/direction/order…`);
+  if(readMeta(db).transitions_pruned==='1'){
+    console.log(`[markov ${language.toUpperCase()} prune] already complete · resume`);
+    return;
+  }
+  const started=Date.now();
+  const before=Number(db.prepare('SELECT COUNT(*) AS n FROM transition').get()?.n||0);
+  console.log(
+    `[markov ${language.toUpperCase()} prune] top ${topK} per state/direction/order · `
+    +`${before.toLocaleString('en-US')} transition rows · SQL running…`
+  );
   db.exec('BEGIN');
   try{
     db.prepare(`
@@ -701,9 +736,17 @@ function pruneTransitions(){
     db.exec('COMMIT');
   }catch(error){db.exec('ROLLBACK');throw error;}
   writeMeta(db,{transitions_pruned:'1'});
+  const after=Number(db.prepare('SELECT COUNT(*) AS n FROM transition').get()?.n||0);
+  console.log(
+    `[markov ${language.toUpperCase()} prune] DONE · `
+    +`${before.toLocaleString('en-US')} → ${after.toLocaleString('en-US')} rows · `
+    +`elapsed ${duration(Date.now()-started)}`
+  );
 }
 
 async function promote(){
+  const promoteStarted=Date.now();
+  console.log(`[markov ${language.toUpperCase()} promote] finalize metadata + optimize work DB…`);
   const scanRows=db.prepare("SELECT accepted_sentences FROM build_checkpoint WHERE phase='scan'").all();
   const acceptedSentences=scanRows.reduce((sum,row)=>sum+Number(row.accepted_sentences||0),0);
   const declaredSourceSentences=sourceRows.reduce((sum,row)=>sum+Number(row.manifest?.sentences||0),0);
@@ -727,6 +770,7 @@ async function promote(){
     source_profile_json:JSON.stringify(sourceProfile),
   });
   db.exec('ANALYZE; PRAGMA optimize;');
+  console.log(`[markov ${language.toUpperCase()} promote] compute semantic fingerprint…`);
   const fingerprint=semanticFingerprint(db);
   const builtAt=new Date().toISOString();
   writeMeta(db,{semantic_fingerprint:fingerprint,built_at:builtAt,build_status:'complete'});
@@ -734,6 +778,7 @@ async function promote(){
   const statsBefore=modelStats(db);
   db.close();
 
+  console.log(`[markov ${language.toUpperCase()} promote] copy work DB + VACUUM compact output…`);
   const temp=`${outPath}.tmp`;
   const previous=`${outPath}.previous`;
   await rm(temp,{force:true});
@@ -751,6 +796,10 @@ async function promote(){
   try{await rename(temp,outPath);}catch(error){if(await exists(previous))await rename(previous,outPath);throw error;}
   await rm(previous,{force:true});
   const outBytes=(await stat(outPath)).size;
+  console.log(
+    `[markov ${language.toUpperCase()} promote] DONE · ${human(outBytes)} · `
+    +`elapsed ${duration(Date.now()-promoteStarted)}`
+  );
   const report={
     schema:'rhymelab-markov-model-build-report-v2',
     status:'ok',
