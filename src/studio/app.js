@@ -921,7 +921,7 @@ async function startPlay(){
       if(current%(steps/4)===0||stored?.type==='accent'||stored?.type==='hit'){
         const oscillator=audioContext.createOscillator(),gain=audioContext.createGain();
         oscillator.frequency.value=stored?.type==='accent'?1120:current===0?960:620;
-        const gainValue=(stored?.type==='hit'||stored?.type==='accent')?.06:.04;
+        const gainValue=(stored?.type==='hit'||stored?.type==='accent') ? .06 : .04;
         gain.gain.setValueAtTime(gainValue,audioContext.currentTime);
         gain.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.045);
         oscillator.connect(gain);gain.connect(audioContext.destination);oscillator.start();oscillator.stop(audioContext.currentTime+.05);
