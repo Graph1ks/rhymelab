@@ -75,6 +75,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/id=["']themeQuickMenu["']/u);
   assert.match(html,/id=["']themeMenuBtn["']/u);
   assert.match(html,/id=["']uiLanguageBtn["']/u);
+  assert.match(html,/id=["']deviceGuideBar["']/u);
+  assert.match(html,/id=["']deviceGuidePass["']/u);
+  assert.match(html,/id=["']deviceGuideFail["']/u);
+  assert.match(html,/id=["']deviceGuideBack["']/u);
   assert.match(app,/from '\.\/i18n\.mjs'/u);
   assert.match(app,/function setStudioUiLanguage\(/u);
   assert.match(app,/function studioCommandRegistry\(/u);
@@ -201,6 +205,11 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/function currentDeviceAcceptanceEnvironment\(/u);
   assert.match(app,/function renderDeviceAcceptancePanel\(/u);
   assert.match(app,/function launchDeviceAcceptanceGuide\(/u);
+  assert.match(app,/function renderActiveDeviceGuide\(/u);
+  assert.match(app,/function completeActiveDeviceGuide\(/u);
+  assert.match(app,/function returnToDeviceAcceptanceCenter\(/u);
+  assert.match(app,/activeDeviceGateGuide/u);
+  assert.match(app,/data-device-gate-card/u);
   assert.match(app,/studioDeviceGateEnvironmentStatus/u);
   assert.match(app,/data-device-gate-guide/u);
   assert.match(app,/audioSupported:Boolean\(window\.AudioContext\|\|window\.webkitAudioContext\)/u);
@@ -271,6 +280,9 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.device-gate-list/u);
   assert.match(css,/\.device-gate/u);
   assert.match(css,/\.device-gate-evidence/u);
+  assert.match(css,/Studio guided acceptance overlay/u);
+  assert.match(css,/\.device-guide-bar/u);
+  assert.match(css,/#deviceGuidePass/u);
   assert.match(css,/\.parity-summary/u);
   assert.match(css,/\.parity-group-grid/u);
   assert.match(css,/\.perform-transport/u);
