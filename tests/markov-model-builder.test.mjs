@@ -207,3 +207,22 @@ test('V2 builder materializes an independent English model when --language en is
     await rm(dir,{recursive:true,force:true});
   }
 });
+
+
+test('long-running Markov wrappers stream child progress instead of buffering it',async()=>{
+  const [deWrapper,enWrapper,builder]=await Promise.all([
+    readFile('scripts/build-markov-from-rhymelab.mjs','utf8'),
+    readFile('scripts/build-markov-en-v2.mjs','utf8'),
+    readFile('scripts/build-markov-model.mjs','utf8'),
+  ]);
+  for(const wrapper of [deWrapper,enWrapper]){
+    assert.match(wrapper,/stdio:\['ignore','inherit','inherit'\]/u);
+    assert.doesNotMatch(wrapper,/stdio:\['ignore','pipe','pipe'\]/u);
+  }
+  assert.match(builder,/sourceProgress\(/u);
+  assert.match(builder,/sent\/s/u);
+  assert.match(builder,/ETA/u);
+  assert.match(builder,/checkpoint/u);
+  assert.match(builder,/SQL running/u);
+  assert.match(builder,/promote\] DONE/u);
+});
