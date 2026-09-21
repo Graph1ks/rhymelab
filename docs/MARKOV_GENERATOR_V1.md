@@ -169,7 +169,7 @@ Near duplicates can be rejected; remaining candidates receive a result-diversity
 
 This specifically prevents one attractive Markov path from filling the entire result list with superficial prefix variations.
 
-## Section planning primitive
+## Section planning and cross-line selection
 
 V2 includes a deterministic section planner capable of producing line plans for rhyme-slot schemes such as:
 
@@ -188,7 +188,17 @@ A line plan includes:
 - section type;
 - repetition policy hint.
 
-This is the planning foundation for future multi-line generation. Single-line quality remains the immediate acceptance gate before RhymePad promotion.
+The V2 core can also select section lines sequentially from per-slot Writer pools. Cross-line selection:
+
+- blocks exact tail reuse within one rhyme slot;
+- penalizes excessive lexical overlap with earlier lines;
+- can reward continuation of a rhyme family inside the same slot;
+- penalizes accidental rhyme-family collisions across different slots;
+- reports explicit failures when a slot cannot supply a diverse candidate.
+
+Set diagnostics include unique-tail ratio, unique-final-token ratio, mean/max pairwise similarity, exact-length rate, source-copy rate, mean Naturalness and mean Rhyme score.
+
+This core is implemented, but the multi-line UI is deliberately not promoted into RhymePad until single-line and source-mix quality are accepted.
 
 ## Typed training sources
 
