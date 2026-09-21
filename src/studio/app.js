@@ -32,6 +32,9 @@ state.songs.forEach((item)=>{
   item.updatedAt=Math.max(Number(item.updatedAt)||0,latestRevision,item.createdAt);
   if(item.deleted&&item.deletedAt==null)item.deletedAt=Math.max(item.updatedAt,1);
 });
+if(!state.songs.some((item)=>item.id===state.active&&!item.deleted&&!item.deletedAt)){
+  state.active=state.songs.find((item)=>!item.deleted&&!item.deletedAt)?.id||state.songs[0]?.id||null;
+}
 let libraryView={trash:false,query:'',folder:'all',sort:'updated'};
 
 const STUDIO_BUILTIN_THEMES={
@@ -550,6 +553,7 @@ function permanentlyDeleteLibrarySong(id){
   $('#cancelPermanentDelete').onclick=closeDialog;
   $('#confirmPermanentDelete').onclick=()=>{
     state.songs=state.songs.filter((row)=>row.id!==id);
+    if(state.active===id)state.active=state.songs.find((row)=>!row.deleted&&!row.deletedAt)?.id||state.songs[0]?.id||null;
     persist();closeDialog();renderLibrary(true);renderProjects();notify('Text endgültig gelöscht.');
   };
 }
