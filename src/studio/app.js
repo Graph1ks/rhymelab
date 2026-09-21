@@ -68,7 +68,7 @@ const analysisClient=createStudioAnalysisClient();
 const documentStore=createStudioDocumentStore();
 let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerCapabilities=null,writerDebounce=0;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
-let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null;
+let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all';
 let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0,mobileViewportCleanup=null;
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',
   query=sharedSearchState.anchor||'Nacht',
@@ -748,29 +748,68 @@ function renderAnalysisSurface(){
   const scheme=ready&&Array.isArray(analysisData.scheme)?analysisData.scheme:words.map(()=>'?');
   const rows=s.lines.map((line,index)=>{
     const relation=ready?analysisData.lineRelations?.[index]:null;
+    const detail=ready?analysisData.wordDetails?.[index]:null;
     const relationText=relation?analysisRelationLabel(relation):index===0?'Start':'—';
     const prior=relation?.prior!=null?' · Bar '+String(relation.prior+1).padStart(2,'0'):'';
-    return '<button class="analysis-line" data-analysis-bar="'+index+'"><span class="analysis-bar-no">'+String(index+1).padStart(2,'0')+'</span><span class="analysis-scheme-letter">'+esc(scheme[index]||'—')+'</span><span class="analysis-end-word">'+esc(words[index]||'—')+'</span><span class="analysis-relation">'+esc(relationText+prior)+'</span></button>';
+    const stress=detail?.stressPattern||(
+      detail?.primaryStressSyllable!=null?'Stress · '+detail.primaryStressSyllable:''
+    );
+    return '<button class="analysis-line" data-analysis-bar="'+index+'"><span class="analysis-bar-no">'+String(index+1).padStart(2,'0')+'</span><span class="analysis-scheme-letter">'+esc(scheme[index]||'—')+'</span><span class="analysis-end-word">'+esc(words[index]||'—')+(stress?'<small>'+esc(stress)+'</small>':'')+'</span><span class="analysis-relation">'+esc(relationText+prior)+'</span></button>';
   }).join('');
   const coverage=ready&&analysisData.coverage
     ?'<span>'+analysisData.coverage.resolved+'/'+analysisData.coverage.unique+' Endwörter aufgelöst'+(analysisData.coverage.truncated?' · Analyse auf 64 eindeutige Wörter begrenzt':'')+'</span>'
     :'';
   const canonicalState=analysisStatus==='loading'
-    ?'<div class="analysis-loading">Writer analysiert die Bar-Enden …</div>'
+    ?'<div class="analysis-loading">Writer analysiert Endwörter, Stress und interne Klangbeziehungen …</div>'
     :analysisStatus==='error'
       ?'<div class="analysis-error">Kanonische Analyse nicht verfügbar: '+esc(analysisError)+'</div>'
       :'';
   const runtime=ready&&analysisData.runtimeTiming?.currentMs!=null
     ?' · '+Math.round(Number(analysisData.runtimeTiming.currentMs))+' ms'
     :'';
+
+  const allPairs=ready&&Array.isArray(analysisData.pairs)
+    ?analysisData.pairs.slice().sort((a,b)=>Number(b.primary)-Number(a.primary)||Number(b.score||0)-Number(a.score||0))
+    :[];
+  const visiblePairs=allPairs.filter((pair)=>
+    analysisRelationMode==='all'
+      ||(analysisRelationMode==='primary'&&pair.primary)
+      ||(analysisRelationMode==='soft'&&!pair.primary)
+  );
+  const relationWorkbench=ready
+    ?visiblePairs.length
+      ?visiblePairs.map((pair)=>'<button class="analysis-pair" data-analysis-anchor="'+esc(pair.left)+'"><span class="analysis-pair-words"><b>'+esc(pair.left)+'</b><i>↔</i><b>'+esc(pair.right)+'</b></span><span>'+esc(pair.label||pair.type)+'</span><strong>'+Math.round(Number(pair.score||0)*100)+'%</strong><small>'+esc((pair.language||basis).toUpperCase())+'</small></button>').join('')
+      :'<div class="analysis-empty">Keine Beziehungen in diesem Filter.</div>'
+    :'<div class="analysis-empty">Analyse laden, um Beziehungen im Verse zu sehen.</div>';
+
+  const wordLab=ready&&Array.isArray(analysisData.uniqueWordDetails)
+    ?analysisData.uniqueWordDetails.map((detail)=>{
+      const unresolved=detail?.unresolved===true;
+      const stress=detail?.stressPattern||(
+        detail?.primaryStressSyllables?.length
+          ?'Primary '+detail.primaryStressSyllables.join(', ')
+          :'—'
+      );
+      return '<article class="analysis-word-card '+(unresolved?'unresolved':'')+'"><div class="row between"><button data-analysis-anchor="'+esc(detail?.surface||detail?.normalized||'')+'" class="analysis-word-title">'+esc(detail?.surface||detail?.normalized||'—')+'</button><span>'+esc(String(detail?.language||'').toUpperCase()||'—')+'</span></div><code>'+(detail?.ipa?'/'+esc(detail.ipa)+'/':'IPA —')+'</code><div class="analysis-word-facts"><span><small>SILBEN</small><b>'+(detail?.syllableCount||'—')+'</b></span><span><small>STRESS</small><b>'+esc(stress)+'</b></span></div>'+(detail?.generatedPronunciation?'<small class="analysis-generated">Generated pronunciation</small>':'')+(unresolved?'<small>Nicht im aktiven Writer-Lexikon aufgelöst.</small>':'')+'</article>';
+    }).join('')
+    :'';
+
   $('#rhymeView').innerHTML=`
     <div class="analysis-head row between wrap">
-      <div><div class="eyebrow">Song Analysis</div><h2>Klang, Struktur, Spannung.</h2><p class="small">Reimschema aus dem kanonischen Writer-Runtime-Pfad. Silbenzahlen bleiben separat als explizite UI-Schätzung markiert.</p></div>
-      <div class="row"><span class="analysis-source">WRITER · ${esc(String(basis).toUpperCase())}${runtime}</span><button id="refreshAnalysis" class="outline">Neu analysieren</button><button class="outline" id="backWrite">Zurück zum Text</button></div>
+      <div><div class="eyebrow">Song Analysis</div><h2>Klang, Struktur, Spannung.</h2><p class="small">Reimschema, Stressdaten und Klangbeziehungen kommen aus dem kanonischen Writer-Runtime-Pfad. Lokale Silbenzählung ist separat als Approximation markiert.</p></div>
+      <div class="row wrap">
+        <span class="analysis-source">WRITER · ${esc(String(basis).toUpperCase())}${runtime}</span>
+        <div class="analysis-language-toggle" role="group" aria-label="Analysesprache">
+          <button data-analysis-language="de" class="${basis==='de'?'active':''}" aria-pressed="${basis==='de'}">DE</button>
+          <button data-analysis-language="en" class="${basis==='en'?'active':''}" aria-pressed="${basis==='en'}">EN</button>
+          <button data-analysis-language="both" class="${basis==='both'?'active':''}" aria-pressed="${basis==='both'}">Cross DE+EN</button>
+        </div>
+        <button id="refreshAnalysis" class="outline">Neu analysieren</button><button class="outline" id="backWrite">Zurück zum Text</button>
+      </div>
     </div>
     <div class="analysis-layout">
       <section class="analysis-card analysis-rhyme-card">
-        <div class="row between"><div><h3>Kanonisches Reimschema</h3><p class="small">Vollreim, Slant, Family, Assonanz und Konsonanz kommen direkt aus der Writer-Klassifikation.</p></div>${coverage}</div>
+        <div class="row between wrap"><div><h3>Kanonisches Reimschema</h3><p class="small">Primärreime bestimmen das Schema. Assonanz/Konsonanz bleiben zusätzliche Klangrelationen.</p></div>${coverage}</div>
         ${canonicalState}
         <div class="analysis-lines">${rows}</div>
         ${ready&&analysisData.coverage?.unresolved?.length?'<p class="analysis-note">Nicht im aktiven Writer-Lexikon: '+esc(analysisData.coverage.unresolved.slice(0,12).join(', '))+(analysisData.coverage.unresolved.length>12?' …':'')+'</p>':''}
@@ -783,6 +822,14 @@ function renderAnalysisSurface(){
           return '<div class="analysis-density-row"><span>'+String(index+1).padStart(2,'0')+'</span><i><b style="width:'+width+'%"></b></i><strong>'+count+'</strong></div>';
         }).join('')}</div>
       </section>
+      <section class="analysis-card analysis-relations-card">
+        <div class="row between wrap"><div><h3>Relations inside Verse</h3><p class="small">Alle vom Writer gefundenen Beziehungen zwischen Bar-Enden.</p></div><div class="analysis-relation-toggle" role="group"><button data-analysis-relation-mode="all" class="${analysisRelationMode==='all'?'active':''}">Alle</button><button data-analysis-relation-mode="primary" class="${analysisRelationMode==='primary'?'active':''}">Primär</button><button data-analysis-relation-mode="soft" class="${analysisRelationMode==='soft'?'active':''}">Assonanz / Konsonanz</button></div></div>
+        <div class="analysis-pairs">${relationWorkbench}</div>
+      </section>
+      <section class="analysis-card analysis-word-lab">
+        <div><h3>Word Laboratory</h3><p class="small">Kanonische IPA-/Stressdaten der analysierten Endwörter. Wort anklicken → als Writer-Anker übernehmen.</p></div>
+        <div class="analysis-word-grid">${wordLab||'<div class="analysis-empty">Noch keine Wortdaten.</div>'}</div>
+      </section>
     </div>`;
   $('#backWrite').onclick=()=>setMode('write');
   $('#refreshAnalysis').onclick=()=>{analysisSignature='';void refreshSongAnalysis(true)};
@@ -790,6 +837,32 @@ function renderAnalysisSurface(){
     activeLine=+button.dataset.analysisBar;
     setMode('write');
     focusLine(activeLine);
+  });
+  queryAll('[data-analysis-relation-mode]').forEach((button)=>button.onclick=()=>{
+    analysisRelationMode=button.dataset.analysisRelationMode;
+    renderAnalysisSurface();
+  });
+  queryAll('[data-analysis-language]').forEach((button)=>button.onclick=()=>{
+    const next=button.dataset.analysisLanguage;
+    if(!['de','en','both'].includes(next)||basis===next)return;
+    basis=next;
+    pageSize=6;
+    analysisSignature='';
+    saveStudioSearchState({queryBasis:basis});
+    syncInline();
+    void refreshWriterResults();
+    void refreshSongAnalysis(true);
+  });
+  queryAll('[data-analysis-anchor]').forEach((button)=>button.onclick=()=>{
+    const anchor=String(button.dataset.analysisAnchor||'').trim();
+    if(!anchor)return;
+    query=anchor;
+    pageSize=6;
+    followSelection=false;
+    saveStudioSearchState({anchor,queryBasis:basis});
+    syncFollowControls();
+    void refreshWriterResults();
+    notify('Writer-Anker: '+anchor);
   });
 }
 async function refreshSongAnalysis(force=false){
