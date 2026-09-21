@@ -206,7 +206,9 @@
     "studio:v2:release:verify": "npm run studio:v2:verify && npm run studio:v2:cutover:check",
     "studio:v2:release:preview": "npm run studio:v2:release:verify && node src/server.mjs --studio-default",
     "dev:search-default": "node src/server.mjs --search-default",
-    "studio:v2:live": "npm run studio:v2:verify && node src/server.mjs"
+    "studio:v2:live": "npm run studio:v2:verify && node src/server.mjs",
+    "distribution:census": "node --no-warnings scripts/analyze-distribution-tiers.mjs",
+    "distribution:census:json": "node --no-warnings scripts/analyze-distribution-tiers.mjs --json"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"

@@ -2,9 +2,9 @@
 
 ## Status
 
-**Design contract / planned packaging architecture.**
+**Active packaging implementation contract.**
 
-This document defines the intended shipping tiers derived from the final Serving/Master database. It does **not** mean the distribution builder already exists, and the size ranges below are planning budgets rather than acceptance gates.
+The read-only Master storage/population census is implemented as `npm run distribution:census`. The positive Lite/Standard/Full materializer is intentionally **not** implemented yet: the census must be reviewed first and a versioned cross-language Core/Generated distribution rank must be frozen before the builder can select rows. The size ranges below remain planning budgets rather than acceptance gates.
 
 The final distribution workflow must derive all editions reproducibly from one finalized Master/Developer database without rerunning the upstream source pipelines for every edition.
 
@@ -274,7 +274,25 @@ A valid tier is not merely a smaller set of business rows. It must remain a comp
 
 ## Storage census before builder implementation
 
-Before fixing final size gates or Entity retention policy, run a storage census against the finalized Master database.
+Before fixing final size gates or Entity retention policy, run the implemented storage census against the finalized Master database:
+
+```powershell
+npm run distribution:census
+```
+
+Machine-readable output is written to:
+
+```text
+data/local/distribution/distribution-census-v1.json
+```
+
+Optional explicit source/output paths:
+
+```powershell
+npm run distribution:census -- --db data/local/rhymelab-serving-v1.sqlite --output data/local/distribution/distribution-census-v1.json
+```
+
+The census is read-only and fails closed unless the Serving-v1 runtime and Product adapter are both complete. It deliberately reports the tier projection as blocked until the cross-language distribution rank is versioned; it does not silently compare DE and EN native usage ranks as though they were one common scale.
 
 The analyzer should report at least:
 
@@ -369,7 +387,7 @@ The intended implementation order is:
 9. Serving performance benchmark per edition
 ```
 
-Possible future command names are intentionally **not** repository promises until implemented. Do not document planned commands as if they already exist.
+`distribution:census` is now an implemented repository command. Builder/materialization command names remain intentionally unspecified until the census has been reviewed and the distribution-rank policy is frozen.
 
 ## Non-goals
 
