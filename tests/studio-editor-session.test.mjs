@@ -7,6 +7,7 @@ import {
   editorSnapshot,
   ensureEditorSong,
   mergeEditorBarWithPrevious,
+  moveEditorBar,
   pasteEditorText,
   restoreEditorSnapshot,
   setEditorBarText,
@@ -83,4 +84,55 @@ test('selection proof rejects stale bar revision and survives unrelated bar chan
   assert.equal(stale.valid,false);
   assert.equal(stale.reason,'bar_changed');
   assert.equal(stale.index,0);
+});
+
+
+test('moveEditorBar preserves stable Bar identity, revisions and cue anchors',()=>{
+  const song={
+    id:'reorder',
+    lines:['alpha','beta','gamma','delta'],
+    barIds:['a','b','c','d'],
+    barRevisions:[1,2,3,4],
+    editorNextBarId:10,
+    steps:{},
+    performanceCues:{'b:0':{type:'accent',length:1}},
+    performanceAnchors:{b:2},
+  };
+  ensureEditorSong(song);
+  const result=moveEditorBar(song,1,3);
+
+  assert.equal(result.moved,true);
+  assert.deepEqual(song.lines,['alpha','gamma','delta','beta']);
+  assert.deepEqual(song.barIds,['a','c','d','b']);
+  assert.deepEqual(song.barRevisions,[1,3,4,2]);
+  assert.equal(song.performanceCues['b:0'].type,'accent');
+  assert.equal(song.performanceAnchors.b,2);
+  assert.equal(barIdentity(song,3).id,'b');
+});
+
+test('selection proof follows a stable Bar after reorder without becoming stale',()=>{
+  const song={id:'proof-reorder',lines:['first','target word','third'],steps:{}};
+  ensureEditorSong(song);
+  const proof=createSelectionProof(song,{index:1,start:7,end:11});
+  const barId=proof.barId;
+
+  moveEditorBar(song,1,0);
+  const validated=validateSelectionProof(song,proof);
+
+  assert.equal(song.barIds[0],barId);
+  assert.deepEqual(validated,{valid:true,reason:null,index:0});
+  assert.equal(song.lines[0].slice(proof.start,proof.end),'word');
+});
+
+test('moveEditorBar rejects invalid indexes and reports no-op moves',()=>{
+  const song={id:'move-guard',lines:['a','b'],steps:{}};
+  ensureEditorSong(song);
+  assert.equal(moveEditorBar(song,-1,0),null);
+  assert.equal(moveEditorBar(song,0,9),null);
+  assert.deepEqual(moveEditorBar(song,1,1),{
+    moved:false,
+    from:1,
+    to:1,
+    bar:barIdentity(song,1),
+  });
 });
