@@ -65,8 +65,8 @@ function attachGeneratedQuery(params,language,detail){
   if(detail.components?.length)params.set(`query_components_${language}`,JSON.stringify(detail.components));
 }
 
-function writerParams(target,settings){
-  return new URLSearchParams({
+function writerParams(target,settings,{entityCategory='all'}={}){
+  const params=new URLSearchParams({
     q:target,
     language:settings.language,
     result_language:settings.language,
@@ -81,6 +81,10 @@ function writerParams(target,settings){
     entity_pool:'900',
     generated:settings.allowGenerated?'1':'0',
   });
+  if(settings.allowEntities&&entityCategory&&entityCategory!=='all'){
+    params.set('entity_category',entityCategory);
+  }
+  return params;
 }
 
 async function writerRequest(params){
@@ -90,8 +94,24 @@ async function writerRequest(params){
   return {response,data};
 }
 
+function writerRowKey(row){
+  return [
+    markovMaterialKind(row),
+    String(row?.normalized||row?.surface||row?.word||'').normalize('NFKC').toLocaleLowerCase('en-US'),
+  ].join(':');
+}
+
+function entityMatchesSelection(row,selected){
+  if(!selected?.length)return true;
+  const categories=Array.isArray(row?.entityCategories)?row.entityCategories:[];
+  return categories.some((category)=>selected.includes(String(category)));
+}
+
 async function fetchCandidatePool(target,settings){
-  const params=writerParams(target,settings);
+  const requestedCategories=settings.allowEntities&&settings.entityCategories.length
+    ?settings.entityCategories
+    :['all'];
+  const params=writerParams(target,settings,{entityCategory:requestedCategories[0]});
   let {response,data}=await writerRequest(params);
   const hasQuery=Boolean(data?.queries?.[settings.language]?.preferredIpa);
   if(!hasQuery){
@@ -105,12 +125,37 @@ async function fetchCandidatePool(target,settings){
     if(generated?.ipa){attachGeneratedQuery(params,settings.language,generated);({response,data}=await writerRequest(params));}
   }
   if(!response.ok)throw new Error(data?.error||data?.reason||`Writer request failed (${response.status})`);
-  const rows=(data?.results||[]).filter((row)=>{
-    const kind=markovMaterialKind(row);
-    if(kind==='phrase'&&!settings.allowPhrases)return false;
-    if(kind==='entity'&&!settings.allowEntities)return false;
-    return true;
-  });
+
+  const batches=[data];
+  if(settings.allowEntities&&requestedCategories.length>1){
+    for(const category of requestedCategories.slice(1)){
+      const extraParams=new URLSearchParams(params);
+      extraParams.set('entity_category',category);
+      const extra=await writerRequest(extraParams);
+      if(!extra.response.ok){
+        throw new Error(extra.data?.error||extra.data?.reason||`Entity category request failed (${extra.response.status})`);
+      }
+      batches.push(extra.data);
+    }
+  }
+
+  const merged=new Map();
+  for(const batch of batches){
+    for(const row of batch?.results||[]){
+      const kind=markovMaterialKind(row);
+      if(kind==='phrase'&&!settings.allowPhrases)continue;
+      if(kind==='entity'&&!settings.allowEntities)continue;
+      if(kind==='entity'&&!entityMatchesSelection(row,settings.entityCategories))continue;
+      const key=writerRowKey(row);
+      const existing=merged.get(key);
+      if(!existing||Number(row?.score||0)>Number(existing?.score||0))merged.set(key,row);
+    }
+  }
+  const rows=[...merged.values()];
+  if(batches.length>1){
+    const totalSearchMs=batches.reduce((sum,batch)=>sum+Number(batch?.runtimeTiming?.searchMs||0),0);
+    data={...data,runtimeTiming:{...(data?.runtimeTiming||{}),searchMs:totalSearchMs}};
+  }
   return {rows,data};
 }
 
@@ -131,6 +176,44 @@ async function requestMarkovGeneration(rows,settings){
   return data;
 }
 
+function selectedEntityCategories(){
+  const allButton=document.querySelector('[data-entity-category="all"]');
+  if(allButton?.getAttribute('aria-pressed')==='true')return [];
+  return [...document.querySelectorAll('[data-entity-category]:not([data-entity-category="all"])')]
+    .filter((button)=>button.getAttribute('aria-pressed')==='true')
+    .map((button)=>button.dataset.entityCategory);
+}
+
+function syncEntityCategoryPanel(){
+  const enabled=Boolean($('#allowEntities')?.checked);
+  const panel=$('#entityCategoryPanel');
+  if(panel)panel.hidden=!enabled;
+}
+
+function setEntityCategorySelection(category){
+  const all=document.querySelector('[data-entity-category="all"]');
+  const categoryButtons=[...document.querySelectorAll('[data-entity-category]:not([data-entity-category="all"])')];
+  if(category==='all'){
+    all?.setAttribute('aria-pressed','true');
+    all?.classList.add('active');
+    for(const button of categoryButtons){
+      button.setAttribute('aria-pressed','false');
+      button.classList.remove('active');
+    }
+    return;
+  }
+  const button=document.querySelector(`[data-entity-category="${CSS.escape(category)}"]`);
+  if(!button)return;
+  const next=button.getAttribute('aria-pressed')!=='true';
+  button.setAttribute('aria-pressed',next?'true':'false');
+  button.classList.toggle('active',next);
+  const any=categoryButtons.some((row)=>row.getAttribute('aria-pressed')==='true');
+  if(all){
+    all.setAttribute('aria-pressed',any?'false':'true');
+    all.classList.toggle('active',!any);
+  }
+}
+
 function settingsFromControls(){
   const seedText=$('#seedText').value.trim();
   const target=$('#target').value.trim()||seedText.split(/\s+/u).filter(Boolean).at(-1)||'Arbeitsweise';
@@ -143,6 +226,7 @@ function settingsFromControls(){
     weirdness:Number($('#weirdness').value),
     targetTokens:Number($('#targetTokens').value),
     allowEntities:$('#allowEntities').checked,
+    entityCategories:selectedEntityCategories(),
     allowPhrases:$('#allowPhrases').checked,
     allowGenerated:generatedAvailable&&$('#allowGenerated').checked,
     seed:Number($('#randomSeed').value)||0,
@@ -324,11 +408,16 @@ async function initialize(){
     $('#generatedHint').textContent=generatedAvailable?'available':'not available in this runtime';
     const controls=installMarkovControls(document,{
       generate:()=>generate().catch(()=>{}),reroll,rangeChange:updateRangeLabel,
-      optionChange:(id)=>{if(id==='language'){applyModelHealth();}},
+      optionChange:(id)=>{
+        if(id==='language')applyModelHealth();
+        if(id==='allowEntities')syncEntityCategoryPanel();
+      },
+      entityCategory:(category)=>setEntityCategorySelection(category),
       preset:applyPreset,
     });
     for(const id of ['rhymePressure','naturalness','weirdness','targetTokens'])updateRangeLabel(id,document.getElementById(id).value);
     controls.randomSeed.value=String(integerSeed());
+    syncEntityCategoryPanel();
     if(!markovHealthByLanguage.de?.available&&markovHealthByLanguage.en?.available)controls.language.value='en';
     applyPreset('balanced');applyModelHealth();setBusy(false);
     setStatus(markovHealth?.available?`${markovHealth.language.toUpperCase()} Markov transitions ready. Pick a rhyme target.`:'Selected Markov transition database missing.',markovHealth?.available?'ok':'warn');
