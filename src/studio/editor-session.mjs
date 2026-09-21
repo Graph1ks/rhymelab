@@ -110,6 +110,22 @@ export function removeEditorBar(song,index){
   return removed;
 }
 
+export function mergeEditorBarWithPrevious(song,index){
+  ensureEditorSong(song);
+  if(index<=0||index>=song.lines.length)return null;
+  const previousIndex=index-1;
+  const previousText=song.lines[previousIndex];
+  const currentText=song.lines[index];
+  setEditorBarText(song,previousIndex,previousText+currentText);
+  const removed=removeEditorBar(song,index);
+  return {
+    index:previousIndex,
+    caret:previousText.length,
+    bar:barIdentity(song,previousIndex),
+    removed,
+  };
+}
+
 export function pasteEditorText(song,index,start,end,clipboardText){
   ensureEditorSong(song);
   if(index<0||index>=song.lines.length)return null;
