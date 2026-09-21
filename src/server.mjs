@@ -659,6 +659,12 @@ const server = createServer(async (req, res) => {
         entityLimit: url.searchParams.get('entity_limit') || url.searchParams.get('limit'),
         entityPoolLimit: url.searchParams.get('entity_pool'),
         entityCategory: url.searchParams.get('entity_category') || 'all',
+        entityCategories: [
+          ...url.searchParams.getAll('entity_category'),
+          ...(url.searchParams.get('entity_categories')||'').split(','),
+        ].map((value)=>String(value||'').trim()).filter((value,index,array)=>
+          value&&value!=='all'&&array.indexOf(value)===index
+        ).slice(0,24),
         generatedOnly:generatedOnlyRequested(url),
         queryPronunciations: {
           de: clientQueryPronunciation(url, 'de'),
