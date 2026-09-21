@@ -1,14 +1,18 @@
 # Public-facing status
 
-Last updated: 2026-09-20
+Last updated: 2026-09-21
 
-## Current continuation — Markov generator
+## Current continuation — Studio V2 live acceptance
 
-Focused handover: `docs/MARKOV_GENERATOR_HANDOVER.md`.
+Focused handover: `docs/STUDIO_V2_HANDOVER.md`. Real-device matrix: `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`.
 
-Further Serving-v1 micro-optimization is intentionally paused until real Lite/Standard/Full distributions are materialized and benchmarked. The current report-grade Master/Developer reference is approximately p50 145.4 ms / p95 280.3 ms / max 425.6 ms over 140 measured persistent-worker samples with semantic integrity PASS. This is retained as a baseline, not a reason to continue optimizing the ~18.8 GiB Master immediately.
+Studio V2 is the current RhymeLab product shell and the default `/` route. The previous Search remains available at `/search` and `/legacy`; RhymePad remains at `/pad` and `/pad-legacy`. `npm run dev:search-default` provides an explicit reversible root-route fallback.
 
-The active next engineering topic is the Markov phrase/sentence generator. The owner will provide additional product requirements in the next thread before architecture is finalized. The already-recorded distribution boundary remains: Markov is a live generator for Full, not a pre-rendered giant phrase corpus, and generated text should reuse the accepted lexical/pronunciation/Phrase phonology stack.
+The automated Studio source/test/cutover code gate passes on GitHub Actions. Physical browser/touch/Web Audio acceptance is still tracked separately and must not be represented as completed until the seven real-device checks are actually performed.
+
+Serving-v1 is the canonical product runtime on `main`. Markov / Constrained Lyric Decoder V2 is intentionally frozen: no further Markov development is authorized. Its direct demo/API implementation may ship, but Studio, Search and RhymePad must not link or promote `/markov-test`. Focused frozen-state handover: `docs/MARKOV_GENERATOR_HANDOVER.md`.
+
+Further Serving-v1 micro-optimization remains paused until real Lite/Standard/Full distributions are materialized and benchmarked. The existing report-grade Master/Developer benchmark remains reference evidence rather than an instruction to resume optimization.
 
 RhymeLab's public repository is `Graph1ks/rhymelab`. `main` is protected and the required public CI check is `validate`.
 
