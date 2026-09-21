@@ -230,6 +230,12 @@ export function createSelectionStorage(db){
     CREATE TABLE IF NOT EXISTS _dist_phrase(runtime_phrase_id INTEGER PRIMARY KEY);
     CREATE TABLE IF NOT EXISTS _dist_phrase_window(runtime_window_id TEXT PRIMARY KEY);
     CREATE TABLE IF NOT EXISTS _dist_entity(entity_id INTEGER PRIMARY KEY);
+    CREATE TABLE IF NOT EXISTS _dist_entity_membership(
+      entity_id INTEGER NOT NULL,
+      category TEXT NOT NULL,
+      edition_category_rank INTEGER NOT NULL,
+      PRIMARY KEY(entity_id,category)
+    ) WITHOUT ROWID;
     CREATE TABLE IF NOT EXISTS _dist_entity_name(name_id INTEGER PRIMARY KEY);
     CREATE TABLE IF NOT EXISTS _dist_entity_pronunciation(product_pronunciation_id INTEGER PRIMARY KEY);
     CREATE TABLE IF NOT EXISTS _dist_target(target_id INTEGER PRIMARY KEY);
@@ -315,10 +321,13 @@ export function populateDistributionSelection(db,{
               AND ${entityAvailability}
           )
       )
-      INSERT OR IGNORE INTO _dist_entity(entity_id)
-      SELECT entity_id
+      INSERT OR IGNORE INTO _dist_entity_membership(entity_id,category,edition_category_rank)
+      SELECT entity_id,category,edition_category_rank
       FROM eligible
       WHERE edition_category_rank<=${Math.max(0,Math.trunc(entityPerCategory))};
+
+      INSERT OR IGNORE INTO _dist_entity(entity_id)
+      SELECT DISTINCT entity_id FROM _dist_entity_membership;
 
       INSERT OR IGNORE INTO _dist_entity_pronunciation(product_pronunciation_id)
       SELECT ep.product_pronunciation_id
@@ -479,15 +488,14 @@ export function distributionSelectionSummary(db,{
   const entities=scalar(db,'SELECT COUNT(*) c FROM _dist_entity');
   const categoryRows=entityPerCategory>0
     ?db.prepare(`
-      SELECT ec.category,COUNT(DISTINCT ec.entity_id) AS selected_entities
-      FROM ${p}runtime_entity_category ec
-      JOIN _dist_entity de USING(entity_id)
-      WHERE ec.retained_by_category=1
-      GROUP BY ec.category
-      ORDER BY ec.category
+      SELECT category,COUNT(*) AS selected_memberships,MAX(edition_category_rank) AS last_rank
+      FROM _dist_entity_membership
+      GROUP BY category
+      ORDER BY category
     `).all().map((row)=>({
       category:String(row.category),
-      selected_entities:Number(row.selected_entities||0),
+      selected_memberships:Number(row.selected_memberships||0),
+      last_rank:Number(row.last_rank||0),
     }))
     :[];
   return {
@@ -732,7 +740,7 @@ export function dropDistributionBuildStorage(db){
   for(const table of [
     '_dist_core_rank','_dist_generated_rank','_dist_word_surface','_dist_pronunciation',
     '_dist_surface','_dist_phrase','_dist_phrase_window','_dist_entity',
-    '_dist_entity_name','_dist_entity_pronunciation','_dist_target','_dist_key',
+    '_dist_entity_membership','_dist_entity_name','_dist_entity_pronunciation','_dist_target','_dist_key',
     'distribution_build_stage',
   ]){
     db.exec('DROP TABLE IF EXISTS '+q(table)+';');
