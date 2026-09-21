@@ -13,6 +13,7 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/href=["']\/studio\/styles\.css["']/u);
   assert.match(html,/src=["']\/studio\/app\.js["']/u);
   assert.match(html,/id=["']runtimeStatus["']/u);
+  assert.match(html,/Live Writer · lokale Datenbank/u);
   assert.match(html,/type=["']module["'][^>]*src=["']\/studio\/app\.js["']/u);
 
   assert.match(css,/--assist-width:470px/u);
@@ -36,6 +37,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/Studio capability surface/u);
   assert.match(css,/\.capability-grid/u);
   assert.match(css,/\.local\.degraded/u);
+  assert.match(css,/Studio live Writer states/u);
+  assert.match(css,/\.writer-loading:after/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
@@ -93,6 +96,7 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
   assert.match(migration,/exact Studio 02 import\s+DONE/u);
   assert.match(migration,/parallel \/studio route\s+DONE/u);
   assert.match(migration,/parity matrix\s+DONE/u);
+  assert.match(migration,/live \/api\/writer search\s+DONE/u);
 });
 
 
