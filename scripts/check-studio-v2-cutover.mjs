@@ -190,12 +190,16 @@ if(!codeOnly){
       );
       const merged=mergeStudioDeviceAcceptanceReports(parsed);
       device=studioDeviceAcceptanceSummary(merged);
+      const pendingDetail=device.pending.map((id)=>{
+        const row=merged.results?.[id];
+        return id+(row?.eligibility&&row.eligibility!=='environment eligible'?' ['+row.eligibility+']':'');
+      });
       add(
         'device.acceptance-report',
         device.ready,
         device.ready
           ?device.passed+'/'+device.total+' real-device gates passed across '+parsed.length+' report'+(parsed.length===1?'':'s')
-          :'pending: '+device.pending.join(', '),
+          :'pending: '+pendingDetail.join(', '),
       );
     }catch(error){
       add('device.acceptance-report',false,error instanceof Error?error.message:String(error));
