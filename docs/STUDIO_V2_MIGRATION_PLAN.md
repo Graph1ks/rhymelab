@@ -490,17 +490,35 @@ Electron uses a narrow validated preload/IPC adapter.
 
 ## Stage 15 — Default-route switch
 
-Only after docs/UI_REDESIGN_PARITY.md is accepted.
+The reversible cutover wiring is implemented but remains disabled by default until real-device acceptance passes.
 
-Transition concept:
+Preview the exact production route shape with:
+
+~~~bash
+npm run dev:studio-default
+~~~
+
+Preview routing:
 
 ~~~text
 /           -> Studio
-/legacy     -> previous Search
-/pad-legacy -> previous Pad
+/search     -> previous Search
+/legacy     -> previous Search alias
+/pad        -> current RhymePad
+/pad-legacy -> explicit RhymePad legacy alias
+/studio     -> Studio
 ~~~
 
-Exact legacy route names are finalized at cutover. No old route is deleted in the first switch commit.
+The same mode can be enabled with `RHYMELAB_STUDIO_DEFAULT=1`. Normal `npm run dev` still serves the existing Search at `/`.
+
+Cutover is guarded by:
+
+~~~bash
+npm run studio:v2:cutover:code
+npm run studio:v2:cutover:check
+~~~
+
+The full gate requires an exported seven-gate real-device acceptance report. No old route is deleted in the first production switch commit.
 
 ---
 
@@ -520,7 +538,7 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 11 complete filter parity                    DONE
 12 shared SearchState                        DONE
 13 document/editor spike                     DONE
-14 RhymePad migration                        IN PROGRESS
+14 RhymePad migration                        DONE · implementation parity
 15 IndexedDB authoritative cutover            DONE
 16 Library / folders / trash workflows        DONE
 17 stable revision + recovery workflow         DONE
@@ -543,7 +561,9 @@ Entity category multi-select             DONE · shared SearchState + OR runtime
 33 Bar Navigator / stable-ID reorder           DONE
 34 source-backed exhaustive parity manifest      DONE
 35 acceptance center parity integration         DONE
-36 real device/browser acceptance              REQUIRED · 7 device gates
+36 reversible default-route preview             DONE
+37 deterministic cutover release gate           DONE
+38 real device/browser acceptance              REQUIRED · 7 device gates
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
