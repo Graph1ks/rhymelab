@@ -229,6 +229,14 @@ const EN=Object.freeze({
   'Versionsverlauf':'Version history',
   'Editor Einstellungen':'Editor settings',
   'Bar Inspector':'Bar Inspector',
+  'Bar Navigator':'Bar Navigator',
+  'Bars durchsuchen und umordnen':'Search and reorder bars',
+  'Bars durchsuchen':'Search bars',
+  'Bar-Text durchsuchen …':'Search bar text …',
+  'Stable Bar IDs · Drag, Pfeile oder Klick':'Stable Bar IDs · drag, arrows or click',
+  'Leere Bar':'Empty bar',
+  'Keine Bars für diesen Filter.':'No bars for this filter.',
+  'Timing prüfen':'Review timing',
   'Verlauf':'History',
   'Darstellung':'Appearance',
   'Design 02':'Design 02',
@@ -496,7 +504,7 @@ const SKIP_SELECTOR=[
   '.result-word','.songcard h3','.revision p',
   '.analysis-end-word','.analysis-word-title','.analysis-pair-words b',
   '.rhyme-chain-group b','.bar-inspector-head p','.detail-preview',
-  '.library-folder-label b','.library-folder-label em',
+  '.library-folder-label b','.library-folder-label em','.bar-navigator-copy',
 ].join(',');
 
 export function translateStudioUiText(source,language){
