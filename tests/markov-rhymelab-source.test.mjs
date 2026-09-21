@@ -80,6 +80,7 @@ test('default Markov source wrapper builds transitions from canonical Serving-v1
     const servingDb=join(dir,'serving.sqlite');
     const source=join(dir,'phrase-lines.txt');
     const work=join(dir,'work.sqlite');
+    const sentenceManifest=join(dir,'no-local-sentence-sources.json');
     const out=join(dir,'model.sqlite');
     const report=join(dir,'report.json');
     makeServingDb(servingDb);
@@ -88,6 +89,7 @@ test('default Markov source wrapper builds transitions from canonical Serving-v1
       'scripts/build-markov-from-rhymelab.mjs',
       '--serving-db',servingDb,
       '--source-out',source,
+      '--sentence-manifest',sentenceManifest,
       '--plan',
     ],{cwd:process.cwd(),encoding:'utf8',timeout:10_000});
     assert.equal(plan.status,0,plan.stderr||plan.stdout);
@@ -104,6 +106,7 @@ test('default Markov source wrapper builds transitions from canonical Serving-v1
       'scripts/build-markov-from-rhymelab.mjs',
       '--serving-db',servingDb,
       '--source-out',source,
+      '--sentence-manifest',sentenceManifest,
       '--work',work,
       '--out',out,
       '--report',report,
@@ -139,6 +142,6 @@ test('default Markov source wrapper builds transitions from canonical Serving-v1
       assert.ok(Number(db.prepare("SELECT COUNT(*) AS n FROM transition WHERE direction='reverse'").get()?.n||0)>0);
     }finally{db.close();}
   }finally{
-    await rm(dir,{recursive:true,force:true});
+    await rm(dir,{recursive:true,force:true,maxRetries:20,retryDelay:100});
   }
 });
