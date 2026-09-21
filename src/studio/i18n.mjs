@@ -6,6 +6,17 @@ export function normalizeStudioUiLanguage(value){
 
 const EN=Object.freeze({
   'Studio':'Studio',
+  'Real Device Acceptance':'Real Device Acceptance',
+  'Die sieben Gates müssen bewusst auf echter Hardware bestätigt werden. Studio markiert sie niemals automatisch als bestanden.':'The seven gates must be explicitly verified on real hardware. Studio never marks them as passed automatically.',
+  'Zurücksetzen':'Reset',
+  'Acceptance JSON exportieren':'Export acceptance JSON',
+  'REAL DEVICE GATES':'REAL DEVICE GATES',
+  'bestätigt':'confirmed',
+  'Cutover Device-Gate vollständig':'Cutover device gate complete',
+  'Noch keine Geräteprüfung bestätigt':'No device check confirmed yet',
+  'Notiz / Gerät / Browser …':'Note / device / browser …',
+  'Device-Acceptance zurückgesetzt.':'Device acceptance reset.',
+  'Device-Acceptance als JSON exportiert.':'Device acceptance exported as JSON.',
   'Navigation':'Navigation',
   'Modus':'Mode',
   'Dokument':'Document',
@@ -494,6 +505,9 @@ const PATTERNS=Object.freeze([
   [/^Portables Studio Backup exportiert\.$/u,'Portable Studio backup exported.'],
   [/^Studio Backup importiert und verifiziert\.$/u,'Studio backup imported and verified.'],
   [/^Browser-Diagnostics aktualisiert\.$/u,'Browser diagnostics updated.'],
+  [/^Noch (\d+) reale Geräteprüfung offen$/u,'$1 real-device check remaining'],
+  [/^Noch (\d+) reale Geräteprüfungen offen$/u,'$1 real-device checks remaining'],
+  [/^(\d+)\/(\d+) bestätigt$/u,'$1/$2 confirmed'],
   [/^Diagnostics als JSON exportiert\.$/u,'Diagnostics exported as JSON.'],
 ]);
 
