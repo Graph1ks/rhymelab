@@ -43,36 +43,77 @@ function text(value,max=400){
   return String(value??'').trim().slice(0,max);
 }
 
+function normalizeEnvironment(environment={}){
+  return {
+    userAgent:text(environment.userAgent,1000),
+    language:text(environment.language,80),
+    platform:text(environment.platform,120),
+    viewportWidth:Number(environment.viewportWidth)||0,
+    viewportHeight:Number(environment.viewportHeight)||0,
+    devicePixelRatio:Number(environment.devicePixelRatio)||1,
+    maxTouchPoints:Number(environment.maxTouchPoints)||0,
+  };
+}
+
+export function studioDeviceEnvironmentLabel(environment={}){
+  const env=normalizeEnvironment(environment);
+  const parts=[
+    env.platform||'Unknown platform',
+    env.viewportWidth&&env.viewportHeight?Math.round(env.viewportWidth)+'×'+Math.round(env.viewportHeight):'',
+    env.maxTouchPoints?env.maxTouchPoints+' touch':'',
+  ].filter(Boolean);
+  return parts.join(' · ');
+}
+
 export function createStudioDeviceAcceptance({
   environment={},
   results={},
   notes='',
   testedAt=Date.now(),
 }={}){
+  const baseEnvironment=normalizeEnvironment(environment);
   const normalizedResults={};
   for(const gate of STUDIO_DEVICE_GATES){
     const row=results?.[gate.id];
+    const passed=row===true||row?.passed===true;
     normalizedResults[gate.id]={
-      passed:row===true||row?.passed===true,
+      passed,
       note:text(row?.note),
+      testedAt:Number(row?.testedAt)||0,
+      environment:normalizeEnvironment(
+        row?.environment||(passed?baseEnvironment:{}),
+      ),
     };
   }
   return {
     schema:STUDIO_DEVICE_ACCEPTANCE_SCHEMA,
     version:STUDIO_DEVICE_ACCEPTANCE_VERSION,
     testedAt:Number(testedAt)||Date.now(),
-    environment:{
-      userAgent:text(environment.userAgent,1000),
-      language:text(environment.language,80),
-      platform:text(environment.platform,120),
-      viewportWidth:Number(environment.viewportWidth)||0,
-      viewportHeight:Number(environment.viewportHeight)||0,
-      devicePixelRatio:Number(environment.devicePixelRatio)||1,
-      maxTouchPoints:Number(environment.maxTouchPoints)||0,
-    },
+    environment:baseEnvironment,
     results:normalizedResults,
     notes:text(notes,4000),
   };
+}
+
+export function mergeStudioDeviceAcceptanceReports(inputs){
+  const parsed=(Array.isArray(inputs)?inputs:[inputs]).filter(Boolean).map(parseStudioDeviceAcceptance);
+  if(!parsed.length)return createStudioDeviceAcceptance();
+  const newest=parsed.slice().sort((a,b)=>Number(b.testedAt)-Number(a.testedAt))[0];
+  const results={};
+  for(const gate of STUDIO_DEVICE_GATES){
+    const rows=parsed
+      .map((report)=>report.results?.[gate.id])
+      .filter(Boolean)
+      .sort((a,b)=>Number(b.testedAt||0)-Number(a.testedAt||0));
+    const passedRows=rows.filter((row)=>row.passed);
+    results[gate.id]=passedRows[0]||rows[0]||{passed:false};
+  }
+  return createStudioDeviceAcceptance({
+    environment:newest.environment,
+    results,
+    notes:parsed.map((report)=>report.notes).filter(Boolean).join('\n').slice(0,4000),
+    testedAt:Math.max(...parsed.map((report)=>Number(report.testedAt)||0),Date.now()),
+  });
 }
 
 export function studioDeviceAcceptanceSummary(report){
