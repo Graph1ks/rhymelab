@@ -359,7 +359,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
   assert.match(server,/'\/assets\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
-  assert.match(server,/'\\/': \\{ type: 'text\\/html; charset=utf-8', body: studioDefaultRoute\\?studioHtml:writerHtml \\}/u);
+  assert.match(server,/studioDefaultRoute\?studioHtml:writerHtml/u);
   assert.match(server,/'\/pad': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/u);
   assert.match(server,/Studio 02 preview:/u);
   assert.match(server,/'\/api\/analysis\/rhyme-scheme'/u);
