@@ -25,6 +25,12 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/--green:#14A76C/u);
   assert.match(css,/prefers-reduced-motion:reduce/u);
   assert.match(css,/100dvh/u);
+  assert.match(css,/Studio 02: bounded settings dock \+ themed scrollbars/u);
+  assert.match(css,/\.editor-dock-body\{[\s\S]*?min-height:0;[\s\S]*?overflow-y:auto;/u);
+  assert.match(css,/#editorDock\[data-tab=settings\]\{[\s\S]*?flex:1 1 460px;[\s\S]*?max-height:min\(68dvh,620px\)/u);
+  assert.match(css,/\.theme-builder-actions\{[\s\S]*?position:sticky;[\s\S]*?bottom:-20px/u);
+  assert.match(css,/\*::-webkit-scrollbar-thumb/u);
+  assert.match(css,/scrollbar-color:color-mix\(in srgb,var\(--muted\) 52%,var\(--line\)\) transparent/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
