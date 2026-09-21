@@ -322,6 +322,10 @@ appearance / custom Quickstyles        DONE
 Light/Dark one-click quickswitch       DONE
 library search + sort                   DONE
 folder create/delete/move              DONE
+nested folder hierarchy                 DONE
+folder rename + subtree rename          DONE
+folder sibling reorder                  DONE
+safe subtree delete + song fallback     DONE
 trash + restore + permanent delete     DONE
 stable revision snapshots / restore     DONE
 empty-folder migration to DocumentStore DONE
@@ -332,6 +336,13 @@ UI preferences split to LocalStorage    DONE
 manual recovery points + restore        DONE
 save/revision IndexedDB authority        DONE
 canonical analysis                       DONE
+Word Laboratory + canonical stress        DONE
+verse all-relations workbench             DONE
+optional rhyme-chain visualization        DONE
+result metadata badges                    DONE
+Writer runtime + rolling AVG100 telemetry DONE
+live Bar Inspector metrics                DONE
+verse totals + duration estimate          DONE
 full Perform parity                      DONE
 ~~~
 
@@ -351,6 +362,12 @@ assonance/consonance shown descriptively DONE
 unresolved-anchor coverage              DONE
 analysis runtime timing                 DONE
 bar navigation from analysis            DONE
+Word Laboratory IPA/stress               DONE
+stress fingerprint                        DONE
+relations inside verse                    DONE
+all-relations primary/soft filtering      DONE
+optional rhyme-chain visualization        DONE
+DE / EN / Cross DE+EN analysis controls   DONE
 syllable-density estimate labeling       DONE · explicit approximation
 ~~~
 
@@ -399,13 +416,16 @@ search               DONE in Studio library
 sort                 DONE in Studio library
 rename               DONE in Studio library
 folder create/delete DONE in Studio library
+nested hierarchy     DONE via path-backed folder tree
+folder rename        DONE including descendants
+folder reorder       DONE among sibling subtrees
 move                 DONE in Studio library
 trash                DONE in Studio library
 restore              DONE in Studio library
 permanent delete     DONE in Studio library
-revision restore     PRESENT; production model cutover pending
-export               PRESENT
-recovery             legacy backup present; recovery UI pending
+revision restore     DONE on versioned document snapshots
+export               DONE
+recovery             DONE · manual points + verified restore
 ~~~
 
 IndexedDB is now the authoritative browser document source after a verified migration. The old Studio LocalStorage document blob is retained only as the non-destructive migration/fallback source; normal saves write UI preferences to the small preferences key and documents to the versioned IndexedDB DocumentStore. Settings exposes manual recovery points and restore.
@@ -493,7 +513,11 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 18 Perform parity                              DONE
 19 canonical analysis                         DONE
 20 mobile acceptance engineering              DONE
-21 real device/browser acceptance              REQUIRED
+21 legacy metadata badges + runtime telemetry DONE
+22 hierarchical Library tree                   DONE
+23 Analysis workbench / Word Laboratory        DONE
+24 Bar Inspector + verse totals                DONE
+25 real device/browser acceptance              REQUIRED
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
