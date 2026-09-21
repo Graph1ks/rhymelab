@@ -245,19 +245,26 @@ export function clearSelectionStorage(db){
   ])db.exec('DELETE FROM '+table+';');
 }
 
-export function populateDistributionSelection(db,{edition,alias='src'}){
+export function populateDistributionSelection(db,{
+  edition,
+  alias='src',
+  coreTarget:coreTargetOverride=null,
+  generatedTarget:generatedTargetOverride=null,
+}){
   const contract=editionContract(edition);
+  const coreTarget=coreTargetOverride==null?contract.coreTarget:Number(coreTargetOverride);
+  const generatedTarget=generatedTargetOverride==null?contract.generatedTarget:Number(generatedTargetOverride);
   const p=prefix(alias);
   createSelectionStorage(db);
   clearSelectionStorage(db);
 
   const coreAvailable=Number(db.prepare('SELECT COUNT(*) c FROM _dist_core_rank').get()?.c||0);
   const generatedAvailable=Number(db.prepare('SELECT COUNT(*) c FROM _dist_generated_rank').get()?.c||0);
-  if(coreAvailable<contract.coreTarget){
-    throw new Error('Core distribution population too small: '+coreAvailable+' < '+contract.coreTarget);
+  if(coreAvailable<coreTarget){
+    throw new Error('Core distribution population too small: '+coreAvailable+' < '+coreTarget);
   }
-  if(contract.generatedTarget&&generatedAvailable<contract.generatedTarget){
-    throw new Error('Generated distribution population too small: '+generatedAvailable+' < '+contract.generatedTarget);
+  if(generatedTarget&&generatedAvailable<generatedTarget){
+    throw new Error('Generated distribution population too small: '+generatedAvailable+' < '+generatedTarget);
   }
 
   db.prepare(`
@@ -265,15 +272,15 @@ export function populateDistributionSelection(db,{edition,alias='src'}){
     SELECT surface_id,'core'
     FROM _dist_core_rank
     WHERE distribution_rank<=?
-  `).run(contract.coreTarget);
+  `).run(coreTarget);
 
-  if(contract.generatedTarget){
+  if(generatedTarget){
     db.prepare(`
       INSERT INTO _dist_word_surface(surface_id,layer)
       SELECT surface_id,'generated'
       FROM _dist_generated_rank
       WHERE distribution_rank<=?
-    `).run(contract.generatedTarget);
+    `).run(generatedTarget);
   }
 
   db.exec(`
