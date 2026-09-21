@@ -27,6 +27,7 @@ import {
 } from './markov-lyric-profile.mjs';
 
 export const DEFAULT_MARKOV_MODEL_DB_PATH='data/local/rhymelab-markov-v2.sqlite';
+export const DEFAULT_MARKOV_EN_MODEL_DB_PATH='data/local/rhymelab-markov-en-v2.sqlite';
 export const MARKOV_GENERATOR_RUNTIME='rhymelab-constrained-runtime-v2';
 
 function hashString(value){
