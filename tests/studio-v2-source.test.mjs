@@ -88,12 +88,26 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/validateSelectionProof\(song\(\),selectionProof\)/u);
   assert.match(app,/performUndo/u);
   assert.match(app,/performRedo/u);
+  assert.match(app,/data-perform-feel/u);
+  assert.match(app,/data-perform-grid/u);
+  assert.match(app,/data-perform-scale/u);
+  assert.match(app,/data-perform-step/u);
+  assert.match(app,/performanceNeedsReview/u);
+  assert.match(app,/movePerformanceCue/u);
+  assert.match(app,/autoMapPerformanceBar/u);
   assert.match(app,/function restoreStudioRevision\(/u);
   assert.match(app,/snapshot=editorSnapshot\(s\)/u);
   assert.match(app,/restoreEditorSnapshot\(current,entry\.snapshot\)/u);
   assert.match(app,/initializeDocumentStore/u);
   assert.match(app,/shadowLegacyStudioStateToStore/u);
   assert.match(app,/DocumentStore/u);
+  assert.match(app,/documentStoreAuthority/u);
+  assert.match(app,/studioStateFromDocumentSnapshot/u);
+  assert.match(app,/writeStudioPreferences/u);
+  assert.match(app,/function createRecoveryPoint\(/u);
+  assert.match(app,/function restoreRecoveryPoint\(/u);
+  assert.match(app,/function renderRecoveryPanel\(/u);
+  assert.match(app,/IndexedDB · autoritativ/u);
   assert.match(app,/function renderLibrary\(/u);
   assert.match(app,/function createLibraryFolder\(/u);
   assert.match(app,/function deleteLibraryFolder\(/u);
@@ -105,6 +119,11 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.library-shell/u);
   assert.match(css,/\.library-folder-row/u);
   assert.match(css,/\.songcard-actions/u);
+  assert.match(css,/Studio authoritative persistence \+ Perform parity/u);
+  assert.match(css,/\.recovery-list/u);
+  assert.match(css,/\.perform-transport/u);
+  assert.match(css,/\.perform-review/u);
+  assert.match(css,/\.perform-sequencer/u);
 });
 
 test('Studio preview route is parallel and leaves legacy Search and RhymePad routes in place',async()=>{
@@ -124,6 +143,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/document-model\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-store\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/editor-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/performance-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/detail-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
@@ -163,7 +183,7 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
 
 
 test('Studio orchestrator is split behind maintainable module boundaries',async()=>{
-  const [app,core,controls,search,filters,sharedSearchState,documents,documentModel,documentStore,editorSession,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
+  const [app,core,controls,search,filters,sharedSearchState,documents,documentModel,documentStore,editorSession,performanceSession,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
     readFile('src/studio/app.js','utf8'),
     readFile('src/studio/studio-core.mjs','utf8'),
     readFile('src/studio/studio-controls.mjs','utf8'),
@@ -174,6 +194,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
     readFile('src/studio/document-model.mjs','utf8'),
     readFile('src/studio/document-store.mjs','utf8'),
     readFile('src/studio/editor-session.mjs','utf8'),
+    readFile('src/studio/performance-session.mjs','utf8'),
     readFile('src/studio/capability-adapter.mjs','utf8'),
     readFile('src/studio/detail-adapter.mjs','utf8'),
     readFile('src/studio/query-pronunciation-client.mjs','utf8'),
@@ -204,6 +225,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/from '\.\/capability-adapter\.mjs'/u);
   assert.match(app,/from '\.\/detail-adapter\.mjs'/u);
   assert.match(app,/from '\.\/editor-session\.mjs'/u);
+  assert.match(app,/from '\.\/performance-session\.mjs'/u);
   assert.match(app,/refreshStudioCapabilities\(\)/u);
   assert.match(app,/id="capabilitySummary"/u);
 
@@ -232,6 +254,11 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(editorSession,/export function pasteEditorText/u);
   assert.match(editorSession,/export function createSelectionProof/u);
   assert.match(editorSession,/export function validateSelectionProof/u);
+  assert.match(performanceSession,/export function ensurePerformanceSong/u);
+  assert.match(performanceSession,/export function setPerformanceCue/u);
+  assert.match(performanceSession,/export function movePerformanceCue/u);
+  assert.match(performanceSession,/export function performanceNeedsReview/u);
+  assert.match(performanceSession,/export function performanceStepDurationMs/u);
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(details,/export function createStudioDetailClient/u);
   assert.match(details,/export function buildStudioDetailModel/u);
