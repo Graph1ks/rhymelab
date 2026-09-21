@@ -11,6 +11,7 @@ import {
   mergeEditorBarWithPrevious,
   moveEditorBar,
   pasteEditorText,
+  removeEditorBar,
   restoreEditorSnapshot,
   setEditorBarText,
   splitEditorBar,
