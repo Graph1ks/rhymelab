@@ -17,7 +17,8 @@
       "year": 2024,
       "expected_rows": 300000,
       "commercial_use": true,
-      "notes": "Download corpus is declared CC BY by Leipzig terms. Sentence order is randomized by the provider."
+      "notes": "Download corpus is declared CC BY by Leipzig terms. Sentence order is randomized by the provider.",
+      "max_rows": 300000
     },
     {
       "code": "tatoeba_deu",
@@ -33,7 +34,9 @@
       "genre": "conversational/learner",
       "year": 2026,
       "commercial_use": true,
-      "notes": "Weekly German detailed export. Tatoeba states textual data is CC BY 2.0 FR; attribution is required."
+      "notes": "Weekly German detailed export. Tatoeba states textual data is CC BY 2.0 FR; attribution is required.",
+      "max_rows": 300000,
+      "selection": "newest"
     }
   ]
 }
