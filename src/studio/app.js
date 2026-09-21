@@ -51,7 +51,7 @@ let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:ini
   sort=sharedSearchState.sort,
   basis=sharedSearchState.queryBasis,
   resultLang=sharedSearchState.resultLanguage,
-  pageSize=6,auto=false,pauseUntil=0,scrollFrame=0,lastFrame=0,undo=[],redo=[],composingBarId='',saveTimer,toastTimer,playing=false,tick=0,playTimer,cue='hit',bpm=92,audioContext;
+  pageSize=6,auto=false,pauseUntil=0,scrollFrame=0,lastFrame=0,undo=[],redo=[],composingBarId='',compositionCommitBarId='',compositionCommitValue='',saveTimer,toastTimer,playing=false,tick=0,playTimer,cue='hit',bpm=92,audioContext;
 function saveStudioSearchState(overrides={}){
   sharedSearchState=createSearchState({
     ...sharedSearchState,
@@ -141,6 +141,7 @@ function renderEditor(){
     el.addEventListener('focus',()=>activateLine(+el.dataset.line));
     el.addEventListener('compositionstart',()=>{
       if(composingBarId)return;
+      compositionCommitBarId='';compositionCommitValue='';
       pushUndo();
       composingBarId=el.dataset.barId;
     });
@@ -152,6 +153,7 @@ function renderEditor(){
         el.dataset.barRevision=String(bar.revision);
       }
       composingBarId='';
+      compositionCommitBarId=el.dataset.barId;compositionCommitValue=el.value;
       el.parentElement.querySelector('.syllable').textContent=syll(el.value)||'—';
       resizeArea(el);
       changed();
@@ -159,7 +161,9 @@ function renderEditor(){
     });
     el.addEventListener('input',(event)=>{
       const index=+el.dataset.line;
-      if(!event.isComposing&&composingBarId!==el.dataset.barId)pushUndo();
+      const trailingCompositionCommit=compositionCommitBarId===el.dataset.barId&&compositionCommitValue===el.value;
+      if(trailingCompositionCommit){compositionCommitBarId='';compositionCommitValue=''}
+      else if(!event.isComposing&&composingBarId!==el.dataset.barId)pushUndo();
       const bar=setEditorBarText(song(),index,el.value);
       if(bar){
         if(el.value!==bar.text)el.value=bar.text;
@@ -167,7 +171,7 @@ function renderEditor(){
       }
       el.parentElement.querySelector('.syllable').textContent=syll(el.value)||'—';
       resizeArea(el);
-      if(!event.isComposing&&composingBarId!==el.dataset.barId)changed();
+      if(!trailingCompositionCommit&&!event.isComposing&&composingBarId!==el.dataset.barId)changed();
     });
     ['click','keyup','select'].forEach((eventName)=>el.addEventListener(eventName,()=>{
       if(composingBarId!==el.dataset.barId)captureSelection(el);
@@ -378,7 +382,7 @@ function showInfo(){showDialog('RhymeLab Studio Konzept',`<p>Ein gemeinsamer Sch
 function showCommands(){showDialog('Schnell zu deinem nächsten Schritt',`<div class="commandlist"><button data-command="studio">Studio öffnen <span class="small">Alt + 1</span></button><button data-command="search">Reimsuche öffnen <span class="small">Alt + 2</span></button><button data-command="focus">Fokusmodus wechseln <span class="small">Alt + F</span></button><button data-command="history">Versionsverlauf</button><button data-command="settings">Einstellungen</button><button data-command="export">Text exportieren</button></div><p class="notice">Strg / ⌘ + K öffnet dieses Menü. Escape schließt Dialoge. Native Textbearbeitung und Undo bleiben verfügbar.</p>`);queryAll('[data-command]').forEach(b=>b.onclick=()=>{closeDialog();({studio:()=>navigate('studio'),search:()=>navigate('search'),focus:toggleFocus,history:showHistory,settings:showSettings,export:exportText})[b.dataset.command]()})}
 function toggleFocus(){navigate('studio');document.body.classList.toggle('focus');$('#focusBtn').setAttribute('aria-pressed',document.body.classList.contains('focus'));notify(document.body.classList.contains('focus')?'Fokus an · Alt + F zum Verlassen':'Fokus aus')}
 function nameDialog(title,value,callback){showDialog(title,`<label class="field">Titel<input id="nameInput" value="${esc(value)}" maxlength="100"></label><div class="dialogactions"><button id="cancelName">Abbrechen</button><button id="saveName" class="primary">Speichern</button></div>`);$('#cancelName').onclick=closeDialog;$('#saveName').onclick=()=>{const text=$('#nameInput').value.trim();if(!text)return;callback(text);closeDialog()};$('#nameInput').onkeydown=e=>{if(e.key==='Enter')$('#saveName').click()};$('#nameInput').focus();$('#nameInput').select()}
-function newSong(){nameDialog('Ein neuer Text','Unbenannter Song',title=>{revision();state.songs.push({id:'s'+Date.now(),title,lines:[''],folder:'Entwürfe',steps:{},revisions:[]});state.active=state.songs.at(-1).id;activeLine=0;selection={line:0,start:0,end:0};undo=[];persist();renderEditor();navigate('studio');setMode('write');focusLine(0)})}
+function newSong(){nameDialog('Ein neuer Text','Unbenannter Song',title=>{revision();state.songs.push({id:'s'+Date.now(),title,lines:[''],folder:'Entwürfe',steps:{},revisions:[]});state.active=state.songs.at(-1).id;activeLine=0;selection={line:0,start:0,end:0};undo=[];redo=[];persist();renderEditor();navigate('studio');setMode('write');focusLine(0)})}
 function renderLibrary(showTrash=false){$('#largeView').innerHTML=`<div class="row between wrap"><div><div class="eyebrow">Deine Ideen bleiben bei dir</div><h1 style="margin-top:9px">${showTrash?'Papierkorb':'Meine Texte'}</h1></div><div class="row"><button id="trashToggle" class="outline">${showTrash?'Alle Texte':'Papierkorb'}</button><button id="newSongMain" class="primary">＋ Neuer Text</button></div></div><p class="muted" style="margin-top:13px">Anfangen, liegen lassen, wiederfinden.</p><div class="song-grid">${state.songs.filter(s=>!!s.deleted===showTrash).map(s=>`<article class="songcard"><span class="eyebrow">${esc(s.folder||'Entwürfe')}</span><h3>${esc(s.title)}</h3><p>${esc(s.lines.find(x=>x.trim())||'Die erste Zeile wartet noch.')}</p><small>${s.lines.length} Bars</small><div class="row between">${showTrash?`<button data-restore="${s.id}" class="outline">Wiederherstellen</button>`:`<button class="outline" data-song="${s.id}">Öffnen ↗</button><button data-trash="${s.id}">In Papierkorb</button>`}</div></article>`).join('')||'<p class="empty">Hier ist noch nichts.</p>'}</div>`;$('#newSongMain').onclick=newSong;$('#trashToggle').onclick=()=>renderLibrary(!showTrash)}
 function renderSaved(){$('#largeView').innerHTML=`<div class="eyebrow">Wörter für später</div><h1 style="margin-top:9px">Deine Merkliste.</h1><p class="muted" style="margin-top:14px">Gute Funde, direkt zurück in deinen Text.</p><div class="collection-list">${state.saved.map(r=>`<div class="result"><div class="grow"><h3>${esc(r.word)}</h3><small>Gefunden zu „${esc(r.anchor)}“</small></div><button data-insert="${esc(r.word)}" class="outline">Einsetzen</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entfernen">×</button></div>`).join('')||'<div class="empty">Merke ein Wort über das Lesezeichen neben einem Reim.</div>'}</div>`}
 function exportText(){const blob=new Blob([song().title+'\n\n'+song().lines.join('\n')],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(song().title.replace(/[^\p{L}\p{N} -]/gu,'')||'rhymelab')+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Text als TXT exportiert.')}
