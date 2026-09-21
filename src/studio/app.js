@@ -14,6 +14,7 @@ import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportM
 import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
 import {collectStudioEnvironmentDiagnostics,diagnosticsFilename} from './diagnostics.mjs';
 import {createStudioDomLocalizer,normalizeStudioUiLanguage} from './i18n.mjs';
+import {runStudioDomAcceptance} from './dom-acceptance.mjs';
 import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacyStudioStateToStore} from './document-store.mjs';
 
 'use strict';
@@ -2038,7 +2039,7 @@ async function renderRecoveryPanel(){
 }
 
 function collectCurrentStudioDiagnostics(){
-  return collectStudioEnvironmentDiagnostics({
+  const environment=collectStudioEnvironmentDiagnostics({
     windowObj:window,
     documentObj:document,
     documentStoreStatus,
@@ -2048,6 +2049,16 @@ function collectCurrentStudioDiagnostics(){
     writerRuntimeTiming,
     controlsBound:document.body.dataset.controls==='bound',
   });
+  const dom=runStudioDomAcceptance({documentObj:document,windowObj:window});
+  return {
+    ...environment,
+    domAcceptance:dom,
+    combinedSummary:{
+      passing:environment.summary.passing+dom.summary.passing,
+      total:environment.summary.total+dom.summary.total,
+      failing:[...environment.summary.failing,...dom.summary.failing],
+    },
+  };
 }
 function diagnosticsCheckMarkup(check){
   return '<div class="diagnostic-check '+(check.ok?'is-ok':'is-fail')+'"><span aria-hidden="true">'+(check.ok?'✓':'!')+'</span><div><b>'+esc(check.label)+'</b><small>'+esc(check.detail)+'</small></div></div>';
@@ -2057,7 +2068,7 @@ function renderDiagnosticsPanel(){
   if(!panel)return;
   const report=collectCurrentStudioDiagnostics();
   const viewport=report.viewport;
-  panel.innerHTML='<div class="diagnostics-summary"><div><span class="eyebrow">CURRENT ENVIRONMENT</span><b>'+report.summary.passing+'/'+report.summary.total+' Checks</b><small>'+Math.round(viewport.width)+'×'+Math.round(viewport.height)+' CSS px · DPR '+viewport.devicePixelRatio.toFixed(2)+' · '+(report.input.coarsePointer?'Touch/Coarse':'Mouse/Fine')+'</small></div><div class="diagnostics-runtime"><span>DocumentStore <b>'+esc(report.runtime.documentStoreStatus)+'</b></span><span>Writer <b>'+esc(report.runtime.writerStatus)+'</b></span><span>Runtime <b>'+(report.runtime.writerCurrentMs==null?'—':report.runtime.writerCurrentMs.toFixed(1)+' ms')+'</b></span><span>Ø100 <b>'+(report.runtime.writerAverageLast100Ms==null?'—':report.runtime.writerAverageLast100Ms.toFixed(1)+' ms')+'</b></span></div></div><div class="diagnostics-grid">'+report.checks.map(diagnosticsCheckMarkup).join('')+'</div>';
+  panel.innerHTML='<div class="diagnostics-summary"><div><span class="eyebrow">CURRENT ENVIRONMENT</span><b>'+report.combinedSummary.passing+'/'+report.combinedSummary.total+' Checks</b><small>'+Math.round(viewport.width)+'×'+Math.round(viewport.height)+' CSS px · DPR '+viewport.devicePixelRatio.toFixed(2)+' · '+(report.input.coarsePointer?'Touch/Coarse':'Mouse/Fine')+'</small></div><div class="diagnostics-runtime"><span>DocumentStore <b>'+esc(report.runtime.documentStoreStatus)+'</b></span><span>Writer <b>'+esc(report.runtime.writerStatus)+'</b></span><span>Runtime <b>'+(report.runtime.writerCurrentMs==null?'—':report.runtime.writerCurrentMs.toFixed(1)+' ms')+'</b></span><span>Ø100 <b>'+(report.runtime.writerAverageLast100Ms==null?'—':report.runtime.writerAverageLast100Ms.toFixed(1)+' ms')+'</b></span></div></div><div class="diagnostics-section-title">ENVIRONMENT</div><div class="diagnostics-grid">'+report.checks.map(diagnosticsCheckMarkup).join('')+'</div><div class="diagnostics-section-title">DOM / INTERACTION GATES</div><div class="diagnostics-grid">'+report.domAcceptance.checks.map(diagnosticsCheckMarkup).join('')+'</div>';
   return report;
 }
 function exportStudioDiagnostics(){
