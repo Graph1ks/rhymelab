@@ -75,6 +75,11 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/id=["']uiLanguageBtn["']/u);
   assert.match(app,/from '\.\/i18n\.mjs'/u);
   assert.match(app,/function setStudioUiLanguage\(/u);
+  assert.match(app,/function studioCommandRegistry\(/u);
+  assert.match(app,/function renderCommandPalette\(/u);
+  assert.match(app,/function executeStudioCommand\(/u);
+  assert.match(app,/rankStudioCommands/u);
+  assert.match(app,/commandShortcutText/u);
   assert.match(app,/function toggleStudioUiLanguage\(/u);
   assert.match(app,/createStudioDomLocalizer/u);
   assert.match(app,/id="uiLanguageSelect"/u);
@@ -84,6 +89,9 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/#themeMenuBtn\[aria-expanded="true"\] \+ \.theme-quick-menu/u);
   assert.match(css,/\.theme-builder-grid/u);
   assert.match(css,/\.language-quick/u);
+  assert.match(css,/Studio command palette/u);
+  assert.match(css,/\.command-results/u);
+  assert.match(css,/\.command-group/u);
   assert.match(app,/customThemes/u);
   assert.match(app,/themeSlots/u);
   assert.match(app,/Light-Style ersetzen/u);
@@ -184,6 +192,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/ORDNERSTRUKTUR/u);
   assert.match(app,/function deleteLibraryFolder\(/u);
   assert.match(app,/function moveLibrarySong\(/u);
+  assert.match(app,/function moveLibrarySongToFolder\(/u);
+  assert.match(app,/data-library-song-drag/u);
+  assert.match(app,/data-folder-drop/u);
+  assert.match(app,/application\/x-rhymelab-song/u);
   assert.match(app,/function permanentlyDeleteLibrarySong\(/u);
   assert.match(app,/id="librarySearch"/u);
   assert.match(app,/id="librarySort"/u);
@@ -191,6 +203,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.library-shell/u);
   assert.match(css,/\.library-folder-row/u);
   assert.match(css,/\.library-folder-label/u);
+  assert.match(css,/\.library-folder-row\.is-drop-target/u);
+  assert.match(css,/\.songcard\.is-dragging/u);
   assert.match(css,/--folder-depth/u);
   assert.match(css,/\.songcard-actions/u);
   assert.match(css,/\.result-badges/u);
@@ -256,6 +270,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/diagnostics\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/i18n\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/dom-acceptance\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/command-palette\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
