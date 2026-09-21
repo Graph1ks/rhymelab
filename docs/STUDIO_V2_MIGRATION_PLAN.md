@@ -351,7 +351,7 @@ assonance/consonance shown descriptively DONE
 unresolved-anchor coverage              DONE
 analysis runtime timing                 DONE
 bar navigation from analysis            DONE
-silable-density estimate labeling       DONE · explicit approximation
+syllable-density estimate labeling       DONE · explicit approximation
 ~~~
 
 Every visible analysis metric declares its source. Rhyme classification comes from the canonical Writer/backend path; the separate Bar-density chart remains explicitly marked as a local syllable estimate. Word-ending string comparison is no longer presented as rhyme analysis.
@@ -420,14 +420,16 @@ Studio 02 responsive behavior stays the visual base.
 
 Production gates:
 
-- active bar survives mode changes;
-- opening results preserves insertion target;
-- insertion returns to the exact saved selection;
-- keyboard does not hide active line;
-- one active main mobile scroller;
-- primary touch targets at least 44×44 CSS px;
-- no hover-only action;
-- reduced motion works.
+- active bar survives mode changes; **ENGINEERED**
+- opening results preserves insertion target; **ENGINEERED**
+- insertion returns to the exact saved selection; **ENGINEERED**
+- keyboard does not hide active line; **ENGINEERED via VisualViewport + active-Bar correction**
+- one active main mobile scroller; **ENGINEERED; nested Analysis scroll removed and editor scroll locks while tool dock owns scrolling**
+- primary touch targets at least 44×44 CSS px; **ENGINEERED for primary mobile controls**
+- no hover-only action; **ENGINEERED; Quickstyles has an explicit touch/menu trigger while the main button remains the Light/Dark QuickSwitch**
+- reduced motion works; **ENGINEERED**
+
+These gates still require real device/browser acceptance before the default-route switch.
 
 Full offline mobile Writer runtime remains a separate technical project.
 
@@ -490,7 +492,8 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 17 stable revision + recovery workflow         DONE
 18 Perform parity                              DONE
 19 canonical analysis                         DONE
-20 mobile / browser acceptance                 NEXT
+20 mobile acceptance engineering              DONE
+21 real device/browser acceptance              REQUIRED
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
