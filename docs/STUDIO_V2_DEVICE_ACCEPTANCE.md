@@ -44,7 +44,7 @@ Open **Studio → Settings → Real Device Acceptance** on the actual target bro
 6. **Primary touch targets** — operate primary controls by touch and verify there are no clipped rails or impractically small targets.
 7. **No hover-only primary action** — use Quickstyles, Library actions, result actions and Perform controls with touch only.
 
-Add a short device/browser note where useful. When all seven are checked, export **Acceptance JSON**.
+Add a short device/browser note where useful. Each passed gate stores the environment used for that check. Reports from multiple browsers/devices can be imported into **Settings → Real Device Acceptance** and merged without overwriting already-passed complementary gates.
 
 ## Final gate
 
@@ -54,13 +54,15 @@ Save the exported JSON as:
 reports/studio-v2-device-acceptance.json
 ~~~
 
-or pass another path explicitly:
+or pass one or more reports explicitly:
 
 ~~~bash
-npm run studio:v2:cutover:check -- --device-report /path/to/rhymelab-studio-device-acceptance-....json
+npm run studio:v2:cutover:check -- \
+  --device-report /path/to/desktop-acceptance.json \
+  --device-report /path/to/mobile-acceptance.json
 ~~~
 
-The full gate succeeds only when both source parity and all seven explicit real-device gates pass.
+The checker merges complementary evidence by gate. The full gate succeeds only when both source parity and all seven explicit real-device gates pass.
 
 The acceptance file contains environment metadata and pass/fail notes only. It does not contain lyric documents, search history, or recovery snapshots.
 
