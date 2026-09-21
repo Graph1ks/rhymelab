@@ -68,7 +68,7 @@ const analysisClient=createStudioAnalysisClient();
 const documentStore=createStudioDocumentStore();
 let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerCapabilities=null,writerDebounce=0;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
-let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all';
+let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all',analysisChainVisible=false;
 let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0,mobileViewportCleanup=null;
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',
   query=sharedSearchState.anchor||'Nacht',
@@ -794,6 +794,22 @@ function renderAnalysisSurface(){
     }).join('')
     :'';
 
+  const rhymeChain=ready
+    ?Object.entries(scheme.reduce((groups,label,index)=>{
+      if(!label||label==='—')return groups;
+      (groups[label]||(groups[label]=[])).push({index,word:words[index]||'—'});
+      return groups;
+    },{})).map(([label,items])=>'<div class="rhyme-chain-group"><span class="analysis-scheme-letter">'+esc(label)+'</span><div>'+items.map((item)=>'<button data-analysis-bar="'+item.index+'"><small>BAR '+String(item.index+1).padStart(2,'0')+'</small><b>'+esc(item.word)+'</b></button>').join('<i>→</i>')+'</div></div>').join('')
+    :'';
+  const stressFingerprint=ready&&Array.isArray(analysisData.wordDetails)
+    ?analysisData.wordDetails.map((detail,index)=>{
+      const value=detail?.stressPattern||(
+        detail?.primaryStressSyllable!=null?'P'+detail.primaryStressSyllable:'—'
+      );
+      return '<button data-analysis-bar="'+index+'" title="'+esc(words[index]||'Bar '+(index+1))+'"><small>'+String(index+1).padStart(2,'0')+'</small><b>'+esc(value||'—')+'</b></button>';
+    }).join('')
+    :'';
+
   $('#rhymeView').innerHTML=`
     <div class="analysis-head row between wrap">
       <div><div class="eyebrow">Song Analysis</div><h2>Klang, Struktur, Spannung.</h2><p class="small">Reimschema, Stressdaten und Klangbeziehungen kommen aus dem kanonischen Writer-Runtime-Pfad. Lokale Silbenzählung ist separat als Approximation markiert.</p></div>
@@ -809,9 +825,10 @@ function renderAnalysisSurface(){
     </div>
     <div class="analysis-layout">
       <section class="analysis-card analysis-rhyme-card">
-        <div class="row between wrap"><div><h3>Kanonisches Reimschema</h3><p class="small">Primärreime bestimmen das Schema. Assonanz/Konsonanz bleiben zusätzliche Klangrelationen.</p></div>${coverage}</div>
+        <div class="row between wrap"><div><h3>Kanonisches Reimschema</h3><p class="small">Primärreime bestimmen das Schema. Assonanz/Konsonanz bleiben zusätzliche Klangrelationen.</p></div><div class="row">${coverage}<button id="analysisChainToggle" class="outline" aria-pressed="${analysisChainVisible}">${analysisChainVisible?'Chain ausblenden':'Rhyme Chain'}</button></div></div>
         ${canonicalState}
         <div class="analysis-lines">${rows}</div>
+        ${analysisChainVisible?'<div class="rhyme-chain">'+(rhymeChain||'<div class="analysis-empty">Noch keine Reimkette.</div>')+'</div>':''}
         ${ready&&analysisData.coverage?.unresolved?.length?'<p class="analysis-note">Nicht im aktiven Writer-Lexikon: '+esc(analysisData.coverage.unresolved.slice(0,12).join(', '))+(analysisData.coverage.unresolved.length>12?' …':'')+'</p>':''}
       </section>
       <section class="analysis-card">
@@ -828,11 +845,16 @@ function renderAnalysisSurface(){
       </section>
       <section class="analysis-card analysis-word-lab">
         <div><h3>Word Laboratory</h3><p class="small">Kanonische IPA-/Stressdaten der analysierten Endwörter. Wort anklicken → als Writer-Anker übernehmen.</p></div>
+        <div class="analysis-stress-workbench"><div class="row between"><div><h4>Stress Fingerprint</h4><p class="small">Bar-für-Bar aus den Writer-Querydetails.</p></div><span class="analysis-source">CANONICAL</span></div><div class="analysis-stress-strip">${stressFingerprint||'<span class="small">Noch keine Stressdaten.</span>'}</div></div>
         <div class="analysis-word-grid">${wordLab||'<div class="analysis-empty">Noch keine Wortdaten.</div>'}</div>
       </section>
     </div>`;
   $('#backWrite').onclick=()=>setMode('write');
   $('#refreshAnalysis').onclick=()=>{analysisSignature='';void refreshSongAnalysis(true)};
+  $('#analysisChainToggle').onclick=()=>{
+    analysisChainVisible=!analysisChainVisible;
+    renderAnalysisSurface();
+  };
   queryAll('[data-analysis-bar]').forEach((button)=>button.onclick=()=>{
     activeLine=+button.dataset.analysisBar;
     setMode('write');
