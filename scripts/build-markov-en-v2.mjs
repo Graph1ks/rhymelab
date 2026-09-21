@@ -76,11 +76,8 @@ function runBuilder(rows,extraArgs=[]){
     ...extraArgs,
   ],{
     cwd:root,
-    encoding:'utf8',
-    stdio:['ignore','pipe','pipe'],
+    stdio:['ignore','inherit','inherit'],
   });
-  if(result.stdout)process.stdout.write(result.stdout);
-  if(result.stderr)process.stderr.write(result.stderr);
   return result.status??1;
 }
 
