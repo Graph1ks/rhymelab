@@ -144,13 +144,16 @@ function sourceCliArgs(rows){
   return rows.flatMap((row)=>[
     '--source',
     row.kind+':'+row.code+':'+row.weight+'='+row.path,
+    '--source-total',
+    row.code+'='+Math.max(0,Number(row.accepted)||0),
   ]);
 }
 
-function runBuilder(extraArgs,additionalSources=[]){
+function runBuilder(extraArgs,additionalSources=[],phraseTotal=0){
   const result=spawnSync(process.execPath,[
     'scripts/build-markov-model.mjs',
     '--source',`phrase:serving_v1_phrases:1=${sourceOut}`,
+    ...(phraseTotal>0?['--source-total','serving_v1_phrases='+phraseTotal]:[]),
     ...sourceCliArgs(additionalSources),
     ...extraArgs,
   ],{
@@ -276,6 +279,6 @@ const buildArgs=[
 ];
 const resultArgs=buildArgs;
 await mkdir(dirname(mixFingerprintPath),{recursive:true});
-const buildStatus=runBuilder(resultArgs,additionalSources);
+const buildStatus=runBuilder(resultArgs,additionalSources,exported.rows);
 if(buildStatus===0)await writeFile(mixFingerprintPath,mixFingerprint+'\n','utf8');
 process.exit(buildStatus);
