@@ -8,8 +8,9 @@ export const DISTRIBUTION_BUILD_POLICY='positive-materialization-relational-clos
 export const DISTRIBUTION_EDITIONS=Object.freeze({
   lite:Object.freeze({
     edition:'lite',
-    coreTarget:50000,
-    generatedTarget:0,
+    totalTarget:50000,
+    entityPerCategory:0,
+    phraseMode:'none',
     mode:'core',
     features:Object.freeze({
       words_de:true,words_en:true,phrases:false,entities:false,generated:false,markov:false,
@@ -17,8 +18,9 @@ export const DISTRIBUTION_EDITIONS=Object.freeze({
   }),
   standard:Object.freeze({
     edition:'standard',
-    coreTarget:250000,
-    generatedTarget:0,
+    totalTarget:250000,
+    entityPerCategory:1000,
+    phraseMode:'core',
     mode:'core',
     features:Object.freeze({
       words_de:true,words_en:true,phrases:true,entities:true,generated:false,markov:false,
@@ -26,11 +28,12 @@ export const DISTRIBUTION_EDITIONS=Object.freeze({
   }),
   full:Object.freeze({
     edition:'full',
-    coreTarget:400000,
-    generatedTarget:200000,
+    totalTarget:400000,
+    entityPerCategory:5000,
+    phraseMode:'all',
     mode:'all',
     features:Object.freeze({
-      words_de:true,words_en:true,phrases:true,entities:true,generated:true,markov:true,
+      words_de:true,words_en:true,phrases:true,entities:true,generated:true,markov:false,
     }),
   }),
 });
@@ -203,14 +206,11 @@ export function rankPlan(db){
     edition,
     {
       edition,
-      core_target:contract.coreTarget,
-      core_available:coreTotal,
-      core_selection:countByLanguage(db,'_dist_core_rank',contract.coreTarget),
-      generated_target:contract.generatedTarget,
-      generated_available:generatedTotal,
-      generated_selection:contract.generatedTarget
-        ?countByLanguage(db,'_dist_generated_rank',contract.generatedTarget)
-        :{de:{ranked:0,fallback:0,total:0},en:{ranked:0,fallback:0,total:0}},
+      total_target:contract.totalTarget,
+      entity_per_category:contract.entityPerCategory,
+      phrase_mode:contract.phraseMode,
+      core_word_surfaces_available:coreTotal,
+      generated_only_word_surfaces_available:generatedTotal,
       features:contract.features,
     },
   ]));
@@ -248,73 +248,25 @@ export function clearSelectionStorage(db){
 export function populateDistributionSelection(db,{
   edition,
   alias='src',
-  coreTarget:coreTargetOverride=null,
-  generatedTarget:generatedTargetOverride=null,
+  totalTarget:totalTargetOverride=null,
+  entityPerCategory:entityPerCategoryOverride=null,
 }){
   const contract=editionContract(edition);
-  const coreTarget=coreTargetOverride==null?contract.coreTarget:Number(coreTargetOverride);
-  const generatedTarget=generatedTargetOverride==null?contract.generatedTarget:Number(generatedTargetOverride);
+  const totalTarget=totalTargetOverride==null
+    ?contract.totalTarget
+    :Number(totalTargetOverride);
+  const entityPerCategory=entityPerCategoryOverride==null
+    ?contract.entityPerCategory
+    :Number(entityPerCategoryOverride);
   const p=prefix(alias);
   createSelectionStorage(db);
   clearSelectionStorage(db);
 
-  const coreAvailable=Number(db.prepare('SELECT COUNT(*) c FROM _dist_core_rank').get()?.c||0);
-  const generatedAvailable=Number(db.prepare('SELECT COUNT(*) c FROM _dist_generated_rank').get()?.c||0);
-  if(coreAvailable<coreTarget){
-    throw new Error('Core distribution population too small: '+coreAvailable+' < '+coreTarget);
-  }
-  if(generatedTarget&&generatedAvailable<generatedTarget){
-    throw new Error('Generated distribution population too small: '+generatedAvailable+' < '+generatedTarget);
-  }
-
-  db.prepare(`
-    INSERT INTO _dist_word_surface(surface_id,layer)
-    SELECT surface_id,'core'
-    FROM _dist_core_rank
-    WHERE distribution_rank<=?
-  `).run(coreTarget);
-
-  if(generatedTarget){
-    db.prepare(`
-      INSERT INTO _dist_word_surface(surface_id,layer)
-      SELECT surface_id,'generated'
-      FROM _dist_generated_rank
-      WHERE distribution_rank<=?
-    `).run(generatedTarget);
-  }
-
-  db.exec(`
-    INSERT OR IGNORE INTO _dist_pronunciation(pronunciation_id,reason)
-    SELECT p.pronunciation_id,'word_core'
-    FROM ${p}pronunciation p
-    JOIN _dist_word_surface ws ON ws.surface_id=p.surface_id AND ws.layer='core'
-    WHERE p.eligible=1 AND p.canonical_available=1
-      AND EXISTS(
-        SELECT 1 FROM ${p}pronunciation_origin po
-        WHERE po.pronunciation_id=p.pronunciation_id AND po.domain='word'
-      );
-  `);
-
-  if(contract.features.generated){
-    db.exec(`
-      INSERT OR IGNORE INTO _dist_pronunciation(pronunciation_id,reason)
-      SELECT p.pronunciation_id,
-        CASE WHEN ws.layer='core' THEN 'word_generated_closure_on_core' ELSE 'word_generated' END
-      FROM ${p}pronunciation p
-      JOIN _dist_word_surface ws ON ws.surface_id=p.surface_id
-      WHERE p.eligible=1 AND p.canonical_available=0 AND p.generated_available=1
-        AND EXISTS(
-          SELECT 1 FROM ${p}pronunciation_origin po
-          WHERE po.pronunciation_id=p.pronunciation_id AND po.domain='word'
-        );
-    `);
-  }
-
   if(contract.features.phrases){
-    const phraseAvailability=contract.mode==='core'
+    const phraseAvailability=contract.phraseMode==='core'
       ?'rp.canonical_available=1'
       :'(rp.canonical_available=1 OR rp.generated_available=1)';
-    const windowAvailability=contract.mode==='core'
+    const windowAvailability=contract.phraseMode==='core'
       ?'w.canonical_available=1'
       :'(w.canonical_available=1 OR w.generated_available=1)';
     db.exec(`
@@ -328,22 +280,51 @@ export function populateDistributionSelection(db,{
       FROM ${p}runtime_phrase_window w
       JOIN _dist_phrase dp USING(runtime_phrase_id)
       WHERE ${windowAvailability};
-
-      INSERT OR IGNORE INTO _dist_pronunciation(pronunciation_id,reason)
-      SELECT rp.pronunciation_id,'phrase'
-      FROM ${p}runtime_phrase rp
-      JOIN _dist_phrase dp USING(runtime_phrase_id);
     `);
   }
 
-  if(contract.features.entities){
+  if(contract.features.entities&&entityPerCategory>0){
     const entityAvailability=contract.mode==='core'
       ?'sp.canonical_available=1'
       :'(sp.canonical_available=1 OR sp.generated_available=1)';
     db.exec(`
+      WITH eligible AS (
+        SELECT
+          ec.entity_id,
+          ec.category,
+          ec.category_rank,
+          ec.category_score,
+          ROW_NUMBER() OVER(
+            PARTITION BY ec.category
+            ORDER BY
+              CASE WHEN ec.category_rank IS NOT NULL AND ec.category_rank>0 THEN 0 ELSE 1 END,
+              ec.category_rank ASC,
+              ec.category_score DESC,
+              ec.entity_id ASC
+          ) AS edition_category_rank
+        FROM ${p}runtime_entity_category ec
+        WHERE ec.retained_by_category=1
+          AND EXISTS(
+            SELECT 1
+            FROM ${p}runtime_entity_name n
+            JOIN ${p}runtime_entity_pronunciation ep USING(name_id)
+            JOIN ${p}pronunciation sp
+              ON sp.pronunciation_id=ep.serving_pronunciation_id
+            WHERE n.entity_id=ec.entity_id
+              AND sp.eligible=1
+              AND ${entityAvailability}
+          )
+      )
+      INSERT OR IGNORE INTO _dist_entity(entity_id)
+      SELECT entity_id
+      FROM eligible
+      WHERE edition_category_rank<=${Math.max(0,Math.trunc(entityPerCategory))};
+
       INSERT OR IGNORE INTO _dist_entity_pronunciation(product_pronunciation_id)
       SELECT ep.product_pronunciation_id
       FROM ${p}runtime_entity_pronunciation ep
+      JOIN ${p}runtime_entity_name n USING(name_id)
+      JOIN _dist_entity de USING(entity_id)
       JOIN ${p}pronunciation sp
         ON sp.pronunciation_id=ep.serving_pronunciation_id
       WHERE sp.eligible=1 AND ${entityAvailability};
@@ -352,12 +333,74 @@ export function populateDistributionSelection(db,{
       SELECT DISTINCT ep.name_id
       FROM ${p}runtime_entity_pronunciation ep
       JOIN _dist_entity_pronunciation dep USING(product_pronunciation_id);
+    `);
+  }
 
-      INSERT OR IGNORE INTO _dist_entity(entity_id)
-      SELECT DISTINCT n.entity_id
-      FROM ${p}runtime_entity_name n
-      JOIN _dist_entity_name dn USING(name_id);
+  const phraseCount=scalar(db,'SELECT COUNT(*) c FROM _dist_phrase');
+  const entityCount=scalar(db,'SELECT COUNT(*) c FROM _dist_entity');
+  const wordTarget=totalTarget-phraseCount-entityCount;
+  if(wordTarget<=0){
+    throw new Error(
+      'Distribution non-word populations exceed total budget: '
+      +JSON.stringify({edition,totalTarget,phraseCount,entityCount,wordTarget}),
+    );
+  }
+  if(wordTarget<=Math.floor(totalTarget/2)){
+    throw new Error(
+      'Words must remain the majority of the edition budget: '
+      +JSON.stringify({edition,totalTarget,phraseCount,entityCount,wordTarget}),
+    );
+  }
 
+  const coreAvailable=Number(db.prepare('SELECT COUNT(*) c FROM _dist_core_rank').get()?.c||0);
+  if(coreAvailable<wordTarget){
+    throw new Error('Core word population too small: '+coreAvailable+' < '+wordTarget);
+  }
+
+  db.prepare(`
+    INSERT INTO _dist_word_surface(surface_id,layer)
+    SELECT surface_id,'core'
+    FROM _dist_core_rank
+    WHERE distribution_rank<=?
+  `).run(wordTarget);
+
+  db.exec(`
+    INSERT OR IGNORE INTO _dist_pronunciation(pronunciation_id,reason)
+    SELECT p.pronunciation_id,'word_core'
+    FROM ${p}pronunciation p
+    JOIN _dist_word_surface ws ON ws.surface_id=p.surface_id
+    WHERE p.eligible=1 AND p.canonical_available=1
+      AND EXISTS(
+        SELECT 1 FROM ${p}pronunciation_origin po
+        WHERE po.pronunciation_id=p.pronunciation_id AND po.domain='word'
+      );
+  `);
+
+  if(contract.features.generated){
+    db.exec(`
+      INSERT OR IGNORE INTO _dist_pronunciation(pronunciation_id,reason)
+      SELECT p.pronunciation_id,'word_generated_closure_on_selected_core'
+      FROM ${p}pronunciation p
+      JOIN _dist_word_surface ws ON ws.surface_id=p.surface_id
+      WHERE p.eligible=1 AND p.canonical_available=0 AND p.generated_available=1
+        AND EXISTS(
+          SELECT 1 FROM ${p}pronunciation_origin po
+          WHERE po.pronunciation_id=p.pronunciation_id AND po.domain='word'
+        );
+    `);
+  }
+
+  if(contract.features.phrases){
+    db.exec(`
+      INSERT OR IGNORE INTO _dist_pronunciation(pronunciation_id,reason)
+      SELECT rp.pronunciation_id,'phrase'
+      FROM ${p}runtime_phrase rp
+      JOIN _dist_phrase dp USING(runtime_phrase_id);
+    `);
+  }
+
+  if(contract.features.entities){
+    db.exec(`
       INSERT OR IGNORE INTO _dist_pronunciation(pronunciation_id,reason)
       SELECT DISTINCT ep.serving_pronunciation_id,'entity'
       FROM ${p}runtime_entity_pronunciation ep
@@ -412,27 +455,63 @@ export function populateDistributionSelection(db,{
     JOIN _dist_target dt USING(target_id);
   `);
 
-  return distributionSelectionSummary(db,{edition,alias});
+  return distributionSelectionSummary(db,{
+    edition,
+    alias,
+    totalTarget,
+    entityPerCategory,
+  });
 }
 
 function scalar(db,sql){
   return Number(db.prepare(sql).get()?.c||0);
 }
 
-export function distributionSelectionSummary(db,{edition,alias='src'}){
+export function distributionSelectionSummary(db,{
+  edition,
+  alias='src',
+  totalTarget=editionContract(edition).totalTarget,
+  entityPerCategory=editionContract(edition).entityPerCategory,
+}){
   const p=prefix(alias);
+  const words=scalar(db,"SELECT COUNT(*) c FROM _dist_word_surface WHERE layer='core'");
+  const phrases=scalar(db,'SELECT COUNT(*) c FROM _dist_phrase');
+  const entities=scalar(db,'SELECT COUNT(*) c FROM _dist_entity');
+  const categoryRows=entityPerCategory>0
+    ?db.prepare(`
+      SELECT ec.category,COUNT(DISTINCT ec.entity_id) AS selected_entities
+      FROM ${p}runtime_entity_category ec
+      JOIN _dist_entity de USING(entity_id)
+      WHERE ec.retained_by_category=1
+      GROUP BY ec.category
+      ORDER BY ec.category
+    `).all().map((row)=>({
+      category:String(row.category),
+      selected_entities:Number(row.selected_entities||0),
+    }))
+    :[];
   return {
     edition,
-    word_surfaces:{
-      core:scalar(db,"SELECT COUNT(*) c FROM _dist_word_surface WHERE layer='core'"),
-      generated:scalar(db,"SELECT COUNT(*) c FROM _dist_word_surface WHERE layer='generated'"),
+    budget:{
+      target:Number(totalTarget),
+      entries:words+phrases+entities,
+      words,
+      phrases,
+      entities,
+      word_share:Number(totalTarget)>0?words/Number(totalTarget):0,
+      entity_per_category:Number(entityPerCategory||0),
     },
+    word_surfaces:{
+      core:words,
+      generated:0,
+    },
+    entity_categories:categoryRows,
     selected:{
       surfaces:scalar(db,'SELECT COUNT(*) c FROM _dist_surface'),
       pronunciations:scalar(db,'SELECT COUNT(*) c FROM _dist_pronunciation'),
-      phrases:scalar(db,'SELECT COUNT(*) c FROM _dist_phrase'),
+      phrases,
       phrase_windows:scalar(db,'SELECT COUNT(*) c FROM _dist_phrase_window'),
-      entities:scalar(db,'SELECT COUNT(*) c FROM _dist_entity'),
+      entities,
       entity_names:scalar(db,'SELECT COUNT(*) c FROM _dist_entity_name'),
       entity_pronunciations:scalar(db,'SELECT COUNT(*) c FROM _dist_entity_pronunciation'),
       runtime_targets:scalar(db,'SELECT COUNT(*) c FROM _dist_target'),
@@ -499,7 +578,11 @@ export const DISTRIBUTION_COPY_STAGES=Object.freeze([
       runtime_entity_analysis:'product_pronunciation_id IN (SELECT product_pronunciation_id FROM _dist_entity_pronunciation)',
       runtime_entity_anchor_occurrence:'product_pronunciation_id IN (SELECT product_pronunciation_id FROM _dist_entity_pronunciation)',
       runtime_entity_anchor_ranked:'product_pronunciation_id IN (SELECT product_pronunciation_id FROM _dist_entity_pronunciation)',
-      runtime_entity_writer_anchor:'serving_pronunciation_id IN (SELECT pronunciation_id FROM _dist_pronunciation)',
+      runtime_entity_writer_anchor:`serving_pronunciation_id IN(
+        SELECT ep.serving_pronunciation_id
+        FROM src.runtime_entity_pronunciation ep
+        JOIN _dist_entity_pronunciation dep USING(product_pronunciation_id)
+      )`,
     }),
   }),
 ]);
@@ -598,8 +681,9 @@ export function writeDistributionManifest(db,{edition,sourceMeta,selection}){
     distribution_source_fingerprint:distributionMetaFingerprint(sourceMeta),
     distribution_source_runtime_semantic_fingerprint:sourceMeta.runtime_semantic_fingerprint,
     distribution_source_product_semantic_fingerprint:sourceMeta.product_adapter_semantic_fingerprint,
-    distribution_core_target:String(contract.coreTarget),
-    distribution_generated_target:String(contract.generatedTarget),
+    distribution_total_target:String(contract.totalTarget),
+    distribution_entity_per_category:String(contract.entityPerCategory),
+    distribution_phrase_mode:String(contract.phraseMode),
     distribution_features_json:JSON.stringify(contract.features),
     distribution_selection_json:JSON.stringify(selection),
     distribution_status:'complete',
