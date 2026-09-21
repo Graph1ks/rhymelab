@@ -416,3 +416,114 @@ html,*{
   .songcard{min-height:0}
   .songcard-actions button{min-height:44px;flex:1 1 calc(50% - 6px)}
 }
+
+
+/* Studio authoritative persistence + Perform parity */
+.recovery-card{grid-column:1/-1}
+.recovery-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.recovery-head p{max-width:720px}
+#recoveryPanel{margin-top:12px}
+.recovery-list{display:grid;gap:6px}
+.recovery-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;
+  padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel)
+}
+.recovery-row b{display:block;font-size:10px}
+.recovery-row small{display:block;margin-top:3px;font-size:8px;color:var(--muted)}
+.recovery-row button{min-height:32px;font-size:9px}
+
+.performance{gap:18px}
+.perform-head{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:22px;
+  padding-bottom:18px;border-bottom:1px solid var(--line)
+}
+.perform-head h2{margin-top:7px}
+.perform-head p{margin-top:10px;font-size:16px;line-height:1.55}
+.perform-metrics{display:grid;grid-template-columns:repeat(4,minmax(64px,1fr));gap:6px}
+.perform-metrics span{
+  display:grid;gap:3px;min-width:64px;padding:9px;border:1px solid var(--line);border-radius:9px;
+  background:color-mix(in srgb,var(--panel) 84%,var(--bg));text-align:center
+}
+.perform-metrics b{font-size:15px;font-variant-numeric:tabular-nums}
+.perform-metrics small{font-size:7px;letter-spacing:.6px;color:var(--muted);text-transform:uppercase}
+.perform-review{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;
+  padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent-2,var(--accent)) 48%,var(--line));
+  border-radius:10px;background:color-mix(in srgb,var(--accent-2,var(--accent)) 8%,var(--panel))
+}
+.perform-review b{font-size:10px}
+.perform-review span{font-size:9px;line-height:1.45;color:var(--muted)}
+.perform-review button{min-height:31px;font-size:9px}
+.perform-transport{
+  display:flex;align-items:end;gap:8px;flex-wrap:wrap;padding:12px;border:1px solid var(--line);
+  border-radius:11px;background:color-mix(in srgb,var(--panel) 86%,var(--bg))
+}
+.perform-bpm{display:grid;gap:4px;font-size:7px;letter-spacing:.7px;color:var(--muted);font-weight:800}
+.perform-bpm input{
+  width:76px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--panel);
+  color:var(--ink);padding:5px 8px;font:700 12px ui-monospace,monospace
+}
+.perform-toggle{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.perform-toggle button{min-height:30px;padding:4px 8px;font-size:9px;color:var(--muted)}
+.perform-toggle button.active{background:var(--tint);color:var(--accent)}
+.perform-transport #playBtn{margin-left:auto;min-height:36px}
+.perform-sequencer{
+  padding:14px;border:1px solid var(--line);border-radius:12px;
+  background:color-mix(in srgb,var(--panel) 91%,var(--bg))
+}
+.perform-tool-hint{font-size:9px;color:var(--accent)}
+.cue-tools{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:12px}
+.cue-tools button{min-height:32px;font-size:9px}
+.cue-tools button.active{background:var(--tint);color:var(--accent)}
+.pause-length{
+  display:flex;align-items:center;gap:6px;margin-left:auto;font-size:8px;color:var(--muted);
+  letter-spacing:.4px;text-transform:uppercase
+}
+.pause-length select{
+  height:32px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);font-size:9px;padding:4px 24px 4px 7px
+}
+.perform-sequencer .beatgrid{
+  display:grid;gap:7px;margin-top:16px;grid-template-columns:repeat(8,minmax(0,1fr))
+}
+.perform-sequencer .beatgrid.perform-grid-16{grid-template-columns:repeat(8,minmax(0,1fr))}
+.perform-sequencer .beatgrid.perform-grid-8{grid-template-columns:repeat(8,minmax(0,1fr))}
+.perform-sequencer .beatgrid button{
+  position:relative;display:grid;place-items:center;gap:2px;aspect-ratio:1.2;min-height:44px;
+  border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted)
+}
+.perform-sequencer .beatgrid button span{font-size:15px}
+.perform-sequencer .beatgrid button small{font-size:7px;color:var(--muted)}
+.perform-sequencer .beatgrid button.on{
+  border-color:color-mix(in srgb,var(--accent) 46%,var(--line));background:var(--tint);color:var(--accent)
+}
+.perform-sequencer .beatgrid button.cue-accent{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 42%,transparent)}
+.perform-sequencer .beatgrid button.cue-pause{border-style:dashed}
+.perform-sequencer .beatgrid button.cue-breath{border-radius:999px}
+.perform-sequencer .beatgrid button.cue-hold span{transform:scaleX(1.2)}
+.perform-sequencer .beatgrid button.move-source{outline:2px solid var(--accent);outline-offset:2px}
+.perform-sequencer .beatgrid button.playhead{
+  transform:translateY(-2px);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)
+}
+.perform-actions{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.perform-actions button{min-height:34px;font-size:9px}
+
+@media(min-width:1250px){
+  .perform-sequencer .beatgrid.perform-grid-16{grid-template-columns:repeat(16,minmax(0,1fr))}
+}
+@media(max-width:800px){
+  .recovery-head{display:grid}
+  .recovery-row{grid-template-columns:1fr}
+  .recovery-row button{min-height:44px}
+  .perform-head{grid-template-columns:1fr}
+  .perform-metrics{grid-template-columns:repeat(4,1fr)}
+  .perform-review{grid-template-columns:1fr}
+  .perform-review button{min-height:44px}
+  .perform-transport{align-items:stretch}
+  .perform-transport #playBtn{margin-left:0;min-height:44px;flex:1 1 100%}
+  .perform-toggle{flex:1}
+  .perform-toggle button{flex:1;min-height:40px}
+  .cue-tools button{min-height:44px;flex:1 1 calc(33.333% - 5px)}
+  .pause-length{margin-left:0;flex:1 1 100%}
+  .pause-length select{min-height:44px;flex:1}
+  .perform-sequencer .beatgrid,.perform-sequencer .beatgrid.perform-grid-16,.perform-sequencer .beatgrid.perform-grid-8{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
