@@ -157,3 +157,53 @@ test('V2 builder weights source roles and excludes phrase fragments from line-sh
     await rm(dir,{recursive:true,force:true});
   }
 });
+
+
+test('V2 builder materializes an independent English model when --language en is selected',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'rhymelab-markov-en-builder-'));
+  try{
+    const source=join(dir,'english.txt');
+    const work=join(dir,'work.sqlite');
+    const out=join(dir,'model.sqlite');
+    const report=join(dir,'report.json');
+    await writeFile(source,[
+      'The music sounds different when the whole city finally goes quiet.',
+      'I keep writing through the night until the morning starts again.',
+      'We walk across the empty street and watch the lights disappear.',
+      'Nobody knows exactly where the broken rhythm wants to go.',
+    ].join('\n')+'\n','utf8');
+
+    const run=spawnSync(process.execPath,[
+      'scripts/build-markov-model.mjs',
+      '--language','en',
+      '--source',`sentence:english_fixture:1=${source}`,
+      '--work',work,
+      '--out',out,
+      '--report',report,
+      '--min-token-count','1',
+      '--min-sequence-tokens','2',
+      '--max-states','1000',
+      '--top-k','8',
+      '--batch-sentences','100',
+    ],{
+      cwd:process.cwd(),
+      encoding:'utf8',
+      timeout:30_000,
+    });
+
+    assert.equal(run.status,0,run.stderr||run.stdout);
+    const db=new DatabaseSync(out,{readOnly:true});
+    try{
+      const meta=Object.fromEntries(
+        db.prepare('SELECT key,value FROM meta').all().map((row)=>[row.key,row.value]),
+      );
+      assert.equal(meta.language,'en');
+      assert.equal(meta.schema,'rhymelab-markov-model-v2');
+      assert.ok(Number(db.prepare('SELECT COUNT(*) AS n FROM transition').get()?.n||0)>0);
+    }finally{
+      db.close();
+    }
+  }finally{
+    await rm(dir,{recursive:true,force:true});
+  }
+});
