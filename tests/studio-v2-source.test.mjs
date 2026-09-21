@@ -39,6 +39,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/Studio capability surface/u);
   assert.match(css,/\.capability-grid/u);
   assert.match(css,/\.local\.degraded/u);
+  assert.match(css,/\.startup-failure/u);
+  assert.match(css,/\.startup-failure-actions/u);
   assert.match(css,/Studio live Writer states/u);
   assert.match(css,/\.writer-loading:after/u);
   assert.match(css,/Studio production detail parity/u);
@@ -71,6 +73,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/id=["']advancedGeneratedOnly["']/u);
   assert.match(html,/id=["']runtimeInline["']/u);
   assert.match(app,/dataset\.studioVersion='2'/u);
+  assert.match(app,/function renderStartupFailure\(/u);
+  assert.match(app,/STUDIO_PREFERENCES_KEY/u);
+  assert.match(app,/data-startup-action="reset-ui"/u);
+  assert.match(app,/href="\/legacy"/u);
   assert.match(html,/id=["']themeQuick["']/u);
   assert.match(html,/id=["']themeQuickMenu["']/u);
   assert.match(html,/id=["']themeMenuBtn["']/u);
