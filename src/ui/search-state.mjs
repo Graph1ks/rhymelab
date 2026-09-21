@@ -110,6 +110,14 @@ export function searchStateFromUrl(urlLike,current={}){
     return base;
   }
   const params=url.searchParams;
+  const hasCategory=params.has('entity_category');
+  const hasCategories=params.has('entity_categories');
+  const entityCategory=hasCategory?params.get('entity_category'):base.entityCategory;
+  const entityCategories=hasCategories
+    ?params.get('entity_categories')
+    :hasCategory
+      ?[entityCategory]
+      :base.entityCategories;
   return createSearchState({
     ...base,
     anchor:params.get('q')??base.anchor,
@@ -123,10 +131,8 @@ export function searchStateFromUrl(urlLike,current={}){
     historical:params.has('historical')?params.get('historical'):base.historical,
     generated:params.has('generated')?params.get('generated'):base.generated,
     generatedOnly:params.has('generated_only')?params.get('generated_only'):base.generatedOnly,
-    entityCategory:params.get('entity_category')??base.entityCategory,
-    entityCategories:params.has('entity_categories')
-      ?params.get('entity_categories')
-      :base.entityCategories,
+    entityCategory,
+    entityCategories,
   });
 }
 
@@ -185,7 +191,7 @@ export function searchStateToWriterParams(value,{
     phrase_per_channel:String(phrasePerChannel),
     entity_limit:String(entityLimit),
     entity_pool:String(entityPool),
-    entity_category:state.entityCategory,
+    entity_category:state.entityCategories.length>1?'all':state.entityCategory,
     variants:state.variantMode==='all'?'all':'standard',
     historical:state.historical?'all':'current',
     generated:state.generated?'1':'0',
