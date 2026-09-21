@@ -345,6 +345,12 @@ live Bar Inspector metrics                DONE
 verse totals + duration estimate          DONE
 full Perform parity                      DONE
 persistent DE / EN UI localization       DONE
+serialized autosave queue + lifecycle flush DONE
+portable backup import/export             DONE
+live DOM acceptance audit                 DONE
+searchable desktop command palette        DONE
+desktop Library drag-to-folder            DONE
+pre-delete automatic recovery checkpoint  DONE
 portable full-workspace backup           DONE
 browser/runtime diagnostics dashboard    DONE
 ~~~
@@ -524,7 +530,11 @@ Entity category multi-select             DONE · shared SearchState + OR runtime
 25 portable backup + restore                    DONE
 26 browser/runtime diagnostics                  DONE
 27 DE / EN interface localization               DONE
-28 real device/browser acceptance              REQUIRED
+28 searchable command palette                  DONE
+29 lifecycle persistence hardening             DONE
+30 desktop Library direct manipulation         DONE
+31 live DOM acceptance audit                   DONE
+32 real device/browser acceptance              REQUIRED
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
