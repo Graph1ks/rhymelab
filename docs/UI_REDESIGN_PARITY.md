@@ -355,6 +355,8 @@ real browser/device/audio acceptance across the release viewport matrix
 execution of the seven manifest entries marked as real-device gates
 ~~~
 
+Everything source-verifiable is now gated automatically. Run `npm run studio:v2:cutover:code` for the source-only contract and `npm run studio:v2:cutover:check` after exporting the seven-gate report from **Settings → Real Device Acceptance**. The reversible production route shape is available through `npm run dev:studio-default`; the normal default route is intentionally unchanged until the full gate passes.
+
 The exhaustive source mapping is now machine-readable in `src/studio/parity-manifest.mjs`: 77 mapped capabilities, 70 source-backed gates and seven real-device gates. `tests/studio-parity-manifest.test.mjs` verifies that every source evidence token still exists. This closes the static mapping portion of the old-vs-new audit; it does not replace behavioral execution on actual browsers, touch devices, IME input, or Web Audio.
 
 Former owner-added blockers are now implemented in Studio:
