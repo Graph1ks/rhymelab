@@ -61,6 +61,11 @@
     "local:run": "npm run dev",
     "phrase:catalog": "node scripts/build-de-phrase-catalog.mjs",
     "phrase:catalog:bootstrap": "node scripts/bootstrap-de-phrase-catalog-local.mjs",
+    "markov:sources:plan": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --plan",
+    "markov:sources:acquire": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs",
+    "markov:sources:refresh": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --refresh",
+    "markov:sources:status": "node --no-warnings scripts/acquire-markov-sentence-sources.mjs --status",
+    "markov:data:bootstrap": "npm run markov:sources:acquire && npm run markov:model:build",
     "markov:model:plan": "node --no-warnings scripts/build-markov-from-rhymelab.mjs --plan",
     "markov:model:build": "node --no-warnings scripts/build-markov-from-rhymelab.mjs",
     "markov:model:status": "node --no-warnings scripts/build-markov-from-rhymelab.mjs --status",
@@ -181,5 +186,8 @@
     "serving:v1:hotpath:benchmark": "node --no-warnings scripts/benchmark-serving-v1-hotpaths.mjs",
     "serving:v1:hotpath:owner": "node --no-warnings scripts/run-serving-v1-hotpath-owner.mjs",
     "serving:v1:report:benchmark": "node --no-warnings scripts/benchmark-serving-v1-report.mjs"
+  },
+  "dependencies": {
+    "seek-bzip": "2.0.0"
   }
 }
