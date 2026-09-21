@@ -109,7 +109,7 @@
             </label>
             <label class="switch-row">
               <span><b>Phrases</b><small>Attested chunks, context-gated</small></span>
-              <input id="allowPhrases" type="checkbox" checked>
+              <input id="allowPhrases" type="checkbox">
               <i aria-hidden="true"></i>
             </label>
             <label class="switch-row">
@@ -117,6 +117,27 @@
               <input id="allowGenerated" type="checkbox">
               <i aria-hidden="true"></i>
             </label>
+            <div id="entityCategoryPanel" class="entity-category-panel">
+              <div class="entity-category-head">
+                <span>Entity groups</span>
+                <button type="button" class="entity-category-chip active" data-entity-category="all" aria-pressed="true">ALL</button>
+              </div>
+              <div class="entity-category-grid" aria-label="Entity category filters">
+                <button type="button" class="entity-category-chip" data-entity-category="person.rapper" aria-pressed="false">Rapper</button>
+                <button type="button" class="entity-category-chip" data-entity-category="person.musician" aria-pressed="false">Sänger / Musiker</button>
+                <button type="button" class="entity-category-chip" data-entity-category="person.actor" aria-pressed="false">Schauspieler</button>
+                <button type="button" class="entity-category-chip" data-entity-category="person.director" aria-pressed="false">Regisseure</button>
+                <button type="button" class="entity-category-chip" data-entity-category="group.music_group" aria-pressed="false">Musikgruppen</button>
+                <button type="button" class="entity-category-chip" data-entity-category="organization.car_brand" aria-pressed="false">Automarken</button>
+                <button type="button" class="entity-category-chip" data-entity-category="organization.fashion_house" aria-pressed="false">Fashion</button>
+                <button type="button" class="entity-category-chip" data-entity-category="organization.company" aria-pressed="false">Firmen</button>
+                <button type="button" class="entity-category-chip" data-entity-category="work.film" aria-pressed="false">Filme</button>
+                <button type="button" class="entity-category-chip" data-entity-category="work.video_game" aria-pressed="false">Games</button>
+                <button type="button" class="entity-category-chip" data-entity-category="work.album" aria-pressed="false">Alben</button>
+                <button type="button" class="entity-category-chip" data-entity-category="work.song" aria-pressed="false">Songs</button>
+                <button type="button" class="entity-category-chip" data-entity-category="fictional.character" aria-pressed="false">Figuren</button>
+              </div>
+            </div>
           </fieldset>
 
           <div class="seed-row">
