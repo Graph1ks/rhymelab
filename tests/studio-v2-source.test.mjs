@@ -79,6 +79,7 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/open&&render&&!wasOpen/u);
   assert.match(app,/if\(event\.target!==button\)setThemeQuickOpen\(true,\{render:false\}\)/u);
   assert.match(app,/button\.onclick=function\(event\)/u);
+  assert.match(app,/button\.onclick=function\(event\)\{[\s\S]*?toggleTheme\(\);[\s\S]*?setThemeQuickOpen\(false,\{render:false\}\)/u);
   assert.match(app,/applyThemeChoice\(choice\)/u);
   assert.match(app,/function previewThemeDraft\(/u);
   assert.match(app,/compositionstart/u);
@@ -90,6 +91,17 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/initializeDocumentStore/u);
   assert.match(app,/shadowLegacyStudioStateToStore/u);
   assert.match(app,/DocumentStore/u);
+  assert.match(app,/function renderLibrary\(/u);
+  assert.match(app,/function createLibraryFolder\(/u);
+  assert.match(app,/function deleteLibraryFolder\(/u);
+  assert.match(app,/function moveLibrarySong\(/u);
+  assert.match(app,/function permanentlyDeleteLibrarySong\(/u);
+  assert.match(app,/id="librarySearch"/u);
+  assert.match(app,/id="librarySort"/u);
+  assert.match(css,/Studio library parity/u);
+  assert.match(css,/\.library-shell/u);
+  assert.match(css,/\.library-folder-row/u);
+  assert.match(css,/\.songcard-actions/u);
 });
 
 test('Studio preview route is parallel and leaves legacy Search and RhymePad routes in place',async()=>{
