@@ -10,25 +10,38 @@ The final distribution workflow must derive all editions reproducibly from one f
 
 ## Critical interpretation
 
-The tier numbers describe the retained **Core / Generated word-pronunciation population**, not Entity counts and not raw SQLite row counts.
+The edition numbers are **total product-entry budgets**, not Word-only targets.
 
-Do not reinterpret:
+The budget unit is:
 
 ```text
-50k / 250k / 400k / 200k
+1 selected lexical Word surface = 1 entry
+1 selected Phrase runtime row    = 1 entry
+1 selected Entity identity       = 1 entry
 ```
 
-as Entity population sizes.
+Pronunciations, aliases/names, phonetic analyses, retrieval anchors, phrase windows,
+runtime keys and indexes are relational closure/storage and do **not** consume extra
+product-entry quota.
 
-Entity inclusion is a feature of Standard and Full, but its final retention policy/population is a separate distribution decision to be measured from the real Master database.
+Therefore:
+
+```text
+Lite     =  50,000 total = Words only
+Standard = 250,000 total = majority Words + Phrases + Top 1,000 retrievable Entities/category
+Full     = 400,000 total = majority Words + Phrases + Top 5,000 retrievable Entities/category
+```
+
+Words are always the majority and fill the remaining budget after the edition's
+Phrase and Entity populations have been selected.
 
 ## Edition contract
 
-| Edition | Word / pronunciation population | Features |
-| --- | --- | --- |
-| **Lite** | **50k Core** | DE/EN Words only |
-| **Standard** | **250k Core** | Words + complete Phrase feature + Entity feature |
-| **Full** | **400k Core + 200k Generated** | Words + Phrases + Entities + Generated layer + Markov live generator |
+| Edition | Total product entries | Composition |
+| --- | ---: | --- |
+| **Lite** | **50,000** | **50k DE/EN Words** |
+| **Standard** | **250,000** | majority DE/EN Words + all accepted Core Phrases + Top **1k** retrievable Entities per active category |
+| **Full** | **400,000** | majority DE/EN Words + all accepted Phrases + Top **5k** retrievable Entities per active category |
 | **Master / Developer** | complete development population | all build/runtime/provenance material required by development; not a shipping-size target |
 
 ### Lite
@@ -36,87 +49,82 @@ Entity inclusion is a feature of Standard and Full, but its final retention poli
 Lite is intentionally the compact vocabulary/rhyme edition.
 
 ```text
-LITE
-├── DE words
-├── EN words
-├── pronunciations
-├── analyses
-└── word retrieval indexes
+LITE = 50,000 TOTAL
+└── 50,000 DE/EN Words
 
 NO
 ├── phrases
 ├── phrase mosaic windows
 ├── entities
 ├── entity anchors
-├── generated layer
-└── Markov generator
+├── Generated-only Word surfaces
+└── Markov product capability
 ```
 
 ### Standard
 
-Standard adds the full non-generative songwriting/search feature set.
+Standard is the balanced default edition.
+
+Selection order:
 
 ```text
-STANDARD
-├── 250k Core word/pronunciation population
-├── DE + EN Words
-├── Phrase / Mosaic runtime
-└── Entity runtime
-
-NO
-├── Generated word layer
-└── Markov generator
+STANDARD = 250,000 TOTAL
+1. all accepted Core Phrase rows
+2. Top 1,000 retrievable Entity identities per active category
+   (union/deduplicate multi-category entities)
+3. highest-ranked DE/EN Core Word surfaces fill the remainder
 ```
 
-The `250k` number applies to the Core word/pronunciation population. It does **not** specify that Standard contains 250k Entities.
+With the current Master census there are **90,089 Core Phrase rows** and the frozen
+taxonomy has **13 active Entity categories**. Entity union size is at most 13,000
+and normally lower because entities can belong to multiple categories or a category
+can contain fewer than 1,000 retrievable identities.
+
+Therefore the current Standard Word budget is bounded by:
+
+```text
+250,000 - 90,089 - unique(top 1k/category)
+= 159,911 - Entity union
+
+Entity union <= 13,000
+Word count >= 146,911
+Word share >= 58.76%
+```
+
+The exact Word count is resolved by `distribution:plan` against the Master.
 
 ### Full
 
-Full is the complete shipping edition.
+Full is the largest shipping database, still constrained to a 400k total product-entry budget.
+
+Selection order:
 
 ```text
-FULL
-├── 400k Core word/pronunciation population
-├── 200k Generated word/pronunciation population
-├── DE + EN Words
-├── Phrase / Mosaic runtime
-├── Entity runtime
-├── Generated layer
-└── Markov live generator
+FULL = 400,000 TOTAL
+1. all accepted Phrase rows (Core + accepted Generated availability)
+2. Top 5,000 retrievable Entity identities per active category
+   (union/deduplicate multi-category entities)
+3. highest-ranked DE/EN Core Word surfaces fill the remainder
 ```
 
-The Generated population is additive product coverage. Core-equivalent Generated pronunciation identities remain subject to the existing Serving identity/absorption rules rather than being counted as duplicate product value.
-
-## Markov contract
-
-Markov is a **live phrase generator**, not a pre-rendered phrase database.
-
-The Full edition should ship the compact model state required for generation, for example:
+The current Master contains **98,058 total Phrase rows** and 13 active Entity categories.
+The Entity union is therefore at most 65,000 and normally lower.
 
 ```text
-vocabulary
-+ n-gram / transition state
-+ counts / weights
-+ start/end-state metadata
+400,000 - 98,058 - unique(top 5k/category)
+= 301,942 - Entity union
+
+Entity union <= 65,000
+Word count >= 236,942
+Word share >= 59.24%
 ```
 
-It must not materialize millions of generated phrases ahead of time.
+There is **no additive 200k Generated-Word quota**. Full may retain accepted
+Generated pronunciation closure for already selected product entries, but
+Generated-only Word surfaces do not consume a separate shipping population target.
 
-Generated token sequences should reuse the existing lexical/pronunciation/phrase phonology path:
-
-```text
-Markov text
-    ↓
-token lookup
-    ↓
-best available pronunciation per token
-    ↓
-phrase phonology
-    ↓
-mosaic / rhyme scoring
-```
-
-This avoids creating a second large phonological store solely for Markov output.
+Markov remains frozen/direct-demo-only and is not counted as a database product entry
+or exposed as a shipping capability by this distribution contract.
 
 ## Superset invariant
 
@@ -128,25 +136,20 @@ LITE ⊂ STANDARD ⊂ FULL ⊂ MASTER
 
 Hard requirements:
 
-- every Core word/pronunciation retained by Lite is retained identically by Standard and Full;
-- every Core word/pronunciation retained by Standard is retained identically by Full;
-- Phrase and Entity behavior present in Standard must remain semantically identical in Full for the same retained source data;
-- Full may add Generated and Markov behavior without changing the meaning/ranking of overlapping Core data;
-- one canonical ranking/selection policy is used for all edition cuts rather than separate per-edition ranking algorithms.
+- the first 50k Word surfaces retained by Lite remain identical in Standard and Full;
+- all Standard Word surfaces remain in Full;
+- Standard Core Phrase rows remain in Full;
+- every Standard Top-1k/category Entity membership is contained in Full's Top-5k/category cut;
+- Phrase and Entity behavior for overlapping retained source data remains semantically identical;
+- one canonical Word ranking/selection policy is used for all editions.
 
-A planned representation is:
+The Word cut is dynamic because Standard and Full are **total-budget** editions:
 
 ```text
-Core distribution rank
-1 ..  50,000   → Lite + Standard + Full
-1 .. 250,000   → Standard + Full
-1 .. 400,000   → Full
-
-Generated distribution rank
-1 .. 200,000   → Full only
+Lite Words       = 50,000
+Standard Words   = 250,000 - Core Phrases - unique Top-1k/category Entities
+Full Words       = 400,000 - all Phrases  - unique Top-5k/category Entities
 ```
-
-The exact ranking policy must be versioned and deterministic before the builder is accepted.
 
 ## Distribution rank v1
 
@@ -156,7 +159,7 @@ Policy id:
 distribution-rank-v1-language-normalized-usage-surface
 ```
 
-The tier targets count **lexical product surfaces**, not raw SQLite rows. Once a lexical surface is selected, all eligible pronunciation identities required by the selected edition are retained as relational closure.
+The Word portion of each tier counts **lexical product surfaces**, not pronunciation rows. Once a lexical surface is selected, all eligible pronunciation identities required by the selected edition are retained as relational closure.
 
 This avoids cutting alternate accepted pronunciations merely to hit an arbitrary row count.
 
@@ -171,28 +174,40 @@ Ranking is deterministic:
 
 This deliberately does **not** pretend that the raw DE and EN rank numbers share one numeric scale.
 
-All ranked DE/EN surfaces are therefore consumed before unranked fallback surfaces. The Full Core target may legitimately use fallback surfaces once the ranked Core population is exhausted.
+All ranked DE/EN surfaces are therefore consumed before unranked fallback surfaces. The computed Standard/Full Word remainder determines where that common Word ranking is cut.
 
-Generated selection uses the same deterministic policy over genuine Generated-only lexical surfaces. Additional Generated-only pronunciation variants attached to an already selected Core surface are retained as Full-edition closure and are not treated as extra product-surface quota.
+There is no separate Generated-only Word-surface quota. Full may retain Generated pronunciation closure attached to selected entries where the accepted Serving availability policy permits it.
 
 ## Entity distribution policy
 
-The Entity population is **not re-ranked by the distribution builder**.
-
-The current Master contains the owner-accepted/frozen Phase 12A2 Hybrid-v2 retention baseline:
+The distribution builder does not invent a new Entity popularity model. It starts
+from the owner-accepted/frozen Phase 12A2 Hybrid-v2 population:
 
 ```text
 category-relative-popularity-hybrid-v2-geometric-missing-evidence-candidate
 distinct retained entities: 1,077,644
 ```
 
-Any additional category-floor tightening would be a new Entity candidate revision with its own owner acceptance and must not be smuggled into packaging.
+The active frozen taxonomy currently contains **13 categories**.
 
-Edition availability still applies:
+Shipping cuts are category-relative:
 
-- Standard uses Core-mode Entity pronunciations;
-- Full uses Core + genuine Generated availability;
-- entities with no pronunciation reachable in the edition are naturally absent from that edition's materialized closure.
+```text
+Standard: Top 1,000 retrievable retained identities per category
+Full:     Top 5,000 retrievable retained identities per category
+```
+
+For each edition, candidates are ordered by the already materialized category rank
+with deterministic score/identity tie-breaks. Only identities with at least one
+pronunciation reachable in the edition are eligible. The resulting memberships are
+then unioned by `entity_id`, so an actor/musician counts once against the total
+product-entry budget even if it is selected in both categories.
+
+Categories with fewer than the requested quota contribute all retrievable retained
+identities they have. The builder never pads a category with rejected entities.
+
+Any change to the underlying Hybrid-v2 popularity/cut policy remains a separate
+Entity candidate revision and owner-acceptance task.
 
 ## Schema and capability contract
 
@@ -243,7 +258,7 @@ Feature availability must be explicit rather than inferred from file size or tab
     "phrases": true,
     "entities": true,
     "generated": true,
-    "markov": true
+    "markov": false
   }
 }
 ```
@@ -412,7 +427,7 @@ Semantic checks should verify:
 - Phrase/Entity results in Standard are identical to Full for the same retained non-Generated data;
 - Lite cleanly reports Phrase/Entity capability as unavailable rather than failing;
 - Generated-only behavior exists only where the edition declares it;
-- Markov exists only where the edition declares it;
+- Markov remains outside the shipping database capability contract while its demo is frozen/unlinked;
 - distribution filtering does not change accepted scorer/ranking semantics.
 
 Each resulting database should also be run through the Serving-v1 report benchmark so edition size and latency can be compared using the same workload.
