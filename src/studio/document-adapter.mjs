@@ -1,3 +1,5 @@
+import {migrateLegacyStudioState} from './document-model.mjs';
+
 export const STUDIO_STORAGE_KEY='rhymelab-studio-concept-v2';
 
 export const STUDIO_DEMO_LINES=Object.freeze([
@@ -53,4 +55,10 @@ export function loadStudioState(storage=globalThis.localStorage){
 
 export function writeStudioState(state,storage=globalThis.localStorage){
   storage?.setItem?.(STUDIO_STORAGE_KEY,JSON.stringify(state));
+}
+
+
+export function loadStudioDocumentSnapshot(storage=globalThis.localStorage){
+  const legacyState=loadStudioState(storage);
+  return migrateLegacyStudioState(legacyState);
 }
