@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async () => {
-  const [html, app, clientPronunciation, pronunciationCache, queryTest, css, mobileCss, server] = await Promise.all([
+  const [html, app, searchState, clientPronunciation, pronunciationCache, queryTest, css, mobileCss, server] = await Promise.all([
     readFile('src/ui/index.html', 'utf8'),
     readFile('src/ui/app.js', 'utf8'),
+    readFile('src/ui/search-state.mjs', 'utf8'),
     readFile('src/ui/query-pronunciation-client.mjs', 'utf8'),
     readFile('src/ui/query-pronunciation-cache.mjs', 'utf8'),
     readFile('src/query-pronunciation-test/app.js', 'utf8'),
@@ -80,6 +81,15 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /resultKind/);
   assert.match(app, /renderPhrasePanel/);
   assert.match(app, /\/api\/writer\?/);
+  assert.match(app, /from '\.\/search-state\.mjs'/);
+  assert.match(app, /captureSharedSearchState/);
+  assert.match(app, /searchStateToWriterParams\(searchState\)/);
+  assert.match(app, /writeSearchStateToUrl/);
+  assert.match(searchState, /SEARCH_STATE_SCHEMA='rhymelab-search-state-v1'/);
+  assert.match(searchState, /export function createSearchState/);
+  assert.match(searchState, /export function searchStateToWriterParams/);
+  assert.match(searchState, /export function writeSearchStateToUrl/);
+  assert.match(searchState, /SOUND_RELATIONS\.has\(state\.rhymeType\)\?'all':state\.rhymeType/);
   assert.match(app, /resolveUnknownClientPronunciation/);
   assert.match(app, /resolveMissingQueryPronunciations/);
   assert.match(app, /query_ipa_\$\{language\}/);
@@ -111,14 +121,9 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(server, /query_pronunciation_revision/);
   assert.match(server, /databaseRevisionPart/);
   assert.match(server, /queryPronunciationRevision/);
+  assert.match(server, /'\/assets\/search-state\.mjs'/);
   assert.match(server, /resultLanguage: url\.searchParams\.get\('result_language'\)/);
   assert.match(app, /\/api\/phrases\/detail/);
-  assert.match(app, /language:state\.basis/);
-  assert.match(app, /result_language:state\.resultLanguage/);
-  assert.match(app, /entity_category:\$\('#entityCategory'\)\?\.value\|\|'all'/);
-  assert.match(app, /scope:\$\('#scopeFilter'\)\.value/);
-  assert.match(app, /type:backendType/);
-  assert.match(app, /backendType=SOUND_RELATION_TYPES\.includes\(requestedType\)\?'all':requestedType/);
   assert.match(app, /const progressive=selectedType!=='all'/);
   assert.match(app, /progressive\?orderedAll\.slice\(0,state\.visibleCount\):orderedAll/);
   assert.match(app, /setupInfiniteScroll\(progressive&&hasMore\)/);
