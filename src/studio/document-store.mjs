@@ -217,3 +217,17 @@ export async function migrateLegacyStudioStateToStore(legacyState,store){
     counts,
   };
 }
+
+
+export async function shadowLegacyStudioStateToStore(legacyState,store){
+  if(!store)throw new TypeError('store is required');
+  const migration=migrateLegacyStudioState(legacyState);
+  if(!migration.report.valid){
+    throw new Error(`Studio document shadow migration failed: ${migration.report.errors.join(', ')}`);
+  }
+  const saveResult=await store.saveSnapshot(migration.snapshot);
+  return {
+    report:migration.report,
+    saveResult,
+  };
+}
