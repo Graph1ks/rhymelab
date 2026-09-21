@@ -118,6 +118,7 @@ let studioDeviceAcceptance=(()=>{
     return raw?parseStudioDeviceAcceptance(raw):null;
   }catch{return null}
 })();
+let activeDeviceGateGuide='';
 const typingUndo=createTypingUndoCoalescer({windowMs:1100});
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',
   query=sharedSearchState.anchor||'Nacht',
@@ -170,6 +171,7 @@ function setStudioUiLanguage(value,{persistState=true,notifyUser=false}={}){
     quick.title=state.uiLanguage==='de'?'UI: Deutsch · click for English':'UI: English · Klick für Deutsch';
   }
   if($('#uiLanguageSelect'))$('#uiLanguageSelect').value=state.uiLanguage;
+  renderActiveDeviceGuide();
   if(persistState)persist();
   if(notifyUser)notify(state.uiLanguage==='en'?'Interface language: English':'Oberflächensprache: Deutsch');
   return state.uiLanguage;
@@ -1546,6 +1548,9 @@ const bindClick=(id,handler,{optional=false}={})=>{
 };
 bindClick('closeDialog',closeDialog);
 bindClick('themeBtn',toggleTheme);
+bindClick('deviceGuidePass',()=>completeActiveDeviceGuide(true));
+bindClick('deviceGuideFail',()=>completeActiveDeviceGuide(false));
+bindClick('deviceGuideBack',returnToDeviceAcceptanceCenter);
 bindClick('uiLanguageBtn',toggleStudioUiLanguage);
 bindClick('clearDocBtn',clearCurrentDocument,{optional:true});
 bindClick('exportBtn',exportText);
@@ -2328,6 +2333,44 @@ function exportStudioDeviceAcceptance(){
   );
   return report;
 }
+function renderActiveDeviceGuide(){
+  const bar=$('#deviceGuideBar');
+  if(!bar)return;
+  const gate=STUDIO_DEVICE_GATES.find((entry)=>entry.id===activeDeviceGateGuide);
+  if(!gate){
+    bar.classList.add('hidden');
+    return;
+  }
+  $('#deviceGuideTitle').textContent=gate.label;
+  $('#deviceGuideInstruction').textContent=gate.instruction;
+  bar.classList.remove('hidden');
+}
+function returnToDeviceAcceptanceCenter(){
+  activeDeviceGateGuide='';
+  renderActiveDeviceGuide();
+  showSettings();
+  requestAnimationFrame(()=>{
+    $('#deviceAcceptancePanel')?.scrollIntoView({block:'nearest',behavior:'smooth'});
+  });
+}
+function completeActiveDeviceGuide(passed){
+  const id=activeDeviceGateGuide;
+  if(!id)return;
+  const gate=STUDIO_DEVICE_GATES.find((entry)=>entry.id===id);
+  const report=ensureStudioDeviceAcceptance();
+  const note=report.results?.[id]?.note||'';
+  if(!setStudioDeviceGate(id,passed,note))return;
+  activeDeviceGateGuide='';
+  renderActiveDeviceGuide();
+  notify(passed
+    ?(state.uiLanguage==='en'?'Device gate confirmed: ':'Geräte-Gate bestätigt: ')+(gate?.label||id)
+    :(state.uiLanguage==='en'?'Device gate marked as failed: ':'Geräte-Gate als nicht bestanden markiert: ')+(gate?.label||id));
+  showSettings();
+  requestAnimationFrame(()=>{
+    const target=$('[data-device-gate-card="'+id+'"]')||$('#deviceAcceptancePanel');
+    target?.scrollIntoView({block:'center',behavior:'smooth'});
+  });
+}
 function launchDeviceAcceptanceGuide(id){
   const environment=currentDeviceAcceptanceEnvironment();
   const eligibility=studioDeviceGateEnvironmentStatus(id,environment);
@@ -2335,6 +2378,8 @@ function launchDeviceAcceptanceGuide(id){
     notify((state.uiLanguage==='en'?'Gate requirements: ':'Gate benötigt: ')+deviceEligibilityText(eligibility)+'.');
     return false;
   }
+  activeDeviceGateGuide=id;
+  renderActiveDeviceGuide();
   const closeSettings=()=>{if(dockTab==='settings')closeEditorDock()};
   if(id==='editor.ime'){
     closeSettings();navigate('studio');setMode('write');
@@ -2406,7 +2451,7 @@ function renderDeviceAcceptancePanel(){
         :'';
       const environmentHint='<em class="device-gate-environment '+(eligibility.eligible?'is-eligible':'is-ineligible')+'">'+esc(deviceEligibilityText(eligibility))+'</em>';
       const disabled=!eligibility.eligible?'disabled':'';
-      return '<article class="device-gate '+(row.passed?'is-pass ':'')+(eligibility.eligible?'is-eligible':'is-ineligible')+'"><div class="device-gate-main"><label><input type="checkbox" data-device-gate="'+esc(gate.id)+'" '+(row.passed?'checked ':'')+disabled+'><span><b>'+esc(gate.label)+'</b><small>'+esc(gate.instruction)+'</small>'+environmentHint+evidence+'</span></label><button type="button" class="outline device-gate-guide" data-device-gate-guide="'+esc(gate.id)+'" '+(eligibility.eligible?'':'disabled')+'>Test starten</button></div><input type="text" data-device-gate-note="'+esc(gate.id)+'" value="'+esc(row.note||'')+'" placeholder="Notiz / Gerät / Browser …" maxlength="400"></article>';
+      return '<article class="device-gate '+(row.passed?'is-pass ':'')+(eligibility.eligible?'is-eligible':'is-ineligible')+'" data-device-gate-card="'+esc(gate.id)+'"><div class="device-gate-main"><label><input type="checkbox" data-device-gate="'+esc(gate.id)+'" '+(row.passed?'checked ':'')+disabled+'><span><b>'+esc(gate.label)+'</b><small>'+esc(gate.instruction)+'</small>'+environmentHint+evidence+'</span></label><button type="button" class="outline device-gate-guide" data-device-gate-guide="'+esc(gate.id)+'" '+(eligibility.eligible?'':'disabled')+'>Test starten</button></div><input type="text" data-device-gate-note="'+esc(gate.id)+'" value="'+esc(row.note||'')+'" placeholder="Notiz / Gerät / Browser …" maxlength="400"></article>';
     }).join('')+'</div>';
   queryAll('[data-device-gate]').forEach((input)=>input.onchange=()=>{
     const id=input.dataset.deviceGate;
