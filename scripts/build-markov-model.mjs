@@ -46,6 +46,7 @@ let status=false;
 let reset=false;
 const sentenceArgs=[];
 const sourceArgs=[];
+const sourceTotalArgs=[];
 
 for(let i=0;i<args.length;i+=1){
   const arg=args[i];
@@ -67,6 +68,7 @@ for(let i=0;i<args.length;i+=1){
   else if(arg==='--max-sentences-per-corpus')maxSentencesPerCorpus=Math.max(0,Number(args[++i])||0);
   else if(arg==='--sentences')sentenceArgs.push(args[++i]||'');
   else if(arg==='--source')sourceArgs.push(args[++i]||'');
+  else if(arg==='--source-total')sourceTotalArgs.push(args[++i]||'');
   else if(arg==='--plan')plan=true;
   else if(arg==='--status')status=true;
   else if(arg==='--reset')reset=true;
@@ -135,6 +137,16 @@ function parseSourceArg(value){
     manifest:null,
   };
 }
+function parseSourceTotalArg(value){
+  const at=String(value).lastIndexOf('=');
+  if(at<=0||at===String(value).length-1)throw new Error(`Invalid --source-total ${value}; expected code=count`);
+  const code=String(value).slice(0,at);
+  const count=Number(String(value).slice(at+1));
+  if(!Number.isFinite(count)||count<0)throw new Error(`Invalid source total for ${code}: ${value}`);
+  return [code,Math.trunc(count)];
+}
+const sourceTotals=new Map(sourceTotalArgs.filter(Boolean).map(parseSourceTotalArg));
+
 function lineReader(path){return readline.createInterface({input:createReadStream(path),crlfDelay:Infinity});}
 function sentenceFromLine(line){const tab=line.indexOf('\t');return tab>=0?line.slice(tab+1):line;}
 
@@ -198,16 +210,19 @@ function openStatus(path){
 }
 
 const {manifest,sources}=await resolveSources();
-const sourceRows=await sourceStatus(sources);
+const sourceRows=(await sourceStatus(sources)).map((row)=>({
+  ...row,
+  expectedSentences:sourceTotals.get(row.code)??Number(row.manifest?.sentences||0)||null,
+}));
 if(plan){
   console.log(JSON.stringify({
     schema:'rhymelab-markov-build-plan-v1',
     policy:MARKOV_MODEL_POLICY,
     order:MARKOV_MODEL_ORDER,
     manifest:manifest.id,
-    sources:sourceRows.map(({code,path,available,bytes,manifest,kind,weight})=>({
+    sources:sourceRows.map(({code,path,available,bytes,manifest,kind,weight,expectedSentences})=>({
       code,path,kind,weight,available,bytes,human_bytes:human(bytes),
-      expected_sentences:manifest?.sentences??null,
+      expected_sentences:expectedSentences,
       genre:manifest?.genre??null,
       year:manifest?.year??null,
     })),
@@ -225,7 +240,9 @@ if(status){
     schema:'rhymelab-markov-build-status-v1',
     work:await exists(workPath)?openStatus(workPath):{path:workPath,missing:true},
     output:await exists(outPath)?openStatus(outPath):{path:outPath,missing:true},
-    sources:sourceRows.map(({code,path,kind,weight,available,bytes})=>({code,path,kind,weight,available,bytes})),
+    sources:sourceRows.map(({code,path,kind,weight,available,bytes,expectedSentences})=>({
+      code,path,kind,weight,available,bytes,expected_sentences:expectedSentences,
+    })),
   },null,2));
   process.exit(0);
 }
