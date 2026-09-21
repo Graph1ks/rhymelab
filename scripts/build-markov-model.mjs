@@ -239,8 +239,8 @@ const sourceWindowUpsert=db.prepare(`
   ON CONFLICT(hash) DO UPDATE SET count=count+excluded.count
 `);
 const shapeUpsert=db.prepare(`
-  INSERT INTO shape_pattern(token_count,shape_key,count) VALUES(?,?,1)
-  ON CONFLICT(token_count,shape_key) DO UPDATE SET count=count+1
+  INSERT INTO shape_pattern(token_count,shape_key,count) VALUES(?,?,?)
+  ON CONFLICT(token_count,shape_key) DO UPDATE SET count=count+excluded.count
 `);
 const transitionUpsert=db.prepare(`
   INSERT INTO transition(direction,context_len,state_key,next_token,count)
