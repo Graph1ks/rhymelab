@@ -64,9 +64,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/dataset\.studioVersion='2'/u);
   assert.match(html,/id=["']themeQuick["']/u);
   assert.match(html,/id=["']themeQuickMenu["']/u);
+  assert.match(html,/id=["']themeMenuBtn["']/u);
   assert.match(css,/\.theme-quick:hover \.theme-quick-menu/u);
   assert.match(css,/\.theme-quick-menu::before/u);
-  assert.match(css,/#themeBtn\[aria-expanded="true"\] \+ \.theme-quick-menu/u);
+  assert.match(css,/#themeMenuBtn\[aria-expanded="true"\] \+ \.theme-quick-menu/u);
   assert.match(css,/\.theme-builder-grid/u);
   assert.match(app,/customThemes/u);
   assert.match(app,/themeSlots/u);
@@ -77,9 +78,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/function setThemeQuickOpen\(/u);
   assert.match(app,/function scheduleThemeQuickClose\(/u);
   assert.match(app,/open&&render&&!wasOpen/u);
-  assert.match(app,/if\(event\.target!==button\)setThemeQuickOpen\(true,\{render:false\}\)/u);
+  assert.match(app,/event\.target!==button&&event\.target!==menuButton/u);
   assert.match(app,/button\.onclick=function\(event\)/u);
   assert.match(app,/button\.onclick=function\(event\)\{[\s\S]*?toggleTheme\(\);[\s\S]*?setThemeQuickOpen\(false,\{render:false\}\)/u);
+  assert.match(app,/menuButton\.onclick=function\(event\)\{[\s\S]*?setThemeQuickOpen\(!quick\.classList\.contains\('open'\)\)/u);
   assert.match(app,/applyThemeChoice\(choice\)/u);
   assert.match(app,/function previewThemeDraft\(/u);
   assert.match(app,/compositionstart/u);
