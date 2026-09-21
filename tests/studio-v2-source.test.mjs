@@ -95,6 +95,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/performanceNeedsReview/u);
   assert.match(app,/movePerformanceCue/u);
   assert.match(app,/autoMapPerformanceBar/u);
+  assert.match(app,/function refreshSongAnalysis\(/u);
+  assert.match(app,/canonical Writer-Runtime-Pfad/u);
+  assert.match(app,/analysisData\.lineRelations/u);
+  assert.match(app,/data-analysis-bar/u);
   assert.match(app,/function restoreStudioRevision\(/u);
   assert.match(app,/snapshot=editorSnapshot\(s\)/u);
   assert.match(app,/restoreEditorSnapshot\(current,entry\.snapshot\)/u);
@@ -124,6 +128,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.perform-transport/u);
   assert.match(css,/\.perform-review/u);
   assert.match(css,/\.perform-sequencer/u);
+  assert.match(css,/Studio canonical song analysis/u);
+  assert.match(css,/\.analysis-lines/u);
+  assert.match(css,/\.analysis-scheme-letter/u);
+  assert.match(css,/\.analysis-density-list/u);
 });
 
 test('Studio preview route is parallel and leaves legacy Search and RhymePad routes in place',async()=>{
@@ -146,6 +154,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/performance-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/detail-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/analysis-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
@@ -153,6 +162,8 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/': \{ type: 'text\/html; charset=utf-8', body: writerHtml \}/u);
   assert.match(server,/'\/pad': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/u);
   assert.match(server,/Studio 02 preview:/u);
+  assert.match(server,/'\/api\/analysis\/rhyme-scheme'/u);
+  assert.match(server,/analyzeSongEndRhymes/u);
 });
 
 test('Studio migration contract keeps old routes until exhaustive parity acceptance',async()=>{
@@ -179,11 +190,13 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
   assert.match(migration,/folder create\/delete\/move\s+DONE/u);
   assert.match(migration,/trash \+ restore \+ permanent delete\s+DONE/u);
   assert.match(migration,/stable revision snapshots \/ restore\s+DONE/u);
+  assert.match(migration,/authoritative DocumentStore cutover\s+DONE/u);
+  assert.match(migration,/full Perform parity\s+DONE/u);
 });
 
 
 test('Studio orchestrator is split behind maintainable module boundaries',async()=>{
-  const [app,core,controls,search,filters,sharedSearchState,documents,documentModel,documentStore,editorSession,performanceSession,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
+  const [app,core,controls,search,filters,sharedSearchState,documents,documentModel,documentStore,editorSession,performanceSession,analysisAdapter,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
     readFile('src/studio/app.js','utf8'),
     readFile('src/studio/studio-core.mjs','utf8'),
     readFile('src/studio/studio-controls.mjs','utf8'),
@@ -195,6 +208,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
     readFile('src/studio/document-store.mjs','utf8'),
     readFile('src/studio/editor-session.mjs','utf8'),
     readFile('src/studio/performance-session.mjs','utf8'),
+    readFile('src/studio/analysis-adapter.mjs','utf8'),
     readFile('src/studio/capability-adapter.mjs','utf8'),
     readFile('src/studio/detail-adapter.mjs','utf8'),
     readFile('src/studio/query-pronunciation-client.mjs','utf8'),
@@ -226,6 +240,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/from '\.\/detail-adapter\.mjs'/u);
   assert.match(app,/from '\.\/editor-session\.mjs'/u);
   assert.match(app,/from '\.\/performance-session\.mjs'/u);
+  assert.match(app,/from '\.\/analysis-adapter\.mjs'/u);
   assert.match(app,/refreshStudioCapabilities\(\)/u);
   assert.match(app,/id="capabilitySummary"/u);
 
@@ -259,6 +274,8 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(performanceSession,/export function movePerformanceCue/u);
   assert.match(performanceSession,/export function performanceNeedsReview/u);
   assert.match(performanceSession,/export function performanceStepDurationMs/u);
+  assert.match(analysisAdapter,/export function createStudioAnalysisClient/u);
+  assert.match(analysisAdapter,/export function studioAnalysisWords/u);
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(details,/export function createStudioDetailClient/u);
   assert.match(details,/export function buildStudioDetailModel/u);
