@@ -344,6 +344,8 @@ Writer runtime + rolling AVG100 telemetry DONE
 live Bar Inspector metrics                DONE
 verse totals + duration estimate          DONE
 full Perform parity                      DONE
+typing-burst undo coalescing              DONE
+stable-ID Bar Navigator + reorder          DONE
 persistent DE / EN UI localization       DONE
 serialized autosave queue + lifecycle flush DONE
 portable backup import/export             DONE
@@ -534,7 +536,9 @@ Entity category multi-select             DONE · shared SearchState + OR runtime
 29 lifecycle persistence hardening             DONE
 30 desktop Library direct manipulation         DONE
 31 live DOM acceptance audit                   DONE
-32 real device/browser acceptance              REQUIRED
+32 typing undo coalescing                    DONE
+33 Bar Navigator / stable-ID reorder           DONE
+34 real device/browser acceptance              REQUIRED
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
