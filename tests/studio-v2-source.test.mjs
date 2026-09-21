@@ -77,6 +77,9 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/validateSelectionProof\(song\(\),selectionProof\)/u);
   assert.match(app,/performUndo/u);
   assert.match(app,/performRedo/u);
+  assert.match(app,/initializeDocumentStore/u);
+  assert.match(app,/shadowLegacyStudioStateToStore/u);
+  assert.match(app,/DocumentStore/u);
 });
 
 test('Studio preview route is parallel and leaves legacy Search and RhymePad routes in place',async()=>{
@@ -94,6 +97,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-model\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/document-store\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/editor-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/detail-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
@@ -130,7 +134,7 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
 
 
 test('Studio orchestrator is split behind maintainable module boundaries',async()=>{
-  const [app,core,controls,search,filters,sharedSearchState,documents,documentModel,editorSession,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
+  const [app,core,controls,search,filters,sharedSearchState,documents,documentModel,documentStore,editorSession,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
     readFile('src/studio/app.js','utf8'),
     readFile('src/studio/studio-core.mjs','utf8'),
     readFile('src/studio/studio-controls.mjs','utf8'),
@@ -139,6 +143,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
     readFile('src/ui/search-state.mjs','utf8'),
     readFile('src/studio/document-adapter.mjs','utf8'),
     readFile('src/studio/document-model.mjs','utf8'),
+    readFile('src/studio/document-store.mjs','utf8'),
     readFile('src/studio/editor-session.mjs','utf8'),
     readFile('src/studio/capability-adapter.mjs','utf8'),
     readFile('src/studio/detail-adapter.mjs','utf8'),
@@ -148,6 +153,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
 
   assert.match(app,/from '\.\/studio-core\.mjs'/u);
   assert.match(app,/from '\.\/document-adapter\.mjs'/u);
+  assert.match(app,/from '\.\/document-store\.mjs'/u);
   assert.match(app,/from '\.\/search-adapter\.mjs'/u);
   assert.match(app,/from '\.\/search-filters\.mjs'/u);
   assert.match(app,/from '\.\/search-state\.mjs'/u);
@@ -184,6 +190,11 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(documentModel,/export function migrateLegacyStudioState/u);
   assert.match(documentModel,/export function splitBar/u);
   assert.match(documentModel,/export function replaceSelection/u);
+  assert.match(documentStore,/export function createStudioDocumentStore/u);
+  assert.match(documentStore,/export async function migrateLegacyStudioStateToStore/u);
+  assert.match(documentStore,/export async function shadowLegacyStudioStateToStore/u);
+  assert.match(documentStore,/createObjectStore/u);
+  assert.match(documentStore,/songOrder/u);
   assert.match(editorSession,/export function ensureEditorSong/u);
   assert.match(editorSession,/export function pasteEditorText/u);
   assert.match(editorSession,/export function createSelectionProof/u);
