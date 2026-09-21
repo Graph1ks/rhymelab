@@ -2263,12 +2263,30 @@ function ensureStudioDeviceAcceptance(){
 function persistStudioDeviceAcceptance(){
   try{localStorage.setItem(DEVICE_ACCEPTANCE_STORAGE_KEY,JSON.stringify(ensureStudioDeviceAcceptance()))}catch{}
 }
+function deviceEligibilityText(status){
+  if(status?.eligible)return state.uiLanguage==='en'?'This device is eligible':'Dieses Gerät ist geeignet';
+  const map=state.uiLanguage==='en'
+    ?{
+      'viewport <= 800 CSS px':'viewport ≤ 800 CSS px',
+      'touch/coarse pointer':'touch/coarse pointer',
+      'Web Audio support':'Web Audio support',
+      'VisualViewport support':'VisualViewport support',
+    }
+    :{
+      'viewport <= 800 CSS px':'Viewport ≤ 800 CSS px',
+      'touch/coarse pointer':'Touch/Coarse Pointer',
+      'Web Audio support':'Web-Audio-Unterstützung',
+      'VisualViewport support':'VisualViewport-Unterstützung',
+    };
+  const failures=(status?.failures||[]).map((value)=>map[value]||value);
+  return (state.uiLanguage==='en'?'Requires: ':'Benötigt: ')+failures.join(' + ');
+}
 function setStudioDeviceGate(id,passed,note){
   const report=ensureStudioDeviceAcceptance();
   const environment=currentDeviceAcceptanceEnvironment();
   const eligibility=studioDeviceGateEnvironmentStatus(id,environment);
   if(passed&&!eligibility.eligible){
-    notify('Dieses Gate kann hier nicht bestätigt werden: '+eligibility.reason+'.');
+    notify((state.uiLanguage==='en'?'This gate cannot be confirmed here: ':'Dieses Gate kann hier nicht bestätigt werden: ')+deviceEligibilityText(eligibility)+'.');
     renderDeviceAcceptancePanel();
     return false;
   }
@@ -2314,7 +2332,7 @@ function launchDeviceAcceptanceGuide(id){
   const environment=currentDeviceAcceptanceEnvironment();
   const eligibility=studioDeviceGateEnvironmentStatus(id,environment);
   if(!eligibility.eligible){
-    notify('Gate benötigt '+eligibility.reason+'.');
+    notify((state.uiLanguage==='en'?'Gate requirements: ':'Gate benötigt: ')+deviceEligibilityText(eligibility)+'.');
     return false;
   }
   const closeSettings=()=>{if(dockTab==='settings')closeEditorDock()};
@@ -2386,7 +2404,7 @@ function renderDeviceAcceptancePanel(){
       const evidence=row.passed&&row.environment
         ?'<em class="device-gate-evidence">'+esc(studioDeviceEnvironmentLabel(row.environment))+(row.testedAt?' · '+new Date(row.testedAt).toLocaleString():'')+'</em>'
         :'';
-      const environmentHint='<em class="device-gate-environment '+(eligibility.eligible?'is-eligible':'is-ineligible')+'">'+esc(eligibility.eligible?'Dieses Gerät ist geeignet':eligibility.reason)+'</em>';
+      const environmentHint='<em class="device-gate-environment '+(eligibility.eligible?'is-eligible':'is-ineligible')+'">'+esc(deviceEligibilityText(eligibility))+'</em>';
       const disabled=!eligibility.eligible?'disabled':'';
       return '<article class="device-gate '+(row.passed?'is-pass ':'')+(eligibility.eligible?'is-eligible':'is-ineligible')+'"><div class="device-gate-main"><label><input type="checkbox" data-device-gate="'+esc(gate.id)+'" '+(row.passed?'checked ':'')+disabled+'><span><b>'+esc(gate.label)+'</b><small>'+esc(gate.instruction)+'</small>'+environmentHint+evidence+'</span></label><button type="button" class="outline device-gate-guide" data-device-gate-guide="'+esc(gate.id)+'" '+(eligibility.eligible?'':'disabled')+'>Test starten</button></div><input type="text" data-device-gate-note="'+esc(gate.id)+'" value="'+esc(row.note||'')+'" placeholder="Notiz / Gerät / Browser …" maxlength="400"></article>';
     }).join('')+'</div>';
