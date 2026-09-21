@@ -536,6 +536,10 @@ export function copyDistributionStage(db,stage,{alias='src'}={}){
   db.exec('BEGIN IMMEDIATE;');
   try{
     for(const [table,where] of Object.entries(stage.tables)){
+      if(table==='meta'){
+        db.exec(`INSERT OR IGNORE INTO meta SELECT * FROM ${p}meta WHERE ${where};`);
+        continue;
+      }
       const targetCount=scalar(db,'SELECT COUNT(*) c FROM '+q(table));
       if(targetCount>0)continue;
       db.exec(`INSERT INTO ${q(table)} SELECT * FROM ${p}${q(table)} WHERE ${where};`);
