@@ -157,8 +157,12 @@ export function createMarkovRuntime(db,{path=':memory:'}={}){
   `);
   const tokenStmt=db.prepare('SELECT norm,count,preferred_surface FROM token WHERE norm=?');
   const maxTokenCount=Number(db.prepare('SELECT MAX(count) AS n FROM token').get()?.n||1);
-  const sourceSequenceStmt=db.prepare('SELECT count FROM source_sequence_hash WHERE hash=?');
-  const sourceWindowStmt=db.prepare('SELECT count FROM source_window_hash WHERE window_size=? AND hash=?');
+  const sourceSequenceStmt=db.prepare(
+    'SELECT count FROM source_sequence_hash WHERE source_kind=? AND hash=?'
+  );
+  const sourceWindowStmt=db.prepare(
+    'SELECT count FROM source_window_hash WHERE source_kind=? AND window_size=? AND hash=?'
+  );
   const shapePatternStmt=db.prepare(`
     SELECT shape_key,count
     FROM shape_pattern
@@ -232,23 +236,62 @@ export function createMarkovRuntime(db,{path=':memory:'}={}){
 
   function sourceNovelty(tokens,{maxWindow=8,minWindow=4}={}){
     const lexical=lexicalNorms(tokens);
-    if(!lexical.length)return {exactSource:false,longestSourceRun:0,matchedWindows:0,novelty:1};
-    const exactSource=Boolean(sourceSequenceStmt.get(sequenceHash(lexical)));
-    let longestSourceRun=0;
-    let matchedWindows=0;
-    const upper=Math.min(Math.max(minWindow,Number(maxWindow)||8),lexical.length);
-    for(let size=upper;size>=Math.min(minWindow,lexical.length);size-=1){
-      let foundAtSize=false;
-      for(let start=0;start+size<=lexical.length;start+=1){
-        if(sourceWindowStmt.get(size,sequenceHash(lexical.slice(start,start+size)))){
-          matchedWindows+=1;
-          foundAtSize=true;
-        }
-      }
-      if(foundAtSize&&!longestSourceRun)longestSourceRun=size;
+    const emptyKinds={
+      lyric:{exact:false,longestRun:0,matchedWindows:0},
+      sentence:{exact:false,longestRun:0,matchedWindows:0},
+      phrase:{exact:false,longestRun:0,matchedWindows:0},
+    };
+    if(!lexical.length){
+      return {
+        exactSource:false,
+        longestSourceRun:0,
+        matchedWindows:0,
+        novelty:1,
+        phraseRun:0,
+        phraseSupport:0,
+        byKind:emptyKinds,
+      };
     }
+
+    const fullHash=sequenceHash(lexical);
+    const upper=Math.min(Math.max(minWindow,Number(maxWindow)||8),lexical.length);
+    const byKind={};
+    for(const kind of ['lyric','sentence','phrase']){
+      const detail={
+        exact:Boolean(sourceSequenceStmt.get(kind,fullHash)),
+        longestRun:0,
+        matchedWindows:0,
+      };
+      for(let size=upper;size>=Math.min(minWindow,lexical.length);size-=1){
+        let foundAtSize=false;
+        for(let start=0;start+size<=lexical.length;start+=1){
+          const hash=sequenceHash(lexical.slice(start,start+size));
+          if(sourceWindowStmt.get(kind,size,hash)){
+            detail.matchedWindows+=1;
+            foundAtSize=true;
+          }
+        }
+        if(foundAtSize&&!detail.longestRun)detail.longestRun=size;
+      }
+      byKind[kind]=detail;
+    }
+
+    const strictKinds=[byKind.lyric,byKind.sentence];
+    const exactSource=strictKinds.some((row)=>row.exact);
+    const longestSourceRun=Math.max(...strictKinds.map((row)=>row.longestRun));
+    const matchedWindows=strictKinds.reduce((sum,row)=>sum+row.matchedWindows,0);
     const novelty=clamp(1-(longestSourceRun/Math.max(lexical.length,1)));
-    return {exactSource,longestSourceRun,matchedWindows,novelty};
+    const phraseRun=byKind.phrase.longestRun;
+    const phraseSupport=clamp(phraseRun/Math.max(1,Math.min(8,lexical.length)));
+    return {
+      exactSource,
+      longestSourceRun,
+      matchedWindows,
+      novelty,
+      phraseRun,
+      phraseSupport,
+      byKind,
+    };
   }
 
   function shapeEvidence(tokens,{limit=64}={}){
