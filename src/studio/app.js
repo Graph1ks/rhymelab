@@ -1436,7 +1436,7 @@ async function restoreRecoveryPoint(id){
     const result=await documentStore.restoreDocumentBackup(id);
     if(!result.restored)throw new Error(result.reason||'Recovery fehlgeschlagen.');
     applyDocumentSnapshotState(result.snapshot);
-  }else if(row.kind==='legacy'){
+  }else if(row.kind==='legacy'||(!row.kind&&row.backup)){
     const current=await documentStore.loadSnapshot();
     if(current)await documentStore.saveDocumentBackup(current,{reason:'before_legacy_recovery'});
     const parsed=JSON.parse(row.backup||'{}');
