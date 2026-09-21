@@ -2,20 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
-test('Studio 02 golden-master surface is present with its core visual/interaction contract',async()=>{
+test('Studio V2 production surface is present with its core visual/interaction contract',async()=>{
   const [html,css,app]=await Promise.all([
     readFile('src/studio/index.html','utf8'),
     readFile('src/studio/styles.css','utf8'),
     readFile('src/studio/app.js','utf8'),
   ]);
 
-  assert.match(html,/RhymeLab Studio 02 — Desktop Workbench/u);
+  assert.match(html,/RhymeLab Studio V2/u);
   assert.match(html,/href=["']\/studio\/styles\.css["']/u);
   assert.match(html,/src=["']\/studio\/app\.js["']/u);
   assert.match(html,/id=["']runtimeStatus["']/u);
   assert.match(html,/Live Writer · lokale Datenbank/u);
   assert.match(html,/type=["']module["'][^>]*src=["']\/studio\/app\.js["']/u);
-  assert.match(html,/STUDIO 02 · PREVIEW/u);
+  assert.match(html,/STUDIO V2/u);
   assert.doesNotMatch(html,/STUDIO 02 · DEMO/u);
 
   assert.match(css,/--assist-width:470px/u);
@@ -241,7 +241,7 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/releaseReadiness/u);
   assert.match(app,/deviceAcceptance:device/u);
   assert.match(app,/CUTOVER READINESS/u);
-  assert.match(app,/studio:v2:accepted-preview/u);
+  assert.match(app,/studio:v2:live/u);
   assert.match(app,/IndexedDB · autoritativ/u);
   assert.match(app,/function renderLibrary\(/u);
   assert.match(app,/function createLibraryFolder\(/u);
@@ -321,7 +321,7 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.topbar \.icon\{width:44px;height:44px;min-height:44px/u);
 });
 
-test('Studio preview route is parallel and leaves legacy Search and RhymePad routes in place',async()=>{
+test('Studio live default route leaves legacy Search and RhymePad routes in place',async()=>{
   const server=await readFile('src/server.mjs','utf8');
 
   assert.match(server,/const studioUiDir = resolve\('src\/studio'\)/u);
@@ -361,7 +361,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/assets\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/studioDefaultRoute\?studioHtml:writerHtml/u);
   assert.match(server,/'\/pad': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/u);
-  assert.match(server,/Studio 02 preview:/u);
+  assert.match(server,/Studio V2:/u);
   assert.match(server,/'\/api\/analysis\/rhyme-scheme'/u);
   assert.match(server,/entity_categories/u);
   assert.match(server,/entityCategories/u);
