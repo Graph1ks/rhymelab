@@ -2441,14 +2441,27 @@ function collectCurrentStudioDiagnostics(){
   });
   const dom=runStudioDomAcceptance({documentObj:document,windowObj:window});
   const parity=studioParitySummary();
+  const device=studioDeviceAcceptanceSummary(ensureStudioDeviceAcceptance());
+  const automatedFailures=[...environment.summary.failing,...dom.summary.failing];
+  const sourceReady=parity.sourceReady===parity.sourceTotal;
+  const automatedReady=automatedFailures.length===0;
   return {
     ...environment,
     domAcceptance:dom,
     parity,
+    deviceAcceptance:device,
+    releaseReadiness:{
+      ready:sourceReady&&automatedReady&&device.ready,
+      sourceReady,
+      automatedReady,
+      deviceReady:device.ready,
+      pendingDevice:[...device.pending],
+      automatedFailures,
+    },
     combinedSummary:{
       passing:environment.summary.passing+dom.summary.passing+parity.sourceReady,
       total:environment.summary.total+dom.summary.total+parity.sourceTotal,
-      failing:[...environment.summary.failing,...dom.summary.failing],
+      failing:automatedFailures,
     },
   };
 }
@@ -2471,7 +2484,15 @@ function renderDiagnosticsPanel(){
   if(!panel)return;
   const report=collectCurrentStudioDiagnostics();
   const viewport=report.viewport;
-  panel.innerHTML='<div class="diagnostics-summary"><div><span class="eyebrow">CURRENT ENVIRONMENT</span><b>'+report.combinedSummary.passing+'/'+report.combinedSummary.total+' automated/source checks</b><small>'+Math.round(viewport.width)+'×'+Math.round(viewport.height)+' CSS px · DPR '+viewport.devicePixelRatio.toFixed(2)+' · '+(report.input.coarsePointer?'Touch/Coarse':'Mouse/Fine')+'</small></div><div class="diagnostics-runtime"><span>DocumentStore <b>'+esc(report.runtime.documentStoreStatus)+'</b></span><span>Writer <b>'+esc(report.runtime.writerStatus)+'</b></span><span>Runtime <b>'+(report.runtime.writerCurrentMs==null?'—':report.runtime.writerCurrentMs.toFixed(1)+' ms')+'</b></span><span>Ø100 <b>'+(report.runtime.writerAverageLast100Ms==null?'—':report.runtime.writerAverageLast100Ms.toFixed(1)+' ms')+'</b></span></div></div>'+parityManifestMarkup()+'<div class="diagnostics-section-title">ENVIRONMENT</div><div class="diagnostics-grid">'+report.checks.map(diagnosticsCheckMarkup).join('')+'</div><div class="diagnostics-section-title">DOM / INTERACTION GATES</div><div class="diagnostics-grid">'+report.domAcceptance.checks.map(diagnosticsCheckMarkup).join('')+'</div>';
+  const readiness=report.releaseReadiness;
+  const readinessDetail=readiness.ready
+    ?'Source contract, current browser diagnostics and all seven real-device gates are complete.'
+    :[
+      readiness.sourceReady?'Source contract ready':'Source contract incomplete',
+      readiness.automatedReady?'Current browser checks ready':readiness.automatedFailures.length+' browser/DOM check'+(readiness.automatedFailures.length===1?'':'s')+' pending',
+      readiness.deviceReady?'7/7 device gates ready':(7-readiness.pendingDevice.length)+'/7 device gates ready',
+    ].join(' · ');
+  panel.innerHTML='<div class="cutover-readiness '+(readiness.ready?'is-ready':'')+'"><div><span class="eyebrow">CUTOVER READINESS</span><b>'+(readiness.ready?'READY FOR ACCEPTED PREVIEW':'PREVIEW GATE OPEN')+'</b><small>'+esc(readinessDetail)+'</small></div><code>'+(readiness.ready?'npm run studio:v2:accepted-preview':'npm run studio:v2:cutover:check')+'</code></div><div class="diagnostics-summary"><div><span class="eyebrow">CURRENT ENVIRONMENT</span><b>'+report.combinedSummary.passing+'/'+report.combinedSummary.total+' automated/source checks</b><small>'+Math.round(viewport.width)+'×'+Math.round(viewport.height)+' CSS px · DPR '+viewport.devicePixelRatio.toFixed(2)+' · '+(report.input.coarsePointer?'Touch/Coarse':'Mouse/Fine')+'</small></div><div class="diagnostics-runtime"><span>DocumentStore <b>'+esc(report.runtime.documentStoreStatus)+'</b></span><span>Writer <b>'+esc(report.runtime.writerStatus)+'</b></span><span>Runtime <b>'+(report.runtime.writerCurrentMs==null?'—':report.runtime.writerCurrentMs.toFixed(1)+' ms')+'</b></span><span>Ø100 <b>'+(report.runtime.writerAverageLast100Ms==null?'—':report.runtime.writerAverageLast100Ms.toFixed(1)+' ms')+'</b></span></div></div>'+parityManifestMarkup()+'<div class="diagnostics-section-title">ENVIRONMENT</div><div class="diagnostics-grid">'+report.checks.map(diagnosticsCheckMarkup).join('')+'</div><div class="diagnostics-section-title">DOM / INTERACTION GATES</div><div class="diagnostics-grid">'+report.domAcceptance.checks.map(diagnosticsCheckMarkup).join('')+'</div>';
   return report;
 }
 function exportStudioDiagnostics(){
