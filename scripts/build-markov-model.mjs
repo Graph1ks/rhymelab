@@ -659,9 +659,16 @@ function finalizeCensus(){
     db.prepare('DELETE FROM token WHERE count < ?').run(minTokenCount);
     const afterTokens=Number(db.prepare('SELECT COUNT(*) AS n FROM token').get()?.n||0);
     console.log(`[markov ${language.toUpperCase()} 2/3] vocabulary · ${beforeTokens.toLocaleString('en-US')} → ${afterTokens.toLocaleString('en-US')} tokens`);
-    tokenUpsert.run(START_TOKEN,1,0,0,START_TOKEN);
-    tokenUpsert.run(END_TOKEN,1,0,0,END_TOKEN);
+    const ensureBoundaryToken=db.prepare(`
+      INSERT INTO token(norm,count,title_count,upper_count,preferred_surface)
+      VALUES(?,1,0,0,?)
+      ON CONFLICT(norm) DO NOTHING
+    `);
+    ensureBoundaryToken.run(START_TOKEN,START_TOKEN);
+    ensureBoundaryToken.run(END_TOKEN,END_TOKEN);
     db.prepare('UPDATE state_count SET retained=0').run();
+    console.log(`[markov ${language.toUpperCase()} 2/3] build temporary state-rank index…`);
+    db.exec('CREATE INDEX IF NOT EXISTS state_count_rank_build_idx ON state_count(context_len,count DESC,state_key);');
     const orders=Math.max(1,MARKOV_MODEL_ORDER-1);
     const quota=Math.max(1,Math.floor(maxStates/orders));
     const retainByOrder=db.prepare(`
@@ -689,6 +696,7 @@ function finalizeCensus(){
       .run(`${START_TOKEN}%`,`%${END_TOKEN}`);
     db.exec('COMMIT');
   }catch(error){db.exec('ROLLBACK');throw error;}
+  db.exec('DROP INDEX IF EXISTS state_count_rank_build_idx;');
 
   const updateSurface=db.prepare('UPDATE token SET preferred_surface=? WHERE norm=?');
   const tokenTotal=Number(db.prepare('SELECT COUNT(*) AS n FROM token').get()?.n||0);
@@ -827,6 +835,14 @@ function pruneTransitions(){
   const started=Date.now();
   const before=Number(db.prepare('SELECT COUNT(*) AS n FROM transition').get()?.n||0);
   console.log(
+    `[markov ${language.toUpperCase()} prune] build final runtime indexes before pruning…`
+  );
+  const indexStarted=Date.now();
+  createMarkovSecondaryIndexes(db);
+  console.log(
+    `[markov ${language.toUpperCase()} prune] indexes ready · ${duration(Date.now()-indexStarted)}`
+  );
+  console.log(
     `[markov ${language.toUpperCase()} prune] top ${topK} per state/direction/order · `
     +`${before.toLocaleString('en-US')} transition rows · SQL running…`
   );
@@ -861,6 +877,7 @@ function pruneTransitions(){
 async function promote(){
   const promoteStarted=Date.now();
   console.log(`[markov ${language.toUpperCase()} promote] finalize metadata + optimize work DB…`);
+  createMarkovSecondaryIndexes(db);
   const scanRows=db.prepare("SELECT accepted_sentences FROM build_checkpoint WHERE phase='scan'").all();
   const acceptedSentences=scanRows.reduce((sum,row)=>sum+Number(row.accepted_sentences||0),0);
   const declaredSourceSentences=sourceRows.reduce((sum,row)=>sum+Number(row.manifest?.sentences||0),0);
