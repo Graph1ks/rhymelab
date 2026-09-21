@@ -522,6 +522,7 @@ const SKIP_SELECTOR=[
   '[data-i18n-skip]',
   '[data-insert]','[data-save]','[data-detail]',
   '.result-word','.songcard h3','.revision p',
+  '#songTitle','.project-list','.anchorword','#mobileAnchor','#lyrics',
   '.analysis-end-word','.analysis-word-title','.analysis-pair-words b',
   '.rhyme-chain-group b','.bar-inspector-head p','.detail-preview',
   '.library-folder-label b','.library-folder-label em','.bar-navigator-copy',
