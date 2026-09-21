@@ -99,6 +99,18 @@ async function loadArchive(source){
   return {archive,buffer,sha256:sha256Buffer(buffer),bytes:buffer.length};
 }
 
+function selectParsedRows(source,rows){
+  const selected=[...rows];
+  if(source.selection==='newest'){
+    selected.sort((a,b)=>{
+      const ad=String(a.dateModified||a.dateAdded||'');
+      const bd=String(b.dateModified||b.dateAdded||'');
+      return bd.localeCompare(ad)||String(b.id||'').localeCompare(String(a.id||''));
+    });
+  }
+  return selected;
+}
+
 function parseSource(source,archiveBuffer){
   if(source.format==='leipzig-tar-gz'){
     const tar=gunzipSync(archiveBuffer);
@@ -177,6 +189,8 @@ if(plan){
       genre:row.genre,
       year:row.year??null,
       expected_rows:row.expected_rows??null,
+      max_rows:row.max_rows??null,
+      selection:row.selection||'source_order',
     })),
     commands:{
       acquire:'npm run markov:sources:acquire',
@@ -205,11 +219,15 @@ const attribution=[];
 for(const source of sources){
   const archive=await loadArchive(source);
   const parsed=parseSource(source,archive.buffer);
-  const stage=sourceStageRows(parsed,{
+  const selected=selectParsedRows(source,parsed);
+  const sourceLimit=Number.isFinite(Number(source.max_rows))
+    ?Math.max(1,Number(source.max_rows))
+    :Infinity;
+  const stage=sourceStageRows(selected,{
     seen,
     sourceCode:source.code,
     language,
-    maxRows:maxPerSource,
+    maxRows:Math.min(maxPerSource,sourceLimit),
   });
 
   const stagedPath=join(outDir,source.code+'.txt');
@@ -235,6 +253,8 @@ for(const source of sources){
     raw_bytes:archive.bytes,
     raw_sha256:archive.sha256,
     parsed_rows:parsed.length,
+    selection:source.selection||'source_order',
+    max_rows:Number.isFinite(Number(source.max_rows))?Number(source.max_rows):null,
     scanned:stage.stats.scanned,
     accepted:stage.stats.accepted,
     duplicates:stage.stats.duplicates,
