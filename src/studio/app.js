@@ -451,7 +451,108 @@ async function refreshWriterResults(){
 
 function insertWord(word){const s=song();const {line,start,end}=selection;if(!s.lines[line]&&s.lines[line]!==''){notify('Bitte zuerst eine Textstelle auswählen.');return}pushUndo();const source=s.lines[line];const bar=setEditorBarText(s,line,source.slice(0,start)+word+source.slice(end));selection={line,barId:bar?.id||'',barRevision:bar?.revision||0,start,end:start+word.length};activeLine=line;renderEditor();changed();navigate('studio');setMode('write');const el=$(`#lyrics textarea[data-line="${line}"]`);el.focus();el.setSelectionRange(start,start+word.length);captureSelection(el);notify(`„${word}“ eingesetzt · Rückgängig verfügbar`)}
 function toggleSave(word){const i=state.saved.findIndex(x=>x.word===word);if(i>=0)state.saved.splice(i,1);else state.saved.push({word,anchor:query});persist();renderResults();updateStats();if(page==='saved')renderSaved()}
-function renderProjects(){$('#projectList').innerHTML=state.songs.filter(s=>!s.deleted).slice(0,6).map(s=>`<button data-song="${s.id}" class="${s.id===state.active?'current':''}"><span class="project-dot"></span>${esc(s.title)}</button>`).join('')}
+function libraryTimestamp(item){return Math.max(Number(item?.updatedAt)||0,Number(item?.createdAt)||0)}
+function touchSong(item,at=Date.now()){if(item)item.updatedAt=Math.max(Number(item.updatedAt)||0,Number(at)||0)}
+function ensureLibraryFolder(name){
+  const normalized=normalizeFolderName(name)||'Entwürfe';
+  if(!state.folders.includes(normalized))state.folders.push(normalized);
+  return normalized;
+}
+function libraryFolders(){return state.folders.slice().sort((a,b)=>a.localeCompare(b,'de',{sensitivity:'base'}))}
+function openSong(id){
+  const target=state.songs.find((item)=>item.id===id&&!item.deleted);
+  if(!target)return;
+  revision();
+  state.active=target.id;
+  activeLine=0;
+  selection={line:0,start:0,end:0};
+  undo=[];redo=[];
+  persist();
+  renderEditor();
+  renderProjects();
+  navigate('studio');
+  setMode('write');
+}
+function renderProjects(){
+  const rows=state.songs.filter((item)=>!item.deleted).slice().sort((a,b)=>libraryTimestamp(b)-libraryTimestamp(a)||a.title.localeCompare(b.title,'de')).slice(0,6);
+  $('#projectList').innerHTML=rows.map((item)=>`<button data-song="${esc(item.id)}" class="${item.id===state.active?'current':''}" title="${esc(item.folder||'Entwürfe')}"><span class="project-dot"></span>${esc(item.title)}</button>`).join('');
+}
+function createLibraryFolder(){
+  nameDialog('Neuer Ordner','Neuer Ordner',(value)=>{
+    const name=normalizeFolderName(value);
+    if(!name)return;
+    if(state.folders.some((item)=>item.localeCompare(name,'de',{sensitivity:'base'})===0)){
+      notify('Ordner existiert bereits.');
+      return;
+    }
+    state.folders.push(name);
+    libraryView.folder=name;
+    persist();
+    renderLibrary(false);
+    notify('Ordner angelegt.');
+  });
+}
+function deleteLibraryFolder(name){
+  const folder=normalizeFolderName(name);
+  if(!folder||folder==='Entwürfe'){notify('„Entwürfe“ bleibt als Standardordner erhalten.');return}
+  const count=state.songs.filter((item)=>!item.deleted&&item.folder===folder).length;
+  showDialog('Ordner löschen',`<p class="notice"><b>${esc(folder)}</b> löschen?${count?` ${count} Text${count===1?'':'e'} werden nach „Entwürfe“ verschoben.`:''}</p><div class="dialogactions"><button id="cancelFolderDelete">Abbrechen</button><button id="confirmFolderDelete" class="primary">Ordner löschen</button></div>`);
+  $('#cancelFolderDelete').onclick=closeDialog;
+  $('#confirmFolderDelete').onclick=()=>{
+    state.songs.forEach((item)=>{if(item.folder===folder){item.folder='Entwürfe';touchSong(item)}});
+    state.folders=state.folders.filter((item)=>item!==folder);
+    if(libraryView.folder===folder)libraryView.folder='all';
+    persist();closeDialog();renderLibrary(libraryView.trash);renderProjects();notify('Ordner gelöscht.');
+  };
+}
+function renameLibrarySong(id){
+  const item=state.songs.find((row)=>row.id===id);
+  if(!item)return;
+  nameDialog('Text umbenennen',item.title,(title)=>{
+    item.title=title;touchSong(item);persist();renderLibrary(libraryView.trash);renderProjects();if(item.id===state.active)renderEditor();
+  });
+}
+function moveLibrarySong(id){
+  const item=state.songs.find((row)=>row.id===id);
+  if(!item)return;
+  const options=libraryFolders().map((folder)=>`<option value="${esc(folder)}"${folder===item.folder?' selected':''}>${esc(folder)}</option>`).join('');
+  showDialog('Text verschieben',`<label class="field">Ordner<select id="moveSongFolder">${options}</select></label><div class="dialogactions"><button id="cancelMoveSong">Abbrechen</button><button id="confirmMoveSong" class="primary">Verschieben</button></div>`);
+  $('#cancelMoveSong').onclick=closeDialog;
+  $('#confirmMoveSong').onclick=()=>{
+    item.folder=ensureLibraryFolder($('#moveSongFolder').value);
+    touchSong(item);persist();closeDialog();renderLibrary(libraryView.trash);renderProjects();notify('Text verschoben.');
+  };
+}
+function trashLibrarySong(id){
+  const item=state.songs.find((row)=>row.id===id);
+  if(!item||item.deleted)return;
+  if(item.id===state.active){
+    const fallback=state.songs.filter((row)=>!row.deleted&&row.id!==item.id).sort((a,b)=>libraryTimestamp(b)-libraryTimestamp(a))[0];
+    if(!fallback){notify('Lege zuerst einen zweiten Text an, bevor du den einzigen aktiven Text löschst.');return}
+    revision();
+    state.active=fallback.id;
+    activeLine=0;selection={line:0,start:0,end:0};undo=[];redo=[];
+  }
+  const at=Date.now();
+  item.deleted=true;item.deletedAt=at;touchSong(item,at);
+  persist();renderLibrary(false);renderProjects();notify('Im Papierkorb · wiederherstellbar');
+}
+function restoreLibrarySong(id){
+  const item=state.songs.find((row)=>row.id===id);
+  if(!item)return;
+  item.deleted=false;item.deletedAt=null;touchSong(item);ensureLibraryFolder(item.folder);
+  persist();renderLibrary(true);renderProjects();notify('Text wiederhergestellt.');
+}
+function permanentlyDeleteLibrarySong(id){
+  const item=state.songs.find((row)=>row.id===id&&row.deleted);
+  if(!item)return;
+  showDialog('Endgültig löschen',`<p class="notice"><b>${esc(item.title)}</b> wird dauerhaft aus dem lokalen Studio-Dokument entfernt. Dieser Schritt kann nicht rückgängig gemacht werden.</p><div class="dialogactions"><button id="cancelPermanentDelete">Abbrechen</button><button id="confirmPermanentDelete" class="primary">Endgültig löschen</button></div>`);
+  $('#cancelPermanentDelete').onclick=closeDialog;
+  $('#confirmPermanentDelete').onclick=()=>{
+    state.songs=state.songs.filter((row)=>row.id!==id);
+    persist();closeDialog();renderLibrary(true);renderProjects();notify('Text endgültig gelöscht.');
+  };
+}
 function navigate(target){stopPlay();page=target;document.body.classList.remove('mobile-results','find-only');if(target!=='studio')document.body.classList.remove('focus');$('#workspace').classList.toggle('hidden',target==='library'||target==='saved');$('#largeView').classList.toggle('hidden',target!=='library'&&target!=='saved');$('#breadcrumb').textContent=({studio:'Studio',search:'Reimsuche',library:'Meine Texte',saved:'Merkliste'})[target];document.body.classList.toggle('find-only',target==='search');queryAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===target));setMobileActive(target==='search'?'results':target);if(target==='library')renderLibrary();if(target==='saved')renderSaved();if(target==='studio'){requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea))}}
 function setMobileActive(name){queryAll('[data-mobile]').forEach(b=>b.classList.toggle('active',b.dataset.mobile===name))}
 function setMode(next){mode=next;stopPlay();queryAll('[data-mode]').forEach(b=>{const active=b.dataset.mode===next;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active)});$('#writeView').classList.toggle('hidden',next!=='write');$('#rhymeView').classList.toggle('hidden',next!=='rhyme');$('#performView').classList.toggle('hidden',next!=='perform');if(next==='rhyme')renderAnalysis();if(next==='perform')renderPerform();if(next==='write')requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea))}
