@@ -69,6 +69,19 @@ function snapshotBarsForText(songId,text){
     text:line,
   }));
 }
+function snapshotBarsForLegacyRevision(songId,legacyRevision){
+  const snapshot=legacyRevision?.snapshot;
+  if(!snapshot||!Array.isArray(snapshot.lines))return snapshotBarsForText(songId,legacyRevision?.text);
+  const ids=Array.isArray(snapshot.barIds)?snapshot.barIds.map(asText):[];
+  const used=new Set();
+  return snapshot.lines.map((line,index)=>{
+    const fallback=`revision-bar:${songId}:${String(index+1).padStart(4,'0')}`;
+    let id=ids[index]||fallback;
+    if(used.has(id))id=fallback;
+    used.add(id);
+    return {id,orderKey:(index+1)*ORDER_STEP,text:asText(line)};
+  });
+}
 
 export function serializeLegacyStudioBackup(legacyState){
   return JSON.stringify({
@@ -137,7 +150,7 @@ export function migrateLegacyStudioState(legacyState={}){
         reason:'legacy_revision',
         documentSnapshot:{
           title:asText(legacySong.title||'Untitled'),
-          bars:snapshotBarsForText(songId,text),
+          bars:snapshotBarsForLegacyRevision(songId,legacyRevision),
         },
       });
     });
