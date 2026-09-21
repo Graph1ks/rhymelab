@@ -72,6 +72,38 @@ function strongerRelation(a,b){
   return tierA-tierB<0?a:tierB-tierA<0?b:(b.score>a.score?b:a);
 }
 
+function normalizedQueryDetail(result,word,language){
+  const candidates=[
+    result?.query,
+    result?.queries?.[language],
+    result?.queries?.de,
+    result?.queries?.en,
+  ].filter(Boolean);
+  const detail=candidates.find((entry)=>normalize(entry?.normalized||entry?.surface)===word)||candidates[0]||null;
+  if(!detail)return null;
+  const primaryStressSyllables=Array.isArray(detail.primaryStressSyllables)
+    ?detail.primaryStressSyllables.map(Number).filter(Number.isFinite)
+    :detail.primaryStressSyllable!=null
+      ?[Number(detail.primaryStressSyllable)].filter(Number.isFinite)
+      :[];
+  const secondaryStressSyllables=Array.isArray(detail.secondaryStressSyllables)
+    ?detail.secondaryStressSyllables.map(Number).filter(Number.isFinite)
+    :[];
+  return {
+    surface:String(detail.surface||result?.input||word),
+    normalized:word,
+    language:String(detail.language||language||''),
+    ipa:String(detail.preferredIpa||detail.ipa||''),
+    syllableCount:Number(detail.syllableCount||0),
+    stressPattern:detail.stressPattern==null?null:String(detail.stressPattern),
+    primaryStressSyllable:primaryStressSyllables[0]??null,
+    primaryStressSyllables,
+    secondaryStressSyllables,
+    generatedPronunciation:detail.generatedPronunciation===true,
+    pronunciationProvenance:detail.pronunciationProvenance||detail.queryPronunciation?.method||null,
+  };
+}
+
 export function extractAnalysisEndWord(line){
   const text=String(line??'').normalize('NFKC').trim();
   const match=text.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*[.!?,;:]*$/u);
@@ -102,6 +134,7 @@ export async function analyzeSongEndRhymes(words,{searchAnchor,language='de',max
   const relations=new Map();
   const resolved=new Set();
   const unresolved=new Set();
+  const details=new Map();
 
   const anchorResults=await mapWithConcurrency(
     unique,
@@ -116,6 +149,8 @@ export async function analyzeSongEndRhymes(words,{searchAnchor,language='de',max
       continue;
     }
     resolved.add(word);
+    const queryDetail=normalizedQueryDetail(result,word,language);
+    if(queryDetail)details.set(word,queryDetail);
     for(const row of result.results||[]){
       const candidate=normalize(row?.normalized||row?.word);
       if(!candidate||candidate===word||!targetSet.has(candidate))continue;
@@ -184,6 +219,19 @@ export async function analyzeSongEndRhymes(words,{searchAnchor,language='de',max
     normalized,
     scheme,
     lineRelations,
+    wordDetails:normalized.map((word)=>word?(details.get(word)||null):null),
+    uniqueWordDetails:unique.map((word)=>details.get(word)||{
+      surface:surfaces[normalized.indexOf(word)]||word,
+      normalized:word,
+      language:'',
+      ipa:'',
+      syllableCount:0,
+      stressPattern:null,
+      primaryStressSyllable:null,
+      primaryStressSyllables:[],
+      secondaryStressSyllables:[],
+      unresolved:true,
+    }),
     pairs:[...relations.entries()].map(([key,relation])=>{
       const [left,right]=key.split('\u0000');
       return {left,right,...relation};
