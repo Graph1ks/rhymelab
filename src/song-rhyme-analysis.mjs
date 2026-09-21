@@ -78,7 +78,22 @@ export function extractAnalysisEndWord(line){
   return match?match[0].replace(/[.!?,;:]+$/u,''):'';
 }
 
-export async function analyzeSongEndRhymes(words,{searchAnchor,language='de',maxUnique=64}={}){
+async function mapWithConcurrency(values,limit,worker){
+  const output=new Array(values.length);
+  let cursor=0;
+  const count=Math.max(1,Math.min(values.length||1,Number(limit)||1));
+  await Promise.all(Array.from({length:count},async()=>{
+    while(true){
+      const index=cursor++;
+      if(index>=values.length)return;
+      try{output[index]=await worker(values[index],index)}
+      catch{output[index]=null}
+    }
+  }));
+  return output;
+}
+
+export async function analyzeSongEndRhymes(words,{searchAnchor,language='de',maxUnique=64,concurrency=4}={}){
   if(typeof searchAnchor!=='function')throw new TypeError('searchAnchor is required');
   const surfaces=(Array.isArray(words)?words:[]).map((word)=>String(word??'').trim());
   const normalized=surfaces.map(normalize);
@@ -88,9 +103,14 @@ export async function analyzeSongEndRhymes(words,{searchAnchor,language='de',max
   const resolved=new Set();
   const unresolved=new Set();
 
-  for(const word of unique){
-    let result=null;
-    try{result=await searchAnchor(word,{language})}catch{}
+  const anchorResults=await mapWithConcurrency(
+    unique,
+    Math.max(1,Math.min(8,Number(concurrency)||4)),
+    (word)=>searchAnchor(word,{language}),
+  );
+  for(let queryIndex=0;queryIndex<unique.length;queryIndex++){
+    const word=unique[queryIndex];
+    const result=anchorResults[queryIndex];
     if(!result||result.status==='query_not_found'||result.status==='language_unavailable'){
       unresolved.add(word);
       continue;
