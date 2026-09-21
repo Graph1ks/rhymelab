@@ -671,3 +671,173 @@ export function generateLyricCandidatesV2(runtime,{
 
   return diversify(drafts,desired,options);
 }
+
+
+export function analyzeLyricCandidateSet(candidates=[]){
+  const rows=Array.isArray(candidates)?candidates.filter(Boolean):[];
+  if(!rows.length){
+    return {
+      count:0,
+      uniqueTailRatio:0,
+      uniqueFinalTokenRatio:0,
+      meanPairwiseSimilarity:0,
+      maxPairwiseSimilarity:0,
+      exactLengthRate:0,
+      sourceCopyRate:0,
+      meanNaturalness:0,
+      meanRhyme:0,
+    };
+  }
+  const tails=new Set();
+  const finals=new Set();
+  let exactLength=0;
+  let copied=0;
+  let naturalness=0;
+  let rhyme=0;
+  for(const row of rows){
+    tails.add(String(row?.tail?.normalized||row?.tail?.surface||''));
+    finals.add(String((row?.flatNorms||[]).at(-1)||''));
+    if(row?.scores?.actualLength===row?.scores?.targetLength)exactLength+=1;
+    if(row?.scores?.copiedTooFar||row?.scores?.exactSource)copied+=1;
+    naturalness+=Number(row?.scores?.naturalness||0);
+    rhyme+=Number(row?.scores?.rhyme||0);
+  }
+  let pairCount=0;
+  let similarityTotal=0;
+  let maxPairwiseSimilarity=0;
+  for(let i=0;i<rows.length;i+=1){
+    for(let j=i+1;j<rows.length;j+=1){
+      const similarity=candidateSimilarity(rows[i],rows[j]);
+      pairCount+=1;
+      similarityTotal+=similarity;
+      maxPairwiseSimilarity=Math.max(maxPairwiseSimilarity,similarity);
+    }
+  }
+  return {
+    count:rows.length,
+    uniqueTailRatio:tails.size/rows.length,
+    uniqueFinalTokenRatio:finals.size/rows.length,
+    meanPairwiseSimilarity:pairCount?similarityTotal/pairCount:0,
+    maxPairwiseSimilarity,
+    exactLengthRate:exactLength/rows.length,
+    sourceCopyRate:copied/rows.length,
+    meanNaturalness:naturalness/rows.length,
+    meanRhyme:rhyme/rows.length,
+  };
+}
+
+export function generateLyricSectionV2(runtime,{
+  scheme='ABAB',
+  section='verse',
+  lines,
+  targetTokens=MARKOV_LYRIC_PROFILE.defaultTargetTokens,
+  slots={},
+  seed=1337,
+  rhymePressure=72,
+  naturalness=76,
+  weirdness=38,
+  mode='balanced',
+  allowEntities=true,
+  allowPhrases=true,
+  candidatesPerLine=8,
+  attemptsPerLine=192,
+}={}){
+  const plan=planLyricSection({scheme,lines,targetTokens,section,seed});
+  const selected=[];
+  const usedTailBySlot=new Map();
+  const failures=[];
+
+  for(const linePlan of plan.lines){
+    const slotConfig=slots?.[linePlan.rhymeSlot];
+    const rows=Array.isArray(slotConfig?.rows)?slotConfig.rows:[];
+    const target=String(slotConfig?.target||'').trim();
+    if(!rows.length||!target){
+      failures.push({
+        line:linePlan.line,
+        rhymeSlot:linePlan.rhymeSlot,
+        reason:'missing_slot_candidates',
+      });
+      continue;
+    }
+
+    const lineSeed=Number(seed)||0;
+    const candidates=generateLyricCandidatesV2(runtime,{
+      rows,
+      target,
+      seed:lineSeed+linePlan.line*1009,
+      targetTokens:linePlan.targetTokens,
+      rhymePressure,
+      naturalness,
+      weirdness,
+      mode,
+      allowEntities,
+      allowPhrases,
+      count:Math.max(3,Math.min(12,Number(candidatesPerLine)||8)),
+      attempts:Math.max(64,Math.min(256,Number(attemptsPerLine)||192)),
+    });
+
+    const usedForSlot=usedTailBySlot.get(linePlan.rhymeSlot)||new Set();
+    let best=null;
+    for(const candidate of candidates){
+      const exactTailUsed=usedForSlot.has(candidate.tail.normalized);
+      if(exactTailUsed)continue;
+
+      let maxSimilarity=0;
+      let previousSameSlotFamily=false;
+      let crossSlotFamilyCollision=false;
+      for(const previous of selected){
+        maxSimilarity=Math.max(maxSimilarity,candidateSimilarity(candidate,previous.candidate));
+        if(previous.plan.rhymeSlot===linePlan.rhymeSlot
+          &&previous.candidate.tail.family===candidate.tail.family){
+          previousSameSlotFamily=true;
+        }
+        if(previous.plan.rhymeSlot!==linePlan.rhymeSlot
+          &&previous.candidate.tail.family===candidate.tail.family){
+          crossSlotFamilyCollision=true;
+        }
+      }
+
+      const overlapPenalty=maxSimilarity*(section==='hook'?0.18:0.34);
+      const familyBonus=previousSameSlotFamily?0.04:0;
+      const familyCollisionPenalty=crossSlotFamilyCollision?0.12:0;
+      const score=Number(candidate.scores.selectionUtility??candidate.scores.utility)
+        -overlapPenalty
+        +familyBonus
+        -familyCollisionPenalty;
+
+      if(!best||score>best.score){
+        best={candidate,score,maxSimilarity,previousSameSlotFamily,crossSlotFamilyCollision};
+      }
+    }
+
+    if(!best){
+      failures.push({
+        line:linePlan.line,
+        rhymeSlot:linePlan.rhymeSlot,
+        reason:'no_diverse_candidate',
+      });
+      continue;
+    }
+
+    usedForSlot.add(best.candidate.tail.normalized);
+    usedTailBySlot.set(linePlan.rhymeSlot,usedForSlot);
+    selected.push({
+      plan:linePlan,
+      candidate:best.candidate,
+      sectionSelectionScore:clamp(best.score),
+      previousLineSimilarity:best.maxSimilarity,
+      rhymeFamilyContinued:best.previousSameSlotFamily,
+      crossSlotFamilyCollision:best.crossSlotFamilyCollision,
+    });
+  }
+
+  const candidateRows=selected.map((row)=>row.candidate);
+  return {
+    policy:LYRIC_DECODER_POLICY,
+    plan,
+    complete:selected.length===plan.lines.length,
+    lines:selected,
+    failures,
+    metrics:analyzeLyricCandidateSet(candidateRows),
+  };
+}
