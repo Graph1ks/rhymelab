@@ -510,6 +510,18 @@ html,*{
 .perform-sequencer .beatgrid button.playhead{
   transform:translateY(-2px);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)
 }
+.perform-insights{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)
+}
+.perform-insights>div{
+  display:grid;gap:3px;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel)
+}
+.perform-insights small{font-size:7px;letter-spacing:.75px;font-weight:800;color:var(--muted)}
+.perform-insights b{font-size:12px;font-variant-numeric:tabular-nums}
+.perform-insights span{font-size:8px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.perform-fingerprint code{
+  display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;letter-spacing:2px;color:var(--accent)
+}
 .perform-actions{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
 .perform-actions button{min-height:34px;font-size:9px}
 
@@ -532,6 +544,8 @@ html,*{
   .pause-length{margin-left:0;flex:1 1 100%}
   .pause-length select{min-height:44px;flex:1}
   .perform-sequencer .beatgrid,.perform-sequencer .beatgrid.perform-grid-16,.perform-sequencer .beatgrid.perform-grid-8{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .perform-insights{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .perform-insights>div{min-height:72px}
 }
 
 
