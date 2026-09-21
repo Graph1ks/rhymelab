@@ -605,9 +605,31 @@ function insertWord(word){const s=song();const {line,start,end}=selection;if(!s.
 function toggleSave(word){const i=state.saved.findIndex(x=>x.word===word);if(i>=0)state.saved.splice(i,1);else state.saved.push({word,anchor:query});persist();renderResults();updateStats();if(page==='saved')renderSaved()}
 function libraryTimestamp(item){return Math.max(Number(item?.updatedAt)||0,Number(item?.createdAt)||0)}
 function touchSong(item,at=Date.now()){if(item)item.updatedAt=Math.max(Number(item.updatedAt)||0,Number(at)||0)}
+function folderChildren(parent,folders=state.folders){
+  const root=normalizeFolderName(parent);
+  return folders.filter((folder)=>folderParent(folder)===root);
+}
+function flattenFolderHierarchy(overrides=new Map()){
+  const ordered=[],seen=new Set(),source=state.folders.slice();
+  const walk=(parent)=>{
+    const children=overrides.get(parent)||folderChildren(parent,source);
+    for(const child of children){
+      if(seen.has(child))continue;
+      seen.add(child);ordered.push(child);walk(child);
+    }
+  };
+  walk('');
+  for(const folder of source)if(!seen.has(folder)){seen.add(folder);ordered.push(folder);walk(folder)}
+  return ordered;
+}
+function canonicalizeFolderOrder(overrides){
+  state.folders=flattenFolderHierarchy(overrides);
+}
 function ensureLibraryFolder(name){
   const normalized=normalizeFolderName(name)||'Entwürfe';
-  if(!state.folders.includes(normalized))state.folders.push(normalized);
+  const paths=expandFolderPaths([normalized]);
+  for(const path of paths)if(!state.folders.includes(path))state.folders.push(path);
+  canonicalizeFolderOrder();
   return normalized;
 }
 function libraryFolders(){return state.folders.slice()}
@@ -637,50 +659,83 @@ function createLibraryFolder(){
       notify('Ordner existiert bereits.');
       return;
     }
-    state.folders.push(name);
+    ensureLibraryFolder(name);
     libraryView.folder=name;
     persist();
     renderLibrary(false);
     notify('Ordner angelegt.');
   });
 }
+function createLibrarySubfolder(parent){
+  const root=normalizeFolderName(parent);
+  if(!root)return;
+  nameDialog('Unterordner in „'+folderLeaf(root)+'“','Neuer Ordner',(value)=>{
+    const leaf=normalizeFolderSegment(value);
+    if(!leaf)return;
+    const path=root+'/'+leaf;
+    if(state.folders.some((item)=>item.localeCompare(path,'de',{sensitivity:'base'})===0)){
+      notify('Unterordner existiert bereits.');
+      return;
+    }
+    ensureLibraryFolder(path);
+    libraryView.folder=path;
+    persist();renderLibrary(libraryView.trash);notify('Unterordner angelegt.');
+  });
+}
 function renameLibraryFolder(name){
   const folder=normalizeFolderName(name);
   if(!folder||folder==='Entwürfe'){notify('„Entwürfe“ bleibt der feste Standardordner.');return}
-  nameDialog('Ordner umbenennen',folder,(value)=>{
-    const next=normalizeFolderName(value);
-    if(!next||next===folder)return;
-    if(state.folders.some((item)=>item!==folder&&item.localeCompare(next,'de',{sensitivity:'base'})===0)){
-      notify('Ordner existiert bereits.');
+  const parent=folderParent(folder);
+  nameDialog('Ordner umbenennen',folderLeaf(folder),(value)=>{
+    const leaf=normalizeFolderSegment(value);
+    if(!leaf)return;
+    const next=parent?parent+'/'+leaf:leaf;
+    if(next===folder)return;
+    const subtree=state.folders.filter((item)=>folderContains(folder,item));
+    const outside=new Set(state.folders.filter((item)=>!folderContains(folder,item)).map((item)=>item.toLocaleLowerCase('de-DE')));
+    const mapped=subtree.map((item)=>next+item.slice(folder.length));
+    if(mapped.some((item)=>outside.has(item.toLocaleLowerCase('de-DE')))){
+      notify('Zielname kollidiert mit einem bestehenden Ordner.');
       return;
     }
-    state.folders=state.folders.map((item)=>item===folder?next:item);
-    state.songs.forEach((item)=>{if(item.folder===folder){item.folder=next;touchSong(item)}});
-    if(libraryView.folder===folder)libraryView.folder=next;
-    persist();renderLibrary(libraryView.trash);renderProjects();notify('Ordner umbenannt.');
+    state.folders=state.folders.map((item)=>folderContains(folder,item)?next+item.slice(folder.length):item);
+    state.songs.forEach((item)=>{
+      if(folderContains(folder,item.folder)){
+        item.folder=next+normalizeFolderName(item.folder).slice(folder.length);
+        touchSong(item);
+      }
+    });
+    if(libraryView.folder!=='all'&&folderContains(folder,libraryView.folder)){
+      libraryView.folder=next+normalizeFolderName(libraryView.folder).slice(folder.length);
+    }
+    canonicalizeFolderOrder();
+    persist();renderLibrary(libraryView.trash);renderProjects();notify('Ordnerstruktur umbenannt.');
   });
 }
 function reorderLibraryFolder(name,direction){
-  const folder=normalizeFolderName(name);
-  const index=state.folders.indexOf(folder);
-  const target=index+(direction<0?-1:1);
-  if(index<0||target<0||target>=state.folders.length)return;
-  const next=state.folders.slice();
-  [next[index],next[target]]=[next[target],next[index]];
-  state.folders=next;
+  const folder=normalizeFolderName(name),parent=folderParent(folder);
+  const siblings=folderChildren(parent);
+  const index=siblings.indexOf(folder),target=index+(direction<0?-1:1);
+  if(index<0||target<0||target>=siblings.length)return;
+  [siblings[index],siblings[target]]=[siblings[target],siblings[index]];
+  canonicalizeFolderOrder(new Map([[parent,siblings]]));
   persist();renderLibrary(libraryView.trash);
 }
 function deleteLibraryFolder(name){
   const folder=normalizeFolderName(name);
   if(!folder||folder==='Entwürfe'){notify('„Entwürfe“ bleibt als Standardordner erhalten.');return}
-  const count=state.songs.filter((item)=>!item.deleted&&item.folder===folder).length;
-  showDialog('Ordner löschen',`<p class="notice"><b>${esc(folder)}</b> löschen?${count?` ${count} Text${count===1?'':'e'} werden nach „Entwürfe“ verschoben.`:''}</p><div class="dialogactions"><button id="cancelFolderDelete">Abbrechen</button><button id="confirmFolderDelete" class="primary">Ordner löschen</button></div>`);
+  const subtree=state.folders.filter((item)=>folderContains(folder,item));
+  const songs=state.songs.filter((item)=>folderContains(folder,item.folder));
+  const fallback=folderParent(folder)||'Entwürfe';
+  showDialog('Ordnerstruktur löschen',`<p class="notice"><b>${esc(folder)}</b> inklusive ${subtree.length} Ordner${subtree.length===1?'':'n'} löschen? ${songs.length} Text${songs.length===1?'':'e'} werden nach <b>${esc(fallback)}</b> verschoben.</p><div class="dialogactions"><button id="cancelFolderDelete">Abbrechen</button><button id="confirmFolderDelete" class="primary">Ordnerstruktur löschen</button></div>`);
   $('#cancelFolderDelete').onclick=closeDialog;
   $('#confirmFolderDelete').onclick=()=>{
-    state.songs.forEach((item)=>{if(item.folder===folder){item.folder='Entwürfe';touchSong(item)}});
-    state.folders=state.folders.filter((item)=>item!==folder);
-    if(libraryView.folder===folder)libraryView.folder='all';
-    persist();closeDialog();renderLibrary(libraryView.trash);renderProjects();notify('Ordner gelöscht.');
+    ensureLibraryFolder(fallback);
+    state.songs.forEach((item)=>{if(folderContains(folder,item.folder)){item.folder=fallback;touchSong(item)}});
+    state.folders=state.folders.filter((item)=>!folderContains(folder,item));
+    if(libraryView.folder!=='all'&&folderContains(folder,libraryView.folder))libraryView.folder=fallback;
+    canonicalizeFolderOrder();
+    persist();closeDialog();renderLibrary(libraryView.trash);renderProjects();notify('Ordnerstruktur gelöscht · Texte sicher verschoben.');
   };
 }
 function renameLibrarySong(id){
@@ -693,7 +748,7 @@ function renameLibrarySong(id){
 function moveLibrarySong(id){
   const item=state.songs.find((row)=>row.id===id);
   if(!item)return;
-  const options=libraryFolders().map((folder)=>`<option value="${esc(folder)}"${folder===item.folder?' selected':''}>${esc(folder)}</option>`).join('');
+  const options=libraryFolders().map((folder)=>`<option value="${esc(folder)}"${folder===item.folder?' selected':''}>${'· '.repeat(Math.max(0,folderDepth(folder)))}${esc(folderLeaf(folder))}</option>`).join('');
   showDialog('Text verschieben',`<label class="field">Ordner<select id="moveSongFolder">${options}</select></label><div class="dialogactions"><button id="cancelMoveSong">Abbrechen</button><button id="confirmMoveSong" class="primary">Verschieben</button></div>`);
   $('#cancelMoveSong').onclick=closeDialog;
   $('#confirmMoveSong').onclick=()=>{
