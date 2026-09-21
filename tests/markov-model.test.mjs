@@ -2,13 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {
+  END_TOKEN,
+  MARKOV_MODEL_ORDER,
   MARKOV_MODEL_POLICY,
   MARKOV_MODEL_SCHEMA,
   START_TOKEN,
-  END_TOKEN,
   createMarkovStorage,
+  lexicalNorms,
   preferredSurfaceFor,
   sequenceFromSentence,
+  sequenceHash,
+  shapeKeyForTokens,
   stateKey,
   tokenShape,
   tokenizeCorpusSentence,
@@ -16,9 +20,13 @@ import {
 } from '../src/markov-model-core.mjs';
 import {
   createMarkovRuntime,
-  generateCorpusMarkovCandidates,
   markovModelHealth,
 } from '../src/markov-model-runtime.mjs';
+import {
+  candidateSimilarity,
+  generateLyricCandidatesV2,
+  planLyricSection,
+} from '../src/lyric-decoder-v2.mjs';
 import {
   MARKOV_LYRIC_PROFILE,
   lyricLengthFit,
@@ -26,39 +34,62 @@ import {
 } from '../src/markov-lyric-profile.mjs';
 
 const fixtureSentences=[
-  'Nachts in der Stadt klingt jede Straße anders.',
-  'Nachts in der Stadt suche ich nach einer Reise.',
-  'Ich fahre mit dem Zug auf eine lange Reise.',
-  'Wir laufen durch die Straßen bis zum Morgen.',
-  'Am Ende dieser Reise wartet eine neue Weise.',
-  'Heute klingt die Musik noch leise.',
-  'Zwischen Häusern und Lichtern bleibt die Stadt wach.',
-  'Ich schreibe neue Zeilen bis zum Morgen.',
-  'Wir suchen neue Wörter für die nächste Reise.',
-  'Die Musik bleibt leise und die Straße wird wach.',
+  'Nachts in der Stadt suche ich eine lange Reise.',
+  'Mitten in der Stadt suche ich eine neue Weise.',
+  'Wir laufen durch die Straßen bis zum hellen Morgen.',
+  'Ich schreibe neue Zeilen bis zum frühen Morgen.',
+  'Die Musik bleibt heute leise unter grauen Wolken.',
+  'Meine Stimme trägt die Reise durch die leeren Straßen.',
+  'Jede Zeile sucht die Weise hinter kalten Mauern.',
+  'Wir drehen uns im Kreise durch die halbe Nacht.',
+  'Keiner bleibt alleine auf der langen Reise.',
+  'Heute klingt die Sprache anders in der alten Stadt.',
+  'Zwischen Licht und Schatten wächst eine neue Reise.',
+  'Unter diesen Dächern klingt die Musik noch leise.',
 ];
 
 const writerRows=[
-  {resultKind:'word',surface:'Reise',normalized:'reise',score:.95,primaryType:'multisyllabic_perfect',usageRank:100,relations:[{type:'assonance',score:.95}]},
-  {resultKind:'word',surface:'Weise',normalized:'weise',score:.92,primaryType:'perfect',usageRank:200,relations:[{type:'assonance',score:.92}]},
-  {resultKind:'word',surface:'leise',normalized:'leise',score:.88,primaryType:'slant',usageRank:300,relations:[{type:'assonance',score:.9}]},
-  {resultKind:'phrase',surface:'eine neue Weise',normalized:'eine neue weise',score:.91,crossedWordBoundaries:2,leipzigCommonness:.9,relations:[{type:'assonance',score:.94}]},
-  {resultKind:'entity',surface:'Michael Jackson',normalized:'michael jackson',score:.99,popularityPercentile:.99,entityCategories:[{category:'person.singer'}],relations:[{type:'assonance',score:.97}]},
+  {resultKind:'word',surface:'Reise',normalized:'reise',ipa:'ʁaɪ zə',score:.95,primaryType:'multisyllabic_perfect',usageRank:100,relations:[{type:'assonance',score:.95}]},
+  {resultKind:'word',surface:'Weise',normalized:'weise',ipa:'vaɪ zə',score:.92,primaryType:'perfect',usageRank:200,relations:[{type:'assonance',score:.92}]},
+  {resultKind:'word',surface:'leise',normalized:'leise',ipa:'laɪ zə',score:.88,primaryType:'slant',usageRank:300,relations:[{type:'assonance',score:.9}]},
+  {resultKind:'word',surface:'Kreise',normalized:'kreise',ipa:'kʁaɪ zə',score:.86,primaryType:'perfect',usageRank:450,relations:[{type:'assonance',score:.88}]},
+  {resultKind:'phrase',surface:'eine neue Weise',normalized:'eine neue weise',ipa:'aɪ nə nɔɪ ə vaɪ zə',score:.91,crossedWordBoundaries:2,leipzigCommonness:.9,relations:[{type:'assonance',score:.94}]},
+  {resultKind:'entity',surface:'Michael Jackson',normalized:'michael jackson',ipa:'maɪ kəl dʒæk sən',score:.99,popularityPercentile:.99,entityCategories:[{category:'person.singer'}],relations:[{type:'assonance',score:.97}]},
 ];
 
 function fixtureRuntime(){
   const db=new DatabaseSync(':memory:');
   createMarkovStorage(db);
-  writeMeta(db,{schema:MARKOV_MODEL_SCHEMA,policy:MARKOV_MODEL_POLICY,language:'de',order:2,semantic_fingerprint:'fixture-v1',accepted_sentences:fixtureSentences.length,source_sentences:fixtureSentences.length});
+  writeMeta(db,{
+    schema:MARKOV_MODEL_SCHEMA,
+    policy:MARKOV_MODEL_POLICY,
+    language:'de',
+    order:MARKOV_MODEL_ORDER,
+    semantic_fingerprint:'fixture-v2',
+    accepted_sentences:fixtureSentences.length,
+    source_sentences:fixtureSentences.length,
+  });
+
   const tokenCounts=new Map();
   const transitions=new Map();
+  const sourceSequenceUpsert=db.prepare(
+    'INSERT INTO source_sequence_hash(hash,token_count,count) VALUES(?,?,1) ON CONFLICT(hash) DO UPDATE SET count=count+1',
+  );
+  const sourceWindowUpsert=db.prepare(
+    'INSERT INTO source_window_hash(hash,window_size,count) VALUES(?,?,1) ON CONFLICT(hash) DO UPDATE SET count=count+1',
+  );
+  const shapeUpsert=db.prepare(
+    'INSERT INTO shape_pattern(token_count,shape_key,count) VALUES(?,?,1) ON CONFLICT(token_count,shape_key) DO UPDATE SET count=count+1',
+  );
+
   const add=(direction,len,state,next)=>{
     const key=`${direction}\u0002${len}\u0002${state}\u0002${next}`;
     transitions.set(key,(transitions.get(key)||0)+1);
   };
+
   for(const sentence of fixtureSentences){
     const sequence=sequenceFromSentence(sentence,{language:'de'});
-    for(const row of sequence.slice(2,-1)){
+    for(const row of sequence.slice(MARKOV_MODEL_ORDER,-1)){
       const current=tokenCounts.get(row.norm)||{norm:row.norm,count:0,title_count:0,upper_count:0};
       current.count+=1;
       const shape=tokenShape(row.surface);
@@ -66,97 +97,141 @@ function fixtureRuntime(){
       else if(shape==='upper')current.upper_count+=1;
       tokenCounts.set(row.norm,current);
     }
+
     const norms=sequence.map((row)=>row.norm);
-    for(let i=2;i<norms.length;i+=1){
-      add('forward',1,norms[i-1],norms[i]);
-      add('forward',2,stateKey([norms[i-2],norms[i-1]]),norms[i]);
+    for(let i=1;i<norms.length;i+=1){
+      for(let len=1;len<=Math.min(MARKOV_MODEL_ORDER,i);len+=1){
+        add('forward',len,stateKey(norms.slice(i-len,i)),norms[i]);
+      }
     }
-    for(let i=norms.length-3;i>=1;i-=1){
-      add('reverse',1,norms[i+1],norms[i]);
-      add('reverse',2,stateKey([norms[i+1],norms[i+2]]),norms[i]);
+    for(let i=norms.length-2;i>=0;i-=1){
+      const available=norms.length-i-1;
+      for(let len=1;len<=Math.min(MARKOV_MODEL_ORDER,available);len+=1){
+        add('reverse',len,stateKey(norms.slice(i+1,i+1+len)),norms[i]);
+      }
     }
+
+    const lexical=lexicalNorms(sequence);
+    sourceSequenceUpsert.run(sequenceHash(lexical),lexical.length);
+    for(let size=4;size<=Math.min(8,lexical.length);size+=1){
+      for(let start=0;start+size<=lexical.length;start+=1){
+        sourceWindowUpsert.run(sequenceHash(lexical.slice(start,start+size)),size);
+      }
+    }
+    shapeUpsert.run(lexical.length,shapeKeyForTokens(lexical,'de'));
   }
+
   tokenCounts.set(START_TOKEN,{norm:START_TOKEN,count:1,title_count:0,upper_count:0});
   tokenCounts.set(END_TOKEN,{norm:END_TOKEN,count:1,title_count:0,upper_count:0});
-  const tokenInsert=db.prepare('INSERT INTO token(norm,count,title_count,upper_count,preferred_surface) VALUES(?,?,?,?,?)');
-  for(const row of tokenCounts.values())tokenInsert.run(row.norm,row.count,row.title_count,row.upper_count,preferredSurfaceFor(row));
-  const stateInsert=db.prepare('INSERT OR IGNORE INTO state_count(state_key,count,retained) VALUES(?,?,1)');
-  const transitionInsert=db.prepare('INSERT INTO transition(direction,context_len,state_key,next_token,count) VALUES(?,?,?,?,?)');
+  const tokenInsert=db.prepare(
+    'INSERT INTO token(norm,count,title_count,upper_count,preferred_surface) VALUES(?,?,?,?,?)',
+  );
+  for(const row of tokenCounts.values()){
+    tokenInsert.run(row.norm,row.count,row.title_count,row.upper_count,preferredSurfaceFor(row));
+  }
+  const transitionInsert=db.prepare(
+    'INSERT INTO transition(direction,context_len,state_key,next_token,count) VALUES(?,?,?,?,?)',
+  );
   for(const [key,count] of transitions){
     const [direction,len,state,next]=key.split('\u0002');
     transitionInsert.run(direction,Number(len),state,next,count);
-    if(Number(len)===2)stateInsert.run(state,count);
   }
   return createMarkovRuntime(db,{path:':memory:'});
 }
 
-test('corpus tokenizer keeps lexical order and removes terminal punctuation',()=>{
-  assert.deepEqual(tokenizeCorpusSentence('Am Ende dieser Reise wartet eine neue Weise.',{language:'de'}).map((row)=>row.norm),[
-    'am','ende','dieser','reise','wartet','eine','neue','weise',
+test('V2 tokenizer keeps lexical order and order-4 sentence boundaries',()=>{
+  assert.deepEqual(
+    tokenizeCorpusSentence('Am Ende dieser Reise wartet eine neue Weise.',{language:'de'})
+      .map((row)=>row.norm),
+    ['am','ende','dieser','reise','wartet','eine','neue','weise'],
+  );
+  const sequence=sequenceFromSentence('Heute bleibt die Musik leise.',{language:'de'});
+  assert.deepEqual(sequence.slice(0,MARKOV_MODEL_ORDER).map((row)=>row.norm),[
+    START_TOKEN,START_TOKEN,START_TOKEN,START_TOKEN,
   ]);
 });
 
-test('corpus Markov generation is deterministic and ends on a real rhyme candidate',()=>{
-  const runtime=fixtureRuntime();
-  const options={rows:writerRows,target:'Arbeitsweise',seed:4242,mode:'end',rhymePressure:86,naturalness:82,weirdness:28,targetTokens:9,count:5,attempts:40};
-  const first=generateCorpusMarkovCandidates(runtime,options);
-  const second=generateCorpusMarkovCandidates(runtime,options);
-  assert.ok(first.length>=3);
-  assert.deepEqual(first,second);
-  assert.ok(first.every((candidate)=>['Reise','Weise','leise','eine neue Weise'].some((tail)=>candidate.sentence.toLocaleLowerCase('de-DE').includes(tail.toLocaleLowerCase('de-DE')))));
-  assert.ok(first.every((candidate)=>candidate.model.policy===MARKOV_MODEL_POLICY));
-  assert.ok(first.every((candidate)=>candidate.scores.utility>=0&&candidate.scores.utility<=1));
-  assert.ok(first.every((candidate)=>candidate.scores.lengthWithinTarget===true));
-  assert.ok(first.every((candidate)=>candidate.scores.actualLength>=candidate.scores.minimumLength));
-  assert.ok(first.every((candidate)=>candidate.scores.actualLength<=candidate.scores.maximumLength));
-  runtime.close();
-});
-
-test('high naturalness refuses unsupported random Entity tails instead of forcing them',()=>{
-  const runtime=fixtureRuntime();
-  const candidates=generateCorpusMarkovCandidates(runtime,{rows:writerRows,target:'Arbeitsweise',seed:91,mode:'end',rhymePressure:92,naturalness:96,weirdness:12,targetTokens:9,count:6,attempts:60,allowEntities:true});
-  assert.ok(candidates.length);
-  assert.equal(candidates.some((candidate)=>candidate.sentence.includes('Michael Jackson')),false);
-  runtime.close();
-});
-
-test('Phrase and Entity toggles are hard generator boundaries',()=>{
-  const runtime=fixtureRuntime();
-  const candidates=generateCorpusMarkovCandidates(runtime,{rows:writerRows,target:'Arbeitsweise',seed:99,mode:'mosaic',rhymePressure:80,naturalness:70,weirdness:35,targetTokens:10,count:6,attempts:60,allowEntities:false,allowPhrases:false});
-  assert.ok(candidates.length);
-  for(const candidate of candidates){
-    assert.equal(candidate.tokens.some((token)=>token.kind==='entity'),false);
-    assert.equal(candidate.tokens.some((token)=>token.kind==='phrase'),false);
-  }
-  runtime.close();
-});
-
-test('seed text is joined through observed forward context at high naturalness',()=>{
-  const runtime=fixtureRuntime();
-  const candidates=generateCorpusMarkovCandidates(runtime,{rows:writerRows,target:'Arbeitsweise',seedText:'Nachts in der Stadt',seed:42,mode:'end',rhymePressure:80,naturalness:90,weirdness:10,targetTokens:9,count:4,attempts:80});
-  assert.ok(candidates.length);
-  assert.ok(candidates.every((candidate)=>candidate.sentence.startsWith('Nachts in der Stadt')));
-  assert.ok(candidates.every((candidate)=>candidate.scores.boundary>0));
-  runtime.close();
-});
-
-test('runtime health exposes corpus model identity',()=>{
+test('V2 runtime exposes variable-order, novelty and shape evidence',()=>{
   const runtime=fixtureRuntime();
   const health=markovModelHealth(runtime);
   assert.equal(health.available,true);
   assert.equal(health.policy,MARKOV_MODEL_POLICY);
-  assert.equal(health.accepted_sentences,fixtureSentences.length);
-  assert.equal(health.lyric_profile,'rhymelab-lyric-shape-v1');
+  assert.equal(health.schema,MARKOV_MODEL_SCHEMA);
+  assert.equal(health.order,4);
+  assert.ok(health.source_sequences>0);
+  assert.ok(health.source_windows>0);
+  assert.ok(health.shape_patterns>0);
+
+  const source=fixtureSentences[0];
+  const tokens=tokenizeCorpusSentence(source,{language:'de'}).map((row)=>row.norm);
+  const novelty=runtime.sourceNovelty(tokens);
+  assert.equal(novelty.exactSource,true);
+  assert.ok(novelty.longestSourceRun>=4);
+  assert.ok(runtime.shapeEvidence(tokens).fit>0);
   runtime.close();
 });
 
+test('V2 decoder is deterministic, exact-length and uses real rhyme tails',()=>{
+  const runtime=fixtureRuntime();
+  const options={
+    rows:writerRows,
+    target:'Arbeitsweise',
+    seed:4242,
+    mode:'end',
+    rhymePressure:86,
+    naturalness:62,
+    weirdness:55,
+    targetTokens:9,
+    count:4,
+    attempts:160,
+    allowEntities:false,
+  };
+  const first=generateLyricCandidatesV2(runtime,options);
+  const second=generateLyricCandidatesV2(runtime,options);
+  assert.ok(first.length>=2);
+  assert.deepEqual(first,second);
+  assert.ok(first.every((candidate)=>candidate.scores.actualLength===9));
+  assert.ok(first.every((candidate)=>candidate.scores.lengthWithinTarget===true));
+  assert.ok(first.every((candidate)=>candidate.scores.exactSource===false));
+  assert.ok(first.every((candidate)=>candidate.scores.copiedTooFar===false));
+  assert.ok(first.every((candidate)=>candidate.model.policy==='rhymelab-constrained-lyric-decoder-v2'));
+  assert.ok(first.every((candidate)=>['Reise','Weise','leise','Kreise','eine neue Weise']
+    .some((tail)=>candidate.sentence.toLocaleLowerCase('de-DE')
+      .includes(tail.toLocaleLowerCase('de-DE')))));
+  runtime.close();
+});
 
-test('aggregate lyric profile favors compact song-line lengths without embedding source text',()=>{
+test('V2 result-set selection penalizes near-duplicate endings',()=>{
+  const base={
+    model:{language:'de'},
+    tokens:[],
+    flatNorms:['wir','gehen','durch','die','nacht','reise'],
+    tail:{normalized:'reise',family:'aɪ zə'},
+  };
+  const same={
+    ...base,
+    flatNorms:['sie','laufen','durch','die','nacht','reise'],
+    tail:{normalized:'reise',family:'aɪ zə'},
+  };
+  const different={
+    ...base,
+    flatNorms:['heute','klingt','alles','anders','und','leise'],
+    tail:{normalized:'leise',family:'laɪ zə'},
+  };
+  assert.ok(candidateSimilarity(base,same)>candidateSimilarity(base,different));
+  assert.equal(candidateSimilarity(base,same),1);
+});
+
+test('section planner is deterministic and preserves rhyme slots',()=>{
+  const a=planLyricSection({scheme:'ABAB',lines:8,targetTokens:12,section:'verse',seed:9});
+  const b=planLyricSection({scheme:'ABAB',lines:8,targetTokens:12,section:'verse',seed:9});
+  assert.deepEqual(a,b);
+  assert.deepEqual(a.lines.map((line)=>line.rhymeSlot),['A','B','A','B','A','B','A','B']);
+  assert.ok(a.lines.every((line)=>line.targetTokens>=11&&line.targetTokens<=13));
+});
+
+test('aggregate lyric profile treats explicit long targets as real targets',()=>{
   assert.equal(MARKOV_LYRIC_PROFILE.defaultTargetTokens,6);
-  assert.equal(MARKOV_LYRIC_PROFILE.compactLineTokens,3);
-  assert.equal(MARKOV_LYRIC_PROFILE.commonLineTokens,9);
-  assert.ok(lyricLengthFit(6,6)>lyricLengthFit(14,6));
-  assert.ok(lyricLengthFit(7,7)>lyricLengthFit(3,7));
   assert.ok(lyricLengthFit(16,16)>lyricLengthFit(2,16));
   assert.equal(lyricLengthFit(16,16),1);
   assert.deepEqual(lyricTargetBounds(16,{weirdness:.28}),{
