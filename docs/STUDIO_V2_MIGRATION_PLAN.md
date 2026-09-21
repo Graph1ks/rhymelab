@@ -447,8 +447,8 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 10 detail/provenance parity                  DONE
 11 complete filter parity                    DONE
 12 shared SearchState                        DONE
-13 document/editor spike                     NEXT
-14 RhymePad migration
+13 document/editor spike                     DONE
+14 RhymePad migration                        NEXT
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
