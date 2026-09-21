@@ -56,7 +56,8 @@ const writerRows=[
   {resultKind:'word',surface:'leise',normalized:'leise',ipa:'laɪ zə',score:.88,primaryType:'slant',usageRank:300,relations:[{type:'assonance',score:.9}]},
   {resultKind:'word',surface:'Kreise',normalized:'kreise',ipa:'kʁaɪ zə',score:.86,primaryType:'perfect',usageRank:450,relations:[{type:'assonance',score:.88}]},
   {resultKind:'phrase',surface:'eine neue Weise',normalized:'eine neue weise',ipa:'aɪ nə nɔɪ ə vaɪ zə',score:.91,crossedWordBoundaries:2,leipzigCommonness:.9,relations:[{type:'assonance',score:.94}]},
-  {resultKind:'entity',surface:'Michael Jackson',normalized:'michael jackson',ipa:'maɪ kəl dʒæk sən',score:.99,popularityPercentile:.99,entityCategories:[{category:'person.singer'}],relations:[{type:'assonance',score:.97}]},
+  {resultKind:'entity',surface:'Michael Jackson',normalized:'michael jackson',ipa:'maɪ kəl dʒæk sən',score:.99,popularityPercentile:.99,entityCategories:[{category:'person.musician'}],relations:[{type:'assonance',score:.97}]},
+  {resultKind:'entity',surface:'der Stadt',normalized:'der stadt',ipa:'deːɐ̯ ʃtat',score:.12,popularityPercentile:.99,entityCategories:[{category:'work.film'}],relations:[{type:'assonance',score:.08}]},
 ];
 
 function fixtureRuntime(){
@@ -202,6 +203,40 @@ test('V2 decoder is deterministic, exact-length and uses real rhyme tails',()=>{
   assert.ok(first.every((candidate)=>['Reise','Weise','leise','Kreise','eine neue Weise']
     .some((tail)=>candidate.sentence.toLocaleLowerCase('de-DE')
       .includes(tail.toLocaleLowerCase('de-DE')))));
+  runtime.close();
+});
+
+test('V2 decoder can place selected entities inside the line instead of only at the tail',()=>{
+  const runtime=fixtureRuntime();
+  const candidates=generateLyricCandidatesV2(runtime,{
+    rows:writerRows,
+    target:'Arbeitsweise',
+    seed:9191,
+    mode:'end',
+    rhymePressure:88,
+    naturalness:48,
+    weirdness:62,
+    targetTokens:9,
+    count:8,
+    attempts:256,
+    allowEntities:true,
+    entityCategories:['work.film'],
+    allowPhrases:false,
+  });
+  const withInternalEntity=candidates.find((candidate)=>
+    candidate.tokens.some((token)=>token.placeholder==='<ENTITY>')
+  );
+  assert.ok(withInternalEntity,'expected at least one context-supported internal entity splice');
+  const entityIndex=withInternalEntity.tokens.findIndex((token)=>token.placeholder==='<ENTITY>');
+  const rhymeIndex=withInternalEntity.tokens.findIndex((token)=>token.placeholder==='<RHYME>');
+  assert.ok(entityIndex>=0);
+  assert.ok(rhymeIndex>entityIndex);
+  assert.equal(withInternalEntity.scores.actualLength,9);
+  assert.equal(withInternalEntity.scores.lengthWithinTarget,true);
+  assert.deepEqual(
+    withInternalEntity.tokens[entityIndex].entityCategories,
+    ['work.film'],
+  );
   runtime.close();
 });
 
