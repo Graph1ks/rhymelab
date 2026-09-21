@@ -95,3 +95,77 @@ test('DOM acceptance detects undersized visible mobile primary controls',()=>{
   assert.equal(report.metrics.undersizedTouchTargets,1);
   assert.ok(report.summary.failing.includes('touch-targets'));
 });
+
+
+test('DOM acceptance detects clipped rails, nested result scrollbars and keyboard-covered active lines',()=>{
+  const controls=new Map(REQUIRED.map((id)=>[id,element({id})]));
+  const nested={
+    id:'nested',
+    className:'nested-scroll',
+    scrollHeight:300,
+    clientHeight:100,
+    getBoundingClientRect:()=>({width:100,height:100,top:0,bottom:100,left:0,right:100}),
+    getAttribute:()=>null,
+  };
+  const resultsScroll=controls.get('resultsScroll');
+  resultsScroll.querySelectorAll=()=>[nested];
+  const clipped={
+    id:'topbar',
+    getBoundingClientRect:()=>({width:430,height:50,top:0,bottom:50,left:0,right:430}),
+    getAttribute:()=>null,
+    textContent:'topbar',
+  };
+  const activeTextarea={
+    getBoundingClientRect:()=>({width:300,height:90,top:460,bottom:550,left:0,right:300}),
+  };
+  const activeLine={
+    getBoundingClientRect:()=>({width:300,height:90,top:460,bottom:550,left:0,right:300}),
+    querySelector:()=>activeTextarea,
+  };
+  const documentObj={
+    documentElement:{
+      dataset:{mobileKeyboard:'true'},
+      clientWidth:390,
+      clientHeight:700,
+      scrollWidth:390,
+      scrollHeight:700,
+    },
+    body:{
+      classList:{contains:()=>false},
+      scrollWidth:390,
+      scrollHeight:700,
+    },
+    getElementById:(id)=>controls.get(id)||null,
+    querySelectorAll(selector){
+      if(selector==='[id]')return [...controls.values()];
+      if(selector==='button')return [];
+      return [];
+    },
+    querySelector(selector){
+      if(selector==='.topbar')return clipped;
+      if(selector==='.lyric-line.active')return activeLine;
+      if(selector==='.mobile-nav')return null;
+      if(selector==='.editor-scroll')return null;
+      return null;
+    },
+  };
+  const windowObj={
+    innerWidth:390,
+    innerHeight:700,
+    visualViewport:{width:390,height:500,offsetLeft:0,offsetTop:0},
+    getComputedStyle:(node)=>({
+      display:'block',
+      visibility:'visible',
+      opacity:'1',
+      overflowY:node===nested?'auto':'visible',
+    }),
+    matchMedia:()=>({matches:false}),
+  };
+  const report=runStudioDomAcceptance({documentObj,windowObj});
+  assert.ok(report.summary.failing.includes('clipped-rails'));
+  assert.ok(report.summary.failing.includes('nested-results-scroll'));
+  assert.ok(report.summary.failing.includes('keyboard-active-line'));
+  assert.equal(report.metrics.clippedRails,1);
+  assert.equal(report.metrics.nestedResultScrollers,1);
+  assert.equal(report.metrics.activeLineCovered,true);
+});
