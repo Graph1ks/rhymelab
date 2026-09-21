@@ -21,6 +21,30 @@ function metaValue(db,key){
   catch{return null;}
 }
 
+const DEFAULT_DISTRIBUTION_CAPABILITIES=Object.freeze({
+  words_de:true,
+  words_en:true,
+  phrases:true,
+  entities:true,
+  generated:true,
+  markov:true,
+});
+
+export function servingV1DistributionCapabilities(db){
+  const edition=metaValue(db,'distribution_edition')||'master';
+  const raw=metaValue(db,'distribution_features_json');
+  if(!raw)return {edition,...DEFAULT_DISTRIBUTION_CAPABILITIES};
+  let parsed;
+  try{parsed=JSON.parse(raw);}catch{
+    throw new Error('serving_v1_distribution_features_invalid_json');
+  }
+  const capabilities={};
+  for(const key of Object.keys(DEFAULT_DISTRIBUTION_CAPABILITIES)){
+    capabilities[key]=parsed?.[key]===true;
+  }
+  return {edition,...capabilities};
+}
+
 export function servingV1ProductRuntimeState(db){
   if(!db)return {available:false,reason:'serving_v1_database_unavailable'};
   const schema=metaValue(db,'schema');
@@ -30,6 +54,7 @@ export function servingV1ProductRuntimeState(db){
   const productRevision=metaValue(db,'product_adapter_revision');
   const identityRevision=metaValue(db,'identity_revision');
   const productIdentityRevision=metaValue(db,'product_adapter_identity_revision');
+  const distribution=servingV1DistributionCapabilities(db);
   const valid=schema==='rhymelab-serving-v1'
     &&runtimeStatus==='complete'
     &&productSchema===SERVING_V1_PRODUCT_SCHEMA
@@ -54,6 +79,7 @@ export function servingV1ProductRuntimeState(db){
     productRevision,
     identityRevision,
     productIdentityRevision,
+    distribution,
     runtimeSemanticFingerprint:metaValue(db,'runtime_semantic_fingerprint'),
     productSemanticFingerprint:metaValue(db,'product_adapter_semantic_fingerprint'),
     runtime:valid?SERVING_V1_PRODUCT_RUNTIME:null,
@@ -518,18 +544,28 @@ export function openServingV1ProductRuntime(dbPath=DEFAULT_SERVING_V1_PRODUCT_DB
   let allDb=null;
   try{
     allDb=openServingV1ProductDb(dbPath,{mode:'all'});
+    const capabilities=servingV1DistributionCapabilities(coreDb);
     return {
       schema:'rhymelab-serving-v1-product-runtime-handle-v1',
       path:resolve(dbPath),
       runtime:SERVING_V1_PRODUCT_RUNTIME,
       policy:SERVING_V1_PRODUCT_RUNTIME_POLICY,
+      capabilities,
       coreDb,
       allDb,
       coreDatabases:{
-        writerDb:coreDb,englishDb:coreDb,phraseDb:coreDb,entityDb:coreDb,generatedOverlay:false,
+        writerDb:capabilities.words_de?coreDb:null,
+        englishDb:capabilities.words_en?coreDb:null,
+        phraseDb:capabilities.phrases?coreDb:null,
+        entityDb:capabilities.entities?coreDb:null,
+        generatedOverlay:false,
       },
       allDatabases:{
-        writerDb:allDb,englishDb:allDb,phraseDb:allDb,entityDb:allDb,generatedOverlay:true,
+        writerDb:capabilities.words_de?allDb:null,
+        englishDb:capabilities.words_en?allDb:null,
+        phraseDb:capabilities.phrases?allDb:null,
+        entityDb:capabilities.entities?allDb:null,
+        generatedOverlay:capabilities.generated,
       },
       close(){
         try{coreDb.close();}catch{}

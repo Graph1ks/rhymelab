@@ -252,9 +252,13 @@ const canonicalRuntimeDatabases=servingV1Active
   :acceptedRuntimeDatabases;
 const activeGeneratedRuntime=servingV1Active
   ?{
-      available:true,
-      reason:null,
-      databases:servingV1Runtime.allDatabases,
+      available:servingV1Runtime.capabilities?.generated===true,
+      reason:servingV1Runtime.capabilities?.generated===true
+        ?null
+        :'distribution_generated_unavailable',
+      databases:servingV1Runtime.capabilities?.generated===true
+        ?servingV1Runtime.allDatabases
+        :null,
       close(){},
     }
   :generatedOptinRuntime;
@@ -625,6 +629,7 @@ const server = createServer(async (req, res) => {
           default_runtime:true,
           database:servingV1DbPath,
           state:servingV1State,
+          distribution:servingV1Runtime.capabilities,
         } : {
           enabled:false,
           default_runtime:false,

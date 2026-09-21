@@ -2,6 +2,7 @@ import {parentPort,workerData} from 'node:worker_threads';
 import {
   installServingV1CompatibilityViews,
   openServingV1ProductDb,
+  servingV1DistributionCapabilities,
 } from './serving-v1-product-runtime.mjs';
 import {searchUnifiedWriter} from './unified-writer-search.mjs';
 
@@ -11,19 +12,20 @@ const channel=String(workerData?.channel||'unknown');
 const servingPath=String(workerData?.servingPath||'');
 let mode='core';
 const db=openServingV1ProductDb(servingPath,{mode});
+const capabilities=servingV1DistributionCapabilities(db);
 
 function databases(){
   return {
-    writerDb:db,
-    englishDb:db,
-    phraseDb:db,
-    entityDb:db,
-    generatedOverlay:mode==='all',
+    writerDb:capabilities.words_de?db:null,
+    englishDb:capabilities.words_en?db:null,
+    phraseDb:capabilities.phrases?db:null,
+    entityDb:capabilities.entities?db:null,
+    generatedOverlay:mode==='all'&&capabilities.generated,
   };
 }
 
 function selectMode(generatedOverlay){
-  const next=generatedOverlay===true?'all':'core';
+  const next=generatedOverlay===true&&capabilities.generated?'all':'core';
   if(next===mode)return;
   db.exec('PRAGMA query_only=OFF;');
   try{

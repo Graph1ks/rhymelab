@@ -208,7 +208,13 @@
     "dev:search-default": "node src/server.mjs --search-default",
     "studio:v2:live": "npm run studio:v2:verify && node src/server.mjs",
     "distribution:census": "node --no-warnings scripts/analyze-distribution-tiers.mjs",
-    "distribution:census:json": "node --no-warnings scripts/analyze-distribution-tiers.mjs --json"
+    "distribution:census:json": "node --no-warnings scripts/analyze-distribution-tiers.mjs --json",
+    "distribution:plan": "node --no-warnings scripts/build-distribution-tiers.mjs --plan",
+    "distribution:build": "node --no-warnings scripts/build-distribution-tiers.mjs",
+    "distribution:build:lite": "node --no-warnings scripts/build-distribution-tiers.mjs --edition lite",
+    "distribution:build:standard": "node --no-warnings scripts/build-distribution-tiers.mjs --edition standard",
+    "distribution:build:full": "node --no-warnings scripts/build-distribution-tiers.mjs --edition full",
+    "distribution:status": "node --no-warnings scripts/build-distribution-tiers.mjs --status"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"

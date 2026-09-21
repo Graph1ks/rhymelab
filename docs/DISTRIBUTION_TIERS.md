@@ -4,7 +4,7 @@
 
 **Active packaging implementation contract.**
 
-The read-only Master storage/population census is implemented as `npm run distribution:census`. The positive Lite/Standard/Full materializer is intentionally **not** implemented yet: the census must be reviewed first and a versioned cross-language Core/Generated distribution rank must be frozen before the builder can select rows. The size ranges below remain planning budgets rather than acceptance gates.
+The read-only Master storage/population census is implemented as `npm run distribution:census`. The census from the finalized owner Master has now been reviewed and `distribution-rank-v1-language-normalized-usage-surface` is the frozen first distribution rank. The positive Lite/Standard/Full materializer is implemented behind an explicit read-only plan gate. The size ranges below remain planning budgets until the first real tier files are materialized and vacuumed.
 
 The final distribution workflow must derive all editions reproducibly from one finalized Master/Developer database without rerunning the upstream source pipelines for every edition.
 
@@ -147,6 +147,52 @@ Generated distribution rank
 ```
 
 The exact ranking policy must be versioned and deterministic before the builder is accepted.
+
+## Distribution rank v1
+
+Policy id:
+
+```text
+distribution-rank-v1-language-normalized-usage-surface
+```
+
+The tier targets count **lexical product surfaces**, not raw SQLite rows. Once a lexical surface is selected, all eligible pronunciation identities required by the selected edition are retained as relational closure.
+
+This avoids cutting alternate accepted pronunciations merely to hit an arbitrary row count.
+
+Ranking is deterministic:
+
+1. select DE and EN lexical surfaces with an eligible Word pronunciation in the requested layer;
+2. within each language, surfaces with a real `surface.usage_rank` sort before fallback-only surfaces;
+3. ranked surfaces sort by their language-local usage rank;
+4. fallback surfaces use the accepted language-local evidence already materialized in the Product layer (`usage_score` for DE, `en_wordfreq_zipf` for EN), then historical state, usage count and stable lexical identity;
+5. convert each language/class ordering to a language-local ordinal percentile;
+6. merge DE and EN by that normalized percentile with stable language/identity tie-breaks.
+
+This deliberately does **not** pretend that the raw DE and EN rank numbers share one numeric scale.
+
+All ranked DE/EN surfaces are therefore consumed before unranked fallback surfaces. The Full Core target may legitimately use fallback surfaces once the ranked Core population is exhausted.
+
+Generated selection uses the same deterministic policy over genuine Generated-only lexical surfaces. Additional Generated-only pronunciation variants attached to an already selected Core surface are retained as Full-edition closure and are not treated as extra product-surface quota.
+
+## Entity distribution policy
+
+The Entity population is **not re-ranked by the distribution builder**.
+
+The current Master contains the owner-accepted/frozen Phase 12A2 Hybrid-v2 retention baseline:
+
+```text
+category-relative-popularity-hybrid-v2-geometric-missing-evidence-candidate
+distinct retained entities: 1,077,644
+```
+
+Any additional category-floor tightening would be a new Entity candidate revision with its own owner acceptance and must not be smuggled into packaging.
+
+Edition availability still applies:
+
+- Standard uses Core-mode Entity pronunciations;
+- Full uses Core + genuine Generated availability;
+- entities with no pronunciation reachable in the edition are naturally absent from that edition's materialized closure.
 
 ## Schema and capability contract
 
@@ -371,23 +417,73 @@ Semantic checks should verify:
 
 Each resulting database should also be run through the Serving-v1 report benchmark so edition size and latency can be compared using the same workload.
 
-## Planned workflow
+## Materialization workflow
 
-The intended implementation order is:
+The implementation order is:
 
 ```text
-1. finalize/freeze Master runtime
-2. distribution storage census / analyzer
-3. review projected populations + sizes
-4. canonical distribution rank
-5. one-pass selection / closure computation
+1. finalize/freeze Master runtime — **DONE**
+2. distribution storage census / analyzer — **DONE**
+3. review real Master populations/storage — **DONE**
+4. freeze canonical distribution rank v1 — **DONE**
+5. run `npm run distribution:plan` for exact edition selection/closure counts
 6. positive materialization of Lite / Standard / Full
-7. integrity + semantic acceptance
-8. VACUUM + exact dbstat report
+7. integrity + nesting/semantic acceptance
+8. `VACUUM` + exact file/storage report
 9. Serving performance benchmark per edition
 ```
 
-`distribution:census` is now an implemented repository command. Builder/materialization command names remain intentionally unspecified until the census has been reviewed and the distribution-rank policy is frozen.
+`distribution:census` is implemented and the first rank policy is frozen. Use `npm run distribution:plan` before any build. Materialization commands are `distribution:build:lite`, `distribution:build:standard`, `distribution:build:full`, or `distribution:build` for all three. Existing outputs are never replaced without explicit `--replace`.
+
+## Owner commands
+
+Read-only plan:
+
+```powershell
+npm run distribution:plan
+```
+
+Build all three editions:
+
+```powershell
+npm run distribution:build
+```
+
+Or build individually:
+
+```powershell
+npm run distribution:build:lite
+npm run distribution:build:standard
+npm run distribution:build:full
+```
+
+Status:
+
+```powershell
+npm run distribution:status
+```
+
+Safe reset of incomplete work only:
+
+```powershell
+npm run distribution:build -- --reset
+```
+
+Intentional replacement of existing finished tier files:
+
+```powershell
+npm run distribution:build -- --replace
+```
+
+Outputs:
+
+```text
+data/local/distribution/rhymelab-serving-v1-lite.sqlite
+data/local/distribution/rhymelab-serving-v1-standard.sqlite
+data/local/distribution/rhymelab-serving-v1-full.sqlite
+```
+
+The builder creates positive materializations from an empty schema, keeps the Master read-only by policy, copies full selected relational closure, builds explicit secondary indexes after bulk copy, checks foreign keys and `PRAGMA quick_check`, runs `ANALYZE` / `PRAGMA optimize`, vacuums, writes a report, and promotes the completed work file atomically.
 
 ## Non-goals
 
