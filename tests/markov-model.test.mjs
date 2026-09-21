@@ -23,8 +23,10 @@ import {
   markovModelHealth,
 } from '../src/markov-model-runtime.mjs';
 import {
+  analyzeLyricCandidateSet,
   candidateSimilarity,
   generateLyricCandidatesV2,
+  generateLyricSectionV2,
   planLyricSection,
 } from '../src/lyric-decoder-v2.mjs';
 import {
@@ -243,4 +245,49 @@ test('aggregate lyric profile treats explicit long targets as real targets',()=>
     max:18,
   });
   assert.equal(Object.hasOwn(MARKOV_LYRIC_PROFILE,'lyrics'),false);
+});
+
+
+test('decoder metrics measure tail diversity, exact length and pairwise collapse',()=>{
+  const make=(tail,final,naturalness=.7)=>({
+    model:{language:'de'},
+    tokens:[],
+    flatNorms:['wir','gehen','durch','die','nacht',final],
+    tail:{normalized:tail,family:tail},
+    scores:{
+      actualLength:6,
+      targetLength:6,
+      copiedTooFar:false,
+      exactSource:false,
+      naturalness,
+      rhyme:.8,
+    },
+  });
+  const metrics=analyzeLyricCandidateSet([
+    make('reise','reise'),
+    make('weise','weise'),
+    make('leise','leise'),
+  ]);
+  assert.equal(metrics.count,3);
+  assert.equal(metrics.uniqueTailRatio,1);
+  assert.equal(metrics.uniqueFinalTokenRatio,1);
+  assert.equal(metrics.exactLengthRate,1);
+  assert.equal(metrics.sourceCopyRate,0);
+  assert.ok(metrics.meanPairwiseSimilarity<1);
+});
+
+test('section generation reports missing rhyme-slot pools explicitly',()=>{
+  const runtime=fixtureRuntime();
+  const section=generateLyricSectionV2(runtime,{
+    scheme:'ABAB',
+    lines:4,
+    targetTokens:9,
+    slots:{},
+    seed:12,
+  });
+  assert.equal(section.complete,false);
+  assert.equal(section.lines.length,0);
+  assert.deepEqual(section.failures.map((row)=>row.rhymeSlot),['A','B','A','B']);
+  assert.ok(section.failures.every((row)=>row.reason==='missing_slot_candidates'));
+  runtime.close();
 });
