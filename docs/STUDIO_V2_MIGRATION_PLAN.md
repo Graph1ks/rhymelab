@@ -309,18 +309,27 @@ Migrate one group at a time:
 
 Each group requires a parity test before the old implementation is considered replaceable.
 
-Current writing/editing migration status:
+Current RhymePad migration status:
 
 ~~~text
-stable Bar IDs / revisions            DONE
-stale-selection proof by Bar ID       DONE
-Undo + Redo                           DONE
-Enter split / Backspace merge         DONE
-explicit multiline paste -> Bars      DONE
-IME composition transaction guard     DONE
-legacy localStorage persistence        TEMPORARY
+stable Bar IDs / revisions             DONE
+stale-selection proof by Bar ID        DONE
+Undo + Redo                            DONE
+Enter split / Backspace merge          DONE
+explicit multiline paste -> Bars       DONE
+IME composition transaction guard      DONE
+appearance / custom Quickstyles        DONE
+Light/Dark one-click quickswitch       DONE
+library search + sort                   DONE
+folder create/delete/move              DONE
+trash + restore + permanent delete     DONE
+empty-folder migration to DocumentStore DONE
+legacy localStorage authority          TEMPORARY
 IndexedDB DocumentStore shadow         DONE
-authoritative DocumentStore cutover    NEXT
+authoritative DocumentStore cutover     NEXT
+save/revision production cutover        NEXT
+canonical analysis                      NEXT
+full Perform parity                     NEXT
 ~~~
 
 The textarea geometry remains the Studio 02 visual baseline while the production document model is introduced behind it.
@@ -375,20 +384,22 @@ Target browser persistence is IndexedDB. Use localStorage only for small UI pref
 Required workflows:
 
 ~~~text
-new
-open
-search
-sort
-rename
-folder create/delete
-move
-trash
-restore
-permanent delete
-revision restore
-export
-recovery
+new                  DONE in Studio shell
+open                 DONE in Studio shell
+search               DONE in Studio library
+sort                 DONE in Studio library
+rename               DONE in Studio library
+folder create/delete DONE in Studio library
+move                 DONE in Studio library
+trash                DONE in Studio library
+restore              DONE in Studio library
+permanent delete     DONE in Studio library
+revision restore     PRESENT; production model cutover pending
+export               PRESENT
+recovery             legacy backup present; recovery UI pending
 ~~~
+
+Until the authoritative IndexedDB cutover, these document workflows still write the legacy Studio state first and shadow the verified versioned snapshot into DocumentStore.
 
 Electron persistence remains a later adapter.
 
