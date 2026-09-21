@@ -97,6 +97,7 @@ const generatedEntityDbPath=resolve(
 );
 const uiDir = resolve('src/ui');
 const padUiDir = resolve('src/pad');
+const studioUiDir = resolve('src/studio');
 const benchmarkUiDir = resolve('src/benchmark-ui');
 const queryPronunciationTestDir = resolve('src/query-pronunciation-test');
 const markovTestDir = resolve('src/markov-test');
@@ -385,6 +386,7 @@ function generatedRuntimeHealth(){
 
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
 const padHtml = Buffer.from(materializeRhymePadV14().html);
+const studioHtml = readFileSync(resolve(studioUiDir, 'index.html'));
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const queryPronunciationTestHtml = readFileSync(resolve(queryPronunciationTestDir, 'index.html'));
 const markovTestHtml = readFileSync(resolve(markovTestDir, 'index.html'));
@@ -392,6 +394,8 @@ const assets = {
   '/': { type: 'text/html; charset=utf-8', body: writerHtml },
   '/pad': { type: 'text/html; charset=utf-8', body: padHtml },
   '/pad/': { type: 'text/html; charset=utf-8', body: padHtml },
+  '/studio': { type: 'text/html; charset=utf-8', body: studioHtml },
+  '/studio/': { type: 'text/html; charset=utf-8', body: studioHtml },
   '/pad/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(padUiDir, 'styles.css')) },
   '/pad/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(padUiDir, 'app.js')) },
   '/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'styles.css')) },
@@ -759,6 +763,7 @@ const server = createServer(async (req, res) => {
 server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymePad workspace: http://${host}:${port}/pad`);
+  console.log(`Studio 02 preview: http://${host}:${port}/studio`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
   console.log(`Markov DE database: ${markovRuntime.available ? markovModelPath : 'unavailable — npm run markov:model:build'}`);
   console.log(`Markov EN database: ${markovEnglishRuntime.available ? markovEnglishModelPath : 'unavailable — npm run markov:model:build:en'}`);
