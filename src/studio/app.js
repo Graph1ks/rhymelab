@@ -15,6 +15,7 @@ import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilen
 import {collectStudioEnvironmentDiagnostics,diagnosticsFilename} from './diagnostics.mjs';
 import {createStudioDomLocalizer,normalizeStudioUiLanguage} from './i18n.mjs';
 import {commandShortcutText,rankStudioCommands,studioCommandGroups} from './command-palette.mjs';
+import {createTypingUndoCoalescer} from './edit-history.mjs';
 import {runStudioDomAcceptance} from './dom-acceptance.mjs';
 import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacyStudioStateToStore} from './document-store.mjs';
 
@@ -108,6 +109,7 @@ let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detai
 let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all',analysisChainVisible=false;
 let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0,documentSaveGeneration=0,documentSaveChain=Promise.resolve(),mobileViewportCleanup=null;
 let uiLocalizer=null;
+const typingUndo=createTypingUndoCoalescer({windowMs:1100});
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',
   query=sharedSearchState.anchor||'Nacht',
   scope=({words:'word',phrases:'phrase',entities:'entity'})[sharedSearchState.scope]||'all',
@@ -298,13 +300,15 @@ function updateUndoRedoButtons(){
   if(undoButton){undoButton.disabled=undo.length===0;undoButton.setAttribute('aria-disabled',String(undo.length===0))}
   if(redoButton){redoButton.disabled=redo.length===0;redoButton.setAttribute('aria-disabled',String(redo.length===0))}
 }
-function pushUndo(){
+function pushUndo({coalesced=false}={}){
+  if(!coalesced)typingUndo.noteBoundary();
   undo.push(editorSnapshot(song()));
   if(undo.length>80)undo.shift();
   redo.length=0;
   updateUndoRedoButtons();
 }
 function performUndo(){
+  typingUndo.noteBoundary();
   if(!undo.length){notify('Keine Änderung zum Rückgängigmachen.');return}
   const s=song();
   redo.push(editorSnapshot(s));
@@ -319,6 +323,7 @@ function performUndo(){
   notify('Änderung rückgängig gemacht.');
 }
 function performRedo(){
+  typingUndo.noteBoundary();
   if(!redo.length){notify('Keine Änderung zum Wiederholen.');return}
   const s=song();
   undo.push(editorSnapshot(s));
@@ -411,6 +416,7 @@ function renderEditor(){
       activateLine(+el.dataset.line);
       requestAnimationFrame(()=>ensureActiveBarVisible());
     });
+    el.addEventListener('pointerdown',()=>typingUndo.noteBoundary(),{passive:true});
     el.addEventListener('compositionstart',()=>{
       if(composingBarId)return;
       compositionCommitBarId='';compositionCommitValue='';
@@ -435,7 +441,16 @@ function renderEditor(){
       const index=+el.dataset.line;
       const trailingCompositionCommit=compositionCommitBarId===el.dataset.barId&&compositionCommitValue===el.value;
       if(trailingCompositionCommit){compositionCommitBarId='';compositionCommitValue=''}
-      else if(!event.isComposing&&composingBarId!==el.dataset.barId)pushUndo();
+      else if(!event.isComposing&&composingBarId!==el.dataset.barId){
+        const shouldCheckpoint=typingUndo.shouldCheckpoint({
+          songId:song().id,
+          barId:el.dataset.barId,
+          inputType:event.inputType,
+          now:Date.now(),
+          composing:false,
+        });
+        if(shouldCheckpoint)pushUndo({coalesced:true});
+      }
       const bar=setEditorBarText(song(),index,el.value);
       if(bar){
         if(el.value!==bar.text)el.value=bar.text;
@@ -463,6 +478,7 @@ function renderEditor(){
     });
     el.addEventListener('keydown',(event)=>{
       if(event.isComposing||composingBarId===el.dataset.barId)return;
+      if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(event.key))typingUndo.noteBoundary();
       const index=+el.dataset.line;
       if(event.key==='Enter'){
         event.preventDefault();
