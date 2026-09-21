@@ -7,6 +7,7 @@ import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchSta
 import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-controls.mjs';
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
+import {barIdentity,createSelectionProof,editorSnapshot,ensureEditorSong,mergeEditorBarWithPrevious,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
 
 'use strict';
 const initial=STUDIO_DEMO_LINES;
@@ -50,7 +51,7 @@ let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:ini
   sort=sharedSearchState.sort,
   basis=sharedSearchState.queryBasis,
   resultLang=sharedSearchState.resultLanguage,
-  pageSize=6,auto=false,pauseUntil=0,scrollFrame=0,lastFrame=0,undo=[],saveTimer,toastTimer,playing=false,tick=0,playTimer,cue='hit',bpm=92,audioContext;
+  pageSize=6,auto=false,pauseUntil=0,scrollFrame=0,lastFrame=0,undo=[],redo=[],composingBarId='',saveTimer,toastTimer,playing=false,tick=0,playTimer,cue='hit',bpm=92,audioContext;
 function saveStudioSearchState(overrides={}){
   sharedSearchState=createSearchState({
     ...sharedSearchState,
@@ -79,18 +80,181 @@ function syncFollowControls(){
   if($('#pinAnchor'))$('#pinAnchor').textContent=followSelection?'⌖ Fixieren':'⌖ Fixiert';
   if($('#anchorLive'))$('#anchorLive').textContent=followSelection?'FOLGT DEINER AUSWAHL':'ANKER FIXIERT';
 }
-function song(){return state.songs.find(s=>s.id===state.active)||state.songs[0]}
+function song(){
+  const current=state.songs.find((item)=>item.id===state.active)||state.songs[0];
+  return ensureEditorSong(current);
+}
 const syll=estimateSyllables;
 function persist(){try{writeStudioState(state);$('#saveState').textContent='Lokal gespeichert';return true}catch(e){$('#saveState').textContent='Speichern nicht möglich · bitte exportieren';return false}}
-function pushUndo(){undo.push({lines:[...song().lines],steps:{...song().steps}});if(undo.length>60)undo.shift()}
+function updateUndoRedoButtons(){
+  const undoButton=$('#undoBtn'),redoButton=$('#redoBtn');
+  if(undoButton){undoButton.disabled=undo.length===0;undoButton.setAttribute('aria-disabled',String(undo.length===0))}
+  if(redoButton){redoButton.disabled=redo.length===0;redoButton.setAttribute('aria-disabled',String(redo.length===0))}
+}
+function pushUndo(){
+  undo.push(editorSnapshot(song()));
+  if(undo.length>80)undo.shift();
+  redo.length=0;
+  updateUndoRedoButtons();
+}
+function performUndo(){
+  if(!undo.length){notify('Keine Änderung zum Rückgängigmachen.');return}
+  const s=song();
+  redo.push(editorSnapshot(s));
+  const previous=undo.pop();
+  restoreEditorSnapshot(s,previous);
+  activeLine=Math.min(activeLine,s.lines.length-1);
+  selection={line:activeLine,start:0,end:0};
+  renderEditor();
+  focusLine(activeLine);
+  changed();
+  updateUndoRedoButtons();
+  notify('Änderung rückgängig gemacht.');
+}
+function performRedo(){
+  if(!redo.length){notify('Keine Änderung zum Wiederholen.');return}
+  const s=song();
+  undo.push(editorSnapshot(s));
+  const next=redo.pop();
+  restoreEditorSnapshot(s,next);
+  activeLine=Math.min(activeLine,s.lines.length-1);
+  selection={line:activeLine,start:0,end:0};
+  renderEditor();
+  focusLine(activeLine);
+  changed();
+  updateUndoRedoButtons();
+  notify('Änderung wiederholt.');
+}
 function revision(){const s=song();s.revisions=s.revisions||[];const text=s.lines.join('\n');if(s.revisions.at(-1)?.text!==text){s.revisions.push({at:Date.now(),text});s.revisions=s.revisions.slice(-30)}}
 function changed(){ $('#saveState').textContent='Speichert …';clearTimeout(saveTimer);saveTimer=setTimeout(()=>{revision();persist()},650);updateStats() }
 function notify(t){$('#toast').textContent=t;$('#toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.add('hidden'),3300)}
 function resizeArea(el){el.style.height='34px';el.style.height=el.scrollHeight+'px'}
-function renderEditor(){const s=song();$('#songTitle').textContent=s.title;$('#lyrics').innerHTML=s.lines.map((line,i)=>`<div class="lyric-line ${i===activeLine?'active':''}"><button class="line-no" data-line="${i}" aria-label="Bar ${i+1} auswählen">${String(i+1).padStart(2,'0')}</button><textarea aria-label="Text Bar ${i+1}" data-line="${i}" rows="1" spellcheck="false">${esc(line)}</textarea><span class="syllable" title="Grobe Silbenschätzung der Demo">${syll(line)||'—'}</span></div>`).join('');queryAll('#lyrics textarea').forEach(el=>{resizeArea(el);el.addEventListener('focus',()=>activateLine(+el.dataset.line));el.addEventListener('input',()=>{pushUndo();song().lines[+el.dataset.line]=el.value.replace(/\n/g,' ');el.parentElement.querySelector('.syllable').textContent=syll(el.value)||'—';resizeArea(el);changed()});['click','keyup','select'].forEach(ev=>el.addEventListener(ev,()=>captureSelection(el)));el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();pushUndo();const i=+el.dataset.line,pos=el.selectionStart,end=el.selectionEnd;const text=el.value;song().lines.splice(i,1,text.slice(0,pos),text.slice(end));activeLine=i+1;renderEditor();focusLine(activeLine,0);changed()}if(e.key==='Backspace'&&!el.value&&song().lines.length>1){e.preventDefault();pushUndo();song().lines.splice(+el.dataset.line,1);activeLine=Math.max(0,+el.dataset.line-1);renderEditor();focusLine(activeLine);changed()}})});queryAll('.line-no').forEach(el=>el.onclick=()=>focusLine(+el.dataset.line));updateStats();renderProjects()}
-function focusLine(i,pos){const el=$(`#lyrics textarea[data-line="${i}"]`);if(el){el.focus();el.setSelectionRange(pos??el.value.length,pos??el.value.length);captureSelection(el)}}
-function activateLine(i){activeLine=i;queryAll('.lyric-line').forEach((el,n)=>el.classList.toggle('active',n===i));$('#activeBarLabel').textContent=`Bar ${String(i+1).padStart(2,'0')} ausgewählt`;$('#mobileAnchor').textContent=`Bar ${i+1}: ${song().lines[i]||'Neue Zeile'}`}
-function captureSelection(el){const i=+el.dataset.line,text=el.value;let start=el.selectionStart,end=el.selectionEnd;if(start===end){while(start>0&&/[\p{L}\p{N}'’-]/u.test(text[start-1]))start--;while(end<text.length&&/[\p{L}\p{N}'’-]/u.test(text[end]))end++}selection={line:i,start,end};const q=text.slice(start,end).trim();if(q&&q!==query){query=q;pageSize=6;queueWriterSearch()}activateLine(i)}
+function renderEditor(){
+  const s=song();
+  $('#songTitle').textContent=s.title;
+  $('#lyrics').innerHTML=s.lines.map((line,index)=>{
+    const bar=barIdentity(s,index);
+    return `<div class="lyric-line ${index===activeLine?'active':''}" data-bar-id="${esc(bar.id)}"><button class="line-no" data-line="${index}" data-bar-id="${esc(bar.id)}" aria-label="Bar ${index+1} auswählen">${String(index+1).padStart(2,'0')}</button><textarea aria-label="Text Bar ${index+1}" data-line="${index}" data-bar-id="${esc(bar.id)}" data-bar-revision="${bar.revision}" rows="1" spellcheck="false">${esc(line)}</textarea><span class="syllable" title="Grobe Silbenschätzung der Demo">${syll(line)||'—'}</span></div>`;
+  }).join('');
+  queryAll('#lyrics textarea').forEach((el)=>{
+    resizeArea(el);
+    el.addEventListener('focus',()=>activateLine(+el.dataset.line));
+    el.addEventListener('compositionstart',()=>{
+      if(composingBarId)return;
+      pushUndo();
+      composingBarId=el.dataset.barId;
+    });
+    el.addEventListener('compositionend',()=>{
+      const index=+el.dataset.line;
+      const bar=setEditorBarText(song(),index,el.value);
+      if(bar){
+        el.value=bar.text;
+        el.dataset.barRevision=String(bar.revision);
+      }
+      composingBarId='';
+      el.parentElement.querySelector('.syllable').textContent=syll(el.value)||'—';
+      resizeArea(el);
+      changed();
+      captureSelection(el);
+    });
+    el.addEventListener('input',(event)=>{
+      const index=+el.dataset.line;
+      if(!event.isComposing&&composingBarId!==el.dataset.barId)pushUndo();
+      const bar=setEditorBarText(song(),index,el.value);
+      if(bar){
+        if(el.value!==bar.text)el.value=bar.text;
+        el.dataset.barRevision=String(bar.revision);
+      }
+      el.parentElement.querySelector('.syllable').textContent=syll(el.value)||'—';
+      resizeArea(el);
+      if(!event.isComposing&&composingBarId!==el.dataset.barId)changed();
+    });
+    ['click','keyup','select'].forEach((eventName)=>el.addEventListener(eventName,()=>{
+      if(composingBarId!==el.dataset.barId)captureSelection(el);
+    }));
+    el.addEventListener('paste',(event)=>{
+      const clipboard=event.clipboardData?.getData('text/plain');
+      if(clipboard==null)return;
+      event.preventDefault();
+      pushUndo();
+      const index=+el.dataset.line;
+      const result=pasteEditorText(song(),index,el.selectionStart,el.selectionEnd,clipboard);
+      if(!result)return;
+      activeLine=result.focusIndex;
+      renderEditor();
+      focusLine(result.focusIndex,result.selectionStart);
+      changed();
+    });
+    el.addEventListener('keydown',(event)=>{
+      if(event.isComposing||composingBarId===el.dataset.barId)return;
+      const index=+el.dataset.line;
+      if(event.key==='Enter'){
+        event.preventDefault();
+        pushUndo();
+        const split=splitEditorBar(song(),index,el.selectionStart,el.selectionEnd);
+        if(!split)return;
+        activeLine=index+1;
+        renderEditor();
+        focusLine(activeLine,0);
+        changed();
+        return;
+      }
+      if(event.key==='Backspace'&&el.selectionStart===0&&el.selectionEnd===0&&index>0){
+        event.preventDefault();
+        pushUndo();
+        const merged=mergeEditorBarWithPrevious(song(),index);
+        if(!merged)return;
+        activeLine=merged.index;
+        renderEditor();
+        focusLine(activeLine,merged.caret);
+        changed();
+        return;
+      }
+      if(event.key==='Backspace'&&!el.value&&song().lines.length>1&&index===0){
+        event.preventDefault();
+        pushUndo();
+        removeEditorBar(song(),0);
+        activeLine=0;
+        renderEditor();
+        focusLine(0,0);
+        changed();
+      }
+    });
+  });
+  queryAll('.line-no').forEach((el)=>el.onclick=()=>focusLine(+el.dataset.line));
+  updateStats();
+  renderProjects();
+  updateUndoRedoButtons();
+}
+function focusLine(index,pos){
+  const el=$(`#lyrics textarea[data-line="${index}"]`);
+  if(el){
+    el.focus();
+    const caret=pos??el.value.length;
+    el.setSelectionRange(caret,caret);
+    captureSelection(el);
+  }
+}
+function activateLine(index){
+  activeLine=index;
+  queryAll('.lyric-line').forEach((el,n)=>el.classList.toggle('active',n===index));
+  $('#activeBarLabel').textContent=`Bar ${String(index+1).padStart(2,'0')} ausgewählt`;
+  $('#mobileAnchor').textContent=`Bar ${index+1}: ${song().lines[index]||'Neue Zeile'}`;
+}
+function captureSelection(el){
+  if(composingBarId===el.dataset.barId)return;
+  const index=+el.dataset.line,text=el.value;
+  let start=el.selectionStart,end=el.selectionEnd;
+  if(start===end){
+    while(start>0&&/[\p{L}\p{N}'’-]/u.test(text[start-1]))start--;
+    while(end<text.length&&/[\p{L}\p{N}'’-]/u.test(text[end]))end++;
+  }
+  const bar=barIdentity(song(),index);
+  selection={line:index,barId:bar?.id||'',barRevision:bar?.revision||0,start,end};
+  const q=text.slice(start,end).trim();
+  if(q&&q!==query){query=q;pageSize=6;queueWriterSearch()}
+  activateLine(index);
+}
 function updateStats(){const s=song();const words=s.lines.join(' ').trim().split(/\s+/).filter(Boolean).length;$('#docStats').textContent=`${s.lines.length} Bars · ${words} Wörter`;$('#footerStats').textContent=`${s.lines.length} Bars · ${words} Wörter · Silben ≈ Demo-Schätzung`;$('#miniDensity').innerHTML=s.lines.slice(0,16).map(x=>`<i style="height:${Math.max(3,syll(x)*1.5)}px"></i>`).join('');$('#savedCount').textContent=state.saved.length;activateLine(Math.min(activeLine,s.lines.length-1))}
 function data(){
   return writerRows.filter((row)=>
@@ -193,7 +357,7 @@ async function refreshWriterResults(){
   }
 }
 
-function insertWord(word){const s=song();const {line,start,end}=selection;if(!s.lines[line]&&s.lines[line]!==''){notify('Bitte zuerst eine Textstelle auswählen.');return}pushUndo();s.lines[line]=s.lines[line].slice(0,start)+word+s.lines[line].slice(end);selection={line,start,end:start+word.length};activeLine=line;renderEditor();changed();navigate('studio');setMode('write');const el=$(`#lyrics textarea[data-line="${line}"]`);el.focus();el.setSelectionRange(start,start+word.length);notify(`„${word}“ eingesetzt · Rückgängig verfügbar`)}
+function insertWord(word){const s=song();const {line,start,end}=selection;if(!s.lines[line]&&s.lines[line]!==''){notify('Bitte zuerst eine Textstelle auswählen.');return}pushUndo();const source=s.lines[line];const bar=setEditorBarText(s,line,source.slice(0,start)+word+source.slice(end));selection={line,barId:bar?.id||'',barRevision:bar?.revision||0,start,end:start+word.length};activeLine=line;renderEditor();changed();navigate('studio');setMode('write');const el=$(`#lyrics textarea[data-line="${line}"]`);el.focus();el.setSelectionRange(start,start+word.length);captureSelection(el);notify(`„${word}“ eingesetzt · Rückgängig verfügbar`)}
 function toggleSave(word){const i=state.saved.findIndex(x=>x.word===word);if(i>=0)state.saved.splice(i,1);else state.saved.push({word,anchor:query});persist();renderResults();updateStats();if(page==='saved')renderSaved()}
 function renderProjects(){$('#projectList').innerHTML=state.songs.filter(s=>!s.deleted).slice(0,6).map(s=>`<button data-song="${s.id}" class="${s.id===state.active?'current':''}"><span class="project-dot"></span>${esc(s.title)}</button>`).join('')}
 function navigate(target){stopPlay();page=target;document.body.classList.remove('mobile-results','find-only');if(target!=='studio')document.body.classList.remove('focus');$('#workspace').classList.toggle('hidden',target==='library'||target==='saved');$('#largeView').classList.toggle('hidden',target!=='library'&&target!=='saved');$('#breadcrumb').textContent=({studio:'Studio',search:'Reimsuche',library:'Meine Texte',saved:'Merkliste'})[target];document.body.classList.toggle('find-only',target==='search');queryAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===target));setMobileActive(target==='search'?'results':target);if(target==='library')renderLibrary();if(target==='saved')renderSaved();if(target==='studio'){requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea))}}
