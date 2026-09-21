@@ -416,6 +416,7 @@ const assets = {
   '/studio/backup-portability.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'backup-portability.mjs')) },
   '/studio/diagnostics.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'diagnostics.mjs')) },
   '/studio/i18n.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'i18n.mjs')) },
+  '/studio/dom-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'dom-acceptance.mjs')) },
   '/studio/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'query-pronunciation-client.mjs')) },
   '/studio/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'query-pronunciation-cache.mjs')) },
   '/pad/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(padUiDir, 'styles.css')) },
