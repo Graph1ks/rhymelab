@@ -10,8 +10,8 @@ const item=(id,group,label,legacy,studio,evidence,status=READY,acceptance='sourc
 
 export const STUDIO_PARITY_MANIFEST=Object.freeze([
   item('search.shared-state','Search / Writer','Shared SearchState across Search and Studio','Search','Inspector',['src/ui/search-state.mjs::createSearchState']),
-  item('search.query-basis','Search / Writer','DE / EN / DE+EN query pronunciation basis','Search + Pad','Inspector',['src/studio/app.js::data-basis']),
-  item('search.result-language','Search / Writer','DE / EN / DE+EN result language','Search + Pad','Inspector',['src/studio/app.js::data-result-lang']),
+  item('search.query-basis','Search / Writer','DE / EN / DE+EN query pronunciation basis','Search + Pad','Inspector',['src/studio/index.html::id="directBasis"']),
+  item('search.result-language','Search / Writer','DE / EN / DE+EN result language','Search + Pad','Inspector',['src/studio/index.html::id="directLang"']),
   item('search.scope','Search / Writer','All / Words / Phrases / Entities scope','Search + Pad','Inspector',['src/studio/app.js::data-scope']),
   item('search.rhyme-types','Search / Writer','Exact rhyme-class matrix','Search + Pad','Advanced filters',['src/studio/search-filters.mjs::STUDIO_RHYME_TYPE_LABELS']),
   item('search.syllables','Search / Writer','Same / ±1 / ±2 / ±3 / exact syllable filters','Search','Direct filters',['src/studio/search-filters.mjs::near3']),
