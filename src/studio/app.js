@@ -1146,6 +1146,83 @@ async function refreshStudioCapabilities(){
   updateCapabilitySurface();
 }
 
+function applyDocumentSnapshotState(snapshot){
+  state=studioStateFromDocumentSnapshot(snapshot,{...state,...loadStudioPreferences()});
+  normalizeStudioRuntimeState();
+  activeLine=Math.min(activeLine,Math.max(0,song().lines.length-1));
+  selection={line:activeLine,start:0,end:0};
+  undo=[];redo=[];
+  renderEditor();
+  renderProjects();
+  if(page==='library')renderLibrary(libraryView.trash);
+  writeStudioPreferences(state);
+}
+async function createRecoveryPoint(reason='manual_recovery_point'){
+  if(!documentStoreInitialized)throw new Error('DocumentStore ist nicht verfügbar.');
+  await syncDocumentShadow();
+  const snapshot=await documentStore.loadSnapshot();
+  if(!snapshot)throw new Error('Kein Dokument-Snapshot vorhanden.');
+  return documentStore.saveDocumentBackup(snapshot,{reason});
+}
+async function restoreRecoveryPoint(id){
+  const row=await documentStore.getBackup(id);
+  if(!row)throw new Error('Recovery-Punkt nicht gefunden.');
+  if(row.kind==='document'){
+    const result=await documentStore.restoreDocumentBackup(id);
+    if(!result.restored)throw new Error(result.reason||'Recovery fehlgeschlagen.');
+    applyDocumentSnapshotState(result.snapshot);
+  }else if(row.kind==='legacy'){
+    const current=await documentStore.loadSnapshot();
+    if(current)await documentStore.saveDocumentBackup(current,{reason:'before_legacy_recovery'});
+    const parsed=JSON.parse(row.backup||'{}');
+    const payload=parsed&&typeof parsed==='object'?parsed.payload:null;
+    if(!payload)throw new Error('Legacy-Backup ist ungültig.');
+    const result=await migrateLegacyStudioStateToStore(payload,documentStore);
+    applyDocumentSnapshotState(result.migration.snapshot);
+  }else{
+    throw new Error('Unbekanntes Backup-Format.');
+  }
+  documentStoreAuthority=true;
+  documentStoreStatus='ready';documentStoreError='';
+  persist();
+  updateCapabilitySurface();
+}
+async function renderRecoveryPanel(){
+  const panel=$('#recoveryPanel');
+  if(!panel)return;
+  if(!documentStoreInitialized){
+    panel.innerHTML='<p class="small">IndexedDB-Recovery ist in diesem Browser nicht verfügbar.</p>';
+    return;
+  }
+  panel.innerHTML='<p class="small">Recovery-Punkte werden geladen …</p>';
+  try{
+    const rows=(await documentStore.listBackups()).slice(0,8);
+    panel.innerHTML=rows.length
+      ?'<div class="recovery-list">'+rows.map((row)=>{
+        const when=new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(Number(row.createdAt)||Date.now());
+        const kind=row.kind==='document'?'Studio Snapshot':'Legacy Import';
+        const detail=row.kind==='document'&&row.counts
+          ?row.counts.songs+' Texte · '+row.counts.bars+' Bars'
+          :(row.sourceSchema||'Migration Backup');
+        return '<div class="recovery-row"><div><b>'+esc(when)+' · '+esc(kind)+'</b><small>'+esc(detail)+(row.reason?' · '+esc(row.reason):'')+'</small></div><button class="outline" data-recovery-restore="'+esc(row.id)+'">Wiederherstellen</button></div>';
+      }).join('')+'</div>'
+      :'<p class="small">Noch keine Recovery-Punkte vorhanden.</p>';
+    queryAll('[data-recovery-restore]').forEach((button)=>button.onclick=async()=>{
+      button.disabled=true;
+      try{
+        await restoreRecoveryPoint(button.dataset.recoveryRestore);
+        renderDock();
+        notify('Recovery-Punkt wiederhergestellt.');
+      }catch(error){
+        notify('Recovery fehlgeschlagen: '+(error instanceof Error?error.message:String(error)));
+        button.disabled=false;
+      }
+    });
+  }catch(error){
+    panel.innerHTML='<p class="small">Recovery-Liste nicht verfügbar: '+esc(error instanceof Error?error.message:String(error))+'</p>';
+  }
+}
+
 function renderSettingsDock(body){
   const draft=activeThemeForBuilder(),colors=completeThemeColors(draft.colors);
   const lightChecked=Boolean(themeEditingId&&state.themeSlots&&state.themeSlots.light===themeEditingId);
@@ -1155,12 +1232,23 @@ function renderSettingsDock(body){
     return '<label class="theme-color-field"><span>'+label+'</span><input type="color" data-theme-color="'+key+'" value="'+colors[key]+'" aria-label="'+label+' Farbe"><input type="text" data-theme-hex="'+key+'" value="'+colors[key]+'" maxlength="7" spellcheck="false" aria-label="'+label+' Hex"></label>';
   }).join('');
   const preview=THEME_COLOR_FIELDS.map(function(field){return '<i data-preview-color="'+field[0]+'" style="background:'+colors[field[0]]+'"></i>'}).join('');
-  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label></div><div id="capabilitySummary" class="capability-summary">'+capabilityMarkup()+'</div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section></div>';
+  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label></div><div id="capabilitySummary" class="capability-summary">'+capabilityMarkup()+'</div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section><section class="theme-settings-card recovery-card"><div class="recovery-head"><div><h3>Data & Recovery</h3><p>Dokumente laufen primär über IndexedDB. Recovery-Punkte sichern den kompletten versionierten Studio-Snapshot vor größeren Änderungen.</p></div><button id="createRecoveryPoint" class="outline">Recovery-Punkt erstellen</button></div><div id="recoveryPanel"></div></section></div>';
   $('#fontRange').oninput=function(event){setFontSize(+event.target.value)};
   $('#editorFont').value=state.editorFont||'sans';
   $('#editorFont').onchange=function(event){state.editorFont=event.target.value;applyEditorFont();persist()};
   $('#motionSelect').value=state.motion;
   $('#motionSelect').onchange=function(event){state.motion=event.target.value;document.documentElement.dataset.motion=state.motion;persist()};
+  $('#createRecoveryPoint').onclick=async function(){
+    const button=this;button.disabled=true;
+    try{
+      await createRecoveryPoint();
+      await renderRecoveryPanel();
+      notify('Recovery-Punkt erstellt.');
+    }catch(error){
+      notify('Recovery nicht möglich: '+(error instanceof Error?error.message:String(error)));
+    }finally{button.disabled=false}
+  };
+  void renderRecoveryPanel();
   $('#themeMode').value=draft.mode==='light'?'light':'dark';
   updateThemeContrast(draft);
   bindThemeSettings();
