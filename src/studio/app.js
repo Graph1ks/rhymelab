@@ -8,7 +8,7 @@ import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-control
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
 import {createStudioAnalysisClient,studioAnalysisWords} from './analysis-adapter.mjs';
-import {barIdentity,createSelectionProof,editorSnapshot,ensureEditorSong,mergeEditorBarWithPrevious,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
+import {barIdentity,createSelectionProof,editorSnapshot,ensureEditorSong,mergeEditorBarWithPrevious,moveEditorBar,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
 import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarDurationMs,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceFlowFingerprint,performanceNeedsReview,performancePocketMetrics,performancePreviousBarPlacements,performanceStepDurationMs,performanceSyllablesPerSecond,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
 import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
@@ -1609,7 +1609,7 @@ document.addEventListener('keydown',e=>{
   if(e.altKey&&key==='f'){e.preventDefault();toggleFocus()}
 });window.addEventListener('resize',()=>queryAll('#lyrics textarea').forEach(resizeArea));document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPlay();void flushStudioPersistence('visibility_hidden')}});window.addEventListener('pagehide',()=>{void flushStudioPersistence('pagehide');mobileViewportCleanup?.();uiLocalizer?.disconnect()});document.body.dataset.controls='bound';}
 // Version 2: direct desktop controls and docked surfaces.
-let density=normalizeDensity(state.density),syllableMode='all',followSelection=true,selectedResult='',selectedResultId='',dockTab='',resultSignature='',selectionProof=null;
+let density=normalizeDensity(state.density),syllableMode='all',followSelection=true,selectedResult='',selectedResultId='',dockTab='',resultSignature='',selectionProof=null,barNavigatorQuery='';
 state.motion=state.motion||'auto';
 const baseData=data, baseRenderResults=renderResults, baseRenderEditor=renderEditor, baseCapture=captureSelection, baseInsert=insertWord, baseToggleSave=toggleSave, baseMode=setMode;
 function animateSurface(el,name='surface-enter'){if(!el)return;el.classList.remove(name);void el.offsetWidth;el.classList.add(name)}
@@ -1658,7 +1658,7 @@ function writerTimingText(){
 data=function(){return filterUnusedWriterRows(filterStudioWriterRows(baseData(),{rhymeType,syllableMode,querySyllables:writerQuerySyllables||syll(query)}))};
 resultHTML=function(r){const saved=state.saved.some(s=>s.word===r.word),kind=r.kind==='phrase'?'PHRASE':r.kind==='entity'?'NAME':'',active=selectedResultId?selectedResultId===r.id:selectedResult===r.word,shortRelation=({multisyllabic_perfect:'Multi-Voll',perfect:'Voll',multisyllabic_slant:'Multi-Slant',family:'Familie',slant:'Slant',assonance:'Asson.',consonance:'Konson.'})[r.relationType]||'Klang';return `<div class="result ${active?'is-selected':''}" data-result-word="${esc(r.word)}" data-result-id="${esc(r.id)}"><div class="grow"><button class="result-word" data-detail="${esc(r.word)}" data-detail-id="${esc(r.id)}" aria-label="Details zu ${esc(r.word)}" aria-pressed="${active}">${esc(r.word)}${kind?`<span class="result-kind">${kind}</span>`:''}</button><div class="result-meta"><b>${esc(r.relationLabel||'Klangtreffer')}</b><span>${r.syll||'—'} Silb.</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'} · ${r.lang.toUpperCase()}</span></div>${resultBadgeMarkup(r)}</div><span class="result-relation">${esc(shortRelation)}</span><span class="result-syll">${r.syll||'—'}</span><div class="result-actions"><button data-save="${esc(r.word)}" class="${saved?'saved':''}" aria-pressed="${saved}" aria-label="${esc(r.word)} ${saved?'entmerken':'merken'}">${icon('book')}</button><button data-insert="${esc(r.word)}" aria-label="${esc(r.word)} einsetzen">${icon('plus')}</button></div></div>`};
 renderResults=function(){baseRenderResults();const runtimeInline=$('#runtimeInline');if(runtimeInline)runtimeInline.textContent=writerTimingText();const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===density));queryAll('[data-density]').forEach(b=>{b.classList.toggle('active',b.dataset.density===density);b.setAttribute('aria-pressed',b.dataset.density===density)});queryAll('#results .result').forEach((r,i)=>r.style.setProperty('--i',i));const sig=[query,scope,relation,rhymeType,variantMode,entityCategories.join(','),includeHistorical,generated,generatedOnly,sort,basis,resultLang,syllableMode,density].join('|');if(sig!==resultSignature){animateSurface($('#results'),'results-enter');animateSurface($('#anchorWord'),'anchor-change');resultSignature=sig;$('#resultsScroll').scrollTop=0}syncInline();if(selectedResult&&!data().some(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult)){selectedResult='';selectedResultId='';selectedDetail=null;$('#detailDock').classList.add('hidden')}if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();$('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer'+(hiddenUsedCount?' · '+hiddenUsedCount+' verwendet ausgeblendet':'');$('#filterLabel').textContent=$('#directFilters').classList.contains('hidden')?'Filter öffnen':hasActiveSearchFilters()?'Filter aktiv':'Filter sichtbar'};
-renderEditor=function(){baseRenderEditor();selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});$('#fontSizeLive').textContent=state.fontSize;if(dockTab==='saved')renderDock();};
+renderEditor=function(){baseRenderEditor();selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});$('#fontSizeLive').textContent=state.fontSize;if(dockTab==='saved'||dockTab==='navigator')renderDock();};
 captureSelection=function(el){const old=query;baseCapture(el);if(!followSelection){query=old;renderResults()}selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail()};
 insertWord=function(word){if(selectionProof){const check=validateSelectionProof(song(),selectionProof);if(!check.valid){notify('Textstelle geändert. Bitte Zielwort erneut auswählen.');return}}baseInsert(word);animateSurface($(`#lyrics textarea[data-line="${activeLine}"]`)?.parentElement,'insert-flash');selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult)renderDetail()};
 toggleSave=function(word){baseToggleSave(word);const b=queryAll('[data-save]').find(b=>b.dataset.save===word);animateSurface(b,'bookmark-pop');if(dockTab==='saved')renderDock();if(selectedResult)renderDetail()};
@@ -2461,12 +2461,129 @@ function renderBarInspectorDock(body){
   };
 }
 
+function moveStudioBar(fromIndex,toIndex){
+  const current=song();
+  const activeBarId=current.barIds[activeLine]||'';
+  const selectedBarId=selection.barId||current.barIds[selection.line]||'';
+  const selectedStart=selection.start||0,selectedEnd=selection.end??selectedStart;
+  pushUndo();
+  const moved=moveEditorBar(current,fromIndex,toIndex);
+  if(!moved?.moved)return false;
+  activeLine=Math.max(0,current.barIds.indexOf(activeBarId));
+  const selectedIndex=current.barIds.indexOf(selectedBarId);
+  if(selectedIndex>=0){
+    selection={...selection,line:selectedIndex,barId:selectedBarId,start:selectedStart,end:selectedEnd};
+  }else{
+    selection={line:activeLine,barId:current.barIds[activeLine],barRevision:current.barRevisions[activeLine],start:0,end:0};
+  }
+  selectionProof=createSelectionProof(current,{
+    index:selection.line,
+    start:selection.start,
+    end:selection.end,
+  });
+  analysisSignature='';
+  renderEditor();
+  changed();
+  if(dockTab==='navigator')renderDock();
+  return true;
+}
+function jumpToStudioBar(barId,{focus=true}={}){
+  const current=song(),index=current.barIds.indexOf(String(barId));
+  if(index<0)return false;
+  activeLine=index;
+  const text=current.lines[index]||'';
+  selection={line:index,barId:current.barIds[index],barRevision:current.barRevisions[index],start:text.length,end:text.length};
+  selectionProof=createSelectionProof(current,{index,start:text.length,end:text.length});
+  activateLine(index);
+  if(focus&&mode==='write')focusLine(index,text.length);
+  return true;
+}
+function renderBarNavigatorDock(body){
+  const current=song();
+  const needle=barNavigatorQuery.trim().toLocaleLowerCase(state.uiLanguage==='en'?'en-US':'de-DE');
+  const rows=current.lines.map((line,index)=>({
+    index,
+    line,
+    bar:barIdentity(current,index),
+  })).filter((row)=>!needle||String(row.line).toLocaleLowerCase(state.uiLanguage==='en'?'en-US':'de-DE').includes(needle));
+  body.innerHTML=`
+    <div class="bar-navigator">
+      <div class="bar-navigator-head">
+        <div><span class="eyebrow">BAR NAVIGATOR</span><b>${current.lines.length} Bars</b><small>Stable Bar IDs · Drag, Pfeile oder Klick</small></div>
+        <label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label>
+      </div>
+      <div class="bar-navigator-list">
+        ${rows.map((row)=>{
+          const metrics=performanceBarMetrics(current,row.bar.id);
+          const review=performanceNeedsReview(current,row.bar.id);
+          const active=row.index===activeLine;
+          const preview=String(row.line||'').trim()||'Leere Bar';
+          return `<article class="bar-navigator-row ${active?'is-active':''}" draggable="true" data-bar-navigator-id="${esc(row.bar.id)}">
+            <button class="bar-navigator-jump" data-bar-jump="${esc(row.bar.id)}" aria-label="Bar ${row.index+1} auswählen">
+              <span class="bar-navigator-number">${String(row.index+1).padStart(2,'0')}</span>
+              <span class="bar-navigator-copy">${esc(preview)}</span>
+              <span class="bar-navigator-meta">${syll(row.line)||0} Silb. · ${metrics.cues} Cues${review?' · Timing prüfen':''}</span>
+            </button>
+            <div class="bar-navigator-actions">
+              <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="-1" aria-label="Bar ${row.index+1} nach oben" ${row.index===0?'disabled':''}>↑</button>
+              <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="1" aria-label="Bar ${row.index+1} nach unten" ${row.index===current.lines.length-1?'disabled':''}>↓</button>
+              <span class="bar-drag-handle" aria-hidden="true">⋮⋮</span>
+            </div>
+          </article>`;
+        }).join('')||'<div class="bar-navigator-empty">Keine Bars für diesen Filter.</div>'}
+      </div>
+    </div>`;
+  const search=$('#barNavigatorSearch');
+  search.oninput=(event)=>{
+    barNavigatorQuery=event.target.value;
+    renderBarNavigatorDock(body);
+    const next=$('#barNavigatorSearch');
+    next?.focus();
+    next?.setSelectionRange(next.value.length,next.value.length);
+  };
+  queryAll('[data-bar-jump]').forEach((button)=>button.onclick=()=>jumpToStudioBar(button.dataset.barJump));
+  queryAll('[data-bar-reorder]').forEach((button)=>button.onclick=()=>{
+    const id=button.dataset.barReorder;
+    const from=current.barIds.indexOf(id);
+    const to=from+Number(button.dataset.barDirection||0);
+    if(to>=0&&to<current.lines.length)moveStudioBar(from,to);
+  });
+  queryAll('[data-bar-navigator-id]').forEach((row)=>{
+    row.addEventListener('dragstart',(event)=>{
+      event.dataTransfer?.setData('application/x-rhymelab-bar',row.dataset.barNavigatorId);
+      event.dataTransfer?.setData('text/plain',row.dataset.barNavigatorId);
+      if(event.dataTransfer)event.dataTransfer.effectAllowed='move';
+      row.classList.add('is-dragging');
+    });
+    row.addEventListener('dragend',()=>{
+      row.classList.remove('is-dragging');
+      queryAll('[data-bar-navigator-id]').forEach((item)=>item.classList.remove('is-drop-target'));
+    });
+    row.addEventListener('dragover',(event)=>{
+      if(!event.dataTransfer?.types?.includes('application/x-rhymelab-bar'))return;
+      event.preventDefault();
+      if(event.dataTransfer)event.dataTransfer.dropEffect='move';
+      row.classList.add('is-drop-target');
+    });
+    row.addEventListener('dragleave',(event)=>{
+      if(!row.contains(event.relatedTarget))row.classList.remove('is-drop-target');
+    });
+    row.addEventListener('drop',(event)=>{
+      event.preventDefault();row.classList.remove('is-drop-target');
+      const sourceId=event.dataTransfer?.getData('application/x-rhymelab-bar')||event.dataTransfer?.getData('text/plain');
+      const targetId=row.dataset.barNavigatorId;
+      const from=current.barIds.indexOf(sourceId),to=current.barIds.indexOf(targetId);
+      if(from>=0&&to>=0&&from!==to)moveStudioBar(from,to);
+    });
+  });
+}
+
 function showFilters(){const hidden=$('#directFilters').classList.toggle('hidden');$('#filterBtn').setAttribute('aria-expanded',!hidden);$('#filterLabel').textContent=hidden?'Filter öffnen':'Filter sichtbar';if(!hidden)animateSurface($('#directFilters'))}
 function showSettings(){openEditorDock('settings')}
 function showHistory(){revision();openEditorDock('history')}
 function openEditorDock(tab){if(page!=='studio')navigate('studio');document.body.classList.remove('mobile-results');document.body.classList.add('editor-dock-open');setMobileActive('studio');dockTab=tab;$('#editorDock').dataset.tab=tab;$('#editorDock').classList.remove('hidden');renderDock();animateSurface($('#editorDock'))}
 function closeEditorDock(){if(themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}document.body.classList.remove('editor-dock-open');$('#editorDock').classList.add('hidden');delete $('#editorDock').dataset.tab;dockTab='';}
-function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='bar'){renderBarInspectorDock(body)}else if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else if(dockTab==='settings'){renderSettingsDock(body)}else{body.innerHTML=`<div class="studio-note"><b>Studio 02 · Desktop Workbench</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details sind angedockt. Kompakt zeigt dieselben Treffer dichter, Wortfeld lädt zum Stöbern ein.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste, Versionen und Darstellung hier unten öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln · In Treffern: <kbd>↑ ↓</kbd> auswählen, <kbd>Enter</kbd> einsetzen, <kbd>Space</kbd> merken.</p><p style="margin-top:9px"><b>Motion</b> · kurze gestaffelte Trefferwechsel, weiche Panel-Einblendung, Auswahl- und Einsetzfeedback. Systemseitig reduzierte Bewegung wird respektiert. Kein externer Dienst, keine Motion-Bibliothek erforderlich.</p><p style="margin-top:9px"><b>Runtime</b> · Reimtreffer kommen live aus /api/writer; Song-Reimschema und Reimrelationen laufen kanonisch über Writer; nur UI-Silbenzählung und Perform Auto-Map bleiben explizite Approximationen. Die vollständige Funktionsmatrix aus Konzept 1.0 bleibt verbindlich. Version 2 ersetzt dessen Popup-orientierte Desktop-Bedienung.</p><p style="margin-top:9px"><b>Prüfung</b> · Source-/Modell-Gates decken die migrierten Zustände ab. Reale Browser-, Touch- und Audio-Geräteabnahme bleibt vor dem Route-Cutover erforderlich.</p></div>`}}
+function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='navigator'){renderBarNavigatorDock(body)}else if(dockTab==='bar'){renderBarInspectorDock(body)}else if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else if(dockTab==='settings'){renderSettingsDock(body)}else{body.innerHTML=`<div class="studio-note"><b>Studio 02 · Desktop Workbench</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details sind angedockt. Kompakt zeigt dieselben Treffer dichter, Wortfeld lädt zum Stöbern ein.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste, Versionen und Darstellung hier unten öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln · In Treffern: <kbd>↑ ↓</kbd> auswählen, <kbd>Enter</kbd> einsetzen, <kbd>Space</kbd> merken.</p><p style="margin-top:9px"><b>Motion</b> · kurze gestaffelte Trefferwechsel, weiche Panel-Einblendung, Auswahl- und Einsetzfeedback. Systemseitig reduzierte Bewegung wird respektiert. Kein externer Dienst, keine Motion-Bibliothek erforderlich.</p><p style="margin-top:9px"><b>Runtime</b> · Reimtreffer kommen live aus /api/writer; Song-Reimschema und Reimrelationen laufen kanonisch über Writer; nur UI-Silbenzählung und Perform Auto-Map bleiben explizite Approximationen. Die vollständige Funktionsmatrix aus Konzept 1.0 bleibt verbindlich. Version 2 ersetzt dessen Popup-orientierte Desktop-Bedienung.</p><p style="margin-top:9px"><b>Prüfung</b> · Source-/Modell-Gates decken die migrierten Zustände ab. Reale Browser-, Touch- und Audio-Geräteabnahme bleibt vor dem Route-Cutover erforderlich.</p></div>`}}
 function setFontSize(n){state.fontSize=clamp(n,16,28);document.documentElement.style.setProperty('--editor',state.fontSize+'px');$('#fontSizeLive').textContent=state.fontSize;queryAll('#lyrics textarea').forEach(resizeArea);persist()}
 function applyEditorFont(){const value=({sans:'var(--font)',serif:'Georgia, serif',mono:'ui-monospace, monospace'})[state.editorFont||'sans'];document.documentElement.style.setProperty('--lyric-font',value);queryAll('#lyrics textarea').forEach(resizeArea)}
 function humanizeDetail(value){
