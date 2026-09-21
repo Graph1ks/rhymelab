@@ -426,6 +426,15 @@ export function openMarkovModel(path=DEFAULT_MARKOV_MODEL_DB_PATH){
   }
 }
 
+function parseSourceProfile(value){
+  try{
+    const parsed=JSON.parse(String(value||'[]'));
+    return Array.isArray(parsed)?parsed:[];
+  }catch{
+    return [];
+  }
+}
+
 export function markovModelHealth(runtime){
   if(!runtime?.available){
     return {
@@ -450,6 +459,7 @@ export function markovModelHealth(runtime){
     language:runtime.language,
     order:runtime.order,
     source_manifest:runtime.meta.source_manifest||null,
+    source_profile:parseSourceProfile(runtime.meta.source_profile_json),
     source_sentences:Number(runtime.meta.source_sentences||0),
     accepted_sentences:Number(runtime.meta.accepted_sentences||0),
     semantic_fingerprint:runtime.meta.semantic_fingerprint||null,
