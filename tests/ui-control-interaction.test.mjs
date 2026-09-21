@@ -4,7 +4,9 @@ import { readFile } from 'node:fs/promises';
 
 async function uiRuntimeSource(app){
   const shared=await readFile('src/ui/search-state.mjs','utf8');
-  const sharedRuntime=shared.replace(/\bexport\s+/gu,'');
+  const sharedRuntime=shared
+    .replace(/\bexport\s+/gu,'')
+    .replace(/\bRHYME_TYPES\b/gu,'SEARCH_STATE_RHYME_TYPES');
   const appRuntime=app
     .replace(/^import .*?;\s*$/gmu,'')
     .replace(/initializeUi\(\)\.catch\(reportUiInitializationFailure\);\s*$/,'');
