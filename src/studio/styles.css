@@ -1141,3 +1141,34 @@ dialog:has(.command-palette){max-width:680px;padding:20px}
   .device-gate>input{min-height:44px}
   .device-gate-environment,.device-gate-evidence{white-space:normal}
 }
+
+
+/* Studio guided acceptance overlay */
+.device-guide-bar{
+  position:fixed;z-index:120;top:68px;left:50%;transform:translateX(-50%);
+  width:min(760px,calc(100vw - 28px));display:grid;grid-template-columns:minmax(0,1fr) auto;
+  gap:14px;align-items:center;padding:11px 12px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));
+  border-radius:12px;background:color-mix(in srgb,var(--panel) 94%,var(--bg));
+  box-shadow:0 18px 60px color-mix(in srgb,var(--ink) 16%,transparent);
+  backdrop-filter:blur(14px)
+}
+.device-guide-bar.hidden{display:none!important}
+.device-guide-copy{display:grid;gap:3px;min-width:0}
+.device-guide-copy b{font-size:11px}
+.device-guide-copy small{font-size:8px;line-height:1.45;color:var(--muted)}
+.device-guide-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.device-guide-actions button{min-height:36px;font-size:8px;white-space:nowrap}
+#deviceGuidePass{background:var(--green);border-color:var(--green);color:var(--bg)}
+#deviceGuideFail{color:var(--accent-2,var(--accent))}
+html[data-mobile-keyboard="true"] .device-guide-bar{top:max(8px,env(safe-area-inset-top))}
+@media(max-width:800px){
+  .device-guide-bar{
+    top:max(8px,env(safe-area-inset-top));grid-template-columns:1fr;width:calc(100vw - 16px);
+    padding:10px
+  }
+  .device-guide-actions{display:grid;grid-template-columns:1fr 1fr 1fr}
+  .device-guide-actions button{min-height:44px;white-space:normal}
+}
+@media(max-width:520px){
+  .device-guide-actions{grid-template-columns:1fr}
+}
