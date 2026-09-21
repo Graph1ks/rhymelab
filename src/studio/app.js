@@ -571,8 +571,92 @@ function showInfo(){showDialog('RhymeLab Studio Konzept',`<p>Ein gemeinsamer Sch
 function showCommands(){showDialog('Schnell zu deinem nächsten Schritt',`<div class="commandlist"><button data-command="studio">Studio öffnen <span class="small">Alt + 1</span></button><button data-command="search">Reimsuche öffnen <span class="small">Alt + 2</span></button><button data-command="focus">Fokusmodus wechseln <span class="small">Alt + F</span></button><button data-command="history">Versionsverlauf</button><button data-command="settings">Einstellungen</button><button data-command="export">Text exportieren</button></div><p class="notice">Strg / ⌘ + K öffnet dieses Menü. Escape schließt Dialoge. Native Textbearbeitung und Undo bleiben verfügbar.</p>`);queryAll('[data-command]').forEach(b=>b.onclick=()=>{closeDialog();({studio:()=>navigate('studio'),search:()=>navigate('search'),focus:toggleFocus,history:showHistory,settings:showSettings,export:exportText})[b.dataset.command]()})}
 function toggleFocus(){navigate('studio');document.body.classList.toggle('focus');$('#focusBtn').setAttribute('aria-pressed',document.body.classList.contains('focus'));notify(document.body.classList.contains('focus')?'Fokus an · Alt + F zum Verlassen':'Fokus aus')}
 function nameDialog(title,value,callback){showDialog(title,`<label class="field">Titel<input id="nameInput" value="${esc(value)}" maxlength="100"></label><div class="dialogactions"><button id="cancelName">Abbrechen</button><button id="saveName" class="primary">Speichern</button></div>`);$('#cancelName').onclick=closeDialog;$('#saveName').onclick=()=>{const text=$('#nameInput').value.trim();if(!text)return;callback(text);closeDialog()};$('#nameInput').onkeydown=e=>{if(e.key==='Enter')$('#saveName').click()};$('#nameInput').focus();$('#nameInput').select()}
-function newSong(){nameDialog('Ein neuer Text','Unbenannter Song',title=>{revision();state.songs.push({id:'s'+Date.now(),title,lines:[''],folder:'Entwürfe',steps:{},revisions:[]});state.active=state.songs.at(-1).id;activeLine=0;selection={line:0,start:0,end:0};undo=[];redo=[];persist();renderEditor();navigate('studio');setMode('write');focusLine(0)})}
-function renderLibrary(showTrash=false){$('#largeView').innerHTML=`<div class="row between wrap"><div><div class="eyebrow">Deine Ideen bleiben bei dir</div><h1 style="margin-top:9px">${showTrash?'Papierkorb':'Meine Texte'}</h1></div><div class="row"><button id="trashToggle" class="outline">${showTrash?'Alle Texte':'Papierkorb'}</button><button id="newSongMain" class="primary">＋ Neuer Text</button></div></div><p class="muted" style="margin-top:13px">Anfangen, liegen lassen, wiederfinden.</p><div class="song-grid">${state.songs.filter(s=>!!s.deleted===showTrash).map(s=>`<article class="songcard"><span class="eyebrow">${esc(s.folder||'Entwürfe')}</span><h3>${esc(s.title)}</h3><p>${esc(s.lines.find(x=>x.trim())||'Die erste Zeile wartet noch.')}</p><small>${s.lines.length} Bars</small><div class="row between">${showTrash?`<button data-restore="${s.id}" class="outline">Wiederherstellen</button>`:`<button class="outline" data-song="${s.id}">Öffnen ↗</button><button data-trash="${s.id}">In Papierkorb</button>`}</div></article>`).join('')||'<p class="empty">Hier ist noch nichts.</p>'}</div>`;$('#newSongMain').onclick=newSong;$('#trashToggle').onclick=()=>renderLibrary(!showTrash)}
+function newSong(){
+  nameDialog('Ein neuer Text','Unbenannter Song',(title)=>{
+    revision();
+    const now=Date.now();
+    const folder=ensureLibraryFolder(!libraryView.trash&&libraryView.folder!=='all'?libraryView.folder:'Entwürfe');
+    const created={id:'s'+now,title,lines:[''],folder,steps:{},revisions:[],createdAt:now,updatedAt:now};
+    state.songs.push(created);
+    state.active=created.id;
+    activeLine=0;selection={line:0,start:0,end:0};undo=[];redo=[];
+    persist();renderEditor();renderProjects();navigate('studio');setMode('write');focusLine(0);
+  });
+}
+function renderLibrary(showTrash=libraryView.trash){
+  libraryView.trash=Boolean(showTrash);
+  const needle=libraryView.query.trim().toLocaleLowerCase('de-DE');
+  const rows=state.songs.filter((item)=>{
+    const deleted=Boolean(item.deleted||item.deletedAt);
+    if(deleted!==libraryView.trash)return false;
+    if(libraryView.folder!=='all'&&item.folder!==libraryView.folder)return false;
+    if(!needle)return true;
+    const haystack=[item.title,item.folder,...(Array.isArray(item.lines)?item.lines:[])].join('\n').toLocaleLowerCase('de-DE');
+    return haystack.includes(needle);
+  }).slice();
+  rows.sort((a,b)=>{
+    if(libraryView.sort==='title')return a.title.localeCompare(b.title,'de',{sensitivity:'base'});
+    if(libraryView.sort==='created')return (Number(b.createdAt)||0)-(Number(a.createdAt)||0)||a.title.localeCompare(b.title,'de');
+    if(libraryView.sort==='bars')return (b.lines?.length||0)-(a.lines?.length||0)||a.title.localeCompare(b.title,'de');
+    return libraryTimestamp(b)-libraryTimestamp(a)||a.title.localeCompare(b.title,'de');
+  });
+
+  const folders=libraryFolders();
+  const sourceRows=state.songs.filter((item)=>Boolean(item.deleted||item.deletedAt)===libraryView.trash);
+  const folderButton=(folder)=>{
+    const count=sourceRows.filter((item)=>item.folder===folder).length;
+    const active=libraryView.folder===folder;
+    return `<div class="library-folder-row"><button data-folder-filter="${esc(folder)}" class="${active?'active':''}" aria-pressed="${active}"><span>${esc(folder)}</span><small>${count}</small></button>${!libraryView.trash&&folder!=='Entwürfe'? `<button class="library-folder-delete" data-folder-delete="${esc(folder)}" aria-label="Ordner ${esc(folder)} löschen" title="Ordner löschen">×</button>`:''}</div>`;
+  };
+  const allActive=libraryView.folder==='all';
+  const cards=rows.map((item)=>{
+    const preview=(item.lines||[]).find((line)=>String(line).trim())||'Die erste Zeile wartet noch.';
+    const changed=libraryTimestamp(item);
+    const changedLabel=changed?new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(changed):'Legacy';
+    return `<article class="songcard ${item.id===state.active?'is-active':''}">
+      <div class="songcard-top"><span class="eyebrow">${esc(item.folder||'Entwürfe')}</span>${item.id===state.active&&!libraryView.trash?'<span class="song-active-badge">AKTIV</span>':''}</div>
+      <h3>${esc(item.title)}</h3>
+      <p>${esc(preview)}</p>
+      <div class="songcard-meta"><span>${item.lines?.length||0} Bars</span><span>·</span><span>${esc(changedLabel)}</span></div>
+      <div class="songcard-actions">
+        ${libraryView.trash
+          ?`<button data-restore="${esc(item.id)}" class="outline">Wiederherstellen</button><button data-permanent-delete="${esc(item.id)}" class="danger-ghost">Endgültig löschen</button>`
+          :`<button class="outline" data-song="${esc(item.id)}">Öffnen ↗</button><button data-rename-song="${esc(item.id)}">Umbenennen</button><button data-move-song="${esc(item.id)}">Verschieben</button><button data-trash="${esc(item.id)}" class="danger-ghost">Papierkorb</button>`}
+      </div>
+    </article>`;
+  }).join('');
+
+  $('#largeView').innerHTML=`
+    <div class="library-head row between wrap">
+      <div><div class="eyebrow">Deine Ideen bleiben bei dir</div><h1>${libraryView.trash?'Papierkorb':'Meine Texte'}</h1><p class="muted">Suchen, sortieren, ordnen und ohne Kontextverlust weiterschreiben.</p></div>
+      <div class="row wrap">
+        <button id="trashToggle" class="outline">${libraryView.trash?'← Alle Texte':'Papierkorb ('+state.songs.filter((item)=>item.deleted||item.deletedAt).length+')'}</button>
+        ${libraryView.trash?'':'<button id="newSongMain" class="primary">＋ Neuer Text</button>'}
+      </div>
+    </div>
+    <div class="library-toolbar">
+      <label class="library-search"><span class="screenreader">Texte durchsuchen</span><input id="librarySearch" type="search" value="${esc(libraryView.query)}" placeholder="Titel, Text oder Ordner durchsuchen …" autocomplete="off"></label>
+      <label class="library-sort">SORTIEREN<select id="librarySort"><option value="updated">Zuletzt bearbeitet</option><option value="title">Titel A–Z</option><option value="created">Neu erstellt</option><option value="bars">Meiste Bars</option></select></label>
+    </div>
+    <div class="library-shell">
+      <aside class="library-folders" aria-label="Ordner">
+        <div class="library-folder-head"><span class="eyebrow">ORDNER</span>${libraryView.trash?'':'<button id="newFolderBtn" class="icon" aria-label="Neuer Ordner" title="Neuer Ordner">＋</button>'}</div>
+        <div class="library-folder-row"><button data-folder-filter="all" class="${allActive?'active':''}" aria-pressed="${allActive}"><span>Alle Texte</span><small>${sourceRows.length}</small></button></div>
+        ${folders.map(folderButton).join('')}
+      </aside>
+      <section class="library-content">
+        <div class="library-results-head"><span>${rows.length} ${rows.length===1?'Text':'Texte'}</span>${libraryView.folder!=='all'?'<button data-folder-filter="all">Filter löschen ×</button>':''}</div>
+        <div class="song-grid">${cards||'<div class="library-empty"><b>Nichts gefunden.</b><span>Suchbegriff oder Ordnerfilter ändern.</span></div>'}</div>
+      </section>
+    </div>`;
+
+  $('#librarySort').value=libraryView.sort;
+  $('#librarySearch').oninput=(event)=>{libraryView.query=event.target.value;renderLibrary(libraryView.trash);const input=$('#librarySearch');input.focus();input.setSelectionRange(input.value.length,input.value.length)};
+  $('#librarySort').onchange=(event)=>{libraryView.sort=event.target.value;renderLibrary(libraryView.trash)};
+  $('#trashToggle').onclick=()=>{libraryView.trash=!libraryView.trash;libraryView.folder='all';renderLibrary(libraryView.trash)};
+  if($('#newSongMain'))$('#newSongMain').onclick=newSong;
+  if($('#newFolderBtn'))$('#newFolderBtn').onclick=createLibraryFolder;
+}
 function renderSaved(){$('#largeView').innerHTML=`<div class="eyebrow">Wörter für später</div><h1 style="margin-top:9px">Deine Merkliste.</h1><p class="muted" style="margin-top:14px">Gute Funde, direkt zurück in deinen Text.</p><div class="collection-list">${state.saved.map(r=>`<div class="result"><div class="grow"><h3>${esc(r.word)}</h3><small>Gefunden zu „${esc(r.anchor)}“</small></div><button data-insert="${esc(r.word)}" class="outline">Einsetzen</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entfernen">×</button></div>`).join('')||'<div class="empty">Merke ein Wort über das Lesezeichen neben einem Reim.</div>'}</div>`}
 function exportText(){const blob=new Blob([song().title+'\n\n'+song().lines.join('\n')],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(song().title.replace(/[^\p{L}\p{N} -]/gu,'')||'rhymelab')+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Text als TXT exportiert.')}
 function runAuto(t){if(!auto)return;const el=$('#resultsScroll');if(t>pauseUntil&&!document.hidden&&!$('#dialog').open&&el.clientHeight>0){el.scrollTop+=(t-(lastFrame||t))*.018;if(el.scrollTop+el.clientHeight>=el.scrollHeight-2){if(pageSize<data().length){pageSize+=6;renderResults()}else{el.scrollTop=0;pauseUntil=t+1200}}}lastFrame=t;scrollFrame=requestAnimationFrame(runAuto)}
