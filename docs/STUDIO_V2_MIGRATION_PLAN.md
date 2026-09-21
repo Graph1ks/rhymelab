@@ -309,6 +309,21 @@ Migrate one group at a time:
 
 Each group requires a parity test before the old implementation is considered replaceable.
 
+Current writing/editing migration status:
+
+~~~text
+stable Bar IDs / revisions            DONE
+stale-selection proof by Bar ID       DONE
+Undo + Redo                           DONE
+Enter split / Backspace merge         DONE
+explicit multiline paste -> Bars      DONE
+IME composition transaction guard     DONE
+legacy localStorage persistence        TEMPORARY
+production DocumentStore / IndexedDB  NEXT
+~~~
+
+The textarea geometry remains the Studio 02 visual baseline while the production document model is introduced behind it.
+
 ---
 
 ## Stage 10 — Analysis mode
@@ -448,7 +463,7 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 11 complete filter parity                    DONE
 12 shared SearchState                        DONE
 13 document/editor spike                     DONE
-14 RhymePad migration                        NEXT
+14 RhymePad migration                        IN PROGRESS
 ~~~
 
 The first user-review checkpoint is intentionally after steps 1–4 so visual feedback can happen before production behavior starts reshaping the surface.
