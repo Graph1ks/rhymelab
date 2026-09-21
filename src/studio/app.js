@@ -4,6 +4,7 @@ import {STUDIO_DEMO_LINES,loadStudioState,writeStudioState} from './document-ada
 import {createWriterSearchClient,estimateSyllables} from './search-adapter.mjs';
 import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-controls.mjs';
 import {loadStudioCapabilities} from './capability-adapter.mjs';
+import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
 
 'use strict';
 const initial=STUDIO_DEMO_LINES;
@@ -29,7 +30,9 @@ const THEME_COLOR_FIELDS=[
 let themeEditingId='',themePreviewing=false;
 let studioCapabilities={status:'loading'};
 const writerSearch=createWriterSearchClient();
+const detailClient=createStudioDetailClient();
 let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerDebounce=0;
+let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',query='Nacht',scope='all',relation='all',sort='recommended',basis='de',resultLang='both',pageSize=6,auto=false,pauseUntil=0,scrollFrame=0,lastFrame=0,undo=[],saveTimer,toastTimer,playing=false,tick=0,playTimer,cue='hit',bpm=92,audioContext;
 function song(){return state.songs.find(s=>s.id===state.active)||state.songs[0]}
 const syll=estimateSyllables;
@@ -98,6 +101,7 @@ async function refreshWriterResults(){
   writerStatus='loading';
   writerError='';
   selectedResult='';
+  selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';detailClient.cancel();
   $('#detailDock')?.classList.add('hidden');
   renderResults();
   try{
@@ -476,9 +480,82 @@ function closeEditorDock(){if(themePreviewing){themePreviewing=false;applyThemeC
 function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else if(dockTab==='settings'){renderSettingsDock(body)}else{body.innerHTML=`<div class="studio-note"><b>Studio 02 · Desktop Workbench</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details sind angedockt. Kompakt zeigt dieselben Treffer dichter, Wortfeld lädt zum Stöbern ein.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste, Versionen und Darstellung hier unten öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln · In Treffern: <kbd>↑ ↓</kbd> auswählen, <kbd>Enter</kbd> einsetzen, <kbd>Space</kbd> merken.</p><p style="margin-top:9px"><b>Motion</b> · kurze gestaffelte Trefferwechsel, weiche Panel-Einblendung, Auswahl- und Einsetzfeedback. Systemseitig reduzierte Bewegung wird respektiert. Kein externer Dienst, keine Motion-Bibliothek erforderlich.</p><p style="margin-top:9px"><b>Runtime</b> · Reimtreffer kommen live aus /api/writer; Editor-Silben, Analyse und Auto-Map bleiben bis zu ihren jeweiligen Migrationsstufen explizite Näherungen. Die vollständige Funktionsmatrix aus Konzept 1.0 bleibt verbindlich. Version 2 ersetzt dessen Popup-orientierte Desktop-Bedienung.</p><p style="margin-top:9px"><b>Prüfung</b> · 70 Event- und Zustandsprüfungen im DOM-Modell bestanden. Keine reale Browser-, Touch-, Audio- oder Electron-Abnahme in dieser Umgebung.</p></div>`}}
 function setFontSize(n){state.fontSize=clamp(n,16,28);document.documentElement.style.setProperty('--editor',state.fontSize+'px');$('#fontSizeLive').textContent=state.fontSize;queryAll('#lyrics textarea').forEach(resizeArea);persist()}
 function applyEditorFont(){const value=({sans:'var(--font)',serif:'Georgia, serif',mono:'ui-monospace, monospace'})[state.editorFont||'sans'];document.documentElement.style.setProperty('--lyric-font',value);queryAll('#lyrics textarea').forEach(resizeArea)}
-function openDetail(word){selectedResult=word;queryAll('#results .result').forEach(row=>{const active=row.dataset.resultWord===word;row.classList.toggle('is-selected',active);row.querySelector('[data-detail]')?.setAttribute('aria-pressed',active)});$('#detailDock').classList.remove('hidden');renderDetail();animateSurface($('#detailDock'));pauseUntil=performance.now()+5000;}
-function renderDetail(){const r=data().find(r=>r.word===selectedResult);if(!r)return;const line=song().lines[selection.line]||'';const preview=esc(line.slice(0,selection.start))+'<mark>'+esc(r.word)+'</mark>'+esc(line.slice(selection.end));const score=Number.isFinite(r.score)?Math.round(r.score*100)+'%':null,ipa=String(r.raw?.ipa||'').trim();$('#detailBody').innerHTML=`<div class="row between"><h3 class="detail-word">${esc(r.word)}</h3><span class="pill">${esc((r.relationLabel||'Klangtreffer').toUpperCase())}</span></div><div class="detail-labels"><span>${r.syll||'—'} Silbe${r.syll===1?'':'n'}</span><span>${r.lang.toUpperCase()}</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'}</span>${score?`<span>${score}</span>`:''}${r.generatedPronunciation?'<span>Generated</span>':''}</div>${ipa?`<div class="detail-pronunciation"><code>/${esc(ipa)}/</code></div>`:''}<div class="detail-preview" aria-label="Vorschau nach Ersetzung">${preview||esc(r.word)}</div><div class="detail-bottom"><small>Live Writer · Vorschau · Bar ${selection.line+1}</small><div class="row"><button data-save="${esc(r.word)}" class="outline">${state.saved.some(s=>s.word===r.word)?'✓ Gemerkt':'◇ Merken'}</button><button data-insert="${esc(r.word)}" class="primary">Einsetzen ↵</button></div></div>`}
-function closeDetail(){$('#detailDock').classList.add('hidden');$('#resultsScroll').focus()}
+function humanizeDetail(value){
+  return String(value||'').replace(/[._-]+/g,' ').replace(/\b\w/g,(char)=>char.toUpperCase());
+}
+function detailFact(label,value){
+  if(value==null||value===''||(Array.isArray(value)&&!value.length))return '';
+  const text=Array.isArray(value)?value.map(humanizeDetail).join(', '):String(value);
+  return '<div class="detail-fact"><small>'+esc(label)+'</small><b>'+esc(text)+'</b></div>';
+}
+async function loadSelectedDetail(row){
+  const token=++detailRequest;
+  selectedDetailStatus='loading';selectedDetail=null;selectedDetailError='';
+  renderDetail();
+  try{
+    const payload=await detailClient.load(row);
+    if(token!==detailRequest||selectedResult!==row.word)return;
+    selectedDetail=buildStudioDetailModel(row,payload);
+    selectedDetailStatus='ready';
+    renderDetail();
+  }catch(error){
+    if(error?.name==='AbortError')return;
+    if(token!==detailRequest)return;
+    selectedDetailStatus='error';
+    selectedDetailError=error instanceof Error?error.message:String(error);
+    selectedDetail=buildStudioDetailModel(row,null);
+    renderDetail();
+  }
+}
+function openDetail(word){
+  const row=data().find((item)=>item.word===word);
+  if(!row)return;
+  selectedResult=word;selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';
+  queryAll('#results .result').forEach(node=>{const active=node.dataset.resultWord===word;node.classList.toggle('is-selected',active);node.querySelector('[data-detail]')?.setAttribute('aria-pressed',active)});
+  $('#detailDock').classList.remove('hidden');
+  renderDetail();void loadSelectedDetail(row);
+  animateSurface($('#detailDock'));pauseUntil=performance.now()+5000;
+}
+function renderDetail(){
+  const r=data().find((item)=>item.word===selectedResult);if(!r)return;
+  const model=selectedDetail&&selectedDetail.key===studioDetailKey(r)
+    ?selectedDetail
+    :buildStudioDetailModel(r,null);
+  const line=song().lines[selection.line]||'';
+  const preview=esc(line.slice(0,selection.start))+'<mark>'+esc(r.word)+'</mark>'+esc(line.slice(selection.end));
+  const score=model.score>0?Math.round(model.score*100)+'%':null;
+  const variants=model.pronunciations.slice(0,4).map((item)=>'<div class="detail-variant"><code>/'+esc(item.ipa)+'/</code><small>'+esc([item.preferred?'Standard':'Variante',item.locale,item.register,item.dialect,item.source].filter(Boolean).join(' · '))+'</small></div>').join('');
+  const relationRows=model.relations.slice(0,3).map((item)=>'<span>'+esc(humanizeDetail(item.type))+(item.score?(' · '+Math.round(item.score*100)+'%'):'')+'</span>').join('');
+  const facts=[
+    detailFact('Betonung',model.primaryStress!=null?('Silbe '+model.primaryStress):model.stressPattern),
+    detailFact('Wortart',model.partOfSpeech),
+    detailFact('Lemma',model.lemma),
+    detailFact('Gebrauch',model.usageRank?('#'+model.usageRank):(model.usageCount!=null?model.usageCount:null)),
+    detailFact('Lexik-Tags',model.lexicalTags),
+    detailFact('Phrasentyp',model.phraseTypes),
+    detailFact('Wortgrenzen',model.crossedWordBoundaries),
+    detailFact('Entity',model.categories),
+    detailFact('Popularität',model.popularity!=null?(model.popularity+'%'+(model.popularityTier?' · '+model.popularityTier:'')):null),
+    detailFact('QID',model.entityQid),
+  ].filter(Boolean).join('');
+  const sources=model.sources.slice(0,5).map((source)=>'<span>'+esc(source)+'</span>').join('');
+  const detailState=selectedDetailStatus==='loading'
+    ?'<div class="detail-state">Detaildaten werden geladen …</div>'
+    :selectedDetailStatus==='error'
+      ?'<div class="detail-state error">Detail-Endpunkt nicht verfügbar · Writer-Zeile wird angezeigt.</div>'
+      :'';
+  $('#detailBody').innerHTML=`
+    <div class="row between"><h3 class="detail-word">${esc(r.word)}</h3><span class="pill">${esc(model.relationLabel.toUpperCase())}</span></div>
+    <div class="detail-labels"><span>${model.syllables||'—'} Silbe${model.syllables===1?'':'n'}</span><span>${esc(model.language)}</span><span>${model.kind==='word'?'Wort':model.kind==='phrase'?'Phrase':'Name'}</span>${score?`<span>${score}</span>`:''}${model.generated?'<span>Generated</span>':''}${model.historical?'<span>Historisch</span>':''}</div>
+    ${detailState}
+    ${model.ipa?`<div class="detail-pronunciation"><code>/${esc(model.ipa)}/</code>${variants&&model.pronunciations.length>1?`<div class="detail-variants">${variants}</div>`:''}</div>`:''}
+    ${relationRows?`<div class="detail-relations"><small>Klangbeziehungen</small><div>${relationRows}</div></div>`:''}
+    ${facts?`<div class="detail-fact-grid">${facts}</div>`:''}
+    ${sources?`<div class="detail-sources"><small>Quelle / Provenienz</small><div>${sources}</div></div>`:''}
+    <div class="detail-preview" aria-label="Vorschau nach Ersetzung">${preview||esc(r.word)}</div>
+    <div class="detail-bottom"><small>Live Writer · ${esc(model.detailSource)} · Bar ${selection.line+1}</small><div class="row"><button data-save="${esc(r.word)}" class="outline">${state.saved.some(s=>s.word===r.word)?'✓ Gemerkt':'◇ Merken'}</button><button data-insert="${esc(r.word)}" class="primary">Einsetzen ↵</button></div></div>`;
+}
+function closeDetail(){detailClient.cancel();detailRequest++;selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';$('#detailDock').classList.add('hidden');$('#resultsScroll').focus()}
 function moveResult(delta){const rows=sortedData();if(!rows.length)return;let index=rows.findIndex(r=>r.word===selectedResult);index=index<0?(delta>0?0:rows.length-1):Math.max(0,Math.min(rows.length-1,index+delta));if(index>=pageSize){pageSize=index+12;renderResults()}openDetail(rows[index].word);const row=queryAll('#results .result').find(r=>r.dataset.resultWord===selectedResult);row?.scrollIntoView?.({block:'nearest',behavior:'smooth'})}
 function setAssistWidth(value){const max=clamp(window.innerWidth-660,350,640);const width=clamp(value,350,max);document.documentElement.style.setProperty('--assist-width',width+'px');$('#splitter').setAttribute('aria-valuenow',width);$('#splitter').setAttribute('aria-valuemax',max);state.assistWidth=width;queryAll('#lyrics textarea').forEach(resizeArea);}
 function bindV2(){for(const id of ['directBasis','directLang','directRelation','directSyllables','directSort','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');$('#directBasis').onchange=e=>{basis=e.target.value;void refreshWriterResults()};$('#directLang').onchange=e=>{resultLang=e.target.value;void refreshWriterResults()};$('#directRelation').onchange=e=>{relation=e.target.value;renderResults()};$('#directSyllables').onchange=e=>{syllableMode=e.target.value;renderResults()};$('#directSort').onchange=e=>{sort=e.target.value;renderResults()};queryAll('[data-density]').forEach(b=>b.onclick=()=>setDensity(b.dataset.density));queryAll('[data-dock]').forEach(b=>b.onclick=()=>{if(dockTab===b.dataset.dock)closeEditorDock();else{if(b.dataset.dock==='history')revision();openEditorDock(b.dataset.dock)}});$('#resultsScroll').addEventListener('keydown',e=>{if(e.target.closest('input')||e.target.closest('select')||e.target.closest('.view-choices'))return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();moveResult(e.key==='ArrowDown'?1:-1)}else if(e.key==='Enter'&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();insertWord(selectedResult)}else if(e.key===' '&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();toggleSave(selectedResult)}else if(e.key==='Escape')closeDetail()});
