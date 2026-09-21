@@ -12,6 +12,7 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/RhymeLab Studio 02 — Desktop Workbench/u);
   assert.match(html,/href=["']\/studio\/styles\.css["']/u);
   assert.match(html,/src=["']\/studio\/app\.js["']/u);
+  assert.match(html,/id=["']runtimeStatus["']/u);
   assert.match(html,/type=["']module["'][^>]*src=["']\/studio\/app\.js["']/u);
 
   assert.match(css,/--assist-width:470px/u);
@@ -32,6 +33,9 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.theme-builder-actions\{[\s\S]*?position:sticky;[\s\S]*?bottom:0/u);
   assert.match(css,/\*::-webkit-scrollbar-thumb/u);
   assert.match(css,/scrollbar-color:color-mix\(in srgb,var\(--muted\) 52%,var\(--line\)\) transparent/u);
+  assert.match(css,/Studio capability surface/u);
+  assert.match(css,/\.capability-grid/u);
+  assert.match(css,/\.local\.degraded/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
@@ -110,6 +114,9 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/from '\.\/studio-controls\.mjs'/u);
   assert.match(app,/getDemoSearchRows\(\{query,scope,relation,resultLanguage:resultLang,queryBasis:basis\}\)/u);
   assert.match(app,/writeStudioState\(state\)/u);
+  assert.match(app,/from '\.\/capability-adapter\.mjs'/u);
+  assert.match(app,/refreshStudioCapabilities\(\)/u);
+  assert.match(app,/id="capabilitySummary"/u);
 
   assert.match(core,/export const queryAll=/u);
   assert.match(controls,/export function normalizeDensity/u);
@@ -118,4 +125,36 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(pronunciationClient,/CLIENT_QUERY_PRONUNCIATION_POLICY/u);
   assert.match(pronunciationCache,/QUERY_PRONUNCIATION_CACHE_SCHEMA/u);
+});
+
+
+test('Studio capability adapter normalizes backend health without leaking backend shapes into UI',async()=>{
+  const {normalizeStudioCapabilities}=await import('../src/studio/capability-adapter.mjs');
+  const normalized=normalizeStudioCapabilities({
+    status:'ok',
+    writer_database:'/tmp/de.sqlite',
+    writer_runtime:'writer-v5',
+    serving_v1:{enabled:true},
+    english_available:true,
+    phrase_available:true,
+    entity_available:false,
+    generated_optin:{available:true,default_enabled:false},
+    query_pronunciation_revision:'abcdef1234567890',
+  },{
+    totals:{core:100,generated:25,total:125,consistent:true},
+  });
+
+  assert.deepEqual(normalized,{
+    status:'ready',
+    runtime:'serving-v1',
+    servingV1:true,
+    deWriter:true,
+    enWriter:true,
+    phrases:true,
+    entities:false,
+    generated:true,
+    generatedDefault:false,
+    queryPronunciationRevision:'abcdef1234567890',
+    dataset:{core:100,generated:25,total:125,consistent:true},
+  });
 });
