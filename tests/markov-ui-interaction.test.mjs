@@ -111,9 +111,15 @@ test('Markov test surface preserves mobile behavior and uses the Markov API',asy
   assert.match(app,/\/api\/markov\/generate/u);
   assert.match(app,/Markov transition database missing/u);
   assert.match(app,/npm run markov:model:build/u);
+  assert.match(app,/npm run markov:model:build:en/u);
+  assert.match(app,/markovHealthByLanguage/u);
   assert.match(app,/DECODER V2/u);
   assert.match(app,/novelty windows/u);
   assert.match(app,/line shapes/u);
+  const server=await readFile('src/server.mjs','utf8');
+  assert.match(server,/markov_generators/u);
+  assert.match(server,/markovEnglishRuntime/u);
+  assert.match(server,/selectedMarkovRuntime=markovRuntimes\[language\]/u);
   assert.match(app,/note\.title=note\.textContent\.trim\(\)/u);
   assert.doesNotMatch(app,/accepted Leipzig sentences/u);
   assert.doesNotMatch(core,/MODEL_LINES/u);
