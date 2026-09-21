@@ -12,7 +12,7 @@ import {
 const root=process.cwd();
 const args=process.argv.slice(2);
 let servingDbPath=DEFAULT_SERVING_V1_PRODUCT_DB_PATH;
-let sourceOut='data/work/markov-v1/rhymelab-serving-phrase-lines.txt';
+let sourceOut='data/work/markov-v2/rhymelab-serving-phrase-lines.txt';
 let plan=false;
 let status=false;
 const forwarded=[];
@@ -134,7 +134,7 @@ if(plan){
     try{info=inspectServingDb();}catch(caught){error=caught instanceof Error?caught.message:String(caught);}
   }
   console.log(JSON.stringify({
-    schema:'rhymelab-markov-serving-v1-source-plan-v1',
+    schema:'rhymelab-markov-serving-v1-source-plan-v2',
     ready:Boolean(servingAvailable&&info&&info.eligible>0&&!error),
     source:'rhymelab_serving_v1_runtime_phrase',
     source_database_role:'canonical_default',
@@ -157,12 +157,12 @@ if(plan){
 if(status){
   if(!servingAvailable){
     console.log(JSON.stringify({
-      schema:'rhymelab-markov-serving-v1-source-status-v1',
+      schema:'rhymelab-markov-serving-v1-source-status-v2',
       source:'rhymelab_serving_v1_runtime_phrase',
       source_database_role:'canonical_default',
       serving_database:servingDbPath,
       serving_database_available:false,
-      markov_database:'data/local/rhymelab-markov-v1.sqlite',
+      markov_database:'data/local/rhymelab-markov-v2.sqlite',
       private_lyrics_used:false,
       archived_split_phrase_database_used:false,
       build_command:'npm run markov:model:build',
