@@ -438,7 +438,7 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 1  exact Studio 02 import                  DONE
 2  parallel /studio route                  DONE
 3  parity matrix                           DONE
-4  route/design regression test            NEXT
+4  route/design regression test            DONE
 5  split prototype into modules            NEXT
 6  capability wiring
 7  live /api/writer search
