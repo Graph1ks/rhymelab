@@ -176,7 +176,7 @@ export function readMeta(db){
 export function semanticFingerprint(db){
   const hash=createHash('sha256');
   const meta=readMeta(db);
-  for(const key of ['schema','policy','language','order','min_token_count','max_states','top_k','source_window_min','source_window_max']){
+  for(const key of ['schema','policy','language','order','min_token_count','max_states','top_k','source_window_min','source_window_max','source_profile_json']){
     hash.update(`${key}\t${meta[key]??''}\n`);
   }
   const tokenRows=db.prepare('SELECT norm,count,title_count,upper_count,preferred_surface FROM token ORDER BY norm').iterate();
