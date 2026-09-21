@@ -71,7 +71,6 @@ test('DocumentStore shadow saves current stable bar identities without generatin
   await migrateLegacyStudioStateToStore(legacy,store);
   const backupsBefore=store.backups.length;
 
-  legacy.lines;
   legacy.songs[0].lines[1]='BETA';
   legacy.songs[0].barRevisions[1]=3;
   const result=await shadowLegacyStudioStateToStore(legacy,store);
