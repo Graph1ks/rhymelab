@@ -72,10 +72,18 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/id=["']themeQuick["']/u);
   assert.match(html,/id=["']themeQuickMenu["']/u);
   assert.match(html,/id=["']themeMenuBtn["']/u);
+  assert.match(html,/id=["']uiLanguageBtn["']/u);
+  assert.match(app,/from '\.\/i18n\.mjs'/u);
+  assert.match(app,/function setStudioUiLanguage\(/u);
+  assert.match(app,/function toggleStudioUiLanguage\(/u);
+  assert.match(app,/createStudioDomLocalizer/u);
+  assert.match(app,/id="uiLanguageSelect"/u);
+  assert.match(app,/uiLanguageSelect/u);
   assert.match(css,/\.theme-quick:hover \.theme-quick-menu/u);
   assert.match(css,/\.theme-quick-menu::before/u);
   assert.match(css,/#themeMenuBtn\[aria-expanded="true"\] \+ \.theme-quick-menu/u);
   assert.match(css,/\.theme-builder-grid/u);
+  assert.match(css,/\.language-quick/u);
   assert.match(app,/customThemes/u);
   assert.match(app,/themeSlots/u);
   assert.match(app,/Light-Style ersetzen/u);
@@ -236,6 +244,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/analysis-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/backup-portability\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/diagnostics\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/i18n\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
@@ -275,6 +284,7 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
   assert.match(migration,/stable revision snapshots \/ restore\s+DONE/u);
   assert.match(migration,/authoritative DocumentStore cutover\s+DONE/u);
   assert.match(migration,/full Perform parity\s+DONE/u);
+  assert.match(parity,/UI language EN[\s\S]*READY/u);
 });
 
 
