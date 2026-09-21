@@ -8,7 +8,7 @@ import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-control
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
 import {createStudioAnalysisClient,studioAnalysisWords} from './analysis-adapter.mjs';
-import {barIdentity,createSelectionProof,editorSnapshot,ensureEditorSong,mergeEditorBarWithPrevious,moveEditorBar,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
+import {barIdentity,createSelectionProof,duplicateEditorBar,editorSnapshot,ensureEditorSong,insertEditorBar,mergeEditorBarWithPrevious,moveEditorBar,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
 import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarDurationMs,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceFlowFingerprint,performanceNeedsReview,performancePocketMetrics,performancePreviousBarPlacements,performanceStepDurationMs,performanceSyllablesPerSecond,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
 import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
@@ -1304,6 +1304,9 @@ function studioCommandRegistry(){
     {id:'perform-mode',group:'Modus',label:'Perform-Modus',keywords:['perform','timing','flow','cues'],shortcut:'Alt+3',run:()=>{navigate('studio');setMode('perform')}},
     {id:'bar-inspector',group:'Modus',label:'Bar Inspector öffnen',keywords:['bar','metrics','stress','pocket'],run:()=>openEditorDock('bar')},
     {id:'bar-navigator',group:'Modus',label:'Bar Navigator öffnen',keywords:['bars','outline','navigator','reorder'],shortcut:'Alt+B',run:()=>openEditorDock('navigator')},
+    {id:'bar-new-after',group:'Dokument',label:'Neue Bar nach aktiver Bar',keywords:['bar','new','insert','zeile'],run:()=>addStudioBarAfter(activeLine)},
+    {id:'bar-duplicate',group:'Dokument',label:'Aktive Bar duplizieren',keywords:['bar','duplicate','copy','duplizieren'],run:()=>duplicateStudioBar(activeLine)},
+    {id:'bar-delete',group:'Dokument',label:'Aktive Bar löschen',keywords:['bar','delete','remove','löschen'],run:()=>deleteStudioBar(activeLine)},
     {id:'new-song',group:'Dokument',label:'Neuen Text anlegen',keywords:['new','song','document','text'],run:newSong},
     {id:'rename-song',group:'Dokument',label:'Titel umbenennen',keywords:['rename','title','name'],run:()=>nameDialog('Titel ändern',song().title,(title)=>{song().title=title;persist();renderEditor();renderProjects()})},
     {id:'history',group:'Dokument',label:'Versionsverlauf öffnen',keywords:['history','versions','revision'],run:showHistory},
@@ -2462,6 +2465,68 @@ function renderBarInspectorDock(body){
   };
 }
 
+function addStudioBarAfter(index=activeLine){
+  const current=song(),target=Math.max(-1,Math.min(current.lines.length-1,Number(index)));
+  pushUndo();
+  const inserted=insertEditorBar(current,target+1,'');
+  if(!inserted)return false;
+  activeLine=inserted.index;
+  selection={line:inserted.index,barId:inserted.id,barRevision:inserted.revision,start:0,end:0};
+  selectionProof=createSelectionProof(current,{index:inserted.index,start:0,end:0});
+  analysisSignature='';
+  renderEditor();changed();
+  if(dockTab==='navigator')renderDock();
+  focusLine(inserted.index,0);
+  return true;
+}
+function duplicateStudioBar(index=activeLine){
+  const current=song(),source=barIdentity(current,index);
+  if(!source)return false;
+  pushUndo();
+  const inserted=duplicateEditorBar(current,index);
+  if(!inserted)return false;
+  activeLine=inserted.index;
+  selection={line:inserted.index,barId:inserted.id,barRevision:inserted.revision,start:inserted.text.length,end:inserted.text.length};
+  selectionProof=createSelectionProof(current,{index:inserted.index,start:inserted.text.length,end:inserted.text.length});
+  analysisSignature='';
+  renderEditor();changed();
+  if(dockTab==='navigator')renderDock();
+  focusLine(inserted.index,inserted.text.length);
+  notify('Bar dupliziert · neue stabile Bar-ID.');
+  return true;
+}
+function deleteStudioBar(index=activeLine){
+  const current=song();
+  if(current.lines.length<=1){notify('Der Text muss mindestens eine Bar behalten.');return false}
+  const removed=barIdentity(current,index);
+  if(!removed)return false;
+  const activeBarId=current.barIds[activeLine]||'';
+  const selectedBarId=selection.barId||current.barIds[selection.line]||'';
+  pushUndo();
+  const result=removeEditorBar(current,index);
+  if(!result)return false;
+  let nextIndex=current.barIds.indexOf(activeBarId);
+  if(nextIndex<0)nextIndex=Math.max(0,Math.min(index,current.lines.length-1));
+  activeLine=nextIndex;
+  let selectedIndex=current.barIds.indexOf(selectedBarId);
+  if(selectedIndex<0)selectedIndex=activeLine;
+  const text=current.lines[selectedIndex]||'';
+  selection={
+    line:selectedIndex,
+    barId:current.barIds[selectedIndex],
+    barRevision:current.barRevisions[selectedIndex],
+    start:Math.min(selection.start||0,text.length),
+    end:Math.min(selection.end??selection.start??0,text.length),
+  };
+  selectionProof=createSelectionProof(current,{index:selectedIndex,start:selection.start,end:selection.end});
+  analysisSignature='';
+  renderEditor();changed();
+  if(dockTab==='navigator')renderDock();
+  focusLine(activeLine,Math.min(text.length,selection.start||0));
+  notify('Bar gelöscht · zugehörige Performance-Cues entfernt.');
+  return true;
+}
+
 function moveStudioBar(fromIndex,toIndex){
   const current=song();
   const activeBarId=current.barIds[activeLine]||'';
@@ -2511,7 +2576,7 @@ function renderBarNavigatorDock(body){
     <div class="bar-navigator">
       <div class="bar-navigator-head">
         <div><span class="eyebrow">BAR NAVIGATOR</span><b>${current.lines.length} Bars</b><small>Stable Bar IDs · Drag, Pfeile oder Klick</small></div>
-        <label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label>
+        <div class="bar-navigator-head-actions"><label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label><div class="row"><button id="navigatorAddBar" class="outline">＋ Bar</button><button id="navigatorDuplicateBar" class="outline">⧉ Duplizieren</button></div></div>
       </div>
       <div class="bar-navigator-list">
         ${rows.map((row)=>{
@@ -2526,14 +2591,18 @@ function renderBarNavigatorDock(body){
               <span class="bar-navigator-meta">${syll(row.line)||0} Silb. · ${metrics.cues} Cues${review?' · Timing prüfen':''}</span>
             </button>
             <div class="bar-navigator-actions">
+              <button data-bar-duplicate="${esc(row.bar.id)}" aria-label="Bar ${row.index+1} duplizieren" title="Duplizieren">⧉</button>
               <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="-1" aria-label="Bar ${row.index+1} nach oben" ${row.index===0?'disabled':''}>↑</button>
               <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="1" aria-label="Bar ${row.index+1} nach unten" ${row.index===current.lines.length-1?'disabled':''}>↓</button>
+              <button data-bar-delete="${esc(row.bar.id)}" aria-label="Bar ${row.index+1} löschen" title="Bar löschen" ${current.lines.length<=1?'disabled':''}>×</button>
               <span class="bar-drag-handle" aria-hidden="true">⋮⋮</span>
             </div>
           </article>`;
         }).join('')||'<div class="bar-navigator-empty">Keine Bars für diesen Filter.</div>'}
       </div>
     </div>`;
+  $('#navigatorAddBar').onclick=()=>addStudioBarAfter(activeLine);
+  $('#navigatorDuplicateBar').onclick=()=>duplicateStudioBar(activeLine);
   const search=$('#barNavigatorSearch');
   search.oninput=(event)=>{
     barNavigatorQuery=event.target.value;
@@ -2543,6 +2612,14 @@ function renderBarNavigatorDock(body){
     next?.setSelectionRange(next.value.length,next.value.length);
   };
   queryAll('[data-bar-jump]').forEach((button)=>button.onclick=()=>jumpToStudioBar(button.dataset.barJump));
+  queryAll('[data-bar-duplicate]').forEach((button)=>button.onclick=()=>{
+    const index=current.barIds.indexOf(button.dataset.barDuplicate);
+    if(index>=0)duplicateStudioBar(index);
+  });
+  queryAll('[data-bar-delete]').forEach((button)=>button.onclick=()=>{
+    const index=current.barIds.indexOf(button.dataset.barDelete);
+    if(index>=0)deleteStudioBar(index);
+  });
   queryAll('[data-bar-reorder]').forEach((button)=>button.onclick=()=>{
     const id=button.dataset.barReorder;
     const from=current.barIds.indexOf(id);
