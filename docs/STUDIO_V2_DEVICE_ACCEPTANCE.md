@@ -1,16 +1,18 @@
 # Studio 02 real-device acceptance
 
-Studio 02 implementation parity is source-complete. The final default-route cutover remains gated by seven checks that cannot be honestly certified from source inspection alone.
+Studio V2 implementation parity is source-complete and the automated source/test gate passes. The owner authorized the reversible default-route cutover on 2026-09-21. Seven real-device checks still cannot be honestly certified from source inspection alone and remain required release acceptance evidence.
 
-## Preview the cutover safely
+## Live route and rollback
 
-Run:
+Normal `npm run dev` / `npm start` now serves Studio V2 at `/`.
+
+To temporarily restore the previous Search as the root route for rollback/diagnosis:
 
 ~~~bash
-npm run dev:studio-default
+npm run dev:search-default
 ~~~
 
-This serves Studio 02 at `/` while keeping the previous surfaces reachable:
+The previous surfaces remain reachable regardless of the root mode:
 
 ~~~text
 /search       previous Search
@@ -20,7 +22,7 @@ This serves Studio 02 at `/` while keeping the previous surfaces reachable:
 /studio       Studio 02
 ~~~
 
-The normal `npm run dev` behavior remains unchanged until the cutover gate is accepted.
+The direct `/studio` route remains available in both modes.
 
 ## Automated gate
 
@@ -66,6 +68,8 @@ The checker merges complementary evidence by gate. The full gate succeeds only w
 
 The acceptance file contains environment metadata and pass/fail notes only. It does not contain lyric documents, search history, or recovery snapshots.
 
-## Cutover
+## Release acceptance
 
-After the full gate passes, the reversible route mode can be promoted from preview to the default server behavior in the dedicated cutover commit. The previous Search and RhymePad routes remain available during the first production switch.
+The default-route cutover is active and reversible. Complete the seven real-device gates as post-cutover acceptance evidence before declaring browser/touch/audio acceptance complete. Any material device failure should be fixed on Studio V2 or temporarily mitigated with `npm run dev:search-default`.
+
+The previous Search and RhymePad routes remain available throughout this acceptance period.
