@@ -567,7 +567,7 @@ html,*{
 .analysis-estimate-badge{
   padding:3px 6px;border:1px solid var(--line);border-radius:999px;font-size:7px;letter-spacing:.8px;font-weight:800;color:var(--muted)
 }
-.analysis-density-list{display:grid;gap:7px;margin-top:14px;max-height:430px;overflow:auto;padding-right:4px}
+.analysis-density-list{display:grid;gap:7px;margin-top:14px;padding-right:4px}
 .analysis-density-row{display:grid;grid-template-columns:28px minmax(0,1fr) 28px;align-items:center;gap:8px;font-size:9px;color:var(--muted)}
 .analysis-density-row>span,.analysis-density-row>strong{font:700 9px ui-monospace,monospace}
 .analysis-density-row>strong{text-align:right;color:var(--ink)}
@@ -584,4 +584,55 @@ html,*{
   .analysis-head>.row button{min-height:44px;flex:1}
   .analysis-line{grid-template-columns:30px 30px minmax(90px,.7fr) minmax(120px,1.3fr);min-height:44px}
   .analysis-relation{white-space:normal;line-height:1.3}
+}
+
+
+/* Studio mobile acceptance engineering */
+:root{--visual-viewport-height:100dvh}
+
+@media(max-width:800px){
+  .app{
+    height:var(--visual-viewport-height,100dvh);
+    min-height:var(--visual-viewport-height,100dvh);
+  }
+
+  /* When the software keyboard owns the lower visual viewport, the editor
+     gets that space back and the fixed navigation no longer covers the caret. */
+  html[data-mobile-keyboard="true"] .app{padding-bottom:0}
+  html[data-mobile-keyboard="true"] .mobile-nav{display:none!important}
+
+  /* Exactly one writing scroller while a tool dock is active. */
+  .editor-dock-open .editor-scroll{overflow:hidden;overscroll-behavior:none}
+
+  /* Primary mobile controls meet the 44px touch target gate. */
+  .topbar button,
+  .modebar button,
+  .quicktools button,
+  .filterline button,
+  .view-choices button,
+  .dock-top button,
+  .editor-history-actions button,
+  .analysis-head button,
+  .theme-settings-card button,
+  .library-head button,
+  .songcard-actions button{
+    min-height:44px;
+  }
+  .topbar .icon{width:44px;height:44px;min-height:44px;padding:8px}
+  .topbar #exportBtn{min-height:44px}
+  .theme-menu-trigger{width:44px;min-height:44px}
+
+  /* The editor remains the sole scrolling owner for Analysis; charts expand
+     naturally instead of introducing a nested scrollbar. */
+  .analysis-density-list{max-height:none;overflow:visible}
+
+  /* Keep focused bars away from fixed chrome even before JS correction runs. */
+  .lyric-line textarea{scroll-margin-block:76px 92px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .songcard,
+  .perform-sequencer .beatgrid button{
+    transform:none!important;
+  }
 }
