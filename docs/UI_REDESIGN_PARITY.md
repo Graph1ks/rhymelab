@@ -133,7 +133,7 @@ The Search workspace and Studio assistant use the same SearchState. Changing sur
 | Replace selected word/range | yes | yes/demo | Result action | READY |
 | Multi-word selection | yes | basic browser selection | Editor | READY |
 | Stale-selection protection | partial | yes/demo proof | Selection contract | READY |
-| Undo | yes | yes/demo | Editor | READY |
+| Undo | yes | yes/demo | Editor | READY · typing bursts coalesced into useful undo steps |
 | Redo | yes/original | missing | Editor | READY |
 | Enter/new bar | yes | yes/demo | Editor | READY |
 | Backspace empty-bar merge/remove | yes/original | demo removal | Editor | READY |
@@ -161,6 +161,7 @@ The Search workspace and Studio assistant use the same SearchState. Changing sur
 | Trash/restore | yes | yes/demo | My texts | READY |
 | Permanent delete | yes | missing | My texts | READY |
 | Bar number | yes | yes | editor rail | READY |
+| Bar Navigator / reorder | no | missing | editor dock | READY · stable Bar IDs + drag + keyboard buttons |
 | Syllable count | yes | crude demo only | canonical/labelled metric | ADAPTED · explicitly labelled local approximation |
 | Word count / hit / breath / stress per bar | yes | mostly missing | Bar detail | READY · Bar Inspector |
 | Verse totals and duration estimate | yes | partial | footer/analysis | ADAPTED · timing canonical to Perform config; syllables labelled approximation |
@@ -201,6 +202,7 @@ The Search workspace and Studio assistant use the same SearchState. Changing sur
 | Editor bottom dock | READY |
 | Focus mode | READY |
 | Command menu | READY · searchable ranked palette + keyboard navigation |
+| Bar Navigator | READY · search, jump, drag reorder, accessible arrow controls |
 | Light/dark theme system | READY |
 | Reference light palette (#EAE7DC / #D8C3A5 / #8E8D8A / #E98074 / #E85A4F) | READY |
 | Reference dark palette (#272727 / #747474 / #FF652F / #FFE400 / #14A76C) | READY |
