@@ -809,6 +809,17 @@ function renameLibrarySong(id){
     item.title=title;touchSong(item);persist();renderLibrary(libraryView.trash);renderProjects();if(item.id===state.active)renderEditor();
   });
 }
+function moveLibrarySongToFolder(id,folder,{notifyUser=true}={}){
+  const item=state.songs.find((row)=>row.id===id&&!row.deleted&&!row.deletedAt);
+  if(!item)return false;
+  const target=ensureLibraryFolder(folder);
+  if(item.folder===target)return false;
+  item.folder=target;
+  touchSong(item);
+  persist();renderLibrary(libraryView.trash);renderProjects();
+  if(notifyUser)notify('Text nach „'+target+'“ verschoben.');
+  return true;
+}
 function moveLibrarySong(id){
   const item=state.songs.find((row)=>row.id===id);
   if(!item)return;
@@ -816,8 +827,8 @@ function moveLibrarySong(id){
   showDialog('Text verschieben',`<label class="field">Ordner<select id="moveSongFolder">${options}</select></label><div class="dialogactions"><button id="cancelMoveSong">Abbrechen</button><button id="confirmMoveSong" class="primary">Verschieben</button></div>`);
   $('#cancelMoveSong').onclick=closeDialog;
   $('#confirmMoveSong').onclick=()=>{
-    item.folder=ensureLibraryFolder($('#moveSongFolder').value);
-    touchSong(item);persist();closeDialog();renderLibrary(libraryView.trash);renderProjects();notify('Text verschoben.');
+    moveLibrarySongToFolder(id,$('#moveSongFolder').value,{notifyUser:false});
+    closeDialog();notify('Text verschoben.');
   };
 }
 function trashLibrarySong(id){
@@ -1387,14 +1398,14 @@ function renderLibrary(showTrash=libraryView.trash){
       ?`<span class="library-folder-actions"><button data-folder-subfolder="${esc(folder)}" aria-label="Unterordner in ${esc(folder)} anlegen" title="Unterordner">＋</button>${folder!=='Entwürfe'?'<button data-folder-rename="'+esc(folder)+'" aria-label="Ordner '+esc(folder)+' umbenennen" title="Umbenennen">✎</button>':''}<button data-folder-move-up="${esc(folder)}" aria-label="Ordner nach oben" title="Nach oben" ${position<=0?'disabled':''}>↑</button><button data-folder-move-down="${esc(folder)}" aria-label="Ordner nach unten" title="Nach unten" ${position>=siblings.length-1?'disabled':''}>↓</button>${folder!=='Entwürfe'?'<button class="library-folder-delete" data-folder-delete="'+esc(folder)+'" aria-label="Ordner '+esc(folder)+' löschen" title="Ordnerstruktur löschen">×</button>':''}</span>`
       :'';
     const parent=folderParent(folder);
-    return `<div class="library-folder-row" data-depth="${depth}" style="--folder-depth:${depth}"><button data-folder-filter="${esc(folder)}" class="${active?'active':''}" aria-pressed="${active}" title="${esc(folder)}"><span class="library-folder-label"><i aria-hidden="true">${depth?'↳':'▱'}</i><b>${esc(folderLeaf(folder))}</b>${parent?'<em>'+esc(parent)+'</em>':''}</span><small>${count}</small></button>${actions}</div>`;
+    return `<div class="library-folder-row" data-depth="${depth}" data-folder-drop="${esc(folder)}" style="--folder-depth:${depth}"><button data-folder-filter="${esc(folder)}" class="${active?'active':''}" aria-pressed="${active}" title="${esc(folder)}"><span class="library-folder-label"><i aria-hidden="true">${depth?'↳':'▱'}</i><b>${esc(folderLeaf(folder))}</b>${parent?'<em>'+esc(parent)+'</em>':''}</span><small>${count}</small></button>${actions}</div>`;
   };
   const allActive=libraryView.folder==='all';
   const cards=rows.map((item)=>{
     const preview=(item.lines||[]).find((line)=>String(line).trim())||'Die erste Zeile wartet noch.';
     const changed=libraryTimestamp(item);
     const changedLabel=changed?new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(changed):'Legacy';
-    return `<article class="songcard ${item.id===state.active?'is-active':''}">
+    return `<article class="songcard ${item.id===state.active?'is-active':''}" ${libraryView.trash?'':'draggable="true" data-library-song-drag="'+esc(item.id)+'"'}>
       <div class="songcard-top"><span class="eyebrow">${esc(item.folder||'Entwürfe')}</span>${item.id===state.active&&!libraryView.trash?'<span class="song-active-badge">AKTIV</span>':''}</div>
       <h3>${esc(item.title)}</h3>
       <p>${esc(preview)}</p>
@@ -1422,7 +1433,7 @@ function renderLibrary(showTrash=libraryView.trash){
     <div class="library-shell">
       <aside class="library-folders" aria-label="Ordner">
         <div class="library-folder-head"><span class="eyebrow">ORDNERSTRUKTUR</span>${libraryView.trash?'':'<button id="newFolderBtn" class="icon" aria-label="Neuer Hauptordner" title="Neuer Hauptordner">＋</button>'}</div>
-        <div class="library-folder-row"><button data-folder-filter="all" class="${allActive?'active':''}" aria-pressed="${allActive}"><span>Alle Texte</span><small>${sourceRows.length}</small></button></div>
+        <div class="library-folder-row" ${libraryView.trash?'':'data-folder-drop="Entwürfe"'}><button data-folder-filter="all" class="${allActive?'active':''}" aria-pressed="${allActive}"><span>Alle Texte</span><small>${sourceRows.length}</small></button></div>
         ${folders.map(folderButton).join('')}
       </aside>
       <section class="library-content">
@@ -1437,6 +1448,40 @@ function renderLibrary(showTrash=libraryView.trash){
   $('#trashToggle').onclick=()=>{libraryView.trash=!libraryView.trash;libraryView.folder='all';renderLibrary(libraryView.trash)};
   if($('#newSongMain'))$('#newSongMain').onclick=newSong;
   if($('#newFolderBtn'))$('#newFolderBtn').onclick=createLibraryFolder;
+  if(!libraryView.trash){
+    queryAll('[data-library-song-drag]').forEach((card)=>{
+      card.addEventListener('dragstart',(event)=>{
+        event.dataTransfer?.setData('application/x-rhymelab-song',card.dataset.librarySongDrag);
+        event.dataTransfer?.setData('text/plain',card.dataset.librarySongDrag);
+        if(event.dataTransfer)event.dataTransfer.effectAllowed='move';
+        card.classList.add('is-dragging');
+      });
+      card.addEventListener('dragend',()=>{
+        card.classList.remove('is-dragging');
+        queryAll('[data-folder-drop]').forEach((row)=>row.classList.remove('is-drop-target'));
+      });
+    });
+    queryAll('[data-folder-drop]').forEach((row)=>{
+      row.addEventListener('dragenter',(event)=>{
+        if(!event.dataTransfer?.types?.includes('application/x-rhymelab-song'))return;
+        event.preventDefault();row.classList.add('is-drop-target');
+      });
+      row.addEventListener('dragover',(event)=>{
+        if(!event.dataTransfer?.types?.includes('application/x-rhymelab-song'))return;
+        event.preventDefault();
+        if(event.dataTransfer)event.dataTransfer.dropEffect='move';
+        row.classList.add('is-drop-target');
+      });
+      row.addEventListener('dragleave',(event)=>{
+        if(!row.contains(event.relatedTarget))row.classList.remove('is-drop-target');
+      });
+      row.addEventListener('drop',(event)=>{
+        event.preventDefault();row.classList.remove('is-drop-target');
+        const id=event.dataTransfer?.getData('application/x-rhymelab-song')||event.dataTransfer?.getData('text/plain');
+        if(id)moveLibrarySongToFolder(id,row.dataset.folderDrop);
+      });
+    });
+  }
 }
 function renderSaved(){$('#largeView').innerHTML=`<div class="eyebrow">Wörter für später</div><h1 style="margin-top:9px">Deine Merkliste.</h1><p class="muted" style="margin-top:14px">Gute Funde, direkt zurück in deinen Text.</p><div class="collection-list">${state.saved.map(r=>`<div class="result"><div class="grow"><h3>${esc(r.word)}</h3><small>Gefunden zu „${esc(r.anchor)}“</small></div><button data-insert="${esc(r.word)}" class="outline">Einsetzen</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entfernen">×</button></div>`).join('')||'<div class="empty">Merke ein Wort über das Lesezeichen neben einem Reim.</div>'}</div>`}
 function downloadBlob(blob,filename){
