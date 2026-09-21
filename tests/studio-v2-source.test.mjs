@@ -173,7 +173,7 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/flushStudioPersistence\('visibility_hidden'\)/u);
   assert.match(app,/flushStudioPersistence\('pagehide'\)/u);
   assert.match(app,/function refreshSongAnalysis\(/u);
-  assert.match(app,/canonical Writer-Runtime-Pfad/u);
+  assert.match(app,/kanonischen Writer-Runtime-Pfad/u);
   assert.match(app,/analysisData\.lineRelations/u);
   assert.match(app,/data-analysis-bar/u);
   assert.match(app,/Word Laboratory/u);
@@ -359,7 +359,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
   assert.match(server,/'\/assets\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
-  assert.match(server,/'\/': \{ type: 'text\/html; charset=utf-8', body: writerHtml \}/u);
+  assert.match(server,/'\\/': \\{ type: 'text\\/html; charset=utf-8', body: studioDefaultRoute\\?studioHtml:writerHtml \\}/u);
   assert.match(server,/'\/pad': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/u);
   assert.match(server,/Studio 02 preview:/u);
   assert.match(server,/'\/api\/analysis\/rhyme-scheme'/u);
@@ -693,7 +693,7 @@ test('Studio full Writer filter matrix is wired without changing canonical recom
     'advancedGenerated',
     'advancedGeneratedOnly',
   ]){
-    assert.match(html,new RegExp('id=["\\\']'+id+'["\\\']','u'));
+    assert.match(html,new RegExp('id=["\\\']'+id+'["\\\']'));
   }
 
   assert.match(app,/filterStudioWriterRows\(baseData\(\)/u);
