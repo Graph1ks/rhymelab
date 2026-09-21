@@ -155,6 +155,10 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
   assert.match(migration,/complete filter parity\s+DONE/u);
   assert.match(migration,/shared SearchState\s+DONE/u);
   assert.match(migration,/document\/editor spike\s+DONE/u);
+  assert.match(migration,/library search \+ sort\s+DONE/u);
+  assert.match(migration,/folder create\/delete\/move\s+DONE/u);
+  assert.match(migration,/trash \+ restore \+ permanent delete\s+DONE/u);
+  assert.match(migration,/stable revision snapshots \/ restore\s+DONE/u);
 });
 
 
