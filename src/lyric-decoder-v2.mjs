@@ -13,6 +13,12 @@ import {
   lyricTargetBounds,
 } from './markov-lyric-profile.mjs';
 import {createSeededRandom} from './markov-model-runtime.mjs';
+import {
+  MARKOV_LYRIC_STRUCTURE_POLICY,
+  lyricRhymeDistanceWeights,
+  lyricSectionDefaults,
+  lyricStructureFor,
+} from './markov-lyric-structure-profile.mjs';
 
 export const LYRIC_DECODER_POLICY='rhymelab-constrained-lyric-decoder-v2';
 export const LYRIC_DECODER_RUNTIME='rhymelab-constrained-lyric-runtime-v2';
@@ -547,15 +553,24 @@ function diversify(drafts,desired,options){
 }
 
 export function planLyricSection({
+  language='de',
   scheme='ABAB',
   lines,
-  targetTokens=MARKOV_LYRIC_PROFILE.defaultTargetTokens,
+  targetTokens,
   section='verse',
   seed=0,
 }={}){
+  const lang=language==='en'?'en':'de';
+  const defaults=lyricSectionDefaults(lang,section);
   const labels=String(scheme||'ABAB').toLocaleUpperCase('en-US').replace(/[^A-Z]/gu,'').split('');
-  const count=Math.max(1,Math.min(32,Number(lines)||labels.length||4));
-  const random=createSeededRandom(`${LYRIC_DECODER_POLICY}|${section}|${scheme}|${seed}|${targetTokens}`);
+  const count=Math.max(1,Math.min(64,Number(lines)||defaults.lines||labels.length||4));
+  const requestedTokens=Math.max(
+    3,
+    Math.min(28,Number(targetTokens)||defaults.targetTokens||MARKOV_LYRIC_PROFILE.defaultTargetTokens),
+  );
+  const random=createSeededRandom(
+    `${LYRIC_DECODER_POLICY}|${MARKOV_LYRIC_STRUCTURE_POLICY}|${lang}|${section}|${scheme}|${seed}|${requestedTokens}`
+  );
   const plans=[];
   for(let index=0;index<count;index+=1){
     const slot=labels[index%Math.max(1,labels.length)]||String.fromCharCode(65+(index%4));
@@ -563,16 +578,98 @@ export function planLyricSection({
     plans.push({
       line:index+1,
       rhymeSlot:slot,
-      targetTokens:Math.max(3,Math.min(28,Number(targetTokens)||6)+variance),
+      targetTokens:Math.max(3,Math.min(28,requestedTokens+variance)),
       section,
       repetitionWeight:section==='hook'?MARKOV_LYRIC_PROFILE.repetition.second:0,
     });
   }
   return {
     policy:LYRIC_DECODER_POLICY,
+    structurePolicy:MARKOV_LYRIC_STRUCTURE_POLICY,
+    language:lang,
     section,
     scheme:labels.join('')||'ABAB',
+    defaults,
+    rhymeDistanceWeights:lyricRhymeDistanceWeights(lang),
     lines:plans,
+  };
+}
+
+function weightedObjectChoice(weights,random){
+  const rows=Object.entries(weights||{}).filter(([,value])=>Number(value)>0);
+  if(!rows.length)return null;
+  const total=rows.reduce((sum,[,value])=>sum+Number(value),0);
+  let point=random()*total;
+  for(const [key,value] of rows){
+    point-=Number(value);
+    if(point<=0)return key;
+  }
+  return rows.at(-1)?.[0]||null;
+}
+
+export function planLyricSong({
+  language='de',
+  sections,
+  seed=0,
+  scheme='ABAB',
+  schemeBySection={},
+}={}){
+  const lang=language==='en'?'en':'de';
+  const profile=lyricStructureFor(lang);
+  const desired=Math.max(
+    2,
+    Math.min(16,Number(sections)||Math.round(profile.songSections.median)||5),
+  );
+  const random=createSeededRandom(
+    `${LYRIC_DECODER_POLICY}|${MARKOV_LYRIC_STRUCTURE_POLICY}|song|${lang}|${seed}|${desired}`
+  );
+
+  const sectionTypes=[];
+  let current=weightedObjectChoice(profile.startSectionWeights,random)||'verse';
+  sectionTypes.push(current);
+
+  while(sectionTypes.length<desired){
+    const isFinal=sectionTypes.length===desired-1;
+    const transitions=profile.sectionTransitions[current]||{};
+    let weights=transitions;
+    if(isFinal){
+      const endingWeighted={};
+      for(const [type,weight] of Object.entries(transitions)){
+        const endWeight=Number(profile.endSectionWeights[type]||0);
+        endingWeighted[type]=Number(weight)*(0.35+endWeight*2.5);
+      }
+      if(Object.values(endingWeighted).some((value)=>value>0))weights=endingWeighted;
+      else weights=profile.endSectionWeights;
+    }
+    current=weightedObjectChoice(weights,random)
+      ||weightedObjectChoice(profile.endSectionWeights,random)
+      ||'verse';
+    sectionTypes.push(current);
+  }
+
+  const planned=sectionTypes.map((type,index)=>{
+    const defaults=lyricSectionDefaults(lang,type);
+    return {
+      index:index+1,
+      type,
+      ...planLyricSection({
+        language:lang,
+        section:type,
+        lines:defaults.lines,
+        targetTokens:defaults.targetTokens,
+        scheme:schemeBySection[type]||scheme,
+        seed:Number(seed)+index*1543,
+      }),
+    };
+  });
+
+  return {
+    policy:LYRIC_DECODER_POLICY,
+    structurePolicy:MARKOV_LYRIC_STRUCTURE_POLICY,
+    language:lang,
+    sectionCount:planned.length,
+    rhymeDistanceWeights:lyricRhymeDistanceWeights(lang),
+    sections:planned,
   };
 }
 
@@ -727,10 +824,11 @@ export function analyzeLyricCandidateSet(candidates=[]){
 }
 
 export function generateLyricSectionV2(runtime,{
+  language='de',
   scheme='ABAB',
   section='verse',
   lines,
-  targetTokens=MARKOV_LYRIC_PROFILE.defaultTargetTokens,
+  targetTokens,
   slots={},
   seed=1337,
   rhymePressure=72,
@@ -742,7 +840,8 @@ export function generateLyricSectionV2(runtime,{
   candidatesPerLine=8,
   attemptsPerLine=192,
 }={}){
-  const plan=planLyricSection({scheme,lines,targetTokens,section,seed});
+  const lang=runtime?.language==='en'?'en':(language==='en'?'en':'de');
+  const plan=planLyricSection({language:lang,scheme,lines,targetTokens,section,seed});
   const selected=[];
   const usedTailBySlot=new Map();
   const failures=[];
@@ -763,6 +862,7 @@ export function generateLyricSectionV2(runtime,{
     const lineSeed=Number(seed)||0;
     const candidates=generateLyricCandidatesV2(runtime,{
       rows,
+      language:lang,
       target,
       seed:lineSeed+linePlan.line*1009,
       targetTokens:linePlan.targetTokens,
