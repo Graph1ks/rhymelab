@@ -352,8 +352,10 @@ Current unresolved cutover blockers:
 
 ~~~text
 real browser/device/audio acceptance across the release viewport matrix
-final exhaustive old-vs-new interaction audit
+execution of the seven manifest entries marked as real-device gates
 ~~~
+
+The exhaustive source mapping is now machine-readable in `src/studio/parity-manifest.mjs`: 77 mapped capabilities, 70 source-backed gates and seven real-device gates. `tests/studio-parity-manifest.test.mjs` verifies that every source evidence token still exists. This closes the static mapping portion of the old-vs-new audit; it does not replace behavioral execution on actual browsers, touch devices, IME input, or Web Audio.
 
 Former owner-added blockers are now implemented in Studio:
 
