@@ -122,6 +122,32 @@ export function removeEditorBar(song,index){
   return removed;
 }
 
+export function moveEditorBar(song,fromIndex,toIndex){
+  ensureEditorSong(song);
+  const length=song.lines.length;
+  const from=integer(fromIndex,-1);
+  const target=integer(toIndex,-1);
+  if(from<0||from>=length||target<0||target>=length)return null;
+  if(from===target)return {
+    moved:false,
+    from,
+    to:target,
+    bar:barIdentity(song,target),
+  };
+  const [line]=song.lines.splice(from,1);
+  const [barId]=song.barIds.splice(from,1);
+  const [revision]=song.barRevisions.splice(from,1);
+  song.lines.splice(target,0,line);
+  song.barIds.splice(target,0,barId);
+  song.barRevisions.splice(target,0,revision);
+  return {
+    moved:true,
+    from,
+    to:target,
+    bar:barIdentity(song,target),
+  };
+}
+
 export function mergeEditorBarWithPrevious(song,index){
   ensureEditorSong(song);
   if(index<=0||index>=song.lines.length)return null;
