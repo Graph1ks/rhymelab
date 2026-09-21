@@ -29,18 +29,17 @@ export function createStudioDetailClient({fetchImpl=globalThis.fetch}={}){
     clear(){cache.clear();},
     async load(row){
       const key=studioDetailKey(row);
-      if(cache.has(key))return cache.get(key);
       const raw=row?.raw||{};
+      activeController?.abort();
+      activeController=null;
+      const current=++requestId;
+      if(cache.has(key))return {...cache.get(key),raw};
       if((row?.kind||raw.resultKind)==='entity'){
-        const result={kind:'entity',detail:null,raw,source:'writer-result'};
-        cache.set(key,result);
-        return result;
+        return {kind:'entity',detail:null,raw,source:'writer-result'};
       }
 
-      activeController?.abort();
       const controller=new AbortController();
       activeController=controller;
-      const current=++requestId;
       let url='';
       if((row?.kind||raw.resultKind)==='phrase'&&raw.phraseId){
         const params=new URLSearchParams({
@@ -67,14 +66,13 @@ export function createStudioDetailClient({fetchImpl=globalThis.fetch}={}){
         throw stale;
       }
       const detail=response.ok?await readJson(response):null;
-      const result={
+      const cached={
         kind:row?.kind||raw.resultKind||'word',
         detail,
-        raw,
         source:detail?'detail-endpoint':'writer-result',
       };
-      cache.set(key,result);
-      return result;
+      cache.set(key,cached);
+      return {...cached,raw};
     },
   };
 }
