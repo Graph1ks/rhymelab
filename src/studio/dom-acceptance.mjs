@@ -80,6 +80,55 @@ export function runStudioDomAcceptance({
 
   const width=Number(windowObj.visualViewport?.width||windowObj.innerWidth||0);
   const mobile=width<=mobileBreakpoint;
+  const height=Number(windowObj.visualViewport?.height||windowObj.innerHeight||0);
+  const viewportLeft=Number(windowObj.visualViewport?.offsetLeft||0);
+  const viewportTop=Number(windowObj.visualViewport?.offsetTop||0);
+
+  const root=documentObj.documentElement;
+  const body=documentObj.body;
+  const layoutClientWidth=Number(root?.clientWidth||windowObj.innerWidth||0);
+  const layoutClientHeight=Number(root?.clientHeight||windowObj.innerHeight||0);
+  const bodyOverflow=Boolean(
+    layoutClientWidth>0&&layoutClientHeight>0&&(
+      Number(root?.scrollWidth||0)>layoutClientWidth+2
+      ||Number(body?.scrollWidth||0)>layoutClientWidth+2
+      ||Number(root?.scrollHeight||0)>layoutClientHeight+2
+      ||Number(body?.scrollHeight||0)>layoutClientHeight+2
+    )
+  );
+  checks.push(bodyOverflow
+    ?fail('body-scroll','No Studio body scrollbar','document/body exceeds layout viewport')
+    :pass('body-scroll','No Studio body scrollbar',layoutClientWidth&&layoutClientHeight?'layout contained':'layout metrics unavailable'));
+
+  const railSelectors=['.sidebar','.topbar','.composer','.inspector','.mobile-nav'];
+  const clippedRails=[];
+  for(const selector of railSelectors){
+    const element=documentObj.querySelector?.(selector);
+    if(!visible(element,windowObj))continue;
+    const rect=element.getBoundingClientRect?.();
+    if(!rect||!Number.isFinite(rect.left)||!Number.isFinite(rect.right))continue;
+    if(rect.left<viewportLeft-1||rect.right>viewportLeft+width+1)clippedRails.push(selector);
+  }
+  checks.push(clippedRails.length
+    ?fail('clipped-rails','No clipped primary rails',clippedRails.join(', '))
+    :pass('clipped-rails','No clipped primary rails','visible primary rails fit viewport'));
+
+  const resultsScroll=documentObj.getElementById('resultsScroll');
+  const nestedResultScrollers=[];
+  if(resultsScroll?.querySelectorAll){
+    for(const element of resultsScroll.querySelectorAll('*')){
+      if(!visible(element,windowObj))continue;
+      const style=windowObj.getComputedStyle(element);
+      const overflowY=String(style.overflowY||'');
+      if((overflowY==='auto'||overflowY==='scroll')&&Number(element.scrollHeight||0)>Number(element.clientHeight||0)+1){
+        nestedResultScrollers.push(element.id||element.className||element.tagName||'element');
+      }
+    }
+  }
+  checks.push(nestedResultScrollers.length
+    ?fail('nested-results-scroll','No nested result scrollbars',nestedResultScrollers.slice(0,8).join(', '))
+    :pass('nested-results-scroll','No nested result scrollbars','results surface has one scroll owner'));
+
   let undersized=[];
   if(mobile){
     const targets=[...new Set(PRIMARY_TOUCH_SELECTORS.flatMap((selector)=>[
@@ -121,6 +170,24 @@ export function runStudioDomAcceptance({
     ?pass('active-bar','Active Bar surface','active lyric line present')
     :fail('active-bar','Active Bar surface','no active lyric line'));
 
+  let activeLineCovered=false;
+  if(keyboardOpen&&activeLine){
+    const target=activeLine.querySelector?.('textarea')||activeLine;
+    const rect=target.getBoundingClientRect?.();
+    if(rect&&Number.isFinite(rect.top)&&Number.isFinite(rect.bottom)){
+      const safeTop=viewportTop+4;
+      const safeBottom=viewportTop+height-8;
+      activeLineCovered=rect.top<safeTop||rect.bottom>safeBottom;
+      checks.push(activeLineCovered
+        ?fail('keyboard-active-line','Active line above software keyboard','active line outside visual viewport')
+        :pass('keyboard-active-line','Active line above software keyboard','active line inside visual viewport'));
+    }else{
+      checks.push(pass('keyboard-active-line','Active line above software keyboard','geometry unavailable'));
+    }
+  }else{
+    checks.push(pass('keyboard-active-line','Active line above software keyboard',keyboardOpen?'no active line geometry':'keyboard not reported open'));
+  }
+
   const reducedMotion=windowObj.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
   const motionState=documentObj.documentElement?.dataset?.motion||'auto';
   checks.push(pass('motion','Motion preference',reducedMotion?'OS reduced motion':motionState));
@@ -130,9 +197,13 @@ export function runStudioDomAcceptance({
     checks,
     metrics:{
       viewportWidth:width,
-      viewportHeight:Number(windowObj.visualViewport?.height||windowObj.innerHeight||0),
+      viewportHeight:height,
       mobile,
       keyboardOpen,
+      bodyOverflow,
+      clippedRails:clippedRails.length,
+      nestedResultScrollers:nestedResultScrollers.length,
+      activeLineCovered,
       undersizedTouchTargets:undersized.length,
     },
     summary:{
