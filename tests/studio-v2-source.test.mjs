@@ -65,6 +65,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/id=["']themeQuick["']/u);
   assert.match(html,/id=["']themeQuickMenu["']/u);
   assert.match(css,/\.theme-quick:hover \.theme-quick-menu/u);
+  assert.match(css,/\.theme-quick-menu::before/u);
+  assert.match(css,/#themeBtn\[aria-expanded="true"\] \+ \.theme-quick-menu/u);
   assert.match(css,/\.theme-builder-grid/u);
   assert.match(app,/customThemes/u);
   assert.match(app,/themeSlots/u);
@@ -72,6 +74,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/Dark-Style ersetzen/u);
   assert.match(app,/function saveThemeDraft\(/u);
   assert.match(app,/function renderThemeQuickMenu\(/u);
+  assert.match(app,/function setThemeQuickOpen\(/u);
+  assert.match(app,/function scheduleThemeQuickClose\(/u);
+  assert.match(app,/button\.onclick=function\(event\)/u);
+  assert.match(app,/applyThemeChoice\(choice\)/u);
   assert.match(app,/function previewThemeDraft\(/u);
   assert.match(app,/compositionstart/u);
   assert.match(app,/compositionend/u);
