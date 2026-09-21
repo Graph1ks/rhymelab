@@ -751,6 +751,7 @@ export function generateLyricCandidatesV2(runtime,{
         fingerprint:runtime.meta.semantic_fingerprint||null,
         sourceSentences:Number(runtime.meta.source_sentences||0),
         lyricProfile:MARKOV_LYRIC_PROFILE_POLICY,
+        lyricStructure:MARKOV_LYRIC_STRUCTURE_POLICY,
         tailReservoir:reservoir.length,
       },
       seed:Number(seed)||0,
