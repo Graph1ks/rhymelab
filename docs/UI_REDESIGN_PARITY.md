@@ -317,15 +317,18 @@ Required: no clipped rails, no Studio body scrollbar, no nested result scrollbar
 
 # H. Migration rule
 
-The old routes remain explicit regression controls until final parity acceptance:
+The previous routes remain explicit regression controls throughout live acceptance:
 
 ~~~text
-/        current Search
-/pad     current RhymePad
-/studio  Studio 02 migration surface
+/           Studio V2 default product shell
+/studio     Studio V2 direct route
+/search     previous Search
+/legacy     previous Search alias
+/pad        RhymePad
+/pad-legacy RhymePad fallback alias
 ~~~
 
-Do not switch / to Studio until this document has no unapproved blockers.
+Do not remove the fallback routes until the remaining physical-device acceptance gates are complete and any material regressions are closed.
 
 
 ---
