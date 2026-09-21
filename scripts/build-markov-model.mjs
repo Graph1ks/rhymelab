@@ -231,12 +231,12 @@ const stateUpsert=db.prepare(`
   ON CONFLICT(context_len,state_key) DO UPDATE SET count=count+excluded.count
 `);
 const sourceSequenceUpsert=db.prepare(`
-  INSERT INTO source_sequence_hash(hash,token_count,count) VALUES(?,?,1)
-  ON CONFLICT(hash) DO UPDATE SET count=count+1
+  INSERT INTO source_sequence_hash(hash,token_count,count) VALUES(?,?,?)
+  ON CONFLICT(hash) DO UPDATE SET count=count+excluded.count
 `);
 const sourceWindowUpsert=db.prepare(`
-  INSERT INTO source_window_hash(hash,window_size,count) VALUES(?,?,1)
-  ON CONFLICT(hash) DO UPDATE SET count=count+1
+  INSERT INTO source_window_hash(hash,window_size,count) VALUES(?,?,?)
+  ON CONFLICT(hash) DO UPDATE SET count=count+excluded.count
 `);
 const shapeUpsert=db.prepare(`
   INSERT INTO shape_pattern(token_count,shape_key,count) VALUES(?,?,1)
@@ -276,8 +276,8 @@ function flushPass1(
       const sep=key.indexOf('\u0002');
       stateUpsert.run(Number(key.slice(0,sep)),key.slice(sep+1),count);
     }
-    for(const [hash,row] of sourceSequences)sourceSequenceUpsert.run(hash,row.tokenCount);
-    for(const [hash,row] of sourceWindows)sourceWindowUpsert.run(hash,row.windowSize);
+    for(const [hash,row] of sourceSequences)sourceSequenceUpsert.run(hash,row.tokenCount,row.count);
+    for(const [hash,row] of sourceWindows)sourceWindowUpsert.run(hash,row.windowSize,row.count);
     for(const [key,count] of shapeCounts){
       const sep=key.indexOf('\u0002');
       shapeUpsert.run(Number(key.slice(0,sep)),key.slice(sep+1),count);
@@ -334,11 +334,15 @@ async function runPass1(){
       const lexical=lexicalNorms(sequence);
       if(lexical.length){
         const fullHash=sequenceHash(lexical);
-        sourceSequences.set(fullHash,{tokenCount:lexical.length});
+        const sourceRow=sourceSequences.get(fullHash)||{tokenCount:lexical.length,count:0};
+        sourceRow.count+=1;
+        sourceSequences.set(fullHash,sourceRow);
         for(let size=MARKOV_SOURCE_WINDOW_MIN;size<=Math.min(MARKOV_SOURCE_WINDOW_MAX,lexical.length);size+=1){
           for(let start=0;start+size<=lexical.length;start+=1){
             const hash=sequenceHash(lexical.slice(start,start+size));
-            sourceWindows.set(hash,{windowSize:size});
+            const windowRow=sourceWindows.get(hash)||{windowSize:size,count:0};
+            windowRow.count+=1;
+            sourceWindows.set(hash,windowRow);
           }
         }
         const shape=shapeKeyForTokens(lexical,'de');
