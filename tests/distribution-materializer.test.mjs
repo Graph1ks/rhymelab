@@ -142,9 +142,12 @@ test('Lite positive materialization keeps only selected Core word closure and ex
     const selection=populateDistributionSelection(target,{
       edition:'lite',
       alias:'src',
-      coreTarget:2,
-      generatedTarget:0,
+      totalTarget:2,
+      entityPerCategory:0,
     });
+    assert.equal(selection.budget.target,2);
+    assert.equal(selection.budget.entries,2);
+    assert.equal(selection.budget.words,2);
     assert.equal(selection.word_surfaces.core,2);
     assert.equal(selection.word_surfaces.generated,0);
     assert.equal(selection.selected.phrases,0);
@@ -192,7 +195,7 @@ test('Lite positive materialization keeps only selected Core word closure and ex
   }
 });
 
-test('distribution edition contracts keep Standard Core-only and Full additive Generated targets',()=>{
+test('distribution edition contracts use total package budgets with per-category Entity quotas',()=>{
   assert.deepEqual(
     {
       lite:editionContract('lite'),
@@ -201,16 +204,16 @@ test('distribution edition contracts keep Standard Core-only and Full additive G
     },
     {
       lite:{
-        edition:'lite',coreTarget:50000,generatedTarget:0,mode:'core',
+        edition:'lite',totalTarget:50000,entityPerCategory:0,phraseMode:'none',mode:'core',
         features:{words_de:true,words_en:true,phrases:false,entities:false,generated:false,markov:false},
       },
       standard:{
-        edition:'standard',coreTarget:250000,generatedTarget:0,mode:'core',
+        edition:'standard',totalTarget:250000,entityPerCategory:1000,phraseMode:'core',mode:'core',
         features:{words_de:true,words_en:true,phrases:true,entities:true,generated:false,markov:false},
       },
       full:{
-        edition:'full',coreTarget:400000,generatedTarget:200000,mode:'all',
-        features:{words_de:true,words_en:true,phrases:true,entities:true,generated:true,markov:true},
+        edition:'full',totalTarget:400000,entityPerCategory:5000,phraseMode:'all',mode:'all',
+        features:{words_de:true,words_en:true,phrases:true,entities:true,generated:true,markov:false},
       },
     },
   );
