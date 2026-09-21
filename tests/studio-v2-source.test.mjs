@@ -54,6 +54,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/data-density="compact"/u);
   assert.match(html,/data-density="tiles"/u);
   assert.match(html,/id=["']redoBtn["']/u);
+  assert.match(html,/data-dock=["']bar["']/u);
+  assert.match(html,/Bar Inspector/u);
   assert.match(html,/id=["']advancedFiltersToggle["']/u);
   assert.match(html,/id=["']advancedPreset["']/u);
   assert.match(html,/id=["']advancedRhymeType["']/u);
@@ -98,6 +100,13 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/data-perform-scale/u);
   assert.match(app,/data-perform-step/u);
   assert.match(app,/performanceNeedsReview/u);
+  assert.match(app,/function renderBarInspectorDock\(/u);
+  assert.match(app,/data-bar-inspect/u);
+  assert.match(app,/performancePocketMetrics/u);
+  assert.match(app,/performancePreviousBarPlacements/u);
+  assert.match(app,/performanceSyllablesPerSecond/u);
+  assert.match(app,/loadBarAnalysis/u);
+  assert.match(app,/openPerformFromBar/u);
   assert.match(app,/movePerformanceCue/u);
   assert.match(app,/autoMapPerformanceBar/u);
   assert.match(app,/function ensureActiveBarVisible\(/u);
@@ -164,6 +173,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.perform-transport/u);
   assert.match(css,/\.perform-review/u);
   assert.match(css,/\.perform-sequencer/u);
+  assert.match(css,/Studio Bar Inspector/u);
+  assert.match(css,/\.bar-inspector-grid/u);
+  assert.match(css,/\.bar-inspector-canonical/u);
+  assert.match(css,/\.bar-flow-row/u);
   assert.match(css,/Studio canonical song analysis/u);
   assert.match(css,/\.analysis-lines/u);
   assert.match(css,/\.analysis-scheme-letter/u);
