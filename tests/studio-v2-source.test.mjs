@@ -223,6 +223,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/function parityManifestMarkup\(/u);
   assert.match(app,/domAcceptance/u);
   assert.match(app,/combinedSummary/u);
+  assert.match(app,/releaseReadiness/u);
+  assert.match(app,/deviceAcceptance:device/u);
+  assert.match(app,/CUTOVER READINESS/u);
+  assert.match(app,/studio:v2:accepted-preview/u);
   assert.match(app,/IndexedDB · autoritativ/u);
   assert.match(app,/function renderLibrary\(/u);
   assert.match(app,/function createLibraryFolder\(/u);
@@ -260,6 +264,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.diagnostics-grid/u);
   assert.match(css,/\.diagnostic-check/u);
   assert.match(css,/\.diagnostics-section-title/u);
+  assert.match(css,/\.cutover-readiness/u);
+  assert.match(css,/\.cutover-readiness\.is-ready/u);
   assert.match(css,/Studio real-device acceptance/u);
   assert.match(css,/\.device-acceptance-summary/u);
   assert.match(css,/\.device-gate-list/u);
