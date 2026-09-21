@@ -6,7 +6,7 @@ This document is the release gate for the RhymeLab Studio UI/UX rebuild.
 
 The new Studio surface may replace the existing Search and RhymePad entry points only after every required capability below is either READY, ADAPTED, or explicitly owner-approved as deferred. Anything else is a blocker.
 
-**Cutover rule:** visual acceptance is not functional acceptance. Studio 02 is the visual golden master, but the default route must not switch until an exhaustive old-vs-new feature audit confirms no user-facing capability has been lost. Missing legacy capabilities discovered during implementation are added to this document immediately and become blockers by default.
+**Cutover status:** visual acceptance is not functional acceptance. Studio 02 remains the original visual golden master; Studio V2 is now the reversible default route after source/test parity passed and the owner explicitly approved release. Real-device/browser/touch/Web Audio evidence remains pending and any material regression is still a blocker/fix-or-rollback condition.
 
 ## Golden-master rule
 
@@ -334,7 +334,7 @@ Do not switch / to Studio until this document has no unapproved blockers.
 
 The parity tables above are a living contract, not a claim that the first inventory is complete.
 
-Before cutover, perform a deliberate old-vs-new audit of every interactive control and persisted workflow in the current Search and RhymePad surfaces.
+Continue the deliberate old-vs-new audit of every interactive control and persisted workflow in the retained Search and RhymePad fallback surfaces during live acceptance.
 
 Minimum audit method:
 
@@ -348,14 +348,14 @@ Minimum audit method:
 7. mark parity only after behavior, not merely presence, is verified.
 ~~~
 
-Current unresolved cutover blockers:
+Current unresolved live-acceptance gates:
 
 ~~~text
 real browser/device/audio acceptance across the release viewport matrix
 execution of the seven manifest entries marked as real-device gates
 ~~~
 
-Everything source-verifiable is now gated automatically. Run `npm run studio:v2:cutover:code` for the source-only contract. **Settings → Real Device Acceptance** now exposes guided test launchers and refuses to record mobile passes on an ineligible desktop environment. Export one or more partial reports, merge them with `npm run studio:v2:acceptance:merge -- <desktop.json> <mobile.json>`, then run `npm run studio:v2:cutover:check`. Once the full gate passes, `npm run studio:v2:accepted-preview` re-runs the gate and only then starts the reversible Studio-default route.
+Everything source-verifiable is gated automatically and currently passes. Run `npm run studio:v2:cutover:code` for the source-only contract. **Settings → Real Device Acceptance** exposes guided test launchers and refuses to record mobile passes on an ineligible desktop environment. Export one or more partial reports, merge them with `npm run studio:v2:acceptance:merge -- <desktop.json> <mobile.json>`, then run `npm run studio:v2:cutover:check`. Studio V2 is already the reversible default route; `npm run dev:search-default` is the explicit root-route rollback while physical acceptance remains open.
 
 The exhaustive source mapping is now machine-readable in `src/studio/parity-manifest.mjs`: 80 mapped capabilities, 73 source-backed gates and seven real-device gates. `tests/studio-parity-manifest.test.mjs` verifies that every source evidence token still exists. This closes the static mapping portion of the old-vs-new audit; it does not replace behavioral execution on actual browsers, touch devices, IME input, or Web Audio.
 
