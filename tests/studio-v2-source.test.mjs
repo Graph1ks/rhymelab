@@ -46,6 +46,8 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.advanced-filters/u);
   assert.match(css,/\.advanced-filter-grid/u);
   assert.match(css,/\.advanced-check/u);
+  assert.match(css,/\.entity-category-multi/u);
+  assert.match(css,/\.entity-category-legacy\{display:none!important\}/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
@@ -227,6 +229,8 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/pad': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/u);
   assert.match(server,/Studio 02 preview:/u);
   assert.match(server,/'\/api\/analysis\/rhyme-scheme'/u);
+  assert.match(server,/entity_categories/u);
+  assert.match(server,/entityCategories/u);
   assert.match(server,/analyzeSongEndRhymes/u);
 });
 
@@ -564,7 +568,11 @@ test('Studio full Writer filter matrix is wired without changing canonical recom
   assert.match(app,/syllableMode==='near2'/u);
   assert.match(app,/syllableMode==='near3'/u);
   assert.match(app,/writerCapabilities=result\.capabilities/u);
-  assert.match(app,/entityCategories\(\)/u);
+  assert.match(app,/availableEntityCategories\(\)/u);
+  assert.match(html,/id=["']advancedEntityCategoryMulti["']/u);
+  assert.match(app,/function setEntityCategories\(/u);
+  assert.match(app,/entityCategories=Array\.isArray\(sharedSearchState\.entityCategories\)/u);
+  assert.match(app,/data-entity-category/u);
   assert.match(app,/advancedFilterCount\(\)/u);
   assert.match(app,/generatedOnly=e\.target\.checked/u);
 });
