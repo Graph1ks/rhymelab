@@ -1059,3 +1059,45 @@ dialog:has(.command-palette){max-width:680px;padding:20px}
   .command-results{max-height:58dvh}
   .command-group button{min-height:52px}
 }
+
+
+/* Studio real-device acceptance */
+.device-acceptance-card{grid-column:1/-1}
+#deviceAcceptancePanel{margin-top:12px}
+.device-acceptance-summary{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;
+  padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)
+}
+.device-acceptance-summary>div:first-child{display:grid;gap:3px}
+.device-acceptance-summary b{font-size:14px}
+.device-acceptance-summary small{font-size:8px;color:var(--muted)}
+.device-acceptance-summary.is-ready{
+  border-color:color-mix(in srgb,var(--green) 40%,var(--line));
+  background:color-mix(in srgb,var(--green) 7%,var(--panel))
+}
+.device-env{font:700 8px ui-monospace,monospace;color:var(--muted);white-space:nowrap}
+.device-gate-list{display:grid;gap:6px;margin-top:8px}
+.device-gate{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,.45fr);gap:10px;align-items:center;
+  padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel)
+}
+.device-gate.is-pass{border-color:color-mix(in srgb,var(--green) 34%,var(--line))}
+.device-gate>label{display:grid;grid-template-columns:22px minmax(0,1fr);gap:9px;align-items:start;cursor:pointer}
+.device-gate>label input{width:18px;height:18px;margin-top:1px;accent-color:var(--green)}
+.device-gate>label span{display:grid;gap:3px}
+.device-gate>label b{font-size:10px}
+.device-gate>label small{font-size:8px;line-height:1.4;color:var(--muted)}
+.device-gate>input{
+  width:100%;min-height:34px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;
+  background:var(--bg);color:var(--ink);font-size:8px
+}
+.device-gate>input:focus{outline:0;border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.device-acceptance-card #exportDeviceAcceptance:disabled{opacity:.42;cursor:not-allowed}
+
+@media(max-width:800px){
+  .device-acceptance-summary{grid-template-columns:1fr}
+  .device-env{white-space:normal}
+  .device-gate{grid-template-columns:1fr}
+  .device-gate>label{min-height:44px}
+  .device-gate>input{min-height:44px}
+}
