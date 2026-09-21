@@ -51,6 +51,7 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/class="mobile-nav"/u);
   assert.match(html,/data-density="compact"/u);
   assert.match(html,/data-density="tiles"/u);
+  assert.match(html,/id=["']redoBtn["']/u);
   assert.match(html,/id=["']advancedFiltersToggle["']/u);
   assert.match(html,/id=["']advancedRhymeType["']/u);
   assert.match(html,/id=["']advancedVariants["']/u);
@@ -70,6 +71,12 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/function saveThemeDraft\(/u);
   assert.match(app,/function renderThemeQuickMenu\(/u);
   assert.match(app,/function previewThemeDraft\(/u);
+  assert.match(app,/compositionstart/u);
+  assert.match(app,/compositionend/u);
+  assert.match(app,/addEventListener\('paste'/u);
+  assert.match(app,/validateSelectionProof\(song\(\),selectionProof\)/u);
+  assert.match(app,/performUndo/u);
+  assert.match(app,/performRedo/u);
 });
 
 test('Studio preview route is parallel and leaves legacy Search and RhymePad routes in place',async()=>{
@@ -87,6 +94,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-model\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/editor-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/detail-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
@@ -122,7 +130,7 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
 
 
 test('Studio orchestrator is split behind maintainable module boundaries',async()=>{
-  const [app,core,controls,search,filters,sharedSearchState,documents,documentModel,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
+  const [app,core,controls,search,filters,sharedSearchState,documents,documentModel,editorSession,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
     readFile('src/studio/app.js','utf8'),
     readFile('src/studio/studio-core.mjs','utf8'),
     readFile('src/studio/studio-controls.mjs','utf8'),
@@ -131,6 +139,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
     readFile('src/ui/search-state.mjs','utf8'),
     readFile('src/studio/document-adapter.mjs','utf8'),
     readFile('src/studio/document-model.mjs','utf8'),
+    readFile('src/studio/editor-session.mjs','utf8'),
     readFile('src/studio/capability-adapter.mjs','utf8'),
     readFile('src/studio/detail-adapter.mjs','utf8'),
     readFile('src/studio/query-pronunciation-client.mjs','utf8'),
@@ -156,6 +165,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/writeStudioState\(state\)/u);
   assert.match(app,/from '\.\/capability-adapter\.mjs'/u);
   assert.match(app,/from '\.\/detail-adapter\.mjs'/u);
+  assert.match(app,/from '\.\/editor-session\.mjs'/u);
   assert.match(app,/refreshStudioCapabilities\(\)/u);
   assert.match(app,/id="capabilitySummary"/u);
 
@@ -174,6 +184,10 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(documentModel,/export function migrateLegacyStudioState/u);
   assert.match(documentModel,/export function splitBar/u);
   assert.match(documentModel,/export function replaceSelection/u);
+  assert.match(editorSession,/export function ensureEditorSong/u);
+  assert.match(editorSession,/export function pasteEditorText/u);
+  assert.match(editorSession,/export function createSelectionProof/u);
+  assert.match(editorSession,/export function validateSelectionProof/u);
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(details,/export function createStudioDetailClient/u);
   assert.match(details,/export function buildStudioDetailModel/u);
