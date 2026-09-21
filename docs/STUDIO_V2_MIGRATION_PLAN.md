@@ -444,10 +444,10 @@ Exact legacy route names are finalized at cutover. No old route is deleted in th
 7  functional module split                  DONE
 8  capability wiring                         DONE
 9  live /api/writer search                   DONE
-10 detail/provenance parity                  NEXT
-11 complete filter parity
-12 shared SearchState
-13 document/editor spike
+10 detail/provenance parity                  DONE
+11 complete filter parity                    DONE
+12 shared SearchState                        DONE
+13 document/editor spike                     NEXT
 14 RhymePad migration
 ~~~
 
