@@ -541,15 +541,14 @@ function scoreDraft(runtime,beam,tail,tokenRows,options){
   const noveltyWeight=0.12+weird*0.05;
   const supportWeight=0.08;
   const internalEntityFit=beam.internalEntity?clamp(beam.internalEntity.score||0):0;
-  const internalEntityWeight=beam.internalEntity?0.035:0;
-  const utility=clamp((
+  const baseUtility=(
     naturalness*naturalWeight
     +rhyme*rhymeWeight
     +(shape.patterns?shape.fit:0.5)*structureWeight
     +sourceNovelty*noveltyWeight
     +tail.support*supportWeight
-    +internalEntityFit*internalEntityWeight
-  )/(naturalWeight+rhymeWeight+structureWeight+noveltyWeight+supportWeight+internalEntityWeight));
+  )/(naturalWeight+rhymeWeight+structureWeight+noveltyWeight+supportWeight);
+  const utility=clamp(baseUtility+(beam.internalEntity?internalEntityFit*0.025:0));
 
   return {
     utility,
