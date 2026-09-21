@@ -940,6 +940,24 @@ html,*{
 
 
 /* Studio diagnostics */
+.cutover-readiness{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;
+  margin-top:12px;padding:12px;border:1px solid color-mix(in srgb,var(--accent-2,var(--accent)) 34%,var(--line));
+  border-radius:10px;background:color-mix(in srgb,var(--accent-2,var(--accent)) 5%,var(--panel))
+}
+.cutover-readiness>div{display:grid;gap:3px;min-width:0}
+.cutover-readiness b{font-size:14px}
+.cutover-readiness small{font-size:8px;line-height:1.45;color:var(--muted)}
+.cutover-readiness code{
+  padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);
+  font:700 8px ui-monospace,monospace;color:var(--muted);white-space:nowrap
+}
+.cutover-readiness.is-ready{
+  border-color:color-mix(in srgb,var(--green) 44%,var(--line));
+  background:color-mix(in srgb,var(--green) 7%,var(--panel))
+}
+.cutover-readiness.is-ready b,.cutover-readiness.is-ready code{color:var(--green)}
+
 .diagnostics-card{grid-column:1/-1}
 .diagnostics-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
 .diagnostics-head p{max-width:760px}
@@ -998,6 +1016,8 @@ html,*{
 .diagnostic-check.is-fail>span{color:var(--accent-2,var(--accent));background:color-mix(in srgb,var(--accent-2,var(--accent)) 8%,var(--bg))}
 
 @media(max-width:900px){
+  .cutover-readiness{grid-template-columns:1fr}
+  .cutover-readiness code{white-space:normal;overflow-wrap:anywhere}
   .diagnostics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:800px){
