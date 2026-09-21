@@ -109,6 +109,14 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/canonical Writer-Runtime-Pfad/u);
   assert.match(app,/analysisData\.lineRelations/u);
   assert.match(app,/data-analysis-bar/u);
+  assert.match(app,/Word Laboratory/u);
+  assert.match(app,/Relations inside Verse/u);
+  assert.match(app,/data-analysis-relation-mode/u);
+  assert.match(app,/data-analysis-language/u);
+  assert.match(app,/data-analysis-anchor/u);
+  assert.match(app,/analysisData\.wordDetails/u);
+  assert.match(app,/analysisData\.uniqueWordDetails/u);
+  assert.match(app,/analysisData\.pairs/u);
   assert.match(app,/function restoreStudioRevision\(/u);
   assert.match(app,/snapshot=editorSnapshot\(s\)/u);
   assert.match(app,/restoreEditorSnapshot\(current,entry\.snapshot\)/u);
@@ -142,6 +150,11 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(css,/\.analysis-lines/u);
   assert.match(css,/\.analysis-scheme-letter/u);
   assert.match(css,/\.analysis-density-list/u);
+  assert.match(css,/\.analysis-pairs/u);
+  assert.match(css,/\.analysis-pair/u);
+  assert.match(css,/\.analysis-word-grid/u);
+  assert.match(css,/\.analysis-word-card/u);
+  assert.match(css,/\.analysis-language-toggle/u);
   assert.match(css,/Studio mobile acceptance engineering/u);
   assert.match(css,/--visual-viewport-height/u);
   assert.match(css,/html\[data-mobile-keyboard="true"\] \.mobile-nav\{display:none!important\}/u);
