@@ -1,4 +1,4 @@
-# Studio 02 real-device acceptance
+# Studio V2 real-device acceptance
 
 Studio V2 implementation parity is source-complete and the automated source/test gate passes. The owner authorized the reversible default-route cutover on 2026-09-21. Seven real-device checks still cannot be honestly certified from source inspection alone and remain required release acceptance evidence.
 
