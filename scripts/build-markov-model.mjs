@@ -592,7 +592,23 @@ async function promote(){
   const declaredSourceSentences=sourceRows.reduce((sum,row)=>sum+Number(row.manifest?.sentences||0),0);
   const sourceSentences=declaredSourceSentences||acceptedSentences;
   const retainedStates=Number(db.prepare('SELECT COUNT(*) AS n FROM state_count WHERE retained=1').get()?.n||0);
-  writeMeta(db,{source_sentences:sourceSentences,accepted_sentences:acceptedSentences,retained_states:retainedStates});
+  const sourceProfile=sourceRows.map((source,sourceIndex)=>{
+    const scan=db.prepare(
+      "SELECT accepted_sentences FROM build_checkpoint WHERE phase='scan' AND source_index=?"
+    ).get(sourceIndex);
+    return {
+      code:source.code,
+      kind:source.kind,
+      weight:source.weight,
+      accepted_sentences:Number(scan?.accepted_sentences||0),
+    };
+  });
+  writeMeta(db,{
+    source_sentences:sourceSentences,
+    accepted_sentences:acceptedSentences,
+    retained_states:retainedStates,
+    source_profile_json:JSON.stringify(sourceProfile),
+  });
   db.exec('ANALYZE; PRAGMA optimize;');
   const fingerprint=semanticFingerprint(db);
   const builtAt=new Date().toISOString();
