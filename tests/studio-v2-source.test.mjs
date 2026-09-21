@@ -86,6 +86,7 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/search-filters\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/document-model\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/detail-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
@@ -113,11 +114,15 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
   assert.match(migration,/parallel \/studio route\s+DONE/u);
   assert.match(migration,/parity matrix\s+DONE/u);
   assert.match(migration,/live \/api\/writer search\s+DONE/u);
+  assert.match(migration,/detail\/provenance parity\s+DONE/u);
+  assert.match(migration,/complete filter parity\s+DONE/u);
+  assert.match(migration,/shared SearchState\s+DONE/u);
+  assert.match(migration,/document\/editor spike\s+DONE/u);
 });
 
 
 test('Studio orchestrator is split behind maintainable module boundaries',async()=>{
-  const [app,core,controls,search,filters,sharedSearchState,documents,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
+  const [app,core,controls,search,filters,sharedSearchState,documents,documentModel,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
     readFile('src/studio/app.js','utf8'),
     readFile('src/studio/studio-core.mjs','utf8'),
     readFile('src/studio/studio-controls.mjs','utf8'),
@@ -125,6 +130,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
     readFile('src/studio/search-filters.mjs','utf8'),
     readFile('src/ui/search-state.mjs','utf8'),
     readFile('src/studio/document-adapter.mjs','utf8'),
+    readFile('src/studio/document-model.mjs','utf8'),
     readFile('src/studio/capability-adapter.mjs','utf8'),
     readFile('src/studio/detail-adapter.mjs','utf8'),
     readFile('src/studio/query-pronunciation-client.mjs','utf8'),
@@ -163,6 +169,11 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(sharedSearchState,/SEARCH_STATE_SCHEMA='rhymelab-search-state-v1'/u);
   assert.match(sharedSearchState,/export function searchStateToWriterParams/u);
   assert.match(documents,/export function loadStudioState/u);
+  assert.match(documents,/export function loadStudioDocumentSnapshot/u);
+  assert.match(documentModel,/STUDIO_DOCUMENT_SCHEMA='rhymelab-studio-document-v1'/u);
+  assert.match(documentModel,/export function migrateLegacyStudioState/u);
+  assert.match(documentModel,/export function splitBar/u);
+  assert.match(documentModel,/export function replaceSelection/u);
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(details,/export function createStudioDetailClient/u);
   assert.match(details,/export function buildStudioDetailModel/u);
