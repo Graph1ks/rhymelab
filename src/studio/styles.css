@@ -364,6 +364,10 @@ html,*{
 .bar-navigator-head{
   display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,340px);align-items:end;gap:14px
 }
+.bar-navigator-head-actions{display:grid;gap:6px}
+.bar-navigator-head-actions>.row{justify-content:flex-end;gap:5px}
+.bar-navigator-head-actions>.row button{min-height:32px;font-size:8px}
+
 .bar-navigator-head>div{display:grid;gap:3px}
 .bar-navigator-head b{font-size:13px}
 .bar-navigator-head small{font-size:8px;color:var(--muted)}
@@ -410,6 +414,12 @@ html,*{
   width:30px;min-height:32px;padding:3px;border-radius:6px;color:var(--muted);font-size:10px
 }
 .bar-navigator-actions button:hover:not(:disabled){background:var(--tint);color:var(--accent)}
+.bar-navigator-actions [data-bar-delete]{color:var(--accent-2,var(--accent))}
+.bar-navigator-actions [data-bar-delete]:hover:not(:disabled){
+  background:color-mix(in srgb,var(--accent-2,var(--accent)) 10%,var(--panel));
+  color:var(--accent-2,var(--accent))
+}
+
 .bar-drag-handle{
   display:grid;place-items:center;width:20px;min-height:32px;color:var(--muted);font-size:11px;cursor:grab;user-select:none
 }
@@ -420,6 +430,8 @@ html,*{
 
 @media(max-width:800px){
   .bar-navigator-head{grid-template-columns:1fr}
+  .bar-navigator-head-actions>.row{display:grid;grid-template-columns:1fr 1fr}
+  .bar-navigator-head-actions>.row button{min-height:44px}
   .bar-navigator-search input{min-height:44px}
   .bar-navigator-list{max-height:none}
   .bar-navigator-jump{grid-template-columns:32px minmax(0,1fr)}
