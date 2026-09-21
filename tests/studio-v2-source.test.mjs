@@ -606,3 +606,18 @@ test('shared SearchState preserves search context across standalone Search and S
   assert.equal(restored.sort,'closest');
   assert.equal(restored.entityCategory,'person.rapper');
 });
+
+
+test('Studio startup static controls stay synchronized with the golden-master DOM',async()=>{
+  const [html,app]=await Promise.all([
+    readFile('src/studio/index.html','utf8'),
+    readFile('src/studio/app.js','utf8'),
+  ]);
+  const ids=new Set([...html.matchAll(/\bid=["']([^"']+)["']/gu)].map((match)=>match[1]));
+  const required=[...app.matchAll(/bindClick\('([^']+)'[^\n]*\);/gu)]
+    .filter((match)=>!match[0].includes('optional:true'))
+    .map((match)=>match[1]);
+  assert.ok(ids.has('clearDocBtn'),'clear document control must be present in Studio HTML');
+  assert.match(app,/bindClick\('clearDocBtn',clearCurrentDocument,\{optional:true\}\)/u);
+  assert.deepEqual(required.filter((id)=>!ids.has(id)),[]);
+});
