@@ -13,7 +13,9 @@ import {
   MARKOV_SOURCE_WINDOW_MAX,
   MARKOV_SOURCE_WINDOW_MIN,
   START_TOKEN,
+  createMarkovSecondaryIndexes,
   createMarkovStorage,
+  dropMarkovSecondaryIndexes,
   lexicalNorms,
   modelStats,
   preferredSurfaceFor,
@@ -332,7 +334,8 @@ const configFingerprint=sha(config);
 const existed=await exists(workPath);
 const db=new DatabaseSync(workPath);
 db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA temp_store=MEMORY; PRAGMA cache_size=-262144;');
-createMarkovStorage(db);
+createMarkovStorage(db,{secondaryIndexes:false});
+dropMarkovSecondaryIndexes(db);
 const existingMeta=readMeta(db);
 if(existed&&existingMeta.build_config_fingerprint&&existingMeta.build_config_fingerprint!==configFingerprint){
   db.close();
