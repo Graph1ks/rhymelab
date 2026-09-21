@@ -523,6 +523,12 @@ const server = createServer(async (req, res) => {
           weirdness:Number(body?.weirdness)||0,
           mode:String(body?.mode||'balanced').slice(0,40),
           allowEntities:body?.allowEntities!==false,
+          entityCategories:Array.isArray(body?.entityCategories)
+            ?body.entityCategories
+              .map((value)=>String(value||'').slice(0,80))
+              .filter(Boolean)
+              .slice(0,16)
+            :[],
           allowPhrases:body?.allowPhrases!==false,
           count:Number(body?.count)||8,
           attempts:Number(body?.attempts)||48,
