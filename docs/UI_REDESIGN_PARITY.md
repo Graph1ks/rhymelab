@@ -156,7 +156,7 @@ The Search workspace and Studio assistant use the same SearchState. Changing sur
 | Folder create | yes | missing | My texts | READY · root + subfolder |
 | Folder rename | legacy capability | missing | My texts | READY · subtree-safe rename |
 | Folder move/reorder | legacy capability | missing | My texts | READY · sibling subtree reorder |
-| Move song between folders | yes | partial | My texts | READY |
+| Move song between folders | yes | partial | My texts | READY · dialog + desktop drag/drop |
 | Folder delete with safe song handling | yes | missing | My texts | READY · subtree delete + parent fallback |
 | Trash/restore | yes | yes/demo | My texts | READY |
 | Permanent delete | yes | missing | My texts | READY |
@@ -200,7 +200,7 @@ The Search workspace and Studio assistant use the same SearchState. Changing sur
 | Result detail dock | READY |
 | Editor bottom dock | READY |
 | Focus mode | READY |
-| Command menu | READY |
+| Command menu | READY · searchable ranked palette + keyboard navigation |
 | Light/dark theme system | READY |
 | Reference light palette (#EAE7DC / #D8C3A5 / #8E8D8A / #E98074 / #E85A4F) | READY |
 | Reference dark palette (#272727 / #747474 / #FF652F / #FFE400 / #14A76C) | READY |
@@ -216,6 +216,7 @@ The Search workspace and Studio assistant use the same SearchState. Changing sur
 | Mobile bottom navigation | READY-engineered · device acceptance pending |
 | Single-surface mobile editor/results swap | READY-engineered · device acceptance pending |
 | Production local song/library | READY · versioned IndexedDB DocumentStore |
+| Portable workspace backup/import | READY · versioned JSON + pre-import recovery |
 | Production rhyme datasets | READY · live Writer; no demo result fallback |
 | Rhyme analysis | READY · canonical Writer |
 | UI syllable estimates | ADAPTED · explicitly labelled approximation |
