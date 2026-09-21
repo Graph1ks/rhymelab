@@ -679,8 +679,8 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/analysis/rhyme-scheme') {
-      const words=url.searchParams.getAll('word').map((word)=>String(word||'').trim()).filter(Boolean).slice(0,200);
-      if(!words.length)return json(res,{error:'at least one word is required'},400);
+      const words=url.searchParams.getAll('word').map((word)=>String(word||'').trim()).slice(0,200);
+      if(!words.some(Boolean))return json(res,{error:'at least one word is required'},400);
       const language=String(url.searchParams.get('language')||'de').trim().toLocaleLowerCase('en-US');
       const normalizedLanguage=['de','en','both'].includes(language)?language:'de';
       const runtimeDatabases=requestRuntimeDatabases(url);
