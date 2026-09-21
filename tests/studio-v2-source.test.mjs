@@ -125,6 +125,12 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/installMobileViewportController/u);
   assert.match(app,/Speichert in IndexedDB/u);
   assert.match(app,/IndexedDB gespeichert/u);
+  assert.match(app,/documentSaveGeneration/u);
+  assert.match(app,/documentSaveChain/u);
+  assert.match(app,/function cloneStudioStateForPersistence\(/u);
+  assert.match(app,/function flushStudioPersistence\(/u);
+  assert.match(app,/flushStudioPersistence\('visibility_hidden'\)/u);
+  assert.match(app,/flushStudioPersistence\('pagehide'\)/u);
   assert.match(app,/function refreshSongAnalysis\(/u);
   assert.match(app,/canonical Writer-Runtime-Pfad/u);
   assert.match(app,/analysisData\.lineRelations/u);
