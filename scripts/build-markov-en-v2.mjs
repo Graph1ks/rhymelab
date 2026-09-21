@@ -62,6 +62,8 @@ function sourceCliArgs(rows){
   return rows.flatMap((row)=>[
     '--source',
     row.kind+':'+row.code+':'+row.weight+'='+row.path,
+    '--source-total',
+    row.code+'='+Math.max(0,Number(row.accepted)||0),
   ]);
 }
 
