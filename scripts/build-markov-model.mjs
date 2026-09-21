@@ -88,6 +88,50 @@ function human(bytes){
   while(n>=1024&&i<units.length-1){n/=1024;i+=1;}
   return `${n.toFixed(i?1:0)} ${units[i]}`;
 }
+function duration(ms){
+  const total=Math.max(0,Math.round((Number(ms)||0)/1000));
+  const hours=Math.floor(total/3600);
+  const minutes=Math.floor((total%3600)/60);
+  const seconds=total%60;
+  if(hours)return `${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+  if(minutes)return `${minutes}m ${String(seconds).padStart(2,'0')}s`;
+  return `${seconds}s`;
+}
+function sourceProgress({
+  phase,
+  source,
+  sourceIndex,
+  accepted,
+  initialAccepted,
+  lineNumber,
+  startedAt,
+  checkpointMs=0,
+  done=false,
+}){
+  const expected=Number(source.expectedSentences||0);
+  const elapsed=Math.max(1,Date.now()-startedAt);
+  const delta=Math.max(0,accepted-initialAccepted);
+  const rate=delta/(elapsed/1000);
+  const pct=expected>0?Math.min(100,(accepted/expected)*100):null;
+  const remaining=expected>0?Math.max(0,expected-accepted):null;
+  const eta=remaining!==null&&rate>0?duration((remaining/rate)*1000):null;
+  const sourceNumber=`${sourceIndex+1}/${sourceRows.length}`;
+  const parts=[
+    `[markov ${language.toUpperCase()} ${phase}]`,
+    `source ${sourceNumber}`,
+    source.code,
+    expected>0
+      ?`${accepted.toLocaleString('en-US')}/${expected.toLocaleString('en-US')} (${pct.toFixed(1)}%)`
+      :`${accepted.toLocaleString('en-US')} accepted`,
+    `line ${lineNumber.toLocaleString('en-US')}`,
+    `${Math.round(rate).toLocaleString('en-US')} sent/s`,
+    `elapsed ${duration(elapsed)}`,
+  ];
+  if(eta)parts.push(`ETA ${eta}`);
+  if(checkpointMs>0)parts.push(`checkpoint ${(checkpointMs/1000).toFixed(1)}s`);
+  if(done)parts.push('DONE');
+  console.log(parts.join(' · '));
+}
 const SOURCE_KINDS=new Set(['phrase','sentence','lyric']);
 
 function normalizeSourceKind(value,fallback='sentence'){
@@ -212,7 +256,9 @@ function openStatus(path){
 const {manifest,sources}=await resolveSources();
 const sourceRows=(await sourceStatus(sources)).map((row)=>({
   ...row,
-  expectedSentences:sourceTotals.get(row.code)??Number(row.manifest?.sentences||0)||null,
+  expectedSentences:sourceTotals.has(row.code)
+    ?sourceTotals.get(row.code)
+    :(Number(row.manifest?.sentences||0)||null),
 }));
 if(plan){
   console.log(JSON.stringify({
@@ -395,6 +441,8 @@ async function runPass1(){
     const checkpoint=checkpointGet.get('scan',sourceIndex);
     let resumeLine=Number(checkpoint?.line_number||0);
     let accepted=Number(checkpoint?.accepted_sentences||0);
+    const initialAccepted=accepted;
+    const startedAt=Date.now();
     let lineNumber=0;
     let batchAccepted=0;
     const tokenCounts=new Map();
@@ -402,7 +450,11 @@ async function runPass1(){
     const sourceSequences=new Map();
     const sourceWindows=new Map();
     const shapeCounts=new Map();
-    console.log(`  ${source.code}: resume line ${resumeLine.toLocaleString('en-US')}`);
+    console.log(
+      `[markov ${language.toUpperCase()} 1/3] source ${sourceIndex+1}/${sourceRows.length} ${source.code} · `
+      +`resume ${resumeLine.toLocaleString('en-US')} · expected `
+      +`${source.expectedSentences?Number(source.expectedSentences).toLocaleString('en-US'):'unknown'}`
+    );
     for await(const line of lineReader(source.path)){
       lineNumber+=1;
       if(lineNumber<=resumeLine)continue;
@@ -457,13 +509,30 @@ async function runPass1(){
       }
 
       if(batchAccepted>=batchSentences){
+        const checkpointStarted=Date.now();
         flushPass1(tokenCounts,stateCounts,sourceSequences,sourceWindows,shapeCounts,sourceIndex,source.code,lineNumber,accepted);
+        const checkpointMs=Date.now()-checkpointStarted;
         batchAccepted=0;
-        console.log(`    ${accepted.toLocaleString('en-US')} accepted · line ${lineNumber.toLocaleString('en-US')}`);
+        sourceProgress({
+          phase:'1/3 census',
+          source,sourceIndex,accepted,initialAccepted,lineNumber,startedAt,checkpointMs,
+        });
       }
     }
     if(tokenCounts.size||stateCounts.size||sourceSequences.size||sourceWindows.size||shapeCounts.size||lineNumber>resumeLine){
+      const checkpointStarted=Date.now();
       flushPass1(tokenCounts,stateCounts,sourceSequences,sourceWindows,shapeCounts,sourceIndex,source.code,lineNumber,accepted);
+      sourceProgress({
+        phase:'1/3 census',
+        source,sourceIndex,accepted,initialAccepted,lineNumber,startedAt,
+        checkpointMs:Date.now()-checkpointStarted,
+        done:true,
+      });
+    }else{
+      sourceProgress({
+        phase:'1/3 census',
+        source,sourceIndex,accepted,initialAccepted,lineNumber:resumeLine,startedAt,done:true,
+      });
     }
   }
 }
@@ -535,10 +604,16 @@ async function runPass2(){
     const checkpoint=checkpointGet.get('transitions',sourceIndex);
     const resumeLine=Number(checkpoint?.line_number||0);
     let accepted=Number(checkpoint?.accepted_sentences||0);
+    const initialAccepted=accepted;
+    const startedAt=Date.now();
     let lineNumber=0;
     let batchAccepted=0;
     const counts=new Map();
-    console.log(`  ${source.code}: resume line ${resumeLine.toLocaleString('en-US')}`);
+    console.log(
+      `[markov ${language.toUpperCase()} 3/3] source ${sourceIndex+1}/${sourceRows.length} ${source.code} · `
+      +`resume ${resumeLine.toLocaleString('en-US')} · expected `
+      +`${source.expectedSentences?Number(source.expectedSentences).toLocaleString('en-US'):'unknown'}`
+    );
     for await(const line of lineReader(source.path)){
       lineNumber+=1;
       if(lineNumber<=resumeLine)continue;
@@ -574,12 +649,31 @@ async function runPass2(){
         }
       }
       if(batchAccepted>=batchSentences){
+        const checkpointStarted=Date.now();
         flushTransitions(counts,sourceIndex,source.code,lineNumber,accepted);
+        const checkpointMs=Date.now()-checkpointStarted;
         batchAccepted=0;
-        console.log(`    ${accepted.toLocaleString('en-US')} accepted · line ${lineNumber.toLocaleString('en-US')}`);
+        sourceProgress({
+          phase:'3/3 transitions',
+          source,sourceIndex,accepted,initialAccepted,lineNumber,startedAt,checkpointMs,
+        });
       }
     }
-    if(counts.size||lineNumber>resumeLine)flushTransitions(counts,sourceIndex,source.code,lineNumber,accepted);
+    if(counts.size||lineNumber>resumeLine){
+      const checkpointStarted=Date.now();
+      flushTransitions(counts,sourceIndex,source.code,lineNumber,accepted);
+      sourceProgress({
+        phase:'3/3 transitions',
+        source,sourceIndex,accepted,initialAccepted,lineNumber,startedAt,
+        checkpointMs:Date.now()-checkpointStarted,
+        done:true,
+      });
+    }else{
+      sourceProgress({
+        phase:'3/3 transitions',
+        source,sourceIndex,accepted,initialAccepted,lineNumber:resumeLine,startedAt,done:true,
+      });
+    }
   }
   writeMeta(db,{transitions_complete:'1'});
 }
