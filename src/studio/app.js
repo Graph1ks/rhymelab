@@ -2387,7 +2387,7 @@ function renderDeviceAcceptancePanel(){
         ?'<em class="device-gate-evidence">'+esc(studioDeviceEnvironmentLabel(row.environment))+(row.testedAt?' · '+new Date(row.testedAt).toLocaleString():'')+'</em>'
         :'';
       const environmentHint='<em class="device-gate-environment '+(eligibility.eligible?'is-eligible':'is-ineligible')+'">'+esc(eligibility.eligible?'Dieses Gerät ist geeignet':eligibility.reason)+'</em>';
-      const disabled=!row.passed&&!eligibility.eligible?'disabled':'';
+      const disabled=!eligibility.eligible?'disabled':'';
       return '<article class="device-gate '+(row.passed?'is-pass ':'')+(eligibility.eligible?'is-eligible':'is-ineligible')+'"><div class="device-gate-main"><label><input type="checkbox" data-device-gate="'+esc(gate.id)+'" '+(row.passed?'checked ':'')+disabled+'><span><b>'+esc(gate.label)+'</b><small>'+esc(gate.instruction)+'</small>'+environmentHint+evidence+'</span></label><button type="button" class="outline device-gate-guide" data-device-gate-guide="'+esc(gate.id)+'" '+(eligibility.eligible?'':'disabled')+'>Test starten</button></div><input type="text" data-device-gate-note="'+esc(gate.id)+'" value="'+esc(row.note||'')+'" placeholder="Notiz / Gerät / Browser …" maxlength="400"></article>';
     }).join('')+'</div>';
   queryAll('[data-device-gate]').forEach((input)=>input.onchange=()=>{
