@@ -6,6 +6,7 @@ import {
   readGeneratedPronunciationCache,
   writeGeneratedPronunciationCache,
 } from './query-pronunciation-cache.mjs';
+import {createSearchState,searchStateToWriterParams} from './search-state.mjs';
 
 const PRIMARY_TYPES=Object.freeze([
   'multisyllabic_perfect',
@@ -99,36 +100,19 @@ export function buildWriterParams({
   entityCategory='all',
   rhymeType='all',
 }={}){
-  const requestedType=[
-    'all',
-    'multisyllabic_perfect',
-    'perfect',
-    'multisyllabic_slant',
-    'family',
-    'slant',
-    'assonance',
-    'consonance',
-  ].includes(rhymeType)?rhymeType:'all';
-  const backendType=SOUND_RELATION_TYPES.includes(requestedType)?'all':requestedType;
-  return new URLSearchParams({
-    q:String(query||'').trim(),
-    language:['de','en','both'].includes(queryBasis)?queryBasis:'de',
-    result_language:['de','en','both'].includes(resultLanguage)?resultLanguage:'both',
+  const state=createSearchState({
+    anchor:query,
+    queryBasis,
+    resultLanguage,
     scope:writerScope(scope),
-    word_limit:'250',
-    word_pool:'800',
-    phrase_limit:'250',
-    phrase_pool:'512',
-    phrase_per_channel:'128',
-    entity_limit:'250',
-    entity_pool:'512',
-    entity_category:entityCategory||'all',
-    variants:includeVariants?'all':'standard',
-    historical:includeHistorical?'all':'current',
-    generated:generated?'1':'0',
-    generated_only:generatedOnly?'1':'0',
-    type:backendType,
+    rhymeType,
+    variantMode:includeVariants?'all':'preferred',
+    historical:includeHistorical,
+    generated,
+    generatedOnly,
+    entityCategory,
   });
+  return searchStateToWriterParams(state);
 }
 
 function basisLanguages(value){
