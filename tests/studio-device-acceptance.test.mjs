@@ -5,6 +5,7 @@ import {
   STUDIO_DEVICE_ACCEPTANCE_SCHEMA,
   STUDIO_DEVICE_GATES,
   createStudioDeviceAcceptance,
+  mergeStudioDeviceAcceptanceReports,
   parseStudioDeviceAcceptance,
   studioDeviceAcceptanceFilename,
   studioDeviceAcceptanceSummary,
@@ -59,4 +60,26 @@ test('device acceptance filename is stable',()=>{
     studioDeviceAcceptanceFilename(new Date('2026-09-21T16:40:00Z')),
     'rhymelab-studio-device-acceptance-2026-09-21T16-40-00.json',
   );
+});
+
+
+test('device acceptance merges complementary evidence across devices',()=>{
+  const first=STUDIO_DEVICE_GATES.slice(0,3);
+  const second=STUDIO_DEVICE_GATES.slice(3);
+  const a=createStudioDeviceAcceptance({
+    environment:{platform:'Windows',viewportWidth:1440,viewportHeight:900,maxTouchPoints:0},
+    testedAt:100,
+    results:Object.fromEntries(first.map((gate)=>[gate.id,{passed:true,testedAt:100}])),
+  });
+  const b=createStudioDeviceAcceptance({
+    environment:{platform:'Android',viewportWidth:390,viewportHeight:844,maxTouchPoints:5},
+    testedAt:200,
+    results:Object.fromEntries(second.map((gate)=>[gate.id,{passed:true,testedAt:200}])),
+  });
+  const merged=mergeStudioDeviceAcceptanceReports([a,b]);
+  const summary=studioDeviceAcceptanceSummary(merged);
+  assert.equal(summary.ready,true);
+  assert.equal(summary.passed,7);
+  assert.equal(merged.results[first[0].id].environment.platform,'Windows');
+  assert.equal(merged.results[second[0].id].environment.platform,'Android');
 });
