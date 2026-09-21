@@ -1,5 +1,5 @@
 export const STUDIO_DOCUMENT_SCHEMA='rhymelab-studio-document-v1';
-export const STUDIO_DOCUMENT_VERSION=1;
+export const STUDIO_DOCUMENT_VERSION=2;
 
 const ORDER_STEP=1024;
 
@@ -26,17 +26,37 @@ function stableHash(value){
   }
   return (hash>>>0).toString(16).padStart(8,'0');
 }
+function cloneMap(value){
+  if(!value||typeof value!=='object'||Array.isArray(value))return {};
+  return Object.fromEntries(Object.entries(value).map(([key,row])=>[
+    key,
+    row&&typeof row==='object'&&!Array.isArray(row)?{...row}:row,
+  ]));
+}
+function cloneSongRow(row){
+  return {
+    ...row,
+    steps:cloneMap(row?.steps),
+    performance:row?.performance&&typeof row.performance==='object'?{...row.performance}: {},
+    performanceCues:cloneMap(row?.performanceCues),
+  };
+}
 function cloneSnapshot(snapshot){
   return {
     ...snapshot,
     meta:{...snapshot.meta},
     folders:snapshot.folders.map((row)=>({...row})),
-    songs:snapshot.songs.map((row)=>({...row})),
+    songs:snapshot.songs.map(cloneSongRow),
     bars:snapshot.bars.map((row)=>({...row})),
     revisions:snapshot.revisions.map((row)=>({
       ...row,
       documentSnapshot:{
         ...row.documentSnapshot,
+        steps:cloneMap(row.documentSnapshot?.steps),
+        performance:row.documentSnapshot?.performance&&typeof row.documentSnapshot.performance==='object'
+          ?{...row.documentSnapshot.performance}
+          :{},
+        performanceCues:cloneMap(row.documentSnapshot?.performanceCues),
         bars:(row.documentSnapshot?.bars||[]).map((bar)=>({...bar})),
       },
     })),
@@ -74,12 +94,18 @@ function snapshotBarsForLegacyRevision(songId,legacyRevision){
   if(!snapshot||!Array.isArray(snapshot.lines))return snapshotBarsForText(songId,legacyRevision?.text);
   const ids=Array.isArray(snapshot.barIds)?snapshot.barIds.map(asText):[];
   const used=new Set();
+  const revisions=Array.isArray(snapshot.barRevisions)?snapshot.barRevisions:[];
   return snapshot.lines.map((line,index)=>{
     const fallback=`revision-bar:${songId}:${String(index+1).padStart(4,'0')}`;
     let id=ids[index]||fallback;
     if(used.has(id))id=fallback;
     used.add(id);
-    return {id,orderKey:(index+1)*ORDER_STEP,text:asText(line)};
+    return {
+      id,
+      orderKey:(index+1)*ORDER_STEP,
+      text:asText(line),
+      revision:asInteger(revisions[index],0),
+    };
   });
 }
 
@@ -118,6 +144,12 @@ export function migrateLegacyStudioState(legacyState={}){
         :legacySong.deleted
           ?Math.max(updatedAt,1)
           :null,
+      editorNextBarId:Math.max(1,asInteger(legacySong.editorNextBarId,1)),
+      steps:cloneMap(legacySong.steps),
+      performance:legacySong.performance&&typeof legacySong.performance==='object'
+        ?{...legacySong.performance}
+        :{},
+      performanceCues:cloneMap(legacySong.performanceCues),
       schemaVersion:STUDIO_DOCUMENT_VERSION,
     });
 
@@ -143,16 +175,26 @@ export function migrateLegacyStudioState(legacyState={}){
 
     revisionRows.forEach((legacyRevision,revisionIndex)=>{
       const text=asText(legacyRevision?.text);
+      const legacySnapshot=legacyRevision?.snapshot&&typeof legacyRevision.snapshot==='object'
+        ?legacyRevision.snapshot
+        :null;
       revisions.push({
         id:`revision:${songId}:${String(revisionIndex+1).padStart(4,'0')}`,
         songId,
         createdAt:asTime(legacyRevision?.at),
-        reason:'legacy_revision',
+        reason:asText(legacyRevision?.reason||'legacy_revision'),
         documentSnapshot:{
           title:asText(legacySong.title||'Untitled'),
+          editorNextBarId:Math.max(1,asInteger(legacySnapshot?.editorNextBarId,1)),
+          steps:cloneMap(legacySnapshot?.steps),
+          performance:legacySnapshot?.performance&&typeof legacySnapshot.performance==='object'
+            ?{...legacySnapshot.performance}
+            :{},
+          performanceCues:cloneMap(legacySnapshot?.performanceCues),
           bars:snapshotBarsForLegacyRevision(songId,legacyRevision),
         },
       });
+      void text;
     });
   });
 
@@ -205,11 +247,13 @@ export function validateStudioDocumentSnapshot(snapshot){
   if(!Array.isArray(snapshot?.folders))errors.push('folders');
   if(errors.length)return {valid:false,errors};
 
+  const folderIds=new Set(snapshot.folders.map((folder)=>folder?.id).filter(Boolean));
   const songIds=new Set();
   const barIds=new Set();
   const revisionIds=new Set();
   for(const song of snapshot.songs){
     if(!song?.id||songIds.has(song.id))errors.push(`song:${song?.id||'missing'}`);
+    if(song?.folderId&&!folderIds.has(song.folderId))errors.push(`song-folder:${song?.id||'missing'}`);
     songIds.add(song.id);
   }
   for(const bar of snapshot.bars){
@@ -315,10 +359,15 @@ export function captureSongRevision(snapshot,songId,{reason='manual',createdAt=D
     reason:asText(reason)||'manual',
     documentSnapshot:{
       title:song.title,
+      editorNextBarId:Math.max(1,asInteger(song.editorNextBarId,1)),
+      steps:cloneMap(song.steps),
+      performance:song.performance&&typeof song.performance==='object'?{...song.performance}:{},
+      performanceCues:cloneMap(song.performanceCues),
       bars:barsForSong(next,songId).map((bar)=>({
         id:bar.id,
         orderKey:bar.orderKey,
         text:bar.text,
+        revision:asInteger(bar.revision,0),
       })),
     },
   };
