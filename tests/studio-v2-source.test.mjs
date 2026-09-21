@@ -88,6 +88,9 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/validateSelectionProof\(song\(\),selectionProof\)/u);
   assert.match(app,/performUndo/u);
   assert.match(app,/performRedo/u);
+  assert.match(app,/function restoreStudioRevision\(/u);
+  assert.match(app,/snapshot=editorSnapshot\(s\)/u);
+  assert.match(app,/restoreEditorSnapshot\(current,entry\.snapshot\)/u);
   assert.match(app,/initializeDocumentStore/u);
   assert.match(app,/shadowLegacyStudioStateToStore/u);
   assert.match(app,/DocumentStore/u);
@@ -215,6 +218,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(documentModel,/export function migrateLegacyStudioState/u);
   assert.match(documentModel,/export function splitBar/u);
   assert.match(documentModel,/export function replaceSelection/u);
+  assert.match(documentModel,/function snapshotBarsForLegacyRevision\(/u);
   assert.match(documentStore,/export function createStudioDocumentStore/u);
   assert.match(documentStore,/export async function migrateLegacyStudioStateToStore/u);
   assert.match(documentStore,/export async function shadowLegacyStudioStateToStore/u);
