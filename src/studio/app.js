@@ -17,6 +17,23 @@ state.customThemes=Array.isArray(state.customThemes)?state.customThemes:[];
 state.themeSlots=state.themeSlots&&typeof state.themeSlots==='object'?{light:state.themeSlots.light||null,dark:state.themeSlots.dark||null}:{light:null,dark:null};
 if(!['light','dark'].includes(state.theme)&&!state.customThemes.some(theme=>theme.id===state.theme))state.theme='dark';
 
+function normalizeFolderName(value){return String(value??'').normalize('NFKC').trim().slice(0,80)}
+state.folders=Array.from(new Set([
+  ...(Array.isArray(state.folders)?state.folders:[]).map(normalizeFolderName),
+  ...state.songs.map((item)=>normalizeFolderName(item.folder)),
+  'Entwürfe',
+].filter(Boolean)));
+state.songs.forEach((item)=>{
+  item.folder=normalizeFolderName(item.folder)||'Entwürfe';
+  item.createdAt=Number.isFinite(Number(item.createdAt))?Number(item.createdAt):0;
+  const latestRevision=Array.isArray(item.revisions)
+    ?item.revisions.reduce((latest,row)=>Math.max(latest,Number(row?.at)||0),0)
+    :0;
+  item.updatedAt=Math.max(Number(item.updatedAt)||0,latestRevision,item.createdAt);
+  if(item.deleted&&item.deletedAt==null)item.deletedAt=Math.max(item.updatedAt,1);
+});
+let libraryView={trash:false,query:'',folder:'all',sort:'updated'};
+
 const STUDIO_BUILTIN_THEMES={
   light:{
     id:'light',name:'Light',subtitle:'Warm Atelier',mode:'light',
@@ -172,8 +189,8 @@ function performRedo(){
   updateUndoRedoButtons();
   notify('Änderung wiederholt.');
 }
-function revision(){const s=song();s.revisions=s.revisions||[];const text=s.lines.join('\n');if(s.revisions.at(-1)?.text!==text){s.revisions.push({at:Date.now(),text});s.revisions=s.revisions.slice(-30)}}
-function changed(){ $('#saveState').textContent='Speichert …';clearTimeout(saveTimer);saveTimer=setTimeout(()=>{revision();persist()},650);updateStats() }
+function revision(){const s=song();s.revisions=s.revisions||[];const text=s.lines.join('\n');if(s.revisions.at(-1)?.text!==text){const at=Date.now();s.revisions.push({at,text});s.revisions=s.revisions.slice(-30);s.updatedAt=Math.max(Number(s.updatedAt)||0,at)}}
+function changed(){const s=song();s.updatedAt=Date.now();$('#saveState').textContent='Speichert …';clearTimeout(saveTimer);saveTimer=setTimeout(()=>{revision();persist()},650);updateStats() }
 function notify(t){$('#toast').textContent=t;$('#toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.add('hidden'),3300)}
 function resizeArea(el){el.style.height='34px';el.style.height=el.scrollHeight+'px'}
 function renderEditor(){
