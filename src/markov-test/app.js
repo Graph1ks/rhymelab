@@ -20,6 +20,7 @@ const missCache=new Set();
 let pronunciationRevision=null;
 let generatedAvailable=false;
 let markovHealth=null;
+let markovHealthByLanguage={};
 let currentCandidates=[];
 let currentPool=[];
 let currentHero=null;
@@ -250,9 +251,12 @@ function renderPoolStats(pool,data){
 }
 
 async function generate(){
-  if(!markovHealth?.available)throw new Error('Markov transition database missing. Run npm run markov:model:build.');
   const settings=settingsFromControls();
-  if(settings.language!==markovHealth.language)throw new Error(`No ${settings.language.toUpperCase()} lyric model is materialized yet.`);
+  markovHealth=markovHealthByLanguage[settings.language]||null;
+  if(!markovHealth?.available){
+    const command=settings.language==='en'?'npm run markov:model:build:en':'npm run markov:model:build';
+    throw new Error(`${settings.language.toUpperCase()} Markov transition database missing. Run ${command}.`);
+  }
   setBusy(true);setStatus('Pulling rhyme candidates from RhymeLab…','busy');$('#uiError').hidden=true;
   try{
     const {rows,data}=await fetchCandidatePool(settings.target,settings);currentPool=rows;
@@ -269,12 +273,24 @@ async function generate(){
     $('#sentenceStage').innerHTML='<div class="empty-stage"><span>¯\\_(ツ)_/¯</span><strong>NO FAKE FALLBACK</strong><p>The lyric model could not satisfy this request. Change the constraints instead of emitting template soup.</p></div>';
   }finally{setBusy(false);}
 }
-function reroll(){if(!markovHealth?.available)return;$('#randomSeed').value=String(integerSeed());generate().catch(()=>{});}
+function reroll(){
+  const language=$('#language')?.value==='en'?'en':'de';
+  if(!markovHealthByLanguage[language]?.available)return;
+  $('#randomSeed').value=String(integerSeed());
+  generate().catch(()=>{});
+}
 
 function applyModelHealth(){
   const note=$('#modelNote');
   const state=$('#modelState');
   const language=$('#language');
+  const selectedLanguage=language?.value==='en'?'en':'de';
+  markovHealth=markovHealthByLanguage[selectedLanguage]||null;
+
+  for(const option of language.options){
+    option.disabled=!markovHealthByLanguage[option.value]?.available;
+  }
+
   if(markovHealth?.available){
     const sentences=Number(markovHealth.accepted_sentences||0).toLocaleString();
     const transitions=Number(markovHealth.transitions||0).toLocaleString();
@@ -283,15 +299,14 @@ function applyModelHealth(){
       if(Object.hasOwn(roleCounts,source.kind))roleCounts[source.kind]+=Number(source.accepted_sentences||0);
     }
     const roles=`P ${roleCounts.phrase.toLocaleString()} · S ${roleCounts.sentence.toLocaleString()} · L ${roleCounts.lyric.toLocaleString()}`;
-    note.innerHTML=`<strong>DECODER V2:</strong> variable-order 1→${esc(markovHealth.order)} · <b>${sentences}</b> source lines [${roles}] · ${transitions} transitions · ${Number(markovHealth.source_windows||0).toLocaleString()} novelty windows · ${Number(markovHealth.shape_patterns||0).toLocaleString()} line shapes · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
+    note.innerHTML=`<strong>DECODER V2 · ${selectedLanguage.toUpperCase()}:</strong> variable-order 1→${esc(markovHealth.order)} · <b>${sentences}</b> source lines [${roles}] · ${transitions} transitions · ${Number(markovHealth.source_windows||0).toLocaleString()} novelty windows · ${Number(markovHealth.shape_patterns||0).toLocaleString()} line shapes · fingerprint ${esc(String(markovHealth.semantic_fingerprint||'').slice(0,12))}…`;
     note.title=note.textContent.trim();
-    state.textContent='MODEL READY';state.dataset.tone='ok';
-    for(const option of language.options)option.disabled=option.value!==markovHealth.language;
-    language.value=markovHealth.language;
+    state.textContent=`${selectedLanguage.toUpperCase()} MODEL READY`;state.dataset.tone='ok';
   }else{
-    note.innerHTML='<strong>MODEL REQUIRED:</strong> lyric structure is loaded, but the transition database is missing. Run <code>npm run markov:model:build</code>. It builds from Phrase/Mosaic rows inside the canonical <code>rhymelab-serving-v1.sqlite</code>; owner-private lyrics are not used.';
+    const command=selectedLanguage==='en'?'npm run markov:model:build:en':'npm run markov:model:build';
+    note.innerHTML=`<strong>${selectedLanguage.toUpperCase()} MODEL REQUIRED:</strong> run <code>${command}</code> after acquiring the corresponding sentence sources.`;
     note.title=note.textContent.trim();
-    state.textContent='MODEL MISSING';state.dataset.tone='error';
+    state.textContent=`${selectedLanguage.toUpperCase()} MODEL MISSING`;state.dataset.tone='error';
   }
 }
 
@@ -300,15 +315,23 @@ async function initialize(){
     const healthResponse=await fetch('/api/health');const health=healthResponse.ok?await healthResponse.json():null;
     pronunciationRevision=health?.query_pronunciation_revision||null;
     generatedAvailable=Boolean(health?.generated_optin?.available);
-    markovHealth=health?.markov_generator||null;
+    markovHealthByLanguage=health?.markov_generators||{
+      de:health?.markov_generator||null,
+      en:null,
+    };
+    markovHealth=markovHealthByLanguage.de||markovHealthByLanguage.en||null;
     const generated=$('#allowGenerated');generated.disabled=!generatedAvailable;if(!generatedAvailable)generated.checked=false;
     $('#generatedHint').textContent=generatedAvailable?'available':'not available in this runtime';
     const controls=installMarkovControls(document,{
-      generate:()=>generate().catch(()=>{}),reroll,rangeChange:updateRangeLabel,optionChange:()=>{},preset:applyPreset,
+      generate:()=>generate().catch(()=>{}),reroll,rangeChange:updateRangeLabel,
+      optionChange:(id)=>{if(id==='language'){applyModelHealth();}},
+      preset:applyPreset,
     });
     for(const id of ['rhymePressure','naturalness','weirdness','targetTokens'])updateRangeLabel(id,document.getElementById(id).value);
-    controls.randomSeed.value=String(integerSeed());applyPreset('balanced');applyModelHealth();setBusy(false);
-    setStatus(markovHealth?.available?'Markov transitions ready. Pick a rhyme target.':'Markov transition database missing — run npm run markov:model:build.',markovHealth?.available?'ok':'warn');
+    controls.randomSeed.value=String(integerSeed());
+    if(!markovHealthByLanguage.de?.available&&markovHealthByLanguage.en?.available)controls.language.value='en';
+    applyPreset('balanced');applyModelHealth();setBusy(false);
+    setStatus(markovHealth?.available?`${markovHealth.language.toUpperCase()} Markov transitions ready. Pick a rhyme target.`:'Selected Markov transition database missing.',markovHealth?.available?'ok':'warn');
   }catch(error){
     document.documentElement.dataset.rhymelabControls='failed';$('#uiError').hidden=false;
     $('#uiError').textContent=`UI initialization failed: ${error instanceof Error?error.message:String(error)}`;console.error(error);
