@@ -6,6 +6,8 @@ This document is the release gate for the RhymeLab Studio UI/UX rebuild.
 
 The new Studio surface may replace the existing Search and RhymePad entry points only after every required capability below is either READY, ADAPTED, or explicitly owner-approved as deferred. Anything else is a blocker.
 
+**Cutover rule:** visual acceptance is not functional acceptance. Studio 02 is the visual golden master, but the default route must not switch until an exhaustive old-vs-new feature audit confirms no user-facing capability has been lost. Missing legacy capabilities discovered during implementation are added to this document immediately and become blockers by default.
+
 ## Golden-master rule
 
 The supplied Studio 02 prototype is the visual and interaction reference.
@@ -92,6 +94,8 @@ The Search workspace and Studio assistant use the same SearchState. Changing sur
 | Infinite loading | yes | load-more integration | demo simulation | Results scroller | TODO |
 | Explicit More button | yes | yes | yes/demo | Results footer | TODO-live |
 | Stable result order while paging | yes contract | yes | demo | Search adapter | TODO |
+| Result metadata tags/badges | yes | yes | simplified demo | Result rows + detail dock | TODO |
+| Optional rhyme-chain display | legacy capability | legacy capability | missing | Result/analysis display toggle | TODO |
 | Result detail | yes | limited badges | yes/demo | Detail dock | TODO-live |
 | IPA | yes | result metadata | missing in demo detail | Detail dock | TODO |
 | Pronunciation variants + provenance | yes | limited | missing | Detail dock | TODO |
@@ -148,7 +152,12 @@ The Search workspace and Studio assistant use the same SearchState. Changing sur
 | Song create/open | yes | yes/demo | Library/sidebar | TODO-production |
 | Song search/sort | yes | missing | My texts | TODO |
 | Song rename/move | yes | partial | My texts | TODO |
-| Folder create/delete | yes | missing | My texts | TODO |
+| Folder tree/sidebar | yes | demo project list only | My texts / sidebar | TODO |
+| Folder create | yes | missing | My texts | TODO |
+| Folder rename | legacy capability | missing | My texts | TODO |
+| Folder move/reorder | legacy capability | missing | My texts | TODO |
+| Move song between folders | yes | partial | My texts | TODO |
+| Folder delete with safe song handling | yes | missing | My texts | TODO |
 | Trash/restore | yes | yes/demo | My texts | TODO-production |
 | Permanent delete | yes | missing | My texts | TODO |
 | Bar number | yes | yes | editor rail | TODO-production |
@@ -306,3 +315,34 @@ The old routes remain explicit regression controls until final parity acceptance
 ~~~
 
 Do not switch / to Studio until this document has no unapproved blockers.
+
+
+---
+
+# I. Exhaustive legacy inventory gate
+
+The parity tables above are a living contract, not a claim that the first inventory is complete.
+
+Before cutover, perform a deliberate old-vs-new audit of every interactive control and persisted workflow in the current Search and RhymePad surfaces.
+
+Minimum audit method:
+
+~~~text
+1. enumerate every visible legacy control, menu, toggle, filter, badge/tag and context action;
+2. enumerate every keyboard/mouse/touch behavior;
+3. enumerate every persisted state and library operation;
+4. enumerate every result-row metadata field and optional visualization;
+5. map each item to its Studio location;
+6. execute the mapped workflow in Studio;
+7. mark parity only after behavior, not merely presence, is verified.
+~~~
+
+Explicit owner-added blockers discovered after the initial matrix:
+
+~~~text
+Library folder hierarchy and folder operations
+legacy tags/badges on found words/results
+optional rhyme-chain visualization
+~~~
+
+These are mandatory for cutover unless the owner explicitly changes the contract.
