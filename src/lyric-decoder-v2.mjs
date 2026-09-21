@@ -421,15 +421,17 @@ function scoreDraft(runtime,beam,tail,tokenRows,options){
   const naturalness=clamp(
     transition*0.42
     +contextDepth*0.18
-    +shape.fit*0.17
-    +start*0.1
+    +(shape.patterns?shape.fit:0.5)*0.15
+    +phraseSupport*0.05
+    +start*0.09
     +terminal*0.06
-    +tail.candidate.usage*0.07,
+    +tail.candidate.usage*0.05,
   );
   const rhyme=clamp(tail.phonetic);
   const sourceNovelty=novelty.exactSource?0:clamp(
     novelty.novelty*0.72+(1-Math.min(1,novelty.matchedWindows/6))*0.28,
   );
+  const phraseSupport=clamp(novelty.phraseSupport||0);
 
   const naturalWeight=0.38+naturalControl*0.3;
   const rhymeWeight=0.22+pressure*0.32;
@@ -439,7 +441,7 @@ function scoreDraft(runtime,beam,tail,tokenRows,options){
   const utility=clamp((
     naturalness*naturalWeight
     +rhyme*rhymeWeight
-    +shape.fit*structureWeight
+    +(shape.patterns?shape.fit:0.5)*structureWeight
     +sourceNovelty*noveltyWeight
     +tail.support*supportWeight
   )/(naturalWeight+rhymeWeight+structureWeight+noveltyWeight+supportWeight));
@@ -453,6 +455,8 @@ function scoreDraft(runtime,beam,tail,tokenRows,options){
     shapeFit:shape.fit,
     shapeSupport:shape.support,
     sourceNovelty,
+    phraseSupport,
+    copiedPhraseRun:novelty.phraseRun||0,
     copiedSourceRun:novelty.longestSourceRun,
     exactSource:novelty.exactSource,
     lengthFit,
