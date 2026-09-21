@@ -1,0 +1,39 @@
+{
+  "schema": "rhymelab-markov-source-registry-v1",
+  "language": "de",
+  "sources": [
+    {
+      "code": "leipzig_news_2024_300k",
+      "kind": "sentence",
+      "weight": 2,
+      "enabled": true,
+      "format": "leipzig-tar-gz",
+      "url": "https://downloads.wortschatz-leipzig.de/corpora/deu_news_2024_300K.tar.gz",
+      "member_suffix": "deu_news_2024_300K-sentences.txt",
+      "license": "CC BY",
+      "license_url": "https://wortschatz-leipzig.de/de/usage",
+      "source_url": "https://dict.wortschatz-leipzig.de?corpusId=deu_news_2024",
+      "genre": "news",
+      "year": 2024,
+      "expected_rows": 300000,
+      "commercial_use": true,
+      "notes": "Download corpus is declared CC BY by Leipzig terms. Sentence order is randomized by the provider."
+    },
+    {
+      "code": "tatoeba_deu",
+      "kind": "sentence",
+      "weight": 1,
+      "enabled": true,
+      "format": "tatoeba-detailed-bz2",
+      "url": "https://downloads.tatoeba.org/exports/per_language/deu/deu_sentences_detailed.tsv.bz2",
+      "license": "CC BY 2.0 FR",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/fr/",
+      "source_url": "https://tatoeba.org",
+      "attribution_url": "https://tatoeba.org",
+      "genre": "conversational/learner",
+      "year": 2026,
+      "commercial_use": true,
+      "notes": "Weekly German detailed export. Tatoeba states textual data is CC BY 2.0 FR; attribution is required."
+    }
+  ]
+}
