@@ -84,12 +84,14 @@ test('Studio preview route is parallel and leaves legacy Search and RhymePad rou
   assert.match(server,/'\/studio\/studio-core\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/search-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/search-filters\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/detail-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
+  assert.match(server,/'\/assets\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/': \{ type: 'text\/html; charset=utf-8', body: writerHtml \}/u);
   assert.match(server,/'\/pad': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/u);
   assert.match(server,/Studio 02 preview:/u);
@@ -115,12 +117,13 @@ test('Studio migration contract keeps old routes until exhaustive parity accepta
 
 
 test('Studio orchestrator is split behind maintainable module boundaries',async()=>{
-  const [app,core,controls,search,filters,documents,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
+  const [app,core,controls,search,filters,sharedSearchState,documents,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
     readFile('src/studio/app.js','utf8'),
     readFile('src/studio/studio-core.mjs','utf8'),
     readFile('src/studio/studio-controls.mjs','utf8'),
     readFile('src/studio/search-adapter.mjs','utf8'),
     readFile('src/studio/search-filters.mjs','utf8'),
+    readFile('src/ui/search-state.mjs','utf8'),
     readFile('src/studio/document-adapter.mjs','utf8'),
     readFile('src/studio/capability-adapter.mjs','utf8'),
     readFile('src/studio/detail-adapter.mjs','utf8'),
@@ -132,6 +135,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/from '\.\/document-adapter\.mjs'/u);
   assert.match(app,/from '\.\/search-adapter\.mjs'/u);
   assert.match(app,/from '\.\/search-filters\.mjs'/u);
+  assert.match(app,/from '\.\/search-state\.mjs'/u);
   assert.match(app,/from '\.\/studio-controls\.mjs'/u);
   assert.match(app,/createWriterSearchClient\(\)/u);
   assert.match(app,/refreshWriterResults\(\)/u);
@@ -156,6 +160,8 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(search,/export function mapWriterResult/u);
   assert.match(filters,/export function filterStudioWriterRows/u);
   assert.match(filters,/export function sortStudioWriterRows/u);
+  assert.match(sharedSearchState,/SEARCH_STATE_SCHEMA='rhymelab-search-state-v1'/u);
+  assert.match(sharedSearchState,/export function searchStateToWriterParams/u);
   assert.match(documents,/export function loadStudioState/u);
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(details,/export function createStudioDetailClient/u);
@@ -415,4 +421,58 @@ test('Studio filter module covers exact sound relations, syllable windows and de
     sortStudioWriterRows(rows,{sort:'syllables',querySyllables:3}).map((row)=>row.id),
     ['a','b','c'],
   );
+});
+
+
+test('shared SearchState preserves search context across standalone Search and Studio',async()=>{
+  const {
+    SEARCH_STATE_STORAGE_KEY,
+    createSearchState,
+    loadSearchState,
+    saveSearchState,
+    searchStateFromUrl,
+    searchStateToWriterParams,
+    writeSearchStateToUrl,
+  }=await import('../src/ui/search-state.mjs');
+
+  const values=new Map();
+  const storage={
+    getItem:(key)=>values.has(key)?values.get(key):null,
+    setItem:(key,value)=>values.set(key,String(value)),
+  };
+  const initial=createSearchState({
+    anchor:'Arbeitsweise',
+    queryBasis:'de',
+    resultLanguage:'both',
+    scope:'phrase',
+    rhymeType:'assonance',
+    syllableFilter:'near2',
+    sort:'closest',
+    variantMode:'all',
+    historical:true,
+    generated:true,
+    generatedOnly:true,
+    entityCategory:'person.rapper',
+    selectedResultId:'row-42',
+  });
+  const saved=saveSearchState(initial,storage);
+  assert.equal(values.has(SEARCH_STATE_STORAGE_KEY),true);
+  assert.equal(loadSearchState(storage).selectedResultId,'row-42');
+  assert.equal(saved.scope,'phrases');
+  assert.equal(saved.generated,true);
+
+  const params=searchStateToWriterParams(saved);
+  assert.equal(params.get('scope'),'phrases');
+  assert.equal(params.get('type'),'all');
+  assert.equal(params.get('variants'),'all');
+  assert.equal(params.get('historical'),'all');
+  assert.equal(params.get('generated_only'),'1');
+
+  const url=writeSearchStateToUrl(new URL('http://127.0.0.1:3030/'),saved);
+  const restored=searchStateFromUrl(url,createSearchState());
+  assert.equal(restored.anchor,'Arbeitsweise');
+  assert.equal(restored.rhymeType,'assonance');
+  assert.equal(restored.syllableFilter,'near2');
+  assert.equal(restored.sort,'closest');
+  assert.equal(restored.entityCategory,'person.rapper');
 });
