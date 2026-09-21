@@ -8,6 +8,10 @@ function asTime(value){
   const number=Number(value);
   return Number.isFinite(number)&&number>=0?number:0;
 }
+function asInteger(value,fallback=0){
+  const number=Number(value);
+  return Number.isInteger(number)&&number>=0?number:fallback;
+}
 function slug(value){
   const text=asText(value).normalize('NFKC').trim().toLocaleLowerCase('de-DE')
     .replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-+|-+$/g,'');
@@ -118,7 +122,7 @@ export function migrateLegacyStudioState(legacyState={}){
         songId,
         orderKey:(barIndex+1)*ORDER_STEP,
         text:line,
-        revision:integer(legacyBarRevisions[barIndex],0),
+        revision:asInteger(legacyBarRevisions[barIndex],0),
       });
     });
 
