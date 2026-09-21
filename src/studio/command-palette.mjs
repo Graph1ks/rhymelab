@@ -61,7 +61,8 @@ export function commandShortcutText(shortcut){
   if(!shortcut)return '';
   return String(shortcut)
     .replace(/CtrlOrMeta/gu,'Ctrl / ⌘')
-    .replace(/Alt\+/gu,'Alt + ')
-    .replace(/Shift\+/gu,'Shift + ')
-    .replace(/\+/gu,' + ');
+    .split('+')
+    .map((part)=>part.trim())
+    .filter(Boolean)
+    .join(' + ');
 }
