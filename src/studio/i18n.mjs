@@ -6,6 +6,12 @@ export function normalizeStudioUiLanguage(value){
 
 const EN=Object.freeze({
   'Studio':'Studio',
+  'STUDIO STARTUP RECOVERY':'STUDIO STARTUP RECOVERY',
+  'Das Studio konnte nicht vollständig starten.':'The Studio could not start completely.',
+  'Technische Details':'Technical details',
+  'Neu laden':'Reload',
+  'Nur UI-Einstellungen zurücksetzen':'Reset UI settings only',
+  'Legacy Search öffnen':'Open legacy search',
   'Real Device Acceptance':'Real Device Acceptance',
   'Die sieben Gates müssen bewusst auf echter Hardware bestätigt werden. Reports von mehreren Geräten lassen sich zusammenführen; Studio markiert nie automatisch bestanden.':'The seven gates must be explicitly verified on real hardware. Reports from multiple devices can be merged; Studio never marks them as passed automatically.',
   'Acceptance importieren':'Import acceptance',
