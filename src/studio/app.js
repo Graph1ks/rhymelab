@@ -854,12 +854,21 @@ function restoreLibrarySong(id){
 function permanentlyDeleteLibrarySong(id){
   const item=state.songs.find((row)=>row.id===id&&row.deleted);
   if(!item)return;
-  showDialog('Endgültig löschen',`<p class="notice"><b>${esc(item.title)}</b> wird dauerhaft aus dem lokalen Studio-Dokument entfernt. Dieser Schritt kann nicht rückgängig gemacht werden.</p><div class="dialogactions"><button id="cancelPermanentDelete">Abbrechen</button><button id="confirmPermanentDelete" class="primary">Endgültig löschen</button></div>`);
+  showDialog('Endgültig löschen',`<p class="notice"><b>${esc(item.title)}</b> wird dauerhaft aus dem lokalen Studio-Dokument entfernt. Vorher erstellt Studio automatisch einen Recovery-Punkt, sofern IndexedDB verfügbar ist.</p><div class="dialogactions"><button id="cancelPermanentDelete">Abbrechen</button><button id="confirmPermanentDelete" class="primary">Endgültig löschen</button></div>`);
   $('#cancelPermanentDelete').onclick=closeDialog;
-  $('#confirmPermanentDelete').onclick=()=>{
-    state.songs=state.songs.filter((row)=>row.id!==id);
-    if(state.active===id)state.active=state.songs.find((row)=>!row.deleted&&!row.deletedAt)?.id||state.songs[0]?.id||null;
-    persist();closeDialog();renderLibrary(true);renderProjects();notify('Text endgültig gelöscht.');
+  $('#confirmPermanentDelete').onclick=async()=>{
+    const button=$('#confirmPermanentDelete');button.disabled=true;
+    try{
+      if(documentStoreInitialized)await createRecoveryPoint('before_permanent_song_delete');
+      state.songs=state.songs.filter((row)=>row.id!==id);
+      if(state.active===id)state.active=state.songs.find((row)=>!row.deleted&&!row.deletedAt)?.id||state.songs[0]?.id||null;
+      closeDialog();renderLibrary(true);renderProjects();
+      await flushStudioPersistence('permanent_song_delete');
+      notify('Text endgültig gelöscht · Recovery-Punkt vorher gesichert.');
+    }catch(error){
+      button.disabled=false;
+      notify('Löschen fehlgeschlagen: '+(error instanceof Error?error.message:String(error)));
+    }
   };
 }
 function clearCurrentDocument(){
