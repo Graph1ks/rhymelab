@@ -84,6 +84,10 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/commandShortcutText/u);
   assert.match(app,/function toggleStudioUiLanguage\(/u);
   assert.match(app,/createStudioDomLocalizer/u);
+  const i18n=await readFile('src/studio/i18n.mjs','utf8');
+  assert.match(i18n,/#songTitle/u);
+  assert.match(i18n,/\.project-list/u);
+  assert.match(i18n,/#lyrics/u);
   assert.match(app,/id="uiLanguageSelect"/u);
   assert.match(app,/uiLanguageSelect/u);
   assert.match(css,/\.theme-quick:hover \.theme-quick-menu/u);
@@ -196,6 +200,11 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(app,/from '\.\/device-acceptance\.mjs'/u);
   assert.match(app,/function currentDeviceAcceptanceEnvironment\(/u);
   assert.match(app,/function renderDeviceAcceptancePanel\(/u);
+  assert.match(app,/function launchDeviceAcceptanceGuide\(/u);
+  assert.match(app,/studioDeviceGateEnvironmentStatus/u);
+  assert.match(app,/data-device-gate-guide/u);
+  assert.match(app,/audioSupported:Boolean\(window\.AudioContext\|\|window\.webkitAudioContext\)/u);
+  assert.match(app,/visualViewportSupported:Boolean\(window\.visualViewport\)/u);
   assert.match(app,/function exportStudioDeviceAcceptance\(/u);
   assert.match(app,/function importStudioDeviceAcceptanceFile\(/u);
   assert.match(app,/mergeStudioDeviceAcceptanceReports/u);
