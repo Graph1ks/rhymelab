@@ -8,6 +8,7 @@ import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-control
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
 import {barIdentity,createSelectionProof,editorSnapshot,ensureEditorSong,mergeEditorBarWithPrevious,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
+import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceNeedsReview,performanceStepDurationMs,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacyStudioStateToStore} from './document-store.mjs';
 
 'use strict';
@@ -81,7 +82,7 @@ let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:ini
   sort=sharedSearchState.sort,
   basis=sharedSearchState.queryBasis,
   resultLang=sharedSearchState.resultLanguage,
-  pageSize=6,auto=false,pauseUntil=0,scrollFrame=0,lastFrame=0,undo=[],redo=[],composingBarId='',compositionCommitBarId='',compositionCommitValue='',saveTimer,toastTimer,playing=false,tick=0,playTimer,cue='hit',bpm=92,audioContext;
+  pageSize=6,auto=false,pauseUntil=0,scrollFrame=0,lastFrame=0,undo=[],redo=[],composingBarId='',compositionCommitBarId='',compositionCommitValue='',saveTimer,toastTimer,playing=false,tick=0,playTimer,cue='hit',performanceMoveFrom=null,audioContext;
 function saveStudioSearchState(overrides={}){
   sharedSearchState=createSearchState({
     ...sharedSearchState,
@@ -112,7 +113,7 @@ function syncFollowControls(){
 }
 function song(){
   const current=state.songs.find((item)=>item.id===state.active)||state.songs[0];
-  return ensureEditorSong(current);
+  return ensurePerformanceSong(ensureEditorSong(current));
 }
 const syll=estimateSyllables;
 function documentStoreDetail(){
@@ -240,9 +241,13 @@ function revision(reason='autosave'){
   s.revisions=s.revisions||[];
   const snapshot=editorSnapshot(s);
   const text=snapshot.lines.join('\n');
-  if(s.revisions.at(-1)?.text!==text){
+  const snapshotSignature=JSON.stringify(snapshot);
+  const previous=s.revisions.at(-1);
+  const previousSignature=previous?.snapshotSignature
+    ||(previous?.snapshot?JSON.stringify(previous.snapshot):previous?.text);
+  if(previousSignature!==snapshotSignature){
     const at=Date.now();
-    s.revisions.push({at,text,reason,snapshot});
+    s.revisions.push({at,text,reason,snapshot,snapshotSignature});
     s.revisions=s.revisions.slice(-30);
     s.updatedAt=Math.max(Number(s.updatedAt)||0,at);
   }
@@ -632,10 +637,178 @@ function navigate(target){stopPlay();page=target;document.body.classList.remove(
 function setMobileActive(name){queryAll('[data-mobile]').forEach(b=>b.classList.toggle('active',b.dataset.mobile===name))}
 function setMode(next){mode=next;stopPlay();queryAll('[data-mode]').forEach(b=>{const active=b.dataset.mode===next;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active)});$('#writeView').classList.toggle('hidden',next!=='write');$('#rhymeView').classList.toggle('hidden',next!=='rhyme');$('#performView').classList.toggle('hidden',next!=='perform');if(next==='rhyme')renderAnalysis();if(next==='perform')renderPerform();if(next==='write')requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea))}
 function renderAnalysis(){const s=song();$('#rhymeView').innerHTML=`<div><div class="eyebrow">Der Blick auf deinen Verse</div><h2 style="margin-top:7px">Klang, Struktur, Spannung.</h2></div><div class="analysis-card"><h3>Endreime</h3><div class="scheme">${s.lines.map((l,i)=>`<span title="Bar ${i+1}">${esc((l.match(/[\p{L}]+[.!?]?$/u)||['—'])[0].slice(-3))}</span>`).join('')}</div><p class="analysis-note" style="margin-top:14px">Demo: Wortenden als Orientierung. Echte Reimfamilien und Relationen liefert in der App der bestehende Phonetik-Kern.</p></div><div class="analysis-card"><h3>Silben pro Bar <span class="small">≈ Schätzung</span></h3><div class="densitychart">${s.lines.slice(0,16).map(l=>`<div style="height:${Math.min(85,syll(l)*5)}px"><span>${syll(l)}</span></div>`).join('')}</div><p class="analysis-note">Bar-Längen im Vergleich. Keine Bewertung deiner Lyrics.</p></div><button class="outline" id="backWrite">Zurück zum Text</button>`;$('#backWrite').onclick=()=>setMode('write')}
-function renderPerform(){stopPlay();const s=song();s.steps=s.steps||{};$('#performView').innerHTML=`<div><div class="eyebrow">Perform / Bar ${String(activeLine+1).padStart(2,'0')}</div><h2 style="margin-top:9px">Gib der Zeile deinen Flow.</h2><p style="margin-top:14px;font-size:17px">${esc(s.lines[activeLine])}</p></div><div class="row between"><label class="row"><input id="bpm" class="bpm" type="number" min="40" max="220" value="${bpm}" aria-label="Tempo in BPM"><span class="small">BPM · 4/4</span></label><button id="playBtn" class="primary">▶ Metronom</button></div><div><div class="row between" style="margin-bottom:13px"><h3>Timing & Cues</h3><span class="small">16 Schritte · 1 Bar</span></div><div class="cue-tools">${[['hit','● Hit'],['accent','▲ Akzent'],['rest','Ⅱ Pause'],['breath','◌ Atem'],['hold','→ Halten'],['erase','× Löschen']].map(([v,t])=>`<button data-cue="${v}" class="${v===cue?'active':''}" aria-pressed="${v===cue}">${t}</button>`).join('')}</div><div class="beatgrid" style="margin-top:17px">${Array.from({length:16},(_,i)=>`<button data-step="${i}" class="${s.steps[activeLine+'-'+i]?'on':''}" aria-label="Schritt ${i+1}: ${s.steps[activeLine+'-'+i]||'leer'}">${s.steps[activeLine+'-'+i]?cueSymbol(s.steps[activeLine+'-'+i]):i%4===0?i/4+1:'·'}</button>`).join('')}</div><div class="row between" style="margin-top:15px"><button class="outline" id="autoMap">Auto-Map ≈</button><button id="clearCues">Cues leeren</button></div></div><p class="analysis-note">Cue auswählen und auf einen Schritt tippen. Cues werden pro Bar gespeichert. Das Metronom ist echt; Auto-Map ist eine vereinfachte Demo-Verteilung.</p>`;$('#bpm').onchange=e=>{bpm=Math.max(40,Math.min(220,+e.target.value||92));e.target.value=bpm;stopPlay()};$('#playBtn').onclick=()=>playing?stopPlay():startPlay();queryAll('[data-cue]').forEach(b=>b.onclick=()=>{cue=b.dataset.cue;renderPerform()});queryAll('[data-step]').forEach(b=>b.onclick=()=>{pushUndo();const k=activeLine+'-'+b.dataset.step;if(cue==='erase'||s.steps[k]===cue)delete s.steps[k];else s.steps[k]=cue;persist();renderPerform()});$('#autoMap').onclick=()=>{pushUndo();for(let i=0;i<16;i++)delete s.steps[activeLine+'-'+i];const n=Math.min(16,syll(s.lines[activeLine]));for(let i=0;i<n;i++)s.steps[activeLine+'-'+Math.floor(i*16/n)]='hit';persist();renderPerform()};$('#clearCues').onclick=()=>{pushUndo();Object.keys(s.steps).filter(k=>k.startsWith(activeLine+'-')).forEach(k=>delete s.steps[k]);persist();renderPerform()}}
-function cueSymbol(c){return ({hit:'●',accent:'▲',rest:'Ⅱ',breath:'◌',hold:'→'})[c]||'·'}
-function stopPlay(){playing=false;clearInterval(playTimer);queryAll('[data-step]').forEach(e=>e.classList.remove('playhead'));if($('#playBtn'))$('#playBtn').textContent='▶ Metronom'}
-async function startPlay(){try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();await audioContext.resume();playing=true;tick=0;$('#playBtn').textContent='■ Stop';const pulse=()=>{queryAll('[data-step]').forEach((e,i)=>e.classList.toggle('playhead',i===tick));if(tick%4===0){const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=tick===0?1000:650;g.gain.setValueAtTime(.05,audioContext.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.045);o.connect(g);g.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.05)}tick=(tick+1)%16};pulse();playTimer=setInterval(pulse,60000/bpm/4)}catch(e){notify('Audio hier nicht verfügbar. Timing-Raster bleibt nutzbar.')}}
+function renderPerform(){
+  stopPlay();
+  const s=song();
+  const bar=barIdentity(s,activeLine);
+  if(!bar)return;
+  const barId=bar.id;
+  const config=performanceConfig(s);
+  const metrics=performanceBarMetrics(s,barId);
+  const steps=config.grid;
+  const stepButtons=Array.from({length:steps},(_,index)=>{
+    const stored=getPerformanceCue(s,barId,index);
+    const symbol=performanceCueSymbol(stored);
+    const selected=performanceMoveFrom===index;
+    const label=stored
+      ?`Schritt ${index+1}: ${stored.type}${stored.type==='pause'?' · '+stored.length+' Schritte':''}`
+      :`Schritt ${index+1}: leer`;
+    return `<button data-perform-step="${index}" class="${stored?'on cue-'+stored.type:''}${selected?' move-source':''}" draggable="${Boolean(stored)}" aria-label="${esc(label)}"><span>${symbol}</span><small>${index%(steps/4)===0?Math.floor(index/(steps/4))+1:'·'}</small></button>`;
+  }).join('');
+  const review=metrics.needsReview
+    ?'<div class="perform-review"><b>Timing prüfen</b><span>Der Text dieser Bar wurde nach dem letzten Cue-Mapping geändert. Cues bleiben an der stabilen Bar-ID, werden aber nicht stillschweigend verschoben.</span><button id="performMarkReviewed" class="outline">Als geprüft markieren</button></div>'
+    :'';
+  const moveHint=cue==='move'
+    ?'<span class="perform-tool-hint">'+(performanceMoveFrom==null?'Quelle anklicken oder Cue ziehen.':'Ziel für Cue '+(performanceMoveFrom+1)+' wählen.')+'</span>'
+    :'';
+  $('#performView').innerHTML=`
+    <div class="perform-head">
+      <div><div class="eyebrow">Perform / Bar ${String(activeLine+1).padStart(2,'0')}</div><h2>Flow sequenzieren.</h2><p>${esc(s.lines[activeLine]||'Leere Bar')}</p></div>
+      <div class="perform-metrics">
+        <span><b>${syll(s.lines[activeLine])||0}</b><small>Silben ≈</small></span>
+        <span><b>${metrics.cues}</b><small>Cues</small></span>
+        <span><b>${metrics.accents}</b><small>Akzente</small></span>
+        <span><b>${Math.round(metrics.density*100)}%</b><small>Dichte</small></span>
+      </div>
+    </div>
+    ${review}
+    <div class="perform-transport">
+      <label class="perform-bpm"><span>BPM</span><input id="bpm" type="number" min="40" max="220" value="${config.bpm}"></label>
+      <div class="perform-toggle" role="group" aria-label="Feel">
+        <button data-perform-feel="straight" class="${config.feel==='straight'?'active':''}" aria-pressed="${config.feel==='straight'}">Straight</button>
+        <button data-perform-feel="triplet" class="${config.feel==='triplet'?'active':''}" aria-pressed="${config.feel==='triplet'}">Triplet</button>
+      </div>
+      <div class="perform-toggle" role="group" aria-label="Raster">
+        <button data-perform-grid="8" class="${steps===8?'active':''}" aria-pressed="${steps===8}">8</button>
+        <button data-perform-grid="16" class="${steps===16?'active':''}" aria-pressed="${steps===16}">16</button>
+      </div>
+      <div class="perform-toggle" role="group" aria-label="Tempo Multiplikator">
+        <button data-perform-scale="0.5" class="${config.tempoScale===0.5?'active':''}" aria-pressed="${config.tempoScale===0.5}">½×</button>
+        <button data-perform-scale="1" class="${config.tempoScale===1?'active':''}" aria-pressed="${config.tempoScale===1}">1×</button>
+        <button data-perform-scale="2" class="${config.tempoScale===2?'active':''}" aria-pressed="${config.tempoScale===2}">2×</button>
+      </div>
+      <button id="playBtn" class="primary">▶ Metronom</button>
+    </div>
+    <div class="perform-sequencer">
+      <div class="row between wrap"><div><h3>Timing & Cues</h3><span class="small">${steps} Schritte · stabile Bar-ID ${esc(barId)}</span></div>${moveHint}</div>
+      <div class="cue-tools">
+        ${[['move','↔ Verschieben'],['hit','● Hit'],['accent','▲ Akzent'],['pause','Ⅱ Pause'],['breath','◌ Atem'],['hold','→ Halten'],['erase','× Löschen']].map(([value,label])=>`<button data-cue="${value}" class="${value===cue?'active':''}" aria-pressed="${value===cue}">${label}</button>`).join('')}
+        <label class="pause-length ${cue==='pause'?'':'hidden'}">Pause<select id="pauseLength"><option value="1">1 Step</option><option value="2">2 Steps</option><option value="3">3 Steps</option><option value="4">4 Steps</option></select></label>
+      </div>
+      <div class="beatgrid perform-grid-${steps}" id="performGrid">${stepButtons}</div>
+      <div class="row between wrap perform-actions">
+        <span class="small">${config.feel==='triplet'?'Triplet-Feel · 2:1 Puls':'Straight'} · ${config.tempoScale===0.5?'Half Time':config.tempoScale===2?'Double Time':'Normal Time'}</span>
+        <div class="row"><button class="outline" id="autoMap">Auto-Map ≈</button><button id="clearCues">Cues leeren</button></div>
+      </div>
+    </div>`;
+
+  $('#bpm').onchange=(event)=>{
+    pushUndo();setPerformanceConfig(s,{bpm:+event.target.value||92});changed();renderPerform();
+  };
+  queryAll('[data-perform-feel]').forEach((button)=>button.onclick=()=>{
+    pushUndo();setPerformanceConfig(s,{feel:button.dataset.performFeel});changed();renderPerform();
+  });
+  queryAll('[data-perform-grid]').forEach((button)=>button.onclick=()=>{
+    pushUndo();setPerformanceConfig(s,{grid:+button.dataset.performGrid});performanceMoveFrom=null;changed();renderPerform();
+  });
+  queryAll('[data-perform-scale]').forEach((button)=>button.onclick=()=>{
+    pushUndo();setPerformanceConfig(s,{tempoScale:+button.dataset.performScale});changed();renderPerform();
+  });
+  queryAll('[data-cue]').forEach((button)=>button.onclick=()=>{
+    cue=button.dataset.cue;
+    performanceMoveFrom=null;
+    renderPerform();
+  });
+  if($('#pauseLength')){
+    $('#pauseLength').value=String(config.pauseLength);
+    $('#pauseLength').onchange=(event)=>{setPerformanceConfig(s,{pauseLength:+event.target.value});persist()};
+  }
+  queryAll('[data-perform-step]').forEach((button)=>{
+    const step=+button.dataset.performStep;
+    button.onclick=()=>{
+      if(cue==='move'){
+        const existing=getPerformanceCue(s,barId,step);
+        if(performanceMoveFrom==null){
+          if(!existing){notify('Zum Verschieben zuerst einen belegten Cue wählen.');return}
+          performanceMoveFrom=step;renderPerform();return;
+        }
+        pushUndo();
+        movePerformanceCue(s,barId,performanceMoveFrom,step);
+        performanceMoveFrom=null;changed();renderPerform();return;
+      }
+      pushUndo();
+      setPerformanceCue(s,barId,step,cue,{length:performanceConfig(s).pauseLength});
+      changed();renderPerform();
+    };
+    button.addEventListener('dragstart',(event)=>{
+      if(!getPerformanceCue(s,barId,step)){event.preventDefault();return}
+      event.dataTransfer?.setData('text/plain',String(step));
+      event.dataTransfer&&(event.dataTransfer.effectAllowed='move');
+    });
+    button.addEventListener('dragover',(event)=>{event.preventDefault();if(event.dataTransfer)event.dataTransfer.dropEffect='move'});
+    button.addEventListener('drop',(event)=>{
+      event.preventDefault();
+      const from=Number(event.dataTransfer?.getData('text/plain'));
+      if(!Number.isInteger(from))return;
+      pushUndo();
+      movePerformanceCue(s,barId,from,step);
+      performanceMoveFrom=null;changed();renderPerform();
+    });
+  });
+  $('#playBtn').onclick=()=>playing?stopPlay():startPlay();
+  $('#autoMap').onclick=()=>{
+    pushUndo();
+    autoMapPerformanceBar(s,barId,syll(s.lines[activeLine]));
+    performanceMoveFrom=null;changed();renderPerform();
+    notify('Auto-Map aus Silbenschätzung gesetzt · bitte Timing prüfen.');
+  };
+  $('#clearCues').onclick=()=>{
+    pushUndo();clearPerformanceBar(s,barId);performanceMoveFrom=null;changed();renderPerform();
+  };
+  if($('#performMarkReviewed'))$('#performMarkReviewed').onclick=()=>{
+    markPerformanceReviewed(s,barId);persist();renderPerform();notify('Timing für diese Bar als geprüft markiert.');
+  };
+}
+function cueSymbol(c){return performanceCueSymbol(c)}
+function stopPlay(){
+  playing=false;
+  clearTimeout(playTimer);
+  playTimer=0;
+  queryAll('[data-perform-step]').forEach((element)=>element.classList.remove('playhead'));
+  if($('#playBtn'))$('#playBtn').textContent='▶ Metronom';
+}
+async function startPlay(){
+  try{
+    const s=song();
+    audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();
+    await audioContext.resume();
+    playing=true;tick=0;
+    if($('#playBtn'))$('#playBtn').textContent='■ Stop';
+    const pulse=()=>{
+      if(!playing)return;
+      const config=performanceConfig(s);
+      const steps=config.grid;
+      const current=tick%steps;
+      queryAll('[data-perform-step]').forEach((element,index)=>element.classList.toggle('playhead',index===current));
+      const bar=barIdentity(s,activeLine);
+      const stored=bar?getPerformanceCue(s,bar.id,current):null;
+      if(current%(steps/4)===0||stored?.type==='accent'||stored?.type==='hit'){
+        const oscillator=audioContext.createOscillator(),gain=audioContext.createGain();
+        oscillator.frequency.value=stored?.type==='accent'?1120:current===0?960:620;
+        gain.gain.setValueAtTime(stored?.type==='hit'||stored?.type==='accent'?.06:.04,audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.045);
+        oscillator.connect(gain);gain.connect(audioContext.destination);oscillator.start();oscillator.stop(audioContext.currentTime+.05);
+      }
+      const duration=performanceStepDurationMs(s,current);
+      tick=(current+1)%steps;
+      playTimer=setTimeout(pulse,duration);
+    };
+    pulse();
+  }catch(error){
+    stopPlay();
+    notify('Audio hier nicht verfügbar. Timing-Raster bleibt nutzbar.');
+  }
+}
 function showDialog(title,html){$('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=html;if(!$('#dialog').open)$('#dialog').showModal()}
 function closeDialog(){$('#dialog').close()}
 function legacyFilters(){showDialog('Dein Klang. Deine Suche.',`<div class="formgrid"><label class="field">Aussprache der Suchanfrage<select id="basis"><option value="de">Deutsch</option><option value="en">Englisch</option><option value="both">DE + EN</option></select></label><label class="field">Sprache der Ergebnisse<select id="resultLanguage"><option value="both">DE + EN</option><option value="de">Deutsch</option><option value="en">Englisch</option></select></label><label class="field">Reimbeziehung<select id="relation"><option value="all">Alle Beispiele</option><option value="rein">Reiner Reim</option><option value="nah">Naher Klang</option></select></label><label class="field">Reihenfolge<select id="sort"><option value="recommended">Writer-Empfehlung</option><option value="alpha">A–Z</option><option value="syllables">Silben aufsteigend</option></select></label></div><p class="notice">Die Live-Suche nutzt bereits die lokale Writer-Runtime. Die vollständige Filtermatrix, Varianten, historische Formen und Provenienz werden im nächsten Paritätsschritt in diese Studio-Fläche gezogen.</p><div class="dialogactions"><button id="resetFilters">Zurücksetzen</button><button id="applyFilters" class="primary">Anwenden</button></div>`);$('#basis').value=basis;$('#resultLanguage').value=resultLang;$('#relation').value=relation;$('#sort').value=sort;$('#applyFilters').onclick=()=>{basis=$('#basis').value;resultLang=$('#resultLanguage').value;relation=$('#relation').value;sort=$('#sort').value;pageSize=6;void refreshWriterResults();closeDialog()};$('#resetFilters').onclick=()=>{basis='de';resultLang='both';relation='all';sort='recommended';void refreshWriterResults();closeDialog()}}
