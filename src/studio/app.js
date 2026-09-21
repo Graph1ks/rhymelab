@@ -704,11 +704,14 @@ function renderThemeQuickMenu(){
 function setThemeQuickOpen(open,{render=true}={}){
   const quick=$('#themeQuick'),button=$('#themeBtn');
   if(!quick||!button)return;
+  const wasOpen=quick.classList.contains('open');
   clearTimeout(themeQuickCloseTimer);
   themeQuickCloseTimer=0;
   quick.classList.toggle('open',Boolean(open));
   button.setAttribute('aria-expanded',String(Boolean(open)));
-  if(open&&render)renderThemeQuickMenu();
+  // Never rebuild the menu while focus is moving into an existing item:
+  // replacing the focused button between pointerdown and click cancels activation.
+  if(open&&render&&!wasOpen)renderThemeQuickMenu();
 }
 function scheduleThemeQuickClose(delay=180){
   clearTimeout(themeQuickCloseTimer);
@@ -743,7 +746,12 @@ function bindThemeQuickMenu(){
   quick.addEventListener('mouseleave',()=>scheduleThemeQuickClose());
   menu.addEventListener('mouseenter',()=>setThemeQuickOpen(true,{render:false}));
   menu.addEventListener('mouseleave',()=>scheduleThemeQuickClose());
-  quick.addEventListener('focusin',()=>setThemeQuickOpen(true));
+  quick.addEventListener('focusin',function(event){
+    // Pointer focus on the trigger must not pre-open and then immediately
+    // close the menu when the trigger click toggles. Menu-item focus only
+    // keeps an already opened menu alive.
+    if(event.target!==button)setThemeQuickOpen(true,{render:false});
+  });
   quick.addEventListener('focusout',function(){
     requestAnimationFrame(function(){
       if(!quick.contains(document.activeElement))scheduleThemeQuickClose(80);
