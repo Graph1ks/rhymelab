@@ -319,7 +319,8 @@ Enter split / Backspace merge         DONE
 explicit multiline paste -> Bars      DONE
 IME composition transaction guard     DONE
 legacy localStorage persistence        TEMPORARY
-production DocumentStore / IndexedDB  NEXT
+IndexedDB DocumentStore shadow         DONE
+authoritative DocumentStore cutover    NEXT
 ~~~
 
 The textarea geometry remains the Studio 02 visual baseline while the production document model is introduced behind it.
