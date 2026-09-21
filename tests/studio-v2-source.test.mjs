@@ -53,9 +53,11 @@ test('Studio 02 golden-master surface is present with its core visual/interactio
   assert.match(html,/data-density="tiles"/u);
   assert.match(html,/id=["']redoBtn["']/u);
   assert.match(html,/id=["']advancedFiltersToggle["']/u);
+  assert.match(html,/id=["']advancedPreset["']/u);
   assert.match(html,/id=["']advancedRhymeType["']/u);
   assert.match(html,/id=["']advancedVariants["']/u);
   assert.match(html,/id=["']advancedEntityCategory["']/u);
+  assert.match(html,/id=["']advancedHideUsed["']/u);
   assert.match(html,/id=["']advancedHistorical["']/u);
   assert.match(html,/id=["']advancedGenerated["']/u);
   assert.match(html,/id=["']advancedGeneratedOnly["']/u);
@@ -168,6 +170,9 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/generatedOnly,/u);
   assert.match(app,/entityCategory,/u);
   assert.match(app,/function syncAdvancedControls\(/u);
+  assert.match(app,/function applySearchPreset\(/u);
+  assert.match(app,/function filterUnusedWriterRows\(/u);
+  assert.match(app,/writerRowAlreadyUsed/u);
   assert.match(app,/writeStudioState\(state\)/u);
   assert.match(app,/from '\.\/capability-adapter\.mjs'/u);
   assert.match(app,/from '\.\/detail-adapter\.mjs'/u);
