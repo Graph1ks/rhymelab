@@ -214,7 +214,8 @@
     "distribution:build:lite": "node --no-warnings scripts/build-distribution-tiers.mjs --edition lite",
     "distribution:build:standard": "node --no-warnings scripts/build-distribution-tiers.mjs --edition standard",
     "distribution:build:full": "node --no-warnings scripts/build-distribution-tiers.mjs --edition full",
-    "distribution:status": "node --no-warnings scripts/build-distribution-tiers.mjs --status"
+    "distribution:status": "node --no-warnings scripts/build-distribution-tiers.mjs --status",
+    "distribution:verify:nesting": "node --no-warnings scripts/verify-distribution-nesting.mjs"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"
