@@ -323,11 +323,12 @@ Light/Dark one-click quickswitch       DONE
 library search + sort                   DONE
 folder create/delete/move              DONE
 trash + restore + permanent delete     DONE
+stable revision snapshots / restore     DONE
 empty-folder migration to DocumentStore DONE
 legacy localStorage authority          TEMPORARY
 IndexedDB DocumentStore shadow         DONE
 authoritative DocumentStore cutover     NEXT
-save/revision production cutover        NEXT
+save/revision IndexedDB authority       NEXT
 canonical analysis                      NEXT
 full Perform parity                     NEXT
 ~~~
