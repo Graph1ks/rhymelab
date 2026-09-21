@@ -79,6 +79,7 @@ const PREFERENCE_FIELDS=Object.freeze([
   'motion',
   'assistWidth',
   'editorFont',
+  'uiLanguage',
 ]);
 
 export function studioPreferencesFromState(state={}){
