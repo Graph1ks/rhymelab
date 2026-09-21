@@ -7,6 +7,7 @@ import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchSta
 import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-controls.mjs';
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
+import {createStudioAnalysisClient,studioAnalysisWords} from './analysis-adapter.mjs';
 import {barIdentity,createSelectionProof,editorSnapshot,ensureEditorSong,mergeEditorBarWithPrevious,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
 import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceNeedsReview,performanceStepDurationMs,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacyStudioStateToStore} from './document-store.mjs';
@@ -62,9 +63,11 @@ let studioCapabilities={status:'loading'};
 let sharedSearchState=localStorage.getItem(SEARCH_STATE_STORAGE_KEY)?loadSearchState():createSearchState({queryBasis:'de',resultLanguage:'both'}),pendingSharedResultId=sharedSearchState.selectedResultId||'';
 const writerSearch=createWriterSearchClient();
 const detailClient=createStudioDetailClient();
+const analysisClient=createStudioAnalysisClient();
 const documentStore=createStudioDocumentStore();
 let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerCapabilities=null,writerDebounce=0;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
+let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null;
 let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0;
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',
   query=sharedSearchState.anchor||'Nacht',
@@ -636,7 +639,91 @@ function permanentlyDeleteLibrarySong(id){
 function navigate(target){stopPlay();page=target;document.body.classList.remove('mobile-results','find-only');if(target!=='studio')document.body.classList.remove('focus');$('#workspace').classList.toggle('hidden',target==='library'||target==='saved');$('#largeView').classList.toggle('hidden',target!=='library'&&target!=='saved');$('#breadcrumb').textContent=({studio:'Studio',search:'Reimsuche',library:'Meine Texte',saved:'Merkliste'})[target];document.body.classList.toggle('find-only',target==='search');queryAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===target));setMobileActive(target==='search'?'results':target);if(target==='library')renderLibrary();if(target==='saved')renderSaved();if(target==='studio'){requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea))}}
 function setMobileActive(name){queryAll('[data-mobile]').forEach(b=>b.classList.toggle('active',b.dataset.mobile===name))}
 function setMode(next){mode=next;stopPlay();queryAll('[data-mode]').forEach(b=>{const active=b.dataset.mode===next;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active)});$('#writeView').classList.toggle('hidden',next!=='write');$('#rhymeView').classList.toggle('hidden',next!=='rhyme');$('#performView').classList.toggle('hidden',next!=='perform');if(next==='rhyme')renderAnalysis();if(next==='perform')renderPerform();if(next==='write')requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea))}
-function renderAnalysis(){const s=song();$('#rhymeView').innerHTML=`<div><div class="eyebrow">Der Blick auf deinen Verse</div><h2 style="margin-top:7px">Klang, Struktur, Spannung.</h2></div><div class="analysis-card"><h3>Endreime</h3><div class="scheme">${s.lines.map((l,i)=>`<span title="Bar ${i+1}">${esc((l.match(/[\p{L}]+[.!?]?$/u)||['—'])[0].slice(-3))}</span>`).join('')}</div><p class="analysis-note" style="margin-top:14px">Demo: Wortenden als Orientierung. Echte Reimfamilien und Relationen liefert in der App der bestehende Phonetik-Kern.</p></div><div class="analysis-card"><h3>Silben pro Bar <span class="small">≈ Schätzung</span></h3><div class="densitychart">${s.lines.slice(0,16).map(l=>`<div style="height:${Math.min(85,syll(l)*5)}px"><span>${syll(l)}</span></div>`).join('')}</div><p class="analysis-note">Bar-Längen im Vergleich. Keine Bewertung deiner Lyrics.</p></div><button class="outline" id="backWrite">Zurück zum Text</button>`;$('#backWrite').onclick=()=>setMode('write')}
+function analysisKey(){
+  const s=song();
+  return [s.id,basis,generated,generatedOnly,...s.barIds.map((id,index)=>id+':'+s.barRevisions[index])].join('|');
+}
+function analysisRelationLabel(entry){
+  if(!entry?.relation)return '—';
+  const relation=entry.relation;
+  return relation.label+(relation.score?(' · '+Math.round(Number(relation.score)*100)+'%'):'');
+}
+function renderAnalysisSurface(){
+  const s=song(),words=studioAnalysisWords(s.lines);
+  const ready=analysisStatus==='ready'&&analysisData;
+  const scheme=ready&&Array.isArray(analysisData.scheme)?analysisData.scheme:words.map(()=>'?');
+  const rows=s.lines.map((line,index)=>{
+    const relation=ready?analysisData.lineRelations?.[index]:null;
+    const relationText=relation?analysisRelationLabel(relation):index===0?'Start':'—';
+    const prior=relation?.prior!=null?' · Bar '+String(relation.prior+1).padStart(2,'0'):'';
+    return '<button class="analysis-line" data-analysis-bar="'+index+'"><span class="analysis-bar-no">'+String(index+1).padStart(2,'0')+'</span><span class="analysis-scheme-letter">'+esc(scheme[index]||'—')+'</span><span class="analysis-end-word">'+esc(words[index]||'—')+'</span><span class="analysis-relation">'+esc(relationText+prior)+'</span></button>';
+  }).join('');
+  const coverage=ready&&analysisData.coverage
+    ?'<span>'+analysisData.coverage.resolved+'/'+analysisData.coverage.unique+' Endwörter aufgelöst'+(analysisData.coverage.truncated?' · Analyse auf 64 eindeutige Wörter begrenzt':'')+'</span>'
+    :'';
+  const canonicalState=analysisStatus==='loading'
+    ?'<div class="analysis-loading">Writer analysiert die Bar-Enden …</div>'
+    :analysisStatus==='error'
+      ?'<div class="analysis-error">Kanonische Analyse nicht verfügbar: '+esc(analysisError)+'</div>'
+      :'';
+  const runtime=ready&&analysisData.runtimeTiming?.currentMs!=null
+    ?' · '+Math.round(Number(analysisData.runtimeTiming.currentMs))+' ms'
+    :'';
+  $('#rhymeView').innerHTML=`
+    <div class="analysis-head row between wrap">
+      <div><div class="eyebrow">Song Analysis</div><h2>Klang, Struktur, Spannung.</h2><p class="small">Reimschema aus dem kanonischen Writer-Runtime-Pfad. Silbenzahlen bleiben separat als explizite UI-Schätzung markiert.</p></div>
+      <div class="row"><span class="analysis-source">WRITER · ${esc(String(basis).toUpperCase())}${runtime}</span><button id="refreshAnalysis" class="outline">Neu analysieren</button><button class="outline" id="backWrite">Zurück zum Text</button></div>
+    </div>
+    <div class="analysis-layout">
+      <section class="analysis-card analysis-rhyme-card">
+        <div class="row between"><div><h3>Kanonisches Reimschema</h3><p class="small">Vollreim, Slant, Family, Assonanz und Konsonanz kommen direkt aus der Writer-Klassifikation.</p></div>${coverage}</div>
+        ${canonicalState}
+        <div class="analysis-lines">${rows}</div>
+        ${ready&&analysisData.coverage?.unresolved?.length?'<p class="analysis-note">Nicht im aktiven Writer-Lexikon: '+esc(analysisData.coverage.unresolved.slice(0,12).join(', '))+(analysisData.coverage.unresolved.length>12?' …':'')+'</p>':''}
+      </section>
+      <section class="analysis-card">
+        <div class="row between"><div><h3>Bar-Dichte</h3><p class="small">≈ lokale Silbenschätzung · keine kanonische Phonetikmetrik</p></div><span class="analysis-estimate-badge">APPROX</span></div>
+        <div class="analysis-density-list">${s.lines.map((line,index)=>{
+          const count=syll(line);
+          const width=Math.min(100,Math.max(2,count*4));
+          return '<div class="analysis-density-row"><span>'+String(index+1).padStart(2,'0')+'</span><i><b style="width:'+width+'%"></b></i><strong>'+count+'</strong></div>';
+        }).join('')}</div>
+      </section>
+    </div>`;
+  $('#backWrite').onclick=()=>setMode('write');
+  $('#refreshAnalysis').onclick=()=>{analysisSignature='';void refreshSongAnalysis(true)};
+  queryAll('[data-analysis-bar]').forEach((button)=>button.onclick=()=>{
+    activeLine=+button.dataset.analysisBar;
+    setMode('write');
+    focusLine(activeLine);
+  });
+}
+async function refreshSongAnalysis(force=false){
+  const signature=analysisKey();
+  if(!force&&analysisSignature===signature&&(analysisStatus==='loading'||analysisStatus==='ready'))return;
+  analysisSignature=signature;
+  analysisAbort?.abort?.();
+  analysisAbort=new AbortController();
+  const token=++analysisRequest;
+  analysisStatus='loading';analysisData=null;analysisError='';
+  renderAnalysisSurface();
+  try{
+    const s=song();
+    const result=await analysisClient.analyze(s.lines,{
+      language:basis,
+      generated,
+      generatedOnly,
+      signal:analysisAbort.signal,
+    });
+    if(token!==analysisRequest)return;
+    analysisData=result;analysisStatus='ready';analysisError='';
+  }catch(error){
+    if(error?.name==='AbortError'||token!==analysisRequest)return;
+    analysisStatus='error';analysisError=error instanceof Error?error.message:String(error);
+  }
+  if(mode==='rhyme')renderAnalysisSurface();
+}
+function renderAnalysis(){renderAnalysisSurface();void refreshSongAnalysis()}
 function renderPerform(){
   stopPlay();
   const s=song();
