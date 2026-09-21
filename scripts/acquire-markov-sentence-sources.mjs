@@ -71,6 +71,14 @@ function archiveExtension(source){
   return '.bin';
 }
 
+function humanBytes(bytes){
+  const units=['B','KiB','MiB','GiB'];
+  let value=Number(bytes)||0;
+  let index=0;
+  while(value>=1024&&index<units.length-1){value/=1024;index+=1;}
+  return value.toFixed(index?1:0)+' '+units[index];
+}
+
 async function download(source,target){
   const response=await fetch(source.url,{
     headers:{
@@ -80,10 +88,49 @@ async function download(source,target){
     redirect:'follow',
   });
   if(!response.ok)throw new Error('Download failed '+response.status+' '+response.statusText+' for '+source.url);
-  const buffer=Buffer.from(await response.arrayBuffer());
+
+  const total=Number(response.headers.get('content-length')||0);
+  const reader=response.body?.getReader();
+  if(!reader){
+    const fallback=Buffer.from(await response.arrayBuffer());
+    if(!fallback.length)throw new Error('Downloaded empty archive for '+source.code);
+    await mkdir(dirname(target),{recursive:true});
+    await writeFile(target,fallback);
+    return fallback;
+  }
+
+  const chunks=[];
+  let received=0;
+  let lastReport=Date.now();
+  const started=Date.now();
+  while(true){
+    const {done,value}=await reader.read();
+    if(done)break;
+    const chunk=Buffer.from(value);
+    chunks.push(chunk);
+    received+=chunk.length;
+    const now=Date.now();
+    if(now-lastReport>=2000){
+      const elapsed=Math.max(1,(now-started)/1000);
+      const rate=received/elapsed;
+      const pct=total>0?Math.min(100,(received/total)*100):null;
+      const eta=total>0&&rate>0?Math.max(0,(total-received)/rate):null;
+      console.error(
+        '[markov-sources] download '+source.code+' · '
+        +(pct!==null?pct.toFixed(1)+'% · ':'')
+        +humanBytes(received)
+        +(total>0?'/'+humanBytes(total):'')
+        +' · '+humanBytes(rate)+'/s'
+        +(eta!==null?' · ETA '+Math.ceil(eta)+'s':'')
+      );
+      lastReport=now;
+    }
+  }
+  const buffer=Buffer.concat(chunks);
   if(!buffer.length)throw new Error('Downloaded empty archive for '+source.code);
   await mkdir(dirname(target),{recursive:true});
   await writeFile(target,buffer);
+  console.error('[markov-sources] download '+source.code+' · DONE · '+humanBytes(buffer.length));
   return buffer;
 }
 
@@ -217,8 +264,11 @@ const seen=new Set();
 const staged=[];
 const attribution=[];
 for(const source of sources){
+  const sourceStarted=Date.now();
   const archive=await loadArchive(source);
+  console.error('[markov-sources] parse '+source.code+' · '+humanBytes(archive.bytes)+' archive');
   const parsed=parseSource(source,archive.buffer);
+  console.error('[markov-sources] parse '+source.code+' · '+parsed.length.toLocaleString()+' rows');
   const selected=selectParsedRows(source,parsed);
   const sourceLimit=Number.isFinite(Number(source.max_rows))
     ?Math.max(1,Number(source.max_rows))
@@ -228,6 +278,16 @@ for(const source of sources){
     sourceCode:source.code,
     language,
     maxRows:Math.min(maxPerSource,sourceLimit),
+    onProgress:({scanned,accepted,duplicates})=>{
+      const elapsed=Math.max(1,(Date.now()-sourceStarted)/1000);
+      console.error(
+        '[markov-sources] stage '+source.code+' · '
+        +scanned.toLocaleString()+' scanned · '
+        +accepted.toLocaleString()+' accepted · '
+        +duplicates.toLocaleString()+' dupes · '
+        +Math.round(scanned/elapsed).toLocaleString()+' rows/s'
+      );
+    },
   });
 
   const stagedPath=join(outDir,source.code+'.txt');
@@ -273,7 +333,8 @@ for(const source of sources){
     '[markov-sources] '+source.code+
     ' parsed='+parsed.length.toLocaleString()+
     ' accepted='+stage.stats.accepted.toLocaleString()+
-    ' duplicates='+stage.stats.duplicates.toLocaleString()
+    ' duplicates='+stage.stats.duplicates.toLocaleString()+
+    ' elapsed='+Math.round((Date.now()-sourceStarted)/1000)+'s'
   );
 }
 
