@@ -2,7 +2,7 @@
 
 ## Status
 
-**PAUSED intentionally. Do not continue this work unless the owner explicitly reopens it.**
+**PAUSED intentionally. Do not continue this work unless the owner explicitly reopens it. The current implementation may ship only as frozen demo infrastructure; it must not be linked or promoted from the RhymeLab product UI.**
 
 This document is the authoritative restart point for the Markov / constrained lyric generation work.
 
@@ -12,7 +12,7 @@ Pause checkpoint:
 date        2026-09-21
 branch      feature/markov-generator-testpage-v1
 draft PR    #184
-head        3103a877fa700d1d30350a4d430e609b8dbd22bd
+head        033b64d
 CI          #872 PASS
 ~~~
 
@@ -24,7 +24,7 @@ Test suite               PASS
 Public-readiness audit   PASS
 ~~~
 
-Do not merge PR #184 unless the owner explicitly requests it.
+The owner authorized PR #184 to ship as technical release infrastructure on 2026-09-21. This authorization does not reopen Markov development: keep the demo route isolated and unlinked from RhymeLab.
 
 ## Read first when resuming
 
