@@ -106,8 +106,8 @@ function normalizedQueryDetail(result,word,language){
 
 export function extractAnalysisEndWord(line){
   const text=String(line??'').normalize('NFKC').trim();
-  const match=text.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*[.!?,;:]*$/u);
-  return match?match[0].replace(/[.!?,;:]+$/u,''):'';
+  const match=text.match(/([\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*)[\p{P}\p{S}\s]*$/u);
+  return match?.[1]||'';
 }
 
 async function mapWithConcurrency(values,limit,worker){
