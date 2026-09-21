@@ -3,7 +3,7 @@ import {$,queryAll,esc,icon,clamp} from './studio-core.mjs';
 import {STUDIO_DEMO_LINES,loadStudioState,writeStudioState} from './document-adapter.mjs';
 import {createWriterSearchClient,estimateSyllables} from './search-adapter.mjs';
 import {STUDIO_RHYME_TYPE_LABELS,filterStudioWriterRows,sortStudioWriterRows} from './search-filters.mjs';
-import {createSearchState,loadSearchState,saveSearchState} from './search-state.mjs';
+import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchState} from './search-state.mjs';
 import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-controls.mjs';
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
@@ -31,7 +31,7 @@ const THEME_COLOR_FIELDS=[
 ];
 let themeEditingId='',themePreviewing=false;
 let studioCapabilities={status:'loading'};
-let sharedSearchState=loadSearchState(),pendingSharedResultId=sharedSearchState.selectedResultId||'';
+let sharedSearchState=localStorage.getItem(SEARCH_STATE_STORAGE_KEY)?loadSearchState():createSearchState({queryBasis:'de',resultLanguage:'both'}),pendingSharedResultId=sharedSearchState.selectedResultId||'';
 const writerSearch=createWriterSearchClient();
 const detailClient=createStudioDetailClient();
 let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerCapabilities=null,writerDebounce=0;
