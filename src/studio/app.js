@@ -1433,7 +1433,7 @@ function renderLibrary(showTrash=libraryView.trash){
     <div class="library-shell">
       <aside class="library-folders" aria-label="Ordner">
         <div class="library-folder-head"><span class="eyebrow">ORDNERSTRUKTUR</span>${libraryView.trash?'':'<button id="newFolderBtn" class="icon" aria-label="Neuer Hauptordner" title="Neuer Hauptordner">＋</button>'}</div>
-        <div class="library-folder-row" ${libraryView.trash?'':'data-folder-drop="Entwürfe"'}><button data-folder-filter="all" class="${allActive?'active':''}" aria-pressed="${allActive}"><span>Alle Texte</span><small>${sourceRows.length}</small></button></div>
+        <div class="library-folder-row"><button data-folder-filter="all" class="${allActive?'active':''}" aria-pressed="${allActive}"><span>Alle Texte</span><small>${sourceRows.length}</small></button></div>
         ${folders.map(folderButton).join('')}
       </aside>
       <section class="library-content">
