@@ -113,7 +113,7 @@ async function writeIfChanged(path,text){
 function runBuilder(extraArgs){
   const result=spawnSync(process.execPath,[
     'scripts/build-markov-model.mjs',
-    '--sentences',`serving_v1_phrases=${sourceOut}`,
+    '--source',`phrase:serving_v1_phrases:1=${sourceOut}`,
     ...extraArgs,
   ],{
     cwd:root,
