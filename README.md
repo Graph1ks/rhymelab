@@ -6,73 +6,70 @@ RhymeLab is a **local-only** Node.js + SQLite project. Core search is determinis
 
 ## Current runtime
 
-RhymeLab `v0.11.0` promotes the accepted German single-word Writer runtime as the normal local/UI path:
+RhymeLab `v0.11.0` now uses the canonical single-file Serving-v1 product runtime and Studio V2 shell:
 
-```text
-writer runtime        materialized-writer-v5-v1
-writer DB schema      rhymelab-local-db-v5
-writer ranking        deterministic_writer_utility_v6
-right-edge anchor     de-right-edge-anchors-v1
-morphology            de-attested-right-head-v4
-construction          de-adverbial-weise-v2
-```
+~~~text
+product shell          Studio V2 (default / route)
+product runtime        serving-v1-single-db-product-candidate
+canonical database     data/local/rhymelab-serving-v1.sqlite
+search channels        DE/EN Words + Phrase/Mosaic + Entities
+generated policy       available by default, explicit opt-out
+legacy Search          /search and /legacy
+RhymePad fallback      /pad and /pad-legacy
+~~~
 
-The previous v4 runtime remains available only as the protected regression/control path through `?ranking=legacy` when `data/local/rhymelab.sqlite` is present.
+The accepted Writer/rhyme semantics remain deterministic and source-backed. Historical Writer-v5/v4 paths are retained as engineering/control inputs rather than the normal product route.
 
-The accepted Writer v5 evidence is documented in `docs/WRITER_SEARCH_ACCEPTANCE.md`.
+Markov / Constrained Lyric Decoder V2 is intentionally frozen. Its demo infrastructure may ship, but it is not part of RhymeLab product navigation.
 
 ## Local run
 
 Requirements:
 
 - Node.js 22.5+
-- promoted Writer database at `data/local/rhymelab-v5.sqlite`
+- canonical Serving-v1 database at `data/local/rhymelab-serving-v1.sqlite`
 
 Run:
 
-```powershell
+~~~powershell
 npm run dev
-```
+~~~
 
 Open:
 
-```text
+~~~text
 http://127.0.0.1:3030
-```
+~~~
 
-`npm run dev` now uses the materialized v5 Writer runtime by default.
+Studio V2 is served at the root route. The previous Search and RhymePad remain available for regression/fallback use.
 
-The old v4 database is optional for normal use. If present at `data/local/rhymelab.sqlite`, requests with `?ranking=legacy` use it as the regression/control path.
+To temporarily restore Search as the root route:
 
-### Build the Writer v5 database
+~~~powershell
+npm run dev:search-default
+~~~
 
-If `data/local/rhymelab-v5.sqlite` does not exist and the source snapshots are already available locally:
+### Build the canonical Serving-v1 database
 
-```powershell
-npm run writer:v5:rebuild
-```
+If the canonical product database is not available and the required local source/runtime material has already been prepared:
 
-Individual steps are also exposed:
-
-```powershell
-npm run de:publish:v3
-npm run local:db:v5
-npm run writer:v5:materialize
-```
+~~~powershell
+npm run serving:v1:build
+npm run serving:v1:status
+~~~
 
 Generated databases and downloaded/generated linguistic datasets stay local and gitignored.
 
 ## Runtime overrides
 
-```text
-RHYMELAB_WRITER_DB   promoted Writer v5 database
-RHYMELAB_LEGACY_DB   optional v4 control database
-RHYMELAB_HOST        bind host, default 127.0.0.1
-RHYMELAB_PORT        port, default 3030
-```
+~~~text
+RHYMELAB_SERVING_V1_DB   canonical Serving-v1 product database
+RHYMELAB_SEARCH_DEFAULT  set to 1 to use previous Search at /
+RHYMELAB_HOST            bind host, default 127.0.0.1
+RHYMELAB_PORT            port, default 3030
+~~~
 
-`RHYMELAB_DB` remains a compatibility alias for the legacy/control DB path.
-
+Legacy Writer/database override variables remain available for explicit engineering/control modes.
 
 ### Browser unknown-word pronunciation test
 
@@ -90,13 +87,14 @@ Repository state is authoritative. In a fresh development thread read:
 
 1. `AGENTS.md`
 2. `PROJECT.md`
-3. `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`
-4. `docs/HANDOVER.md`
-5. `STATUS.md`
-6. `PROJECT_STATE.json`
-7. `ROADMAP.md`
-8. `DATA_SOURCES.md`
-9. the acceptance/domain documents relevant to the subsystem being changed
+3. `docs/STUDIO_V2_HANDOVER.md`
+4. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`
+5. `docs/HANDOVER.md`
+6. `STATUS.md`
+7. `PROJECT_STATE.json`
+8. `ROADMAP.md`
+9. `DATA_SOURCES.md`
+10. the acceptance/domain documents relevant to the subsystem being changed
 
 `PROJECT.md` holds durable project intent, repository mode, architecture boundaries, cost/licensing/contribution policy, and QA expectations. `STATUS.md` plus the handover documents hold current continuation state. `CHANGELOG.md` is the curated meaningful history from 2026-09-19 onward.
 
@@ -143,13 +141,17 @@ The major accepted baselines are now:
 
 Current follow-up work is intentionally narrower:
 
-1. exercise and quality-benchmark the browser/client unknown-word IPA resolver independently from bulk Entity pronunciation work;
-2. improve Entity Writer latency without changing accepted semantics;
-3. continue only the targeted Top-100k unresolved-Entity pronunciation evidence campaign, not the full unresolved long tail;
-4. refine the product/UI without silently changing frozen retrieval, ranking, phonology, or diversity behavior.
+1. complete the seven real-device/browser/touch/Web Audio acceptance checks for live Studio V2;
+2. fix only concrete Studio regressions found by that acceptance while keeping the Search-root rollback available;
+3. preserve Serving-v1 and the accepted Phrase/English/Entity/ranking semantics;
+4. keep Markov frozen and unlinked until the owner explicitly reopens that work;
+5. continue separate pronunciation/data work only under its existing explicit gates.
 
 Authoritative current-state documents:
 
+- `docs/STUDIO_V2_HANDOVER.md`
+- `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`
+- `docs/MARKOV_GENERATOR_HANDOVER.md`
 - `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`
 - `docs/PHASE_12C_ACCEPTANCE.md`
 - `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md`

@@ -973,6 +973,7 @@ export function searchUnifiedWriter(
       deEntityChannel=timed('entities_de',()=>searchEntityRhymes(entityDb,targetQuery,{
         language:'de',
         category:options.entityCategory||'all',
+        categories:options.entityCategories||[],
         type:options.type||'all',
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
@@ -1007,6 +1008,7 @@ export function searchUnifiedWriter(
       enEntityChannel=timed('entities_en',()=>searchEntityRhymes(entityDb,targetQuery,{
         language:'en',
         category:options.entityCategory||'all',
+        categories:options.entityCategories||[],
         type:options.type||'all',
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),

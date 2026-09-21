@@ -195,7 +195,18 @@
     "markov:model:status:en": "node --no-warnings scripts/build-markov-en-v2.mjs --status",
     "markov:data:bootstrap:de": "npm run markov:sources:acquire && npm run markov:model:build",
     "markov:data:bootstrap:en": "npm run markov:sources:acquire:en && npm run markov:model:build:en",
-    "markov:lyrics:structure:analyze": "node --no-warnings scripts/analyze-lyric-structure.mjs"
+    "markov:lyrics:structure:analyze": "node --no-warnings scripts/analyze-lyric-structure.mjs",
+    "dev:studio-default": "node src/server.mjs --studio-default",
+    "studio:v2:cutover:code": "node --no-warnings scripts/check-studio-v2-cutover.mjs --code-only",
+    "studio:v2:cutover:check": "node --no-warnings scripts/check-studio-v2-cutover.mjs",
+    "studio:v2:cutover:json": "node --no-warnings scripts/check-studio-v2-cutover.mjs --json",
+    "studio:v2:accepted-preview": "npm run studio:v2:cutover:check && node src/server.mjs --studio-default",
+    "studio:v2:acceptance:merge": "node --no-warnings scripts/merge-studio-device-acceptance.mjs",
+    "studio:v2:verify": "npm run check && npm test && npm run studio:v2:cutover:code",
+    "studio:v2:release:verify": "npm run studio:v2:verify && npm run studio:v2:cutover:check",
+    "studio:v2:release:preview": "npm run studio:v2:release:verify && node src/server.mjs --studio-default",
+    "dev:search-default": "node src/server.mjs --search-default",
+    "studio:v2:live": "npm run studio:v2:verify && node src/server.mjs"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"

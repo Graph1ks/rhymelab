@@ -8,6 +8,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Added
 
+- Added Studio V2 as the production songwriting shell with live Writer/Search, IndexedDB document authority, recovery/portable backup, hierarchical Library, Perform sequencing, canonical song analysis, DE/EN UI, mobile viewport engineering, diagnostics and command-palette workflows.
+- Added a regression contract that keeps the frozen Markov V2 implementation direct-demo-only and prevents `/markov-test` from being linked by Studio, Search or RhymePad product surfaces.
 - Added `docs/DISTRIBUTION_TIERS.md` as the durable Lite/Standard/Full packaging contract: 50k Core Words for Lite, 250k Core plus Phrase/Entity features for Standard, and 400k Core + 200k Generated plus Phrase/Entity/Markov live generation for Full. The contract fixes nested-edition, capability, one-Master-build, storage-census and relational-closure requirements.
 - Added a report-grade Serving-v1 steady-state performance benchmark with discarded warmup rounds, deterministic interleaved repeats, per-language/per-query percentiles, semantic repeatability checks, environment/DB fingerprints, and companion JSON + Markdown reports. Performance target misses are reported without turning a completed measurement into a command failure.
 - Added persistent Serving-v1 channel workers for DE Words, EN Words, Phrase/Mosaic, DE Entities and EN Entities. The real preview UI, hotpath benchmark and Product Acceptance latency path now execute eligible channels concurrently with one long-lived read-only SQLite connection per worker and no cross-request search caching.
@@ -37,6 +39,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Changed
 
+- Studio V2 is now the default `/` route for normal `npm run dev` / `npm start`; the previous Search remains available at `/search` and `/legacy`, RhymePad at `/pad`, and `npm run dev:search-default` provides an explicit reversible root-route fallback.
+- Markov / Constrained Lyric Decoder V2 remains frozen. It may ship as isolated demo infrastructure but is not part of RhymeLab product navigation or promotion.
 - Generated data is now included by default whenever the generated-capable runtime is available; the existing checkbox is an opt-out and `generated=0` is the explicit Core-only API mode.
 - Added a fail-closed German scorer upper-bound prefilter that skips expensive feature/full-score work only for provably impossible matches; retrieval populations and accepted result semantics remain unchanged and are guarded by optimized-vs-full response parity tests.
 - Query pronunciation cache reuse now requires the once-per-session `/api/health` database revision; DB or resolver updates invalidate stale generated pronunciations while source-backed database pronunciation remains authoritative.

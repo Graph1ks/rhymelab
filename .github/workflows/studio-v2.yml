@@ -1,0 +1,50 @@
+name: Studio V2 Gate
+
+on:
+  push:
+    branches:
+      - feature/studio-v2-ui-redesign
+  pull_request:
+    paths:
+      - 'src/studio/**'
+      - 'src/ui/search-state.mjs'
+      - 'src/entity-writer-runtime.mjs'
+      - 'src/unified-writer-search.mjs'
+      - 'src/server.mjs'
+      - 'tests/studio-*.test.mjs'
+      - 'tests/search-state-multiselect.test.mjs'
+      - 'scripts/check-studio-v2-cutover.mjs'
+      - 'scripts/merge-studio-device-acceptance.mjs'
+      - 'docs/STUDIO_V2_MIGRATION_PLAN.md'
+      - 'docs/UI_REDESIGN_PARITY.md'
+      - 'package.json'
+      - '.github/workflows/studio-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-v2-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-and-test:
+    name: Source + Tests + Cutover Code Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Studio V2 verification bundle
+        run: npm run studio:v2:verify

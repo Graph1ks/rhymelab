@@ -7,36 +7,18 @@ This repository is the authoritative engineering/project memory for RhymeLab. Re
 Before changing the project in a fresh thread/session, read:
 
 1. `PROJECT.md` — durable product identity, repository mode, architecture/cost/license/contribution boundaries
-2. `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — current Phase 12C continuation context
-3. `docs/PHASE_12C_ACCEPTANCE.md` — accepted source-backed Phase 12C contract
-4. `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` — isolated AI evidence/import/audit contract
-5. `docs/HANDOVER.md`
-6. `STATUS.md`
-7. `PROJECT_STATE.json`
-8. `docs/PHASE_11_ACCEPTANCE.md`
-9. `ROADMAP.md`
-10. `DATA_SOURCES.md`
-11. `docs/WRITER_SEARCH_ACCEPTANCE.md`
-12. `docs/PHRASE_MOSAIC_PLAN.md`
-13. `docs/FUTURE_NATURAL_LANGUAGE_RHYME_RETRIEVAL.md`
-14. `docs/REPOSITORY_GOVERNANCE.md`
-15. `docs/BENCHMARK.md` for rhyme-quality/ranking work
-16. `docs/API.md` for local API work
-17. `docs/UI_INTERACTION_CONTRACT.md` for browser UI/control work
-18. `docs/ENTITY_SOURCE_ALTERNATIVES_2026-09-18.md` for Phase 12A source-acquisition history
-19. `docs/ENTITY_LEXICON_PLAN.md` and `docs/ENTITY_STAGING_V1.md` for Phase 12A entity/popularity history
-20. `docs/ENTITY_CUT_HYBRID_V1.md` and `docs/ENTITY_CUT_HYBRID_V2.md` for Phase 12A2 popularity-cut history
-21. `docs/ENTITY_PRONUNCIATION_RUNTIME_V1.md` for the Phase 12A3 Entity IPA/runtime checkpoint
-22. `docs/ENTITY_PHASE_12A_DEFERRED_CHECKPOINT.md` for the frozen Phase 12A boundary resumed by Phase 12C
-23. `docs/ENGLISH_WRITER_SOURCE_PLAN.md` for accepted/frozen Phase 12B English Writer history
-24. `docs/UNKNOWN_QUERY_PRONUNCIATION_FALLBACK.md` for the unknown user-query pronunciation fallback contract
-25. `docs/QUERY_PRONUNCIATION_TOTAL_V1.md` for the active client-side total query-pronunciation runtime for words and word chains plus benchmark/staging boundaries
-26. `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md` for the current client resolver, persistent cache/revalidation contract, browser test, and fresh-thread continuation
-27. `docs/PRONUNCIATION_BACKFILL_V2.md` for the corrected owner-authorized source/stage → accepted diff plus resumable eSpeak → client-resolver staging workflow
-28. `docs/LOCAL_DATA_INVENTORY.md` before changing local source-path assumptions or full-data backfill adapters
-29. `docs/SERVING_V1.md` before changing the experimental unified Serving-v1 identity/dedupe build, Core authority, resume/promotion behavior, or later Serving-v1 runtime promotion
-30. `docs/SERVING_V1_RUNTIME_MATERIALIZATION.md` before changing Serving-v1 runtime targets, unified retrieval keys, precomputed morphology/Phrase evidence, retrieval equivalence, or runtime-materialization promotion
-31. `docs/SERVING_V1_PRODUCT_ADAPTER.md` before changing the one-DB Product compatibility layer, Product metadata build, semantic/ordering acceptance, latency switch gates, or final Serving runtime promotion
+2. `docs/STUDIO_V2_HANDOVER.md` — current product-shell implementation and live-cutover checkpoint
+3. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — still-pending physical browser/touch/Web Audio acceptance matrix
+4. `STATUS.md` — current operational state
+5. `PROJECT_STATE.json` — machine-readable current state
+6. `docs/HANDOVER.md` — current continuation pointer plus historical chronology
+7. `docs/MARKOV_GENERATOR_HANDOVER.md` — frozen Markov demo boundary; do not reopen without explicit owner direction
+8. `docs/SERVING_V1.md` and `docs/SERVING_V1_PRODUCT_ADAPTER.md` — canonical Serving-v1 runtime/data contracts
+9. `docs/PHASE_11_ACCEPTANCE.md` — accepted/frozen German Phrase/Mosaic behavior
+10. `docs/PHASE_12C_ACCEPTANCE.md` and `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — accepted Entity runtime and isolated AI staging boundary
+11. `docs/UI_INTERACTION_CONTRACT.md` and `docs/UI_REDESIGN_PARITY.md` — browser interaction/parity contracts
+12. `docs/DISTRIBUTION_TIERS.md` — Lite/Standard/Full packaging contract
+13. `ROADMAP.md`, `DATA_SOURCES.md`, `docs/API.md`, and subsystem-specific acceptance/benchmark documents when relevant
 
 ## Operating model — solo-dev / owner-controlled
 
@@ -215,7 +197,7 @@ modern_entity_relative_commonness_1decade_0_05
 
 Phase 11 German phrase/mosaic/phraseology is **complete, accepted and frozen**. Read `docs/PHASE_11_ACCEPTANCE.md` before changing any accepted German Phrase/Mosaic behavior.
 
-The accepted product path is one unified Writer UI at `/` and `GET /api/writer`. There is no separate `/phrases` product route. Phrase catalog/detail APIs remain internal read-only support for result inspection and diagnostics.
+The accepted product shell is Studio V2 at `/`, backed by the canonical `GET /api/writer` pipeline. The previous unified Search is retained at `/search` and `/legacy` as a regression/fallback surface; RhymePad remains at `/pad`. There is no separate `/phrases` product route. Phrase catalog/detail APIs remain internal read-only support for result inspection and diagnostics.
 
 Frozen product rules:
 
@@ -228,7 +210,7 @@ Frozen product rules:
 - `DE / EN / DE+EN` remains the unified language-basis contract;
 - English stays capability-gated until Phase 12 supplies a real accepted English runtime.
 
-Current active milestone: **Phase 12C — source-backed multilingual Entity runtime + isolated AI pronunciation staging acceptance**.
+Current active milestone: **Studio V2 live real-device acceptance and regression hardening**. Markov / Constrained Lyric Decoder V2 is frozen, demo-only and must remain unlinked from product surfaces.
 
 Read `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`, `docs/PHASE_12C_ACCEPTANCE.md`, and `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` before changing Entity runtime, AI staging, benchmark-review, or promotion boundaries.
 

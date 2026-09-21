@@ -201,8 +201,8 @@ Persist decisions and engineering facts, not raw conversations. No continuation-
 
 ## Current priorities
 
-1. Exercise and quality-benchmark the browser/client unknown-word IPA resolver independently from bulk Entity pronunciation work.
-2. Preserve the accepted Phase 11, Phase 12B, and source-backed Phase 12C baselines while fixing concrete regressions.
-3. Improve Entity Writer performance without changing accepted semantics.
-4. Keep targeted Top-100k unresolved-Entity AI pronunciation work isolated as evidence until an explicit later promotion gate.
-5. Continue product/UI refinement without silently changing canonical retrieval/ranking behavior.
+1. Complete Studio V2 real-device/browser/touch/Web Audio acceptance while Studio remains the reversible default product shell.
+2. Fix concrete Studio V2 regressions without changing canonical Serving-v1 retrieval, scoring or ranking semantics.
+3. Preserve the accepted Phase 11, Phase 12B, source-backed Phase 12C and Serving-v1 baselines.
+4. Keep Markov / Constrained Lyric Decoder V2 frozen, demo-only and unlinked until the owner explicitly reopens it.
+5. Continue pronunciation/data/performance work only under the existing explicit owner gates; do not let it silently redefine product truth.
