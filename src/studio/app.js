@@ -106,7 +106,7 @@ const documentStore=createStudioDocumentStore();
 let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerCapabilities=null,writerDebounce=0;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
 let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all',analysisChainVisible=false;
-let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0,mobileViewportCleanup=null;
+let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0,documentSaveGeneration=0,documentSaveChain=Promise.resolve(),mobileViewportCleanup=null;
 let uiLocalizer=null;
 let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:initial[3].length},mode='write',page='studio',
   query=sharedSearchState.anchor||'Nacht',
@@ -185,27 +185,44 @@ function documentStoreDetail(){
   if(documentStoreStatus==='error')return documentStoreError||'Fehler';
   return 'wird vorbereitet';
 }
-function queueDocumentShadow(delay=180){
-  if(!documentStoreInitialized)return;
-  clearTimeout(documentShadowTimer);
-  documentShadowTimer=setTimeout(()=>{void syncDocumentShadow()},delay);
+function cloneStudioStateForPersistence(){
+  try{return structuredClone(state)}
+  catch{return JSON.parse(JSON.stringify(state))}
 }
-async function syncDocumentShadow(){
-  if(!documentStoreInitialized)return;
+function queueDocumentShadow(delay=180){
+  if(!documentStoreInitialized)return 0;
+  clearTimeout(documentShadowTimer);
+  const generation=++documentSaveGeneration;
+  documentShadowTimer=setTimeout(()=>{void syncDocumentShadow(generation)},delay);
+  return generation;
+}
+function syncDocumentShadow(generation=documentSaveGeneration){
+  if(!documentStoreInitialized)return Promise.resolve(false);
+  const snapshotState=cloneStudioStateForPersistence();
   documentStoreStatus='saving';
   if($('#saveState'))$('#saveState').textContent='Speichert in IndexedDB …';
   updateCapabilitySurface();
-  try{
-    await shadowLegacyStudioStateToStore(state,documentStore);
-    documentStoreAuthority=true;
-    documentStoreStatus='ready';documentStoreError='';
-    if($('#saveState'))$('#saveState').textContent='IndexedDB gespeichert';
-  }catch(error){
-    documentStoreStatus='error';
-    documentStoreError=error instanceof Error?error.message:String(error);
-    if($('#saveState'))$('#saveState').textContent='IndexedDB-Speichern fehlgeschlagen';
-  }
-  updateCapabilitySurface();
+  documentSaveChain=documentSaveChain.catch(()=>{}).then(async()=>{
+    try{
+      await shadowLegacyStudioStateToStore(snapshotState,documentStore);
+      documentStoreAuthority=true;
+      if(generation===documentSaveGeneration){
+        documentStoreStatus='ready';documentStoreError='';
+        if($('#saveState'))$('#saveState').textContent='IndexedDB gespeichert';
+        updateCapabilitySurface();
+      }
+      return true;
+    }catch(error){
+      if(generation===documentSaveGeneration){
+        documentStoreStatus='error';
+        documentStoreError=error instanceof Error?error.message:String(error);
+        if($('#saveState'))$('#saveState').textContent='IndexedDB-Speichern fehlgeschlagen';
+        updateCapabilitySurface();
+      }
+      return false;
+    }
+  });
+  return documentSaveChain;
 }
 async function initializeDocumentStore(){
   try{
@@ -262,6 +279,19 @@ function persist(){
     if($('#saveState'))$('#saveState').textContent='Speichern nicht möglich · bitte exportieren';
     return false;
   }
+}
+async function flushStudioPersistence(reason='explicit_flush'){
+  clearTimeout(saveTimer);
+  clearTimeout(documentShadowTimer);
+  revision(reason);
+  writeStudioPreferences(state);
+  if(documentStoreInitialized){
+    const generation=++documentSaveGeneration;
+    return syncDocumentShadow(generation);
+  }
+  writeStudioState(state);
+  if($('#saveState'))$('#saveState').textContent='Lokal gespeichert · Fallback';
+  return true;
 }
 function updateUndoRedoButtons(){
   const undoButton=$('#undoBtn'),redoButton=$('#redoBtn');
@@ -1507,7 +1537,7 @@ document.addEventListener('keydown',e=>{
   if(e.altKey&&e.key==='1'){e.preventDefault();navigate('studio')}
   if(e.altKey&&e.key==='2'){e.preventDefault();navigate('search')}
   if(e.altKey&&key==='f'){e.preventDefault();toggleFocus()}
-});window.addEventListener('resize',()=>queryAll('#lyrics textarea').forEach(resizeArea));document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPlay();revision();persist()}});window.addEventListener('pagehide',()=>{revision();persist();mobileViewportCleanup?.();uiLocalizer?.disconnect()});document.body.dataset.controls='bound';}
+});window.addEventListener('resize',()=>queryAll('#lyrics textarea').forEach(resizeArea));document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPlay();void flushStudioPersistence('visibility_hidden')}});window.addEventListener('pagehide',()=>{void flushStudioPersistence('pagehide');mobileViewportCleanup?.();uiLocalizer?.disconnect()});document.body.dataset.controls='bound';}
 // Version 2: direct desktop controls and docked surfaces.
 let density=normalizeDensity(state.density),syllableMode='all',followSelection=true,selectedResult='',selectedResultId='',dockTab='',resultSignature='',selectionProof=null;
 state.motion=state.motion||'auto';
