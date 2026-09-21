@@ -33,6 +33,7 @@ export function createStudioState(){
     themeSlots:{light:null,dark:null},
     customThemes:[],
     fontSize:21,
+    uiLanguage:'de',
   };
 }
 
