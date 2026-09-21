@@ -12,7 +12,10 @@ import {
   isPunctuationToken,
   modelStats,
   normalizeModelToken,
+  lexicalNorms,
   readMeta,
+  sequenceHash,
+  shapeKeyForTokens,
   stateKey,
   tokenizeSurface,
 } from './markov-model-core.mjs';
@@ -23,8 +26,8 @@ import {
   lyricTargetBounds,
 } from './markov-lyric-profile.mjs';
 
-export const DEFAULT_MARKOV_MODEL_DB_PATH='data/local/rhymelab-markov-v1.sqlite';
-export const MARKOV_GENERATOR_RUNTIME='rhymelab-markov-runtime-v1';
+export const DEFAULT_MARKOV_MODEL_DB_PATH='data/local/rhymelab-markov-v2.sqlite';
+export const MARKOV_GENERATOR_RUNTIME='rhymelab-constrained-runtime-v2';
 
 function hashString(value){
   let hash=2166136261>>>0;
@@ -139,6 +142,7 @@ export function createMarkovRuntime(db,{path=':memory:'}={}){
     throw new Error(`Unsupported Markov model policy: ${meta.policy||'missing'}`);
   }
   const language=meta.language||'de';
+  const order=Math.max(1,Math.min(MARKOV_MODEL_ORDER,Number(meta.order)||MARKOV_MODEL_ORDER));
   const choiceStmt=db.prepare(`
     SELECT next_token,count
     FROM transition
@@ -153,8 +157,18 @@ export function createMarkovRuntime(db,{path=':memory:'}={}){
   `);
   const tokenStmt=db.prepare('SELECT norm,count,preferred_surface FROM token WHERE norm=?');
   const maxTokenCount=Number(db.prepare('SELECT MAX(count) AS n FROM token').get()?.n||1);
+  const sourceSequenceStmt=db.prepare('SELECT count FROM source_sequence_hash WHERE hash=?');
+  const sourceWindowStmt=db.prepare('SELECT count FROM source_window_hash WHERE window_size=? AND hash=?');
+  const shapePatternStmt=db.prepare(`
+    SELECT shape_key,count
+    FROM shape_pattern
+    WHERE token_count=?
+    ORDER BY count DESC,shape_key
+    LIMIT ?
+  `);
   const choiceCache=new Map();
   const tokenCache=new Map();
+  const shapeCache=new Map();
 
   function tokenInfo(norm){
     const key=normalizeModelToken(norm,language);
@@ -172,7 +186,7 @@ export function createMarkovRuntime(db,{path=':memory:'}={}){
 
   function choices(direction,context,{limit=48}={}){
     const clean=context.filter(Boolean);
-    const len=Math.min(MARKOV_MODEL_ORDER,clean.length);
+    const len=Math.min(order,clean.length);
     if(!len)return {contextLen:0,stateKey:'',rows:[],total:0};
     const selected=direction==='reverse'?clean.slice(0,len):clean.slice(-len);
     const key=stateKey(selected);
@@ -188,7 +202,7 @@ export function createMarkovRuntime(db,{path=':memory:'}={}){
 
   function choicesWithBackoff(direction,context,{limit=48}={}){
     const clean=context.filter(Boolean);
-    for(let len=Math.min(MARKOV_MODEL_ORDER,clean.length);len>=1;len-=1){
+    for(let len=Math.min(order,clean.length);len>=1;len-=1){
       const selected=direction==='reverse'?clean.slice(0,len):clean.slice(-len);
       const result=choices(direction,selected,{limit});
       if(result.rows.length)return result;
@@ -199,7 +213,7 @@ export function createMarkovRuntime(db,{path=':memory:'}={}){
   function transitionProbability(direction,context,nextToken){
     const clean=context.filter(Boolean);
     const target=normalizeModelToken(nextToken,language);
-    for(let len=Math.min(MARKOV_MODEL_ORDER,clean.length);len>=1;len-=1){
+    for(let len=Math.min(order,clean.length);len>=1;len-=1){
       const selected=direction==='reverse'?clean.slice(0,len):clean.slice(-len);
       const key=stateKey(selected);
       const row=transitionCountStmt.get(direction,len,key,target);
@@ -216,17 +230,126 @@ export function createMarkovRuntime(db,{path=':memory:'}={}){
     return row?logScaled(row.count,maxTokenCount):0;
   }
 
+  function sourceNovelty(tokens,{maxWindow=8,minWindow=4}={}){
+    const lexical=lexicalNorms(tokens);
+    if(!lexical.length)return {exactSource:false,longestSourceRun:0,matchedWindows:0,novelty:1};
+    const exactSource=Boolean(sourceSequenceStmt.get(sequenceHash(lexical)));
+    let longestSourceRun=0;
+    let matchedWindows=0;
+    const upper=Math.min(Math.max(minWindow,Number(maxWindow)||8),lexical.length);
+    for(let size=upper;size>=Math.min(minWindow,lexical.length);size-=1){
+      let foundAtSize=false;
+      for(let start=0;start+size<=lexical.length;start+=1){
+        if(sourceWindowStmt.get(size,sequenceHash(lexical.slice(start,start+size)))){
+          matchedWindows+=1;
+          foundAtSize=true;
+        }
+      }
+      if(foundAtSize&&!longestSourceRun)longestSourceRun=size;
+    }
+    const novelty=clamp(1-(longestSourceRun/Math.max(lexical.length,1)));
+    return {exactSource,longestSourceRun,matchedWindows,novelty};
+  }
+
+  function shapeEvidence(tokens,{limit=64}={}){
+    const lexical=lexicalNorms(tokens);
+    if(!lexical.length)return {shapeKey:'',fit:0,support:0,patterns:0};
+    const key=shapeKeyForTokens(lexical,language);
+    const cacheKey=`${lexical.length}|${Math.max(1,Math.min(128,Number(limit)||64))}`;
+    let patterns=shapeCache.get(cacheKey);
+    if(!patterns){
+      patterns=shapePatternStmt.all(lexical.length,Math.max(1,Math.min(128,Number(limit)||64)))
+        .map((row)=>({shapeKey:String(row.shape_key),count:Number(row.count)||0}));
+      shapeCache.set(cacheKey,patterns);
+    }
+    let bestFit=0;
+    let bestSupport=0;
+    const maxCount=patterns[0]?.count||1;
+    for(const pattern of patterns){
+      const other=pattern.shapeKey;
+      if(other.length!==key.length)continue;
+      let same=0;
+      for(let i=0;i<key.length;i+=1)if(key[i]===other[i])same+=1;
+      const fit=key.length?same/key.length:0;
+      if(fit>bestFit||(fit===bestFit&&pattern.count>bestSupport)){
+        bestFit=fit;
+        bestSupport=pattern.count;
+      }
+    }
+    return {
+      shapeKey:key,
+      fit:clamp(bestFit),
+      support:logScaled(bestSupport,maxCount),
+      patterns:patterns.length,
+    };
+  }
+
+  function sequenceForwardScore(tokens){
+    const lexical=lexicalNorms(tokens);
+    if(lexical.length<2)return {probability:0,zeroRate:1,averageContext:0,steps:0};
+    let log=0;
+    let zeros=0;
+    let contexts=0;
+    let steps=0;
+    for(let index=1;index<lexical.length;index+=1){
+      const context=lexical.slice(Math.max(0,index-order),index);
+      const detail=transitionProbability('forward',context,lexical[index]);
+      steps+=1;
+      contexts+=detail.contextLen;
+      if(detail.probability<=0){
+        zeros+=1;
+        log+=Math.log(1e-9);
+      }else{
+        log+=Math.log(Math.max(detail.probability,1e-9));
+      }
+    }
+    return {
+      probability:Math.exp(log/Math.max(1,steps)),
+      zeroRate:zeros/Math.max(1,steps),
+      averageContext:contexts/Math.max(1,steps),
+      steps,
+    };
+  }
+
+  function bridgeChoices(leftContext,rightContext,{limit=64}={}){
+    const forward=choicesWithBackoff('forward',leftContext,{limit});
+    const reverse=choicesWithBackoff('reverse',rightContext,{limit});
+    const rightMap=new Map(reverse.rows.map((row)=>[row.token,row]));
+    const rows=[];
+    for(const left of forward.rows){
+      const right=rightMap.get(left.token);
+      if(!right)continue;
+      const lp=left.count/Math.max(1,forward.total);
+      const rp=right.count/Math.max(1,reverse.total);
+      rows.push({
+        token:left.token,
+        forwardProbability:lp,
+        reverseProbability:rp,
+        score:Math.sqrt(lp*rp),
+        forwardContextLen:forward.contextLen,
+        reverseContextLen:reverse.contextLen,
+      });
+    }
+    rows.sort((a,b)=>b.score-a.score||a.token.localeCompare(b.token));
+    return rows;
+  }
+
   return {
     available:true,
     db,
     path,
     meta,
     language,
+    order,
     choices,
     choicesWithBackoff,
     transitionProbability,
     tokenInfo,
     tokenSupport,
+    sourceNovelty,
+    shapeEvidence,
+    sequenceForwardScore,
+    bridgeChoices,
     surfaceFor,
     stats:modelStats(db),
     close(){try{db.close();}catch{}},
@@ -282,7 +405,7 @@ export function markovModelHealth(runtime){
     database:runtime.path,
     database_bytes:bytes,
     language:runtime.language,
-    order:Number(runtime.meta.order||MARKOV_MODEL_ORDER),
+    order:runtime.order,
     source_manifest:runtime.meta.source_manifest||null,
     source_sentences:Number(runtime.meta.source_sentences||0),
     accepted_sentences:Number(runtime.meta.accepted_sentences||0),
@@ -290,6 +413,9 @@ export function markovModelHealth(runtime){
     tokens:runtime.stats.tokens,
     retained_states:runtime.stats.retainedStates,
     transitions:runtime.stats.transitions,
+    source_sequences:runtime.stats.sourceSequences,
+    source_windows:runtime.stats.sourceWindows,
+    shape_patterns:runtime.stats.shapePatterns,
     lyric_profile:MARKOV_LYRIC_PROFILE_POLICY,
   };
 }
@@ -358,7 +484,7 @@ function nextReverseToken(runtime,context,random,options,{allowStart=true,seen}=
   // Back off *after* applying generation constraints. Previously an order-2
   // state whose only predecessor was <s> stopped the walk even when <s> was
   // forbidden and a valid order-1 predecessor existed.
-  for(let len=Math.min(MARKOV_MODEL_ORDER,clean.length);len>=1;len-=1){
+  for(let len=Math.min(order,clean.length);len>=1;len-=1){
     const selected=clean.slice(0,len);
     const result=runtime.choices('reverse',selected,{limit:64});
     if(!result.rows.length)continue;
@@ -397,17 +523,17 @@ function normalizeSeedTokens(seedText,language){
 
 function boundaryFit(runtime,seedTokens,prefixTokens){
   if(!seedTokens.length||!prefixTokens.length)return 1;
-  const context=seedTokens.slice(-MARKOV_MODEL_ORDER);
+  const context=seedTokens.slice(-runtime.order);
   let current=[...context];
   let log=0;
   let count=0;
-  for(const token of prefixTokens.slice(0,Math.min(3,prefixTokens.length))){
+  for(const token of prefixTokens.slice(0,Math.min(runtime.order+1,prefixTokens.length))){
     const detail=runtime.transitionProbability('forward',current,token);
     if(detail.probability<=0)return 0;
     log+=Math.log(detail.probability);
     count+=1;
     current.push(token);
-    if(current.length>MARKOV_MODEL_ORDER)current.shift();
+    if(current.length>runtime.order)current.shift();
   }
   return count?Math.exp(log/count):0;
 }
@@ -419,7 +545,7 @@ function terminalTailFit(runtime,tailTokens){
   let log=0;
   let count=0;
   for(let index=1;index<sequence.length;index+=1){
-    const context=sequence.slice(Math.max(0,index-MARKOV_MODEL_ORDER),index);
+    const context=sequence.slice(Math.max(0,index-runtime.order),index);
     const detail=runtime.transitionProbability('forward',context,sequence[index]);
     if(detail.probability>0){log+=Math.log(detail.probability);count+=1;}
     else {log+=Math.log(1e-5);count+=1;}
@@ -445,7 +571,7 @@ function generateBackwardPrefix(runtime,tail,random,options){
   const seen=new Map(tail.candidate.tokens.map((row)=>[row.norm,1]));
   let reachedStart=false;
   for(let step=0;step<maxPrefix;step+=1){
-    const context=suffix.slice(0,MARKOV_MODEL_ORDER);
+    const context=suffix.slice(0,runtime.order);
     const allowStart=prefix.length>=minPrefix;
     const chosen=nextReverseToken(runtime,context,random,options,{allowStart,seen});
     if(!chosen.token)break;
@@ -514,7 +640,7 @@ function buildTokenRows(runtime,backward,tail,options){
 }
 
 function localReplacementFit(runtime,leftContext,candidateTokens,rightTokens){
-  let context=[...leftContext].slice(-MARKOV_MODEL_ORDER);
+  let context=[...leftContext].slice(-runtime.order);
   let log=0;
   let count=0;
   const sequence=[...candidateTokens,...rightTokens.slice(0,2)];
@@ -554,7 +680,7 @@ function maybeInjectEcho(runtime,tokenRows,pool,tail,random,options){
       if(index===tokenRows.length-1)continue;
       const before=tokenRows.slice(0,index).flatMap((row)=>row.kind==='seed'?normalizeSeedTokens(row.text,options.language):row.norm?[row.norm]:[]);
       const after=tokenRows.slice(index+1).flatMap((row)=>row.kind==='corpus'&&row.norm?[row.norm]:row.placeholder==='<RHYME>'?tail.candidate.tokens.map((t)=>t.norm):[]);
-      const left=before.slice(-MARKOV_MODEL_ORDER);
+      const left=before.slice(-runtime.order);
       const oldNorm=tokenRows[index].norm;
       const baseline=localReplacementFit(runtime,left,[oldNorm],after);
       const fit=localReplacementFit(runtime,left,candNorms,after);
