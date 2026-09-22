@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { analyzeGermanIpa } from '../scripts/german-ipa.mjs';
 import { coarseCodaClass } from '../scripts/german-rhyme-features.mjs';
 import { findRhymes, getStats, getWord, openRhymeDb, searchWords } from '../src/local-engine.mjs';
+import { findWriterRhymes } from '../src/writer-search.mjs';
 
 const root = process.cwd();
 
@@ -126,6 +127,17 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
     });
     assert.ok(twoSyllableArbeitsweise.results.every((row) => row.syllableCount === 2));
     assert.ok(twoSyllableArbeitsweise.results.some((row) => row.word === 'Reise'));
+
+
+    const assonanceWriter = findWriterRhymes(db, 'Liebe', {
+      limit: 20,
+      type: 'assonance',
+    });
+    assert.ok(assonanceWriter.results.length > 0);
+    assert.ok(
+      assonanceWriter.results.every((row) => row.relationTypes.includes('assonance')),
+      'Writer relation search must filter after merging all retrieval channels',
+    );
   } finally {
     db.close();
   }
