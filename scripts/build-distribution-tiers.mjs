@@ -605,7 +605,7 @@ async function buildEdition(ctx,edition){
         scope:edition.toUpperCase(),label:'materialize/pragma_optimize',
         status:'START',started,path:work,
       });
-      const optimizeRows=db.prepare('PRAGMA optimize').all();
+      const optimizeRows=db.prepare('PRAGMA main.optimize').all();
       stageLine({
         scope:edition.toUpperCase(),label:'materialize/pragma_optimize',
         status:'DONE',started,path:work,
@@ -677,7 +677,7 @@ async function buildEdition(ctx,edition){
         scope:edition.toUpperCase(),label:'finalize/pragma_optimize',
         status:'START',started,path:work,
       });
-      const finalOptimizeRows=db.prepare('PRAGMA optimize').all();
+      const finalOptimizeRows=db.prepare('PRAGMA main.optimize').all();
       stageLine({
         scope:edition.toUpperCase(),label:'finalize/pragma_optimize',
         status:'DONE',started,path:work,
