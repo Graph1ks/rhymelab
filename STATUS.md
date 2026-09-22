@@ -81,9 +81,19 @@ candidates. The materializer and regression tests enforce that the category quot
 cannot be exceeded by the nesting union.
 
 The storage census, normalized cross-language rank, resumable plan/materializer and
-cross-edition nesting verifier are implemented. Exact physical edition sizes remain
-owner-local build evidence until the real SQLite outputs are built/vacuumed and
-reported; planning ranges are not acceptance facts.
+cross-edition nesting verifier are implemented.
+
+Owner-local completed/vacuumed SQLite evidence on 2026-09-22 now records:
+
+```text
+Master    20,160,811,008 B   18.776 GiB   freelist pages 0
+Lite         154,152,960 B      147.0 MiB freelist pages 0
+Standard   1,109,385,216 B      1.033 GiB freelist pages 0
+Full       2,147,987,456 B      2.000 GiB freelist pages 0
+```
+
+These are physical owner-build observations, not planning estimates. Timing/quality
+acceptance remains separate from file-size acceptance.
 
 Owner workflow:
 
@@ -101,8 +111,16 @@ npm run dev:distribution-lab
 
 It opens Master/Lite/Standard/Full read-only, routes Studio requests with a
 request-scoped `runtime_db` selector, and exposes copyable DB/browser/server
-performance metrics. Normal startup strips the internal UI and disables the
-internal endpoint. Full contract: `docs/INTERNAL_DISTRIBUTION_LAB.md`.
+performance metrics. DB Lab v2 additionally records the exact effective Writer
+request, order-sensitive quality fingerprints, per-query response bytes and
+Search/serialize/body-read/parse/map/render timing. `Bench current` and
+`Bench suite` execute controlled same-request comparisons with warmups excluded
+from p50/p95 statistics and detect repeat-run nondeterminism. Studio-only Writer
+traffic uses the compact `studio-writer-compact-v1` transport projection while
+ordinary `/api/writer` consumers retain the full response shape. Copy-all refreshes
+server/process metrics immediately before capture. Normal startup strips the
+internal UI and disables the internal endpoint. Full contract:
+`docs/INTERNAL_DISTRIBUTION_LAB.md`.
 
 ## Serving-v1 performance candidate
 
