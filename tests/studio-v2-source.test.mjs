@@ -50,6 +50,9 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/\.advanced-check/u);
   assert.match(css,/\.entity-category-multi/u);
   assert.match(css,/\.entity-category-legacy\{display:none!important\}/u);
+  assert.match(css,/Studio direct rhyme\/sound relation rail/u);
+  assert.match(css,/\.rhyme-type-rail\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/u);
+  assert.match(css,/\.rhyme-type-rail button\[data-rhyme-type=assonance\]\.active/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
@@ -65,6 +68,10 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/id=["']advancedFiltersToggle["']/u);
   assert.match(html,/id=["']advancedPreset["']/u);
   assert.match(html,/id=["']advancedRhymeType["']/u);
+  assert.match(html,/id=["']rhymeTypeRail["']/u);
+  for(const type of ['all','multisyllabic_perfect','perfect','multisyllabic_slant','family','slant','assonance','consonance']){
+    assert.match(html,new RegExp('data-rhyme-type=["\\']'+type+'["\\']','u'));
+  }
   assert.match(html,/id=["']advancedVariants["']/u);
   assert.match(html,/id=["']advancedEntityCategory["']/u);
   assert.match(html,/id=["']advancedHideUsed["']/u);
@@ -73,6 +80,10 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/id=["']advancedGeneratedOnly["']/u);
   assert.match(html,/id=["']runtimeInline["']/u);
   assert.match(app,/dataset\.studioVersion='2'/u);
+  assert.match(app,/function syncRhymeTypeRail\(/u);
+  assert.match(app,/function setDirectRhymeType\(/u);
+  assert.match(app,/queryAll\('#rhymeTypeRail \[data-rhyme-type\]'\)[\s\S]*?setDirectRhymeType/u);
+  assert.match(app,/rhymeType=next;[\s\S]*?refreshWriterResults\(\)/u);
   assert.match(app,/function renderStartupFailure\(/u);
   assert.match(app,/STUDIO_PREFERENCES_KEY/u);
   assert.match(app,/data-startup-action="reset-ui"/u);
