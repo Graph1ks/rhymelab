@@ -135,10 +135,13 @@ function explicitShortSyllableTarget(value){
 
 function externalShortAnchor(preparedQuery,target){
   const anchors=Array.isArray(preparedQuery?.anchors)?preparedQuery.anchors:[];
-  const clipped=anchors.find((anchor)=>
-    anchor?.clipped===true&&Number(anchor?.tailSyllables||0)===Number(target||0)
-  );
-  if(clipped)return clipped;
+  const exactTarget=anchors
+    .filter((anchor)=>Number(anchor?.tailSyllables||0)===Number(target||0))
+    .sort((a,b)=>
+      Number(b?.clipped===true)-Number(a?.clipped===true)
+      ||Number(b?.position||0)-Number(a?.position||0)
+    )[0];
+  if(exactTarget)return exactTarget;
   return [...anchors]
     .filter((anchor)=>anchor?.clipped!==true)
     .sort((a,b)=>Number(b?.position||0)-Number(a?.position||0))[0]||null;
