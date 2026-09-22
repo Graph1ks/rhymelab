@@ -101,13 +101,18 @@ function stageLine({
 function selectionProgress(scope,started,path,event){
   const label=event.step||event.status||'selection';
   const data={...event};
+  const current=Number.isFinite(Number(event.current))?Number(event.current):null;
+  const total=Number.isFinite(Number(event.total))?Number(event.total):null;
   delete data.phase;
   delete data.edition;
   delete data.step;
   delete data.status;
   delete data.summary;
+  delete data.current;
+  delete data.total;
   stageLine({
-    scope,label:'selection/'+label,status:String(event.status||'RUN').toUpperCase(),
+    scope,current,total,label:'selection/'+label,
+    status:String(event.status||'RUN').replaceAll('_','-').toUpperCase(),
     started,path,
     extra:Object.keys(data).length?JSON.stringify(data):null,
   });
