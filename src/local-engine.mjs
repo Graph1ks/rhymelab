@@ -516,6 +516,41 @@ function candidatePool(
   return [...candidates.values()];
 }
 
+export function lookupGermanCandidateRowsForAnalysis(db,analysis,options={}){
+  const querySyllables=Math.max(
+    0,
+    Number(options.querySyllables??analysis?.syllableCount??0)||0,
+  );
+  const queryRow={
+    normalized:String(options.queryNormalized||'')
+      .normalize('NFKC')
+      .trim()
+      .toLocaleLowerCase('de-DE'),
+    exact_key:analysis?.exactTailKey||null,
+    multisyllable_key:analysis?.multisyllableKey||null,
+    vowel_key:analysis?.vowelKey||null,
+    vowel_family:analysis?.vowelFamilyKey||null,
+    coda_key:analysis?.codaKey||null,
+    coda_class:analysis?.codaClassKey||null,
+    syllable_count:querySyllables,
+  };
+  const rows=candidatePool(
+    db,
+    queryRow,
+    options.poolLimit,
+    options.includeVariants===true,
+    options.includeHistorical===true,
+    options.generatedOnly===true,
+    null,
+    options.syllableFilter||'all',
+  );
+  if(!servingBoundedHotpath(db))return rows;
+  return hydrateServingRichCandidates(
+    db,
+    rows.map((row)=>Number(row.id)).filter(Number.isFinite),
+  );
+}
+
 const RESULT_ANALYSIS_CACHE=new WeakMap();
 const RESULT_PREPARED_ANALYSIS_CACHE=new WeakMap();
 
