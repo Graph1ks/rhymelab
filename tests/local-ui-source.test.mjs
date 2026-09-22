@@ -266,7 +266,7 @@ test('standalone Search filter deck hides every native select behind the shared 
     readFile('src/ui/custom-select.mjs','utf8'),
   ]);
   for(const id of ['languageRouteFilter','scopeFilter','typeFilter','syllableFilter','sortMode','variantMode','corpusMode','entityCategory']){
-    assert.match(html,new RegExp('<select id=["\\\']'+id+'["\\\'][^>]*class=["\\\'][^"\\\']*native-select-backing','u'));
+    assert.match(html,new RegExp('<select id="'+id+'"[^>]*class="[^"]*native-select-backing','u'));
   }
   assert.match(app,/installFilterSelectControls\(\)/u);
   assert.match(app,/syncEnhancedSelects\(filterSelectControls\)/u);

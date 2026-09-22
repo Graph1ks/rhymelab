@@ -860,7 +860,7 @@ test('Studio filter deck exposes only custom-visible selects and keeps native co
     readFile('src/studio/styles.css','utf8'),
   ]);
   for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategories']){
-    assert.match(html,new RegExp('<select id=["\\\']'+id+'["\\\'][^>]*class=["\\\'][^"\\\']*native-select-backing','u'));
+    assert.match(html,new RegExp('<select id="'+id+'"[^>]*class="[^"]*native-select-backing','u'));
   }
   assert.doesNotMatch(html,/filter-multi-dropdown|<details[^>]+directEntityCategory/u);
   assert.match(app,/installFilterSelectControls\(\)/u);
