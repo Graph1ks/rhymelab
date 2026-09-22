@@ -1384,7 +1384,7 @@ function studioCommandRegistry(){
     {id:'export-text',group:'Dokument',label:'Text als TXT exportieren',keywords:['export','txt','download'],run:exportText},
     {id:'export-backup',group:'Dokument',label:'Workspace-Backup exportieren',keywords:['backup','json','workspace','export'],run:async()=>{await exportPortableStudioBackup();notify('Portables Studio Backup exportiert.')}},
     {id:'search-focus',group:'Writer',label:'Reimanker suchen',keywords:['anchor','search','writer','query'],shortcut:'Alt+R',run:()=>{if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}},
-    {id:'filters',group:'Writer',label:'Filter ein-/ausblenden',keywords:['filters','writer','options'],run:showFilters},
+    {id:'filters',group:'Writer',label:'Suchfilter fokussieren',keywords:['filters','writer','options','rhyme'],run:showFilters},
     {id:'hide-used',group:'Writer',label:hideUsed?'Verwendete Treffer wieder zeigen':'Verwendete Treffer ausblenden',keywords:['hide used','used','duplicates'],run:()=>{hideUsed=!hideUsed;state.hideUsed=hideUsed;persist();renderResults()}},
     {id:'auto-scroll',group:'Writer',label:auto?'Auto-Scroll ausschalten':'Auto-Scroll einschalten',keywords:['scroll','automatic','results'],run:toggleAuto},
     {id:'density',group:'Writer',label:'Trefferdichte wechseln',keywords:['density','compact','tiles','list'],shortcut:'Alt+L',run:()=>setDensity(nextDensity(density))},
@@ -3431,7 +3431,7 @@ function renderBarNavigatorDock(body){
   });
 }
 
-function showFilters(){const hidden=$('#directFilters').classList.toggle('hidden');$('#filterBtn').setAttribute('aria-expanded',!hidden);$('#filterLabel').textContent=hidden?'Filter öffnen':'Filter sichtbar';if(!hidden)animateSurface($('#directFilters'))}
+function showFilters(){const deck=$('#directFilters');deck.classList.remove('hidden');$('#filterBtn').setAttribute('aria-expanded','true');$('#filterLabel').textContent='Filter sichtbar';animateSurface(deck);$('#directRhymeType')?.focus()}
 function showSettings(){openEditorDock('settings')}
 function showHistory(){revision();openEditorDock('history')}
 function openEditorDock(tab){if(page!=='studio')navigate('studio');document.body.classList.remove('mobile-results');document.body.classList.add('editor-dock-open');setMobileActive('studio');dockTab=tab;$('#editorDock').dataset.tab=tab;$('#editorDock').classList.remove('hidden');renderDock();animateSurface($('#editorDock'))}
