@@ -148,7 +148,6 @@ let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:ini
   includeHistorical=sharedSearchState.historical,
   generated=sharedSearchState.generated,
   generatedOnly=sharedSearchState.generatedOnly,
-  advancedExpanded=false,
   hideUsed=state.hideUsed!==false,
   hiddenUsedCount=0,
   sort=sharedSearchState.sort,
@@ -1782,7 +1781,7 @@ function applyCorpusMode(value){
   generated=mode==='generated'||mode==='generated_only'||mode==='complete'||mode==='historical_generated_only';
   generatedOnly=mode==='generated_only'||mode==='historical_generated_only';
   saveStudioSearchState();
-  syncAdvancedControls();
+  syncFilterDeckControls();
   void refreshWriterResults();
 }
 function syncScopeButtons(){
@@ -1811,13 +1810,13 @@ function setEntityCategories(values,{refresh=true}={}){
   entityCategories=next;
   entityCategory=entityCategories[0]||'all';
   saveStudioSearchState({entityCategory,entityCategories});
-  syncAdvancedControls();
+  syncFilterDeckControls();
   if(refresh)void refreshWriterResults();
 }
 function setFilterFieldActive(control,active){
   control?.closest?.('.filter-field')?.classList.toggle('is-active',Boolean(active));
 }
-function syncAdvancedControls(){
+function syncFilterDeckControls(){
   const languageRoute=$('#directLanguageRoute');
   const scopeControl=$('#directScope');
   const rhymeControl=$('#directRhymeType');
@@ -1899,7 +1898,7 @@ function hasActiveSearchFilters(){
   return scope!=='all'||relation!=='all'||rhymeType!=='all'||syllableMode!=='all'||resultLang!=='both'||basis!=='de'||sort!=='recommended'||variantMode!=='preferred'||entityCategories.length>0||includeHistorical||generated||generatedOnly;
 }
 function syncInline(){
-  syncAdvancedControls();
+  syncFilterDeckControls();
   const items=[];
   if(scope!=='all')items.push(['scope',scope==='word'?'Wörter':scope==='phrase'?'Phrasen':'Namen']);
   if(rhymeType!=='all')items.push(['rhymeType',STUDIO_RHYME_TYPE_LABELS[rhymeType]||rhymeType]);
@@ -1915,7 +1914,7 @@ function resetInline(){
   scope='all';relation='all';rhymeType='all';variantMode='preferred';entityCategory='all';entityCategories=[];includeHistorical=false;generated=false;generatedOnly=false;sort='recommended';basis='de';resultLang='both';syllableMode='all';pageSize=density==='compact'?24:12;
   syncScopeButtons();
   saveStudioSearchState();
-  syncAdvancedControls();
+  syncFilterDeckControls();
   void refreshWriterResults();
 }
 function setDensity(v){density=v;state.density=v;pageSize=v==='compact'?24:12;renderResults();persist()}
@@ -2552,7 +2551,7 @@ function updateCapabilitySurface(){
   }
   const summary=$('#capabilitySummary');
   if(summary)summary.innerHTML=capabilityMarkup();
-  syncAdvancedControls();
+  syncFilterDeckControls();
 }
 async function refreshStudioCapabilities(){
   try{
@@ -3522,13 +3521,13 @@ function moveResult(delta){const rows=sortedData();if(!rows.length)return;let in
 function setAssistWidth(value){const max=clamp(window.innerWidth-660,350,640);const width=clamp(value,350,max);document.documentElement.style.setProperty('--assist-width',width+'px');$('#splitter').setAttribute('aria-valuenow',width);$('#splitter').setAttribute('aria-valuemax',max);state.assistWidth=width;queryAll('#lyrics textarea').forEach(resizeArea);}
 function bindV2(){for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategoryMulti','directEntityCategoryMenu','directEntityCategoryLabel','directHideUsed','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();bindMobileViewport();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');
 $('#directLanguageRoute').onchange=e=>applyLanguageRoute(e.target.value);
-$('#directScope').onchange=e=>{scope=e.target.value;relation='all';pageSize=density==='compact'?24:12;saveStudioSearchState();syncScopeButtons();syncAdvancedControls();void refreshWriterResults()};
-$('#directRhymeType').onchange=e=>{rhymeType=e.target.value;relation='all';pageSize=density==='compact'?24:12;saveStudioSearchState();syncAdvancedControls();void refreshWriterResults()};
-$('#directSyllables').onchange=e=>{syllableMode=e.target.value;saveStudioSearchState();syncAdvancedControls();void refreshWriterResults()};
-$('#directSort').onchange=e=>{sort=e.target.value;saveStudioSearchState();syncAdvancedControls();renderResults()};
-$('#directVariants').onchange=e=>{variantMode=e.target.value;saveStudioSearchState();syncAdvancedControls();void refreshWriterResults()};
+$('#directScope').onchange=e=>{scope=e.target.value;relation='all';pageSize=density==='compact'?24:12;saveStudioSearchState();syncScopeButtons();syncFilterDeckControls();void refreshWriterResults()};
+$('#directRhymeType').onchange=e=>{rhymeType=e.target.value;relation='all';pageSize=density==='compact'?24:12;saveStudioSearchState();syncFilterDeckControls();void refreshWriterResults()};
+$('#directSyllables').onchange=e=>{syllableMode=e.target.value;saveStudioSearchState();syncFilterDeckControls();void refreshWriterResults()};
+$('#directSort').onchange=e=>{sort=e.target.value;saveStudioSearchState();syncFilterDeckControls();renderResults()};
+$('#directVariants').onchange=e=>{variantMode=e.target.value;saveStudioSearchState();syncFilterDeckControls();void refreshWriterResults()};
 $('#directCorpus').onchange=e=>applyCorpusMode(e.target.value);
-$('#directHideUsed').onclick=()=>{hideUsed=!hideUsed;state.hideUsed=hideUsed;persist();syncAdvancedControls();renderResults()};
+$('#directHideUsed').onclick=()=>{hideUsed=!hideUsed;state.hideUsed=hideUsed;persist();syncFilterDeckControls();renderResults()};
 queryAll('[data-density]').forEach(b=>b.onclick=()=>setDensity(b.dataset.density));queryAll('[data-dock]').forEach(b=>b.onclick=()=>{if(dockTab===b.dataset.dock)closeEditorDock();else{if(b.dataset.dock==='history')revision();openEditorDock(b.dataset.dock)}});$('#resultsScroll').addEventListener('keydown',e=>{if(e.target.closest('input')||e.target.closest('select')||e.target.closest('.view-choices'))return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();moveResult(e.key==='ArrowDown'?1:-1)}else if(e.key==='Enter'&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();insertWord(selectedResult)}else if(e.key===' '&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();toggleSave(selectedResult)}else if(e.key==='Escape')closeDetail()});
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.clearFilter){
   const f=b.dataset.clearFilter;
@@ -3546,7 +3545,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
     entityCategory=entityCategories[0]||'all';
   }
   if(f==='historical'||f==='generated'||f==='generatedOnly'||f==='corpus'){includeHistorical=false;generated=false;generatedOnly=false}
-  syncAdvancedControls();
+  syncFilterDeckControls();
   if(['scope','rhymeType','syllables','lang','basis','languageRoute','variants','entityCategory','historical','generated','generatedOnly','corpus'].includes(f)||f.startsWith('entityCategory:'))void refreshWriterResults();else renderResults();
 }if(b.dataset.restoreVersion){if(restoreStudioRevision(song().revisions[+b.dataset.restoreVersion])){renderDock();notify('Fassung wiederhergestellt · aktuelle Fassung gesichert')}}});
 document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key.toLowerCase()==='b'){e.preventDefault();openEditorDock('navigator')}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
