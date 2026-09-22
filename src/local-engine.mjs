@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { performance } from 'node:perf_hooks';
 import { resolve } from 'node:path';
 import { getPhonologyProfile, normalizeForLanguage } from '../scripts/phonology-profiles.mjs';
+import { coarseCodaClass } from '../scripts/german-rhyme-features.mjs';
 import {
   RUNTIME_RANKING_POLICY,
   rankRuntimeRecommendedResults,
@@ -531,7 +532,11 @@ export function lookupGermanCandidateRowsForAnalysis(db,analysis,options={}){
     vowel_key:analysis?.vowelKey||null,
     vowel_family:analysis?.vowelFamilyKey||null,
     coda_key:analysis?.codaKey||null,
-    coda_class:analysis?.codaClassKey||null,
+    coda_class:coarseCodaClass(
+      Array.isArray(analysis?.syllables)
+        ?analysis.syllables.at(-1)?.coda||[]
+        :[],
+    ),
     syllable_count:querySyllables,
   };
   const rows=candidatePool(
