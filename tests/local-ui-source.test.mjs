@@ -49,6 +49,19 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(html, /data-ui-lang="en"/);
   assert.match(html, /data-view="list"/);
   assert.match(html, /data-view="compact"/);
+  assert.match(html, /id="typeRail"/);
+  for (const type of [
+    'all',
+    'multisyllabic_perfect',
+    'perfect',
+    'multisyllabic_slant',
+    'family',
+    'slant',
+    'assonance',
+    'consonance',
+  ]) {
+    assert.match(html, new RegExp(`data-rhyme-type="${type}"`));
+  }
   assert.match(html, /value="near1"/);
   assert.match(html, /value="near2"/);
   assert.match(html, /value="near3"/);
@@ -83,6 +96,9 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /\/api\/writer\?/);
   assert.match(app, /from '\.\/search-state\.mjs'/);
   assert.match(app, /captureSharedSearchState/);
+  assert.match(app, /function syncTypeRail\(/);
+  assert.match(app, /function setRhymeType\(/);
+  assert.match(app, /\.rhyme-type-option/);
   assert.match(app, /searchStateToWriterParams\(searchState\)/);
   assert.match(app, /writeSearchStateToUrl/);
   assert.match(searchState, /SEARCH_STATE_SCHEMA='rhymelab-search-state-v1'/);
@@ -228,6 +244,10 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /\.search-mode-grid/);
   assert.match(css, /\.availability-chip/);
   assert.match(css, /\.context-hidden/);
+  assert.match(css, /Direct rhyme \/ sound relation surface/);
+  assert.match(css, /\.rhyme-type-rail/);
+  assert.match(css, /\.rhyme-type-option\[data-rhyme-type="assonance"\]\.active/);
+  assert.match(css, /\.legacy-type-select\{display:none!important\}/);
   assert.match(css, /\.ui-language-switch/);
   assert.match(css, /\.view-switch/);
   assert.match(css, /\.results-compact \.result-items/);
