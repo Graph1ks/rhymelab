@@ -145,6 +145,8 @@ function integrityProgress(scope,started,path,phase,event){
   if(event.violations!=null)extras.push(Number(event.violations).toLocaleString('en-US')+' violations');
   if(event.result!=null)extras.push('result='+String(event.result));
   if(event.ok!=null)extras.push('ok='+String(event.ok));
+  if(event.duration_ms!=null)extras.push('step '+formatDuration(Number(event.duration_ms)));
+  if(event.reason!=null)extras.push(String(event.reason));
   stageLine({
     scope,
     label:phase+'/'+String(event.step||'integrity'),
@@ -614,6 +616,7 @@ async function buildEdition(ctx,edition){
       });
 
       let integrity=distributionIntegrityReport(db,edition,{
+        deep:false,
         onProgress:(event)=>integrityProgress(
           edition.toUpperCase(),started,work,'materialize/integrity',event
         ),
