@@ -365,7 +365,24 @@ const activeGeneratedRuntime=servingV1Active
   :generatedOptinRuntime;
 
 let datasetStatsCache=null;
-function runtimeDatasetStats(){
+const internalDatasetStatsCache=new Map();
+function runtimeDatasetStats(url=null){
+  const internalEntry=url?requestedInternalRuntimeEntry(url):null;
+  if(internalEntry){
+    if(!internalDatasetStatsCache.has(internalEntry.id)){
+      const generatedRuntime=internalEntry.runtime.capabilities?.generated===true
+        ?{available:true,databases:internalEntry.runtime.allDatabases}
+        :null;
+      internalDatasetStatsCache.set(
+        internalEntry.id,
+        generatedOptinDatasetStats(
+          internalEntry.runtime.coreDatabases,
+          generatedRuntime,
+        ),
+      );
+    }
+    return internalDatasetStatsCache.get(internalEntry.id);
+  }
   if(!datasetStatsCache){
     datasetStatsCache=generatedOptinDatasetStats(canonicalRuntimeDatabases,activeGeneratedRuntime);
   }
@@ -527,7 +544,15 @@ function generatedRuntimeHealth(){
 
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
 const padHtml = Buffer.from(materializeRhymePadV14().html);
-const studioHtml = readFileSync(resolve(studioUiDir, 'index.html'));
+const studioHtmlSource=readFileSync(resolve(studioUiDir,'index.html'),'utf8');
+const studioHtml=Buffer.from(
+  internalDbSwitcherEnabled
+    ?studioHtmlSource
+    :studioHtmlSource.replace(
+        /<!-- INTERNAL_DB_LAB_START -->[\s\S]*?<!-- INTERNAL_DB_LAB_END -->/u,
+        '',
+      ),
+);
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const queryPronunciationTestHtml = readFileSync(resolve(queryPronunciationTestDir, 'index.html'));
 const markovTestHtml = readFileSync(resolve(markovTestDir, 'index.html'));
@@ -561,6 +586,7 @@ const assets = {
   '/studio/analysis-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'analysis-adapter.mjs')) },
   '/studio/backup-portability.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'backup-portability.mjs')) },
   '/studio/diagnostics.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'diagnostics.mjs')) },
+  '/studio/internal-db-lab.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'internal-db-lab.mjs')) },
   '/studio/i18n.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'i18n.mjs')) },
   '/studio/dom-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'dom-acceptance.mjs')) },
   '/studio/command-palette.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'command-palette.mjs')) },
@@ -811,7 +837,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/dataset-stats') {
-      return json(res,runtimeDatasetStats());
+      return json(res,runtimeDatasetStats(url));
     }
 
     if(url.pathname==='/api/studio/route-mode'){
