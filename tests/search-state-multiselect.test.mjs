@@ -79,3 +79,15 @@ test('Writer params carry the normalized syllable filter into the backend reques
   }));
   assert.equal(defaultParams.get('syllables'),'all');
 });
+
+
+test('Writer params send sound relations to the backend before result limits',()=>{
+  for(const rhymeType of ['assonance','consonance']){
+    const params=searchStateToWriterParams(createSearchState({
+      anchor:'Arbeitsweise',
+      scope:'words',
+      rhymeType,
+    }));
+    assert.equal(params.get('type'),rhymeType);
+  }
+});
