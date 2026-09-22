@@ -146,8 +146,20 @@ function aggregateDatabaseSamples(samples,qualityComparisons){
     return value;
   });
   const counts=measured.map((row)=>row.resultCount);
+  const byCase=new Map();
+  for(const row of measured){
+    const list=byCase.get(row.caseId)||[];
+    list.push(row);
+    byCase.set(row.caseId,list);
+  }
+  const nondeterministicCases=[...byCase.entries()].filter(([,rows])=>
+    new Set(rows.map((row)=>row.quality?.fingerprint).filter(Boolean)).size>1
+  ).map(([caseId])=>caseId);
   return {
     measuredRuns:measured.length,
+    deterministic:nondeterministicCases.length===0,
+    nondeterministicCases:nondeterministicCases.length,
+    nondeterministicCaseIds:nondeterministicCases,
     serverSearchMs:benchmarkDistribution(pick(['timings','serverSearchMs'])),
     serverSerializeMs:benchmarkDistribution(pick(['timings','serverSerializeMs'])),
     clientTotalMs:benchmarkDistribution(pick(['timings','clientTotalMs'])),
