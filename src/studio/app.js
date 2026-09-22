@@ -1810,6 +1810,10 @@ function setDirectRhymeType(value){
   const next=Object.hasOwn(STUDIO_RHYME_TYPE_LABELS,String(value||''))
     ?String(value)
     :'all';
+  if(rhymeType===next&&relation==='all'){
+    syncRhymeTypeRail();
+    return;
+  }
   relation='all';
   rhymeType=next;
   pageSize=density==='compact'?24:12;
@@ -1823,8 +1827,8 @@ function currentSearchPreset(){
   if(scope==='word'&&rhymeType==='all')return 'words';
   if(scope==='phrase'&&rhymeType==='all')return 'phrases';
   if(scope==='entity'&&rhymeType==='all')return 'entities';
-  if(scope==='all'&&STUDIO_RHYME_TYPE_LABELS[rhymeType])return rhymeType;
   if(scope==='all'&&rhymeType==='all')return 'best';
+  if(scope==='all'&&STUDIO_RHYME_TYPE_LABELS[rhymeType])return rhymeType;
   return 'custom';
 }
 function syncScopeButtons(){
