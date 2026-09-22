@@ -3978,7 +3978,7 @@
     "id": "DISTRIBUTION_DB_LAB_V2_BENCHMARK_EVIDENCE",
     "status": "AWAITING_OWNER_BENCHMARK_RESPONSE",
     "handover": "docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md",
-    "current_main": "51853e523e5598da48bf33d3f47e9f0e7d810ee8",
+    "current_main": "51853e523e55",
     "expected_owner_evidence": [
       "Bench current",
       "Bench suite",
