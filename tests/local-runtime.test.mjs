@@ -72,9 +72,9 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
 
   const report = JSON.parse(await readFile(reportPath, 'utf8'));
   assert.equal(report.language, 'de');
-  assert.equal(report.forms, 5);
-  assert.equal(report.pronunciations, 6);
-  assert.equal(report.preferred_pronunciations, 5);
+  assert.equal(report.forms, 9);
+  assert.equal(report.pronunciations, 10);
+  assert.equal(report.preferred_pronunciations, 9);
   assert.equal(report.supplemental_forms, 0);
 
   const db = openRhymeDb(dbPath);
