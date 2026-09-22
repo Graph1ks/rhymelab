@@ -851,7 +851,14 @@ function installInteractiveControls(){
   $$('.result-language-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.resultLanguage=['de','en','both'].includes(button.dataset.resultLanguage)?button.dataset.resultLanguage:'de';localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);state.sectionVisible.clear();syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
   $('.scope-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;setScope(button.dataset.scope,{rerun:true});renderCapabilityNotice();}));
   $('.rhyme-type-option').forEach((button)=>button.addEventListener('click',()=>setRhymeType(button.dataset.rhymeType,{rerun:true})));
-  $('#typeFilter').addEventListener('change',()=>setRhymeType($('#typeFilter').value,{rerun:true}));
+  $('#typeFilter').addEventListener('change',()=>{
+    state.visibleCount=state.pageSize;
+    state.sectionVisible.clear();
+    captureSharedSearchState();
+    syncTypeRail();
+    if(state.query)void search(state.query);
+    else renderCapabilityNotice();
+  });
   $('#variantMode').addEventListener('change',()=>{if(state.query)search(state.query);else renderCapabilityNotice();});
   ['syllableFilter','sortMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{state.visibleCount=state.pageSize;state.sectionVisible.clear();captureSharedSearchState();if(state.data)render();}));
   $('#historicalMode').addEventListener('change',()=>{if(state.query)search(state.query);});
