@@ -17,11 +17,15 @@
       <button type="button" data-runtime-db="full"><span>FULL</span><small>400k</small></button>
     </div>
     <div class="internal-db-actions">
+      <button type="button" id="internalDbBenchCurrent" class="outline" title="Aktuelle Query mit identischen Optionen auf allen verfügbaren DBs messen">Bench current</button>
+      <button type="button" id="internalDbBenchSuite" class="outline" title="Kontrollierte DE/EN Benchmark-Suite auf allen verfügbaren DBs ausführen">Bench suite</button>
+      <button type="button" id="internalDbBenchStop" class="outline hidden">Stop</button>
       <button type="button" id="internalDbMetricsToggle" class="outline" aria-expanded="false">Metrics</button>
       <button type="button" id="internalDbMetricsCopy" class="outline">Copy all</button>
       <button type="button" id="internalDbMetricsRefresh" class="outline" title="DB- und Prozessmetriken neu laden">↻</button>
     </div>
   </div>
+  <div id="internalDbBenchmarkProgress" class="internal-db-benchmark-progress hidden" aria-live="polite"></div>
   <div id="internalDbMetrics" class="internal-db-metrics hidden"></div>
 </section>
 <!-- INTERNAL_DB_LAB_END -->
