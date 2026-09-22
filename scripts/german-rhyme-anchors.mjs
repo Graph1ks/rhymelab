@@ -1,5 +1,4 @@
 import {
-  coarseCodaClass,
   germanRhymeMatchUpperBound,
   prepareGermanRhymeAnalysis,
   scoreGermanRhymeAnalyses,
@@ -81,7 +80,7 @@ export function germanAnalysisAtRhymeAnchor(analysis, anchorPosition, options = 
     vowelKey: vowelSequence.replaceAll(' ', '-'),
     vowelFamilyKey: germanVowelFamilyKey(tail.map((syllable) => syllable.nucleus)),
     codaKey,
-    codaClassKey: coarseCodaClass(final?.coda || []),
+    codaClassKey: codaKey || 'OPEN',
     onsetKey: (final?.onset || []).join(' '),
     stressedSyllableCount: tail.length,
   };
