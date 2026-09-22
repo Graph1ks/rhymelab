@@ -10,6 +10,11 @@ Serving-v1 is the canonical product runtime. Markov / Constrained Lyric Decoder 
 
 Further Serving-v1 micro-optimization remains paused until real Lite/Standard/Full distributions are materialized and benchmarked. Distribution contract: `docs/DISTRIBUTION_TIERS.md`.
 
+For owner-side Master/Lite/Standard/Full comparison through Studio, use the
+development-only `npm run dev:distribution-lab` surface. Its strict per-request
+routing, metrics, shipping isolation and later User Settings migration boundary are
+documented in `docs/INTERNAL_DISTRIBUTION_LAB.md`.
+
 ---
 
 
