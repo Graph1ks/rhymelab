@@ -82,11 +82,24 @@ function buildFakeDom(){
   put('#resultsToolbar');
   put('#searchStageAnchor');
   put('.search-stage');
-  put('#scopeFilter',new FakeElement({value:'all'}));
-  put('#typeFilter',new FakeElement({value:'all'}));
+  const languageRouteFilter=put('#languageRouteFilter',new FakeElement({value:'de:de'}));
+  languageRouteFilter.options=[
+    'de:both','de:de','de:en','en:both','en:en','en:de','both:both','both:de','both:en',
+  ].map((value)=>({value,disabled:false}));
+  const scopeFilter=put('#scopeFilter',new FakeElement({value:'all'}));
+  scopeFilter.options=['all','words','phrases','entities'].map((value)=>({value,disabled:false}));
+  const typeFilter=put('#typeFilter',new FakeElement({value:'all'}));
+  typeFilter.options=[
+    'all','multisyllabic_perfect','perfect','multisyllabic_slant',
+    'family','slant','assonance','consonance',
+  ].map((value)=>({value,disabled:false}));
   put('#variantMode',new FakeElement({value:'preferred'}));
   put('#syllableFilter',new FakeElement({value:'all'}));
   put('#sortMode',new FakeElement({value:'recommended'}));
+  const corpusMode=put('#corpusMode',new FakeElement({value:'current'}));
+  corpusMode.options=[
+    'current','generated','generated_only','historical','complete','historical_generated_only',
+  ].map((value)=>({value,disabled:false}));
   put('#historicalMode');
   put('#generatedMode');
   put('#generatedFilter');
@@ -126,22 +139,6 @@ function buildFakeDom(){
     new FakeElement({dataset:{view:'list'}}),
     new FakeElement({dataset:{view:'compact'}}),
   ]);
-  const basis=group('.basis-option',[
-    new FakeElement({dataset:{basis:'de'}}),
-    new FakeElement({dataset:{basis:'en'}}),
-    new FakeElement({dataset:{basis:'both'}}),
-  ]);
-  const resultLanguage=group('.result-language-option',[
-    new FakeElement({dataset:{resultLanguage:'de'}}),
-    new FakeElement({dataset:{resultLanguage:'en'}}),
-    new FakeElement({dataset:{resultLanguage:'both'}}),
-  ]);
-  const scope=group('.scope-option',[
-    new FakeElement({dataset:{scope:'all'}}),
-    new FakeElement({dataset:{scope:'words'}}),
-    new FakeElement({dataset:{scope:'phrases'}}),
-    new FakeElement({dataset:{scope:'entities'}}),
-  ]);
   group('[data-i18n]',[]);
   group('[data-i18n-option]',[]);
   group('[data-i18n-aria-label]',[]);
@@ -168,7 +165,7 @@ function buildFakeDom(){
     },
     createElement(){ return new FakeElement(); },
   };
-  return {document,singles,groups,uiLang,view,basis,resultLanguage,scope};
+  return {document,singles,groups,uiLang,view};
 }
 
 function makeStorage(){
@@ -210,29 +207,22 @@ test('unified UI primary controls bind and change state at runtime', async () =>
   runtime.installInteractiveControls();
   assert.equal(dom.document.documentElement.dataset.rhymelabControls,'bound');
 
-  dom.singles.get('#searchOptionsToggle').dispatch('click');
-  assert.equal(runtime.state.searchOptionsExpanded,false);
-  assert.equal(localStorage.getItem('rhymelab.searchOptionsExpanded.v2'),'0');
-  assert.equal(dom.singles.get('#searchOptionsToggle').getAttribute('aria-expanded'),'false');
-
-  dom.singles.get('#resultFiltersToggle').dispatch('click');
-  assert.equal(runtime.state.resultFiltersExpanded,false);
-  assert.equal(localStorage.getItem('rhymelab.resultFiltersExpanded.v2'),'0');
-  assert.equal(dom.singles.get('#resultFiltersToggle').getAttribute('aria-expanded'),'false');
-
-  dom.basis[1].dispatch('click');
+  dom.singles.get('#languageRouteFilter').value='en:both';
+  dom.singles.get('#languageRouteFilter').dispatch('change');
   assert.equal(runtime.state.basis,'en');
-  assert.equal(localStorage.getItem('rhymelab.searchBasis'),'en');
-  assert.equal(dom.basis[1].classList.contains('active'),true);
-
-  dom.resultLanguage[2].dispatch('click');
   assert.equal(runtime.state.resultLanguage,'both');
+  assert.equal(localStorage.getItem('rhymelab.searchBasis'),'en');
   assert.equal(localStorage.getItem('rhymelab.resultLanguage'),'both');
-  assert.equal(dom.resultLanguage[2].classList.contains('active'),true);
 
-  dom.scope[3].dispatch('click');
+  dom.singles.get('#scopeFilter').value='entities';
+  dom.singles.get('#scopeFilter').dispatch('change');
   assert.equal(dom.singles.get('#scopeFilter').value,'entities');
-  assert.equal(dom.scope[3].classList.contains('active'),true);
+
+  dom.singles.get('#typeFilter').value='assonance';
+  dom.singles.get('#typeFilter').dispatch('change');
+
+  dom.singles.get('#syllableFilter').value='2';
+  dom.singles.get('#syllableFilter').dispatch('change');
 
   dom.uiLang[0].dispatch('click');
   assert.equal(runtime.state.lang,'de');
@@ -245,17 +235,18 @@ test('unified UI primary controls bind and change state at runtime', async () =>
   assert.equal(dom.view[1].classList.contains('active'),true);
 
   runtime.state.generatedCapability={available:true};
-  dom.singles.get('#generatedOnlyMode').checked=true;
-  dom.singles.get('#generatedOnlyMode').dispatch('change');
+  dom.singles.get('#corpusMode').value='historical_generated_only';
+  dom.singles.get('#corpusMode').dispatch('change');
   assert.equal(runtime.state.generatedOnly,true);
   assert.equal(runtime.state.generatedOptIn,true);
+  assert.equal(dom.singles.get('#historicalMode').checked,true);
   assert.equal(dom.singles.get('#generatedMode').checked,true);
 
-  dom.singles.get('#generatedMode').checked=false;
-  dom.singles.get('#generatedMode').dispatch('change');
-  assert.equal(runtime.state.generatedOptIn,false);
+  dom.singles.get('#corpusMode').value='current';
+  dom.singles.get('#corpusMode').dispatch('change');
   assert.equal(runtime.state.generatedOnly,false);
-  assert.equal(dom.singles.get('#generatedOnlyMode').checked,false);
+  assert.equal(runtime.state.generatedOptIn,false);
+  assert.equal(dom.singles.get('#historicalMode').checked,false);
 
   dom.singles.get('#statsButton').dispatch('click');
   assert.equal(dom.singles.get('#statsDialog').open,true);
@@ -279,23 +270,17 @@ test('unified UI control binding preflights the complete interactive surface', a
   for(const selector of [
     '.ui-lang-option',
     '.view-option',
-    '.basis-option',
-    '.result-language-option',
-    '.scope-option',
   ]){
     assert.match(app,new RegExp(selector.replaceAll('.','\\.')));
   }
   for(const selector of [
-    '#resultsToolbar','#searchOptionsToggle','#resultFiltersToggle','#generatedMode','#generatedOnlyMode',
+    '#resultsToolbar','#languageRouteFilter','#scopeFilter','#typeFilter','#syllableFilter','#corpusMode','#generatedMode','#generatedOnlyMode',
     '#statsButton','#statsDialog','#statsContent',
     '#runtimeTiming','#runtimeTimingCurrent','#runtimeTimingAverage','#runtimeTimingSamples',
     '#searchOptionsSection','#resultFiltersSection','#searchStageAnchor','.search-stage',
   ]){
     assert.match(app,new RegExp(selector.replaceAll('.','\\.').replace('#','\\#')));
   }
-  assert.match(app,/rhymelab\.searchOptionsExpanded\.v2/);
-  assert.match(app,/rhymelab\.resultFiltersExpanded\.v2/);
-  assert.match(app,/const defaultSearchSectionsExpanded=true/);
   assert.match(app,/captureSharedSearchState/);
   assert.match(app,/searchStateToWriterParams\(searchState\)/);
   assert.doesNotMatch(app,/localStorage\.(?:getItem|setItem)\(['"]rhymelab\.generated/);
