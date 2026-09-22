@@ -622,9 +622,9 @@ function applyLanguage(){
   $('#searchInput').placeholder=t('searchPlaceholder');
   $('#searchInput').setAttribute('aria-label',t('searchPlaceholder'));
   $('#searchButton').textContent=t('search');
-  $('[data-i18n]').forEach((node)=>{node.textContent=t(node.dataset.i18n);});
-  $('[data-i18n-option]').forEach((node)=>{node.textContent=t(node.dataset.i18nOption);});
-  $('[data-i18n-aria-label]').forEach((node)=>{node.setAttribute('aria-label',t(node.dataset.i18nAriaLabel));});
+  $$('[data-i18n]').forEach((node)=>{node.textContent=t(node.dataset.i18n);});
+  $$('[data-i18n-option]').forEach((node)=>{node.textContent=t(node.dataset.i18nOption);});
+  $$('[data-i18n-aria-label]').forEach((node)=>{node.setAttribute('aria-label',t(node.dataset.i18nAriaLabel));});
   syncResultLanguageControls();
   syncLanguageRouteControl();
   syncUiLanguageControls();
