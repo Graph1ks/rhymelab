@@ -778,6 +778,15 @@ export function findRhymes(db, word, options = {}) {
   const analysisCache=new Map();
   const preparedCache=new Map();
   const scoreCache=new Map();
+  const explicitWriterSyllableTarget=['1','2'].includes(String(options.syllableFilter||''))
+    ?Number(options.syllableFilter)
+    :0;
+  const filteredWriterScoring=Boolean(
+    explicitWriterSyllableTarget
+    &&profile.language==='de'
+    &&typeof profile.prepareWriterAnalysis==='function'
+    &&typeof profile.scoreWriterAnalyses==='function'
+  );
 
   const rowKey=(row)=>String(row?.id??row?.source_order_id??row?.ipa??'');
   const analysisFor=(row)=>{
@@ -794,7 +803,10 @@ export function findRhymes(db, word, options = {}) {
     return analysis;
   };
   const preparedFor=(row,analysis)=>{
-    if(typeof profile.prepareAnalysis!=='function')return analysis;
+    const prepare=filteredWriterScoring
+      ?profile.prepareWriterAnalysis
+      :profile.prepareAnalysis;
+    if(typeof prepare!=='function')return analysis;
     const key=rowKey(row);
     if(preparedCache.has(key)){
       if(metrics)metrics.prepared_cache_hits+=1;
@@ -802,7 +814,7 @@ export function findRhymes(db, word, options = {}) {
     }
     if(metrics)metrics.prepared_cache_misses+=1;
     const started=metrics?performance.now():0;
-    const prepared=profile.prepareAnalysis(analysis);
+    const prepared=prepare(analysis);
     if(metrics)metrics.analysis_feature_preparation_ms+=performance.now()-started;
     preparedCache.set(key,prepared);
     return prepared;
@@ -837,7 +849,16 @@ export function findRhymes(db, word, options = {}) {
     let queryPrepared;
     try {
       queryAnalysis=analysisFor(queryRow);
-      queryPrepared=preparedFor(queryRow,queryAnalysis);
+      if(filteredWriterScoring){
+        const preparedStarted=metrics?performance.now():0;
+        queryPrepared=profile.prepareWriterAnalysis(
+          queryAnalysis,
+          {maxTailSyllables:explicitWriterSyllableTarget},
+        );
+        if(metrics)metrics.analysis_feature_preparation_ms+=performance.now()-preparedStarted;
+      }else{
+        queryPrepared=preparedFor(queryRow,queryAnalysis);
+      }
     } catch { continue; }
 
     const candidates=candidatePool(
@@ -857,10 +878,16 @@ export function findRhymes(db, word, options = {}) {
         candidateAnalysis=analysisFor(candidate);
         if(
           options.disableSafePrefilter!==true
-          &&typeof profile.matchUpperBound==='function'
+          &&(
+            filteredWriterScoring
+              ?typeof profile.writerMatchUpperBound==='function'
+              :typeof profile.matchUpperBound==='function'
+          )
         ){
           const prefilterStarted=metrics?performance.now():0;
-          const bound=profile.matchUpperBound(queryAnalysis,candidateAnalysis);
+          const bound=filteredWriterScoring
+            ?profile.writerMatchUpperBound(queryPrepared,candidateAnalysis)
+            :profile.matchUpperBound(queryAnalysis,candidateAnalysis);
           if(metrics){
             metrics.safe_prefilter_ms+=performance.now()-prefilterStarted;
             metrics.safe_prefilter_checks+=1;
@@ -878,9 +905,17 @@ export function findRhymes(db, word, options = {}) {
       let score=scoreCache.get(pairKey);
       if(!score){
         const scoreStarted=metrics?performance.now():0;
-        score=typeof profile.scorePreparedAnalyses==='function'
-          ?profile.scorePreparedAnalyses(queryPrepared,candidatePrepared)
-          :profile.scoreAnalyses(queryAnalysis,candidateAnalysis);
+        score=filteredWriterScoring
+          ?(
+            typeof profile.scorePreparedWriterAnalyses==='function'
+              ?profile.scorePreparedWriterAnalyses(queryPrepared,candidatePrepared)
+              :profile.scoreWriterAnalyses(queryAnalysis,candidateAnalysis)
+          )
+          :(
+            typeof profile.scorePreparedAnalyses==='function'
+              ?profile.scorePreparedAnalyses(queryPrepared,candidatePrepared)
+              :profile.scoreAnalyses(queryAnalysis,candidateAnalysis)
+          );
         if(metrics){
           metrics.phonetic_scoring_ms+=performance.now()-scoreStarted;
           metrics.unique_scoring_pairs+=1;
