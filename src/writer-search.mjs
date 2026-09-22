@@ -3,6 +3,8 @@ import { matchesSyllableFilter, syllableFilterRange } from './syllable-filter.mj
 import {
   RHYME_TYPES,
   cachedResultAnalysis,
+  cachedResultPreparedAnalysis,
+  cachedResultScore,
   findRhymes,
   lookupGermanCandidateRowsForAnalysis,
   resultTypes,
@@ -297,6 +299,25 @@ function rescoreWriterResult(row, queryAnalysis, profile, querySyllables, contex
     legacyScore: row.score,
     legacyPrimaryType: row.primaryType,
     legacyRhymeTier: row.rhymeTier,
+  };
+}
+
+function reuseCachedShortWriterResult(row,context){
+  const score=cachedResultScore(row);
+  if(!score)return null;
+  const key=writerCandidateKey(row);
+  const analysis=cachedResultAnalysis(row);
+  const prepared=cachedResultPreparedAnalysis(row);
+  if(analysis)context?.analysisByKey.set(key,analysis);
+  if(prepared)context?.preparedByKey.set(key,prepared);
+  context?.scoreByKey.set(key,score);
+  return {
+    ...row,
+    writerAnchor:score.anchor||null,
+    writerAnchorCandidates:score.anchorCandidates||[],
+    legacyScore:row.score,
+    legacyPrimaryType:row.primaryType,
+    legacyRhymeTier:row.rhymeTier,
   };
 }
 
@@ -639,12 +660,20 @@ export function findWriterRhymes(db, word, options = {}) {
     :null;
 
   const merged = new Map();
+  const shortTarget=explicitShortSyllableTarget(options.syllableFilter);
   for (const row of base.results) {
-    const rescored = queryAnalysis
-      ? rescoreWriterResult(
-          row,queryAnalysis,profile,base.query.syllableCount,scoringContext
-        )
-      : row;
+    const cachedShortResult=(
+      shortTarget
+      &&base.language==='de'
+      &&scoringContext
+    )?reuseCachedShortWriterResult(row,scoringContext):null;
+    const rescored = cachedShortResult||(
+      queryAnalysis
+        ? rescoreWriterResult(
+            row,queryAnalysis,profile,base.query.syllableCount,scoringContext
+          )
+        : row
+    );
     merged.set(rescored.normalized, rescored);
   }
 
