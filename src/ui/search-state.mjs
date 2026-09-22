@@ -178,7 +178,6 @@ export function searchStateToWriterParams(value,{
   entityPool=512,
 }={}){
   const state=createSearchState(value);
-  const backendType=SOUND_RELATIONS.has(state.rhymeType)?'all':state.rhymeType;
   const params=new URLSearchParams({
     q:state.anchor,
     language:state.queryBasis,
@@ -196,7 +195,7 @@ export function searchStateToWriterParams(value,{
     historical:state.historical?'all':'current',
     generated:state.generated?'1':'0',
     generated_only:state.generatedOnly?'1':'0',
-    type:backendType,
+    type:state.rhymeType,
     syllables:state.syllableFilter,
   });
   if(state.entityCategories.length>1)params.set('entity_categories',state.entityCategories.join(','));
