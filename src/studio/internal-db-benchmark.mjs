@@ -116,6 +116,11 @@ function sampleFromResult({database,caseId,run,warmup,result}){
     resultCount:Number(result?.rows?.length||0),
     quality:writerResultQuality(result?.rows||[]),
     request:result?.effectiveRequest||null,
+    serverProfile:result?.raw?.performanceProfile?{
+      totalMs:number(result.raw.performanceProfile.total_ms),
+      stagesMs:result.raw.performanceProfile.stages_ms||{},
+      counters:result.raw.performanceProfile.counters||{},
+    }:null,
     timings:{
       serverSearchMs:number(result?.runtimeTiming?.searchMs),
       serverProfileMs:number(result?.raw?.performanceProfile?.total_ms),
@@ -161,6 +166,7 @@ function aggregateDatabaseSamples(samples,qualityComparisons){
     nondeterministicCases:nondeterministicCases.length,
     nondeterministicCaseIds:nondeterministicCases,
     serverSearchMs:benchmarkDistribution(pick(['timings','serverSearchMs'])),
+    serverProfileMs:benchmarkDistribution(pick(['timings','serverProfileMs'])),
     serverSerializeMs:benchmarkDistribution(pick(['timings','serverSerializeMs'])),
     clientTotalMs:benchmarkDistribution(pick(['timings','clientTotalMs'])),
     clientParseMs:benchmarkDistribution(pick(['timings','clientParseMs'])),
