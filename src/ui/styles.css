@@ -487,3 +487,10 @@ select option,select optgroup{background:#fff;color:var(--ink)}
   .search-filter-field{padding-left:7px;padding-right:7px}
   .search-filter-field select{font-size:10px}
 }
+
+
+/* Filter Deck visual acceptance: never create a nested scrollbar in sticky search. */
+.search-stage.search-auto-compact .search-card{
+  max-height:none;
+  overflow:visible;
+}
