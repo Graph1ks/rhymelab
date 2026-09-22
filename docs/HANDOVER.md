@@ -1,3 +1,35 @@
+# CURRENT CONTINUATION — Distribution DB Lab v2 benchmark evidence
+
+The immediate active continuation is the owner-side quality/speed comparison of the
+completed Master/Lite/Standard/Full Serving-v1 databases.
+
+**Read first:**
+
+`docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md`
+
+Then read:
+
+- `docs/INTERNAL_DISTRIBUTION_LAB.md`
+- `docs/DISTRIBUTION_TIERS.md`
+- `STATUS.md`
+- `PROJECT_STATE.json`
+
+Current accepted main after PR #197:
+
+```text
+51853e523e5598da48bf33d3f47e9f0e7d810ee8
+```
+
+RhymeLab CI #924 passed after merge.
+
+The owner is expected to provide the next thread with DB Lab v2 benchmark evidence
+(`Bench current`, `Bench suite`, then `Copy all`). The next thread should
+analyze that evidence immediately and continue with measured quality/speed
+optimization. Do not rebuild distributions or ask the owner to re-explain the
+project.
+
+---
+
 # CURRENT CONTINUATION — Studio V2 live acceptance
 
 The active product continuation is Studio V2 release acceptance.
