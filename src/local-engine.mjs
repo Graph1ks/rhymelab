@@ -549,10 +549,11 @@ export function lookupGermanCandidateRowsForAnalysis(db,analysis,options={}){
     options.metrics||null,
     options.syllableFilter||'all',
   );
-  if(!servingBoundedHotpath(db)||options.hydrateRich===false)return rows;
+  const boundedRows=rows.slice(0,clampLimit(options.poolLimit,350,800));
+  if(!servingBoundedHotpath(db)||options.hydrateRich===false)return boundedRows;
   return hydrateServingRichCandidates(
     db,
-    rows.map((row)=>Number(row.id)).filter(Number.isFinite),
+    boundedRows.map((row)=>Number(row.id)).filter(Number.isFinite),
   );
 }
 
