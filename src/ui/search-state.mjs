@@ -16,7 +16,6 @@ const RHYME_TYPES=new Set([
 const SYLLABLE_FILTERS=new Set(['all','same','near','near1','near2','near3','1','2','3']);
 const SORTS=new Set(['recommended','syllables','common','closest','alpha']);
 const VARIANTS=new Set(['preferred','all']);
-const SOUND_RELATIONS=new Set(['assonance','consonance']);
 
 function normalizeScope(value){
   const text=String(value||'all').trim().toLowerCase();
