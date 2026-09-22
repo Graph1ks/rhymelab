@@ -2469,9 +2469,13 @@ async function initializeInternalDbLab(){
     queryAll('#internalDbSwitch [data-runtime-db]').forEach((button)=>{
       button.onclick=()=>{void setInternalDbLabDb(button.dataset.runtimeDb)};
     });
+    $('#internalDbBenchCurrent').onclick=()=>{void runStudioInternalDbBenchmark('current')};
+    $('#internalDbBenchSuite').onclick=()=>{void runStudioInternalDbBenchmark('suite')};
+    $('#internalDbBenchStop').onclick=()=>stopStudioInternalDbBenchmark();
     $('#internalDbMetricsToggle').onclick=()=>{
       internalDbLabMetricsOpen=!internalDbLabMetricsOpen;
       renderInternalDbLab();
+      if(internalDbLabMetricsOpen)void refreshInternalDbLabPayload({silent:true});
     };
     $('#internalDbMetricsCopy').onclick=()=>{void copyInternalDbLabMetrics()};
     $('#internalDbMetricsRefresh').onclick=async()=>{
