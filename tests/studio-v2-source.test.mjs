@@ -724,7 +724,7 @@ test('Studio two-row filter deck preserves the full Writer filter matrix',async(
     'directLanguageRoute','directScope','directRhymeType','directSyllables',
     'directSort','directVariants','directCorpus','directEntityCategoryMulti','directHideUsed',
   ]){
-    assert.match(html,new RegExp("id=[\\"']"+id+"[\\"']"));
+    assert.match(html,new RegExp(`id=["']${id}["']`));
   }
   assert.doesNotMatch(html,/advancedFiltersToggle|advancedRhymeType|advancedPreset/u);
   assert.match(app,/function applyLanguageRoute\(/u);
