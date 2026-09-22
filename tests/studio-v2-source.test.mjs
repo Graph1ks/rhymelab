@@ -45,11 +45,11 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/\.writer-loading:after/u);
   assert.match(css,/Studio production detail parity/u);
   assert.match(css,/\.detail-fact-grid/u);
-  assert.match(css,/\.advanced-filters/u);
-  assert.match(css,/\.advanced-filter-grid/u);
-  assert.match(css,/\.advanced-check/u);
-  assert.match(css,/\.entity-category-multi/u);
-  assert.match(css,/\.entity-category-legacy\{display:none!important\}/u);
+  assert.match(css,/Search Filter Deck v2/u);
+  assert.match(css,/\.filter-deck-row\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/u);
+  assert.match(css,/\.filter-field\.is-active/u);
+  assert.match(css,/\.filter-multi-dropdown/u);
+  assert.match(css,/\.filter-multi-menu/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
@@ -62,15 +62,16 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/data-dock=["']navigator["']/u);
   assert.match(html,/Bar Navigator/u);
   assert.match(html,/Bar Inspector/u);
-  assert.match(html,/id=["']advancedFiltersToggle["']/u);
-  assert.match(html,/id=["']advancedPreset["']/u);
-  assert.match(html,/id=["']advancedRhymeType["']/u);
-  assert.match(html,/id=["']advancedVariants["']/u);
-  assert.match(html,/id=["']advancedEntityCategory["']/u);
-  assert.match(html,/id=["']advancedHideUsed["']/u);
-  assert.match(html,/id=["']advancedHistorical["']/u);
-  assert.match(html,/id=["']advancedGenerated["']/u);
-  assert.match(html,/id=["']advancedGeneratedOnly["']/u);
+  for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategoryMulti','directHideUsed']){
+    assert.match(html,new RegExp('id=["\\']'+id+'["\\']','u'));
+  }
+  for(const type of ['all','multisyllabic_perfect','perfect','multisyllabic_slant','family','slant','assonance','consonance']){
+    assert.match(html,new RegExp('<option value=["\\']'+type+'["\\']','u'));
+  }
+  assert.doesNotMatch(html,/id=["']advancedFiltersToggle["']/u);
+  assert.doesNotMatch(html,/id=["']advancedFilters["']/u);
+  assert.doesNotMatch(html,/id=["']advancedPreset["']/u);
+  assert.doesNotMatch(html,/id=["']advancedRhymeType["']/u);
   assert.match(html,/id=["']runtimeInline["']/u);
   assert.match(app,/dataset\.studioVersion='2'/u);
   assert.match(app,/function renderStartupFailure\(/u);
@@ -589,7 +590,7 @@ test('Studio Writer adapter maps runtime rows and preserves canonical recommende
   assert.equal(params.get('generated_only'),'1');
   assert.equal(params.get('entity_category'),'musician');
   const relationOnly=buildWriterParams({query:'Zeit',rhymeType:'assonance'});
-  assert.equal(relationOnly.get('type'),'all');
+  assert.equal(relationOnly.get('type'),'assonance');
 
   const mapped=mapWriterResult({
     resultKind:'word',
@@ -711,7 +712,7 @@ test('Studio detail adapter uses canonical detail endpoints and keeps entities o
 });
 
 
-test('Studio full Writer filter matrix is wired without changing canonical recommended ordering',async()=>{
+test('Studio two-row filter deck preserves the full Writer filter matrix',async()=>{
   const [html,app,filters]=await Promise.all([
     readFile('src/studio/index.html','utf8'),
     readFile('src/studio/app.js','utf8'),
@@ -719,17 +720,19 @@ test('Studio full Writer filter matrix is wired without changing canonical recom
   ]);
 
   for(const id of [
-    'advancedFiltersToggle',
-    'advancedRhymeType',
-    'advancedVariants',
-    'advancedEntityCategory',
-    'advancedHistorical',
-    'advancedGenerated',
-    'advancedGeneratedOnly',
+    'directLanguageRoute','directScope','directRhymeType','directSyllables',
+    'directSort','directVariants','directCorpus','directEntityCategoryMulti','directHideUsed',
   ]){
-    assert.match(html,new RegExp("id=[\\\"']"+id+"[\\\"']"));
+    assert.match(html,new RegExp("id=[\\"']"+id+"[\\"']"));
   }
-
+  assert.doesNotMatch(html,/advancedFiltersToggle|advancedRhymeType|advancedPreset/u);
+  assert.match(app,/function applyLanguageRoute\(/u);
+  assert.match(app,/function applyCorpusMode\(/u);
+  assert.match(app,/function corpusModeValue\(/u);
+  assert.match(app,/function setEntityCategories\(/u);
+  assert.match(app,/data-entity-category/u);
+  assert.match(app,/#directRhymeType/u);
+  assert.match(app,/rhymeType=e\.target\.value;[\s\S]*?refreshWriterResults\(\)/u);
   assert.match(app,/filterStudioWriterRows\(baseData\(\)/u);
   assert.match(app,/sortStudioWriterRows\(data\(\)/u);
   assert.match(filters,/sort==='closest'/u);
@@ -737,13 +740,7 @@ test('Studio full Writer filter matrix is wired without changing canonical recom
   assert.match(filters,/mode==='near2'/u);
   assert.match(filters,/mode==='near3'/u);
   assert.match(app,/writerCapabilities=result\.capabilities/u);
-  assert.match(app,/availableEntityCategories\(\)/u);
-  assert.match(html,/id=["']advancedEntityCategoryMulti["']/u);
-  assert.match(app,/function setEntityCategories\(/u);
   assert.match(app,/entityCategories=Array\.isArray\(sharedSearchState\.entityCategories\)/u);
-  assert.match(app,/data-entity-category/u);
-  assert.match(app,/advancedFilterCount\(\)/u);
-  assert.match(app,/generatedOnly=e\.target\.checked/u);
 });
 
 
@@ -823,7 +820,7 @@ test('shared SearchState preserves search context across standalone Search and S
 
   const params=searchStateToWriterParams(saved);
   assert.equal(params.get('scope'),'phrases');
-  assert.equal(params.get('type'),'all');
+  assert.equal(params.get('type'),'assonance');
   assert.equal(params.get('variants'),'all');
   assert.equal(params.get('historical'),'all');
   assert.equal(params.get('generated_only'),'1');
