@@ -7,19 +7,20 @@ This repository is the authoritative engineering/project memory for RhymeLab. Re
 Before changing the project in a fresh thread/session, read:
 
 1. `PROJECT.md` — durable product identity, repository mode, architecture/cost/license/contribution boundaries
-2. `docs/STUDIO_V2_HANDOVER.md` — current product-shell implementation and live-cutover checkpoint
-3. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — still-pending physical browser/touch/Web Audio acceptance matrix
-4. `STATUS.md` — current operational state
-5. `PROJECT_STATE.json` — machine-readable current state
-6. `docs/HANDOVER.md` — current continuation pointer plus historical chronology
-7. `docs/MARKOV_GENERATOR_HANDOVER.md` — frozen Markov demo boundary; do not reopen without explicit owner direction
-8. `docs/SERVING_V1.md` and `docs/SERVING_V1_PRODUCT_ADAPTER.md` — canonical Serving-v1 runtime/data contracts
-9. `docs/PHASE_11_ACCEPTANCE.md` — accepted/frozen German Phrase/Mosaic behavior
-10. `docs/PHASE_12C_ACCEPTANCE.md` and `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — accepted Entity runtime and isolated AI staging boundary
-11. `docs/UI_INTERACTION_CONTRACT.md` and `docs/UI_REDESIGN_PARITY.md` — browser interaction/parity contracts
-12. `docs/DISTRIBUTION_TIERS.md` — Lite/Standard/Full packaging contract
-13. `docs/INTERNAL_DISTRIBUTION_LAB.md` — internal Master/Lite/Standard/Full comparison and shipping-isolation contract
-13. `ROADMAP.md`, `DATA_SOURCES.md`, `docs/API.md`, and subsystem-specific acceptance/benchmark documents when relevant
+2. `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md` — immediate active continuation for Master/Lite/Standard/Full quality/speed benchmark evidence
+3. `docs/STUDIO_V2_HANDOVER.md` — current product-shell implementation and live-cutover checkpoint
+4. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — still-pending physical browser/touch/Web Audio acceptance matrix
+5. `STATUS.md` — current operational state
+6. `PROJECT_STATE.json` — machine-readable current state
+7. `docs/HANDOVER.md` — current continuation pointer plus historical chronology
+8. `docs/MARKOV_GENERATOR_HANDOVER.md` — frozen Markov demo boundary; do not reopen without explicit owner direction
+9. `docs/SERVING_V1.md` and `docs/SERVING_V1_PRODUCT_ADAPTER.md` — canonical Serving-v1 runtime/data contracts
+10. `docs/PHASE_11_ACCEPTANCE.md` — accepted/frozen German Phrase/Mosaic behavior
+11. `docs/PHASE_12C_ACCEPTANCE.md` and `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — accepted Entity runtime and isolated AI staging boundary
+12. `docs/UI_INTERACTION_CONTRACT.md` and `docs/UI_REDESIGN_PARITY.md` — browser interaction/parity contracts
+13. `docs/DISTRIBUTION_TIERS.md` — Lite/Standard/Full packaging contract
+14. `docs/INTERNAL_DISTRIBUTION_LAB.md` — internal Master/Lite/Standard/Full comparison and shipping-isolation contract
+15. `ROADMAP.md`, `DATA_SOURCES.md`, `docs/API.md`, and subsystem-specific acceptance/benchmark documents when relevant
 
 ## Operating model — solo-dev / owner-controlled
 

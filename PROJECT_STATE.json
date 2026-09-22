@@ -3973,5 +3973,23 @@
       },
       "note": "Owner-local completed/vacuumed SQLite observations; benchmark timing acceptance remains separate."
     }
+  },
+  "active_continuation": {
+    "id": "DISTRIBUTION_DB_LAB_V2_BENCHMARK_EVIDENCE",
+    "status": "AWAITING_OWNER_BENCHMARK_RESPONSE",
+    "handover": "docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md",
+    "current_main": "51853e523e55",
+    "expected_owner_evidence": [
+      "Bench current",
+      "Bench suite",
+      "Copy all rhymelab-internal-db-lab-copy-v2 JSON"
+    ],
+    "next_thread_action": "analyze_owner_evidence_then_optimize_measured_hotpaths_without_rebuilding_distributions",
+    "do_not_repeat": [
+      "distribution build",
+      "distribution plan",
+      "accepted ranking gates",
+      "project re-explanation"
+    ]
   }
 }

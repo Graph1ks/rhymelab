@@ -4,6 +4,14 @@
 
 **Development-only comparison tooling. Not a shipping product surface.**
 
+Current thread continuation / benchmark-analysis handover:
+
+- `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md`
+
+The focused handover records the exact current `main`, accepted physical DB sizes,
+expected owner benchmark response, next-thread analysis order and quality/speed
+guardrails.
+
 The Internal Distribution DB Lab exists so the owner can compare the canonical
 Master/Developer Serving-v1 database against the locally materialized Lite,
 Standard and Full editions through the real Studio UI.
