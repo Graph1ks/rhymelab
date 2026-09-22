@@ -17,7 +17,7 @@ Then read:
 Current accepted main after PR #197:
 
 ```text
-51853e523e5598da48bf33d3f47e9f0e7d810ee8
+51853e523e55
 ```
 
 RhymeLab CI #924 passed after merge.
