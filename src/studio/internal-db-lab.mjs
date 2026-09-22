@@ -122,6 +122,11 @@ export function studioRuntimeMetrics({
   query='',
 }={}){
   const quality=writerResultQuality(writerRows||[]);
+  const searchMs=finite(writerRuntimeTiming?.searchMs);
+  const beforeSerializeMs=finite(writerServerTransport?.beforeSerializeMs);
+  const postSearchMs=searchMs!=null&&beforeSerializeMs!=null
+    ?Math.max(0,beforeSerializeMs-searchMs)
+    :null;
   return {
     activeDb:normalizeInternalDbLabId(activeDb),
     writerStatus:String(writerStatus||''),
@@ -130,7 +135,8 @@ export function studioRuntimeMetrics({
     resultCount:Number(resultCount||0),
     visibleResultCount:Number(visibleResultCount||0),
     resultQuality:quality,
-    serverSearchMs:finite(writerRuntimeTiming?.searchMs),
+    serverSearchMs:searchMs,
+    serverPostSearchMs:postSearchMs,
     serverAverageLast100Ms:finite(writerRuntimeTiming?.averageLast100Ms),
     serverSampleCount:Number(writerRuntimeTiming?.sampleCount||0),
     serverBeforeSerializeMs:finite(writerServerTransport?.beforeSerializeMs),
