@@ -600,7 +600,7 @@ test('Studio Writer adapter maps runtime rows and preserves canonical recommende
   assert.equal(params.get('generated_only'),'1');
   assert.equal(params.get('entity_category'),'musician');
   const relationOnly=buildWriterParams({query:'Zeit',rhymeType:'assonance'});
-  assert.equal(relationOnly.get('type'),'all');
+  assert.equal(relationOnly.get('type'),'assonance');
 
   const mapped=mapWriterResult({
     resultKind:'word',
@@ -834,7 +834,7 @@ test('shared SearchState preserves search context across standalone Search and S
 
   const params=searchStateToWriterParams(saved);
   assert.equal(params.get('scope'),'phrases');
-  assert.equal(params.get('type'),'all');
+  assert.equal(params.get('type'),'assonance');
   assert.equal(params.get('variants'),'all');
   assert.equal(params.get('historical'),'all');
   assert.equal(params.get('generated_only'),'1');
