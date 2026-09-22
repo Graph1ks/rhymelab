@@ -2,28 +2,45 @@
 
 Last updated: 2026-09-22
 
-## Immediate continuation — Distribution DB Lab v2 benchmark evidence
+## Immediate continuation — Distribution DB Lab v2 OOV compound rerun
 
 Focused handover: `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md`.
 
-PR #197 is merged on `main` at
-`51853e523e55`; post-merge RhymeLab CI #924
-passed.
-
-The next owner evidence for this track is the output of:
+The owner DB Lab v2 evidence has been received and analyzed. Controlled
+Master/Lite/Standard/Full runs were deterministic. The new blocking quality finding
+is an unknown German compound ending in a source-backed rhyme head:
 
 ```text
-Bench current
-Bench suite
-Copy all
+Krankenkassenwarteweise
+Master: 18 total = 0 Words / 0 Phrases / 18 Entities
+query_method_de=client_rules
 ```
 
-from `npm run dev:distribution-lab`.
+The source-backed control `Weise` returns 1036 Master results including 428 Words,
+119 Phrases and 489 Entities. This isolated the problem to OOV query decomposition /
+retrieval rather than missing `-weise` rhyme population.
 
-The next engineering thread should analyze that evidence immediately for
-request-equivalence, determinism, p50/p95, response bytes, quality/coverage overlap
-and detailed hotpath stages, then optimize the measured bottleneck without
-rebuilding the already completed distributions or reopening accepted ranking gates.
+Draft PR #199 on
+`fix/external-compound-right-head-rhyme` implements a bounded candidate:
+
+- resolve a source-backed German terminal compound component even if the left
+  remainder must be locally generated;
+- preserve the terminal head as secondary stress in the ephemeral client query IPA;
+- if normal external German Word retrieval is empty, reuse the accepted canonical
+  Writer path for that explicit terminal component;
+- keep normal source-backed queries, cross-language queries and accepted Writer-v6
+  scoring/ranking unchanged;
+- bump the client resolver policy to `client-total-query-pronunciation-v3` so stale
+  v2 IndexedDB pronunciations cannot mask the new resolution.
+
+No distribution rebuild or global ranking retune is required.
+
+The next owner evidence is a `Bench current` + `Copy all` rerun for
+`Krankenkassenwarteweise` on PR #199 plus an `Arbeitsweise` regression-control
+rerun. Expected OOV diagnostics include
+`query_method_de=client_mixed_source_right_reference_compound`, a terminal
+`Weise` component, non-zero Word results where that component exists, and
+`de-external-query-terminal-component-v1` retrieval metadata.
 
 This benchmark continuation is active in parallel with the still-pending Studio V2
 real-device acceptance below.
