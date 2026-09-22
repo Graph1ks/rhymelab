@@ -13,7 +13,7 @@ const I18N = {
   en: {
     title:'RhymeLab Local',eyebrow:'UNIFIED RHYME WRITER',headline:'Find rhymes across words, phrases and names.',
     intro:'Search German, English or both. RhymeLab combines every locally available channel and still lets you isolate words, Phrase/Mosaic matches or Entities.',
-    noteLocal:'Runs locally',notePhonetic:'IPA-based',noteUsage:'Deterministic',navSearch:'SEARCH',navRhymePad:'RHYMEPAD',localRuntime:'LOCAL RUNTIME',browse:'Browse results',resultScope:'Results',languageBasis:'Query pronunciation',resultLanguage:'Result language',searchIn:'Search in',basisGerman:'German',basisEnglish:'English',basisBoth:'Combined',scopeAll:'Words + phrases + entities',scopeAllButton:'All',scopeWords:'Words',scopePhrases:'Phrases / Mosaic',scopePhrasesShort:'Phrases',scopeEntities:'Entities',words:'Words',phrases:'Phrases / Mosaic',entities:'Entities',word:'Word',phrase:'Phrase',entity:'Entity',filters:'Filters',filtersHint:'Rhyme, syllables, sorting and vocabulary',viewList:'List',viewCompact:'Compact',searchOptionsShort:'Options',resultFiltersShort:'Filters',rhymeType:'Rhyme / sound relation',
+    noteLocal:'Runs locally',notePhonetic:'IPA-based',noteUsage:'Deterministic',navSearch:'SEARCH',navRhymePad:'RHYMEPAD',localRuntime:'LOCAL RUNTIME',browse:'Browse results',resultScope:'Results',languageBasis:'Query pronunciation',resultLanguage:'Result language',searchIn:'Search in',basisGerman:'German',basisEnglish:'English',basisBoth:'Combined',scopeAll:'Words + phrases + entities',scopeAllButton:'All',scopeWords:'Words',scopePhrases:'Phrases / Mosaic',scopePhrasesShort:'Phrases',scopeEntities:'Entities',words:'Words',phrases:'Phrases / Mosaic',entities:'Entities',word:'Word',phrase:'Phrase',entity:'Entity',filters:'Filters',filtersHint:'Rhyme, syllables, sorting and vocabulary',viewList:'List',viewCompact:'Compact',searchOptionsShort:'Options',resultFiltersShort:'Filters',languageRoute:'Query → results',corpusMode:'Corpus',corpusCurrent:'Current · canonical',corpusGenerated:'Current + generated',corpusGeneratedOnly:'Generated only',corpusHistorical:'+ historical',corpusComplete:'Historical + generated',corpusHistoricalGeneratedOnly:'Historical · generated only',rhymeType:'Rhyme / sound relation',
     syllables:'Syllables',sort:'Sort',pronunciation:'Pronunciation',vocabulary:'Vocabulary',all:'All',same:'Same count',plusMinus1:'±1 syllable',plusMinus2:'±2 syllables',plusMinus3:'±3 syllables',
     recommended:'Recommended',syllableDistance:'Closest syllable count',mostCommon:'Most common',closest:'Closest rhyme',alphabetical:'A–Z',standard:'Standard',allVariants:'All variants',
     searching:'Searching…',includeHistorical:'Include historical / obsolete words',generatedData:'Generated data',includeGenerated:'Include generated pronunciation data',generatedOnly:'Generated only',generatedShort:'Generated',generatedUnavailable:'Generated data is not available in this local installation.',stats:'Stats',statsTitle:'Dataset stats',statsIntro:'Available searchable pronunciation records in this local installation.',coreData:'Core',total:'Total',grandTotal:'Grand total',statsDeWords:'German words',statsEnWords:'English words',statsPhrases:'Phrases / Mosaic',statsEntities:'Entities',statsUnit:'pronunciation records',statsLoading:'Loading dataset stats…',statsUnavailable:'Dataset stats are unavailable.',runtimeTiming:'Search runtime',runtimeTimingQuery:'Query',runtimeTimingAverage:'AVG · 100',runtimeTimingScope:'Server search · DB + scoring + ranking',scrollMore:'Scroll for more results…',searchPlaceholder:'Search a word, phrase or entity…',search:'Search',
@@ -31,7 +31,7 @@ const I18N = {
   de: {
     title:'RhymeLab Lokal',eyebrow:'VEREINHEITLICHTER REIM-WRITER',headline:'Reime für Wörter, Phrasen und Namen finden.',
     intro:'Deutsch, Englisch oder beides durchsuchen. RhymeLab vereint alle lokal verfügbaren Kanäle und lässt Wörter, Phrase/Mosaic-Treffer und Entitäten trotzdem getrennt auswählen.',
-    noteLocal:'Läuft lokal',notePhonetic:'IPA-basiert',noteUsage:'Deterministisch',navSearch:'SUCHE',navRhymePad:'RHYMEPAD',localRuntime:'LOKALE RUNTIME',browse:'Ergebnisse',resultScope:'Ergebnisse',languageBasis:'Aussprache der Suche',resultLanguage:'Treffersprache',searchIn:'Suchen in',basisGerman:'Deutsch',basisEnglish:'Englisch',basisBoth:'Kombiniert',scopeAll:'Wörter + Wortgruppen + Entitäten',scopeAllButton:'Alles',scopeWords:'Wörter',scopePhrases:'Wortgruppen / Mosaic',scopePhrasesShort:'Phrasen',scopeEntities:'Entitäten',words:'Wörter',phrases:'Wortgruppen / Mosaic',entities:'Entitäten',word:'Wort',phrase:'Wortgruppe',entity:'Entität',filters:'Filter',filtersHint:'Reim, Silben, Sortierung und Wortschatz',viewList:'Liste',viewCompact:'Kompakt',searchOptionsShort:'Optionen',resultFiltersShort:'Filter',rhymeType:'Reim / Klangbeziehung',
+    noteLocal:'Läuft lokal',notePhonetic:'IPA-basiert',noteUsage:'Deterministisch',navSearch:'SUCHE',navRhymePad:'RHYMEPAD',localRuntime:'LOKALE RUNTIME',browse:'Ergebnisse',resultScope:'Ergebnisse',languageBasis:'Aussprache der Suche',resultLanguage:'Treffersprache',searchIn:'Suchen in',basisGerman:'Deutsch',basisEnglish:'Englisch',basisBoth:'Kombiniert',scopeAll:'Wörter + Wortgruppen + Entitäten',scopeAllButton:'Alles',scopeWords:'Wörter',scopePhrases:'Wortgruppen / Mosaic',scopePhrasesShort:'Phrasen',scopeEntities:'Entitäten',words:'Wörter',phrases:'Wortgruppen / Mosaic',entities:'Entitäten',word:'Wort',phrase:'Wortgruppe',entity:'Entität',filters:'Filter',filtersHint:'Reim, Silben, Sortierung und Wortschatz',viewList:'Liste',viewCompact:'Kompakt',searchOptionsShort:'Optionen',resultFiltersShort:'Filter',languageRoute:'Suche → Treffer',corpusMode:'Korpus',corpusCurrent:'Aktuell · kanonisch',corpusGenerated:'Aktuell + generiert',corpusGeneratedOnly:'Nur generiert',corpusHistorical:'+ historisch',corpusComplete:'Historisch + generiert',corpusHistoricalGeneratedOnly:'Historisch · nur generiert',rhymeType:'Reim / Klangbeziehung',
     syllables:'Silben',sort:'Sortierung',pronunciation:'Aussprache',vocabulary:'Wortschatz',all:'Alle',same:'Gleiche Anzahl',plusMinus1:'±1 Silbe',plusMinus2:'±2 Silben',plusMinus3:'±3 Silben',
     recommended:'Empfohlen',syllableDistance:'Nächste Silbenzahl',mostCommon:'Am häufigsten',closest:'Ähnlichster Reim',alphabetical:'A–Z',standard:'Standard',allVariants:'Alle Varianten',
     searching:'Suche…',includeHistorical:'Historische / veraltete Wörter einbeziehen',generatedData:'Generierte Daten',includeGenerated:'Generierte Aussprachedaten einbeziehen',generatedOnly:'Nur generiert',generatedShort:'Generiert',generatedUnavailable:'Generierte Daten sind in dieser lokalen Installation nicht verfügbar.',stats:'Statistik',statsTitle:'Datenbestand',statsIntro:'Verfügbare durchsuchbare Aussprache-Datensätze dieser lokalen Installation.',coreData:'Kernbestand',total:'Gesamt',grandTotal:'Gesamtsumme',statsDeWords:'Deutsche Wörter',statsEnWords:'Englische Wörter',statsPhrases:'Phrasen / Mosaic',statsEntities:'Entitäten',statsUnit:'Aussprache-Datensätze',statsLoading:'Datenbestand wird geladen…',statsUnavailable:'Statistik zum Datenbestand ist nicht verfügbar.',runtimeTiming:'Such-Runtime',runtimeTimingQuery:'Abfrage',runtimeTimingAverage:'Ø · 100',runtimeTimingScope:'Server-Suche · DB + Scoring + Ranking',scrollMore:'Weiter scrollen für mehr Ergebnisse…',searchPlaceholder:'Wort, Phrase oder Entität suchen…',search:'Suchen',
@@ -259,6 +259,69 @@ function updateSyllableLabels(){const querySyllables=Number(state.data?.query?.s
 function syncViewControls(){const results=$('#results');if(results){results.classList.toggle('results-compact',state.view==='compact');results.classList.toggle('results-list',state.view!=='compact');}$$('.view-option').forEach((button)=>{const active=button.dataset.view===state.view;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});}
 function syncUiLanguageControls(){$$('.ui-lang-option').forEach((button)=>{const active=button.dataset.uiLang===state.lang;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});}
 function basisLanguages(basis){return basis==='both'?['de','en']:[basis];}
+function languageRouteValue(){return state.basis+':'+state.resultLanguage;}
+function syncLanguageRouteControl(){
+  const select=$('#languageRouteFilter');
+  if(!select)return;
+  const wanted=languageRouteValue();
+  if([...select.options].some((option)=>option.value===wanted))select.value=wanted;
+  for(const option of select.options){
+    const [basis,result]=option.value.split(':');
+    const basisAvailable=state.capabilities?.bases?.[basis]!==false;
+    const resultAvailable=basisLanguages(result).some((language)=>state.capabilities?.languages?.[language]?.available!==false);
+    option.disabled=!basisAvailable||!resultAvailable;
+  }
+  select.closest('.search-filter-field')?.classList.toggle('is-active',wanted!=='de:de');
+}
+function applyLanguageRoute(value,{rerun=true}={}){
+  const [basis,result]=String(value||'de:de').split(':');
+  if(!['de','en','both'].includes(basis)||!['de','en','both'].includes(result))return;
+  state.basis=basis;
+  state.resultLanguage=result;
+  localStorage.setItem('rhymelab.searchBasis',state.basis);
+  localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);
+  state.sectionVisible.clear();
+  syncCapabilityControls();
+  captureSharedSearchState();
+  applyLanguage();
+  if(rerun&&state.query)void search(state.query);
+  else renderCapabilityNotice();
+}
+function corpusModeValue(){
+  const historical=Boolean($('#historicalMode')?.checked);
+  if(historical&&state.generatedOnly)return 'historical_generated_only';
+  if(historical&&state.generatedOptIn)return 'complete';
+  if(historical)return 'historical';
+  if(state.generatedOnly)return 'generated_only';
+  if(state.generatedOptIn)return 'generated';
+  return 'current';
+}
+function syncCorpusModeControl(){
+  const select=$('#corpusMode');
+  if(!select)return;
+  const available=state.generatedCapability?.available===true;
+  const value=corpusModeValue();
+  select.value=value;
+  for(const option of select.options){
+    option.disabled=String(option.value).includes('generated')&&!available;
+  }
+  select.closest('.search-filter-field')?.classList.toggle('is-active',value!=='current');
+}
+function applyCorpusMode(value,{rerun=true}={}){
+  const mode=String(value||'current');
+  const historical=mode==='historical'||mode==='complete'||mode==='historical_generated_only';
+  state.generatedOptIn=mode==='generated'||mode==='generated_only'||mode==='complete'||mode==='historical_generated_only';
+  state.generatedOnly=mode==='generated_only'||mode==='historical_generated_only';
+  if($('#historicalMode'))$('#historicalMode').checked=historical;
+  syncGeneratedOptinControl();
+  syncCorpusModeControl();
+  state.wordCache.clear();
+  state.pronunciationMisses.clear();
+  state.sectionVisible.clear();
+  captureSharedSearchState();
+  if(rerun&&state.query)void search(state.query);
+  else renderCapabilityNotice();
+}
 function syncResultLanguageControls(){$$('.result-language-option').forEach((button)=>{const target=button.dataset.resultLanguage,active=target===state.resultLanguage,languages=basisLanguages(target),available=languages.some((language)=>state.capabilities?.languages?.[language]?.available!==false);button.disabled=!available;button.classList.toggle('active',active);button.classList.toggle('unavailable',!available);button.setAttribute('aria-pressed',String(active));button.setAttribute('aria-disabled',String(!available));});}
 function scopeCapability(scope,basis=state.resultLanguage){const languages=basisLanguages(basis),capabilities=state.capabilities;if(!capabilities)return{available:true,partial:false,supportedLanguages:languages};const flag=scope==='phrases'?'phraseMosaic':scope==='entities'?'entityRhymes':'wordWriter';if(scope==='all'){const supportedLanguages=languages.filter((language)=>{const row=capabilities.languages?.[language];return Boolean(row?.wordWriter||row?.phraseMosaic||row?.entityRhymes);});return{available:supportedLanguages.length>0,partial:supportedLanguages.length>0&&supportedLanguages.length<languages.length,supportedLanguages};}const supportedLanguages=languages.filter((language)=>Boolean(capabilities.languages?.[language]?.[flag]));return{available:supportedLanguages.length>0,partial:supportedLanguages.length>0&&supportedLanguages.length<languages.length,supportedLanguages};}
 function syncContextFilters(){const scope=$('#scopeFilter').value;$('#variantFilter')?.classList.toggle('context-hidden',scope==='phrases'||scope==='entities');$('#historicalFilter')?.classList.toggle('context-hidden',scope==='entities');const entityAvailable=Array.isArray(state.capabilities?.entities?.categories)&&state.capabilities.entities.categories.length>0;$('#entityCategoryFilter')?.classList.toggle('context-hidden',!entityAvailable||!(scope==='all'||scope==='entities'));}
