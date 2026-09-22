@@ -1,6 +1,6 @@
 # Public-facing status
 
-Last updated: 2026-09-21
+Last updated: 2026-09-22
 
 ## Current continuation — Studio V2 live acceptance
 
@@ -51,25 +51,64 @@ Owner full-data Backfill V2 collection is complete: 6,033,818 unique language+no
 
 
 
-## Planned distribution tiers
+## Distribution editions and internal comparison
 
-The durable packaging contract is now recorded in `docs/DISTRIBUTION_TIERS.md`.
+Authoritative packaging contract: `docs/DISTRIBUTION_TIERS.md`.
+
+The active edition budgets are **total product-entry budgets**:
 
 ```text
-Lite      50k Core                  Words only
-Standard  250k Core                 Words + Phrase/Mosaic + Entities
-Full      400k Core + 200k Generated Words + Phrase/Mosaic + Entities + Generated + Markov live generator
+Lite      50,000 total = 50,000 ranked Core Words
+Standard 250,000 total = majority ranked Core Words
+                         + accepted Core Phrases
+                         + Top 1,000 retrievable Entities/category
+Full     400,000 total = majority ranked Core Words
+                         + accepted Phrases
+                         + up to Top 5,000 retrievable Entities/category
+                         + accepted Generated pronunciation/phrase closure
 ```
 
-The numeric tier cuts describe the retained Word/Pronunciation population, not Entity counts. The editions are required to satisfy `LITE ⊂ STANDARD ⊂ FULL ⊂ MASTER` for overlapping Core data and to be produced reproducibly from one finalized Master/Developer Serving dataset rather than separate source builds.
+There is no additive 200k Generated-word quota. Markov is not a distribution
+database capability. The required identity invariant remains:
 
-Current size expectations are planning values only: roughly 100–250 MB Lite, 2–4 GB Standard and 3–6 GB Full. A read-only `dbstat`/closure storage census on the finalized Master DB is the required next distribution step before fixing final storage gates or implementing the builder.
+```text
+LITE ⊂ STANDARD ⊂ FULL ⊂ MASTER
+```
+
+Full must reserve every Standard Top-1,000/category Entity membership **inside**
+the Full 5,000/category quota, then fill only the remaining slots from Full-eligible
+candidates. The materializer and regression tests enforce that the category quota
+cannot be exceeded by the nesting union.
+
+The storage census, normalized cross-language rank, resumable plan/materializer and
+cross-edition nesting verifier are implemented. Exact physical edition sizes remain
+owner-local build evidence until the real SQLite outputs are built/vacuumed and
+reported; planning ranges are not acceptance facts.
+
+Owner workflow:
+
+```powershell
+npm run distribution:plan
+npm run distribution:build
+npm run distribution:verify:nesting
+```
+
+The development-only Studio comparison surface is implemented as:
+
+```powershell
+npm run dev:distribution-lab
+```
+
+It opens Master/Lite/Standard/Full read-only, routes Studio requests with a
+request-scoped `runtime_db` selector, and exposes copyable DB/browser/server
+performance metrics. Normal startup strips the internal UI and disables the
+internal endpoint. Full contract: `docs/INTERNAL_DISTRIBUTION_LAB.md`.
 
 ## Serving-v1 performance candidate
 
 A report-grade steady-state benchmark is available as `npm run serving:v1:report:benchmark`. It measures the same persistent-worker unified-search path used by the Serving preview, discards worker startup plus warmup, then runs 20 fixed DE/EN/both cases over 7 deterministic measurement rounds by default (140 samples). It writes JSON and Markdown under `data/local/benchmark/`, records DB/runtime fingerprints and host metadata, and verifies that each query returns the same semantic result across repeats. A missed p50/p95/max target is report data rather than a process error; only an invalid/nondeterministic run fails the command.
 
-The owner-preview path `npm run dev:serving` now targets the one-file `data/local/rhymelab-serving-v1.sqlite` Product adapter. Expensive unified-search channels execute through five persistent `worker_threads` (DE Words, EN Words, DE Phrase/Mosaic, DE Entities, EN Entities), each with its own read-only connection. Worker creation/DB opening happens before measured requests; workers are reused across requests.
+The normal `npm run dev` / `npm start` path targets the one-file `data/local/rhymelab-serving-v1.sqlite` Product adapter. Expensive unified-search channels execute through five persistent `worker_threads` (DE Words, EN Words, DE Phrase/Mosaic, DE Entities, EN Entities), each with its own read-only connection. Worker creation/DB opening happens before measured requests; workers are reused across requests.
 
 The synchronous `searchUnifiedWriter()` implementation remains the semantic reference. CI fixture coverage requires the parallel Serving response to deep-equal the serial response for the same request. The Serving hotpath benchmark and Product Acceptance timing now measure the parallel path; the benchmark retains `--serial` as a diagnostic control.
 
@@ -87,23 +126,22 @@ Unified Product presentation now follows Serving-v1 surface identity: one visibl
 
 ## Current product/runtime baseline — v0.11.0
 
-The normal local UI/API now uses the accepted materialized German Writer runtime by default:
+Normal local UI/API startup uses Serving-v1:
 
 ```text
 package               v0.11.0
-writer DB             data/local/rhymelab-v5.sqlite
-writer DB schema      rhymelab-local-db-v5
-writer runtime        materialized-writer-v5-v1
-writer ranking        deterministic_writer_utility_v6
-right-edge anchor     de-right-edge-anchors-v1
-anchor storage        compact-primary-key-v2
-candidate basis       legacy-vowel-key-string-suffix-v1
-morphology            de-attested-right-head-v4
-construction          de-adverbial-weise-v2
-morphology storage    positive-evidence-compact-v2
+product shell         Studio V2
+default DB            data/local/rhymelab-serving-v1.sqlite
+schema family         rhymelab-serving-v1
+product adapter       rhymelab-serving-v1-product-adapter-v1
+runtime               serving-v1-single-db-product-candidate
+channels              DE/EN Words + Phrase/Mosaic + Entities
+generated policy      capability-driven; default on when available
 ```
 
-`npm run dev` uses this Writer v5 path.
+The frozen German Writer-v5/v6 ranking/retrieval semantics remain embedded in the
+Serving-v1 product runtime; the old split Writer-v5 SQLite is not the default
+application database.
 
 ## Legacy/control baseline — preserved
 
