@@ -138,6 +138,33 @@ function copyProgress(scope,started,path,event){
     extra:event.rows!=null?`${Number(event.rows).toLocaleString('en-US')} rows`:null,
   });
 }
+function integrityProgress(scope,started,path,phase,event){
+  const extras=[];
+  if(event.rows!=null)extras.push(Number(event.rows).toLocaleString('en-US')+' rows');
+  if(event.violations!=null)extras.push(Number(event.violations).toLocaleString('en-US')+' violations');
+  if(event.result!=null)extras.push('result='+String(event.result));
+  if(event.ok!=null)extras.push('ok='+String(event.ok));
+  stageLine({
+    scope,
+    label:phase+'/'+String(event.step||'integrity'),
+    status:String(event.status||'RUN').replaceAll('_','-').toUpperCase(),
+    started,path,
+    extra:extras.length?extras.join(' · '):null,
+  });
+}
+function databaseSpaceStats(db){
+  const pageSize=Number(db.prepare('PRAGMA page_size').get()?.page_size||0);
+  const pageCount=Number(db.prepare('PRAGMA page_count').get()?.page_count||0);
+  const freeCount=Number(db.prepare('PRAGMA freelist_count').get()?.freelist_count||0);
+  return {
+    page_size:pageSize,
+    page_count:pageCount,
+    free_pages:freeCount,
+    allocated_bytes:pageSize*pageCount,
+    reclaimable_bytes:pageSize*freeCount,
+    live_bytes:pageSize*Math.max(0,pageCount-freeCount),
+  };
+}
 function createPlanState(db){
   db.exec(`
     CREATE TABLE IF NOT EXISTS distribution_plan_meta(
@@ -568,11 +595,28 @@ async function buildEdition(ctx,edition){
       }
 
       stageLine({
-        scope:edition.toUpperCase(),current:7,total:8,label:'ANALYZE + integrity',
+        scope:edition.toUpperCase(),current:7,total:8,label:'planner optimize + integrity',
+        status:'START',started,path:work,
+        extra:'bounded PRAGMA optimize; no full ANALYZE',
+      });
+
+      const optimizeStarted=Date.now();
+      stageLine({
+        scope:edition.toUpperCase(),label:'materialize/pragma_optimize',
         status:'START',started,path:work,
       });
-      db.exec('ANALYZE; PRAGMA optimize;');
-      let integrity=distributionIntegrityReport(db,edition);
+      const optimizeRows=db.prepare('PRAGMA optimize').all();
+      stageLine({
+        scope:edition.toUpperCase(),label:'materialize/pragma_optimize',
+        status:'DONE',started,path:work,
+        extra:`${optimizeRows.length} actions · step ${formatDuration(Date.now()-optimizeStarted)}`,
+      });
+
+      let integrity=distributionIntegrityReport(db,edition,{
+        onProgress:(event)=>integrityProgress(
+          edition.toUpperCase(),started,work,'materialize/integrity',event
+        ),
+      });
       if(!integrity.ok){
         throw new Error(
           'Distribution integrity failed for '+edition+': '+JSON.stringify(integrity),
@@ -583,7 +627,7 @@ async function buildEdition(ctx,edition){
       putMeta(db,'distribution_materialized_at',now());
       completeBuildStage(db,'materialized',{integrity});
       stageLine({
-        scope:edition.toUpperCase(),current:7,total:8,label:'ANALYZE + integrity',
+        scope:edition.toUpperCase(),current:7,total:8,label:'planner optimize + integrity',
         status:'DONE',started,path:work,extra:'safe finalization resume point written',
       });
 
@@ -611,12 +655,41 @@ async function buildEdition(ctx,edition){
       status:'START',started,path:work,
       extra:skipVacuum?'VACUUM explicitly skipped':'restartable finalization stage',
     });
+
     if(!skipVacuum){
+      const beforeVacuum=databaseSpaceStats(db);
+      stageLine({
+        scope:edition.toUpperCase(),label:'finalize/vacuum',
+        status:'START',started,path:work,
+        extra:`allocated ${formatBytes(beforeVacuum.allocated_bytes)} · reclaimable ${formatBytes(beforeVacuum.reclaimable_bytes)} · live floor ${formatBytes(beforeVacuum.live_bytes)} · SQLite exposes no percentage callback`,
+      });
+      const vacuumStarted=Date.now();
       db.exec('VACUUM;');
-      db.exec('ANALYZE; PRAGMA optimize;');
+      const afterVacuum=databaseSpaceStats(db);
+      stageLine({
+        scope:edition.toUpperCase(),label:'finalize/vacuum',
+        status:'DONE',started,path:work,
+        extra:`step ${formatDuration(Date.now()-vacuumStarted)} · allocated ${formatBytes(afterVacuum.allocated_bytes)}`,
+      });
+
+      const finalOptimizeStarted=Date.now();
+      stageLine({
+        scope:edition.toUpperCase(),label:'finalize/pragma_optimize',
+        status:'START',started,path:work,
+      });
+      const finalOptimizeRows=db.prepare('PRAGMA optimize').all();
+      stageLine({
+        scope:edition.toUpperCase(),label:'finalize/pragma_optimize',
+        status:'DONE',started,path:work,
+        extra:`${finalOptimizeRows.length} actions · step ${formatDuration(Date.now()-finalOptimizeStarted)}`,
+      });
     }
 
-    const integrity=distributionIntegrityReport(db,edition);
+    const integrity=distributionIntegrityReport(db,edition,{
+      onProgress:(event)=>integrityProgress(
+        edition.toUpperCase(),started,work,'finalize/integrity',event
+      ),
+    });
     if(!integrity.ok){
       throw new Error(
         'Post-finalization distribution integrity failed for '+edition+': '
@@ -671,10 +744,22 @@ async function buildEdition(ctx,edition){
     if(meta.distribution_status!=='complete'||meta.distribution_edition!==edition){
       throw new Error('Promoted distribution metadata verification failed for '+edition);
     }
-    const integrity=distributionIntegrityReport(verify,edition);
+    stageLine({
+      scope:edition.toUpperCase(),label:'promoted/integrity',
+      status:'START',started,path:output,
+    });
+    const integrity=distributionIntegrityReport(verify,edition,{
+      onProgress:(event)=>integrityProgress(
+        edition.toUpperCase(),started,output,'promoted/integrity',event
+      ),
+    });
     if(!integrity.ok)throw new Error(
       'Promoted distribution integrity failed for '+edition+': '+JSON.stringify(integrity),
     );
+    stageLine({
+      scope:edition.toUpperCase(),label:'promoted/integrity',
+      status:'DONE',started,path:output,
+    });
   }finally{verify.close();}
 
   console.log('');
