@@ -213,7 +213,40 @@ function lookupBoundedServingWriterRows(db,anchorKey,options={}){
 export function lookupMaterializedWriterAnchorRows(db, anchorKey, options = {}) {
   const state = materializedWriterRuntimeState(db);
   if (!state.active) throw new Error('Materialized writer runtime is not active for this database');
-  if(!state.servingV1) return lookupWriterAnchorRows(db, anchorKey, options);
+  if(!state.servingV1){
+    const querySyllables=Number(options.querySyllables||0);
+    const requestedRange=syllableFilterRange(
+      options.syllableFilter||'all',
+      querySyllables,
+    );
+    if(!requestedRange)return lookupWriterAnchorRows(db, anchorKey, options);
+    const queryNormalized=String(options.queryNormalized||'');
+    const includeVariants=options.includeVariants===true;
+    const includeHistorical=options.includeHistorical===true;
+    const generatedOnly=options.generatedOnly===true;
+    const limit=Math.max(1,Math.min(800,Number(options.limit||800)));
+    const preferred=includeVariants?'':' AND h.pronunciation_preferred=1';
+    const historical=includeHistorical?'':' AND h.historical=0';
+    const generated=generatedOnly?" AND h.pronunciation_flags LIKE '%secondary_opt_in%'":'';
+    return db.prepare(`
+      SELECT h.*
+      FROM writer_anchor a
+      JOIN hot h ON h.id=a.pronunciation_id
+      WHERE a.anchor_key=?
+        AND h.normalized != ?
+        AND h.syllable_count BETWEEN ? AND ?
+        ${preferred}${historical}${generated}
+      ORDER BY ABS(h.syllable_count-?), h.usage_rank IS NULL, h.usage_rank, h.id
+      LIMIT ?
+    `).all(
+      String(anchorKey),
+      queryNormalized,
+      requestedRange.min,
+      Math.min(requestedRange.max,1000000),
+      querySyllables,
+      limit,
+    );
+  }
 
   if(tableExists(db,'runtime_de_writer_candidate')){
     return lookupBoundedServingWriterRows(db,anchorKey,options);
