@@ -3,7 +3,7 @@
 **Status:** active continuation  
 **Last updated:** 2026-09-22  
 **Canonical repository:** `Graph1ks/rhymelab`  
-**Current accepted main merge:** `51853e523e5598da48bf33d3f47e9f0e7d810ee8` (PR #197)  
+**Current accepted main merge:** `51853e523e55` (PR #197)  
 **Post-merge CI:** RhymeLab CI #924 — PASS  
 **Studio V2 pre-merge gate:** PASS
 
@@ -670,7 +670,7 @@ Distribution/runtime work relevant to this continuation:
 Current accepted main after #197:
 
 ```text
-51853e523e5598da48bf33d3f47e9f0e7d810ee8
+51853e523e55
 ```
 
 ---
