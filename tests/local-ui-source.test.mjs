@@ -85,6 +85,8 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /captureSharedSearchState/);
   assert.match(app, /function applyLanguageRoute\(/);
   assert.match(app, /function applyCorpusMode\(/);
+  assert.match(app, /function searchCardFitsStickyViewport\(/);
+  assert.match(app, /!searchCardFitsStickyViewport\(\)/);
   assert.match(app, /#syllableFilter[\s\S]*?void search\(state\.query\)/);
   assert.match(app, /searchStateToWriterParams\(searchState\)/);
   assert.match(app, /writeSearchStateToUrl/);
@@ -218,6 +220,8 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(css, /\.search-filter-field\.is-active/);
   assert.match(css, /\.search-core-flat/);
+  assert.match(css, /never create a nested scrollbar in sticky search/);
+  assert.match(css, /\.search-stage\.search-auto-compact \.search-card\{[\s\S]*?max-height:none;[\s\S]*?overflow:visible;/);
   assert.match(css, /background:var\(--surface-strong\)/);
   assert.doesNotMatch(css, /inset 0 -2px 0 #b58a2b/);
   assert.match(css, /appearance:none/);
