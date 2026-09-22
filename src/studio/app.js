@@ -651,6 +651,43 @@ function queueWriterSearch(delay=140){
   writerSearch.cancel();
   writerDebounce=setTimeout(()=>{void refreshWriterResults()},delay);
 }
+function currentWriterSearchOptions(overrides={}){
+  return {
+    query:String(query||'').trim(),
+    queryBasis:basis,
+    resultLanguage:resultLang,
+    scope,
+    rhymeType,
+    includeVariants:variantMode==='all',
+    includeHistorical,
+    generated,
+    generatedOnly,
+    entityCategory,
+    entityCategories:[...entityCategories],
+    queryPronunciationRevision:studioCapabilities.queryPronunciationRevision||'',
+    runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
+    ...overrides,
+  };
+}
+function currentSearchUiState(){
+  return {
+    scope,
+    relation,
+    rhymeType,
+    syllableMode,
+    sort,
+    queryBasis:basis,
+    resultLanguage:resultLang,
+    variantMode,
+    includeHistorical,
+    generated,
+    generatedOnly,
+    entityCategory,
+    entityCategories:[...entityCategories],
+    hideUsed,
+    density,
+  };
+}
 async function refreshWriterResults(){
   clearTimeout(writerDebounce);
   saveStudioSearchState();
@@ -669,21 +706,9 @@ async function refreshWriterResults(){
   $('#detailDock')?.classList.add('hidden');
   renderResults();
   try{
-    const result=await writerSearch.search({
+    const result=await writerSearch.search(currentWriterSearchOptions({
       query:requestedQuery,
-      queryBasis:basis,
-      resultLanguage:resultLang,
-      scope,
-      rhymeType,
-      includeVariants:variantMode==='all',
-      includeHistorical,
-      generated,
-      generatedOnly,
-      entityCategory,
-      entityCategories,
-      queryPronunciationRevision:studioCapabilities.queryPronunciationRevision||'',
-      runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
-    });
+    }));
     if(requestedQuery!==query)return;
     if(internalDbLabEnabled&&result.runtimeDb!==internalDbLabActive){
       throw new Error('Internal DB routing mismatch: expected '+internalDbLabActive+' but backend returned '+String(result.runtimeDb));
@@ -693,6 +718,8 @@ async function refreshWriterResults(){
     writerWarnings=result.warnings;
     writerRuntimeTiming=result.runtimeTiming;
     writerClientTiming=result.clientTiming||null;
+    writerServerTransport=result.serverTransport||null;
+    writerEffectiveRequest=result.effectiveRequest||null;
     writerExecution=result.runtimeExecution||null;
     writerCapabilities=result.capabilities||writerCapabilities;
     if(internalDbLabEnabled&&internalDbLabPayload){
@@ -714,6 +741,8 @@ async function refreshWriterResults(){
     writerWarnings=[];
     writerRuntimeTiming=null;
     writerClientTiming=null;
+    writerServerTransport=null;
+    writerEffectiveRequest=null;
     writerExecution=null;
     writerStatus='error';
     writerError=error instanceof Error?error.message:String(error);
