@@ -347,3 +347,72 @@ select option,select optgroup{background:#fff;color:var(--ink)}
 .results-compact .syllable-col{grid-area:syllable;align-self:end;text-align:right}
 .results-compact .score{grid-area:score;align-self:end;text-align:right}
 .results-compact .kind-chip{max-width:100%;white-space:normal;line-height:1.15}
+
+
+/* Direct rhyme / sound relation surface */
+.relation-filter{
+  grid-column:1/-1;
+  display:grid;
+  gap:7px;
+  min-width:0;
+}
+.control-label{
+  color:var(--muted);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.rhyme-type-rail{
+  display:grid;
+  grid-template-columns:repeat(8,minmax(0,1fr));
+  gap:6px;
+}
+.rhyme-type-option{
+  min-width:0;
+  min-height:42px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:rgba(255,255,255,.52);
+  color:var(--muted);
+  padding:7px 8px;
+  font-size:11px;
+  font-weight:650;
+  line-height:1.15;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  transition:transform .15s ease,background .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease;
+}
+.rhyme-type-option:hover{
+  transform:translateY(-1px);
+  background:var(--surface-strong);
+  color:var(--ink);
+  border-color:var(--line-strong);
+}
+.rhyme-type-option.active{
+  background:var(--surface-strong);
+  color:var(--accent-ink);
+  border-color:rgba(49,84,213,.42);
+  box-shadow:0 2px 8px rgba(35,31,24,.08),inset 0 0 0 1px rgba(49,84,213,.08);
+}
+.rhyme-type-option[data-rhyme-type="assonance"].active{
+  color:var(--assonance);
+  border-color:color-mix(in srgb,var(--assonance) 45%,var(--line));
+  background:var(--assonance-bg);
+}
+.rhyme-type-option[data-rhyme-type="consonance"].active{
+  color:var(--consonance);
+  border-color:color-mix(in srgb,var(--consonance) 45%,var(--line));
+  background:var(--consonance-bg);
+}
+.rhyme-type-option:focus-visible{
+  outline:3px solid rgba(49,84,213,.22);
+  outline-offset:2px;
+}
+.legacy-type-select{display:none!important}
+@media(max-width:1250px){
+  .rhyme-type-rail{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:720px){
+  .rhyme-type-rail{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .rhyme-type-option{min-height:46px;font-size:12px;padding:8px}
+}
