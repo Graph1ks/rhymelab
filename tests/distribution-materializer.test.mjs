@@ -304,7 +304,8 @@ test('Entity availability is materialized once and reused by category quota sele
       ORDER BY ec.category_rank,ec.entity_id
       LIMIT 1
     `).get();
-    assert.deepEqual(eligible,{entity_id:1,category:'person.actor'});
+    assert.equal(Number(eligible.entity_id),1);
+    assert.equal(String(eligible.category),'person.actor');
   }finally{db.close();}
 });
 
