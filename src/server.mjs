@@ -592,6 +592,7 @@ const assets = {
   '/studio/backup-portability.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'backup-portability.mjs')) },
   '/studio/diagnostics.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'diagnostics.mjs')) },
   '/studio/internal-db-lab.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'internal-db-lab.mjs')) },
+  '/studio/internal-db-benchmark.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'internal-db-benchmark.mjs')) },
   '/studio/i18n.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'i18n.mjs')) },
   '/studio/dom-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'dom-acceptance.mjs')) },
   '/studio/command-palette.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'command-palette.mjs')) },
