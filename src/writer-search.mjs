@@ -1,4 +1,5 @@
 import { performance } from 'node:perf_hooks';
+import { matchesSyllableFilter, syllableFilterRange } from './syllable-filter.mjs';
 import {
   RHYME_TYPES,
   cachedResultAnalysis,
@@ -302,17 +303,39 @@ function collectRightEdgeCandidates(
           includeVariants,
           includeHistorical,
           generatedOnly,
+          syllableFilter:options.syllableFilter||'all',
           limit: perChannelLimit,
         })
-      : db.prepare(`
-          SELECT * FROM hot
-          WHERE vowel_key LIKE ?
-            AND normalized != ?
-            AND ABS(syllable_count-?) <= 1
-            ${preferred}${historical}${generated}
-          ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank, id
-          LIMIT ?
-        `).all(`%${entry.key}`, queryNormalized, querySyllables, querySyllables, perChannelLimit);
+      : (()=>{
+          const requestedRange=syllableFilterRange(options.syllableFilter||'all',querySyllables);
+          if(requestedRange){
+            return db.prepare(`
+              SELECT * FROM hot
+              WHERE vowel_key LIKE ?
+                AND normalized != ?
+                AND syllable_count BETWEEN ? AND ?
+                ${preferred}${historical}${generated}
+              ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank, id
+              LIMIT ?
+            `).all(
+              `%${entry.key}`,
+              queryNormalized,
+              requestedRange.min,
+              Math.min(requestedRange.max,1000000),
+              querySyllables,
+              perChannelLimit,
+            );
+          }
+          return db.prepare(`
+            SELECT * FROM hot
+            WHERE vowel_key LIKE ?
+              AND normalized != ?
+              AND ABS(syllable_count-?) <= 1
+              ${preferred}${historical}${generated}
+            ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank, id
+            LIMIT ?
+          `).all(`%${entry.key}`, queryNormalized, querySyllables, querySyllables, perChannelLimit);
+        })();
     if(context?.metrics){
       context.metrics.right_edge_lookup_ms+=performance.now()-lookupStarted;
     }
@@ -356,7 +379,13 @@ function collectRightEdgeCandidates(
   }
 
   return {
-    results: [...byWord.values()],
+    results: [...byWord.values()].filter((row)=>
+      matchesSyllableFilter(
+        row.syllableCount,
+        options.syllableFilter||'all',
+        querySyllables,
+      )
+    ),
     keys,
     runtime: runtimeState.active ? runtimeState : null,
   };
