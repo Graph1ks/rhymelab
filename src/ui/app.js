@@ -1,9 +1,28 @@
 import { CLIENT_QUERY_PRONUNCIATION_POLICY, resolveUnknownClientPronunciation } from './query-pronunciation-client.mjs';
 import { readGeneratedPronunciationCache, writeGeneratedPronunciationCache } from './query-pronunciation-cache.mjs';
 import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchState,searchStateFromUrl,searchStateToWriterParams,writeSearchStateToUrl} from './search-state.mjs';
+import {enhanceSelect,syncEnhancedSelects} from './custom-select.mjs';
 
 const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => [...document.querySelectorAll(selector)];
+const $ = (selector) => [...document.querySelectorAll(selector)];
+
+let filterSelectControls=[];
+function customSelectDomAvailable(){
+  const probe=document.createElement?.('div');
+  return Boolean(probe&&typeof probe.appendChild==='function'&&document.body?.appendChild);
+}
+function installFilterSelectControls(){
+  if(!customSelectDomAvailable())return;
+  filterSelectControls=[
+    ['languageRouteFilter',{}],['scopeFilter',{}],['typeFilter',{}],['syllableFilter',{}],
+    ['sortMode',{}],['variantMode',{}],['corpusMode',{}],
+    ['entityCategory',{mobileSheet:true,mobileSheetBreakpoint:720}],
+  ].map(([id,config])=>enhanceSelect($('#'+id),config)).filter(Boolean);
+}
+function syncFilterSelectControls(){
+  if(!customSelectDomAvailable())return;
+  syncEnhancedSelects(filterSelectControls);
+}
 
 const PRIMARY_RHYME_TYPES = ['multisyllabic_perfect','perfect','multisyllabic_slant','family','slant'];
 const SOUND_RELATION_TYPES = ['assonance','consonance'];
@@ -197,6 +216,7 @@ function applySharedSearchState(searchState,{entityCategory=true}={}){
     const valid=[...$('#entityCategory').options].some((option)=>option.value===next.entityCategory);
     $('#entityCategory').value=valid?next.entityCategory:'all';
   }
+  syncFilterSelectControls();
   return next;
 }
 
@@ -255,7 +275,7 @@ function rowTypes(row){const types=new Set();if(row.primaryType&&PRIMARY_RHYME_T
 function matchesType(row,type){return rowTypes(row).includes(type);}
 function displayScore(row,type){return SOUND_RELATION_TYPES.includes(type)?Number(relationFor(row,type)?.score||0):Number(row.score||0);}
 function rowSyllableDistance(row,querySyllables=Number(state.data?.query?.syllableCount||0)){const explicit=Number(row?.syllableDistance);if(Number.isFinite(explicit))return Math.abs(explicit);const count=Number(row?.syllableCount);return querySyllables>0&&Number.isFinite(count)?Math.abs(count-querySyllables):Number.MAX_SAFE_INTEGER;}
-function updateSyllableLabels(){const querySyllables=Number(state.data?.query?.syllableCount||0),range=(distance)=>querySyllables>0?` · ${Math.max(1,querySyllables-distance)}–${querySyllables+distance}`:'';const labels={all:t('all'),same:querySyllables>0?`${t('same')} · ${querySyllables}`:t('same'),near1:`${t('plusMinus1')}${range(1)}`,near2:`${t('plusMinus2')}${range(2)}`,near3:`${t('plusMinus3')}${range(3)}`};for(const option of $$('#syllableFilter option'))option.textContent=labels[option.value]||option.textContent;}
+function updateSyllableLabels(){const querySyllables=Number(state.data?.query?.syllableCount||0),range=(distance)=>querySyllables>0?` · ${Math.max(1,querySyllables-distance)}–${querySyllables+distance}`:'';const labels={all:t('all'),same:querySyllables>0?`${t('same')} · ${querySyllables}`:t('same'),near1:`${t('plusMinus1')}${range(1)}`,near2:`${t('plusMinus2')}${range(2)}`,near3:`${t('plusMinus3')}${range(3)}`};for(const option of $('#syllableFilter option'))option.textContent=labels[option.value]||option.textContent;syncFilterSelectControls();}
 function syncViewControls(){const results=$('#results');if(results){results.classList.toggle('results-compact',state.view==='compact');results.classList.toggle('results-list',state.view!=='compact');}$$('.view-option').forEach((button)=>{const active=button.dataset.view===state.view;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});}
 function syncUiLanguageControls(){$$('.ui-lang-option').forEach((button)=>{const active=button.dataset.uiLang===state.lang;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});}
 function basisLanguages(basis){return basis==='both'?['de','en']:[basis];}
@@ -337,6 +357,7 @@ function syncContextFilters(){
   $('#syllableFilter')?.closest('.search-filter-field')?.classList.toggle('is-active',$('#syllableFilter').value!=='all');
   $('#sortMode')?.closest('.search-filter-field')?.classList.toggle('is-active',$('#sortMode').value!=='recommended');
   $('#variantMode')?.closest('.search-filter-field')?.classList.toggle('is-active',$('#variantMode').value!=='preferred');
+  syncFilterSelectControls();
 }
 function renderAvailabilityBar(){const node=$('#availabilityBar');if(!node)return;const scopes=[['words',t('words')],['phrases',t('phrases')],['entities',t('entities')]];node.innerHTML=scopes.map(([scope,label])=>{const capability=scopeCapability(scope),status=!capability.available?'unavailable':capability.partial?'partial':'available',languages=capability.supportedLanguages.map((language)=>language.toUpperCase()).join('+')||'—';return`<span class="availability-chip ${status}"><span class="availability-dot" aria-hidden="true"></span><strong>${esc(label)}</strong><small>${esc(languages)}</small></span>`;}).join('');}
 const STICKY_DETAIL_GAP=24;
@@ -503,7 +524,7 @@ function syncFloatingSearchState(){
   if(window.scrollY>=threshold)enterSearchAutoCompact();
 }
 
-function populateEntityCategories(){const select=$('#entityCategory');if(!select)return;const current=select.value||'all',categories=[...(state.capabilities?.entities?.categories||[])].sort((a,b)=>entityCategoryLabel(a).localeCompare(entityCategoryLabel(b),state.lang==='de'?'de':'en',{sensitivity:'base'}));const groups=new Map();for(const category of categories){const [family='other']=String(category).split('.');if(!groups.has(family))groups.set(family,[]);groups.get(family).push(category);}select.innerHTML=`<option value="all">${esc(t('allEntities'))}</option>`+[...groups.entries()].sort(([a],[b])=>humanize(a).localeCompare(humanize(b),state.lang==='de'?'de':'en',{sensitivity:'base'})).map(([family,items])=>`<optgroup label="${esc(humanize(family))}">${items.map((category)=>`<option value="${esc(category)}">${esc(entityCategoryLabel(category))}</option>`).join('')}</optgroup>`).join('');select.value=categories.includes(current)?current:'all';}
+function populateEntityCategories(){const select=$('#entityCategory');if(!select)return;const current=select.value||'all',categories=[...(state.capabilities?.entities?.categories||[])].sort((a,b)=>entityCategoryLabel(a).localeCompare(entityCategoryLabel(b),state.lang==='de'?'de':'en',{sensitivity:'base'}));const groups=new Map();for(const category of categories){const [family='other']=String(category).split('.');if(!groups.has(family))groups.set(family,[]);groups.get(family).push(category);}select.innerHTML=`<option value="all">${esc(t('allEntities'))}</option>`+[...groups.entries()].sort(([a],[b])=>humanize(a).localeCompare(humanize(b),state.lang==='de'?'de':'en',{sensitivity:'base'})).map(([family,items])=>`<optgroup label="${esc(humanize(family))}">${items.map((category)=>`<option value="${esc(category)}">${esc(entityCategoryLabel(category))}</option>`).join('')}</optgroup>`).join('');select.value=categories.includes(current)?current:'all';syncFilterSelectControls();}
 function setScope(scope,{rerun=false}={}){
   const requested=['all','words','phrases','entities'].includes(scope)?scope:'all';
   const capability=scopeCapability(requested);
@@ -648,6 +669,7 @@ function applyLanguage(){
   renderSources();
   if(state.datasetStats)renderDatasetStats();
   renderRuntimeTiming();
+  syncFilterSelectControls();
   if(state.data)render();
 }
 function compareRecommended(a,b){if(a.resultKind!==b.resultKind){const rank={word:0,phrase:1,entity:2};return Number(rank[a.resultKind]??9)-Number(rank[b.resultKind]??9);}const ar=Number(a.channelRank||a.writerRank||a.diversifiedPageRank||0),br=Number(b.channelRank||b.writerRank||b.diversifiedPageRank||0);if(ar&&br&&ar!==br)return ar-br;if(Number.isFinite(a.writerRank)&&Number.isFinite(b.writerRank))return a.writerRank-b.writerRank;return Number(a.rhymeTier??99)-Number(b.rhymeTier??99)||Number(a.syllableDistance||0)-Number(b.syllableDistance||0)||(a.usageRank==null)-(b.usageRank==null)||Number(a.usageRank??Number.MAX_SAFE_INTEGER)-Number(b.usageRank??Number.MAX_SAFE_INTEGER)||Number(b.score||0)-Number(a.score||0)||String(a.word||'').localeCompare(String(b.word||''),'de');}
@@ -957,6 +979,7 @@ function assertInteractiveControlSurface(){
 
 function installInteractiveControls(){
   assertInteractiveControlSurface();
+  installFilterSelectControls();
 
   $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();void search($('#searchInput').value);});
   $$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{

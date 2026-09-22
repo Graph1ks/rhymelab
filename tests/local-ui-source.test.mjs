@@ -256,3 +256,26 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(mobileCss, /min-height:62px!important/);
   assert.match(mobileCss, /\.results-compact \.result-items\{grid-template-columns:1fr!important\}/);
 });
+
+
+test('standalone Search filter deck hides every native select behind the shared custom listbox primitive',async()=>{
+  const [html,app,css,primitive]=await Promise.all([
+    readFile('src/ui/index.html','utf8'),
+    readFile('src/ui/app.js','utf8'),
+    readFile('src/ui/styles.css','utf8'),
+    readFile('src/ui/custom-select.mjs','utf8'),
+  ]);
+  for(const id of ['languageRouteFilter','scopeFilter','typeFilter','syllableFilter','sortMode','variantMode','corpusMode','entityCategory']){
+    assert.match(html,new RegExp('<select id=["\\\']'+id+'["\\\'][^>]*class=["\\\'][^"\\\']*native-select-backing','u'));
+  }
+  assert.match(app,/installFilterSelectControls\(\)/u);
+  assert.match(app,/syncEnhancedSelects\(filterSelectControls\)/u);
+  assert.match(css,/\.native-select-backing\{display:none!important\}/u);
+  assert.match(css,/\.custom-select-popover/u);
+  assert.match(primitive,/role','combobox/u);
+  assert.match(primitive,/aria-activedescendant/u);
+  assert.match(primitive,/pointerdown/u);
+  assert.match(primitive,/key==='Escape'/u);
+  assert.match(primitive,/key==='Enter'/u);
+  assert.match(primitive,/MutationObserver/u);
+});

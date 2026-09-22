@@ -58,7 +58,7 @@
               <div class="search-filter-row search-filter-primary">
                 <label class="search-filter-field">
                   <span data-i18n="languageRoute">Query → results</span>
-                  <select id="languageRouteFilter">
+                  <select id="languageRouteFilter" class="native-select-backing">
                     <option value="de:both">DE → DE+EN</option><option value="de:de">DE → DE</option><option value="de:en">DE → EN</option>
                     <option value="en:both">EN → DE+EN</option><option value="en:en">EN → EN</option><option value="en:de">EN → DE</option>
                     <option value="both:both">DE+EN → DE+EN</option><option value="both:de">DE+EN → DE</option><option value="both:en">DE+EN → EN</option>
@@ -66,7 +66,7 @@
                 </label>
                 <label class="search-filter-field">
                   <span data-i18n="searchIn">Search in</span>
-                  <select id="scopeFilter">
+                  <select id="scopeFilter" class="native-select-backing">
                     <option value="all" data-i18n-option="scopeAllButton">All</option>
                     <option value="words" data-i18n-option="scopeWords">Words</option>
                     <option value="phrases" data-i18n-option="scopePhrasesShort">Phrases</option>
@@ -75,7 +75,7 @@
                 </label>
                 <label class="search-filter-field search-filter-accent">
                   <span data-i18n="rhymeType">Rhyme / sound relation</span>
-                  <select id="typeFilter">
+                  <select id="typeFilter" class="native-select-backing">
                     <option value="all" data-i18n-option="all">All</option>
                     <option value="multisyllabic_perfect" data-i18n-option="type_multisyllabic_perfect">Multisyllabic perfect</option>
                     <option value="perfect" data-i18n-option="type_perfect">Perfect rhyme</option>
@@ -88,7 +88,7 @@
                 </label>
                 <label class="search-filter-field">
                   <span data-i18n="syllables">Syllables</span>
-                  <select id="syllableFilter">
+                  <select id="syllableFilter" class="native-select-backing">
                     <option value="all" data-i18n-option="all">All</option>
                     <option value="same" data-i18n-option="same">Same count</option>
                     <option value="near1" data-i18n-option="plusMinus1">±1 syllable</option>
@@ -102,7 +102,7 @@
               <div class="search-filter-row search-filter-secondary">
                 <label class="search-filter-field">
                   <span data-i18n="sort">Sort</span>
-                  <select id="sortMode">
+                  <select id="sortMode" class="native-select-backing">
                     <option value="recommended" data-i18n-option="recommended">Recommended</option>
                     <option value="syllables" data-i18n-option="syllableDistance">Syllable distance</option>
                     <option value="common" data-i18n-option="mostCommon">Most common</option>
@@ -112,14 +112,14 @@
                 </label>
                 <label class="search-filter-field" id="variantFilter">
                   <span data-i18n="pronunciation">Pronunciation</span>
-                  <select id="variantMode">
+                  <select id="variantMode" class="native-select-backing">
                     <option value="preferred" data-i18n-option="standard">Standard</option>
                     <option value="all" data-i18n-option="allVariants">All variants</option>
                   </select>
                 </label>
                 <label class="search-filter-field">
                   <span data-i18n="corpusMode">Corpus</span>
-                  <select id="corpusMode">
+                  <select id="corpusMode" class="native-select-backing">
                     <option value="current" data-i18n-option="corpusCurrent">Current · canonical</option>
                     <option value="generated" data-i18n-option="corpusGenerated">Current + generated</option>
                     <option value="generated_only" data-i18n-option="corpusGeneratedOnly">Generated only</option>
@@ -130,7 +130,7 @@
                 </label>
                 <label class="search-filter-field" id="entityCategoryFilter">
                   <span data-i18n="entityCategory">Entity category</span>
-                  <select id="entityCategory">
+                  <select id="entityCategory" class="native-select-backing">
                     <option value="all" data-i18n-option="allEntities">All entities</option>
                   </select>
                 </label>

@@ -48,8 +48,9 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/Search Filter Deck v2/u);
   assert.match(css,/\.filter-deck-row\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/u);
   assert.match(css,/\.filter-field\.is-active/u);
-  assert.match(css,/\.filter-multi-dropdown/u);
-  assert.match(css,/\.filter-multi-menu/u);
+  assert.match(css,/\.custom-select-trigger/u);
+  assert.match(css,/\.custom-select-popover/u);
+  assert.match(css,/\.native-select-backing\{display:none!important\}/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
@@ -62,7 +63,7 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/data-dock=["']navigator["']/u);
   assert.match(html,/Bar Navigator/u);
   assert.match(html,/Bar Inspector/u);
-  for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategoryMulti','directHideUsed']){
+  for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategories','directHideUsed']){
     assert.match(html,new RegExp(`id=["']${id}["']`,'u'));
   }
   for(const type of ['all','multisyllabic_perfect','perfect','multisyllabic_slant','family','slant','assonance','consonance']){
@@ -722,7 +723,7 @@ test('Studio two-row filter deck preserves the full Writer filter matrix',async(
 
   for(const id of [
     'directLanguageRoute','directScope','directRhymeType','directSyllables',
-    'directSort','directVariants','directCorpus','directEntityCategoryMulti','directHideUsed',
+    'directSort','directVariants','directCorpus','directEntityCategories','directHideUsed',
   ]){
     assert.match(html,new RegExp(`id=["']${id}["']`));
   }
@@ -731,7 +732,8 @@ test('Studio two-row filter deck preserves the full Writer filter matrix',async(
   assert.match(app,/function applyCorpusMode\(/u);
   assert.match(app,/function corpusModeValue\(/u);
   assert.match(app,/function setEntityCategories\(/u);
-  assert.match(app,/data-entity-category/u);
+  assert.match(app,/directEntityCategories/u);
+  assert.match(app,/enhanceSelect/u);
   assert.match(app,/#directRhymeType/u);
   assert.match(app,/rhymeType=e\.target\.value;[\s\S]*?refreshWriterResults\(\)/u);
   assert.match(app,/filterStudioWriterRows\(baseData\(\)/u);
@@ -848,4 +850,21 @@ test('Studio startup static controls stay synchronized with the golden-master DO
   assert.ok(ids.has('clearDocBtn'),'clear document control must be present in Studio HTML');
   assert.match(app,/bindClick\('clearDocBtn',clearCurrentDocument,\{optional:true\}\)/u);
   assert.deepEqual(required.filter((id)=>!ids.has(id)),[]);
+});
+
+
+test('Studio filter deck exposes only custom-visible selects and keeps native controls hidden as backing state',async()=>{
+  const [html,app,css]=await Promise.all([
+    readFile('src/studio/index.html','utf8'),
+    readFile('src/studio/app.js','utf8'),
+    readFile('src/studio/styles.css','utf8'),
+  ]);
+  for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategories']){
+    assert.match(html,new RegExp('<select id=["\\\']'+id+'["\\\'][^>]*class=["\\\'][^"\\\']*native-select-backing','u'));
+  }
+  assert.doesNotMatch(html,/filter-multi-dropdown|<details[^>]+directEntityCategory/u);
+  assert.match(app,/installFilterSelectControls\(\)/u);
+  assert.match(app,/syncEnhancedSelects\(filterSelectControls\)/u);
+  assert.match(css,/\.custom-select-option\[aria-selected="true"\]/u);
+  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/u);
 });
