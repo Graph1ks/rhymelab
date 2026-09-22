@@ -2,6 +2,32 @@
 
 Last updated: 2026-09-22
 
+## Immediate continuation — Distribution DB Lab v2 benchmark evidence
+
+Focused handover: `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md`.
+
+PR #197 is merged on `main` at
+`51853e523e5598da48bf33d3f47e9f0e7d810ee8`; post-merge RhymeLab CI #924
+passed.
+
+The next owner evidence for this track is the output of:
+
+```text
+Bench current
+Bench suite
+Copy all
+```
+
+from `npm run dev:distribution-lab`.
+
+The next engineering thread should analyze that evidence immediately for
+request-equivalence, determinism, p50/p95, response bytes, quality/coverage overlap
+and detailed hotpath stages, then optimize the measured bottleneck without
+rebuilding the already completed distributions or reopening accepted ranking gates.
+
+This benchmark continuation is active in parallel with the still-pending Studio V2
+real-device acceptance below.
+
 ## Current continuation — Studio V2 live acceptance
 
 Focused handover: `docs/STUDIO_V2_HANDOVER.md`. Real-device matrix: `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`.
