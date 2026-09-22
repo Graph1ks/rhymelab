@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {pathToFileURL} from 'node:url';
 
 export const DISTRIBUTION_SCHEMA='rhymelab-distribution-v1';
 export const DISTRIBUTION_RANK_POLICY='distribution-rank-v1-language-normalized-usage-surface';
@@ -61,6 +62,13 @@ export function distributionMetaFingerprint(meta){
     product_adapter_revision:meta.product_adapter_revision||null,
     product_adapter_semantic_fingerprint:meta.product_adapter_semantic_fingerprint||null,
   })).digest('hex');
+}
+
+export function attachReadOnlyDatabase(db,path,{alias='src'}={}){
+  const uri=new URL(pathToFileURL(path));
+  uri.searchParams.set('mode','ro');
+  db.prepare('ATTACH DATABASE ? AS '+q(alias)).run(uri.href);
+  return uri.href;
 }
 
 export function readMeta(db,{alias='main'}={}){
