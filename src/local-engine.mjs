@@ -561,6 +561,7 @@ export function lookupGermanCandidateRowsForAnalysis(db,analysis,options={}){
 
 const RESULT_ANALYSIS_CACHE=new WeakMap();
 const RESULT_PREPARED_ANALYSIS_CACHE=new WeakMap();
+const RESULT_SCORE_CACHE=new WeakMap();
 
 function analysisForHotRow(row,profile){
   if(row?.serving_analysis_json){
@@ -575,6 +576,10 @@ export function cachedResultAnalysis(row){
 
 export function cachedResultPreparedAnalysis(row){
   return row&&typeof row==='object'?RESULT_PREPARED_ANALYSIS_CACHE.get(row)||null:null;
+}
+
+export function cachedResultScore(row){
+  return row&&typeof row==='object'?RESULT_SCORE_CACHE.get(row)||null:null;
 }
 
 function scoredResultCore(row,score,querySyllableCount,profile){
@@ -1005,6 +1010,7 @@ export function findRhymes(db, word, options = {}) {
         :resultFromRow(candidate,score,queryRow,profile);
       RESULT_ANALYSIS_CACHE.set(result,candidateAnalysis);
       RESULT_PREPARED_ANALYSIS_CACHE.set(result,candidatePrepared);
+      RESULT_SCORE_CACHE.set(result,score);
       if(metrics)metrics.result_construction_ms+=performance.now()-resultStarted;
       const current = bestByWord.get(candidate.normalized);
       if (!current) {
@@ -1074,6 +1080,7 @@ export function findRhymes(db, word, options = {}) {
       const prepared=preparedCache.get(String(row._pronunciationId));
       if(analysis)RESULT_ANALYSIS_CACHE.set(publicFull,analysis);
       if(prepared)RESULT_PREPARED_ANALYSIS_CACHE.set(publicFull,prepared);
+      if(row._scoreObject)RESULT_SCORE_CACHE.set(publicFull,row._scoreObject);
       return publicFull;
     });
     if(metrics){
