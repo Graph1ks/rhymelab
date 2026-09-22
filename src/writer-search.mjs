@@ -168,6 +168,7 @@ function createWriterScoringContext(
     writer_scoring_calls:0,
     writer_unique_scoring_pairs:0,
     writer_score_cache_hits:0,
+    writer_seeded_score_cache_entries:0,
     writer_analysis_cache_hits:0,
     writer_analysis_cache_misses:0,
   }:null;
@@ -310,7 +311,9 @@ function reuseCachedShortWriterResult(row,context){
   const prepared=cachedResultPreparedAnalysis(row);
   if(analysis)context?.analysisByKey.set(key,analysis);
   if(prepared)context?.preparedByKey.set(key,prepared);
+  const seeded=context&&!context.scoreByKey.has(key);
   context?.scoreByKey.set(key,score);
+  if(seeded&&context?.metrics)context.metrics.writer_seeded_score_cache_entries+=1;
   return {
     ...row,
     writerAnchor:score.anchor||null,
