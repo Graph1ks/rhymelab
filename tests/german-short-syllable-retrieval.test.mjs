@@ -78,6 +78,20 @@ test('external German short-syllable fallback retrieves one- and two-syllable ca
     assert.deepEqual(one.map((row)=>row.normalized),['eis']);
     assert.ok(one.every((row)=>row.syllable_count===1));
 
+    insertCandidate(db,4,'bei','baɪ̯',5000);
+    const oneBounded=lookupGermanCandidateRowsForAnalysis(
+      db,
+      oneAnchor.prepared.analysis,
+      {
+        queryNormalized:'external-arbeitsweise',
+        querySyllables:query.syllableCount,
+        syllableFilter:'1',
+        poolLimit:1,
+      },
+    );
+    assert.equal(oneBounded.length,1);
+    assert.equal(oneBounded[0].normalized,'bei');
+
     const twoPrepared=prepareGermanRhymeAnchorAnalysis(query,{maxTailSyllables:2});
     const twoAnchor=twoPrepared.anchors
       .filter((anchor)=>anchor.clipped!==true)
