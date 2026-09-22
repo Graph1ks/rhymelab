@@ -1,6 +1,6 @@
 # Distribution DB Lab v2 — Thread Handover
 
-**Status:** active continuation  
+**Status:** owner benchmark analyzed; targeted OOV compound-rhyme candidate in PR #199; owner rerun pending  
 **Last updated:** 2026-09-22  
 **Canonical repository:** `Graph1ks/rhymelab`  
 **Current accepted main merge:** `51853e523e55` (PR #197)  
@@ -746,3 +746,173 @@ The first new information should be the owner's benchmark/Copy-all response.
 
 Start from that evidence. Do not redo the distribution build, do not reopen old
 accepted ranking gates, and do not ask the owner to explain the project again.
+
+
+---
+
+## 21. Owner benchmark received — 2026-09-22
+
+The owner supplied DB Lab v2 Copy-all / benchmark evidence after this handover was
+created. The payload uses the expected schemas:
+
+```text
+rhymelab-internal-db-lab-copy-v2
+rhymelab-internal-db-benchmark-v1
+```
+
+Repeat runs were deterministic for the supplied current-query and suite evidence.
+The effective request was held constant across the compared editions apart from
+`runtime_db`.
+
+### Controlled `Arbeitsweise` evidence
+
+Five measured runs per DB after one warmup:
+
+```text
+DB        Search p50   Search p95   Total p50   Total p95   Results   Top-50 Jaccard vs Master   Exact prefix
+Master       501.0        510.0        536.0       552.78      811              1.00000               50
+Lite         143.1        150.88       153.6       162.70      375              0.28205                6
+Standard     292.0        320.18       323.2       347.52      604              0.53846               13
+Full         344.5        351.44       374.8       388.10      801              0.92308               21
+```
+
+The large coverage differences in Lite/Standard are consistent with the edition
+population contract and are not nondeterminism.
+
+### Suite aggregate evidence
+
+Across the supplied fixed suite:
+
+```text
+DB        Search p50   Search p95   Total p50   Total p95   Mean Top-50 Jaccard   Mean exact prefix
+Master       272.35       570.215      288.9       602.955          1.00000               50.00
+Lite          60.80       156.065       70.2       167.000          0.37764                4.25
+Standard     138.65       320.780      150.2       335.780          0.71965               14.33
+Full         205.85       406.660      224.1       431.585          0.85201               32.67
+```
+
+All supplied repeat fingerprints were deterministic.
+
+### Newly exposed OOV-compound end-rhyme failure
+
+The owner additionally tested:
+
+```text
+Krankenkassenwarteweise
+```
+
+Master resolved an ephemeral client IPA, but the effective request showed:
+
+```text
+query_method_de=client_rules
+query_ipa_de=ˈkRaŋkɛŋkassɛnvaRtɛvaɪsə
+```
+
+and returned only:
+
+```text
+18 total
+0 Words
+0 Phrases
+18 Entities
+```
+
+By contrast, the source-backed query `Weise` returned:
+
+```text
+1036 total
+428 Words
+119 Phrases
+489 Entities
+```
+
+with expected end-rhyme surfaces such as `Reise`, `Preise`, `Gleise`,
+`leise`, `Schneise`, `Speise`, `Waise`, and `Meise`.
+
+The empty Word path for the OOV compound was not a database-population problem.
+The profile showed effectively no German Word retrieval/scoring work for that
+query. Root cause:
+
+1. browser compound resolution checked only a small balanced split subset and
+   required both sides to be source-backed;
+2. therefore a long generated left side plus short known terminal head
+   `... + Weise` was missed;
+3. whole-token `client_rules` IPA had only the initial primary stress, so no
+   terminal right-edge Writer anchor was exposed;
+4. even a whole-token right-edge lookup is the wrong fallback for short end-rhyme
+   candidates because its total-syllable preference belongs to the long artificial
+   query rather than the recovered terminal rhyme domain.
+
+### Candidate fix — PR #199
+
+Branch:
+
+```text
+fix/external-compound-right-head-rhyme
+```
+
+Draft PR:
+
+```text
+#199 fix: recover right-head rhymes for unknown German compounds
+```
+
+The candidate is intentionally query-only and conservative:
+
+1. preserve exact source-backed whole-query lookup as first priority;
+2. for unknown German single tokens, search deterministic split points for a
+   source-backed terminal component;
+3. allow the left side to remain locally generated while the right head remains
+   source-backed;
+4. compose the ephemeral full-query IPA with the recovered right head demoted to
+   secondary stress;
+5. if the normal German external-query Word retrieval returns zero candidates,
+   reuse the accepted canonical Writer retrieval for that explicit terminal
+   component;
+6. preserve accepted Writer scoring/ranking and then apply the normal external
+   query result pipeline;
+7. do not apply this fallback to arbitrary `client_rules`, English/cross-language
+   queries, or normal source-backed whole-word queries.
+
+The client resolver policy is bumped to:
+
+```text
+client-total-query-pronunciation-v3
+```
+
+This intentionally invalidates stale v2 IndexedDB generated-pronunciation cache
+records, because otherwise a previously cached `client_rules` pronunciation for
+the same OOV spelling could mask the new source-backed terminal-head resolution.
+
+No distribution rebuild and no global Writer-v6 retune are part of this candidate.
+
+### Required owner rerun after PR #199 code is checked out
+
+Use the same local databases. Restart the development server and hard-reload so
+the v3 client resolver is active.
+
+Run `Bench current` for:
+
+```text
+Krankenkassenwarteweise
+```
+
+then `Copy all`.
+
+Expected diagnostic evidence:
+
+```text
+query_method_de=client_mixed_source_right_reference_compound
+query_components_de=[..., "Weise"]
+query IPA ends in source-backed Weise phonology with secondary stress
+Word result count > 0 on editions containing Weise
+writerRetrieval.terminalComponentRecovery.policy=de-external-query-terminal-component-v1
+```
+
+Also rerun `Arbeitsweise` as a regression control. Its normal source-backed path
+must remain unchanged. If the OOV result becomes useful but latency increases,
+inspect the new `terminal_recovery_*` profile stages before optimizing further.
+
+Do not merge PR #199 solely from synthetic/unit coverage. The owner-local
+Master/Lite/Standard/Full rerun is the acceptance evidence for this database-backed
+behavior.
