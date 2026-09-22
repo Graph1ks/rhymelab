@@ -428,7 +428,7 @@ test('control-surface preflight rejects a missing required control group', async
   const app=await readFile('src/ui/app.js','utf8');
   const testable=await uiRuntimeSource(app);
   const dom=buildFakeDom();
-  dom.groups.set('.basis-option',[]);
+  dom.groups.set('.view-option',[]);
   const localStorage=makeStorage();
 
   const factory=new Function(
@@ -447,7 +447,7 @@ test('control-surface preflight rejects a missing required control group', async
 
   assert.throws(
     ()=>runtime.installInteractiveControls(),
-    /RhymeLab UI control surface incomplete: \.basis-option/,
+    /RhymeLab UI control surface incomplete: \.view-option/,
   );
 });
 
