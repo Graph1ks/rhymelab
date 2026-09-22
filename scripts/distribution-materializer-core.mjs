@@ -238,6 +238,11 @@ export function createSelectionStorage(db){
     CREATE TABLE IF NOT EXISTS _dist_phrase(runtime_phrase_id INTEGER PRIMARY KEY);
     CREATE TABLE IF NOT EXISTS _dist_phrase_window(runtime_window_id TEXT PRIMARY KEY);
     CREATE TABLE IF NOT EXISTS _dist_entity(entity_id INTEGER PRIMARY KEY);
+    CREATE TABLE IF NOT EXISTS _dist_entity_availability(
+      entity_id INTEGER PRIMARY KEY,
+      canonical_available INTEGER NOT NULL,
+      generated_available INTEGER NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS _dist_entity_membership(
       entity_id INTEGER NOT NULL,
       category TEXT NOT NULL,
@@ -258,6 +263,55 @@ export function clearSelectionStorage(db){
     '_dist_phrase_window','_dist_entity','_dist_entity_membership','_dist_entity_name',
     '_dist_entity_pronunciation','_dist_target','_dist_key',
   ])db.exec('DELETE FROM '+table+';');
+}
+
+export function ensureEntityAvailability(db,{alias='src',onProgress=null}={}){
+  const p=prefix(alias);
+  createSelectionStorage(db);
+  const existing=scalar(db,'SELECT COUNT(*) c FROM _dist_entity_availability');
+  if(existing>0){
+    onProgress?.({
+      phase:'selection',step:'entity_availability',status:'resume_skip',entities:existing,
+    });
+    return existing;
+  }
+
+  onProgress?.({phase:'selection',step:'entity_availability',status:'start'});
+  db.exec('BEGIN IMMEDIATE;');
+  try{
+    db.exec(`
+      INSERT INTO _dist_entity_availability(
+        entity_id,canonical_available,generated_available
+      )
+      SELECT
+        n.entity_id,
+        MAX(CASE
+          WHEN sp.eligible=1 AND sp.canonical_available=1 THEN 1 ELSE 0
+        END) AS canonical_available,
+        MAX(CASE
+          WHEN sp.eligible=1
+           AND (sp.canonical_available=1 OR sp.generated_available=1)
+          THEN 1 ELSE 0
+        END) AS generated_available
+      FROM ${p}runtime_entity_pronunciation ep
+      JOIN ${p}runtime_entity_name n
+        ON n.name_id=ep.name_id
+      JOIN ${p}pronunciation sp
+        ON sp.pronunciation_id=ep.serving_pronunciation_id
+      WHERE sp.eligible=1
+        AND (sp.canonical_available=1 OR sp.generated_available=1)
+      GROUP BY n.entity_id
+    `);
+    db.exec('COMMIT;');
+  }catch(error){
+    try{db.exec('ROLLBACK;')}catch{}
+    throw error;
+  }
+  const entities=scalar(db,'SELECT COUNT(*) c FROM _dist_entity_availability');
+  onProgress?.({
+    phase:'selection',step:'entity_availability',status:'complete',entities,
+  });
+  return entities;
 }
 
 export function populateDistributionSelection(db,{
@@ -308,11 +362,20 @@ export function populateDistributionSelection(db,{
 
   if(contract.features.entities&&entityPerCategory>0){
     onProgress?.({phase:'selection',edition,step:'entities',status:'start'});
-    const entityAvailability=contract.mode==='core'
-      ?'sp.canonical_available=1'
-      :'(sp.canonical_available=1 OR sp.generated_available=1)';
+    const availabilityColumn=contract.mode==='core'
+      ?'canonical_available'
+      :'generated_available';
     const quota=Math.max(0,Math.trunc(entityPerCategory));
 
+    ensureEntityAvailability(db,{
+      alias,
+      onProgress:(event)=>onProgress?.({...event,edition}),
+    });
+
+    onProgress?.({
+      phase:'selection',edition,step:'entity_category_quota',status:'start',
+      quota,availability:availabilityColumn,
+    });
     db.exec(`
       WITH eligible AS (
         SELECT
@@ -329,17 +392,10 @@ export function populateDistributionSelection(db,{
               ec.entity_id ASC
           ) AS edition_category_rank
         FROM ${p}runtime_entity_category ec
+        JOIN _dist_entity_availability ea
+          ON ea.entity_id=ec.entity_id
         WHERE ec.retained_by_category=1
-          AND EXISTS(
-            SELECT 1
-            FROM ${p}runtime_entity_name n
-            JOIN ${p}runtime_entity_pronunciation ep USING(name_id)
-            JOIN ${p}pronunciation sp
-              ON sp.pronunciation_id=ep.serving_pronunciation_id
-            WHERE n.entity_id=ec.entity_id
-              AND sp.eligible=1
-              AND ${entityAvailability}
-          )
+          AND ea.${availabilityColumn}=1
       )
       INSERT OR IGNORE INTO _dist_entity_membership(
         entity_id,category,edition_category_rank,selection_source
@@ -348,13 +404,19 @@ export function populateDistributionSelection(db,{
       FROM eligible
       WHERE edition_category_rank<=${quota};
     `);
+    onProgress?.({
+      phase:'selection',edition,step:'entity_category_quota',status:'complete',
+      memberships:scalar(db,'SELECT COUNT(*) c FROM _dist_entity_membership'),
+    });
 
-    // Hard nesting rule: Full must contain every Entity membership that would
-    // be selected by Standard's Core-only Top-1k/category cut, even if extra
-    // Generated-only Full candidates would otherwise push it below Full's
-    // Top-5k/category boundary.
+    // Hard nesting rule: Full must contain every Standard Core Top-1k/category
+    // membership. The availability cache makes this set-based and indexed.
     if(edition==='full'){
       const standardQuota=DISTRIBUTION_EDITIONS.standard.entityPerCategory;
+      onProgress?.({
+        phase:'selection',edition,step:'entity_standard_nesting',status:'start',
+        quota:standardQuota,
+      });
       db.exec(`
         WITH standard_eligible AS (
           SELECT
@@ -369,17 +431,10 @@ export function populateDistributionSelection(db,{
                 ec.entity_id ASC
             ) AS standard_category_rank
           FROM ${p}runtime_entity_category ec
+          JOIN _dist_entity_availability ea
+            ON ea.entity_id=ec.entity_id
           WHERE ec.retained_by_category=1
-            AND EXISTS(
-              SELECT 1
-              FROM ${p}runtime_entity_name n
-              JOIN ${p}runtime_entity_pronunciation ep USING(name_id)
-              JOIN ${p}pronunciation sp
-                ON sp.pronunciation_id=ep.serving_pronunciation_id
-              WHERE n.entity_id=ec.entity_id
-                AND sp.eligible=1
-                AND sp.canonical_available=1
-            )
+            AND ea.canonical_available=1
         )
         INSERT OR IGNORE INTO _dist_entity_membership(
           entity_id,category,edition_category_rank,selection_source
@@ -388,12 +443,25 @@ export function populateDistributionSelection(db,{
         FROM standard_eligible
         WHERE standard_category_rank<=${Math.max(0,Math.trunc(standardQuota))};
       `);
+      onProgress?.({
+        phase:'selection',edition,step:'entity_standard_nesting',status:'complete',
+        memberships:scalar(db,'SELECT COUNT(*) c FROM _dist_entity_membership'),
+      });
     }
 
     db.exec(`
       INSERT OR IGNORE INTO _dist_entity(entity_id)
       SELECT DISTINCT entity_id FROM _dist_entity_membership;
+    `);
+    onProgress?.({
+      phase:'selection',edition,step:'entity_pronunciation_closure',status:'start',
+      entities:scalar(db,'SELECT COUNT(*) c FROM _dist_entity'),
+    });
 
+    const entityPronAvailability=contract.mode==='core'
+      ?'sp.canonical_available=1'
+      :'(sp.canonical_available=1 OR sp.generated_available=1)';
+    db.exec(`
       INSERT OR IGNORE INTO _dist_entity_pronunciation(product_pronunciation_id)
       SELECT ep.product_pronunciation_id
       FROM ${p}runtime_entity_pronunciation ep
@@ -401,13 +469,18 @@ export function populateDistributionSelection(db,{
       JOIN _dist_entity de USING(entity_id)
       JOIN ${p}pronunciation sp
         ON sp.pronunciation_id=ep.serving_pronunciation_id
-      WHERE sp.eligible=1 AND ${entityAvailability};
+      WHERE sp.eligible=1 AND ${entityPronAvailability};
 
       INSERT OR IGNORE INTO _dist_entity_name(name_id)
       SELECT DISTINCT ep.name_id
       FROM ${p}runtime_entity_pronunciation ep
       JOIN _dist_entity_pronunciation dep USING(product_pronunciation_id);
     `);
+    onProgress?.({
+      phase:'selection',edition,step:'entity_pronunciation_closure',status:'complete',
+      pronunciations:scalar(db,'SELECT COUNT(*) c FROM _dist_entity_pronunciation'),
+      names:scalar(db,'SELECT COUNT(*) c FROM _dist_entity_name'),
+    });
     onProgress?.({
       phase:'selection',edition,step:'entities',status:'complete',
       entities:scalar(db,'SELECT COUNT(*) c FROM _dist_entity'),
@@ -451,6 +524,7 @@ export function populateDistributionSelection(db,{
       FROM ${p}runtime_phrase rp
       WHERE rp.canonical_available=1
     `);
+    ensureEntityAvailability(db,{alias});
     const standardEntityCount=Number(db.prepare(`
       WITH eligible AS (
         SELECT
@@ -465,17 +539,10 @@ export function populateDistributionSelection(db,{
               ec.entity_id ASC
           ) AS standard_category_rank
         FROM ${p}runtime_entity_category ec
+        JOIN _dist_entity_availability ea
+          ON ea.entity_id=ec.entity_id
         WHERE ec.retained_by_category=1
-          AND EXISTS(
-            SELECT 1
-            FROM ${p}runtime_entity_name n
-            JOIN ${p}runtime_entity_pronunciation ep USING(name_id)
-            JOIN ${p}pronunciation sp
-              ON sp.pronunciation_id=ep.serving_pronunciation_id
-            WHERE n.entity_id=ec.entity_id
-              AND sp.eligible=1
-              AND sp.canonical_available=1
-          )
+          AND ea.canonical_available=1
       )
       SELECT COUNT(DISTINCT entity_id) c
       FROM eligible
@@ -915,7 +982,8 @@ export function dropDistributionBuildStorage(db){
   for(const table of [
     '_dist_core_rank','_dist_generated_rank','_dist_word_surface','_dist_pronunciation',
     '_dist_surface','_dist_phrase','_dist_phrase_window','_dist_entity',
-    '_dist_entity_membership','_dist_entity_name','_dist_entity_pronunciation','_dist_target','_dist_key',
+    '_dist_entity_availability','_dist_entity_membership','_dist_entity_name',
+    '_dist_entity_pronunciation','_dist_target','_dist_key',
     'distribution_build_stage',
   ]){
     db.exec('DROP TABLE IF EXISTS '+q(table)+';');
