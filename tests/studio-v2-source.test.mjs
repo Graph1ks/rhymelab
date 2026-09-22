@@ -462,8 +462,9 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/includeHistorical,/u);
   assert.match(app,/generatedOnly,/u);
   assert.match(app,/entityCategory,/u);
-  assert.match(app,/function syncAdvancedControls\(/u);
-  assert.match(app,/function applySearchPreset\(/u);
+  assert.match(app,/function syncFilterDeckControls\(/u);
+  assert.match(app,/function applyLanguageRoute\(/u);
+  assert.match(app,/function applyCorpusMode\(/u);
   assert.match(app,/function filterUnusedWriterRows\(/u);
   assert.match(app,/function resultBadges\(/u);
   assert.match(app,/function resultBadgeMarkup\(/u);
