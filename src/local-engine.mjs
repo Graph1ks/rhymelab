@@ -174,16 +174,7 @@ export function getWord(db, word) {
   const generatedPronunciation=
     preferredFlags.includes('generated')
     ||String(preferred.pronunciation_source||'').toLocaleLowerCase('en-US').includes('espeak');
-  const scoreEvidenceByKey=new Map();
-  if(filteredWriterScoring){
-    for(const row of bestByWord.values()){
-      if(row?._candidateKey&&row?._scoreObject){
-        scoreEvidenceByKey.set(row._candidateKey,row._scoreObject);
-      }
-    }
-  }
-
-  const response={
+  return {
     language: profile.language,
     surface: first.surface,
     normalized,
@@ -1134,7 +1125,16 @@ export function findRhymes(db, word, options = {}) {
       ? 'balanced_usage_first_coverage'
       : 'type_specific_usage_first';
 
-  return {
+  const scoreEvidenceByKey=new Map();
+  if(filteredWriterScoring){
+    for(const row of bestByWord.values()){
+      if(row?._candidateKey&&row?._scoreObject){
+        scoreEvidenceByKey.set(row._candidateKey,row._scoreObject);
+      }
+    }
+  }
+
+  const response={
     language: profile.language,
     phonology: {
       analyzer: profile.analyzerVersion,
