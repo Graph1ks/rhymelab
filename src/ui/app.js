@@ -875,7 +875,6 @@ async function search(word){
   if(!state.query)return;
   $('#emptyState').classList.add('hidden');
   $('#workspace').classList.remove('hidden');
-  $('#resultFiltersSection').classList.remove('hidden');
   $('#loading').classList.remove('hidden');
   $('#error').classList.add('hidden');
   $('#results').innerHTML='';
@@ -929,16 +928,14 @@ async function search(word){
 }
 
 const REQUIRED_SINGLE_CONTROLS=[
-  '#searchForm','#searchInput','#scopeFilter','#typeFilter','#variantMode','#syllableFilter','#sortMode',
+  '#searchForm','#searchInput','#languageRouteFilter','#scopeFilter','#typeFilter','#variantMode','#syllableFilter','#sortMode','#corpusMode',
   '#historicalMode','#generatedMode','#generatedOnlyMode','#entityCategory','#statsButton','#statsClose','#statsDialog','#statsContent',
   '#runtimeTiming','#runtimeTimingCurrent','#runtimeTimingAverage','#runtimeTimingSamples',
   '#sourcesButton','#sourcesClose','#sourcesDialog','#results',
   '#resultsToolbar','#resultFiltersSection','#searchOptionsToggle','#resultFiltersToggle',
   '#searchOptionsSection','#searchOptionsPanel','#resultFiltersPanel','#searchStageAnchor','.search-stage',
 ];
-const REQUIRED_CONTROL_GROUPS=[
-  '.ui-lang-option','.view-option','.basis-option','.result-language-option','.scope-option',
-];
+const REQUIRED_CONTROL_GROUPS=['.ui-lang-option','.view-option'];
 
 function assertInteractiveControlSurface(){
   const missingSingles=REQUIRED_SINGLE_CONTROLS.filter((selector)=>!$(selector));
@@ -951,34 +948,61 @@ function assertInteractiveControlSurface(){
 function installInteractiveControls(){
   assertInteractiveControlSurface();
 
-  $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();search($('#searchInput').value);});
-  $('#searchOptionsToggle').addEventListener('click',()=>toggleSearchSection('searchOptions'));
-  $('#resultFiltersToggle').addEventListener('click',()=>toggleSearchSection('resultFilters'));
-  $$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{const language=button.dataset.uiLang;if(!['de','en'].includes(language))return;state.lang=language;localStorage.setItem('rhymelab.language',language);applyLanguage();}));
-  $$('.view-option').forEach((button)=>button.addEventListener('click',()=>{const view=button.dataset.view;if(!['list','compact'].includes(view))return;state.view=view;localStorage.setItem('rhymelab.resultView',view);syncViewControls();if(state.data)render();}));
-  $$('.basis-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.basis=['de','en','both'].includes(button.dataset.basis)?button.dataset.basis:'de';localStorage.setItem('rhymelab.searchBasis',state.basis);syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
-  $$('.result-language-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.resultLanguage=['de','en','both'].includes(button.dataset.resultLanguage)?button.dataset.resultLanguage:'de';localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);state.sectionVisible.clear();syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
-  $$('.scope-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;setScope(button.dataset.scope,{rerun:true});renderCapabilityNotice();}));
-  ['typeFilter','variantMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{if(state.query)search(state.query);else renderCapabilityNotice();}));
-  ['syllableFilter','sortMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{state.visibleCount=state.pageSize;state.sectionVisible.clear();captureSharedSearchState();if(state.data)render();}));
-  $('#historicalMode').addEventListener('change',()=>{if(state.query)search(state.query);});
-  $('#generatedMode').addEventListener('change',()=>{
-    state.generatedOptIn=Boolean($('#generatedMode').checked&&state.generatedCapability?.available);
-    if(!state.generatedOptIn)state.generatedOnly=false;
-    syncGeneratedOptinControl();
-    state.wordCache.clear();
-    state.pronunciationMisses.clear();
-    if(state.query)search(state.query);
+  $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();void search($('#searchInput').value);});
+  $$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{
+    const language=button.dataset.uiLang;
+    if(!['de','en'].includes(language))return;
+    state.lang=language;
+    localStorage.setItem('rhymelab.language',language);
+    applyLanguage();
+  }));
+  $$('.view-option').forEach((button)=>button.addEventListener('click',()=>{
+    const view=button.dataset.view;
+    if(!['list','compact'].includes(view))return;
+    state.view=view;
+    localStorage.setItem('rhymelab.resultView',view);
+    syncViewControls();
+    if(state.data)render();
+  }));
+  $('#languageRouteFilter').addEventListener('change',(event)=>applyLanguageRoute(event.target.value,{rerun:true}));
+  $('#scopeFilter').addEventListener('change',(event)=>{setScope(event.target.value,{rerun:true});renderCapabilityNotice();});
+  $('#typeFilter').addEventListener('change',()=>{
+    state.visibleCount=state.pageSize;
+    state.sectionVisible.clear();
+    captureSharedSearchState();
+    syncContextFilters();
+    if(state.query)void search(state.query);
+    else renderCapabilityNotice();
   });
-  $('#generatedOnlyMode').addEventListener('change',()=>{
-    state.generatedOnly=Boolean($('#generatedOnlyMode').checked&&state.generatedCapability?.available);
-    if(state.generatedOnly)state.generatedOptIn=true;
-    syncGeneratedOptinControl();
-    state.wordCache.clear();
-    state.pronunciationMisses.clear();
-    if(state.query)search(state.query);
+  $('#variantMode').addEventListener('change',()=>{
+    state.visibleCount=state.pageSize;
+    state.sectionVisible.clear();
+    captureSharedSearchState();
+    syncContextFilters();
+    if(state.query)void search(state.query);
+    else renderCapabilityNotice();
   });
-  $('#entityCategory').addEventListener('change',()=>{state.sectionVisible.clear();if(state.query)search(state.query);});
+  $('#syllableFilter').addEventListener('change',()=>{
+    state.visibleCount=state.pageSize;
+    state.sectionVisible.clear();
+    captureSharedSearchState();
+    syncContextFilters();
+    if(state.query)void search(state.query);
+    else if(state.data)render();
+  });
+  $('#sortMode').addEventListener('change',()=>{
+    state.visibleCount=state.pageSize;
+    state.sectionVisible.clear();
+    captureSharedSearchState();
+    syncContextFilters();
+    if(state.data)render();
+  });
+  $('#corpusMode').addEventListener('change',(event)=>applyCorpusMode(event.target.value,{rerun:true}));
+  $('#entityCategory').addEventListener('change',()=>{
+    state.sectionVisible.clear();
+    captureSharedSearchState();
+    if(state.query)void search(state.query);
+  });
   $('#statsButton').addEventListener('click',()=>{$('#statsDialog').showModal();void loadDatasetStats();});
   $('#statsClose').addEventListener('click',()=>{$('#statsDialog').close();});
   $('#statsDialog').addEventListener('click',(event)=>{if(event.target===$('#statsDialog'))$('#statsDialog').close();});
