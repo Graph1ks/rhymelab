@@ -63,10 +63,10 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/Bar Navigator/u);
   assert.match(html,/Bar Inspector/u);
   for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategoryMulti','directHideUsed']){
-    assert.match(html,new RegExp('id=["\\']'+id+'["\\']','u'));
+    assert.match(html,new RegExp(`id=["']${id}["']`,'u'));
   }
   for(const type of ['all','multisyllabic_perfect','perfect','multisyllabic_slant','family','slant','assonance','consonance']){
-    assert.match(html,new RegExp('<option value=["\\']'+type+'["\\']','u'));
+    assert.match(html,new RegExp(`<option value=["']${type}["']`,'u'));
   }
   assert.doesNotMatch(html,/id=["']advancedFiltersToggle["']/u);
   assert.doesNotMatch(html,/id=["']advancedFilters["']/u);
