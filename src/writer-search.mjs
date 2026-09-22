@@ -5,6 +5,7 @@ import {
   cachedResultAnalysis,
   cachedResultPreparedAnalysis,
   cachedResultScore,
+  cachedRhymeSearchEvidence,
   findRhymes,
   lookupGermanCandidateRowsForAnalysis,
   resultTypes,
@@ -168,6 +169,8 @@ function createWriterScoringContext(
     writer_scoring_calls:0,
     writer_unique_scoring_pairs:0,
     writer_score_cache_hits:0,
+    writer_seeded_analysis_cache_entries:0,
+    writer_seeded_prepared_cache_entries:0,
     writer_seeded_score_cache_entries:0,
     writer_analysis_cache_hits:0,
     writer_analysis_cache_misses:0,
@@ -192,6 +195,27 @@ function createWriterScoringContext(
     disableSafePrefilter:Boolean(disableSafePrefilter),
     metrics,
   };
+}
+
+function seedWriterScoringContextFromBase(base,context,{reuseScores=false}={}){
+  const evidence=cachedRhymeSearchEvidence(base);
+  if(!context||!evidence)return;
+  for(const [key,analysis] of evidence.analysisByKey||[]){
+    if(context.analysisByKey.has(key))continue;
+    context.analysisByKey.set(key,analysis);
+    if(context.metrics)context.metrics.writer_seeded_analysis_cache_entries+=1;
+  }
+  if(!reuseScores)return;
+  for(const [key,prepared] of evidence.preparedByKey||[]){
+    if(context.preparedByKey.has(key))continue;
+    context.preparedByKey.set(key,prepared);
+    if(context.metrics)context.metrics.writer_seeded_prepared_cache_entries+=1;
+  }
+  for(const [key,score] of evidence.scoreByKey||[]){
+    if(context.scoreByKey.has(key))continue;
+    context.scoreByKey.set(key,score);
+    if(context.metrics)context.metrics.writer_seeded_score_cache_entries+=1;
+  }
 }
 
 function writerCandidateKey(row){
@@ -309,11 +333,9 @@ function reuseCachedShortWriterResult(row,context){
   const key=writerCandidateKey(row);
   const analysis=cachedResultAnalysis(row);
   const prepared=cachedResultPreparedAnalysis(row);
-  if(analysis)context?.analysisByKey.set(key,analysis);
-  if(prepared)context?.preparedByKey.set(key,prepared);
-  const seeded=context&&!context.scoreByKey.has(key);
-  context?.scoreByKey.set(key,score);
-  if(seeded&&context?.metrics)context.metrics.writer_seeded_score_cache_entries+=1;
+  if(analysis&&!context?.analysisByKey.has(key))context?.analysisByKey.set(key,analysis);
+  if(prepared&&!context?.preparedByKey.has(key))context?.preparedByKey.set(key,prepared);
+  if(!context?.scoreByKey.has(key))context?.scoreByKey.set(key,score);
   return {
     ...row,
     writerAnchor:score.anchor||null,
@@ -350,27 +372,31 @@ function collectRightEdgeCandidates(
 
   const addScoredRows=(rows,entry)=>{
     for (const row of rows) {
-      let candidateAnalysis;
-      try {
-        candidateAnalysis=writerAnalysisForRow(row,profile,context);
-      } catch { continue; }
-      if(
-        context?.disableSafePrefilter!==true
-        &&typeof profile.writerMatchUpperBound==='function'
-      ){
-        const prefilterStarted=context?.metrics?performance.now():0;
-        const bound=profile.writerMatchUpperBound(
-          context.queryPrepared,
-          candidateAnalysis,
-        );
-        if(context?.metrics){
-          context.metrics.writer_safe_prefilter_ms+=
-            performance.now()-prefilterStarted;
-          context.metrics.writer_safe_prefilter_checks+=1;
-        }
-        if(!bound?.possible){
-          if(context?.metrics)context.metrics.writer_safe_prefilter_rejections+=1;
-          continue;
+      const key=writerCandidateKey(row);
+      const cachedScore=context?.scoreByKey.has(key)===true;
+      let candidateAnalysis=null;
+      if(!cachedScore){
+        try {
+          candidateAnalysis=writerAnalysisForRow(row,profile,context);
+        } catch { continue; }
+        if(
+          context?.disableSafePrefilter!==true
+          &&typeof profile.writerMatchUpperBound==='function'
+        ){
+          const prefilterStarted=context?.metrics?performance.now():0;
+          const bound=profile.writerMatchUpperBound(
+            context.queryPrepared,
+            candidateAnalysis,
+          );
+          if(context?.metrics){
+            context.metrics.writer_safe_prefilter_ms+=
+              performance.now()-prefilterStarted;
+            context.metrics.writer_safe_prefilter_checks+=1;
+          }
+          if(!bound?.possible){
+            if(context?.metrics)context.metrics.writer_safe_prefilter_rejections+=1;
+            continue;
+          }
         }
       }
       const score=writerScoreForRow(row,candidateAnalysis,profile,context);
@@ -650,6 +676,7 @@ export function findWriterRhymes(db, word, options = {}) {
   let queryAnalysis;
   try { queryAnalysis = profile.analyzeIpa(base.query.preferredIpa); }
   catch { queryAnalysis = null; }
+  const shortTarget=explicitShortSyllableTarget(options.syllableFilter);
   const scoringContext=queryAnalysis
     ?createWriterScoringContext(
         profile,
@@ -657,13 +684,15 @@ export function findWriterRhymes(db, word, options = {}) {
         options.profileStages===true,
         {
           disableSafePrefilter:options.disableSafePrefilter===true,
-          queryTailSyllableLimit:explicitShortSyllableTarget(options.syllableFilter),
+          queryTailSyllableLimit:shortTarget,
         },
       )
     :null;
+  seedWriterScoringContextFromBase(base,scoringContext,{
+    reuseScores:Boolean(shortTarget&&base.language==='de'),
+  });
 
   const merged = new Map();
-  const shortTarget=explicitShortSyllableTarget(options.syllableFilter);
   for (const row of base.results) {
     const cachedShortResult=(
       shortTarget
