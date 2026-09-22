@@ -1757,43 +1757,42 @@ captureSelection=function(el){const old=query;baseCapture(el);if(!followSelectio
 insertWord=function(word){if(selectionProof){const check=validateSelectionProof(song(),selectionProof);if(!check.valid){notify('Textstelle geändert. Bitte Zielwort erneut auswählen.');return}}baseInsert(word);animateSurface($(`#lyrics textarea[data-line="${activeLine}"]`)?.parentElement,'insert-flash');selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult)renderDetail()};
 toggleSave=function(word){baseToggleSave(word);const b=queryAll('[data-save]').find(b=>b.dataset.save===word);animateSurface(b,'bookmark-pop');if(dockTab==='saved')renderDock();if(selectedResult)renderDetail()};
 setMode=function(next){baseMode(next);animateSurface($(next==='write'?'#writeView':next==='rhyme'?'#rhymeView':'#performView'))};
-function currentSearchPreset(){
-  if(scope==='word'&&rhymeType==='all')return 'words';
-  if(scope==='phrase'&&rhymeType==='all')return 'phrases';
-  if(scope==='entity'&&rhymeType==='all')return 'entities';
-  if(scope==='all'&&STUDIO_RHYME_TYPE_LABELS[rhymeType])return rhymeType;
-  if(scope==='all'&&rhymeType==='all')return 'best';
-  return 'custom';
+function languageRouteValue(){
+  return basis+':'+resultLang;
+}
+function applyLanguageRoute(value){
+  const [nextBasis,nextResult]=String(value||'de:both').split(':');
+  if(!['de','en','both'].includes(nextBasis)||!['de','en','both'].includes(nextResult))return;
+  basis=nextBasis;
+  resultLang=nextResult;
+  saveStudioSearchState();
+  void refreshWriterResults();
+}
+function corpusModeValue(){
+  if(includeHistorical&&generatedOnly)return 'historical_generated_only';
+  if(includeHistorical&&generated)return 'complete';
+  if(includeHistorical)return 'historical';
+  if(generatedOnly)return 'generated_only';
+  if(generated)return 'generated';
+  return 'current';
+}
+function applyCorpusMode(value){
+  const mode=String(value||'current');
+  includeHistorical=mode==='historical'||mode==='complete'||mode==='historical_generated_only';
+  generated=mode==='generated'||mode==='generated_only'||mode==='complete'||mode==='historical_generated_only';
+  generatedOnly=mode==='generated_only'||mode==='historical_generated_only';
+  saveStudioSearchState();
+  syncAdvancedControls();
+  void refreshWriterResults();
 }
 function syncScopeButtons(){
+  const control=$('#directScope');
+  if(control)control.value=scope;
   queryAll('[data-scope]').forEach((button)=>{
     const active=button.dataset.scope===scope;
     button.classList.toggle('active',active);
     button.setAttribute('aria-pressed',String(active));
   });
-}
-function applySearchPreset(value){
-  const preset=String(value||'best');
-  relation='all';
-  if(preset==='words'){scope='word';rhymeType='all'}
-  else if(preset==='phrases'){scope='phrase';rhymeType='all'}
-  else if(preset==='entities'){scope='entity';rhymeType='all'}
-  else if(STUDIO_RHYME_TYPE_LABELS[preset]){scope='all';rhymeType=preset}
-  else if(preset==='best'){scope='all';rhymeType='all'}
-  else return;
-  pageSize=density==='compact'?24:12;
-  syncScopeButtons();
-  void refreshWriterResults();
-}
-function advancedFilterCount(){
-  return [
-    rhymeType!=='all',
-    variantMode!=='preferred',
-    entityCategories.length>0,
-    includeHistorical,
-    generated,
-    generatedOnly,
-  ].filter(Boolean).length;
 }
 function availableEntityCategories(){
   const values=writerCapabilities?.entities?.categories;
@@ -1815,61 +1814,86 @@ function setEntityCategories(values,{refresh=true}={}){
   syncAdvancedControls();
   if(refresh)void refreshWriterResults();
 }
+function setFilterFieldActive(control,active){
+  control?.closest?.('.filter-field')?.classList.toggle('is-active',Boolean(active));
+}
 function syncAdvancedControls(){
-  const panel=$('#advancedFilters'),toggle=$('#advancedFiltersToggle');
-  if(!panel||!toggle)return;
-  panel.classList.toggle('hidden',!advancedExpanded);
-  toggle.setAttribute('aria-expanded',String(advancedExpanded));
-  $('#advancedPreset').value=currentSearchPreset();
-  $('#advancedRhymeType').value=rhymeType;
-  $('#advancedVariants').value=variantMode;
-  $('#advancedHideUsed').checked=hideUsed;
-  $('#advancedHistorical').checked=includeHistorical;
-  $('#advancedGenerated').checked=generated;
-  $('#advancedGeneratedOnly').checked=generatedOnly;
+  const languageRoute=$('#directLanguageRoute');
+  const scopeControl=$('#directScope');
+  const rhymeControl=$('#directRhymeType');
+  const syllableControl=$('#directSyllables');
+  const sortControl=$('#directSort');
+  const variantsControl=$('#directVariants');
+  const corpusControl=$('#directCorpus');
+  const hideUsedControl=$('#directHideUsed');
+  if(languageRoute)languageRoute.value=languageRouteValue();
+  if(scopeControl)scopeControl.value=scope;
+  if(rhymeControl)rhymeControl.value=rhymeType;
+  if(syllableControl)syllableControl.value=syllableMode;
+  if(sortControl)sortControl.value=sort;
+  if(variantsControl)variantsControl.value=variantMode;
+  if(corpusControl)corpusControl.value=corpusModeValue();
+  if(hideUsedControl){
+    hideUsedControl.classList.toggle('active',hideUsed);
+    hideUsedControl.setAttribute('aria-pressed',String(hideUsed));
+    hideUsedControl.textContent=hideUsed?'✓ Verwendete aus':'○ Verwendete zeigen';
+  }
 
-  const categorySelect=$('#advancedEntityCategory');
-  const categoryMulti=$('#advancedEntityCategoryMulti');
+  setFilterFieldActive(languageRoute,basis!=='de'||resultLang!=='both');
+  setFilterFieldActive(scopeControl,scope!=='all');
+  setFilterFieldActive(rhymeControl,rhymeType!=='all');
+  setFilterFieldActive(syllableControl,syllableMode!=='all');
+  setFilterFieldActive(sortControl,sort!=='recommended');
+  setFilterFieldActive(variantsControl,variantMode!=='preferred');
+  setFilterFieldActive(corpusControl,includeHistorical||generated||generatedOnly);
+
   const categories=availableEntityCategories();
   if(categories.length){
     entityCategories=entityCategories.filter((value)=>categories.includes(value));
     entityCategory=entityCategories[0]||'all';
   }
-  categorySelect.innerHTML='<option value="all">Alle Entities</option>'+categories.map((value)=>'<option value="'+esc(value)+'">'+esc(humanizeDetail(value))+'</option>').join('');
-  categorySelect.value=entityCategory;
   const categoryAvailable=categories.length>0&&(scope==='all'||scope==='entity');
-  const categoryField=$('#advancedEntityCategoryField');
-  categoryField.classList.toggle('is-unavailable',!categoryAvailable);
-  categorySelect.disabled=!categoryAvailable;
-  categoryMulti.innerHTML='<button type="button" data-entity-category="all" class="'+(!entityCategories.length?'active':'')+'" aria-pressed="'+String(!entityCategories.length)+'">Alle</button>'
-    +categories.map((value)=>{
-      const active=entityCategories.includes(value);
-      return '<button type="button" data-entity-category="'+esc(value)+'" class="'+(active?'active':'')+'" aria-pressed="'+String(active)+'" '+(!categoryAvailable?'disabled':'')+'>'+esc(humanizeDetail(value))+'</button>';
-    }).join('');
-  queryAll('#advancedEntityCategoryMulti [data-entity-category]').forEach((button)=>button.onclick=()=>{
-    const value=button.dataset.entityCategory;
-    if(value==='all'){setEntityCategories([]);return}
-    const next=entityCategories.includes(value)
-      ?entityCategories.filter((item)=>item!==value)
-      :[...entityCategories,value];
-    setEntityCategories(next);
-  });
+  const categoryField=$('#directEntityCategoryField');
+  const categoryDropdown=$('#directEntityCategoryMulti');
+  const categoryMenu=$('#directEntityCategoryMenu');
+  const categoryLabel=$('#directEntityCategoryLabel');
+  categoryField?.classList.toggle('is-unavailable',!categoryAvailable);
+  categoryField?.classList.toggle('is-active',entityCategories.length>0);
+  categoryDropdown?.setAttribute('aria-disabled',String(!categoryAvailable));
+  if(categoryLabel){
+    categoryLabel.textContent=!entityCategories.length
+      ?'Alle Kategorien'
+      :entityCategories.length===1
+        ?humanizeDetail(entityCategories[0])
+        :entityCategories.length+' Kategorien';
+  }
+  if(categoryMenu){
+    categoryMenu.innerHTML='<button type="button" data-entity-category="all" class="'+(!entityCategories.length?'active':'')+'" aria-pressed="'+String(!entityCategories.length)+'">Alle Kategorien</button>'
+      +categories.map((value)=>{
+        const active=entityCategories.includes(value);
+        return '<button type="button" data-entity-category="'+esc(value)+'" class="'+(active?'active':'')+'" aria-pressed="'+String(active)+'" '+(!categoryAvailable?'disabled':'')+'>'+esc(humanizeDetail(value))+'</button>';
+      }).join('');
+    queryAll('#directEntityCategoryMenu [data-entity-category]').forEach((button)=>button.onclick=()=>{
+      if(!categoryAvailable)return;
+      const value=button.dataset.entityCategory;
+      if(value==='all'){setEntityCategories([]);return}
+      const next=entityCategories.includes(value)
+        ?entityCategories.filter((item)=>item!==value)
+        :[...entityCategories,value];
+      setEntityCategories(next);
+    });
+  }
 
   const variantsAvailable=scope==='all'||scope==='word';
-  $('#advancedVariants').disabled=!variantsAvailable;
-  $('#advancedVariants').closest('label')?.classList.toggle('is-unavailable',!variantsAvailable);
+  if(variantsControl)variantsControl.disabled=!variantsAvailable;
+  variantsControl?.closest('.filter-field')?.classList.toggle('is-unavailable',!variantsAvailable);
 
   const generatedAvailable=studioCapabilities.generated===true;
-  const generatedField=$('#advancedGeneratedField');
-  const generatedOnlyField=$('#advancedGeneratedOnlyField');
-  generatedField.classList.toggle('is-unavailable',!generatedAvailable);
-  generatedOnlyField.classList.toggle('is-unavailable',!generatedAvailable||!generated);
-  $('#advancedGenerated').disabled=!generatedAvailable;
-  $('#advancedGeneratedOnly').disabled=!generatedAvailable||!generated;
-
-  const count=advancedFilterCount(),countEl=$('#advancedFilterCount');
-  countEl.textContent=String(count);
-  countEl.classList.toggle('hidden',count===0);
+  if(corpusControl){
+    for(const option of corpusControl.options){
+      option.disabled=String(option.value).includes('generated')&&!generatedAvailable;
+    }
+  }
 }
 function hasActiveSearchFilters(){
   return scope!=='all'||relation!=='all'||rhymeType!=='all'||syllableMode!=='all'||resultLang!=='both'||basis!=='de'||sort!=='recommended'||variantMode!=='preferred'||entityCategories.length>0||includeHistorical||generated||generatedOnly;
