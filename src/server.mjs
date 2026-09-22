@@ -898,6 +898,7 @@ const server = createServer(async (req, res) => {
         resultLanguage: url.searchParams.get('result_language') || url.searchParams.get('results_language') || null,
         scope: url.searchParams.get('scope') || 'all',
         type: url.searchParams.get('type') || 'all',
+        syllableFilter: url.searchParams.get('syllables') || 'all',
         includeVariants: url.searchParams.get('variants') === 'all',
         includeHistorical: url.searchParams.get('historical') === 'all',
         wordLimit: url.searchParams.get('word_limit') || url.searchParams.get('limit'),

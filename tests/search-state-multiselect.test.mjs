@@ -65,3 +65,17 @@ test('Writer params expose explicit multi-category filter without pretending one
   assert.equal(single.get('entity_category'),'film');
   assert.equal(single.has('entity_categories'),false);
 });
+
+
+test('Writer params carry the normalized syllable filter into the backend request',()=>{
+  const params=searchStateToWriterParams(createSearchState({
+    anchor:'Arbeitsweise',
+    syllableFilter:'1',
+  }));
+  assert.equal(params.get('syllables'),'1');
+
+  const defaultParams=searchStateToWriterParams(createSearchState({
+    anchor:'Arbeitsweise',
+  }));
+  assert.equal(defaultParams.get('syllables'),'all');
+});

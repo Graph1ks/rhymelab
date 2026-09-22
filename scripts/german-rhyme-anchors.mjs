@@ -4,6 +4,7 @@ import {
   scoreGermanRhymeAnalyses,
   scorePreparedGermanRhymeAnalyses,
 } from './german-rhyme-features.mjs';
+import { germanVowelFamilyKey } from './german-ipa.mjs';
 
 function uniqueSorted(values) {
   return [...new Set(values)].sort((a, b) => a - b);
@@ -36,12 +37,22 @@ export function eligibleGermanRhymeAnchorPositions(analysis) {
   return uniqueSorted(positions);
 }
 
-export function germanAnalysisAtRhymeAnchor(analysis, anchorPosition) {
+export function germanAnalysisAtRhymeAnchor(analysis, anchorPosition, options = {}) {
   const syllables = Array.isArray(analysis?.syllables) ? analysis.syllables : [];
   if (!syllables.length) return analysis;
   const startIndex = Math.max(0, Math.min(syllables.length - 1, Number(anchorPosition || 1) - 1));
-  const tail = syllables.slice(startIndex);
-  const tailTokens = tailTokensFromSyllables(syllables, startIndex);
+  const requestedLimit = Number.parseInt(String(options.tailSyllableLimit ?? ''), 10);
+  const tailLimit = Number.isFinite(requestedLimit) && requestedLimit > 0
+    ? requestedLimit
+    : null;
+  const endIndex = tailLimit
+    ? Math.min(syllables.length, startIndex + tailLimit)
+    : syllables.length;
+  const workingSyllables = endIndex < syllables.length
+    ? syllables.slice(0, endIndex)
+    : syllables;
+  const tail = workingSyllables.slice(startIndex);
+  const tailTokens = tailTokensFromSyllables(workingSyllables, startIndex);
   const vowelSequence = tail.map((syllable) => syllable.nucleus).join(' ');
   const consonantSequence = tail
     .flatMap((syllable, index) => [...(index === 0 ? [] : syllable.onset), ...syllable.coda])
@@ -49,17 +60,28 @@ export function germanAnalysisAtRhymeAnchor(analysis, anchorPosition) {
   const onsetSequence = tail
     .flatMap((syllable, index) => index === 0 ? [] : syllable.onset)
     .join(' ');
+  const final = workingSyllables.at(-1);
+  const codaKey = (final?.coda || []).join(' ');
+  const finalTail = [final?.nucleus, ...(final?.coda || [])].filter(Boolean).join(' ');
 
   return {
     ...analysis,
+    syllables: workingSyllables,
+    syllableCount: workingSyllables.length,
+    stressPattern: workingSyllables.map((syllable) => Number(syllable?.stressLevel || 0)).join(''),
     primaryStressSyllable: startIndex + 1,
     stressedTail: tailTokens.join(' '),
+    finalTail,
     exactTailKey: tailTokens.join('').replaceAll(' ', ''),
     multisyllableKey: tail.length >= 2 ? tailTokens.join('').replaceAll(' ', '') : null,
     vowelSequence,
     consonantSequence,
     onsetSequence,
     vowelKey: vowelSequence.replaceAll(' ', '-'),
+    vowelFamilyKey: germanVowelFamilyKey(tail.map((syllable) => syllable.nucleus)),
+    codaKey,
+    codaClassKey: codaKey || 'OPEN',
+    onsetKey: (final?.onset || []).join(' '),
     stressedSyllableCount: tail.length,
   };
 }
@@ -123,9 +145,10 @@ function scoreTier(score){
   return SCORE_TIER[score?.type]??9;
 }
 
-export function prepareGermanRhymeAnchorAnalysis(analysis){
+export function prepareGermanRhymeAnchorAnalysis(analysis, options = {}){
   const primaryPosition=Number(analysis?.primaryStressSyllable||1);
-  const anchors=eligibleGermanRhymeAnchorPositions(analysis).map((position)=>{
+  const positions=eligibleGermanRhymeAnchorPositions(analysis);
+  const anchors=positions.map((position)=>{
     const anchored=germanAnalysisAtRhymeAnchor(analysis,position);
     return {
       position,
@@ -137,7 +160,33 @@ export function prepareGermanRhymeAnchorAnalysis(analysis){
       prepared:prepareGermanRhymeAnalysis(anchored),
     };
   });
-  const primaryPrepared=anchors.find((anchor)=>anchor.position===primaryPosition)?.prepared;
+  const requestedLimit=Number.parseInt(String(options.maxTailSyllables??''),10);
+  const maxTailSyllables=Number.isFinite(requestedLimit)&&requestedLimit>0
+    ?requestedLimit
+    :null;
+  const rightmostPosition=positions.at(-1);
+  if(maxTailSyllables&&rightmostPosition){
+    const fullTail=Math.max(
+      0,
+      Number(analysis?.syllables?.length||0)-rightmostPosition+1,
+    );
+    if(fullTail>maxTailSyllables){
+      const anchored=germanAnalysisAtRhymeAnchor(
+        analysis,
+        rightmostPosition,
+        {tailSyllableLimit:maxTailSyllables},
+      );
+      anchors.push({
+        position:rightmostPosition,
+        tailSyllables:maxTailSyllables,
+        kind:rightmostPosition===primaryPosition?'primary_clipped':'secondary_clipped',
+        clipped:true,
+        originalTailSyllables:fullTail,
+        prepared:prepareGermanRhymeAnalysis(anchored),
+      });
+    }
+  }
+  const primaryPrepared=anchors.find((anchor)=>anchor.position===primaryPosition&&!anchor.clipped)?.prepared;
   return {
     analysis,
     primaryPosition,

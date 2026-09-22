@@ -5,6 +5,7 @@ import {
 } from '../scripts/writer-anchor-materialization-v5-core.mjs';
 import { WRITER_MORPHOLOGY_STORAGE } from '../scripts/writer-morphology-materialization-v5-core.mjs';
 import { WRITER_MORPHOLOGY_POLICY } from './writer-morphology.mjs';
+import { syllableFilterRange } from './syllable-filter.mjs';
 
 export const WRITER_V5_DB_SCHEMA = 'rhymelab-local-db-v5';
 export const WRITER_V5_RUNTIME_ID = 'materialized-writer-v5-v1';
@@ -150,6 +151,7 @@ function servingWriterProjection(mode){
 function lookupBoundedServingWriterRows(db,anchorKey,options={}){
   const queryNormalized=String(options.queryNormalized||'');
   const querySyllables=Number(options.querySyllables||0);
+  const syllableFilter=String(options.syllableFilter||'all');
   const includeVariants=options.includeVariants===true;
   const includeHistorical=options.includeHistorical===true;
   const generatedOnly=options.generatedOnly===true;
@@ -171,6 +173,29 @@ function lookupBoundedServingWriterRows(db,anchorKey,options={}){
     ORDER BY c.usage_rank IS NULL,c.usage_rank,c.source_order,c.pronunciation_id
     LIMIT ?
   `);
+  const requestedRange=syllableFilterRange(syllableFilter,querySyllables);
+  if(requestedRange){
+    const filtered=db.prepare(`
+      ${servingWriterProjection(mode)}
+      WHERE c.key_value=?
+        AND c.normalized<>?
+        AND ${mode==='core'?'c.canonical_available=1':'(c.canonical_available=1 OR c.generated_available=1)'}
+        AND ${includeVariants?'1=1':preferredColumn+'=1'}
+        AND ${includeHistorical?'1=1':'c.historical=0'}
+        AND ${generatedOnly?'c.generated_only=1':'1=1'}
+        AND c.syllable_count BETWEEN ? AND ?
+      ORDER BY ABS(c.syllable_count-?),c.usage_rank IS NULL,c.usage_rank,c.source_order,c.pronunciation_id
+      LIMIT ?
+    `);
+    return filtered.all(
+      String(anchorKey),
+      queryNormalized,
+      requestedRange.min,
+      Math.min(requestedRange.max,1000000),
+      querySyllables,
+      limit,
+    );
+  }
   const exact=querySyllables>0
     ?stmt.all(String(anchorKey),queryNormalized,querySyllables,limit)
     :[];
@@ -188,7 +213,40 @@ function lookupBoundedServingWriterRows(db,anchorKey,options={}){
 export function lookupMaterializedWriterAnchorRows(db, anchorKey, options = {}) {
   const state = materializedWriterRuntimeState(db);
   if (!state.active) throw new Error('Materialized writer runtime is not active for this database');
-  if(!state.servingV1) return lookupWriterAnchorRows(db, anchorKey, options);
+  if(!state.servingV1){
+    const querySyllables=Number(options.querySyllables||0);
+    const requestedRange=syllableFilterRange(
+      options.syllableFilter||'all',
+      querySyllables,
+    );
+    if(!requestedRange)return lookupWriterAnchorRows(db, anchorKey, options);
+    const queryNormalized=String(options.queryNormalized||'');
+    const includeVariants=options.includeVariants===true;
+    const includeHistorical=options.includeHistorical===true;
+    const generatedOnly=options.generatedOnly===true;
+    const limit=Math.max(1,Math.min(800,Number(options.limit||800)));
+    const preferred=includeVariants?'':' AND h.pronunciation_preferred=1';
+    const historical=includeHistorical?'':' AND h.historical=0';
+    const generated=generatedOnly?" AND h.pronunciation_flags LIKE '%secondary_opt_in%'":'';
+    return db.prepare(`
+      SELECT h.*
+      FROM writer_anchor a
+      JOIN hot h ON h.id=a.pronunciation_id
+      WHERE a.anchor_key=?
+        AND h.normalized != ?
+        AND h.syllable_count BETWEEN ? AND ?
+        ${preferred}${historical}${generated}
+      ORDER BY ABS(h.syllable_count-?), h.usage_rank IS NULL, h.usage_rank, h.id
+      LIMIT ?
+    `).all(
+      String(anchorKey),
+      queryNormalized,
+      requestedRange.min,
+      Math.min(requestedRange.max,1000000),
+      querySyllables,
+      limit,
+    );
+  }
 
   if(tableExists(db,'runtime_de_writer_candidate')){
     return lookupBoundedServingWriterRows(db,anchorKey,options);
@@ -196,6 +254,7 @@ export function lookupMaterializedWriterAnchorRows(db, anchorKey, options = {}) 
 
   const queryNormalized=String(options.queryNormalized||'');
   const querySyllables=Number(options.querySyllables||0);
+  const syllableFilter=String(options.syllableFilter||'all');
   const includeVariants=options.includeVariants===true;
   const includeHistorical=options.includeHistorical===true;
   const generatedOnly=options.generatedOnly===true;
@@ -203,6 +262,31 @@ export function lookupMaterializedWriterAnchorRows(db, anchorKey, options = {}) 
   const preferred=includeVariants?'':' AND h.pronunciation_preferred=1';
   const historical=includeHistorical?'':' AND h.historical=0';
   const generated=generatedOnly?" AND h.pronunciation_flags LIKE '%secondary_opt_in%'":'';
+  const requestedRange=syllableFilterRange(syllableFilter,querySyllables);
+  if(requestedRange){
+    return db.prepare(`
+      SELECT h.*
+      FROM runtime_key k
+      JOIN runtime_key_member km USING(key_id)
+      JOIN runtime_target t ON t.target_id=km.target_id
+      JOIN hot h ON h.id=t.pronunciation_id
+      WHERE k.language='de'
+        AND k.channel='writer_right_edge'
+        AND k.key_value=?
+        AND h.normalized<>?
+        AND h.syllable_count BETWEEN ? AND ?
+        ${preferred}${historical}${generated}
+      ORDER BY ABS(h.syllable_count-?),h.usage_rank IS NULL,h.usage_rank,h.id
+      LIMIT ?
+    `).all(
+      String(anchorKey),
+      queryNormalized,
+      requestedRange.min,
+      Math.min(requestedRange.max,1000000),
+      querySyllables,
+      limit,
+    );
+  }
   return db.prepare(`
     SELECT h.*
     FROM runtime_key k

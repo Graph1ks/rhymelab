@@ -197,6 +197,7 @@ export function searchStateToWriterParams(value,{
     generated:state.generated?'1':'0',
     generated_only:state.generatedOnly?'1':'0',
     type:backendType,
+    syllables:state.syllableFilter,
   });
   if(state.entityCategories.length>1)params.set('entity_categories',state.entityCategories.join(','));
   return params;

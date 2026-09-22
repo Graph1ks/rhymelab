@@ -111,3 +111,37 @@ test('safe Writer anchor prefilter never rejects an accepted full Writer score',
   }
   assert.ok(rejected>0,'Writer prefilter fixture must exercise actual safe rejections');
 });
+
+
+test('explicit one-syllable mode can clip the rightmost stressed anchor without changing default scoring',()=>{
+  const query=analyzeGermanIpa('ˈaʁbaɪ̯t͡sˌvaɪ̯zə');
+  const candidate=analyzeGermanIpa('aɪ̯s');
+
+  const defaultPrepared=prepareGermanRhymeAnchorAnalysis(query);
+  assert.equal(defaultPrepared.anchors.some((anchor)=>anchor.clipped===true),false);
+
+  const clippedPrepared=prepareGermanRhymeAnchorAnalysis(query,{maxTailSyllables:1});
+  const clipped=clippedPrepared.anchors.find((anchor)=>anchor.clipped===true);
+  assert.ok(clipped);
+  assert.equal(clipped.position,3);
+  assert.equal(clipped.tailSyllables,1);
+  assert.equal(clipped.kind,'secondary_clipped');
+  assert.equal(clipped.prepared.analysis.vowelKey,'aɪ');
+  assert.equal(clipped.prepared.analysis.vowelFamilyKey,'DIPH_AI');
+  assert.equal(clipped.prepared.analysis.codaKey,'');
+  assert.equal(clipped.prepared.analysis.codaClassKey,'OPEN');
+  assert.equal(clipped.prepared.analysis.finalTail,'aɪ');
+
+  const candidatePrepared=prepareGermanRhymeAnchorAnalysis(candidate);
+  const score=scorePreparedGermanRhymeAnalysesWithAnchors(
+    clippedPrepared,
+    candidatePrepared,
+  );
+  const accepted=score.type!=='weak'||(score.relationTypes||[]).length>0;
+  assert.equal(accepted,true);
+  assert.equal(score.anchor.queryPosition,3);
+  assert.equal(score.anchor.queryTailSyllables,1);
+
+  const bound=germanWriterRhymeMatchUpperBound(clippedPrepared,candidate);
+  assert.equal(bound.possible,true);
+});

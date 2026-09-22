@@ -100,6 +100,7 @@ export function buildWriterParams({
   entityCategory='all',
   entityCategories=[],
   rhymeType='all',
+  syllableFilter='all',
 }={}){
   const state=createSearchState({
     anchor:query,
@@ -107,6 +108,7 @@ export function buildWriterParams({
     resultLanguage,
     scope:writerScope(scope),
     rhymeType,
+    syllableFilter,
     variantMode:includeVariants?'all':'preferred',
     historical:includeHistorical,
     generated,

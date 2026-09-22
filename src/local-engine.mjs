@@ -2,10 +2,16 @@ import { DatabaseSync } from 'node:sqlite';
 import { performance } from 'node:perf_hooks';
 import { resolve } from 'node:path';
 import { getPhonologyProfile, normalizeForLanguage } from '../scripts/phonology-profiles.mjs';
+import { coarseCodaClass } from '../scripts/german-rhyme-features.mjs';
 import {
   RUNTIME_RANKING_POLICY,
   rankRuntimeRecommendedResults,
 } from './runtime-ranking-policy.mjs';
+import {
+  clampSyllableFilterRange,
+  matchesSyllableFilter,
+  syllableFilterRange,
+} from './syllable-filter.mjs';
 
 export const DEFAULT_DB_PATH = resolve('data/local/rhymelab.sqlite');
 export const PRIMARY_RHYME_TYPES = Object.freeze([
@@ -271,6 +277,7 @@ function servingChannelCandidateIds(
     limit=800,
     extraColumn=null,
     extraValue=null,
+    syllableFilter='all',
   }={},
 ){
   if(key==null||String(key)==='')return [];
@@ -313,9 +320,21 @@ function servingChannelCandidateIds(
   if(maxRow?.syllable_count==null)return [];
 
   const queryCount=Math.max(0,Number(querySyllables)||0);
-  const minS=Number(minRow.syllable_count);
-  const maxS=Number(maxRow.syllable_count);
-  const maxDistance=Math.max(Math.abs(queryCount-minS),Math.abs(maxS-queryCount));
+  const availableMin=Number(minRow.syllable_count);
+  const availableMax=Number(maxRow.syllable_count);
+  const range=clampSyllableFilterRange(
+    syllableFilter,
+    queryCount,
+    availableMin,
+    availableMax,
+  );
+  if(range.min>range.max)return [];
+  const counts=[];
+  for(let count=range.min;count<=range.max;count+=1)counts.push(count);
+  counts.sort((a,b)=>
+    Math.abs(a-queryCount)-Math.abs(b-queryCount)
+    ||a-b
+  );
   const bucket=db.prepare(`
     SELECT pronunciation_id,usage_rank,source_order
     FROM runtime_de_candidate
@@ -324,17 +343,10 @@ function servingChannelCandidateIds(
     LIMIT ?
   `);
   const out=[];
-  for(let distance=0;distance<=maxDistance&&out.length<limit;distance++){
+  for(const count of counts){
+    if(out.length>=limit)break;
     const remaining=limit-out.length;
-    const low=queryCount-distance;
-    const high=queryCount+distance;
-    const lowRows=low>=minS&&low<=maxS
-      ?bucket.all(...baseArgs,low,remaining)
-      :[];
-    const highRows=distance>0&&high>=minS&&high<=maxS
-      ?bucket.all(...baseArgs,high,remaining)
-      :[];
-    out.push(...mergeCandidateBuckets(lowRows,highRows,remaining));
+    out.push(...bucket.all(...baseArgs,count,remaining));
   }
   return out.map((row)=>Number(row.pronunciation_id));
 }
@@ -401,7 +413,7 @@ function hydrateServingRichCandidates(db,orderedIds){
 }
 
 function servingCandidatePool(
-  db,queryRow,poolLimit,includeVariants=false,includeHistorical=false,generatedOnly=false,metrics=null
+  db,queryRow,poolLimit,includeVariants=false,includeHistorical=false,generatedOnly=false,metrics=null,syllableFilter='all',totalPoolLimit=false
 ){
   const limit=clampLimit(poolLimit,350,800);
   const mode=servingConnectionMode(db);
@@ -414,7 +426,7 @@ function servingCandidatePool(
       orderedIds.push(id);
     }
   };
-  const common={mode,includeVariants,includeHistorical,generatedOnly,limit};
+  const common={mode,includeVariants,includeHistorical,generatedOnly,limit,syllableFilter};
   const lookupStarted=metrics?performance.now():0;
   add(servingChannelCandidateIds(db,'exact_key',queryRow.exact_key,queryRow.syllable_count,common));
   if(queryRow.multisyllable_key){
@@ -433,12 +445,13 @@ function servingCandidatePool(
   if(queryRow.coda_key){
     add(servingChannelCandidateIds(db,'coda_key',queryRow.coda_key,queryRow.syllable_count,common));
   }
+  const selectedIds=totalPoolLimit?orderedIds.slice(0,limit):orderedIds;
   if(metrics){
     metrics.candidate_lookup_ms+=performance.now()-lookupStarted;
-    metrics.candidate_ids+=orderedIds.length;
+    metrics.candidate_ids+=selectedIds.length;
   }
   const hydrationStarted=metrics?performance.now():0;
-  const hydrated=hydrateServingScoringCandidates(db,orderedIds)
+  const hydrated=hydrateServingScoringCandidates(db,selectedIds)
     .filter((row)=>row.normalized!==queryRow.normalized);
   if(metrics){
     metrics.candidate_hydration_ms+=performance.now()-hydrationStarted;
@@ -448,11 +461,11 @@ function servingCandidatePool(
 }
 
 function candidatePool(
-  db,queryRow,poolLimit,includeVariants=false,includeHistorical=false,generatedOnly=false,metrics=null
+  db,queryRow,poolLimit,includeVariants=false,includeHistorical=false,generatedOnly=false,metrics=null,syllableFilter='all',totalPoolLimit=false
 ) {
   if(servingBoundedHotpath(db)){
     return servingCandidatePool(
-      db,queryRow,poolLimit,includeVariants,includeHistorical,generatedOnly,metrics
+      db,queryRow,poolLimit,includeVariants,includeHistorical,generatedOnly,metrics,syllableFilter,totalPoolLimit
     );
   }
   const candidates = new Map();
@@ -466,39 +479,84 @@ function candidatePool(
   const preferred = includeVariants ? '' : ' AND pronunciation_preferred=1';
   const historical = includeHistorical ? '' : ' AND historical=0';
   const generated = generatedOnly ? " AND pronunciation_flags LIKE '%secondary_opt_in%'" : '';
+  const requestedRange=syllableFilterRange(syllableFilter,queryRow.syllable_count);
+  const syllableWhere=requestedRange?' AND syllable_count BETWEEN ? AND ?':'';
+  const syllableArgs=requestedRange
+    ?[requestedRange.min,Math.min(requestedRange.max,1000000)]
+    :[];
   const order = ' ORDER BY ABS(syllable_count-?), usage_rank IS NULL, usage_rank, id LIMIT ?';
+  const channelRows=(sql,keyArgs)=>db.prepare(sql).all(
+    ...keyArgs,
+    ...syllableArgs,
+    queryRow.syllable_count,
+    limit,
+  );
 
-  add(db.prepare(`SELECT * FROM hot WHERE exact_key=?${preferred}${historical}${generated}${order}`)
-    .all(queryRow.exact_key, queryRow.syllable_count, limit));
+  add(channelRows(`SELECT * FROM hot WHERE exact_key=?${syllableWhere}${preferred}${historical}${generated}${order}`,[queryRow.exact_key]));
 
   if (queryRow.multisyllable_key) {
-    add(db.prepare(`SELECT * FROM hot WHERE multisyllable_key=?${preferred}${historical}${generated}${order}`)
-      .all(queryRow.multisyllable_key, queryRow.syllable_count, limit));
+    add(channelRows(`SELECT * FROM hot WHERE multisyllable_key=?${syllableWhere}${preferred}${historical}${generated}${order}`,[queryRow.multisyllable_key]));
   }
 
-  add(db.prepare(`SELECT * FROM hot WHERE vowel_key=?${preferred}${historical}${generated}${order}`)
-    .all(queryRow.vowel_key, queryRow.syllable_count, limit));
+  add(channelRows(`SELECT * FROM hot WHERE vowel_key=?${syllableWhere}${preferred}${historical}${generated}${order}`,[queryRow.vowel_key]));
 
-  add(db.prepare(`SELECT * FROM hot WHERE vowel_family=?${preferred}${historical}${generated}${order}`)
-    .all(queryRow.vowel_family, queryRow.syllable_count, limit));
+  add(channelRows(`SELECT * FROM hot WHERE vowel_family=?${syllableWhere}${preferred}${historical}${generated}${order}`,[queryRow.vowel_family]));
 
   const stressedFamily = String(queryRow.vowel_family || '').split('-')[0];
   if (stressedFamily) {
     const lower = `${stressedFamily}-`;
     const upper = `${stressedFamily}.`;
-    add(db.prepare(`SELECT * FROM hot WHERE (vowel_family=? OR (vowel_family>=? AND vowel_family<?))${preferred}${historical}${generated}${order}`)
-      .all(stressedFamily, lower, upper, queryRow.syllable_count, limit));
+    add(channelRows(`SELECT * FROM hot WHERE (vowel_family=? OR (vowel_family>=? AND vowel_family<?))${syllableWhere}${preferred}${historical}${generated}${order}`,[stressedFamily,lower,upper]));
   }
 
-  add(db.prepare(`SELECT * FROM hot WHERE vowel_family=? AND coda_class=?${preferred}${historical}${generated}${order}`)
-    .all(queryRow.vowel_family, queryRow.coda_class, queryRow.syllable_count, limit));
+  add(channelRows(`SELECT * FROM hot WHERE vowel_family=? AND coda_class=?${syllableWhere}${preferred}${historical}${generated}${order}`,[queryRow.vowel_family,queryRow.coda_class]));
 
   if (queryRow.coda_key) {
-    add(db.prepare(`SELECT * FROM hot WHERE coda_key=?${preferred}${historical}${generated}${order}`)
-      .all(queryRow.coda_key, queryRow.syllable_count, limit));
+    add(channelRows(`SELECT * FROM hot WHERE coda_key=?${syllableWhere}${preferred}${historical}${generated}${order}`,[queryRow.coda_key]));
   }
 
-  return [...candidates.values()];
+  const rows=[...candidates.values()];
+  return totalPoolLimit?rows.slice(0,limit):rows;
+}
+
+export function lookupGermanCandidateRowsForAnalysis(db,analysis,options={}){
+  const querySyllables=Math.max(
+    0,
+    Number(options.querySyllables??analysis?.syllableCount??0)||0,
+  );
+  const queryRow={
+    normalized:String(options.queryNormalized||'')
+      .normalize('NFKC')
+      .trim()
+      .toLocaleLowerCase('de-DE'),
+    exact_key:analysis?.exactTailKey||null,
+    multisyllable_key:analysis?.multisyllableKey||null,
+    vowel_key:analysis?.vowelKey||null,
+    vowel_family:analysis?.vowelFamilyKey||null,
+    coda_key:analysis?.codaKey||null,
+    coda_class:coarseCodaClass(
+      Array.isArray(analysis?.syllables)
+        ?analysis.syllables.at(-1)?.coda||[]
+        :[],
+    ),
+    syllable_count:querySyllables,
+  };
+  const rows=candidatePool(
+    db,
+    queryRow,
+    options.poolLimit,
+    options.includeVariants===true,
+    options.includeHistorical===true,
+    options.generatedOnly===true,
+    options.metrics||null,
+    options.syllableFilter||'all',
+    true,
+  );
+  if(!servingBoundedHotpath(db)||options.hydrateRich===false)return rows;
+  return hydrateServingRichCandidates(
+    db,
+    rows.map((row)=>Number(row.id)).filter(Number.isFinite),
+  );
 }
 
 const RESULT_ANALYSIS_CACHE=new WeakMap();
@@ -763,6 +821,31 @@ export function findRhymes(db, word, options = {}) {
   const analysisCache=new Map();
   const preparedCache=new Map();
   const scoreCache=new Map();
+  const explicitWriterSyllableTarget=['1','2'].includes(String(options.syllableFilter||''))
+    ?Number(options.syllableFilter)
+    :0;
+  const filteredWriterScoring=Boolean(
+    explicitWriterSyllableTarget
+    &&profile.language==='de'
+    &&typeof profile.prepareWriterAnalysis==='function'
+    &&typeof profile.scoreWriterAnalyses==='function'
+  );
+  const shortWriterRetrievalAnalysis=(prepared,fallback)=>{
+    if(!filteredWriterScoring)return fallback;
+    const anchors=Array.isArray(prepared?.anchors)?prepared.anchors:[];
+    const exactTarget=anchors
+      .filter((anchor)=>Number(anchor?.tailSyllables||0)===explicitWriterSyllableTarget)
+      .sort((a,b)=>
+        Number(b?.clipped===true)-Number(a?.clipped===true)
+        ||Number(b?.position||0)-Number(a?.position||0)
+      )[0];
+    const rightmost=anchors
+      .filter((anchor)=>anchor?.clipped!==true)
+      .sort((a,b)=>Number(b?.position||0)-Number(a?.position||0))[0];
+    return exactTarget?.prepared?.analysis
+      ||rightmost?.prepared?.analysis
+      ||fallback;
+  };
 
   const rowKey=(row)=>String(row?.id??row?.source_order_id??row?.ipa??'');
   const analysisFor=(row)=>{
@@ -779,7 +862,10 @@ export function findRhymes(db, word, options = {}) {
     return analysis;
   };
   const preparedFor=(row,analysis)=>{
-    if(typeof profile.prepareAnalysis!=='function')return analysis;
+    const prepare=filteredWriterScoring
+      ?profile.prepareWriterAnalysis
+      :profile.prepareAnalysis;
+    if(typeof prepare!=='function')return analysis;
     const key=rowKey(row);
     if(preparedCache.has(key)){
       if(metrics)metrics.prepared_cache_hits+=1;
@@ -787,7 +873,7 @@ export function findRhymes(db, word, options = {}) {
     }
     if(metrics)metrics.prepared_cache_misses+=1;
     const started=metrics?performance.now():0;
-    const prepared=profile.prepareAnalysis(analysis);
+    const prepared=prepare(analysis);
     if(metrics)metrics.analysis_feature_preparation_ms+=performance.now()-started;
     preparedCache.set(key,prepared);
     return prepared;
@@ -822,18 +908,44 @@ export function findRhymes(db, word, options = {}) {
     let queryPrepared;
     try {
       queryAnalysis=analysisFor(queryRow);
-      queryPrepared=preparedFor(queryRow,queryAnalysis);
+      if(filteredWriterScoring){
+        const preparedStarted=metrics?performance.now():0;
+        queryPrepared=profile.prepareWriterAnalysis(
+          queryAnalysis,
+          {maxTailSyllables:explicitWriterSyllableTarget},
+        );
+        if(metrics)metrics.analysis_feature_preparation_ms+=performance.now()-preparedStarted;
+      }else{
+        queryPrepared=preparedFor(queryRow,queryAnalysis);
+      }
     } catch { continue; }
 
-    const candidates=candidatePool(
-      db,
-      queryRow,
-      options.poolLimit,
-      includeVariants,
-      includeHistorical,
-      options.generatedOnly===true,
-      metrics,
-    );
+    const candidates=filteredWriterScoring
+      ?lookupGermanCandidateRowsForAnalysis(
+        db,
+        shortWriterRetrievalAnalysis(queryPrepared,queryAnalysis),
+        {
+          queryNormalized:normalized,
+          querySyllables:queryRow.syllable_count,
+          includeVariants,
+          includeHistorical,
+          generatedOnly:options.generatedOnly===true,
+          syllableFilter:String(explicitWriterSyllableTarget),
+          poolLimit:options.poolLimit,
+          hydrateRich:false,
+          metrics,
+        },
+      )
+      :candidatePool(
+        db,
+        queryRow,
+        options.poolLimit,
+        includeVariants,
+        includeHistorical,
+        options.generatedOnly===true,
+        metrics,
+        options.syllableFilter||'all',
+      );
     for (const candidate of candidates) {
       let candidateAnalysis;
       let candidatePrepared;
@@ -841,10 +953,16 @@ export function findRhymes(db, word, options = {}) {
         candidateAnalysis=analysisFor(candidate);
         if(
           options.disableSafePrefilter!==true
-          &&typeof profile.matchUpperBound==='function'
+          &&(
+            filteredWriterScoring
+              ?typeof profile.writerMatchUpperBound==='function'
+              :typeof profile.matchUpperBound==='function'
+          )
         ){
           const prefilterStarted=metrics?performance.now():0;
-          const bound=profile.matchUpperBound(queryAnalysis,candidateAnalysis);
+          const bound=filteredWriterScoring
+            ?profile.writerMatchUpperBound(queryPrepared,candidateAnalysis)
+            :profile.matchUpperBound(queryAnalysis,candidateAnalysis);
           if(metrics){
             metrics.safe_prefilter_ms+=performance.now()-prefilterStarted;
             metrics.safe_prefilter_checks+=1;
@@ -862,9 +980,17 @@ export function findRhymes(db, word, options = {}) {
       let score=scoreCache.get(pairKey);
       if(!score){
         const scoreStarted=metrics?performance.now():0;
-        score=typeof profile.scorePreparedAnalyses==='function'
-          ?profile.scorePreparedAnalyses(queryPrepared,candidatePrepared)
-          :profile.scoreAnalyses(queryAnalysis,candidateAnalysis);
+        score=filteredWriterScoring
+          ?(
+            typeof profile.scorePreparedWriterAnalyses==='function'
+              ?profile.scorePreparedWriterAnalyses(queryPrepared,candidatePrepared)
+              :profile.scoreWriterAnalyses(queryAnalysis,candidateAnalysis)
+          )
+          :(
+            typeof profile.scorePreparedAnalyses==='function'
+              ?profile.scorePreparedAnalyses(queryPrepared,candidatePrepared)
+              :profile.scoreAnalyses(queryAnalysis,candidateAnalysis)
+          );
         if(metrics){
           metrics.phonetic_scoring_ms+=performance.now()-scoreStarted;
           metrics.unique_scoring_pairs+=1;
@@ -892,7 +1018,13 @@ export function findRhymes(db, word, options = {}) {
     }
   }
 
-  let rankableResults=[...bestByWord.values()];
+  let rankableResults=[...bestByWord.values()].filter((row)=>
+    matchesSyllableFilter(
+      row.syllableCount,
+      options.syllableFilter||'all',
+      queryDetail?.syllableCount||0,
+    )
+  );
   if(servingThin&&rankableResults.length){
     const metadataStarted=metrics?performance.now():0;
     const metadata=hydrateServingRankingMetadata(

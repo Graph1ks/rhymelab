@@ -47,6 +47,10 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
       compact('[muˈsɪk]', { rank: 2, preferred: false, tags: ['Austrian German'], flags: ['regional'], locale: 'de-AT', dialect: 'Austrian German' }),
     ] },
     { o: 5, u: 5, s: 70, w: 'Blick', n: 'blick', l: 'Blick', p: 'noun', r: [compact('[blɪk]')] },
+    { o: 6, u: 6, s: 65, w: 'Arbeitsweise', n: 'arbeitsweise', l: 'Arbeitsweise', p: 'noun', r: [compact('[ˈaʁbaɪ̯t͡sˌvaɪ̯zə]')] },
+    { o: 7, u: 7, s: 60, w: 'Eis', n: 'eis', l: 'Eis', p: 'noun', r: [compact('[aɪ̯s]')] },
+    { o: 8, u: 8, s: 55, w: 'Ha', n: 'ha', l: 'Ha', p: 'interjection', r: [compact('[haː]')] },
+    { o: 9, u: 9, s: 50, w: 'Reise', n: 'reise', l: 'Reise', p: 'noun', r: [compact('[ˈʁaɪ̯zə]')] },
   ];
   const shard = rows.map((row) => JSON.stringify(row)).join('\n') + '\n';
   await writeFile(join(publish, 'shard-000001.jsonl'), shard, 'utf8');
@@ -56,8 +60,8 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
     pronunciation_source: 'test', pronunciation_policy: 'de-pron-priority-v1',
     rhyme_ready_forms: rows.length,
     usage_ranked_rhyme_ready_forms: rows.length,
-    pronunciations: 6,
-    preferred_pronunciations: 5,
+    pronunciations: 10,
+    preferred_pronunciations: 9,
     files: [{ file: 'shard-000001.jsonl' }],
   }), 'utf8');
 
@@ -68,15 +72,15 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
 
   const report = JSON.parse(await readFile(reportPath, 'utf8'));
   assert.equal(report.language, 'de');
-  assert.equal(report.forms, 5);
-  assert.equal(report.pronunciations, 6);
-  assert.equal(report.preferred_pronunciations, 5);
+  assert.equal(report.forms, 9);
+  assert.equal(report.pronunciations, 10);
+  assert.equal(report.preferred_pronunciations, 9);
   assert.equal(report.supplemental_forms, 0);
 
   const db = openRhymeDb(dbPath);
   try {
     assert.equal(getStats(db).language, 'de');
-    assert.equal(getStats(db).forms, 5);
+    assert.equal(getStats(db).forms, 9);
     assert.equal(searchWords(db, 'lie')[0].surface, 'Liebe');
     assert.equal(getWord(db, 'MUSIK').pronunciations.length, 2);
     assert.equal(getWord(db, 'MUSIK').pronunciations[0].preferred, true);
@@ -99,6 +103,29 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
     const allMusik = findRhymes(db, 'Musik', { limit: 20, includeVariants: true });
     assert.equal(allMusik.variantMode, 'all');
     assert.equal(allMusik.results.some((row) => row.word === 'Blick' && row.score === 1), true);
+
+    const oneSyllableArbeitsweise = findRhymes(db, 'Arbeitsweise', {
+      limit: 20,
+      syllableFilter: '1',
+    });
+    assert.ok(oneSyllableArbeitsweise.results.length > 0);
+    assert.ok(oneSyllableArbeitsweise.results.every((row) => row.syllableCount === 1));
+    assert.ok(
+      oneSyllableArbeitsweise.results.some((row) => row.word === 'Eis'),
+      'one-syllable Arbeitsweise must retrieve the right-edge /aɪ/ family',
+    );
+    assert.equal(
+      oneSyllableArbeitsweise.results.some((row) => row.word === 'Ha'),
+      false,
+      'one-syllable Arbeitsweise must not retrieve the primary /a/ family',
+    );
+
+    const twoSyllableArbeitsweise = findRhymes(db, 'Arbeitsweise', {
+      limit: 20,
+      syllableFilter: '2',
+    });
+    assert.ok(twoSyllableArbeitsweise.results.every((row) => row.syllableCount === 2));
+    assert.ok(twoSyllableArbeitsweise.results.some((row) => row.word === 'Reise'));
   } finally {
     db.close();
   }
