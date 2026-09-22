@@ -751,6 +751,11 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/health') {
+      const healthInternalEntry=requestedInternalRuntimeEntry(url);
+      const healthRuntime=healthInternalEntry?.runtime||servingV1Runtime;
+      const healthState=healthInternalEntry?.state||servingV1State;
+      const healthDatabases=healthInternalEntry?.runtime?.coreDatabases||canonicalRuntimeDatabases;
+      const healthPath=healthInternalEntry?.path||servingV1DbPath;
       return json(res, {
         status: 'ok',
         mode: 'local',
@@ -760,14 +765,15 @@ const server = createServer(async (req, res) => {
           en:markovModelHealth(markovEnglishRuntime),
         },
         package_runtime: servingV1Active ? 'serving-v1-default' : 'legacy-archive-bundle',
-        writer_database: canonicalRuntimeDatabases.writerDb ? canonicalRuntimePaths.writer : null,
+        writer_database: healthDatabases.writerDb ? healthPath : null,
         writer_runtime: servingV1Active ? SERVING_V1_PRODUCT_RUNTIME : WRITER_RUNTIME_ID,
         serving_v1: servingV1Active ? {
           enabled:true,
           default_runtime:true,
-          database:servingV1DbPath,
-          state:servingV1State,
-          distribution:servingV1Runtime.capabilities,
+          database:healthPath,
+          state:healthState,
+          distribution:healthRuntime?.capabilities||null,
+          internal_db:healthInternalEntry?.id||null,
         } : {
           enabled:false,
           default_runtime:false,
@@ -775,15 +781,15 @@ const server = createServer(async (req, res) => {
         legacy_database: legacyDb ? legacyDbPath : null,
         legacy_available: Boolean(legacyDb),
         legacy_error: legacyDb ? null : legacyDbError,
-        phrase_database: canonicalRuntimeDatabases.phraseDb ? canonicalRuntimePaths.phrase : null,
-        phrase_available: Boolean(canonicalRuntimeDatabases.phraseDb),
-        phrase_error: canonicalRuntimeDatabases.phraseDb ? null : phraseDbError,
-        entity_database: canonicalRuntimeDatabases.entityDb ? canonicalRuntimePaths.entity : null,
-        entity_available: Boolean(canonicalRuntimeDatabases.entityDb),
-        entity_error: canonicalRuntimeDatabases.entityDb ? null : entityDbError,
-        english_database: canonicalRuntimeDatabases.englishDb ? canonicalRuntimePaths.english : null,
-        english_available: Boolean(canonicalRuntimeDatabases.englishDb),
-        english_error: canonicalRuntimeDatabases.englishDb ? null : englishDbError,
+        phrase_database: healthDatabases.phraseDb ? healthPath : null,
+        phrase_available: Boolean(healthDatabases.phraseDb),
+        phrase_error: healthDatabases.phraseDb ? null : phraseDbError,
+        entity_database: healthDatabases.entityDb ? healthPath : null,
+        entity_available: Boolean(healthDatabases.entityDb),
+        entity_error: healthDatabases.entityDb ? null : entityDbError,
+        english_database: healthDatabases.englishDb ? healthPath : null,
+        english_available: Boolean(healthDatabases.englishDb),
+        english_error: healthDatabases.englishDb ? null : englishDbError,
         english_acceptance_marker: servingV1Active
           ? null
           : (englishMarker.accepted ? englishMarkerPath : null),
@@ -800,7 +806,7 @@ const server = createServer(async (req, res) => {
         } : {
           enabled:false,
         },
-        unified_writer: unifiedWriterCapabilities(canonicalRuntimeDatabases),
+        unified_writer: unifiedWriterCapabilities(healthDatabases),
       });
     }
 
