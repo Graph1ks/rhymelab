@@ -70,7 +70,7 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/id=["']advancedRhymeType["']/u);
   assert.match(html,/id=["']rhymeTypeRail["']/u);
   for(const type of ['all','multisyllabic_perfect','perfect','multisyllabic_slant','family','slant','assonance','consonance']){
-    assert.match(html,new RegExp('data-rhyme-type=["\\']'+type+'["\\']','u'));
+    assert.match(html,new RegExp(`data-rhyme-type=["']${type}["']`,'u'));
   }
   assert.match(html,/id=["']advancedVariants["']/u);
   assert.match(html,/id=["']advancedEntityCategory["']/u);
