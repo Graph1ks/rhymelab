@@ -18,6 +18,7 @@ Before changing the project in a fresh thread/session, read:
 10. `docs/PHASE_12C_ACCEPTANCE.md` and `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — accepted Entity runtime and isolated AI staging boundary
 11. `docs/UI_INTERACTION_CONTRACT.md` and `docs/UI_REDESIGN_PARITY.md` — browser interaction/parity contracts
 12. `docs/DISTRIBUTION_TIERS.md` — Lite/Standard/Full packaging contract
+13. `docs/INTERNAL_DISTRIBUTION_LAB.md` — internal Master/Lite/Standard/Full comparison and shipping-isolation contract
 13. `ROADMAP.md`, `DATA_SOURCES.md`, `docs/API.md`, and subsystem-specific acceptance/benchmark documents when relevant
 
 ## Operating model — solo-dev / owner-controlled
@@ -128,15 +129,25 @@ A narrow pronunciation exception is active for **user query anchors**: when sour
 - Do not optimize benchmark gains that conflict with default lexical/product quality.
 - Human Writer NDCG is deliberately deferred until the broader German writer surface is mature and independent human reviewers are available; the owner alone is not an independent gold source.
 
-## Current default runtime — v0.11.0
+## Current default runtime — v0.11.0 / Serving-v1
 
-The accepted German single-word Writer runtime is now the normal `npm run dev` / UI / API path:
+Normal `npm run dev` / UI / API startup uses the canonical single-file Serving-v1
+product runtime:
 
 ```text
 package               v0.11.0
-default DB            data/local/rhymelab-v5.sqlite
-default DB schema     rhymelab-local-db-v5
-writer runtime        materialized-writer-v5-v1
+default DB            data/local/rhymelab-serving-v1.sqlite
+schema family         rhymelab-serving-v1
+product adapter       rhymelab-serving-v1-product-adapter-v1
+runtime               serving-v1-single-db-product-candidate
+channels              DE/EN Words + Phrase/Mosaic + Entities
+generated policy      edition-capability driven; default on when available
+```
+
+The accepted German single-word Writer semantics remain the frozen Writer-v5/v6
+baseline inside Serving-v1:
+
+```text
 writer ranking        deterministic_writer_utility_v6
 right-edge anchor     de-right-edge-anchors-v1
 anchor storage        compact-primary-key-v2
@@ -146,7 +157,14 @@ construction          de-adverbial-weise-v2
 morphology storage    positive-evidence-compact-v2
 ```
 
-Normal startup requires the v5 Writer DB. The v4 DB is optional and must not be treated as the product default again without an explicit rollback decision.
+Writer-v5 and the older split databases remain source/provenance/regression inputs,
+not the normal runtime. The v4 control DB remains optional for explicit legacy
+comparison.
+
+For development-only Master/Lite/Standard/Full UI comparison, use
+`npm run dev:distribution-lab` and read
+`docs/INTERNAL_DISTRIBUTION_LAB.md`. The internal selector must remain
+request-scoped and must not become a normal shipping UI accidentally.
 
 ## Legacy/control baseline — preserved
 
