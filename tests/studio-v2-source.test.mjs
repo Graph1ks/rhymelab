@@ -336,6 +336,7 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/'\/studio\/search-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/search-filters\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/ui\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-model\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-store\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
@@ -369,6 +370,24 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/entity_categories/u);
   assert.match(server,/entityCategories/u);
   assert.match(server,/analyzeSongEndRhymes/u);
+});
+
+test('Studio shared SearchState re-export resolves to a served browser URL',async()=>{
+  const [studioSearchState,server]=await Promise.all([
+    readFile('src/studio/search-state.mjs','utf8'),
+    readFile('src/server.mjs','utf8'),
+  ]);
+
+  assert.match(studioSearchState,/export \* from '\.\.\/ui\/search-state\.mjs';/u);
+  const resolved=new URL(
+    '../ui/search-state.mjs',
+    'http://127.0.0.1:3030/studio/search-state.mjs',
+  );
+  assert.equal(resolved.pathname,'/ui/search-state.mjs');
+  assert.match(
+    server,
+    /'\/ui\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8', body: readFileSync\(resolve\(uiDir, 'search-state\.mjs'\)\) \}/u,
+  );
 });
 
 test('Studio live migration contract keeps fallback routes through acceptance',async()=>{
