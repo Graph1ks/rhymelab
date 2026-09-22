@@ -19,6 +19,15 @@ import { getPhraseBrowserStats, getPhraseDetail, openPhraseBrowserDb, searchPhra
 import { searchUnifiedWriter, unifiedWriterCapabilities } from './unified-writer-search.mjs';
 import { materializeRhymePadV14 } from './rhymepad-v14.mjs';
 import { createRollingQueryTiming } from './runtime-query-timing.mjs';
+import {
+  INTERNAL_DISTRIBUTION_DB_IDS,
+  availableInternalRuntimeEntry,
+  internalDistributionDbPaths,
+  internalDistributionRuntimeSummary,
+  internalDistributionSwitcherEnabled,
+  internalRuntimeProcessMetrics,
+  requestedInternalDistributionDbId,
+} from './internal-distribution-switcher.mjs';
 import { DEFAULT_ENTITY_DB_PATH, openEntityWriterDb } from './entity-writer-runtime.mjs';
 import {
   DEFAULT_ENGLISH_PRODUCT_MARKER_PATH,
@@ -108,6 +117,18 @@ const benchmarkUiDir = resolve('src/benchmark-ui');
 const queryPronunciationTestDir = resolve('src/query-pronunciation-test');
 const markovTestDir = resolve('src/markov-test');
 const writerQueryTiming=createRollingQueryTiming(100);
+const internalDbSwitcherEnabled=servingV1Active&&internalDistributionSwitcherEnabled({
+  argv:process.argv.slice(2),
+  env:process.env,
+});
+const internalDbPaths=internalDistributionDbPaths({
+  masterPath:servingV1DbPath,
+  env:process.env,
+});
+const internalDbQueryTimings=new Map(
+  INTERNAL_DISTRIBUTION_DB_IDS.map((id)=>[id,createRollingQueryTiming(100)]),
+);
+const internalDbEntries=new Map();
 
 let writerDb=null;
 let writerDbError=null;
@@ -193,6 +214,86 @@ if(servingV1Active){
   }
 }
 
+if(internalDbSwitcherEnabled){
+  internalDbEntries.set('master',{
+    id:'master',
+    path:internalDbPaths.master,
+    runtime:servingV1Runtime,
+    state:servingV1State,
+    error:null,
+    owned:false,
+  });
+  for(const id of INTERNAL_DISTRIBUTION_DB_IDS.filter((value)=>value!=='master')){
+    const path=internalDbPaths[id];
+    try{
+      const runtime=openServingV1ProductRuntime(path);
+      internalDbEntries.set(id,{
+        id,
+        path,
+        runtime,
+        state:servingV1ProductRuntimeState(runtime.coreDb),
+        error:null,
+        owned:true,
+      });
+    }catch(error){
+      internalDbEntries.set(id,{
+        id,
+        path,
+        runtime:null,
+        state:null,
+        error:error instanceof Error?error.message:String(error),
+        owned:false,
+      });
+    }
+  }
+}
+
+function requestedInternalRuntimeEntry(url){
+  const id=requestedInternalDistributionDbId(url,{enabled:internalDbSwitcherEnabled});
+  if(!id)return null;
+  const entry=availableInternalRuntimeEntry(internalDbEntries,id);
+  if(!entry){
+    const detail=internalDbEntries.get(id);
+    const error=new Error(
+      'Internal distribution database '+id+' is unavailable'
+      +(detail?.error?': '+detail.error:'')
+    );
+    error.statusCode=503;
+    error.runtimeDb=id;
+    throw error;
+  }
+  return entry;
+}
+
+function internalDbTimingSnapshot(id){
+  return internalDbQueryTimings.get(id)?.snapshot?.()||null;
+}
+
+function internalDistributionPayload(){
+  return {
+    schema:'rhymelab-internal-distribution-lab-v1',
+    enabled:internalDbSwitcherEnabled,
+    internalOnly:true,
+    shipping:false,
+    selectionMode:'per-request-query-parameter',
+    parameter:'runtime_db',
+    databases:INTERNAL_DISTRIBUTION_DB_IDS.map((id)=>{
+      const entry=internalDbEntries.get(id)||{
+        id,path:internalDbPaths[id],runtime:null,state:null,error:'not_initialized',
+      };
+      return internalDistributionRuntimeSummary({
+        id,
+        path:entry.path,
+        runtime:entry.runtime,
+        state:entry.state,
+        error:entry.error,
+        timing:internalDbTimingSnapshot(id),
+      });
+    }),
+    server:internalRuntimeProcessMetrics({performanceObj:performance,processObj:process}),
+  };
+}
+
 let parallelWriterRuntime=null;
 if(servingV1Active){
   try{
@@ -264,7 +365,24 @@ const activeGeneratedRuntime=servingV1Active
   :generatedOptinRuntime;
 
 let datasetStatsCache=null;
-function runtimeDatasetStats(){
+const internalDatasetStatsCache=new Map();
+function runtimeDatasetStats(url=null){
+  const internalEntry=url?requestedInternalRuntimeEntry(url):null;
+  if(internalEntry){
+    if(!internalDatasetStatsCache.has(internalEntry.id)){
+      const generatedRuntime=internalEntry.runtime.capabilities?.generated===true
+        ?{available:true,databases:internalEntry.runtime.allDatabases}
+        :null;
+      internalDatasetStatsCache.set(
+        internalEntry.id,
+        generatedOptinDatasetStats(
+          internalEntry.runtime.coreDatabases,
+          generatedRuntime,
+        ),
+      );
+    }
+    return internalDatasetStatsCache.get(internalEntry.id);
+  }
   if(!datasetStatsCache){
     datasetStatsCache=generatedOptinDatasetStats(canonicalRuntimeDatabases,activeGeneratedRuntime);
   }
@@ -276,26 +394,56 @@ function generatedOptinRequested(url){
 }
 
 function requestRuntimeSelection(url){
+  const internalEntry=requestedInternalRuntimeEntry(url);
+  if(internalEntry){
+    const generated=generatedDataRequested(url);
+    const capabilities=internalEntry.runtime.capabilities||{};
+    if(generated&&capabilities.generated===true){
+      return {
+        available:true,
+        reason:null,
+        databases:internalEntry.runtime.allDatabases,
+        internalDbId:internalEntry.id,
+        internal:true,
+      };
+    }
+    if(generated&&generatedDataExplicitlyRequired(url)){
+      return {
+        available:false,
+        reason:'selected_distribution_generated_unavailable',
+        databases:null,
+        internalDbId:internalEntry.id,
+        internal:true,
+      };
+    }
+    return {
+      available:true,
+      reason:null,
+      databases:internalEntry.runtime.coreDatabases,
+      internalDbId:internalEntry.id,
+      internal:true,
+    };
+  }
+
   const generated=generatedDataRequested(url);
-  if(generated&&activeGeneratedRuntime.available){
-    return selectGeneratedOptinDatabases(
+  const selection=generated&&activeGeneratedRuntime.available
+    ?selectGeneratedOptinDatabases(
       canonicalRuntimeDatabases,
       activeGeneratedRuntime,
       true,
-    );
-  }
-  if(generated&&generatedDataExplicitlyRequired(url)){
-    return selectGeneratedOptinDatabases(
-      canonicalRuntimeDatabases,
-      activeGeneratedRuntime,
-      true,
-    );
-  }
-  return selectGeneratedOptinDatabases(
-    canonicalRuntimeDatabases,
-    activeGeneratedRuntime,
-    false,
-  );
+    )
+    :generated&&generatedDataExplicitlyRequired(url)
+      ?selectGeneratedOptinDatabases(
+        canonicalRuntimeDatabases,
+        activeGeneratedRuntime,
+        true,
+      )
+      :selectGeneratedOptinDatabases(
+        canonicalRuntimeDatabases,
+        activeGeneratedRuntime,
+        false,
+      );
+  return {...selection,internalDbId:null,internal:false};
 }
 
 function requestRuntimeDatabases(url){
@@ -396,7 +544,15 @@ function generatedRuntimeHealth(){
 
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
 const padHtml = Buffer.from(materializeRhymePadV14().html);
-const studioHtml = readFileSync(resolve(studioUiDir, 'index.html'));
+const studioHtmlSource=readFileSync(resolve(studioUiDir,'index.html'),'utf8');
+const studioHtml=Buffer.from(
+  internalDbSwitcherEnabled
+    ?studioHtmlSource
+    :studioHtmlSource.replace(
+        /<!-- INTERNAL_DB_LAB_START -->[\s\S]*?<!-- INTERNAL_DB_LAB_END -->/u,
+        '',
+      ),
+);
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const queryPronunciationTestHtml = readFileSync(resolve(queryPronunciationTestDir, 'index.html'));
 const markovTestHtml = readFileSync(resolve(markovTestDir, 'index.html'));
@@ -430,6 +586,7 @@ const assets = {
   '/studio/analysis-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'analysis-adapter.mjs')) },
   '/studio/backup-portability.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'backup-portability.mjs')) },
   '/studio/diagnostics.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'diagnostics.mjs')) },
+  '/studio/internal-db-lab.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'internal-db-lab.mjs')) },
   '/studio/i18n.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'i18n.mjs')) },
   '/studio/dom-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'dom-acceptance.mjs')) },
   '/studio/command-palette.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'command-palette.mjs')) },
@@ -612,7 +769,19 @@ const server = createServer(async (req, res) => {
       }
     }
 
+    if(url.pathname==='/api/internal/distribution-dbs'){
+      if(!internalDbSwitcherEnabled){
+        return json(res,{error:'internal_distribution_db_switcher_disabled'},404,false);
+      }
+      return json(res,internalDistributionPayload(),200,false);
+    }
+
     if (url.pathname === '/api/health') {
+      const healthInternalEntry=requestedInternalRuntimeEntry(url);
+      const healthRuntime=healthInternalEntry?.runtime||servingV1Runtime;
+      const healthState=healthInternalEntry?.state||servingV1State;
+      const healthDatabases=healthInternalEntry?.runtime?.coreDatabases||canonicalRuntimeDatabases;
+      const healthPath=healthInternalEntry?.path||servingV1DbPath;
       return json(res, {
         status: 'ok',
         mode: 'local',
@@ -622,14 +791,15 @@ const server = createServer(async (req, res) => {
           en:markovModelHealth(markovEnglishRuntime),
         },
         package_runtime: servingV1Active ? 'serving-v1-default' : 'legacy-archive-bundle',
-        writer_database: canonicalRuntimeDatabases.writerDb ? canonicalRuntimePaths.writer : null,
+        writer_database: healthDatabases.writerDb ? healthPath : null,
         writer_runtime: servingV1Active ? SERVING_V1_PRODUCT_RUNTIME : WRITER_RUNTIME_ID,
         serving_v1: servingV1Active ? {
           enabled:true,
           default_runtime:true,
-          database:servingV1DbPath,
-          state:servingV1State,
-          distribution:servingV1Runtime.capabilities,
+          database:healthPath,
+          state:healthState,
+          distribution:healthRuntime?.capabilities||null,
+          internal_db:healthInternalEntry?.id||null,
         } : {
           enabled:false,
           default_runtime:false,
@@ -637,15 +807,15 @@ const server = createServer(async (req, res) => {
         legacy_database: legacyDb ? legacyDbPath : null,
         legacy_available: Boolean(legacyDb),
         legacy_error: legacyDb ? null : legacyDbError,
-        phrase_database: canonicalRuntimeDatabases.phraseDb ? canonicalRuntimePaths.phrase : null,
-        phrase_available: Boolean(canonicalRuntimeDatabases.phraseDb),
-        phrase_error: canonicalRuntimeDatabases.phraseDb ? null : phraseDbError,
-        entity_database: canonicalRuntimeDatabases.entityDb ? canonicalRuntimePaths.entity : null,
-        entity_available: Boolean(canonicalRuntimeDatabases.entityDb),
-        entity_error: canonicalRuntimeDatabases.entityDb ? null : entityDbError,
-        english_database: canonicalRuntimeDatabases.englishDb ? canonicalRuntimePaths.english : null,
-        english_available: Boolean(canonicalRuntimeDatabases.englishDb),
-        english_error: canonicalRuntimeDatabases.englishDb ? null : englishDbError,
+        phrase_database: healthDatabases.phraseDb ? healthPath : null,
+        phrase_available: Boolean(healthDatabases.phraseDb),
+        phrase_error: healthDatabases.phraseDb ? null : phraseDbError,
+        entity_database: healthDatabases.entityDb ? healthPath : null,
+        entity_available: Boolean(healthDatabases.entityDb),
+        entity_error: healthDatabases.entityDb ? null : entityDbError,
+        english_database: healthDatabases.englishDb ? healthPath : null,
+        english_available: Boolean(healthDatabases.englishDb),
+        english_error: healthDatabases.englishDb ? null : englishDbError,
         english_acceptance_marker: servingV1Active
           ? null
           : (englishMarker.accepted ? englishMarkerPath : null),
@@ -662,12 +832,12 @@ const server = createServer(async (req, res) => {
         } : {
           enabled:false,
         },
-        unified_writer: unifiedWriterCapabilities(canonicalRuntimeDatabases),
+        unified_writer: unifiedWriterCapabilities(healthDatabases),
       });
     }
 
     if (url.pathname === '/api/dataset-stats') {
-      return json(res,runtimeDatasetStats());
+      return json(res,runtimeDatasetStats(url));
     }
 
     if(url.pathname==='/api/studio/route-mode'){
@@ -678,11 +848,13 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/writer') {
       const q = url.searchParams.get('q') || '';
       if (!q.trim()) return json(res, { error: 'q is required' }, 400);
-      const runtimeDatabases=requestRuntimeDatabases(url);
+      const runtimeSelection=requestRuntimeSelection(url);
+      const runtimeDatabases=runtimeSelection.available?runtimeSelection.databases:null;
       if(!runtimeDatabases){
         return json(res,{
-          error:'Generated opt-in runtime is unavailable.',
-          reason:activeGeneratedRuntime.reason,
+          error:'Selected runtime database cannot satisfy this request.',
+          reason:runtimeSelection.reason||activeGeneratedRuntime.reason,
+          runtimeDb:runtimeSelection.internalDbId||null,
         },503);
       }
       const searchOptions={
@@ -713,18 +885,28 @@ const server = createServer(async (req, res) => {
         },
       };
       const searchStarted=performance.now();
-      const result = servingV1Active
+      const useInternalDirect=runtimeSelection.internal===true;
+      const result = servingV1Active&&!useInternalDirect
         ?await parallelWriterRuntime.search(q,searchOptions,{
             generatedOverlay:generatedOptinRequested(url),
           })
         :searchUnifiedWriter(runtimeDatabases,q,searchOptions);
-      const runtimeTiming=writerQueryTiming.record(performance.now()-searchStarted);
+      const elapsed=performance.now()-searchStarted;
+      const runtimeTiming=(runtimeSelection.internalDbId
+        ?internalDbQueryTimings.get(runtimeSelection.internalDbId)
+        :writerQueryTiming
+      ).record(elapsed);
       const status = result.status === 'language_unavailable'
         ? 503
         : result.status === 'query_not_found'
           ? 404
           : 200;
-      return json(res, {...result,runtimeTiming}, status);
+      return json(res, {
+        ...result,
+        runtimeTiming,
+        runtimeDb:runtimeSelection.internalDbId||null,
+        runtimeExecution:useInternalDirect?'direct-internal-db-lab':servingV1Active?'parallel-serving-v1':'direct-legacy',
+      }, status);
     }
 
     if (url.pathname === '/api/analysis/rhyme-scheme') {
@@ -732,11 +914,13 @@ const server = createServer(async (req, res) => {
       if(!words.some(Boolean))return json(res,{error:'at least one word is required'},400);
       const language=String(url.searchParams.get('language')||'de').trim().toLocaleLowerCase('en-US');
       const normalizedLanguage=['de','en','both'].includes(language)?language:'de';
-      const runtimeDatabases=requestRuntimeDatabases(url);
+      const runtimeSelection=requestRuntimeSelection(url);
+      const runtimeDatabases=runtimeSelection.available?runtimeSelection.databases:null;
       if(!runtimeDatabases){
         return json(res,{
-          error:'Generated opt-in runtime is unavailable.',
-          reason:activeGeneratedRuntime.reason,
+          error:'Selected runtime database cannot satisfy this request.',
+          reason:runtimeSelection.reason||activeGeneratedRuntime.reason,
+          runtimeDb:runtimeSelection.internalDbId||null,
         },503);
       }
       const started=performance.now();
@@ -752,7 +936,7 @@ const server = createServer(async (req, res) => {
           wordPoolLimit:1200,
           generatedOnly:generatedOnlyRequested(url),
         };
-        return servingV1Active
+        return servingV1Active&&runtimeSelection.internal!==true
           ?parallelWriterRuntime.search(word,options,{generatedOverlay:generatedOptinRequested(url)})
           :searchUnifiedWriter(runtimeDatabases,word,options);
       };
@@ -764,6 +948,7 @@ const server = createServer(async (req, res) => {
       return json(res,{
         ...analysis,
         runtimeTiming:{currentMs:Number((performance.now()-started).toFixed(3))},
+        runtimeDb:runtimeSelection.internalDbId||null,
       });
     }
 
@@ -863,7 +1048,11 @@ const server = createServer(async (req, res) => {
 
     return json(res, { error: 'Not found' }, 404);
   } catch (error) {
-    return json(res, { error: error instanceof Error ? error.message : String(error) }, 500, req.method === 'GET' && !String(req.url || '').startsWith('/api/benchmark/'));
+    const status=Number(error?.statusCode)||500;
+    return json(res, {
+      error:error instanceof Error?error.message:String(error),
+      ...(error?.runtimeDb?{runtimeDb:error.runtimeDb}:{}),
+    }, status, req.method === 'GET' && !String(req.url || '').startsWith('/api/benchmark/'));
   }
 });
 
@@ -881,6 +1070,13 @@ server.listen(port, host, () => {
     console.log(`Serving-v1 runtime: ${SERVING_V1_PRODUCT_RUNTIME}`);
     console.log(`Writer execution: ${parallelWriterRuntime.health().execution} · ${parallelWriterRuntime.health().workers} workers`);
     console.log('Generated data: Serving-v1 all-mode default ON · generated=0 opts out');
+    if(internalDbSwitcherEnabled){
+      console.log('INTERNAL DB LAB: ENABLED · per-request Master / Lite / Standard / Full switcher');
+      for(const id of INTERNAL_DISTRIBUTION_DB_IDS){
+        const entry=internalDbEntries.get(id);
+        console.log(`  ${id.padEnd(8)} ${entry?.runtime?'ready':'unavailable'} · ${internalDbPaths[id]}`);
+      }
+    }
   }else{
     console.log(`Writer v5 SQLite: ${writerDbPath}`);
     console.log(`Writer runtime: ${WRITER_RUNTIME_ID}`);
@@ -908,6 +1104,9 @@ function shutdown() {
     try { generatedOptinRuntime.close(); } catch {}
     try { markovRuntime.close(); } catch {}
     try { markovEnglishRuntime.close(); } catch {}
+    for(const entry of internalDbEntries.values()){
+      if(entry?.owned)try{entry.runtime?.close();}catch{}
+    }
     try { servingV1Runtime?.close(); } catch {}
     process.exit(0);
   });

@@ -131,11 +131,12 @@ async function readResponse(response){
   return data||{};
 }
 
-async function lookupSourceBackedWord(fetchImpl,surface,language,generated,signal){
+async function lookupSourceBackedWord(fetchImpl,surface,language,generated,signal,runtimeDb=''){
   const params=new URLSearchParams({
     language,
     generated:generated?'1':'0',
   });
+  if(runtimeDb)params.set('runtime_db',runtimeDb);
   const response=await fetchImpl(
     `/api/word/${encodeURIComponent(surface)}?${params}`,
     {signal,headers:{accept:'application/json'}},
@@ -154,6 +155,7 @@ async function resolveMissingPronunciations({
   generated,
   queryPronunciationRevision,
   signal,
+  runtimeDb='',
 }){
   const languages=basisLanguages(queryBasis).filter(
     (language)=>data?.capabilities?.languages?.[language]?.available!==false,
@@ -165,7 +167,7 @@ async function resolveMissingPronunciations({
   for(const language of missing){
     const detail=await resolveUnknownClientPronunciation(query,language,{
       lookupReference:(surface,referenceLanguage)=>
-        lookupSourceBackedWord(fetchImpl,surface,referenceLanguage,generated,signal),
+        lookupSourceBackedWord(fetchImpl,surface,referenceLanguage,generated,signal,runtimeDb),
       lookupCachedPronunciation:(surface,referenceLanguage)=>{
         if(!queryPronunciationRevision)return null;
         return readGeneratedPronunciationCache({
@@ -219,15 +221,21 @@ export function createWriterSearchClient({fetchImpl=globalThis.fetch}={}){
       activeController=controller;
       const current=++requestId;
       const params=buildWriterParams(options);
+      if(options.runtimeDb)params.set('runtime_db',String(options.runtimeDb));
       const request=async()=>{
+        const started=performance.now();
         const response=await fetchImpl(
           `/api/writer?${params}`,
           {signal:controller.signal,headers:{accept:'application/json'}},
         );
-        return {response,data:await readResponse(response)};
+        return {
+          response,
+          data:await readResponse(response),
+          roundTripMs:Number((performance.now()-started).toFixed(1)),
+        };
       };
 
-      let {response,data}=await request();
+      let {response,data,roundTripMs}=await request();
       const generatedPronunciation=await resolveMissingPronunciations({
         fetchImpl,
         data,
@@ -237,9 +245,10 @@ export function createWriterSearchClient({fetchImpl=globalThis.fetch}={}){
         generated:options.generated===true,
         queryPronunciationRevision:options.queryPronunciationRevision||'',
         signal:controller.signal,
+        runtimeDb:options.runtimeDb||'',
       });
       if(generatedPronunciation){
-        ({response,data}=await request());
+        ({response,data,roundTripMs}=await request());
       }
 
       if(current!==requestId){
@@ -267,6 +276,9 @@ export function createWriterSearchClient({fetchImpl=globalThis.fetch}={}){
         querySyllables:Number(data?.query?.syllableCount||0),
         warnings:Array.isArray(data?.warnings)?data.warnings:[],
         runtimeTiming:data?.runtimeTiming||null,
+        runtimeDb:data?.runtimeDb||options.runtimeDb||null,
+        runtimeExecution:data?.runtimeExecution||null,
+        clientTiming:{roundTripMs},
         capabilities:data?.capabilities||null,
         raw:data,
       };

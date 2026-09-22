@@ -325,7 +325,9 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   const server=await readFile('src/server.mjs','utf8');
 
   assert.match(server,/const studioUiDir = resolve\('src\/studio'\)/u);
-  assert.match(server,/const studioHtml = readFileSync\(resolve\(studioUiDir, 'index\.html'\)\)/u);
+  assert.match(server,/const studioHtmlSource=readFileSync\(resolve\(studioUiDir,'index\.html'\),'utf8'\)/u);
+  assert.match(server,/INTERNAL_DB_LAB_START/u);
+  assert.match(server,/internalDbSwitcherEnabled/u);
   assert.match(server,/'\/studio': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
   assert.match(server,/'\/studio\/': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
   assert.match(server,/'\/studio\/styles\.css': \{ type: 'text\/css; charset=utf-8'/u);
@@ -345,6 +347,7 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/'\/studio\/analysis-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/backup-portability\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/diagnostics\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/internal-db-lab\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/i18n\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/dom-acceptance\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/command-palette\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);

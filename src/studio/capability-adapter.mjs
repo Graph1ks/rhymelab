@@ -1,7 +1,9 @@
 const CAPABILITY_ENDPOINTS=Object.freeze(['/api/health','/api/dataset-stats']);
 
-async function readJson(fetchImpl,url,signal){
-  const response=await fetchImpl(url,{signal,headers:{accept:'application/json'}});
+async function readJson(fetchImpl,url,signal,runtimeDb=''){
+  const target=new URL(url,'http://rhymelab.local/');
+  if(runtimeDb)target.searchParams.set('runtime_db',String(runtimeDb));
+  const response=await fetchImpl(target.pathname+target.search,{signal,headers:{accept:'application/json'}});
   if(!response.ok)throw new Error(`${url} returned HTTP ${response.status}`);
   return response.json();
 }
@@ -33,10 +35,11 @@ export function normalizeStudioCapabilities(health={},datasetStats={}){
 export async function loadStudioCapabilities({
   fetchImpl=globalThis.fetch,
   signal,
+  runtimeDb='',
 }={}){
   if(typeof fetchImpl!=='function')throw new TypeError('fetch is unavailable');
   const [health,datasetStats]=await Promise.all(
-    CAPABILITY_ENDPOINTS.map((url)=>readJson(fetchImpl,url,signal)),
+    CAPABILITY_ENDPOINTS.map((url)=>readJson(fetchImpl,url,signal,runtimeDb)),
   );
   return normalizeStudioCapabilities(health,datasetStats);
 }
