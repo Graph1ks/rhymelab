@@ -25,9 +25,10 @@ test('standalone Phrase Explorer UI and route are retired', async () => {
   assert.match(server, /phraseDbError/);
 
   assert.match(writerHtml, /id="scopeFilter"/);
-  assert.match(writerHtml, /data-basis="de"/);
-  assert.match(writerHtml, /data-basis="en"/);
-  assert.match(writerHtml, /data-basis="both"/);
+  assert.match(writerHtml, /id="languageRouteFilter"/);
+  assert.match(writerHtml, /value="de:both"/);
+  assert.match(writerHtml, /value="en:both"/);
+  assert.match(writerHtml, /value="both:both"/);
   assert.doesNotMatch(writerHtml, /href="\/phrases"/);
 
   assert.match(app, /\/api\/writer\?/);
