@@ -18,6 +18,7 @@ import {
   createTargetSchema,
   distributionIntegrityReport,
   editionContract,
+  ensureEntityAvailability,
   normalizeEditionAvailability,
   populateDistributionSelection,
   readMeta,
@@ -243,6 +244,69 @@ test('selection reset clears Entity quota memberships between edition plans',()=
       db.prepare('SELECT COUNT(*) c FROM _dist_entity_membership').get().c,
       0,
     );
+  }finally{db.close();}
+});
+
+
+test('Entity availability is materialized once and reused by category quota selection',()=>{
+  const db=new DatabaseSync(':memory:');
+  try{
+    seedSource(db);
+
+    db.prepare(`
+      INSERT INTO runtime_entity_identity(
+        entity_id,qid,primary_category,popularity_score,popularity_percentile,popularity_tier
+      ) VALUES(1,'Q1','person.actor',100,1,'A')
+    `).run();
+    db.prepare(`
+      INSERT INTO runtime_entity_category(
+        entity_id,category,category_score,category_rank,category_percentile,
+        category_tier,retention_percentile_floor,retained_by_category
+      ) VALUES(1,'person.actor',100,1,1,'A',0.34,1)
+    `).run();
+    db.prepare(`
+      INSERT INTO runtime_entity_name(
+        name_id,entity_id,surface_id,surface,normalized,language,script,
+        name_kind,preferred,searchable,source_kind,source_record
+      ) VALUES(1,1,1,'Alpha','alpha','de','Latn','label',1,1,'fixture','Q1')
+    `).run();
+    db.prepare(`
+      INSERT INTO runtime_entity_pronunciation(
+        product_pronunciation_id,name_id,serving_pronunciation_id,source_priority,
+        locale,pronunciation_role,ipa,preferred,source_kind,source_record,
+        generated,model_id,confidence,review_state
+      ) VALUES(1,1,101,1,'de','canonical','x',1,'fixture','Q1',0,NULL,1,'accepted')
+    `).run();
+
+    const progress=[];
+    const first=ensureEntityAvailability(db,{
+      alias:'main',
+      onProgress:(event)=>progress.push(event),
+    });
+    const second=ensureEntityAvailability(db,{
+      alias:'main',
+      onProgress:(event)=>progress.push(event),
+    });
+    assert.equal(first,1);
+    assert.equal(second,1);
+    assert.equal(
+      db.prepare('SELECT canonical_available c FROM _dist_entity_availability WHERE entity_id=1').get().c,
+      1,
+    );
+    assert.equal(progress.some((event)=>event.status==='resume_skip'),true);
+
+    createRankTables(db,{alias:'main'});
+    const selection=populateDistributionSelection(db,{
+      edition:'standard',
+      alias:'main',
+      totalTarget:5,
+      entityPerCategory:1,
+    });
+    assert.equal(selection.budget.entries,5);
+    assert.equal(selection.budget.entities,1);
+    assert.equal(selection.budget.words,4);
+    assert.equal(selection.entity_categories[0].category,'person.actor');
+    assert.equal(selection.entity_categories[0].selected_memberships,1);
   }finally{db.close();}
 });
 
