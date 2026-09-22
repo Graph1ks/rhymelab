@@ -188,6 +188,7 @@ function setStudioUiLanguage(value,{persistState=true,notifyUser=false}={}){
     quick.title=state.uiLanguage==='de'?'UI: Deutsch · click for English':'UI: English · Klick für Deutsch';
   }
   if($('#uiLanguageSelect'))$('#uiLanguageSelect').value=state.uiLanguage;
+  syncRhymeTypeRail();
   renderActiveDeviceGuide();
   if(persistState)persist();
   if(notifyUser)notify(state.uiLanguage==='en'?'Interface language: English':'Oberflächensprache: Deutsch');
@@ -1757,6 +1758,67 @@ captureSelection=function(el){const old=query;baseCapture(el);if(!followSelectio
 insertWord=function(word){if(selectionProof){const check=validateSelectionProof(song(),selectionProof);if(!check.valid){notify('Textstelle geändert. Bitte Zielwort erneut auswählen.');return}}baseInsert(word);animateSurface($(`#lyrics textarea[data-line="${activeLine}"]`)?.parentElement,'insert-flash');selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult)renderDetail()};
 toggleSave=function(word){baseToggleSave(word);const b=queryAll('[data-save]').find(b=>b.dataset.save===word);animateSurface(b,'bookmark-pop');if(dockTab==='saved')renderDock();if(selectedResult)renderDetail()};
 setMode=function(next){baseMode(next);animateSurface($(next==='write'?'#writeView':next==='rhyme'?'#rhymeView':'#performView'))};
+const DIRECT_RHYME_TYPE_LABELS=Object.freeze({
+  de:Object.freeze({
+    all:'Alle',
+    multisyllabic_perfect:'Multi-Voll',
+    perfect:'Vollreim',
+    multisyllabic_slant:'Multi-Slant',
+    family:'Familie',
+    slant:'Slant',
+    assonance:'Assonanz',
+    consonance:'Konsonanz',
+  }),
+  en:Object.freeze({
+    all:'All',
+    multisyllabic_perfect:'Multi perfect',
+    perfect:'Perfect',
+    multisyllabic_slant:'Multi slant',
+    family:'Family',
+    slant:'Slant',
+    assonance:'Assonance',
+    consonance:'Consonance',
+  }),
+});
+const DIRECT_RHYME_TYPE_TITLES=Object.freeze({
+  en:Object.freeze({
+    all:'All rhyme and sound relations',
+    multisyllabic_perfect:'Multisyllabic perfect rhymes',
+    perfect:'Perfect rhymes',
+    multisyllabic_slant:'Multisyllabic slant rhymes',
+    family:'Rhyme family matches',
+    slant:'Slant rhymes',
+    assonance:'Assonance: matching vowel sound',
+    consonance:'Consonance: matching consonant sound',
+  }),
+});
+function syncRhymeTypeRail(){
+  const labels=DIRECT_RHYME_TYPE_LABELS[state.uiLanguage]||DIRECT_RHYME_TYPE_LABELS.de;
+  const englishTitles=DIRECT_RHYME_TYPE_TITLES.en;
+  queryAll('#rhymeTypeRail [data-rhyme-type]').forEach((button)=>{
+    const type=button.dataset.rhymeType||'all';
+    const active=type===rhymeType;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',String(active));
+    button.textContent=labels[type]||STUDIO_RHYME_TYPE_LABELS[type]||type;
+    button.title=state.uiLanguage==='en'
+      ?(englishTitles[type]||button.textContent)
+      :(STUDIO_RHYME_TYPE_LABELS[type]||button.textContent);
+  });
+}
+function setDirectRhymeType(value){
+  const next=Object.hasOwn(STUDIO_RHYME_TYPE_LABELS,String(value||''))
+    ?String(value)
+    :'all';
+  relation='all';
+  rhymeType=next;
+  pageSize=density==='compact'?24:12;
+  saveStudioSearchState();
+  syncRhymeTypeRail();
+  syncAdvancedControls();
+  void refreshWriterResults();
+}
+
 function currentSearchPreset(){
   if(scope==='word'&&rhymeType==='all')return 'words';
   if(scope==='phrase'&&rhymeType==='all')return 'phrases';
@@ -1876,6 +1938,7 @@ function hasActiveSearchFilters(){
 }
 function syncInline(){
   for(const [id,value]of [['directBasis',basis],['directLang',resultLang],['directRelation',relation],['directSyllables',syllableMode],['directSort',sort]])$('#'+id).value=value;
+  syncRhymeTypeRail();
   syncAdvancedControls();
   const items=[];
   if(scope!=='all')items.push(['scope',scope==='word'?'Wörter':scope==='phrase'?'Phrasen':'Namen']);
@@ -3499,15 +3562,16 @@ function renderDetail(){
 function closeDetail(){detailClient.cancel();detailRequest++;selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';saveStudioSearchState({selectedResultId:''});$('#detailDock').classList.add('hidden');$('#resultsScroll').focus()}
 function moveResult(delta){const rows=sortedData();if(!rows.length)return;let index=rows.findIndex(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult);index=index<0?(delta>0?0:rows.length-1):Math.max(0,Math.min(rows.length-1,index+delta));if(index>=pageSize){pageSize=index+12;renderResults()}openDetail(rows[index].word,rows[index].id);const row=queryAll('#results .result').find(r=>r.dataset.resultId===selectedResultId);row?.scrollIntoView?.({block:'nearest',behavior:'smooth'})}
 function setAssistWidth(value){const max=clamp(window.innerWidth-660,350,640);const width=clamp(value,350,max);document.documentElement.style.setProperty('--assist-width',width+'px');$('#splitter').setAttribute('aria-valuenow',width);$('#splitter').setAttribute('aria-valuemax',max);state.assistWidth=width;queryAll('#lyrics textarea').forEach(resizeArea);}
-function bindV2(){for(const id of ['directBasis','directLang','directRelation','directSyllables','directSort','advancedFiltersToggle','advancedFilters','advancedPreset','advancedRhymeType','advancedVariants','advancedEntityCategory','advancedEntityCategoryMulti','advancedHideUsed','advancedHistorical','advancedGenerated','advancedGeneratedOnly','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();bindMobileViewport();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');$('#directBasis').onchange=e=>{basis=e.target.value;void refreshWriterResults()};
+function bindV2(){for(const id of ['directBasis','directLang','directRelation','rhymeTypeRail','directSyllables','directSort','advancedFiltersToggle','advancedFilters','advancedPreset','advancedRhymeType','advancedVariants','advancedEntityCategory','advancedEntityCategoryMulti','advancedHideUsed','advancedHistorical','advancedGenerated','advancedGeneratedOnly','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();bindMobileViewport();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');$('#directBasis').onchange=e=>{basis=e.target.value;void refreshWriterResults()};
 $('#directLang').onchange=e=>{resultLang=e.target.value;void refreshWriterResults()};
 $('#directRelation').onchange=e=>{relation=e.target.value;renderResults()};
+queryAll('#rhymeTypeRail [data-rhyme-type]').forEach((button)=>button.onclick=()=>setDirectRhymeType(button.dataset.rhymeType));
 $('#directSyllables').onchange=e=>{syllableMode=e.target.value;saveStudioSearchState();void refreshWriterResults()};
 $('#directSort').onchange=e=>{sort=e.target.value;saveStudioSearchState();renderResults()};
 $('#advancedFiltersToggle').onclick=()=>{advancedExpanded=!advancedExpanded;syncAdvancedControls();if(advancedExpanded)animateSurface($('#advancedFilters'))};
 $('#advancedPreset').onchange=e=>applySearchPreset(e.target.value);
 $('#advancedHideUsed').onchange=e=>{hideUsed=e.target.checked;state.hideUsed=hideUsed;persist();renderResults()};
-$('#advancedRhymeType').onchange=e=>{rhymeType=e.target.value;void refreshWriterResults()};
+$('#advancedRhymeType').onchange=e=>setDirectRhymeType(e.target.value);
 $('#advancedVariants').onchange=e=>{variantMode=e.target.value;void refreshWriterResults()};
 $('#advancedEntityCategory').onchange=e=>{const value=e.target.value;setEntityCategories(value==='all'?[]:[value])};
 $('#advancedHistorical').onchange=e=>{includeHistorical=e.target.checked;void refreshWriterResults()};
