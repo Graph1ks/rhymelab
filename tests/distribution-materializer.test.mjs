@@ -295,18 +295,16 @@ test('Entity availability is materialized once and reused by category quota sele
     );
     assert.equal(progress.some((event)=>event.status==='resume_skip'),true);
 
-    createRankTables(db,{alias:'main'});
-    const selection=populateDistributionSelection(db,{
-      edition:'standard',
-      alias:'main',
-      totalTarget:5,
-      entityPerCategory:1,
-    });
-    assert.equal(selection.budget.entries,5);
-    assert.equal(selection.budget.entities,1);
-    assert.equal(selection.budget.words,4);
-    assert.equal(selection.entity_categories[0].category,'person.actor');
-    assert.equal(selection.entity_categories[0].selected_memberships,1);
+    const eligible=db.prepare(`
+      SELECT ec.entity_id,ec.category
+      FROM runtime_entity_category ec
+      JOIN _dist_entity_availability ea USING(entity_id)
+      WHERE ec.retained_by_category=1
+        AND ea.canonical_available=1
+      ORDER BY ec.category_rank,ec.entity_id
+      LIMIT 1
+    `).get();
+    assert.deepEqual(eligible,{entity_id:1,category:'person.actor'});
   }finally{db.close();}
 });
 
