@@ -1899,26 +1899,23 @@ function hasActiveSearchFilters(){
   return scope!=='all'||relation!=='all'||rhymeType!=='all'||syllableMode!=='all'||resultLang!=='both'||basis!=='de'||sort!=='recommended'||variantMode!=='preferred'||entityCategories.length>0||includeHistorical||generated||generatedOnly;
 }
 function syncInline(){
-  for(const [id,value]of [['directBasis',basis],['directLang',resultLang],['directRelation',relation],['directSyllables',syllableMode],['directSort',sort]])$('#'+id).value=value;
   syncAdvancedControls();
   const items=[];
   if(scope!=='all')items.push(['scope',scope==='word'?'Wörter':scope==='phrase'?'Phrasen':'Namen']);
-  if(relation!=='all')items.push(['relation',relation==='rein'?'Vollreime':'Slant / Klang']);
   if(rhymeType!=='all')items.push(['rhymeType',STUDIO_RHYME_TYPE_LABELS[rhymeType]||rhymeType]);
   if(syllableMode!=='all')items.push(['syllables','Silben: '+({same:'wie Anker',near:'±1',near2:'±2',near3:'±3','1':'1','2':'2','3':'3+'})[syllableMode]]);
-  if(resultLang!=='both')items.push(['lang','Ergebnis: '+resultLang.toUpperCase()]);
-  if(basis!=='de')items.push(['basis','Anker: '+(basis==='both'?'DE+EN':'EN')]);
+  if(resultLang!=='both'||basis!=='de')items.push(['languageRoute',(basis==='both'?'DE+EN':basis.toUpperCase())+' → '+(resultLang==='both'?'DE+EN':resultLang.toUpperCase())]);
   if(sort!=='recommended')items.push(['sort',({alpha:'A–Z',syllables:'Silbendistanz',closest:'Klangnähe',common:'Häufigkeit'})[sort]||sort]);
   if(variantMode!=='preferred')items.push(['variants','Alle Aussprachevarianten']);
   for(const category of entityCategories)items.push(['entityCategory:'+category,'Entity: '+humanizeDetail(category)]);
-  if(includeHistorical)items.push(['historical','Historisch']);
-  if(generated)items.push(['generated','Generated']);
-  if(generatedOnly)items.push(['generatedOnly','Nur Generated']);
-  $('#activeFilters').innerHTML=items.map(([id,label])=>`<button data-clear-filter="${id}" aria-label="Filter ${esc(label)} entfernen">${esc(label)} ×</button>`).join('');
+  if(includeHistorical||generated||generatedOnly)items.push(['corpus',$('#directCorpus')?.selectedOptions?.[0]?.textContent||'Korpus']);
+  $('#activeFilters').innerHTML=items.map(([id,label])=>'<button data-clear-filter="'+esc(id)+'" aria-label="Filter '+esc(label)+' entfernen">'+esc(label)+' ×</button>').join('');
 }
 function resetInline(){
-  scope='all';relation='all';rhymeType='all';variantMode='preferred';entityCategory='all';entityCategories=[];includeHistorical=false;generated=false;generatedOnly=false;sort='recommended';basis='de';resultLang='both';syllableMode='all';pageSize=12;
-  queryAll('[data-scope]').forEach(b=>{b.classList.toggle('active',b.dataset.scope==='all');b.setAttribute('aria-pressed',b.dataset.scope==='all')});
+  scope='all';relation='all';rhymeType='all';variantMode='preferred';entityCategory='all';entityCategories=[];includeHistorical=false;generated=false;generatedOnly=false;sort='recommended';basis='de';resultLang='both';syllableMode='all';pageSize=density==='compact'?24:12;
+  syncScopeButtons();
+  saveStudioSearchState();
+  syncAdvancedControls();
   void refreshWriterResults();
 }
 function setDensity(v){density=v;state.density=v;pageSize=v==='compact'?24:12;renderResults();persist()}
