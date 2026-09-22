@@ -22,6 +22,7 @@ import {
   ensureEntityAvailability,
   normalizeEditionAvailability,
   populateDistributionSelection,
+  selectDistributionEntityMemberships,
   readMeta,
   writeDistributionManifest,
 } from '../scripts/distribution-materializer-core.mjs';
@@ -307,6 +308,94 @@ test('selection reset clears Entity quota memberships between edition plans',()=
   }finally{db.close();}
 });
 
+
+test('Full reserves Standard Top-1k entities inside—not above—the 5k category quota',()=>{
+  const db=new DatabaseSync(':memory:');
+  try{
+    db.exec(`
+      CREATE TABLE runtime_entity_category(
+        entity_id INTEGER NOT NULL,
+        category TEXT NOT NULL,
+        category_score REAL,
+        category_rank INTEGER,
+        retained_by_category INTEGER NOT NULL
+      );
+      CREATE TABLE runtime_entity_pronunciation(
+        product_pronunciation_id INTEGER PRIMARY KEY
+      );
+    `);
+    createSelectionStorage(db);
+    db.exec(`
+      INSERT INTO _dist_entity_availability_state(
+        singleton,source_max_pronunciation_id,last_pronunciation_id,status
+      ) VALUES(1,0,0,'complete');
+    `);
+
+    const category=db.prepare(`
+      INSERT INTO runtime_entity_category(
+        entity_id,category,category_score,category_rank,retained_by_category
+      ) VALUES(?,?,?,?,1)
+    `);
+    const availability=db.prepare(`
+      INSERT INTO _dist_entity_availability(
+        entity_id,canonical_available,generated_available
+      ) VALUES(?,?,1)
+    `);
+
+    // 4,500 Full-only candidates rank ahead of the 1,000 Core candidates.
+    // Naive "Full Top-5k then UNION Standard Top-1k" would produce 5,500 memberships.
+    for(let id=1;id<=4500;id++){
+      category.run(id,'person.actor',100000-id,id);
+      availability.run(id,0);
+    }
+    for(let offset=1;offset<=1000;offset++){
+      const id=4500+offset;
+      category.run(id,'person.actor',50000-offset,4500+offset);
+      availability.run(id,1);
+    }
+
+    const memberships=selectDistributionEntityMemberships(db,{
+      edition:'full',
+      alias:'main',
+    });
+    assert.equal(memberships,5000);
+    assert.equal(
+      db.prepare(`
+        SELECT COUNT(*) c
+        FROM _dist_entity_membership
+        WHERE category='person.actor'
+      `).get().c,
+      5000,
+    );
+    assert.equal(
+      db.prepare(`
+        SELECT COUNT(*) c
+        FROM _dist_entity_membership
+        WHERE category='person.actor'
+          AND selection_source='standard_required'
+      `).get().c,
+      1000,
+    );
+    assert.equal(
+      db.prepare(`
+        SELECT COUNT(*) c
+        FROM _dist_entity_membership
+        WHERE category='person.actor'
+          AND entity_id BETWEEN 4501 AND 5500
+      `).get().c,
+      1000,
+    );
+    assert.equal(
+      db.prepare(`
+        SELECT COUNT(*) c
+        FROM _dist_entity_membership
+        WHERE category='person.actor'
+          AND entity_id BETWEEN 1 AND 4500
+      `).get().c,
+      4000,
+    );
+  }finally{db.close();}
+});
 
 test('Entity availability is materialized once and reused by category quota selection',()=>{
   const db=new DatabaseSync(':memory:');

@@ -1,6 +1,6 @@
 {
   "project": "RhymeLab",
-  "updated": "2026-09-21",
+  "updated": "2026-09-22",
   "phase": "STUDIO_V2_LIVE_ACCEPTANCE",
   "package_version": "0.11.0",
   "repository": {
@@ -32,7 +32,24 @@
     "unknown_query_pronunciation": "client-total-query-pronunciation-v2",
     "multiword_client_query_pronunciation": true,
     "query_pronunciation_cache": "rhymelab-query-pronunciation-cache-v1",
-    "query_pronunciation_cache_revalidation": "health_revision_once_per_app_session"
+    "query_pronunciation_cache_revalidation": "health_revision_once_per_app_session",
+    "internal_distribution_lab": {
+      "status": "IMPLEMENTED_INTERNAL_ONLY",
+      "command": "npm run dev:distribution-lab",
+      "selector_parameter": "runtime_db",
+      "selector_values": [
+        "master",
+        "lite",
+        "standard",
+        "full"
+      ],
+      "routing": "per_request_no_global_active_db",
+      "shipping_ui": false,
+      "disabled_endpoint_status": 404,
+      "metrics_copy_schema": "rhymelab-internal-db-lab-copy-v1",
+      "contract": "docs/INTERNAL_DISTRIBUTION_LAB.md",
+      "future_user_settings": "SEPARATE_PRODUCT_TASK_REUSE_REQUEST_SCOPED_ROUTING"
+    }
   },
   "legacy_control_baseline": {
     "status": "preserved",
@@ -3871,5 +3888,42 @@
     "direct_demo_route": "/markov-test",
     "development_authorized": false,
     "handover": "docs/MARKOV_GENERATOR_HANDOVER.md"
+  },
+  "distribution": {
+    "status": "IMPLEMENTED_MATERIALIZER_AND_INTERNAL_COMPARISON",
+    "contract": "docs/DISTRIBUTION_TIERS.md",
+    "master_database": "data/local/rhymelab-serving-v1.sqlite",
+    "rank_policy": "distribution-rank-v1-language-normalized-usage-surface",
+    "editions": {
+      "lite": {
+        "total_product_entries": 50000,
+        "entity_per_category": 0,
+        "phrase_mode": "none",
+        "generated": false,
+        "markov": false
+      },
+      "standard": {
+        "total_product_entries": 250000,
+        "entity_per_category": 1000,
+        "phrase_mode": "core",
+        "generated": false,
+        "markov": false
+      },
+      "full": {
+        "total_product_entries": 400000,
+        "entity_per_category": 5000,
+        "phrase_mode": "all",
+        "generated": true,
+        "markov": false
+      }
+    },
+    "generated_only_word_quota": 0,
+    "nesting_invariant": "LITE_SUBSET_STANDARD_SUBSET_FULL_SUBSET_MASTER",
+    "full_entity_quota_rule": "RESERVE_STANDARD_TOP_1000_INSIDE_FULL_5000_THEN_FILL_REMAINDER",
+    "plan_command": "npm run distribution:plan",
+    "build_command": "npm run distribution:build",
+    "nesting_verify_command": "npm run distribution:verify:nesting",
+    "physical_sizes_recorded_in_repo": false,
+    "internal_lab": "docs/INTERNAL_DISTRIBUTION_LAB.md"
   }
 }

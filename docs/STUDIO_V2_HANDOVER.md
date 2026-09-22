@@ -154,6 +154,33 @@ Settings now includes a local diagnostics dashboard and JSON export covering:
 - primary pointer class.
 - DOM/interaction acceptance gates.
 
+### Internal distribution DB Lab
+
+Studio also has an explicitly development-only comparison surface for the
+Master/Developer, Lite, Standard and Full Serving-v1 databases.
+
+Activation:
+
+```powershell
+npm run dev:distribution-lab
+```
+
+The visible internal bar is not part of normal shipping Studio. The server strips
+its HTML when the internal switcher is disabled and the internal database-summary
+endpoint returns 404.
+
+The selected edition is propagated request-by-request through Writer, detail,
+song-analysis and capability requests. There is no mutable global active-database
+state. The panel exposes copyable DB/site/process metrics for edition comparison.
+
+Full engineering contract:
+
+`docs/INTERNAL_DISTRIBUTION_LAB.md`
+
+The later product direction may reuse the request-scoped routing primitive for a
+normal User Settings database choice. That future user-facing Settings work is not
+implemented by the internal lab itself.
+
 ### DE / EN UI
 
 - Persistent `uiLanguage` preference.

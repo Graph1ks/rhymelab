@@ -95,15 +95,21 @@ function fixture(){
   return db;
 }
 
-test('distribution tier contract preserves nested population targets and feature boundaries',()=>{
-  assert.equal(DISTRIBUTION_TIERS.lite.core_word_population,50000);
-  assert.equal(DISTRIBUTION_TIERS.standard.core_word_population,250000);
-  assert.equal(DISTRIBUTION_TIERS.full.core_word_population,400000);
-  assert.equal(DISTRIBUTION_TIERS.full.generated_word_population,200000);
+test('distribution tier census contract mirrors total product budgets and shipping capabilities',()=>{
+  assert.equal(DISTRIBUTION_TIERS.lite.total_product_entries,50000);
+  assert.equal(DISTRIBUTION_TIERS.standard.total_product_entries,250000);
+  assert.equal(DISTRIBUTION_TIERS.full.total_product_entries,400000);
+  assert.equal(DISTRIBUTION_TIERS.lite.word_population,50000);
+  assert.equal(DISTRIBUTION_TIERS.standard.word_population,'dynamic_budget_remainder');
+  assert.equal(DISTRIBUTION_TIERS.full.word_population,'dynamic_budget_remainder');
+  assert.equal(DISTRIBUTION_TIERS.full.generated_only_word_population,0);
+  assert.equal(DISTRIBUTION_TIERS.standard.entity_per_category,1000);
+  assert.equal(DISTRIBUTION_TIERS.full.entity_per_category,5000);
   assert.equal(DISTRIBUTION_TIERS.lite.features.phrases,false);
   assert.equal(DISTRIBUTION_TIERS.standard.features.entities,true);
   assert.equal(DISTRIBUTION_TIERS.standard.features.generated,false);
-  assert.equal(DISTRIBUTION_TIERS.full.features.markov,true);
+  assert.equal(DISTRIBUTION_TIERS.full.features.generated,true);
+  assert.equal(DISTRIBUTION_TIERS.full.features.markov,false);
 });
 
 test('distribution object classifier separates logical storage families',()=>{
@@ -144,9 +150,10 @@ test('distribution census counts Core, Generated, Phrase, Entity and shared runt
     assert.equal(report.population.entities.identities,1);
     assert.equal(report.population.entities.writer_anchors,1);
     assert.equal(report.population.shared_runtime.targets,1);
-    assert.equal(report.ranking.status,'policy_required');
-    assert.equal(report.projection.status,'blocked_until_rank_policy');
-    assert.equal(report.next_gate.builder_status,'not_implemented');
+    assert.equal(report.ranking.status,'frozen');
+    assert.equal(report.ranking.policy,'distribution-rank-v1-language-normalized-usage-surface');
+    assert.equal(report.projection.status,'plan_required');
+    assert.equal(report.next_gate.builder_status,'implemented');
     assert.equal(report.next_gate.master_mutated,false);
   }finally{
     db.close();

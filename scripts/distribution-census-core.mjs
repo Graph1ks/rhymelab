@@ -1,26 +1,29 @@
+import {
+  DISTRIBUTION_EDITIONS,
+  DISTRIBUTION_RANK_POLICY,
+} from './distribution-materializer-core.mjs';
+
 export const DISTRIBUTION_CENSUS_SCHEMA='rhymelab-distribution-census-v1';
 export const DISTRIBUTION_CENSUS_POLICY='master-readonly-dbstat-closure-census-v1';
 
-export const DISTRIBUTION_TIERS=Object.freeze({
-  lite:Object.freeze({
-    edition:'lite',
-    core_word_population:50000,
-    generated_word_population:0,
-    features:Object.freeze({words_de:true,words_en:true,phrases:false,entities:false,generated:false,markov:false}),
-  }),
-  standard:Object.freeze({
-    edition:'standard',
-    core_word_population:250000,
-    generated_word_population:0,
-    features:Object.freeze({words_de:true,words_en:true,phrases:true,entities:true,generated:false,markov:false}),
-  }),
-  full:Object.freeze({
-    edition:'full',
-    core_word_population:400000,
-    generated_word_population:200000,
-    features:Object.freeze({words_de:true,words_en:true,phrases:true,entities:true,generated:true,markov:true}),
-  }),
-});
+export const DISTRIBUTION_TIERS=Object.freeze(
+  Object.fromEntries(
+    Object.entries(DISTRIBUTION_EDITIONS).map(([key,contract])=>[
+      key,
+      Object.freeze({
+        edition:contract.edition,
+        total_product_entries:contract.totalTarget,
+        entity_per_category:contract.entityPerCategory,
+        phrase_mode:contract.phraseMode,
+        word_population:contract.edition==='lite'
+          ?50000
+          :'dynamic_budget_remainder',
+        generated_only_word_population:0,
+        features:contract.features,
+      }),
+    ]),
+  ),
+);
 
 function scalar(db,sql){
   return Number(db.prepare(sql).get()?.c||0);
@@ -210,11 +213,12 @@ export function distributionStorageCensus(db){
 export function distributionRankReadiness(population){
   const ranked=population.languages.de.ranked_usage_surfaces+population.languages.en.ranked_usage_surfaces;
   return {
-    status:'policy_required',
+    status:'frozen',
+    policy:DISTRIBUTION_RANK_POLICY,
     current_rank_signal:'surface.usage_rank',
     ranked_core_surfaces:ranked,
     total_core_lexical_surfaces:population.core.lexical_surfaces,
-    note:'DE and EN usage ranks are source-local signals and must not be silently treated as one cross-language rank. Freeze a versioned distribution rank after reviewing this census.',
+    note:'DE and EN raw usage ranks remain source-local. The frozen distribution rank normalizes each language ordering before the deterministic cross-language merge.',
   };
 }
 
@@ -243,12 +247,12 @@ export function buildDistributionCensusReport(db,{sourcePath=null,sourceSizeByte
     storage,
     ranking:distributionRankReadiness(population),
     projection:{
-      status:'blocked_until_rank_policy',
-      reason:'Projected closure sizes depend on the canonical cross-language Core/Generated distribution rank and must not be fabricated from raw table ratios.',
+      status:'plan_required',
+      reason:'Exact edition counts and relational closure must be computed with npm run distribution:plan; the census does not fabricate them from raw storage ratios.',
     },
     next_gate:{
-      action:'review_census_then_freeze_distribution_rank_v1',
-      builder_status:'not_implemented',
+      action:'run_distribution_plan_then_materialize_and_verify',
+      builder_status:'implemented',
       master_mutated:false,
     },
   };

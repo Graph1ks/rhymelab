@@ -1,16 +1,24 @@
 # Local API
 
-RhymeLab exposes a localhost-only HTTP API from `src/server.mjs` at `http://127.0.0.1:3030`.
+RhymeLab exposes a localhost-only HTTP API from `src/server.mjs` at
+`http://127.0.0.1:3030`.
 
-### Serving-v1 product preview
+## Canonical runtime
 
-The accepted multi-database runtime remains the default for `npm run dev`. To exercise the current one-file Serving-v1 Product adapter through the **real RhymeLab browser UI and normal API routes**, run:
+Normal `npm run dev` / `npm start` uses the single-file Serving-v1 product
+runtime:
 
-```powershell
-npm run dev:serving
+```text
+database        data/local/rhymelab-serving-v1.sqlite
+schema family   rhymelab-serving-v1
+runtime         serving-v1-single-db-product-candidate
 ```
 
-This opens `data/local/rhymelab-serving-v1.sqlite` for the normal browser UI and starts five persistent `worker_threads` for the expensive result channels:
+Serving-v1 supplies DE/EN Words, Phrase/Mosaic, Entities and the accepted
+Core/Generated availability model from one product database.
+
+The expensive Writer channels execute through persistent read-only workers in the
+normal Serving-v1 path:
 
 ```text
 DE Words
@@ -20,58 +28,66 @@ DE Entities
 EN Entities
 ```
 
-Each worker owns one long-lived read-only SQLite connection. For an `all` search the eligible channels execute concurrently and the parent process merges their already-deterministic channel results in the same order/shape as the synchronous reference implementation. The browser stays at `http://127.0.0.1:3030/`; no alternate UI is used. Generated data is included by default when the accepted/generated-capable runtime is available. Unchecking the Generated checkbox is an explicit Core-only opt-out; Generated only keeps using the existing provenance filter inside the unified Writer pipeline.
+Each worker owns one long-lived read-only SQLite connection. Eligible channels
+execute concurrently and the parent process merges their deterministic channel
+results. The synchronous `searchUnifiedWriter()` implementation remains the
+semantic reference used by parity/regression tests.
 
-This worker runtime deliberately adds **no cross-request result, score, analysis or prepared-feature cache**. Caching remains deferred; the performance gain here is parallel execution only.
+Generated data is included by default when the active edition/runtime declares it
+available. `generated=0` is the explicit Core-only opt-out.
+`generated=1` / `generated_only=1` remain fail-closed when the selected runtime
+cannot satisfy the request.
 
-Override the preview database path with:
+There is deliberately no cross-request result/scoring/analysis cache in this path.
 
-```text
-RHYMELAB_SERVING_V1_DB  Serving-v1 Product database path
-```
-
-Equivalent direct startup is `node src/server.mjs --serving-v1` or `RHYMELAB_PRODUCT_RUNTIME=serving-v1`. This is a product-preview route on `main`, **not** the final default-runtime promotion; `npm run dev` and `npm start` remain on the accepted bundle until the Product Acceptance switch gate passes.
-
-## Current runtime — v0.11.0
-
-Normal API/UI requests use the promoted Writer runtime:
+Canonical path override:
 
 ```text
-package               v0.11.0
-writer DB             data/local/rhymelab-v5.sqlite
-writer DB schema      rhymelab-local-db-v5
-writer runtime        materialized-writer-v5-v1
-writer ranking        deterministic_writer_utility_v6
-right-edge anchor     de-right-edge-anchors-v1
-morphology            de-attested-right-head-v4
-construction          de-adverbial-weise-v2
+RHYMELAB_SERVING_V1_DB
 ```
 
-The previous v0.10 / DB-v4 engine is retained only as the optional legacy/control path via `?ranking=legacy`.
+The previous Writer-v5/split databases and DB-v4 control runtime remain
+development/provenance/regression infrastructure. They are not the normal product
+database. See `docs/DATABASE_RUNTIME.md`.
 
-## Runtime databases
+## Internal distribution comparison selector
 
-Default paths:
+For owner/development comparison of Master, Lite, Standard and Full:
+
+```powershell
+npm run dev:distribution-lab
+```
+
+The internal Studio/API selector is request-scoped:
 
 ```text
-Writer v5             data/local/rhymelab-v5.sqlite
-English Writer         data/local/rhymelab-en-v1.sqlite
-Legacy/control v4      data/local/rhymelab.sqlite
+runtime_db=master|lite|standard|full
 ```
 
-Writer v5 is required for normal server startup. The legacy v4 DB is optional. If it is unavailable, normal Writer requests continue to work and only explicit `?ranking=legacy` requests fail with a clear control-database error.
+It is accepted only while the internal DB switcher is enabled. There is no mutable
+process-global active edition.
 
-Environment overrides:
+The internal comparison defaults to:
 
 ```text
-RHYMELAB_WRITER_DB     Writer v5 database path
-RHYMELAB_ENGLISH_DB    English Writer database path
-RHYMELAB_ENGLISH_ACCEPTANCE_MARKER  English local acceptance marker path
-RHYMELAB_LEGACY_DB     legacy/control v4 database path
-RHYMELAB_DB            compatibility alias for legacy/control v4 path
-RHYMELAB_HOST          bind host, default 127.0.0.1
-RHYMELAB_PORT          port, default 3030
+Master    data/local/rhymelab-serving-v1.sqlite
+Lite      data/local/distribution/rhymelab-serving-v1-lite.sqlite
+Standard  data/local/distribution/rhymelab-serving-v1-standard.sqlite
+Full      data/local/distribution/rhymelab-serving-v1-full.sqlite
 ```
+
+Development-only path overrides:
+
+```text
+RHYMELAB_DISTRIBUTION_LITE_DB
+RHYMELAB_DISTRIBUTION_STANDARD_DB
+RHYMELAB_DISTRIBUTION_FULL_DB
+```
+
+Without the internal switcher, the internal database-summary endpoint returns 404
+and the Studio comparison bar is removed from served HTML.
+
+Full contract: `docs/INTERNAL_DISTRIBUTION_LAB.md`.
 
 ## `GET /api/health`
 
@@ -84,7 +100,33 @@ Returns local runtime status including:
 - `unified_writer` language/channel capabilities, including whether German Word Writer and Phrase/Mosaic are ready and whether an English runtime is installed.
 - `query_pronunciation_revision` — SHA-256 revision of the active pronunciation/search DB file state plus DB metadata; the browser uses it once per app session to validate persistent generated-pronunciation cache rows.
 - `query_pronunciation_cache` — cache schema/revalidation metadata.
-- `parallel_search` — Serving-v1 preview worker status, execution policy and channel list.
+- `parallel_search` — Serving-v1 worker status, execution policy and channel list.
+- `serving_v1.distribution` — active edition capability manifest when Serving-v1 is active.
+- in internal DB Lab mode, `runtime_db` scopes the health response to the selected edition.
+
+## `GET /api/internal/distribution-dbs`
+
+**Internal development endpoint only.**
+
+Available only under `npm run dev:distribution-lab` (or the equivalent explicit
+internal switcher flag/environment setting). Otherwise it returns 404.
+
+It reports:
+
+- Master/Lite/Standard/Full availability and paths;
+- file sizes;
+- SQLite page/storage/schema counts;
+- distribution metadata and capabilities;
+- per-edition rolling Writer timing;
+- server process/resource metrics.
+
+Schema:
+
+```text
+rhymelab-internal-distribution-lab-v1
+```
+
+It is not a hosted/public API and must not be treated as a shipping Settings API.
 
 ## `GET /api/writer?q=<word-or-phrase>`
 
@@ -372,7 +414,7 @@ The browser has one Writer surface for Words, Phrase/Mosaic and Entities. There 
 
 The UI separates `Query pronunciation: DE / EN / DE+EN` from `Result language: DE / EN / DE+EN`. Availability is capability-driven by `/api/health`.
 
-Generated data remains default OFF and is not persisted across app restarts. The `Generated only` checkbox implies generated opt-in and applies provenance filtering inside each retrieval channel before ranking and result limits. The top-bar Stats dialog reads `/api/dataset-stats` and labels the canonical/default inventory as `Core`.
+Generated data follows the active Serving-v1 edition capability and is enabled by default when available. The Generated checkbox is an explicit Core-only opt-out; Generated only applies provenance filtering inside each retrieval channel before ranking and result limits. Capability/status surfaces read `/api/health` and `/api/dataset-stats`.
 
 Entity taxonomy categories are populated from runtime capabilities and may be filtered exactly. Standard unfiltered result browsing uses explicit per-category **More** buttons; automatic endless scrolling is reserved for a selected rhyme/sound relation.
 
@@ -412,19 +454,12 @@ The server binds to `127.0.0.1` by default. There is no hosted/public API contra
 
 These read-only endpoints remain available as internal data/detail support for the unified Writer and diagnostics. They are no longer backed by a separate product UI.
 
-The phrase data lives in:
+Under the canonical Serving-v1 runtime these endpoints read the active Serving-v1
+database/edition. In the internal Distribution DB Lab they are scoped by the same
+`runtime_db` selector as Writer/detail/analysis requests.
 
-```text
-data/local/rhymelab-phrases-v1.sqlite
-```
-
-Override with:
-
-```text
-RHYMELAB_PHRASE_DB
-```
-
-The phrase DB is optional. If it is missing, the promoted Writer runtime still starts normally; phrase endpoints return a clear unavailable status.
+The historical split Phrase SQLite and `RHYMELAB_PHRASE_DB` override remain
+relevant only to explicit legacy/archive runtime modes.
 
 ### `GET /api/phrases/stats`
 

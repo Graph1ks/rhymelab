@@ -71,6 +71,26 @@ RHYMELAB_PORT            port, default 3030
 
 Legacy Writer/database override variables remain available for explicit engineering/control modes.
 
+### Internal Master / Lite / Standard / Full comparison
+
+After the distribution SQLite files have been materialized locally, the owner can
+compare them through the real Studio UI with:
+
+~~~powershell
+npm run dev:distribution-lab
+~~~
+
+This development-only mode exposes explicit Master / Lite / Standard / Full
+selection plus copyable database, Writer, browser/site and server/process metrics.
+The selected edition is routed per request; no global active-database state is
+mutated.
+
+Normal `npm run dev` does not expose this internal UI. The server removes the lab
+markup and disables its internal endpoint unless the explicit internal switcher is
+enabled.
+
+See `docs/INTERNAL_DISTRIBUTION_LAB.md`.
+
 ### Browser unknown-word pronunciation test
 
 Run the normal development server, then open:
@@ -151,6 +171,8 @@ Authoritative current-state documents:
 
 - `docs/STUDIO_V2_HANDOVER.md`
 - `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`
+- `docs/DISTRIBUTION_TIERS.md`
+- `docs/INTERNAL_DISTRIBUTION_LAB.md`
 - `docs/MARKOV_GENERATOR_HANDOVER.md`
 - `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`
 - `docs/PHASE_12C_ACCEPTANCE.md`
