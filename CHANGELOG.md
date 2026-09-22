@@ -8,12 +8,13 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Added
 
+- Added the development-only Studio Distribution DB Lab for explicit Master/Lite/Standard/Full switching, strict request-scoped `runtime_db` routing and copyable SQLite/Writer/browser/server performance metrics. Normal startup strips the internal UI and disables its endpoint; the future user-facing database choice remains a separate Settings task.
 - Added Studio V2 as the production songwriting shell with live Writer/Search, IndexedDB document authority, recovery/portable backup, hierarchical Library, Perform sequencing, canonical song analysis, DE/EN UI, mobile viewport engineering, diagnostics and command-palette workflows.
 - Added a regression contract that keeps the frozen Markov V2 implementation direct-demo-only and prevents `/markov-test` from being linked by Studio, Search or RhymePad product surfaces.
-- Added `docs/DISTRIBUTION_TIERS.md` as the durable Lite/Standard/Full packaging contract: 50k Core Words for Lite, 250k Core plus Phrase/Entity features for Standard, and 400k Core + 200k Generated plus Phrase/Entity/Markov live generation for Full. The contract fixes nested-edition, capability, one-Master-build, storage-census and relational-closure requirements.
+- Added `docs/DISTRIBUTION_TIERS.md` as the durable Lite/Standard/Full packaging contract: 50k total for Lite, 250k total for Standard and 400k total for Full. Standard/Full spend their total budget on majority ranked Core Words plus their Phrase/Entity populations; Full has no additive Generated-only Word quota and Markov is outside the shipping database capability contract.
 - Added a report-grade Serving-v1 steady-state performance benchmark with discarded warmup rounds, deterministic interleaved repeats, per-language/per-query percentiles, semantic repeatability checks, environment/DB fingerprints, and companion JSON + Markdown reports. Performance target misses are reported without turning a completed measurement into a command failure.
 - Added persistent Serving-v1 channel workers for DE Words, EN Words, Phrase/Mosaic, DE Entities and EN Entities. The real preview UI, hotpath benchmark and Product Acceptance latency path now execute eligible channels concurrently with one long-lived read-only SQLite connection per worker and no cross-request search caching.
-- Added `npm run dev:serving`, an explicit one-file Serving-v1 Product preview that drives the normal RhymeLab browser UI/API through Core/All read-only connections without changing the accepted default runtime.
+- Promoted the one-file Serving-v1 Product runtime to the normal RhymeLab browser UI/API path and retained older split databases only for explicit engineering/archive/control use.
 - Added a bounded IndexedDB cache for generated client query pronunciations, keyed by language/spelling and gated by resolver policy plus the current active-database revision.
 - Added `docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md` as the focused fresh-thread continuation contract for client query pronunciation, cache revalidation and browser verification.
 - Added a deterministic 1000-case source-backed DE/EN query-pronunciation gold-control benchmark, balanced by language and syllable-count bucket, to measure eSpeak-NG pronunciation quality separately from structural analyzer compatibility.
@@ -28,6 +29,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Fixed
 
+- Fixed Full Entity distribution selection so Standard Top-1k/category memberships are reserved inside the Full 5k/category ceiling before remaining Full-eligible slots are filled; nesting can no longer inflate a category beyond its shipping quota.
+- Removed stale distribution-census/test metadata that still described the rejected 400k Core + 200k Generated + Markov Full model after the total-budget contract had changed.
 - Fixed systematic Entity pronunciation-language leakage: Wikidata label locale is no longer treated as sufficient pronunciation-language evidence. If the same Entity has the same normalized searchable name as both DE and EN labels, derived German/English pronunciation sources are suppressed while direct/source-backed pronunciation evidence remains eligible. This covers people, films, games, groups and other Entity categories without name-specific exceptions.
 - Fixed DE -> EN compound rhyme bridging so German-only phones before the right edge no longer zero the English channel; `Arbeitsweise` now uses the same relevant stressed rhyme-tail neighborhood as `Weise`.
 - Unified result presentation now collapses duplicate Word/Entity surfaces into one visible answer per language. Core/Word pronunciation wins when available, same-name Entity identities contribute their taxonomy tags/QIDs, alternate pronunciations remain metadata, and unfiltered sound-relation sections no longer render the same result card repeatedly.
