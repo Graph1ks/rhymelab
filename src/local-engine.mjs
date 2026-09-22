@@ -561,6 +561,18 @@ export function lookupGermanCandidateRowsForAnalysis(db,analysis,options={}){
 
 const RESULT_ANALYSIS_CACHE=new WeakMap();
 const RESULT_PREPARED_ANALYSIS_CACHE=new WeakMap();
+const RESULT_SCORE_CACHE=new WeakMap();
+const RHYME_SEARCH_EVIDENCE_CACHE=new WeakMap();
+
+function resultEvidenceKey(row){
+  const pronunciationId=Number(row?.id??row?._pronunciationId);
+  if(Number.isFinite(pronunciationId)&&pronunciationId>0){
+    return 'pronunciation:'+pronunciationId;
+  }
+  const normalized=String(row?.normalized||row?.word||'');
+  const ipa=String(row?.ipa||'');
+  return normalized&&ipa?normalized+'\u0000'+ipa:'';
+}
 
 function analysisForHotRow(row,profile){
   if(row?.serving_analysis_json){
@@ -575,6 +587,16 @@ export function cachedResultAnalysis(row){
 
 export function cachedResultPreparedAnalysis(row){
   return row&&typeof row==='object'?RESULT_PREPARED_ANALYSIS_CACHE.get(row)||null:null;
+}
+
+export function cachedResultScore(row){
+  return row&&typeof row==='object'?RESULT_SCORE_CACHE.get(row)||null:null;
+}
+
+export function cachedRhymeSearchEvidence(result){
+  return result&&typeof result==='object'
+    ?RHYME_SEARCH_EVIDENCE_CACHE.get(result)||null
+    :null;
 }
 
 function scoredResultCore(row,score,querySyllableCount,profile){
@@ -597,6 +619,7 @@ function scoredResultCore(row,score,querySyllableCount,profile){
     _pronunciationId:Number(row.id),
     _scoreObject:score,
     _querySyllableCount:Number(querySyllableCount),
+    _candidateKey:resultEvidenceKey(row),
     language:profile.language,
     word:row.surface||row.normalized,
     normalized:row.normalized,
@@ -671,6 +694,7 @@ function stripInternalResultFields(row){
     _pronunciationId,
     _scoreObject,
     _querySyllableCount,
+    _candidateKey,
     ...publicRow
   }=row;
   return publicRow;
@@ -821,6 +845,8 @@ export function findRhymes(db, word, options = {}) {
   const analysisCache=new Map();
   const preparedCache=new Map();
   const scoreCache=new Map();
+  const analysisEvidenceByKey=new Map();
+  const writerPreparedEvidenceByKey=new Map();
   const explicitWriterSyllableTarget=['1','2'].includes(String(options.syllableFilter||''))
     ?Number(options.syllableFilter)
     :0;
@@ -951,6 +977,8 @@ export function findRhymes(db, word, options = {}) {
       let candidatePrepared;
       try {
         candidateAnalysis=analysisFor(candidate);
+        const candidateEvidenceKey=resultEvidenceKey(candidate);
+        if(candidateEvidenceKey)analysisEvidenceByKey.set(candidateEvidenceKey,candidateAnalysis);
         if(
           options.disableSafePrefilter!==true
           &&(
@@ -973,6 +1001,10 @@ export function findRhymes(db, word, options = {}) {
           }
         }
         candidatePrepared=preparedFor(candidate,candidateAnalysis);
+        if(filteredWriterScoring){
+          const candidateEvidenceKey=resultEvidenceKey(candidate);
+          if(candidateEvidenceKey)writerPreparedEvidenceByKey.set(candidateEvidenceKey,candidatePrepared);
+        }
       } catch { continue; }
 
       if(metrics)metrics.scoring_calls+=1;
@@ -1005,6 +1037,7 @@ export function findRhymes(db, word, options = {}) {
         :resultFromRow(candidate,score,queryRow,profile);
       RESULT_ANALYSIS_CACHE.set(result,candidateAnalysis);
       RESULT_PREPARED_ANALYSIS_CACHE.set(result,candidatePrepared);
+      RESULT_SCORE_CACHE.set(result,score);
       if(metrics)metrics.result_construction_ms+=performance.now()-resultStarted;
       const current = bestByWord.get(candidate.normalized);
       if (!current) {
@@ -1074,6 +1107,7 @@ export function findRhymes(db, word, options = {}) {
       const prepared=preparedCache.get(String(row._pronunciationId));
       if(analysis)RESULT_ANALYSIS_CACHE.set(publicFull,analysis);
       if(prepared)RESULT_PREPARED_ANALYSIS_CACHE.set(publicFull,prepared);
+      if(row._scoreObject)RESULT_SCORE_CACHE.set(publicFull,row._scoreObject);
       return publicFull;
     });
     if(metrics){
@@ -1095,7 +1129,16 @@ export function findRhymes(db, word, options = {}) {
       ? 'balanced_usage_first_coverage'
       : 'type_specific_usage_first';
 
-  return {
+  const scoreEvidenceByKey=new Map();
+  if(filteredWriterScoring){
+    for(const row of bestByWord.values()){
+      if(row?._candidateKey&&row?._scoreObject){
+        scoreEvidenceByKey.set(row._candidateKey,row._scoreObject);
+      }
+    }
+  }
+
+  const response={
     language: profile.language,
     phonology: {
       analyzer: profile.analyzerVersion,
@@ -1126,4 +1169,10 @@ export function findRhymes(db, word, options = {}) {
     results,
     groups,
   };
+  RHYME_SEARCH_EVIDENCE_CACHE.set(response,{
+    analysisByKey:analysisEvidenceByKey,
+    preparedByKey:filteredWriterScoring?writerPreparedEvidenceByKey:new Map(),
+    scoreByKey:scoreEvidenceByKey,
+  });
+  return response;
 }

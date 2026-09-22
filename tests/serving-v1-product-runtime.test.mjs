@@ -344,7 +344,7 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
       assert.equal(generatedDe.generatedPronunciation,true);
 
       const profiledDe=findWriterRhymes(runtime.allDb,'Zeit',{
-        limit:10,poolLimit:50,profileStages:true,
+        limit:10,poolLimit:50,profileStages:true,syllableFilter:'1',
       });
       assert.equal(profiledDe.status??'ok','ok');
       assert.ok(profiledDe.performanceProfile);
@@ -365,6 +365,18 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
         profiledDe.performanceProfile.stages_ms.selected_result_hydration_ms
       ));
       assert.ok(profiledDe.performanceProfile.counters.rich_results_hydrated>=1);
+      assert.ok(
+        profiledDe.performanceProfile.counters.writer_seeded_analysis_cache_entries>0,
+        'Serving-v1 Writer must seed base analysis evidence from thin scoring rows',
+      );
+      assert.ok(
+        profiledDe.performanceProfile.counters.writer_seeded_prepared_cache_entries>0,
+        'Serving-v1 short mode must seed prepared Writer evidence',
+      );
+      assert.ok(
+        profiledDe.performanceProfile.counters.writer_seeded_score_cache_entries>0,
+        'Serving-v1 short mode must seed Writer scores using pronunciation-id keys',
+      );
       assert.ok(profiledDe.results.every((row)=>typeof row.word==='string'&&row.word.length>0));
       assert.ok(profiledDe.results.every((row)=>typeof row.ipa==='string'&&row.ipa.length>0));
       assert.ok(profiledDe.results.every((row)=>!('_pronunciationId' in row)));
@@ -447,6 +459,22 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
         queryNormalized:'zeit',querySyllables:1,generatedOnly:true,
       });
       assert.deepEqual(rows.map((row)=>row.normalized),['krankenscheindrucker']);
+      const oneSyllableRows=lookupMaterializedWriterAnchorRows(runtime.allDb,'aɪ-k',{
+        queryNormalized:'zeit',querySyllables:1,generatedOnly:true,syllableFilter:'1',
+      });
+      assert.deepEqual(
+        oneSyllableRows.map((row)=>row.normalized),
+        ['krankenscheindrucker'],
+        'Serving-v1 Writer range lookup must retain the exact requested syllable bucket',
+      );
+      const threePlusRows=lookupMaterializedWriterAnchorRows(runtime.allDb,'aɪ-k',{
+        queryNormalized:'zeit',querySyllables:1,generatedOnly:true,syllableFilter:'3',
+      });
+      assert.deepEqual(
+        threePlusRows,
+        [],
+        'Serving-v1 Writer range lookup must reject buckets outside an absolute syllable filter',
+      );
       const compatibilityRow=runtime.allDb.prepare('SELECT * FROM hot WHERE id=2').get();
       const writerFields=[
         'id','surface','normalized','usage_rank','usage_score','usage_count','usage_source_count',
