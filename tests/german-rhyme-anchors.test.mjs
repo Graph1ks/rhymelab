@@ -126,6 +126,11 @@ test('explicit one-syllable mode can clip the rightmost stressed anchor without 
   assert.equal(clipped.position,3);
   assert.equal(clipped.tailSyllables,1);
   assert.equal(clipped.kind,'secondary_clipped');
+  assert.equal(clipped.prepared.analysis.vowelKey,'aɪ');
+  assert.equal(clipped.prepared.analysis.vowelFamilyKey,'DIPH_AI');
+  assert.equal(clipped.prepared.analysis.codaKey,'');
+  assert.equal(clipped.prepared.analysis.codaClassKey,'OPEN');
+  assert.equal(clipped.prepared.analysis.finalTail,'aɪ');
 
   const candidatePrepared=prepareGermanRhymeAnchorAnalysis(candidate);
   const score=scorePreparedGermanRhymeAnalysesWithAnchors(
