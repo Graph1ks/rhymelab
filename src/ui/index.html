@@ -140,9 +140,19 @@
               </div>
 
               <div class="controls-grid">
-                <label>
-                  <span data-i18n="rhymeType">Rhyme type</span>
-                  <select id="typeFilter">
+                <div class="relation-filter">
+                  <span class="control-label" data-i18n="rhymeType">Rhyme type</span>
+                  <div id="typeRail" class="rhyme-type-rail" role="group" aria-label="Rhyme type">
+                    <button type="button" class="rhyme-type-option active" data-rhyme-type="all" aria-pressed="true" data-i18n="all">All</button>
+                    <button type="button" class="rhyme-type-option" data-rhyme-type="multisyllabic_perfect" aria-pressed="false" data-i18n="type_multisyllabic_perfect">Multisyllabic perfect</button>
+                    <button type="button" class="rhyme-type-option" data-rhyme-type="perfect" aria-pressed="false" data-i18n="type_perfect">Perfect rhyme</button>
+                    <button type="button" class="rhyme-type-option" data-rhyme-type="multisyllabic_slant" aria-pressed="false" data-i18n="type_multisyllabic_slant">Multisyllabic slant</button>
+                    <button type="button" class="rhyme-type-option" data-rhyme-type="family" aria-pressed="false" data-i18n="type_family">Rhyme family</button>
+                    <button type="button" class="rhyme-type-option" data-rhyme-type="slant" aria-pressed="false" data-i18n="type_slant">Slant rhyme</button>
+                    <button type="button" class="rhyme-type-option" data-rhyme-type="assonance" aria-pressed="false" data-i18n="type_assonance">Assonance</button>
+                    <button type="button" class="rhyme-type-option" data-rhyme-type="consonance" aria-pressed="false" data-i18n="type_consonance">Consonance</button>
+                  </div>
+                  <select id="typeFilter" class="legacy-type-select" aria-hidden="true" tabindex="-1">
                     <option value="all" data-i18n-option="all">All</option>
                     <option value="multisyllabic_perfect" data-i18n-option="type_multisyllabic_perfect">Multisyllabic perfect</option>
                     <option value="perfect" data-i18n-option="type_perfect">Perfect rhyme</option>
@@ -152,7 +162,7 @@
                     <option value="assonance" data-i18n-option="type_assonance">Assonance</option>
                     <option value="consonance" data-i18n-option="type_consonance">Consonance</option>
                   </select>
-                </label>
+                </div>
 
                 <label>
                   <span data-i18n="syllables">Syllables</span>
