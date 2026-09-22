@@ -83,7 +83,11 @@ function buildFakeDom(){
   put('#searchStageAnchor');
   put('.search-stage');
   put('#scopeFilter',new FakeElement({value:'all'}));
-  put('#typeFilter',new FakeElement({value:'all'}));
+  const typeFilter=put('#typeFilter',new FakeElement({value:'all'}));
+  typeFilter.options=[
+    'all','multisyllabic_perfect','perfect','multisyllabic_slant',
+    'family','slant','assonance','consonance',
+  ].map((value)=>({value}));
   put('#variantMode',new FakeElement({value:'preferred'}));
   put('#syllableFilter',new FakeElement({value:'all'}));
   put('#sortMode',new FakeElement({value:'recommended'}));
@@ -142,6 +146,17 @@ function buildFakeDom(){
     new FakeElement({dataset:{scope:'phrases'}}),
     new FakeElement({dataset:{scope:'entities'}}),
   ]);
+  const rhymeType=group('.rhyme-type-option',[
+    new FakeElement({dataset:{rhymeType:'all'}}),
+    new FakeElement({dataset:{rhymeType:'multisyllabic_perfect'}}),
+    new FakeElement({dataset:{rhymeType:'perfect'}}),
+    new FakeElement({dataset:{rhymeType:'multisyllabic_slant'}}),
+    new FakeElement({dataset:{rhymeType:'family'}}),
+    new FakeElement({dataset:{rhymeType:'slant'}}),
+    new FakeElement({dataset:{rhymeType:'assonance'}}),
+    new FakeElement({dataset:{rhymeType:'consonance'}}),
+  ]);
+  groups.set('#typeRail [data-rhyme-type]',rhymeType);
   group('[data-i18n]',[]);
   group('[data-i18n-option]',[]);
   group('[data-i18n-aria-label]',[]);
@@ -168,7 +183,7 @@ function buildFakeDom(){
     },
     createElement(){ return new FakeElement(); },
   };
-  return {document,singles,groups,uiLang,view,basis,resultLanguage,scope};
+  return {document,singles,groups,uiLang,view,basis,resultLanguage,scope,rhymeType};
 }
 
 function makeStorage(){
@@ -234,6 +249,11 @@ test('unified UI primary controls bind and change state at runtime', async () =>
   assert.equal(dom.singles.get('#scopeFilter').value,'entities');
   assert.equal(dom.scope[3].classList.contains('active'),true);
 
+  dom.rhymeType[6].dispatch('click');
+  assert.equal(dom.singles.get('#typeFilter').value,'assonance');
+  assert.equal(dom.rhymeType[6].classList.contains('active'),true);
+  assert.equal(dom.rhymeType[6].getAttribute('aria-pressed'),'true');
+
   dom.uiLang[0].dispatch('click');
   assert.equal(runtime.state.lang,'de');
   assert.equal(localStorage.getItem('rhymelab.language'),'de');
@@ -282,6 +302,7 @@ test('unified UI control binding preflights the complete interactive surface', a
     '.basis-option',
     '.result-language-option',
     '.scope-option',
+    '.rhyme-type-option',
   ]){
     assert.match(app,new RegExp(selector.replaceAll('.','\\.')));
   }
