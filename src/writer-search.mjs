@@ -25,6 +25,8 @@ import {
   rankWriterRecommendedResults,
 } from './writer-ranking-policy.mjs';
 
+const SOUND_RELATION_TYPES=new Set(['assonance','consonance']);
+
 const RHYME_TIER = new Map([
   ['multisyllabic_perfect', 0],
   ['perfect', 0],
@@ -129,6 +131,15 @@ function compareSound(a, b) {
     || Number(a.syllableDistance || 0) - Number(b.syllableDistance || 0)
     || (a.usageRank == null) - (b.usageRank == null)
     || Number(a.usageRank ?? Number.MAX_SAFE_INTEGER) - Number(b.usageRank ?? Number.MAX_SAFE_INTEGER);
+}
+
+function normalizedWriterType(value){
+  const type=String(value||'all');
+  return RHYME_TYPES.includes(type)?type:'all';
+}
+
+function writerRowMatchesType(row,type){
+  return type==='all'||resultTypes(row).includes(type);
 }
 
 function explicitShortSyllableTarget(value){
@@ -550,7 +561,10 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
     {...options,externalQuery:true},
     scoringContext,
   );
-  const soundSorted = [...retrieval.results].sort(compareSound);
+  const requestedType=normalizedWriterType(options.type);
+  const soundSorted = [...retrieval.results]
+    .filter((row)=>writerRowMatchesType(row,requestedType))
+    .sort(compareSound);
   const morphologyInput = [{
     normalized: queryNormalized,
     surface: querySurface,
@@ -608,8 +622,11 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
       scorer: profile.scorerVersion || null,
       writerAnchorPolicy: profile.writerAnchorPolicyVersion || null,
     },
+    requestedType,
     selection: {
-      mode: 'writer_ranked_external_query',
+      mode: requestedType==='all'
+        ?'writer_ranked_external_query'
+        :'writer_ranked_external_query_type',
       limit,
       coverageFloorPerType: 0,
     },
@@ -669,8 +686,10 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
 
 export function findWriterRhymes(db, word, options = {}) {
   const limit = clampLimit(options.limit, 250, 250);
+  const requestedType=normalizedWriterType(options.type);
   const base = findRhymes(db, word, {
     ...options,
+    type:SOUND_RELATION_TYPES.has(requestedType)?'all':requestedType,
     limit: 250,
     ensureTypeCoverage: false,
   });
@@ -731,7 +750,9 @@ export function findWriterRhymes(db, word, options = {}) {
     }
   }
 
-  const soundSorted = [...merged.values()].sort(compareSound);
+  const soundSorted = [...merged.values()]
+    .filter((row)=>writerRowMatchesType(row,requestedType))
+    .sort(compareSound);
   const morphologyInput = [{
     normalized: base.query.normalized,
     surface: base.query.surface,
@@ -783,9 +804,11 @@ export function findWriterRhymes(db, word, options = {}) {
       ...base.phonology,
       writerAnchorPolicy: profile.writerAnchorPolicyVersion || null,
     },
+    requestedType,
     selection: {
       ...base.selection,
-      mode: 'writer_ranked',
+      mode: requestedType==='all'?'writer_ranked':'writer_ranked_type',
+      requestedType,
       limit,
       coverageFloorPerType: 0,
     },
