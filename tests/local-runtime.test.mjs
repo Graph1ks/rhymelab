@@ -52,6 +52,8 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
     { o: 7, u: 7, s: 60, w: 'Eis', n: 'eis', l: 'Eis', p: 'noun', r: [compact('[aɪ̯s]')] },
     { o: 8, u: 8, s: 55, w: 'Ha', n: 'ha', l: 'Ha', p: 'interjection', r: [compact('[haː]')] },
     { o: 9, u: 9, s: 50, w: 'Reise', n: 'reise', l: 'Reise', p: 'noun', r: [compact('[ˈʁaɪ̯zə]')] },
+    { o: 10, u: 10, s: 45, w: 'Biene', n: 'biene', l: 'Biene', p: 'noun', r: [compact('[ˈbiːnə]')] },
+    { o: 11, u: 11, s: 40, w: 'Lack', n: 'lack', l: 'Lack', p: 'noun', r: [compact('[lak]')] },
   ];
   const shard = rows.map((row) => JSON.stringify(row)).join('\n') + '\n';
   await writeFile(join(publish, 'shard-000001.jsonl'), shard, 'utf8');
@@ -61,8 +63,8 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
     pronunciation_source: 'test', pronunciation_policy: 'de-pron-priority-v1',
     rhyme_ready_forms: rows.length,
     usage_ranked_rhyme_ready_forms: rows.length,
-    pronunciations: 10,
-    preferred_pronunciations: 9,
+    pronunciations: 12,
+    preferred_pronunciations: 11,
     files: [{ file: 'shard-000001.jsonl' }],
   }), 'utf8');
 
@@ -73,15 +75,15 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
 
   const report = JSON.parse(await readFile(reportPath, 'utf8'));
   assert.equal(report.language, 'de');
-  assert.equal(report.forms, 9);
-  assert.equal(report.pronunciations, 10);
-  assert.equal(report.preferred_pronunciations, 9);
+  assert.equal(report.forms, 11);
+  assert.equal(report.pronunciations, 12);
+  assert.equal(report.preferred_pronunciations, 11);
   assert.equal(report.supplemental_forms, 0);
 
   const db = openRhymeDb(dbPath);
   try {
     assert.equal(getStats(db).language, 'de');
-    assert.equal(getStats(db).forms, 9);
+    assert.equal(getStats(db).forms, 11);
     assert.equal(searchWords(db, 'lie')[0].surface, 'Liebe');
     assert.equal(getWord(db, 'MUSIK').pronunciations.length, 2);
     assert.equal(getWord(db, 'MUSIK').pronunciations[0].preferred, true);
@@ -174,6 +176,32 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
       allSyllableWriter.performanceProfile.counters.writer_seeded_score_cache_entries,
       0,
       'normal Writer scoring must not reuse scores from the non-Writer base scorer',
+    );
+
+
+    const assonanceWriter = findWriterRhymes(db, 'Liebe', {
+      limit: 20,
+      type: 'assonance',
+    });
+    assert.deepEqual(
+      assonanceWriter.results.map((row)=>row.word),
+      ['Biene'],
+      'same-vowel non-rhyme must survive the server-side Assonanz filter',
+    );
+    assert.ok(
+      assonanceWriter.results.every((row)=>row.relationTypes.includes('assonance')),
+    );
+
+    const consonanceWriter = findWriterRhymes(db, 'Blick', {
+      limit: 20,
+      type: 'consonance',
+    });
+    assert.ok(
+      consonanceWriter.results.some((row)=>row.word==='Lack'),
+      'shared-coda contrasting-vowel match must survive the server-side Konsonanz filter',
+    );
+    assert.ok(
+      consonanceWriter.results.every((row)=>row.relationTypes.includes('consonance')),
     );
   } finally {
     db.close();
