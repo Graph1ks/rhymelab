@@ -145,6 +145,8 @@ function integrityProgress(scope,started,path,phase,event){
   if(event.violations!=null)extras.push(Number(event.violations).toLocaleString('en-US')+' violations');
   if(event.result!=null)extras.push('result='+String(event.result));
   if(event.ok!=null)extras.push('ok='+String(event.ok));
+  if(event.duration_ms!=null)extras.push('step '+formatDuration(Number(event.duration_ms)));
+  if(event.reason!=null)extras.push(String(event.reason));
   stageLine({
     scope,
     label:phase+'/'+String(event.step||'integrity'),
@@ -165,6 +167,50 @@ function databaseSpaceStats(db){
     reclaimable_bytes:pageSize*freeCount,
     live_bytes:pageSize*Math.max(0,pageCount-freeCount),
   };
+}
+async function ensureStandaloneSQLiteFile(path,scope,started){
+  const wal=path+'-wal';
+  const shm=path+'-shm';
+  const initialWal=fileSize(wal);
+  if(initialWal<=0){
+    await rm(wal,{force:true});
+    await rm(shm,{force:true});
+    stageLine({
+      scope,label:'finalize/wal_standalone',status:'DONE',started,path,
+      extra:'no pending WAL after clean close',
+    });
+    return;
+  }
+
+  stageLine({
+    scope,label:'finalize/wal_standalone',status:'START',started,path,
+    extra:'residual WAL '+formatBytes(initialWal)+' · scoped main checkpoint on fresh connection',
+  });
+  const checkDb=new DatabaseSync(path);
+  try{
+    checkDb.exec('PRAGMA busy_timeout=5000;');
+    const row=checkDb.prepare('PRAGMA main.wal_checkpoint(FULL)').get();
+    stageLine({
+      scope,label:'finalize/wal_checkpoint_main_full',status:'DONE',started,path,
+      extra:JSON.stringify(row||{}),
+    });
+  }finally{
+    checkDb.close();
+  }
+
+  const remaining=fileSize(wal);
+  if(remaining>0){
+    throw new Error(
+      'Finalized distribution still depends on WAL after scoped checkpoint: '
+      +JSON.stringify({path,wal,remaining_bytes:remaining})
+    );
+  }
+  await rm(wal,{force:true});
+  await rm(shm,{force:true});
+  stageLine({
+    scope,label:'finalize/wal_standalone',status:'DONE',started,path,
+    extra:'standalone SQLite confirmed',
+  });
 }
 function createPlanState(db){
   db.exec(`
@@ -614,6 +660,7 @@ async function buildEdition(ctx,edition){
       });
 
       let integrity=distributionIntegrityReport(db,edition,{
+        deep:false,
         onProgress:(event)=>integrityProgress(
           edition.toUpperCase(),started,work,'materialize/integrity',event
         ),
@@ -647,8 +694,12 @@ async function buildEdition(ctx,edition){
       });
     }
 
-    db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
     detachSource(db);
+    stageLine({
+      scope:edition.toUpperCase(),label:'finalize/source_detach',
+      status:'DONE',started,path:work,
+      extra:'Master detached; no global WAL checkpoint is executed',
+    });
 
     stageLine({
       scope:edition.toUpperCase(),current:8,total:8,
@@ -732,6 +783,8 @@ async function buildEdition(ctx,edition){
     db.close();
   }
 
+  await ensureStandaloneSQLiteFile(work,edition.toUpperCase(),started);
+
   if(existsSync(output)){
     if(!replace)throw new Error('Output appeared during build: '+output);
     await rm(backup,{force:true});
@@ -746,20 +799,9 @@ async function buildEdition(ctx,edition){
       throw new Error('Promoted distribution metadata verification failed for '+edition);
     }
     stageLine({
-      scope:edition.toUpperCase(),label:'promoted/integrity',
-      status:'START',started,path:output,
-    });
-    const integrity=distributionIntegrityReport(verify,edition,{
-      onProgress:(event)=>integrityProgress(
-        edition.toUpperCase(),started,output,'promoted/integrity',event
-      ),
-    });
-    if(!integrity.ok)throw new Error(
-      'Promoted distribution integrity failed for '+edition+': '+JSON.stringify(integrity),
-    );
-    stageLine({
-      scope:edition.toUpperCase(),label:'promoted/integrity',
+      scope:edition.toUpperCase(),label:'promoted/metadata',
       status:'DONE',started,path:output,
+      extra:'same finalized bytes; deep integrity already passed before atomic rename',
     });
   }finally{verify.close();}
 

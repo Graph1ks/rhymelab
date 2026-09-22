@@ -228,6 +228,39 @@ test('Lite positive materialization keeps only selected Core word closure and ex
   }
 });
 
+test('distribution integrity supports shallow pre-final and deep final passes',()=>{
+  const db=new DatabaseSync(':memory:');
+  try{
+    seedSource(db);
+    const shallowEvents=[];
+    const shallow=distributionIntegrityReport(db,'full',{
+      deep:false,
+      onProgress:(event)=>shallowEvents.push(event),
+    });
+    assert.equal(shallow.deep,false);
+    assert.equal(shallow.quick_check,null);
+    assert.equal(shallow.foreign_key_violations,null);
+    assert.equal(
+      shallowEvents.some((event)=>event.step==='quick_check'&&event.status==='skip'),
+      true,
+    );
+
+    const deepEvents=[];
+    const deep=distributionIntegrityReport(db,'full',{
+      deep:true,
+      onProgress:(event)=>deepEvents.push(event),
+    });
+    assert.equal(deep.deep,true);
+    assert.equal(deep.ok,true);
+    assert.equal(deep.quick_check[0].quick_check,'ok');
+    assert.equal(deep.foreign_key_violations,0);
+    assert.equal(
+      deepEvents.some((event)=>event.step==='quick_check'&&event.status==='complete'),
+      true,
+    );
+  }finally{db.close();}
+});
+
 test('distribution edition contracts use total package budgets with per-category Entity quotas',()=>{
   assert.deepEqual(
     {

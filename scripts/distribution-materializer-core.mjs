@@ -1038,62 +1038,86 @@ export function writeDistributionManifest(db,{edition,sourceMeta,selection}){
   return values;
 }
 
-export function distributionIntegrityReport(db,edition,{onProgress=null}={}){
+export function distributionIntegrityReport(db,edition,{onProgress=null,deep=true}={}){
   const contract=editionContract(edition);
 
-  onProgress?.({step:'quick_check',status:'start'});
-  const quick=db.prepare('PRAGMA quick_check').all();
-  onProgress?.({
-    step:'quick_check',
-    status:'complete',
-    rows:quick.length,
-    result:quick.length===1?String(quick[0]?.quick_check||''):null,
-  });
+  let quick=null;
+  let foreign=null;
+  if(deep){
+    const quickStarted=Date.now();
+    onProgress?.({step:'quick_check',status:'start'});
+    quick=db.prepare('PRAGMA main.quick_check').all();
+    onProgress?.({
+      step:'quick_check',
+      status:'complete',
+      rows:quick.length,
+      result:quick.length===1?String(quick[0]?.quick_check||''):null,
+      duration_ms:Date.now()-quickStarted,
+    });
 
-  onProgress?.({step:'foreign_key_check',status:'start'});
-  const foreign=db.prepare('PRAGMA foreign_key_check').all();
-  onProgress?.({
-    step:'foreign_key_check',
-    status:'complete',
-    violations:foreign.length,
-  });
+    const foreignStarted=Date.now();
+    onProgress?.({step:'foreign_key_check',status:'start'});
+    foreign=db.prepare('PRAGMA main.foreign_key_check').all();
+    onProgress?.({
+      step:'foreign_key_check',
+      status:'complete',
+      violations:foreign.length,
+      duration_ms:Date.now()-foreignStarted,
+    });
+  }else{
+    onProgress?.({step:'quick_check',status:'skip',reason:'deferred_to_final_integrity'});
+    onProgress?.({step:'foreign_key_check',status:'skip',reason:'deferred_to_final_integrity'});
+  }
 
   const counts={};
+  let stepStarted=Date.now();
   onProgress?.({step:'count_phrases',status:'start'});
   counts.phrases=scalar(db,'SELECT COUNT(*) c FROM runtime_phrase');
-  onProgress?.({step:'count_phrases',status:'complete',rows:counts.phrases});
+  onProgress?.({
+    step:'count_phrases',status:'complete',rows:counts.phrases,
+    duration_ms:Date.now()-stepStarted,
+  });
 
+  stepStarted=Date.now();
   onProgress?.({step:'count_entities',status:'start'});
   counts.entities=scalar(db,'SELECT COUNT(*) c FROM runtime_entity_identity');
-  onProgress?.({step:'count_entities',status:'complete',rows:counts.entities});
+  onProgress?.({
+    step:'count_entities',status:'complete',rows:counts.entities,
+    duration_ms:Date.now()-stepStarted,
+  });
 
+  stepStarted=Date.now();
   onProgress?.({step:'count_generated_word_pronunciations',status:'start'});
   counts.generated_word_pronunciations=scalar(db,`
     SELECT COUNT(*) c
     FROM pronunciation p
     WHERE p.canonical_available=0 AND p.generated_available=1
       AND EXISTS(
-        SELECT 1 FROM pronunciation_origin po
-        WHERE po.pronunciation_id=p.pronunciation_id AND po.domain='word'
+        SELECT 1
+        FROM pronunciation_origin po
+        WHERE po.pronunciation_id=p.pronunciation_id
+          AND po.domain='word'
       )
   `);
   onProgress?.({
     step:'count_generated_word_pronunciations',
     status:'complete',
     rows:counts.generated_word_pronunciations,
+    duration_ms:Date.now()-stepStarted,
   });
 
   const violations=[];
-  if(quick.length!==1||String(quick[0]?.quick_check||'').toLowerCase()!=='ok')violations.push('quick_check');
-  if(foreign.length)violations.push('foreign_key_check');
+  if(deep&&(quick.length!==1||String(quick[0]?.quick_check||'').toLowerCase()!=='ok'))violations.push('quick_check');
+  if(deep&&foreign.length)violations.push('foreign_key_check');
   if(!contract.features.phrases&&counts.phrases)violations.push('phrase_leakage');
   if(!contract.features.entities&&counts.entities)violations.push('entity_leakage');
   if(!contract.features.generated&&counts.generated_word_pronunciations)violations.push('generated_word_leakage');
   const report={
     ok:violations.length===0,
     violations,
+    deep,
     quick_check:quick,
-    foreign_key_violations:foreign.length,
+    foreign_key_violations:foreign?.length??null,
     counts,
   };
   onProgress?.({step:'integrity',status:'complete',ok:report.ok,violations});
