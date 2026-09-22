@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { analyzeGermanIpa } from '../scripts/german-ipa.mjs';
 import { coarseCodaClass } from '../scripts/german-rhyme-features.mjs';
 import { findRhymes, getStats, getWord, openRhymeDb, searchWords } from '../src/local-engine.mjs';
+import { findWriterRhymes } from '../src/writer-search.mjs';
 
 const root = process.cwd();
 
@@ -126,6 +127,31 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
     });
     assert.ok(twoSyllableArbeitsweise.results.every((row) => row.syllableCount === 2));
     assert.ok(twoSyllableArbeitsweise.results.some((row) => row.word === 'Reise'));
+
+    const oneSyllableWriter = findWriterRhymes(db, 'Arbeitsweise', {
+      limit: 20,
+      syllableFilter: '1',
+      profileStages: true,
+    });
+    assert.ok(oneSyllableWriter.results.every((row) => row.syllableCount === 1));
+    assert.ok(oneSyllableWriter.results.some((row) => row.word === 'Eis'));
+    assert.equal(oneSyllableWriter.results.some((row) => row.word === 'Ha'), false);
+    assert.ok(
+      oneSyllableWriter.performanceProfile.counters.writer_seeded_score_cache_entries > 0,
+      'short Writer path must reuse scores produced by the base short-domain scorer',
+    );
+
+    const twoSyllableWriter = findWriterRhymes(db, 'Arbeitsweise', {
+      limit: 20,
+      syllableFilter: '2',
+      profileStages: true,
+    });
+    assert.ok(twoSyllableWriter.results.every((row) => row.syllableCount === 2));
+    assert.ok(twoSyllableWriter.results.some((row) => row.word === 'Reise'));
+    assert.ok(
+      twoSyllableWriter.performanceProfile.counters.writer_seeded_score_cache_entries > 0,
+      'two-syllable Writer path must seed the Writer score cache from base scoring',
+    );
   } finally {
     db.close();
   }
