@@ -127,11 +127,16 @@ function compareSound(a, b) {
     || Number(a.usageRank ?? Number.MAX_SAFE_INTEGER) - Number(b.usageRank ?? Number.MAX_SAFE_INTEGER);
 }
 
+function explicitShortSyllableTarget(value){
+  const normalized=String(value||'');
+  return normalized==='1'||normalized==='2'?Number(normalized):0;
+}
+
 function createWriterScoringContext(
   profile,
   queryAnalysis,
   enabled=false,
-  {disableSafePrefilter=false}={},
+  {disableSafePrefilter=false,queryTailSyllableLimit=0}={},
 ){
   const metrics=enabled?{
     writer_analysis_feature_preparation_ms:0,
@@ -151,7 +156,12 @@ function createWriterScoringContext(
   }:null;
   const preparedStarted=metrics?performance.now():0;
   const queryPrepared=typeof profile.prepareWriterAnalysis==='function'
-    ?profile.prepareWriterAnalysis(queryAnalysis)
+    ?profile.prepareWriterAnalysis(
+        queryAnalysis,
+        queryTailSyllableLimit>0
+          ?{maxTailSyllables:queryTailSyllableLimit}
+          :undefined,
+      )
     :queryAnalysis;
   if(metrics)metrics.writer_analysis_feature_preparation_ms+=performance.now()-preparedStarted;
   return {
@@ -415,7 +425,10 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
     profile,
     queryAnalysis,
     options.profileStages===true,
-    {disableSafePrefilter:options.disableSafePrefilter===true},
+    {
+      disableSafePrefilter:options.disableSafePrefilter===true,
+      queryTailSyllableLimit:explicitShortSyllableTarget(options.syllableFilter),
+    },
   );
   const retrieval = collectRightEdgeCandidates(
     db,
@@ -560,7 +573,10 @@ export function findWriterRhymes(db, word, options = {}) {
         profile,
         queryAnalysis,
         options.profileStages===true,
-        {disableSafePrefilter:options.disableSafePrefilter===true},
+        {
+          disableSafePrefilter:options.disableSafePrefilter===true,
+          queryTailSyllableLimit:explicitShortSyllableTarget(options.syllableFilter),
+        },
       )
     :null;
 
