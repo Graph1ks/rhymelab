@@ -64,6 +64,7 @@ const EN=Object.freeze({
   'Workspace-Backup exportieren':'Export workspace backup',
   'Reimanker suchen':'Search rhyme anchor',
   'Filter ein-/ausblenden':'Toggle filters',
+  'Suchfilter fokussieren':'Focus search filters',
   'Verwendete Treffer wieder zeigen':'Show used results again',
   'Verwendete Treffer ausblenden':'Hide used results',
   'Auto-Scroll ausschalten':'Disable auto-scroll',
