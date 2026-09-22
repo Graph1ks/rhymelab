@@ -773,6 +773,7 @@ export function searchUnifiedWriter(
       includeVariants: options.includeVariants === true,
       includeHistorical: options.includeHistorical === true,
       type: options.type || 'all',
+      syllableFilter: options.syllableFilter || 'all',
       ensureTypeCoverage: false,
       generatedOnly,
       profileStages,
@@ -837,6 +838,7 @@ export function searchUnifiedWriter(
     const englishOptions = {
       limit: clampInteger(options.wordLimit, 250, 1, 250),
       type: options.type || 'all',
+      syllableFilter: options.syllableFilter || 'all',
       generatedOnly,
     };
     const wordResult = timed('words_en',()=>enQuery
@@ -930,6 +932,7 @@ export function searchUnifiedWriter(
             ...options,
             generatedOverlay,
             generatedOnly,
+            syllableFilter:options.syllableFilter||'all',
             profileStages,
           }))
         : {
@@ -978,6 +981,7 @@ export function searchUnifiedWriter(
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
         generatedOnly,
+        syllableFilter:options.syllableFilter||'all',
         profileStages,
       }));
       if(profileStages&&deEntityChannel?.performanceProfile?.stages_ms){
@@ -1013,6 +1017,7 @@ export function searchUnifiedWriter(
         limit:clampInteger(options.entityLimit,100,1,250),
         poolLimit:clampInteger(options.entityPoolLimit,192,16,512),
         generatedOnly,
+        syllableFilter:options.syllableFilter||'all',
         profileStages,
       }));
       if(profileStages&&enEntityChannel?.performanceProfile?.stages_ms){
