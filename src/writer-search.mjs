@@ -219,10 +219,14 @@ function seedWriterScoringContextFromBase(base,context,{reuseScores=false}={}){
 }
 
 function writerCandidateKey(row){
+  const pronunciationId=Number(row?.id??row?._pronunciationId);
+  if(Number.isFinite(pronunciationId)&&pronunciationId>0){
+    return 'pronunciation:'+pronunciationId;
+  }
   const normalized=String(row?.normalized||row?.word||'');
   const ipa=String(row?.ipa||'');
   if(normalized||ipa)return normalized+'\u0000'+ipa;
-  return String(row?.id??row?.source_order_id??'');
+  return String(row?.source_order_id??'');
 }
 
 function writerAnalysisForRow(row,profile,context,fallbackAnalysis=null){
