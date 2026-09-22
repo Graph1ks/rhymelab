@@ -203,14 +203,23 @@ Shipping cuts are category-relative:
 
 ```text
 Standard: Top 1,000 retrievable retained identities per category
-Full:     Top 5,000 retrievable retained identities per category
+Full:     at most 5,000 retrievable retained memberships per category
+          including every Standard Top-1,000/category membership
 ```
 
 For each edition, candidates are ordered by the already materialized category rank
 with deterministic score/identity tie-breaks. Only identities with at least one
-pronunciation reachable in the edition are eligible. The resulting memberships are
-then unioned by `entity_id`, so an actor/musician counts once against the total
-product-entry budget even if it is selected in both categories.
+pronunciation reachable in the edition are eligible.
+
+For Full, hard nesting and the hard 5,000/category ceiling are enforced together:
+the Standard Core Top-1,000/category set is reserved **inside** the Full quota first,
+then only the remaining Full slots are filled from the broader Full-eligible
+population. Full must never implement nesting as "Top-5,000 plus Standard Top-1,000",
+because that can exceed the category quota when Generated availability changes the
+eligible ordering.
+
+The resulting memberships are unioned by `entity_id`, so an actor/musician counts
+once against the total product-entry budget even if it is selected in both categories.
 
 Categories with fewer than the requested quota contribute all retrievable retained
 identities they have. The builder never pads a category with rejected entities.
@@ -401,7 +410,7 @@ These are **planning expectations**, not frozen acceptance gates:
 | --- | ---: |
 | **Lite** | roughly **100–250 MB** |
 | **Standard** | roughly **2–4 GB** |
-| **Full** | roughly **3–6 GB** with Markov treated as a compact live model |
+| **Full** | roughly **3–6 GB** for the Serving-v1 distribution only; Markov is excluded |
 | **Master / Developer** | current planning reference around **20 GB** |
 
 The final budgets must be revised from the real storage census and the first materialized editions.
@@ -462,6 +471,30 @@ The implementation order is:
 ```
 
 `distribution:census` is implemented and the first rank policy is frozen. Use `npm run distribution:plan` before any build. Materialization commands are `distribution:build:lite`, `distribution:build:standard`, `distribution:build:full`, or `distribution:build` for all three. Existing outputs are never replaced without explicit `--replace`.
+
+## Internal edition comparison lab
+
+After the physical Lite/Standard/Full SQLite files exist, the owner can compare all
+four databases through the real Studio UI with the development-only DB Lab:
+
+```powershell
+npm run dev:distribution-lab
+```
+
+The lab exposes explicit Master / Lite / Standard / Full buttons and routes every
+relevant Studio request with a request-scoped
+`runtime_db=master|lite|standard|full` selector. It also exposes copyable
+database/browser/server performance metrics.
+
+This is **internal tooling only**. In normal startup the internal endpoint is
+disabled and the DB Lab HTML is removed before Studio is served.
+
+Full contract:
+
+`docs/INTERNAL_DISTRIBUTION_LAB.md`
+
+The lab is useful for behavioral/performance comparison but does not replace
+`distribution:verify:nesting`, integrity checks, or physical release acceptance.
 
 ## Owner commands
 
