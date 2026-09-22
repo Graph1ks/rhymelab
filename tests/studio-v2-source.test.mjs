@@ -349,6 +349,7 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/'\/studio\/backup-portability\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/diagnostics\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/internal-db-lab\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/studio\/internal-db-benchmark\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/i18n\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/dom-acceptance\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/command-palette\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
@@ -370,6 +371,10 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/entity_categories/u);
   assert.match(server,/entityCategories/u);
   assert.match(server,/analyzeSongEndRhymes/u);
+  assert.match(server,/compactStudioWriterPayload/u);
+  assert.match(server,/studioTransport=url\.searchParams\.get\('studio'\)==='1'/u);
+  assert.match(server,/x-rhymelab-json-serialize-ms/u);
+  assert.match(server,/x-rhymelab-response-bytes/u);
 });
 
 test('Studio shared SearchState re-export resolves to a served browser URL',async()=>{
@@ -472,6 +477,12 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/from '\.\/performance-session\.mjs'/u);
   assert.match(app,/from '\.\/mobile-viewport\.mjs'/u);
   assert.match(app,/from '\.\/analysis-adapter\.mjs'/u);
+  assert.match(app,/from '\.\/internal-db-benchmark\.mjs'/u);
+  assert.match(app,/runStudioInternalDbBenchmark/u);
+  assert.match(app,/internalDbBenchCurrent/u);
+  assert.match(app,/internalDbBenchSuite/u);
+  assert.match(app,/copyInternalDbLabMetrics/u);
+  assert.match(app,/refreshInternalDbLabPayload\(\{silent:true\}\)/u);
   assert.match(app,/refreshStudioCapabilities\(\)/u);
   assert.match(app,/id="capabilitySummary"/u);
 
