@@ -27,7 +27,8 @@ const DEFAULT_DISTRIBUTION_CAPABILITIES=Object.freeze({
   phrases:true,
   entities:true,
   generated:true,
-  markov:true,
+  // Markov infrastructure is frozen/on ice and is not a product/distribution capability.
+  markov:false,
 });
 
 export function servingV1DistributionCapabilities(db){
