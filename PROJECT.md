@@ -193,6 +193,7 @@ Use the files by responsibility:
 - STATUS.md — current operational state;
 - docs/DISTRIBUTION_TIERS.md — durable Lite/Standard/Full database packaging and capability contract;
 - docs/INTERNAL_DISTRIBUTION_LAB.md — internal edition-comparison, performance-metrics, shipping-isolation and future Settings migration contract;
+- docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md — focused continuation for the current Master/Lite/Standard/Full benchmark evidence and optimization loop;
 - docs/HANDOVER.md and focused phase handovers — continuation context;
 - PROJECT_STATE.json — machine-readable project state;
 - CHANGELOG.md — curated meaningful product/release history from 2026-09-19 onward;
