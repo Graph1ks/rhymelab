@@ -144,6 +144,10 @@ purpose is repeated engineering comparison.
 
 The bar also exposes:
 
+- **Bench current** — the current effective Writer request against every available
+  edition with identical options;
+- **Bench suite** — a fixed DE/EN Core comparison suite;
+- **Stop** — abort the active benchmark without changing the visible Writer state;
 - Metrics open/close;
 - Copy all;
 - metrics refresh.
@@ -171,16 +175,39 @@ Where available:
 
 ### Current Writer/UI path
 
-- selected edition;
-- Writer state;
-- query;
-- result count;
-- visible result count;
-- server search time;
-- server rolling last-100 mean;
-- client request/JSON roundtrip;
-- result-render time;
-- execution path.
+The lab records the **effective server request**, not only the visible query string.
+This includes query/result language, scope, rhyme type, variants, historical,
+Generated flags, Entity categories, runtime DB and any explicit query-pronunciation
+override. Client-only UI state such as syllable filtering, sorting, hide-used and
+density is recorded separately.
+
+The timed request pipeline is split into:
+
+- server DB/search time;
+- server post-search/pre-serialization overhead;
+- JSON serialization time;
+- response bytes;
+- client time to response headers;
+- response-body read time;
+- JSON parse time;
+- Studio DTO mapping time;
+- total fetch time;
+- result DOM render time.
+
+Where Resource Timing is available, the exact Writer request also records its own
+transfer/encoded/decoded bytes and request duration. This is distinct from the
+page-lifetime browser resource totals.
+
+Result-quality diagnostics include:
+
+- total result count;
+- Word/Phrase/Entity counts;
+- DE/EN result counts;
+- an order-sensitive deterministic result fingerprint;
+- the ordered top-result identities used by controlled quality comparisons.
+
+These diagnostics exist to distinguish a genuine result/ordering change from a
+filter/request-state difference.
 
 ### Browser/site
 
@@ -202,8 +229,12 @@ When the browser exposes the corresponding APIs:
 - DOMContentLoaded;
 - load event;
 - first paint / first contentful paint;
-- resource counts and byte totals;
+- **page-lifetime** resource counts and byte totals;
 - DOM element/result-node counts.
+
+Page-lifetime resource totals are contextual diagnostics only. They are not used as
+per-query benchmark transfer measurements; the exact Writer Resource Timing entry is
+used for that when the browser exposes it.
 
 ### Server/process
 
@@ -223,14 +254,110 @@ When the browser exposes the corresponding APIs:
 These are engineering observations. Browser/OS support differs, so absent optional
 metrics are represented as unavailable rather than fabricated.
 
+## Controlled benchmark contract
+
+### Bench current
+
+`Bench current` freezes the current effective Writer options and runs that same
+request against every locally available edition:
+
+```text
+Master → Lite → Standard → Full
+```
+
+The default measurement policy is:
+
+```text
+1 warmup + 5 measured runs / database
+```
+
+Warmups never enter p50/p95/mean statistics.
+
+### Bench suite
+
+`Bench suite` uses a fixed 12-query DE/EN suite with Core-style comparison
+settings:
+
+```text
+DE: Arbeitsweise, Weihnachten, Reise, Maschine, Geschichte, Liebe
+EN: crisis, inflection, motion, generation, fire, time
+```
+
+The default suite policy is:
+
+```text
+1 warmup + 2 measured runs / query / database
+```
+
+Generated, historical and variant expansion are disabled for the fixed suite so the
+database-edition comparison has a stable request contract. Edition capability
+differences still remain visible: for example Lite intentionally has no Phrase or
+Entity population.
+
+### Benchmark statistics
+
+For each database the report exposes at least:
+
+- measured run count;
+- server search min / p50 / p95 / max / mean;
+- server hotpath profile timing;
+- serialization timing;
+- client total timing;
+- JSON parse timing;
+- Studio mapping timing;
+- response-byte distribution;
+- result-count distribution;
+- deterministic-repeat status and offending case IDs;
+- mean Top-50 Jaccard overlap against Master;
+- exact ordered-result fingerprint matches against Master;
+- mean exact ordered prefix against Master.
+
+Each raw benchmark sample also retains the detailed server stage profile/counters
+when `profile=1` is enabled.
+
+Quality comparison is descriptive. A smaller edition is expected to have different
+coverage; the lab reports the concrete differences rather than assigning an
+automatic winner.
+
+The benchmark uses a dedicated Studio search client and does not replace or mutate
+the currently visible Writer result set.
+
+## Studio transport optimization
+
+Studio marks its Writer requests with:
+
+```text
+studio=1
+```
+
+The server then projects the full unified Writer response onto
+`studio-writer-compact-v1`: only fields used by Studio result rendering, filtering,
+detail/provenance presentation, capabilities and benchmark diagnostics are sent.
+
+Important invariants:
+
+- result ordering is unchanged;
+- result IDs are unchanged;
+- scores/relation types used by Studio are unchanged;
+- detail-relevant Phrase/Entity metadata is preserved;
+- ranking/scoring/retrieval semantics are unchanged;
+- normal `/api/writer` consumers without `studio=1` still receive the full Writer
+  payload.
+
+This reduces JSON serialization, localhost transfer, browser parse cost and heap
+pressure without changing Writer quality.
+
 ## Copy-all payload
 
-The Studio Copy-all action writes a JSON snapshot to the clipboard.
+The Studio Copy-all action first refreshes
+`/api/internal/distribution-dbs`, then writes a JSON snapshot to the clipboard.
+Server uptime/RSS/CPU/event-loop values are therefore captured at copy time rather
+than reused from the initial page load.
 
 Schema:
 
 ```text
-rhymelab-internal-db-lab-copy-v1
+rhymelab-internal-db-lab-copy-v2
 ```
 
 The payload includes:
@@ -238,10 +365,14 @@ The payload includes:
 - `internalOnly: true`;
 - `shipping: false`;
 - active DB;
-- Studio/Writer timings;
-- browser/site metrics;
-- server/process metrics;
-- all four database summaries.
+- exact effective Writer request;
+- client-only search/UI state;
+- result-quality fingerprint and composition;
+- detailed server/transport/browser timings and per-query response bytes;
+- browser/site context;
+- freshly refreshed server/process metrics;
+- all four database summaries;
+- the latest controlled benchmark report, when one exists.
 
 This payload is intended for benchmark/debug comparison and issue reproduction. It
 is not telemetry and is not uploaded automatically.
@@ -265,6 +396,8 @@ Relevant implementation:
 ```text
 src/internal-distribution-switcher.mjs
 src/studio/internal-db-lab.mjs
+src/studio/internal-db-benchmark.mjs
+src/studio-writer-payload.mjs
 src/server.mjs
 src/studio/index.html
 src/studio/app.js
@@ -275,6 +408,8 @@ Regression coverage:
 ```text
 tests/internal-distribution-switcher.test.mjs
 tests/studio-internal-db-routing.test.mjs
+tests/internal-db-benchmark.test.mjs
+tests/studio-writer-payload.test.mjs
 tests/studio-v2-source.test.mjs
 ```
 
@@ -311,8 +446,10 @@ git pull --ff-only
 npm run dev:distribution-lab
 ```
 
-Then run the same representative queries against Master, Lite, Standard and Full
-and use Copy all after each relevant comparison state.
+For ad-hoc diagnosis, switch editions manually and use Copy all. For a controlled
+comparison prefer **Bench current** or **Bench suite**, then use Copy all once the
+benchmark completes; the copied v2 payload contains the benchmark samples and
+summary.
 
 For physical distribution acceptance, continue to use the structural/nesting gates
 from `docs/DISTRIBUTION_TIERS.md`; the UI lab complements those gates but does not
