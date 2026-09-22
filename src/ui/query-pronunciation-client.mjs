@@ -162,6 +162,51 @@ function demoteStress(ipa){
   return String(ipa||'').replaceAll('ˈ','ˌ');
 }
 
+async function findSourceBackedRightHeadCompound(normalized,language,lookupReference){
+  if(language!=='de'||typeof lookupReference!=='function'||normalized.length<7)return null;
+
+  const candidates=[];
+  for(let split=2;split<=normalized.length-4;split+=1){
+    const left=normalized.slice(0,split);
+    const right=normalized.slice(split);
+    candidates.push({left,right});
+  }
+  candidates.sort((a,b)=>b.right.length-a.right.length||b.left.length-a.left.length);
+
+  for(const candidate of candidates){
+    const right=await lookupReference(candidate.right,language);
+    const rightIpa=referenceIpa(right);
+    if(!rightIpa||right?.generatedPronunciation===true)continue;
+
+    const left=await lookupReference(candidate.left,language);
+    const leftReferenceIpa=referenceIpa(left);
+    const leftSourceBacked=Boolean(leftReferenceIpa)&&left?.generatedPronunciation!==true;
+    const leftDetail=leftSourceBacked
+      ?{ipa:leftReferenceIpa,surface:left.surface||candidate.left}
+      :generateClientIpa(candidate.left,language);
+
+    return {
+      language,
+      surface:normalized,
+      normalized,
+      ipa:`${leftDetail.ipa}${demoteStress(rightIpa)}`,
+      method:leftSourceBacked
+        ?'client_source_reference_compound'
+        :'client_mixed_source_right_reference_compound',
+      policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
+      sourceBacked:leftSourceBacked,
+      generatedReference:false,
+      clientOnly:true,
+      components:[
+        leftDetail.surface||candidate.left,
+        right.surface||candidate.right,
+      ],
+      sourceBackedRightHead:true,
+    };
+  }
+  return null;
+}
+
 async function findTwoPartReferenceCompound(normalized,language,lookupReference){
   if(typeof lookupReference!=='function'||normalized.length<5)return null;
   const candidates=[];
@@ -231,6 +276,18 @@ async function resolveClientTokenPronunciation(
     const exact=await lookupReference(normalized,language);
     const exactDetail=sourceReferenceDetail(surface,language,exact);
     if(exactDetail)return exactDetail;
+
+    const rightHeadCompound=await findSourceBackedRightHeadCompound(
+      normalized,
+      language,
+      lookupReference,
+    );
+    if(rightHeadCompound){
+      if(typeof storeCachedPronunciation==='function'){
+        await storeCachedPronunciation(rightHeadCompound);
+      }
+      return rightHeadCompound;
+    }
 
     const compound=await findTwoPartReferenceCompound(
       normalized,
