@@ -27,8 +27,8 @@ export function createStudioDetailClient({fetchImpl=globalThis.fetch}={}){
       activeController=null;
     },
     clear(){cache.clear();},
-    async load(row){
-      const key=studioDetailKey(row);
+    async load(row,{runtimeDb=''}={}){
+      const key=studioDetailKey(row)+'|'+String(runtimeDb||'');
       const raw=row?.raw||{};
       activeController?.abort();
       activeController=null;
@@ -46,12 +46,14 @@ export function createStudioDetailClient({fetchImpl=globalThis.fetch}={}){
           id:String(raw.phraseId),
           generated:row?.generatedPronunciation?'1':'0',
         });
+        if(runtimeDb)params.set('runtime_db',String(runtimeDb));
         url=`/api/phrases/detail?${params}`;
       }else if((row?.kind||raw.resultKind)==='word'){
         const params=new URLSearchParams({
           language:String(row?.lang||raw.language||'de'),
           generated:row?.generatedPronunciation?'1':'0',
         });
+        if(runtimeDb)params.set('runtime_db',String(runtimeDb));
         url=`/api/word/${encodeURIComponent(row?.word||raw.word||raw.surface||'')}?${params}`;
       }else{
         const result={kind:row?.kind||raw.resultKind||'word',detail:null,raw,source:'writer-result'};
