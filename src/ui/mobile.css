@@ -152,3 +152,41 @@
   .results-compact .result-items{grid-template-columns:1fr!important}
   .results-compact .result-row{min-height:0!important}
 }
+
+
+/* Filter Deck v2 mobile override: old drawer controls no longer own search-core geometry. */
+@media(max-width:900px){
+  .search-core.search-core-flat{
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+  }
+}
+@media(max-width:720px){
+  .search-core.search-core-flat{
+    height:56px!important;
+    min-height:56px!important;
+    grid-template-columns:auto minmax(72px,1fr) minmax(78px,auto)!important;
+  }
+  .search-core.search-core-flat input{min-height:54px!important}
+  .search-core.search-core-flat .search-button{
+    grid-column:auto!important;
+    min-height:54px!important;
+    height:100%!important;
+    min-width:78px!important;
+    border-top:0!important;
+    border-left:1px solid var(--line)!important;
+  }
+  .search-filter-row{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:520px){
+  .search-core.search-core-flat{
+    height:58px!important;
+    min-height:58px!important;
+    grid-template-columns:auto minmax(64px,1fr) 72px!important;
+  }
+  .search-core.search-core-flat input{min-height:56px!important}
+  .search-core.search-core-flat .search-button{
+    min-width:72px!important;
+    min-height:56px!important;
+  }
+  .search-filter-row{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
