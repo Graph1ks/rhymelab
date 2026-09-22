@@ -2363,6 +2363,7 @@ function renderInternalDbLab(){
   metrics.innerHTML='<div class="internal-db-metrics-head"><div><b>DB + Site Performance Lab</b><small>Per-request routing · vollständiger Request + Quality-Fingerprint + Transport-Pipeline.</small></div><small>Internal only · shipping=false</small></div>'
     +'<div class="internal-db-live-grid">'
     +'<div class="internal-db-metric"><small>DB/Search</small><b>'+formatLabMs(s.serverSearchMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>Post-search</small><b>'+formatLabMs(s.serverPostSearchMs)+'</b></div>'
     +'<div class="internal-db-metric"><small>Serialize</small><b>'+formatLabMs(s.serverSerializeMs)+'</b></div>'
     +'<div class="internal-db-metric"><small>Headers</small><b>'+formatLabMs(s.clientHeadersMs)+'</b></div>'
     +'<div class="internal-db-metric"><small>Body read</small><b>'+formatLabMs(s.clientBodyReadMs)+'</b></div>'
