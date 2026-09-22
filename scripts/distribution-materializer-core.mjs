@@ -406,6 +406,182 @@ export function ensureEntityAvailability(db,{
   return entities;
 }
 
+
+export function selectDistributionEntityMemberships(db,{
+  edition,
+  alias='src',
+  entityPerCategory:entityPerCategoryOverride=null,
+  onProgress=null,
+}={}){
+  const contract=editionContract(edition);
+  const entityPerCategory=entityPerCategoryOverride==null
+    ?contract.entityPerCategory
+    :Number(entityPerCategoryOverride);
+  const quota=Math.max(0,Math.trunc(entityPerCategory));
+  const p=prefix(alias);
+  createSelectionStorage(db);
+  db.exec('DELETE FROM _dist_entity_membership;');
+  if(!contract.features.entities||quota<=0)return 0;
+
+  ensureEntityAvailability(db,{
+    alias,
+    onProgress:(event)=>onProgress?.({...event,edition}),
+  });
+
+  onProgress?.({
+    phase:'selection',edition,step:'entity_category_quota',status:'start',
+    quota,availability:contract.mode==='core'?'canonical_available':'generated_available',
+  });
+
+  if(edition==='full'){
+    const standardQuota=Math.min(
+      quota,
+      Math.max(0,Math.trunc(DISTRIBUTION_EDITIONS.standard.entityPerCategory)),
+    );
+
+    // Hard nesting and hard quota are both first-class:
+    // reserve every Standard Core Top-N/category membership inside Full's N slots,
+    // then fill only the remaining slots from the broader Full-eligible population.
+    db.exec(`
+      WITH standard_eligible AS (
+        SELECT
+          ec.entity_id,
+          ec.category,
+          ROW_NUMBER() OVER(
+            PARTITION BY ec.category
+            ORDER BY
+              CASE WHEN ec.category_rank IS NOT NULL AND ec.category_rank>0 THEN 0 ELSE 1 END,
+              ec.category_rank ASC,
+              ec.category_score DESC,
+              ec.entity_id ASC
+          ) AS standard_category_rank
+        FROM ${p}runtime_entity_category ec
+        JOIN _dist_entity_availability ea
+          ON ea.entity_id=ec.entity_id
+        WHERE ec.retained_by_category=1
+          AND ea.canonical_available=1
+      )
+      INSERT OR IGNORE INTO _dist_entity_membership(
+        entity_id,category,edition_category_rank,selection_source
+      )
+      SELECT entity_id,category,standard_category_rank,'standard_required'
+      FROM standard_eligible
+      WHERE standard_category_rank<=${standardQuota};
+
+      WITH required_counts AS (
+        SELECT category,COUNT(*) AS required_count
+        FROM _dist_entity_membership
+        GROUP BY category
+      ),
+      full_eligible AS (
+        SELECT
+          ec.entity_id,
+          ec.category,
+          ec.category_rank,
+          ec.category_score,
+          COALESCE(rc.required_count,0) AS required_count
+        FROM ${p}runtime_entity_category ec
+        JOIN _dist_entity_availability ea
+          ON ea.entity_id=ec.entity_id
+        LEFT JOIN required_counts rc
+          ON rc.category=ec.category
+        WHERE ec.retained_by_category=1
+          AND ea.generated_available=1
+          AND NOT EXISTS(
+            SELECT 1
+            FROM _dist_entity_membership existing
+            WHERE existing.entity_id=ec.entity_id
+              AND existing.category=ec.category
+          )
+      ),
+      ranked_fill AS (
+        SELECT
+          entity_id,
+          category,
+          required_count,
+          ROW_NUMBER() OVER(
+            PARTITION BY category
+            ORDER BY
+              CASE WHEN category_rank IS NOT NULL AND category_rank>0 THEN 0 ELSE 1 END,
+              category_rank ASC,
+              category_score DESC,
+              entity_id ASC
+          ) AS fill_rank
+        FROM full_eligible
+      )
+      INSERT OR IGNORE INTO _dist_entity_membership(
+        entity_id,category,edition_category_rank,selection_source
+      )
+      SELECT
+        entity_id,
+        category,
+        required_count+fill_rank,
+        'edition_quota'
+      FROM ranked_fill
+      WHERE fill_rank<=(${quota}-required_count);
+    `);
+  }else{
+    const availabilityColumn=contract.mode==='core'
+      ?'canonical_available'
+      :'generated_available';
+    db.exec(`
+      WITH eligible AS (
+        SELECT
+          ec.entity_id,
+          ec.category,
+          ec.category_rank,
+          ec.category_score,
+          ROW_NUMBER() OVER(
+            PARTITION BY ec.category
+            ORDER BY
+              CASE WHEN ec.category_rank IS NOT NULL AND ec.category_rank>0 THEN 0 ELSE 1 END,
+              ec.category_rank ASC,
+              ec.category_score DESC,
+              ec.entity_id ASC
+          ) AS edition_category_rank
+        FROM ${p}runtime_entity_category ec
+        JOIN _dist_entity_availability ea
+          ON ea.entity_id=ec.entity_id
+        WHERE ec.retained_by_category=1
+          AND ea.${availabilityColumn}=1
+      )
+      INSERT OR IGNORE INTO _dist_entity_membership(
+        entity_id,category,edition_category_rank,selection_source
+      )
+      SELECT entity_id,category,edition_category_rank,'edition_quota'
+      FROM eligible
+      WHERE edition_category_rank<=${quota};
+    `);
+  }
+
+  const overflow=db.prepare(`
+    SELECT category,COUNT(*) AS memberships
+    FROM _dist_entity_membership
+    GROUP BY category
+    HAVING COUNT(*)>?
+    ORDER BY category
+    LIMIT 1
+  `).get(quota);
+  if(overflow){
+    throw new Error(
+      'Distribution Entity category quota exceeded: '
+      +JSON.stringify({
+        edition,
+        category:String(overflow.category),
+        memberships:Number(overflow.memberships),
+        quota,
+      }),
+    );
+  }
+
+  const memberships=scalar(db,'SELECT COUNT(*) c FROM _dist_entity_membership');
+  onProgress?.({
+    phase:'selection',edition,step:'entity_category_quota',status:'complete',
+    quota,memberships,
+  });
+  return memberships;
+}
+
 export function populateDistributionSelection(db,{
   edition,
   alias='src',
@@ -454,92 +630,12 @@ export function populateDistributionSelection(db,{
 
   if(contract.features.entities&&entityPerCategory>0){
     onProgress?.({phase:'selection',edition,step:'entities',status:'start'});
-    const availabilityColumn=contract.mode==='core'
-      ?'canonical_available'
-      :'generated_available';
-    const quota=Math.max(0,Math.trunc(entityPerCategory));
-
-    ensureEntityAvailability(db,{
+    selectDistributionEntityMemberships(db,{
+      edition,
       alias,
-      onProgress:(event)=>onProgress?.({...event,edition}),
+      entityPerCategory,
+      onProgress,
     });
-
-    onProgress?.({
-      phase:'selection',edition,step:'entity_category_quota',status:'start',
-      quota,availability:availabilityColumn,
-    });
-    db.exec(`
-      WITH eligible AS (
-        SELECT
-          ec.entity_id,
-          ec.category,
-          ec.category_rank,
-          ec.category_score,
-          ROW_NUMBER() OVER(
-            PARTITION BY ec.category
-            ORDER BY
-              CASE WHEN ec.category_rank IS NOT NULL AND ec.category_rank>0 THEN 0 ELSE 1 END,
-              ec.category_rank ASC,
-              ec.category_score DESC,
-              ec.entity_id ASC
-          ) AS edition_category_rank
-        FROM ${p}runtime_entity_category ec
-        JOIN _dist_entity_availability ea
-          ON ea.entity_id=ec.entity_id
-        WHERE ec.retained_by_category=1
-          AND ea.${availabilityColumn}=1
-      )
-      INSERT OR IGNORE INTO _dist_entity_membership(
-        entity_id,category,edition_category_rank,selection_source
-      )
-      SELECT entity_id,category,edition_category_rank,'edition_quota'
-      FROM eligible
-      WHERE edition_category_rank<=${quota};
-    `);
-    onProgress?.({
-      phase:'selection',edition,step:'entity_category_quota',status:'complete',
-      memberships:scalar(db,'SELECT COUNT(*) c FROM _dist_entity_membership'),
-    });
-
-    // Hard nesting rule: Full must contain every Standard Core Top-1k/category
-    // membership. The availability cache makes this set-based and indexed.
-    if(edition==='full'){
-      const standardQuota=DISTRIBUTION_EDITIONS.standard.entityPerCategory;
-      onProgress?.({
-        phase:'selection',edition,step:'entity_standard_nesting',status:'start',
-        quota:standardQuota,
-      });
-      db.exec(`
-        WITH standard_eligible AS (
-          SELECT
-            ec.entity_id,
-            ec.category,
-            ROW_NUMBER() OVER(
-              PARTITION BY ec.category
-              ORDER BY
-                CASE WHEN ec.category_rank IS NOT NULL AND ec.category_rank>0 THEN 0 ELSE 1 END,
-                ec.category_rank ASC,
-                ec.category_score DESC,
-                ec.entity_id ASC
-            ) AS standard_category_rank
-          FROM ${p}runtime_entity_category ec
-          JOIN _dist_entity_availability ea
-            ON ea.entity_id=ec.entity_id
-          WHERE ec.retained_by_category=1
-            AND ea.canonical_available=1
-        )
-        INSERT OR IGNORE INTO _dist_entity_membership(
-          entity_id,category,edition_category_rank,selection_source
-        )
-        SELECT entity_id,category,standard_category_rank,'standard_required'
-        FROM standard_eligible
-        WHERE standard_category_rank<=${Math.max(0,Math.trunc(standardQuota))};
-      `);
-      onProgress?.({
-        phase:'selection',edition,step:'entity_standard_nesting',status:'complete',
-        memberships:scalar(db,'SELECT COUNT(*) c FROM _dist_entity_membership'),
-      });
-    }
 
     db.exec(`
       INSERT OR IGNORE INTO _dist_entity(entity_id)
