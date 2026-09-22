@@ -317,8 +317,13 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
 
     const runtime=openServingV1ProductRuntime(path);
     try{
-      assert.equal(servingV1ProductRuntimeState(runtime.coreDb).available,true);
-      assert.equal(servingV1ProductRuntimeState(runtime.allDb).available,true);
+      const coreState=servingV1ProductRuntimeState(runtime.coreDb);
+      const allState=servingV1ProductRuntimeState(runtime.allDb);
+      assert.equal(coreState.available,true);
+      assert.equal(allState.available,true);
+      assert.equal(coreState.distribution.edition,'master');
+      assert.equal(coreState.distribution.markov,false);
+      assert.equal(allState.distribution.markov,false);
 
       assert.equal(
         Number(runtime.allDb.prepare(
