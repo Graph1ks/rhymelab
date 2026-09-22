@@ -60,6 +60,10 @@ import {
 import {createServingV1ParallelWriterRuntime} from './unified-writer-parallel.mjs';
 import {analyzeSongEndRhymes} from './song-rhyme-analysis.mjs';
 import {
+  compactStudioWriterPayload,
+  studioWriterPayloadStats,
+} from './studio-writer-payload.mjs';
+import {
   generatedDataExplicitlyRequired,
   generatedDataRequested,
   generatedOnlyRequested,
@@ -588,6 +592,7 @@ const assets = {
   '/studio/backup-portability.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'backup-portability.mjs')) },
   '/studio/diagnostics.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'diagnostics.mjs')) },
   '/studio/internal-db-lab.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'internal-db-lab.mjs')) },
+  '/studio/internal-db-benchmark.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'internal-db-benchmark.mjs')) },
   '/studio/i18n.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'i18n.mjs')) },
   '/studio/dom-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'dom-acceptance.mjs')) },
   '/studio/command-palette.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'command-palette.mjs')) },
@@ -632,15 +637,45 @@ function studioRouteModePayload(){
   };
 }
 
-function json(res, data, status = 200, allowCors = true) {
-  const headers = {
-    'content-type': 'application/json; charset=utf-8',
-    'x-content-type-options': 'nosniff',
-    'cache-control': 'no-store',
+function json(res,data,status=200,allowCors=true,diagnostics=null){
+  const serializeStarted=performance.now();
+  const body=JSON.stringify(data);
+  const serializeMs=performance.now()-serializeStarted;
+  const responseBytes=Buffer.byteLength(body);
+  const headers={
+    'content-type':'application/json; charset=utf-8',
+    'content-length':String(responseBytes),
+    'x-content-type-options':'nosniff',
+    'cache-control':'no-store',
   };
-  if (allowCors) headers['access-control-allow-origin'] = '*';
-  res.writeHead(status, headers);
-  res.end(JSON.stringify(data, null, 2));
+  if(allowCors){
+    headers['access-control-allow-origin']='*';
+    headers['access-control-expose-headers']=[
+      'content-length',
+      'server-timing',
+      'x-rhymelab-search-ms',
+      'x-rhymelab-before-serialize-ms',
+      'x-rhymelab-json-serialize-ms',
+      'x-rhymelab-response-bytes',
+    ].join(', ');
+  }
+  if(diagnostics?.measured===true){
+    const searchMs=Number(diagnostics.searchMs);
+    const beforeSerializeMs=Number(diagnostics.beforeSerializeMs);
+    if(Number.isFinite(searchMs))headers['x-rhymelab-search-ms']=searchMs.toFixed(3);
+    if(Number.isFinite(beforeSerializeMs)){
+      headers['x-rhymelab-before-serialize-ms']=beforeSerializeMs.toFixed(3);
+    }
+    headers['x-rhymelab-json-serialize-ms']=serializeMs.toFixed(3);
+    headers['x-rhymelab-response-bytes']=String(responseBytes);
+    const timings=[];
+    if(Number.isFinite(searchMs))timings.push(`search;dur=${searchMs.toFixed(3)}`);
+    timings.push(`serialize;dur=${serializeMs.toFixed(3)}`);
+    headers['server-timing']=timings.join(', ');
+  }
+  res.writeHead(status,headers);
+  res.end(body);
+  return {serializeMs,responseBytes};
 }
 
 function asset(res, entry) {
@@ -880,11 +915,13 @@ const server = createServer(async (req, res) => {
           value&&value!=='all'&&array.indexOf(value)===index
         ).slice(0,24),
         generatedOnly:generatedOnlyRequested(url),
+        profileStages:internalDbSwitcherEnabled&&url.searchParams.get('profile')==='1',
         queryPronunciations: {
           de: clientQueryPronunciation(url, 'de'),
           en: clientQueryPronunciation(url, 'en'),
         },
       };
+      const requestStarted=performance.now();
       const searchStarted=performance.now();
       const useInternalDirect=runtimeSelection.internal===true;
       const result = servingV1Active&&!useInternalDirect
@@ -902,12 +939,24 @@ const server = createServer(async (req, res) => {
         : result.status === 'query_not_found'
           ? 404
           : 200;
-      return json(res, {
-        ...result,
+      const studioTransport=url.searchParams.get('studio')==='1';
+      const projected=studioTransport?compactStudioWriterPayload(result):result;
+      const payload={
+        ...projected,
         runtimeTiming,
         runtimeDb:runtimeSelection.internalDbId||null,
         runtimeExecution:useInternalDirect?'direct-internal-db-lab':servingV1Active?'parallel-serving-v1':'direct-legacy',
-      }, status);
+        ...(studioTransport?{
+          transportProjection:'studio-writer-compact-v1',
+          transportStats:studioWriterPayloadStats(projected),
+        }:{}),
+      };
+      const beforeSerializeMs=performance.now()-requestStarted;
+      return json(res,payload,status,true,{
+        measured:true,
+        searchMs:elapsed,
+        beforeSerializeMs,
+      });
     }
 
     if (url.pathname === '/api/analysis/rhyme-scheme') {

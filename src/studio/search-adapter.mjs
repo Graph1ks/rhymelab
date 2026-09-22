@@ -131,6 +131,101 @@ async function readResponse(response){
   return data||{};
 }
 
+function roundMetric(value){
+  const number=Number(value);
+  return Number.isFinite(number)?Number(number.toFixed(1)):null;
+}
+
+function headerNumber(response,name){
+  try{
+    const value=response?.headers?.get?.(name);
+    const number=Number(value);
+    return Number.isFinite(number)?number:null;
+  }catch{return null}
+}
+
+function paramsSnapshot(params){
+  const out={};
+  for(const [key,value] of params.entries()){
+    if(Object.hasOwn(out,key)){
+      out[key]=Array.isArray(out[key])?[...out[key],value]:[out[key],value];
+    }else{
+      out[key]=value;
+    }
+  }
+  return out;
+}
+
+function responseTextBytes(value){
+  try{return new TextEncoder().encode(String(value||'')).byteLength}
+  catch{return String(value||'').length}
+}
+
+function browserResourceMetric(requestUrl,startedAt){
+  try{
+    if(typeof performance?.getEntriesByName!=='function'||typeof location==='undefined')return null;
+    const absolute=new URL(requestUrl,location.href).href;
+    const entries=performance.getEntriesByName(absolute,'resource');
+    const row=[...entries].reverse().find((entry)=>
+      Number(entry?.startTime||0)>=Number(startedAt||0)-2
+    )||entries.at?.(-1);
+    if(!row)return null;
+    return {
+      name:absolute,
+      durationMs:roundMetric(row.duration),
+      fetchStartMs:roundMetric(row.fetchStart),
+      responseStartMs:roundMetric(row.responseStart),
+      responseEndMs:roundMetric(row.responseEnd),
+      transferSize:Number(row.transferSize||0),
+      encodedBodySize:Number(row.encodedBodySize||0),
+      decodedBodySize:Number(row.decodedBodySize||0),
+    };
+  }catch{return null}
+}
+
+async function readMeasuredWriterResponse(response,{requestUrl,startedAt,headersMs}={}){
+  const bodyStarted=performance.now();
+  let data=null;
+  let bodyReadMs=null;
+  let parseMs=null;
+  let responseBytes=headerNumber(response,'x-rhymelab-response-bytes')
+    ??headerNumber(response,'content-length');
+  if(typeof response?.text==='function'){
+    let raw='';
+    try{raw=await response.text();}catch{}
+    bodyReadMs=roundMetric(performance.now()-bodyStarted);
+    if(responseBytes==null)responseBytes=responseTextBytes(raw);
+    const parseStarted=performance.now();
+    try{data=raw?JSON.parse(raw):null;}catch{}
+    parseMs=roundMetric(performance.now()-parseStarted);
+  }else{
+    const parseStarted=performance.now();
+    data=await readResponse(response);
+    parseMs=roundMetric(performance.now()-parseStarted);
+    bodyReadMs=0;
+  }
+  const totalMs=roundMetric(performance.now()-startedAt);
+  return {
+    data:data||{},
+    clientTiming:{
+      headersMs:roundMetric(headersMs),
+      bodyReadMs,
+      parseMs,
+      totalMs,
+      roundTripMs:totalMs,
+      responseBytes,
+      resource:browserResourceMetric(requestUrl,startedAt),
+    },
+    serverTransport:{
+      searchMs:headerNumber(response,'x-rhymelab-search-ms'),
+      beforeSerializeMs:headerNumber(response,'x-rhymelab-before-serialize-ms'),
+      serializeMs:headerNumber(response,'x-rhymelab-json-serialize-ms'),
+      responseBytes:headerNumber(response,'x-rhymelab-response-bytes')
+        ??headerNumber(response,'content-length'),
+    },
+  };
+}
+
 async function lookupSourceBackedWord(fetchImpl,surface,language,generated,signal,runtimeDb=''){
   const params=new URLSearchParams({
     language,
@@ -221,21 +316,26 @@ export function createWriterSearchClient({fetchImpl=globalThis.fetch}={}){
       activeController=controller;
       const current=++requestId;
       const params=buildWriterParams(options);
+      params.set('studio','1');
+      if(options.internalProfile===true)params.set('profile','1');
       if(options.runtimeDb)params.set('runtime_db',String(options.runtimeDb));
       const request=async()=>{
+        const requestUrl=`/api/writer?${params}`;
         const started=performance.now();
         const response=await fetchImpl(
-          `/api/writer?${params}`,
+          requestUrl,
           {signal:controller.signal,headers:{accept:'application/json'}},
         );
-        return {
-          response,
-          data:await readResponse(response),
-          roundTripMs:Number((performance.now()-started).toFixed(1)),
-        };
+        const headersMs=performance.now()-started;
+        const measured=await readMeasuredWriterResponse(response,{
+          requestUrl,
+          startedAt:started,
+          headersMs,
+        });
+        return {response,...measured};
       };
 
-      let {response,data,roundTripMs}=await request();
+      let {response,data,clientTiming,serverTransport}=await request();
       const generatedPronunciation=await resolveMissingPronunciations({
         fetchImpl,
         data,
@@ -248,7 +348,7 @@ export function createWriterSearchClient({fetchImpl=globalThis.fetch}={}){
         runtimeDb:options.runtimeDb||'',
       });
       if(generatedPronunciation){
-        ({response,data,roundTripMs}=await request());
+        ({response,data,clientTiming,serverTransport}=await request());
       }
 
       if(current!==requestId){
@@ -267,7 +367,12 @@ export function createWriterSearchClient({fetchImpl=globalThis.fetch}={}){
         throw error;
       }
 
+      const mapStarted=performance.now();
       const rows=(data?.results||[]).map(mapWriterResult).filter((row)=>row.word);
+      clientTiming={
+        ...(clientTiming||{}),
+        mapMs:roundMetric(performance.now()-mapStarted),
+      };
       return {
         status:'ready',
         rows,
@@ -278,7 +383,9 @@ export function createWriterSearchClient({fetchImpl=globalThis.fetch}={}){
         runtimeTiming:data?.runtimeTiming||null,
         runtimeDb:data?.runtimeDb||options.runtimeDb||null,
         runtimeExecution:data?.runtimeExecution||null,
-        clientTiming:{roundTripMs},
+        effectiveRequest:paramsSnapshot(params),
+        clientTiming,
+        serverTransport,
         capabilities:data?.capabilities||null,
         raw:data,
       };

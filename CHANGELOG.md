@@ -8,6 +8,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Added
 
+- Expanded the development-only Distribution DB Lab to a quality/speed v2: exact effective Writer requests, deterministic result fingerprints, per-query response bytes, Search/serialize/read/parse/map/render timing, live server-metric refresh on Copy-all, and controlled Master/Lite/Standard/Full benchmark modes with warmups, p50/p95 and repeatability/Top-50 overlap reporting.
 - Added the development-only Studio Distribution DB Lab for explicit Master/Lite/Standard/Full switching, strict request-scoped `runtime_db` routing and copyable SQLite/Writer/browser/server performance metrics. Normal startup strips the internal UI and disables its endpoint; the future user-facing database choice remains a separate Settings task.
 - Added Studio V2 as the production songwriting shell with live Writer/Search, IndexedDB document authority, recovery/portable backup, hierarchical Library, Perform sequencing, canonical song analysis, DE/EN UI, mobile viewport engineering, diagnostics and command-palette workflows.
 - Added a regression contract that keeps the frozen Markov V2 implementation direct-demo-only and prevents `/markov-test` from being linked by Studio, Search or RhymePad product surfaces.
@@ -42,6 +43,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Changed
 
+- Studio Writer requests now use the compact `studio-writer-compact-v1` transport projection while preserving result order, IDs, scoring/relation metadata and detail-relevant fields; non-Studio `/api/writer` clients retain the full response. JSON API responses are serialized compactly and expose measured response-size/serialization headers.
+- Serving-v1 Master no longer advertises frozen Markov infrastructure as an active product/distribution capability.
 - Studio V2 is now the default `/` route for normal `npm run dev` / `npm start`; the previous Search remains available at `/search` and `/legacy`, RhymePad at `/pad`, and `npm run dev:search-default` provides an explicit reversible root-route fallback.
 - Markov / Constrained Lyric Decoder V2 remains frozen. It may ship as isolated demo infrastructure but is not part of RhymeLab product navigation or promotion.
 - Generated data is now included by default whenever the generated-capable runtime is available; the existing checkbox is an opt-out and `generated=0` is the explicit Core-only API mode.

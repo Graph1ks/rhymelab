@@ -22,6 +22,10 @@ import {
   studioCapabilitiesFromInternalDb,
   studioRuntimeMetrics,
 } from './internal-db-lab.mjs';
+import {
+  INTERNAL_DB_BENCHMARK_SUITE,
+  runInternalDbBenchmark,
+} from './internal-db-benchmark.mjs';
 import {createStudioDomLocalizer,normalizeStudioUiLanguage} from './i18n.mjs';
 import {commandShortcutText,rankStudioCommands,studioCommandGroups} from './command-palette.mjs';
 import {STUDIO_DEVICE_GATES,createStudioDeviceAcceptance,mergeStudioDeviceAcceptanceReports,parseStudioDeviceAcceptance,studioDeviceAcceptanceFilename,studioDeviceAcceptanceSummary,studioDeviceEnvironmentLabel,studioDeviceGateEnvironmentStatus} from './device-acceptance.mjs';
@@ -112,12 +116,14 @@ let themeEditingId='',themePreviewing=false,themeQuickCloseTimer=0;
 let studioCapabilities={status:'loading'};
 let sharedSearchState=localStorage.getItem(SEARCH_STATE_STORAGE_KEY)?loadSearchState():createSearchState({queryBasis:'de',resultLanguage:'both'}),pendingSharedResultId=sharedSearchState.selectedResultId||'';
 const writerSearch=createWriterSearchClient();
+const internalBenchmarkSearch=createWriterSearchClient();
 const detailClient=createStudioDetailClient();
 const analysisClient=createStudioAnalysisClient();
 const documentStore=createStudioDocumentStore();
 let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerCapabilities=null,writerDebounce=0;
-let writerClientTiming=null,writerExecution=null,lastResultRenderMs=null;
+let writerClientTiming=null,writerServerTransport=null,writerEffectiveRequest=null,writerExecution=null,lastResultRenderMs=null;
 let internalDbLabEnabled=false,internalDbLabPayload=null,internalDbLabActive=loadInternalDbLabSelection(),internalDbLabMetricsOpen=false;
+let internalDbBenchmarkReport=null,internalDbBenchmarkAbort=null,internalDbBenchmarkState=null;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
 let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all',analysisChainVisible=false;
 let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0,documentSaveGeneration=0,documentSaveChain=Promise.resolve(),mobileViewportCleanup=null;
@@ -645,6 +651,43 @@ function queueWriterSearch(delay=140){
   writerSearch.cancel();
   writerDebounce=setTimeout(()=>{void refreshWriterResults()},delay);
 }
+function currentWriterSearchOptions(overrides={}){
+  return {
+    query:String(query||'').trim(),
+    queryBasis:basis,
+    resultLanguage:resultLang,
+    scope,
+    rhymeType,
+    includeVariants:variantMode==='all',
+    includeHistorical,
+    generated,
+    generatedOnly,
+    entityCategory,
+    entityCategories:[...entityCategories],
+    queryPronunciationRevision:studioCapabilities.queryPronunciationRevision||'',
+    runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
+    ...overrides,
+  };
+}
+function currentSearchUiState(){
+  return {
+    scope,
+    relation,
+    rhymeType,
+    syllableMode,
+    sort,
+    queryBasis:basis,
+    resultLanguage:resultLang,
+    variantMode,
+    includeHistorical,
+    generated,
+    generatedOnly,
+    entityCategory,
+    entityCategories:[...entityCategories],
+    hideUsed,
+    density,
+  };
+}
 async function refreshWriterResults(){
   clearTimeout(writerDebounce);
   saveStudioSearchState();
@@ -663,21 +706,9 @@ async function refreshWriterResults(){
   $('#detailDock')?.classList.add('hidden');
   renderResults();
   try{
-    const result=await writerSearch.search({
+    const result=await writerSearch.search(currentWriterSearchOptions({
       query:requestedQuery,
-      queryBasis:basis,
-      resultLanguage:resultLang,
-      scope,
-      rhymeType,
-      includeVariants:variantMode==='all',
-      includeHistorical,
-      generated,
-      generatedOnly,
-      entityCategory,
-      entityCategories,
-      queryPronunciationRevision:studioCapabilities.queryPronunciationRevision||'',
-      runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
-    });
+    }));
     if(requestedQuery!==query)return;
     if(internalDbLabEnabled&&result.runtimeDb!==internalDbLabActive){
       throw new Error('Internal DB routing mismatch: expected '+internalDbLabActive+' but backend returned '+String(result.runtimeDb));
@@ -687,6 +718,8 @@ async function refreshWriterResults(){
     writerWarnings=result.warnings;
     writerRuntimeTiming=result.runtimeTiming;
     writerClientTiming=result.clientTiming||null;
+    writerServerTransport=result.serverTransport||null;
+    writerEffectiveRequest=result.effectiveRequest||null;
     writerExecution=result.runtimeExecution||null;
     writerCapabilities=result.capabilities||writerCapabilities;
     if(internalDbLabEnabled&&internalDbLabPayload){
@@ -708,6 +741,8 @@ async function refreshWriterResults(){
     writerWarnings=[];
     writerRuntimeTiming=null;
     writerClientTiming=null;
+    writerServerTransport=null;
+    writerEffectiveRequest=null;
     writerExecution=null;
     writerStatus='error';
     writerError=error instanceof Error?error.message:String(error);
@@ -2121,18 +2156,178 @@ function currentInternalDbLabMetrics(){
       performanceObj:performance,
       navigatorObj:navigator,
     }),
-    studio:studioRuntimeMetrics({
-      activeDb:internalDbLabActive,
-      writerStatus,
-      writerRuntimeTiming,
-      writerClientTiming,
-      writerExecution,
-      lastRenderMs:lastResultRenderMs,
-      resultCount:writerRows.length,
-      visibleResultCount:data().length,
-      query,
-    }),
+    studio:{
+      ...studioRuntimeMetrics({
+        activeDb:internalDbLabActive,
+        writerStatus,
+        writerRuntimeTiming,
+        writerClientTiming,
+        writerServerTransport,
+        writerExecution,
+        writerEffectiveRequest,
+        writerRows,
+        lastRenderMs:lastResultRenderMs,
+        resultCount:writerRows.length,
+        visibleResultCount:data().length,
+        query,
+      }),
+      uiState:currentSearchUiState(),
+    },
   };
+}
+function formatLabPercent(value){
+  const number=Number(value);
+  if(!Number.isFinite(number))return '—';
+  return (number*100).toFixed(number>=.995?0:1)+'%';
+}
+function benchmarkMetric(summary,key,quantile='p50'){
+  return summary?.[key]?.[quantile]??null;
+}
+function internalDbBenchmarkMarkup(){
+  const report=internalDbBenchmarkReport;
+  if(!report?.summary?.databases)return '';
+  const rows=Object.entries(report.summary.databases).map(([database,summary])=>{
+    const quality=summary?.qualityVsMaster||{};
+    return '<tr class="'+(database===internalDbLabActive?'active':'')+'">'
+      +'<td><b>'+esc(database.toUpperCase())+'</b><br><small>n='+Number(summary.measuredRuns||0)+'</small></td>'
+      +'<td>'+formatLabMs(benchmarkMetric(summary,'serverSearchMs'))+'<br><small>p95 '+formatLabMs(benchmarkMetric(summary,'serverSearchMs','p95'))+'</small></td>'
+      +'<td>'+formatLabMs(benchmarkMetric(summary,'clientTotalMs'))+'<br><small>p95 '+formatLabMs(benchmarkMetric(summary,'clientTotalMs','p95'))+'</small></td>'
+      +'<td>'+formatLabMs(benchmarkMetric(summary,'serverSerializeMs'))+'</td>'
+      +'<td>'+formatLabMs(benchmarkMetric(summary,'clientParseMs'))+'</td>'
+      +'<td>'+formatLabMs(benchmarkMetric(summary,'clientMapMs'))+'</td>'
+      +'<td>'+formatLabBytes(benchmarkMetric(summary,'responseBytes'))+'</td>'
+      +'<td class="internal-db-quality-good">'+formatLabPercent(quality.meanTopJaccard)+'</td>'
+      +'<td>'+Number(quality.exactFingerprintMatches||0)+' / '+Number(quality.comparisons||0)+'</td>'
+      +'<td>'+(summary.deterministic===false?'⚠ '+Number(summary.nondeterministicCases||0):'✓')+'</td>'
+      +'</tr>';
+  }).join('');
+  const mode=esc(String(report.mode||'benchmark'));
+  return '<section class="internal-db-tech" style="margin-top:8px"><h4>Controlled benchmark · '+mode+'</h4>'
+    +'<table class="internal-db-benchmark-table"><thead><tr>'
+    +'<th>DB</th><th>Search p50</th><th>Total p50</th><th>Serialize</th><th>Parse</th><th>Map</th><th>Response</th><th>Top50 vs Master</th><th>Exact</th><th>Determinism</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<small>Warmups ausgeschlossen · p50/p95 aus gemessenen Runs · Quality vergleicht identische Result-IDs/Order gegen Master.</small></section>';
+}
+function renderInternalDbBenchmarkProgress(){
+  const root=$('#internalDbBenchmarkProgress');
+  if(!root)return;
+  const state=internalDbBenchmarkState;
+  const running=state?.status==='start'||state?.status==='complete'||state?.status==='error';
+  const benchmarkRunning=Boolean(internalDbBenchmarkAbort);
+  root.classList.toggle('hidden',!benchmarkRunning&&!state);
+  $('#internalDbBenchCurrent')?.toggleAttribute('disabled',benchmarkRunning);
+  $('#internalDbBenchSuite')?.toggleAttribute('disabled',benchmarkRunning);
+  $('#internalDbBenchStop')?.classList.toggle('hidden',!benchmarkRunning);
+  if(!state){
+    root.innerHTML='';
+    return;
+  }
+  const current=Number(state.current||0),total=Math.max(1,Number(state.total||1));
+  const progress=Math.max(0,Math.min(100,current/total*100));
+  const phase=state.warmup?'warmup':'measure';
+  root.innerHTML='<b>'+esc(benchmarkRunning?'BENCH RUNNING':'BENCH DONE')+'</b>'
+    +'<span class="grow">'+esc(String(state.database||'').toUpperCase())+' · '+esc(state.query||state.caseId||'')+' · '+phase+' '+Number(state.run||0)+'</span>'
+    +'<span>'+current+' / '+total+'</span>'
+    +'<span class="internal-db-benchmark-bar" style="--progress:'+progress.toFixed(1)+'%"><i></i></span>';
+}
+function availableInternalBenchmarkDatabases(){
+  const map=internalDbSummaryMap(internalDbLabPayload);
+  return ['master','lite','standard','full'].filter((id)=>map[id]?.available===true);
+}
+async function runStudioInternalDbBenchmark(mode='current'){
+  if(!internalDbLabEnabled||internalDbBenchmarkAbort)return;
+  const currentQuery=String(query||'').trim();
+  if(mode==='current'&&!currentQuery){
+    notify('Für Bench current zuerst einen Suchbegriff setzen.');
+    return;
+  }
+  const databases=availableInternalBenchmarkDatabases();
+  if(!databases.length){
+    notify('Keine DB für Benchmark verfügbar.');
+    return;
+  }
+  const controller=new AbortController();
+  internalDbBenchmarkAbort=controller;
+  internalDbBenchmarkReport=null;
+  internalDbBenchmarkState={status:'start',current:0,total:1,database:'',query:'Benchmark wird vorbereitet',warmup:true,run:0};
+  renderInternalDbBenchmarkProgress();
+  internalDbLabMetricsOpen=true;
+  renderInternalDbLab();
+
+  const currentOptions=currentWriterSearchOptions({
+    runtimeDb:'',
+    internalProfile:true,
+  });
+  delete currentOptions.query;
+  delete currentOptions.runtimeDb;
+  const cases=mode==='suite'
+    ?INTERNAL_DB_BENCHMARK_SUITE
+    :[{
+        id:'current',
+        query:currentQuery,
+        queryBasis:basis,
+        resultLanguage:resultLang,
+      }];
+  const baseOptions=mode==='suite'
+    ?{
+        scope:'all',
+        rhymeType:'all',
+        includeVariants:false,
+        includeHistorical:false,
+        generated:false,
+        generatedOnly:false,
+        entityCategory:'all',
+        entityCategories:[],
+        queryPronunciationRevision:studioCapabilities.queryPronunciationRevision||'',
+      }
+    :currentOptions;
+
+  try{
+    const report=await runInternalDbBenchmark({
+      search:(options)=>internalBenchmarkSearch.search(options),
+      databases,
+      cases,
+      baseOptions,
+      warmups:1,
+      runs:mode==='suite'?2:5,
+      signal:controller.signal,
+      onProgress:(event)=>{
+        internalDbBenchmarkState=event;
+        renderInternalDbBenchmarkProgress();
+        if(internalDbLabMetricsOpen)renderInternalDbLab();
+      },
+    });
+    report.mode=mode;
+    report.uiState=mode==='current'?currentSearchUiState():null;
+    internalDbBenchmarkReport=report;
+    internalDbBenchmarkState={
+      status:'done',
+      current:report.samples.length,
+      total:report.samples.length,
+      database:'',
+      query:mode==='suite'?'Suite abgeschlossen':currentQuery,
+      warmup:false,
+      run:0,
+    };
+    try{await refreshInternalDbLabPayload({silent:true})}catch{}
+    notify('DB Benchmark abgeschlossen · '+report.samples.filter((row)=>!row.warmup&&row.ok).length+' Messungen.');
+  }catch(error){
+    if(error?.name==='AbortError'){
+      internalDbBenchmarkState={status:'stopped',current:0,total:1,database:'',query:'Benchmark abgebrochen',warmup:false,run:0};
+      notify('DB Benchmark abgebrochen.');
+    }else{
+      internalDbBenchmarkState={status:'failed',current:0,total:1,database:'',query:error instanceof Error?error.message:String(error),warmup:false,run:0};
+      notify('DB Benchmark fehlgeschlagen.');
+    }
+  }finally{
+    internalDbBenchmarkAbort=null;
+    renderInternalDbBenchmarkProgress();
+    renderInternalDbLab();
+  }
+}
+function stopStudioInternalDbBenchmark(){
+  internalDbBenchmarkAbort?.abort();
+  internalBenchmarkSearch.cancel();
 }
 function renderInternalDbLab(){
   const root=$('#internalDbLab');
@@ -2144,7 +2339,7 @@ function renderInternalDbLab(){
   queryAll('#internalDbSwitch [data-runtime-db]').forEach((button)=>{
     const row=map[button.dataset.runtimeDb];
     const available=row?.available===true;
-    button.disabled=!available;
+    button.disabled=!available||Boolean(internalDbBenchmarkAbort);
     button.classList.toggle('active',button.dataset.runtimeDb===internalDbLabActive);
     button.setAttribute('aria-pressed',String(button.dataset.runtimeDb===internalDbLabActive));
     const small=button.querySelector('small');
@@ -2156,24 +2351,39 @@ function renderInternalDbLab(){
   if(status)status.textContent=active?.available
     ?String(internalDbLabActive).toUpperCase()+' · '+formatLabBytes(active.file?.sizeBytes)+' · '+(writerExecution||'bereit')
     :'DB nicht verfügbar';
+  renderInternalDbBenchmarkProgress();
   const metrics=$('#internalDbMetrics');
   metrics?.classList.toggle('hidden',!internalDbLabMetricsOpen);
   $('#internalDbMetricsToggle')?.setAttribute('aria-expanded',String(internalDbLabMetricsOpen));
   if(!metrics||!internalDbLabMetricsOpen)return;
   const live=currentInternalDbLabMetrics();
   const s=live.studio,b=live.browser,server=internalDbLabPayload?.server||{};
-  metrics.innerHTML='<div class="internal-db-metrics-head"><div><b>DB + Site Performance Lab</b><small>Per-request routing · Ergebnisse, Details und Song-Analyse bleiben an '+esc(internalDbLabActive.toUpperCase())+' gebunden.</small></div><small>Internal only · shipping=false</small></div>'
+  const responseSize=formatLabBytes(s.responseBytes);
+  const fingerprint=String(s.resultQuality?.fingerprint||'—');
+  metrics.innerHTML='<div class="internal-db-metrics-head"><div><b>DB + Site Performance Lab</b><small>Per-request routing · vollständiger Request + Quality-Fingerprint + Transport-Pipeline.</small></div><small>Internal only · shipping=false</small></div>'
     +'<div class="internal-db-live-grid">'
-    +'<div class="internal-db-metric"><small>Server search</small><b>'+formatLabMs(s.serverSearchMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Client roundtrip</small><b>'+formatLabMs(s.clientRoundTripMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Result render</small><b>'+formatLabMs(s.resultRenderMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>DB/Search</small><b>'+formatLabMs(s.serverSearchMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>Post-search</small><b>'+formatLabMs(s.serverPostSearchMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>Serialize</small><b>'+formatLabMs(s.serverSerializeMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>Headers</small><b>'+formatLabMs(s.clientHeadersMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>Body read</small><b>'+formatLabMs(s.clientBodyReadMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>JSON parse</small><b>'+formatLabMs(s.clientParseMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>Map DTO</small><b>'+formatLabMs(s.clientMapMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>Total fetch</small><b>'+formatLabMs(s.clientTotalMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>DOM render</small><b>'+formatLabMs(s.resultRenderMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>Response</small><b>'+responseSize+'</b></div>'
     +'<div class="internal-db-metric"><small>Results</small><b>'+Number(s.resultCount||0).toLocaleString('de-DE')+'</b></div>'
-    +'<div class="internal-db-metric"><small>TTFB</small><b>'+formatLabMs(b.navigation?.ttfbMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>FCP</small><b>'+formatLabMs(b.paint?.['first-contentful-paint'])+'</b></div>'
+    +'<div class="internal-db-metric"><small>Fingerprint</small><b title="'+esc(fingerprint)+'">'+esc(fingerprint.replace('fnv1a32:',''))+'</b></div>'
+    +'<div class="internal-db-metric"><small>Query transfer</small><b>'+formatLabBytes(s.queryResource?.transferSize)+'</b></div>'
     +'</div>'
     +'<div class="internal-db-card-grid">'+(internalDbLabPayload?.databases||[]).map(internalDbCardMarkup).join('')+'</div>'
-    +'<div class="internal-db-tech-grid"><section class="internal-db-tech"><h4>Browser / Site</h4><pre>'+esc(JSON.stringify(b,null,2))+'</pre></section>'
-    +'<section class="internal-db-tech"><h4>Server / Process</h4><pre>'+esc(JSON.stringify(server,null,2))+'</pre></section></div>';
+    +internalDbBenchmarkMarkup()
+    +'<div class="internal-db-request-grid">'
+    +'<section class="internal-db-tech"><h4>Exact effective Writer request</h4><pre>'+esc(JSON.stringify(s.effectiveRequest,null,2))+'</pre></section>'
+    +'<section class="internal-db-tech"><h4>Result quality + UI state</h4><pre>'+esc(JSON.stringify({quality:s.resultQuality,uiState:s.uiState,queryResource:s.queryResource},null,2))+'</pre></section>'
+    +'</div>'
+    +'<div class="internal-db-tech-grid"><section class="internal-db-tech"><h4>Browser / Site · cumulative page context</h4><pre>'+esc(JSON.stringify(b,null,2))+'</pre></section>'
+    +'<section class="internal-db-tech"><h4>Server / Process · refreshed snapshot</h4><pre>'+esc(JSON.stringify(server,null,2))+'</pre></section></div>';
 }
 async function refreshInternalDbLabPayload({silent=false}={}){
   if(!internalDbLabEnabled&&!silent)return null;
@@ -2211,7 +2421,7 @@ async function setInternalDbLabDb(id){
   selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';
   $('#detailDock')?.classList.add('hidden');
   analysisAbort?.abort?.();analysisSignature='';analysisStatus='idle';analysisData=null;
-  writerRows=[];writerRuntimeTiming=null;writerClientTiming=null;writerExecution=null;lastResultRenderMs=null;
+  writerRows=[];writerRuntimeTiming=null;writerClientTiming=null;writerServerTransport=null;writerEffectiveRequest=null;writerExecution=null;lastResultRenderMs=null;
   if(summary.capabilities?.generated!==true){generated=false;generatedOnly=false}
   studioCapabilities=studioCapabilitiesFromInternalDb(summary,studioCapabilities);
   updateCapabilitySurface();
@@ -2225,12 +2435,14 @@ async function setInternalDbLabDb(id){
   if(mode==='rhyme')void refreshSongAnalysis(true);
 }
 async function copyInternalDbLabMetrics(){
+  try{await refreshInternalDbLabPayload({silent:true})}catch{}
   const live=currentInternalDbLabMetrics();
   const payload=internalDbLabCopyPayload({
     payload:internalDbLabPayload,
     activeDb:internalDbLabActive,
     browser:live.browser,
     studio:live.studio,
+    benchmark:internalDbBenchmarkReport,
   });
   const text=JSON.stringify(payload,null,2);
   try{
@@ -2258,9 +2470,13 @@ async function initializeInternalDbLab(){
     queryAll('#internalDbSwitch [data-runtime-db]').forEach((button)=>{
       button.onclick=()=>{void setInternalDbLabDb(button.dataset.runtimeDb)};
     });
+    $('#internalDbBenchCurrent').onclick=()=>{void runStudioInternalDbBenchmark('current')};
+    $('#internalDbBenchSuite').onclick=()=>{void runStudioInternalDbBenchmark('suite')};
+    $('#internalDbBenchStop').onclick=()=>stopStudioInternalDbBenchmark();
     $('#internalDbMetricsToggle').onclick=()=>{
       internalDbLabMetricsOpen=!internalDbLabMetricsOpen;
       renderInternalDbLab();
+      if(internalDbLabMetricsOpen)void refreshInternalDbLabPayload({silent:true});
     };
     $('#internalDbMetricsCopy').onclick=()=>{void copyInternalDbLabMetrics()};
     $('#internalDbMetricsRefresh').onclick=async()=>{

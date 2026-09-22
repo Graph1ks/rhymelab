@@ -41,10 +41,16 @@ test('Studio Writer sends selected runtime_db and preserves backend identity',as
   });
 
   assert.equal(urls.length,1);
-  assert.equal(new URL(urls[0],'http://local/').searchParams.get('runtime_db'),'lite');
+  const requestUrl=new URL(urls[0],'http://local/');
+  assert.equal(requestUrl.searchParams.get('runtime_db'),'lite');
+  assert.equal(requestUrl.searchParams.get('studio'),'1');
+  assert.equal(result.effectiveRequest.runtime_db,'lite');
+  assert.equal(result.effectiveRequest.studio,'1');
   assert.equal(result.runtimeDb,'lite');
   assert.equal(result.runtimeExecution,'direct-internal-db-lab');
   assert.ok(result.clientTiming.roundTripMs>=0);
+  assert.ok(result.clientTiming.parseMs>=0);
+  assert.ok(result.clientTiming.mapMs>=0);
 });
 
 test('Studio detail lookup stays on selected runtime DB',async()=>{
@@ -110,4 +116,38 @@ test('Studio capability probes use the same selected runtime DB',async()=>{
   for(const url of urls){
     assert.equal(new URL(url,'http://local/').searchParams.get('runtime_db'),'lite');
   }
+});
+
+
+test('Studio benchmark profiling is explicit and does not leak into normal requests',async()=>{
+  const urls=[];
+  const client=createWriterSearchClient({
+    fetchImpl:async(url)=>{
+      urls.push(String(url));
+      return response({
+        status:'ok',
+        results:[],
+        query:{syllableCount:1,ipa:'x'},
+        queries:{de:{ipa:'x'}},
+        capabilities:{languages:{de:{available:true}}},
+        runtimeDb:'full',
+      });
+    },
+  });
+
+  await client.search({query:'Zeit',queryBasis:'de',resultLanguage:'de',runtimeDb:'full'});
+  await client.search({
+    query:'Zeit',
+    queryBasis:'de',
+    resultLanguage:'de',
+    runtimeDb:'full',
+    internalProfile:true,
+  });
+
+  const normal=new URL(urls[0],'http://local/');
+  const profiled=new URL(urls[1],'http://local/');
+  assert.equal(normal.searchParams.get('studio'),'1');
+  assert.equal(normal.searchParams.has('profile'),false);
+  assert.equal(profiled.searchParams.get('studio'),'1');
+  assert.equal(profiled.searchParams.get('profile'),'1');
 });

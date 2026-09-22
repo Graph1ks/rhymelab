@@ -34,7 +34,7 @@
     "query_pronunciation_cache": "rhymelab-query-pronunciation-cache-v1",
     "query_pronunciation_cache_revalidation": "health_revision_once_per_app_session",
     "internal_distribution_lab": {
-      "status": "IMPLEMENTED_INTERNAL_ONLY",
+      "status": "IMPLEMENTED_INTERNAL_ONLY_QUALITY_SPEED_V2",
       "command": "npm run dev:distribution-lab",
       "selector_parameter": "runtime_db",
       "selector_values": [
@@ -46,10 +46,31 @@
       "routing": "per_request_no_global_active_db",
       "shipping_ui": false,
       "disabled_endpoint_status": 404,
-      "metrics_copy_schema": "rhymelab-internal-db-lab-copy-v1",
+      "metrics_copy_schema": "rhymelab-internal-db-lab-copy-v2",
       "contract": "docs/INTERNAL_DISTRIBUTION_LAB.md",
-      "future_user_settings": "SEPARATE_PRODUCT_TASK_REUSE_REQUEST_SCOPED_ROUTING"
-    }
+      "future_user_settings": "SEPARATE_PRODUCT_TASK_REUSE_REQUEST_SCOPED_ROUTING",
+      "benchmark_schema": "rhymelab-internal-db-benchmark-v1",
+      "benchmark_current": "1_warmup_5_measured_runs_per_available_database",
+      "benchmark_suite": "12_fixed_de_en_queries_1_warmup_2_measured_runs_per_query_database",
+      "benchmark_quality": "ordered_result_fingerprint_top50_jaccard_exact_prefix_determinism",
+      "transport_projection": "studio-writer-compact-v1",
+      "transport_projection_scope": "studio_requests_only_full_writer_api_unchanged",
+      "per_query_metrics": [
+        "server_search_ms",
+        "server_post_search_ms",
+        "server_serialize_ms",
+        "response_bytes",
+        "client_headers_ms",
+        "client_body_read_ms",
+        "client_parse_ms",
+        "client_map_ms",
+        "client_total_ms",
+        "resource_transfer_bytes",
+        "result_render_ms"
+      ],
+      "copy_refreshes_server_metrics": true
+    },
+    "master_markov_capability": false
   },
   "legacy_control_baseline": {
     "status": "preserved",
@@ -3923,7 +3944,34 @@
     "plan_command": "npm run distribution:plan",
     "build_command": "npm run distribution:build",
     "nesting_verify_command": "npm run distribution:verify:nesting",
-    "physical_sizes_recorded_in_repo": false,
-    "internal_lab": "docs/INTERNAL_DISTRIBUTION_LAB.md"
+    "physical_sizes_recorded_in_repo": true,
+    "internal_lab": "docs/INTERNAL_DISTRIBUTION_LAB.md",
+    "physical_size_evidence": {
+      "observed_at": "2026-09-22",
+      "evidence_kind": "owner_local_completed_distribution_db_lab_snapshot",
+      "master": {
+        "bytes": 20160811008,
+        "gib": 18.776
+      },
+      "lite": {
+        "bytes": 154152960,
+        "mib": 147
+      },
+      "standard": {
+        "bytes": 1109385216,
+        "gib": 1.033
+      },
+      "full": {
+        "bytes": 2147987456,
+        "gib": 2
+      },
+      "freelist_pages": {
+        "master": 0,
+        "lite": 0,
+        "standard": 0,
+        "full": 0
+      },
+      "note": "Owner-local completed/vacuumed SQLite observations; benchmark timing acceptance remains separate."
+    }
   }
 }
