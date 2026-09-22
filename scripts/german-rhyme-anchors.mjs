@@ -1,9 +1,11 @@
 import {
+  coarseCodaClass,
   germanRhymeMatchUpperBound,
   prepareGermanRhymeAnalysis,
   scoreGermanRhymeAnalyses,
   scorePreparedGermanRhymeAnalyses,
 } from './german-rhyme-features.mjs';
+import { germanVowelFamilyKey } from './german-ipa.mjs';
 
 function uniqueSorted(values) {
   return [...new Set(values)].sort((a, b) => a - b);
@@ -59,19 +61,28 @@ export function germanAnalysisAtRhymeAnchor(analysis, anchorPosition, options = 
   const onsetSequence = tail
     .flatMap((syllable, index) => index === 0 ? [] : syllable.onset)
     .join(' ');
+  const final = workingSyllables.at(-1);
+  const codaKey = (final?.coda || []).join(' ');
+  const finalTail = [final?.nucleus, ...(final?.coda || [])].filter(Boolean).join(' ');
 
   return {
     ...analysis,
     syllables: workingSyllables,
     syllableCount: workingSyllables.length,
+    stressPattern: workingSyllables.map((syllable) => Number(syllable?.stressLevel || 0)).join(''),
     primaryStressSyllable: startIndex + 1,
     stressedTail: tailTokens.join(' '),
+    finalTail,
     exactTailKey: tailTokens.join('').replaceAll(' ', ''),
     multisyllableKey: tail.length >= 2 ? tailTokens.join('').replaceAll(' ', '') : null,
     vowelSequence,
     consonantSequence,
     onsetSequence,
     vowelKey: vowelSequence.replaceAll(' ', '-'),
+    vowelFamilyKey: germanVowelFamilyKey(tail.map((syllable) => syllable.nucleus)),
+    codaKey,
+    codaClassKey: coarseCodaClass(final?.coda || []),
+    onsetKey: (final?.onset || []).join(' '),
     stressedSyllableCount: tail.length,
   };
 }
