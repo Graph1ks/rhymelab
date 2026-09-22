@@ -9,6 +9,7 @@ import {
   DISTRIBUTION_EDITIONS,
   DISTRIBUTION_RANK_POLICY,
   assertDistributionSourceReady,
+  attachReadOnlyDatabase,
   copyDistributionStage,
   createRankTable,
   createRankTables,
@@ -62,7 +63,7 @@ function putMeta(db,key,value){
   `).run(key,String(value));
 }
 function attachSource(db,source){
-  db.prepare('ATTACH DATABASE ? AS src').run(source);
+  return attachReadOnlyDatabase(db,source,{alias:'src'});
 }
 function detachSource(db){
   try{db.exec('DETACH DATABASE src;');}catch{}
