@@ -1,3 +1,5 @@
+import {writerResultQuality} from './internal-db-benchmark.mjs';
+
 export const INTERNAL_DB_LAB_STORAGE_KEY='rhymelab.internal.dbLab.v1';
 export const INTERNAL_DB_LAB_IDS=Object.freeze(['master','lite','standard','full']);
 
@@ -110,22 +112,37 @@ export function studioRuntimeMetrics({
   writerStatus='idle',
   writerRuntimeTiming=null,
   writerClientTiming=null,
+  writerServerTransport=null,
   writerExecution=null,
+  writerEffectiveRequest=null,
+  writerRows=[],
   lastRenderMs=null,
   resultCount=0,
   visibleResultCount=0,
   query='',
 }={}){
+  const quality=writerResultQuality(writerRows||[]);
   return {
     activeDb:normalizeInternalDbLabId(activeDb),
     writerStatus:String(writerStatus||''),
     query:String(query||''),
+    effectiveRequest:writerEffectiveRequest||null,
     resultCount:Number(resultCount||0),
     visibleResultCount:Number(visibleResultCount||0),
+    resultQuality:quality,
     serverSearchMs:finite(writerRuntimeTiming?.searchMs),
     serverAverageLast100Ms:finite(writerRuntimeTiming?.averageLast100Ms),
     serverSampleCount:Number(writerRuntimeTiming?.sampleCount||0),
+    serverBeforeSerializeMs:finite(writerServerTransport?.beforeSerializeMs),
+    serverSerializeMs:finite(writerServerTransport?.serializeMs),
+    responseBytes:finite(writerClientTiming?.responseBytes??writerServerTransport?.responseBytes),
+    clientHeadersMs:finite(writerClientTiming?.headersMs),
+    clientBodyReadMs:finite(writerClientTiming?.bodyReadMs),
+    clientParseMs:finite(writerClientTiming?.parseMs),
+    clientMapMs:finite(writerClientTiming?.mapMs),
+    clientTotalMs:finite(writerClientTiming?.totalMs??writerClientTiming?.roundTripMs),
     clientRoundTripMs:finite(writerClientTiming?.roundTripMs),
+    queryResource:writerClientTiming?.resource||null,
     resultRenderMs:finite(lastRenderMs),
     execution:writerExecution||null,
   };
@@ -164,9 +181,10 @@ export function internalDbLabCopyPayload({
   activeDb,
   browser,
   studio,
+  benchmark=null,
 }={}){
   return {
-    schema:'rhymelab-internal-db-lab-copy-v1',
+    schema:'rhymelab-internal-db-lab-copy-v2',
     copiedAt:new Date().toISOString(),
     internalOnly:true,
     shipping:false,
@@ -175,5 +193,6 @@ export function internalDbLabCopyPayload({
     browser:browser||null,
     server:payload?.server||null,
     databases:payload?.databases||[],
+    benchmark:benchmark||null,
   };
 }
