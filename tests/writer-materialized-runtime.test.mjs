@@ -59,11 +59,20 @@ function fixtureDb() {
   return db;
 }
 
-function insertHot(db, id, formId, surface, lemma, pos, usageRank = 1000) {
+function insertHot(db, id, formId, surface, lemma, pos, usageRank = 1000, syllableCount = 3) {
   db.prepare(`
     INSERT INTO hot(id,publish_order,surface,normalized,lemma,pos,usage_rank,historical,pronunciation_preferred,syllable_count)
-    VALUES(?,?,?,?,?,?,?,0,1,3)
-  `).run(id, formId, surface, surface.toLocaleLowerCase('de-DE'), lemma, pos, usageRank);
+    VALUES(?,?,?,?,?,?,?,0,1,?)
+  `).run(
+    id,
+    formId,
+    surface,
+    surface.toLocaleLowerCase('de-DE'),
+    lemma,
+    pos,
+    usageRank,
+    syllableCount,
+  );
 }
 
 test('materialized writer runtime activates only for the complete v5 storage contract', () => {
@@ -91,6 +100,37 @@ test('materialized anchor lookup uses the compact candidate table', () => {
       limit: 50,
     });
     assert.deepEqual(rows.map((row) => row.normalized), ['weiterreise', 'hochzeitsreise']);
+  } finally {
+    db.close();
+  }
+});
+
+test('materialized anchor lookup honors an absolute syllable filter before its limit', () => {
+  const db = fixtureDb();
+  try {
+    insertHot(db, 1, 1, 'Reis', 'Reis', 'noun', 3000, 1);
+    insertHot(db, 2, 2, 'Reise', 'Reise', 'noun', 1000, 2);
+    insertHot(db, 3, 3, 'Weiterreise', 'Weiterreise', 'noun', 500, 4);
+    for (const id of [1,2,3]) {
+      db.prepare('INSERT INTO writer_anchor(anchor_key,pronunciation_id) VALUES(?,?)')
+        .run('aɪ-ə', id);
+    }
+
+    const one = lookupMaterializedWriterAnchorRows(db, 'aɪ-ə', {
+      queryNormalized: 'arbeitsweise',
+      querySyllables: 4,
+      syllableFilter: '1',
+      limit: 50,
+    });
+    assert.deepEqual(one.map((row) => row.normalized), ['reis']);
+
+    const two = lookupMaterializedWriterAnchorRows(db, 'aɪ-ə', {
+      queryNormalized: 'arbeitsweise',
+      querySyllables: 4,
+      syllableFilter: '2',
+      limit: 50,
+    });
+    assert.deepEqual(two.map((row) => row.normalized), ['reise']);
   } finally {
     db.close();
   }
