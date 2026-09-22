@@ -38,6 +38,8 @@ const PRIMARY_TYPES = new Set([
   'family',
   'slant',
 ]);
+const SOUND_TYPES=new Set(['assonance','consonance']);
+const WRITER_TYPES=new Set(['all',...PRIMARY_TYPES,...SOUND_TYPES]);
 
 function clampInteger(value, fallback, minimum, maximum) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -403,6 +405,13 @@ function relationRows(score) {
   });
 }
 
+function scoreMatchesRequestedType(score,type){
+  if(type==='all')return true;
+  if(PRIMARY_TYPES.has(type))return score?.type===type;
+  if(SOUND_TYPES.has(type))return relationRows(score).some((row)=>row.type===type);
+  return true;
+}
+
 function phraseProductResult(candidate) {
   const score = candidate?.score || {};
   const primaryType = PRIMARY_TYPES.has(score.type) ? score.type : null;
@@ -547,8 +556,20 @@ function searchGermanPhraseChannel(phraseDb, query, options = {}) {
     filteredRetrieval,
   ));
   counters.enriched_candidates=Number(enriched?.candidates?.length||enriched?.length||0);
+  const requestedType=WRITER_TYPES.has(String(options.type||'all'))
+    ?String(options.type||'all')
+    :'all';
+  const typeFilteredEnriched=requestedType==='all'
+    ?enriched
+    :{
+        ...enriched,
+        candidates:(enriched?.candidates||[]).filter((candidate)=>
+          scoreMatchesRequestedType(candidate?.score,requestedType)
+        ),
+      };
+  counters.type_filtered_candidates=Number(typeFilteredEnriched?.candidates?.length||0);
 
-  const ranked = timed('ranking_ms',()=>rankPhraseMosaicCandidatesV2(enriched));
+  const ranked = timed('ranking_ms',()=>rankPhraseMosaicCandidatesV2(typeFilteredEnriched));
   const diversified = timed(
     'diversity_ms',
     ()=>diversifyPhraseMosaicWriterPage(ranked),
@@ -581,6 +602,7 @@ function searchGermanPhraseChannel(phraseDb, query, options = {}) {
     policy: diversified.policy,
     rankingPolicy: ranked.policy,
     retrievalPolicy: retrieval.policy,
+    requestedType,
     retrieval: retrieval.retrieval,
     queryAnchors: retrieval.query?.anchors || [],
     rankingFingerprint: ranked.rankingFingerprint,
