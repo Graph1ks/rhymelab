@@ -413,7 +413,7 @@ function hydrateServingRichCandidates(db,orderedIds){
 }
 
 function servingCandidatePool(
-  db,queryRow,poolLimit,includeVariants=false,includeHistorical=false,generatedOnly=false,metrics=null,syllableFilter='all'
+  db,queryRow,poolLimit,includeVariants=false,includeHistorical=false,generatedOnly=false,metrics=null,syllableFilter='all',totalPoolLimit=false
 ){
   const limit=clampLimit(poolLimit,350,800);
   const mode=servingConnectionMode(db);
@@ -445,12 +445,13 @@ function servingCandidatePool(
   if(queryRow.coda_key){
     add(servingChannelCandidateIds(db,'coda_key',queryRow.coda_key,queryRow.syllable_count,common));
   }
+  const selectedIds=totalPoolLimit?orderedIds.slice(0,limit):orderedIds;
   if(metrics){
     metrics.candidate_lookup_ms+=performance.now()-lookupStarted;
-    metrics.candidate_ids+=orderedIds.length;
+    metrics.candidate_ids+=selectedIds.length;
   }
   const hydrationStarted=metrics?performance.now():0;
-  const hydrated=hydrateServingScoringCandidates(db,orderedIds)
+  const hydrated=hydrateServingScoringCandidates(db,selectedIds)
     .filter((row)=>row.normalized!==queryRow.normalized);
   if(metrics){
     metrics.candidate_hydration_ms+=performance.now()-hydrationStarted;
@@ -460,11 +461,11 @@ function servingCandidatePool(
 }
 
 function candidatePool(
-  db,queryRow,poolLimit,includeVariants=false,includeHistorical=false,generatedOnly=false,metrics=null,syllableFilter='all'
+  db,queryRow,poolLimit,includeVariants=false,includeHistorical=false,generatedOnly=false,metrics=null,syllableFilter='all',totalPoolLimit=false
 ) {
   if(servingBoundedHotpath(db)){
     return servingCandidatePool(
-      db,queryRow,poolLimit,includeVariants,includeHistorical,generatedOnly,metrics,syllableFilter
+      db,queryRow,poolLimit,includeVariants,includeHistorical,generatedOnly,metrics,syllableFilter,totalPoolLimit
     );
   }
   const candidates = new Map();
@@ -514,7 +515,8 @@ function candidatePool(
     add(channelRows(`SELECT * FROM hot WHERE coda_key=?${syllableWhere}${preferred}${historical}${generated}${order}`,[queryRow.coda_key]));
   }
 
-  return [...candidates.values()];
+  const rows=[...candidates.values()];
+  return totalPoolLimit?rows.slice(0,limit):rows;
 }
 
 export function lookupGermanCandidateRowsForAnalysis(db,analysis,options={}){
@@ -548,12 +550,12 @@ export function lookupGermanCandidateRowsForAnalysis(db,analysis,options={}){
     options.generatedOnly===true,
     options.metrics||null,
     options.syllableFilter||'all',
+    true,
   );
-  const boundedRows=rows.slice(0,clampLimit(options.poolLimit,350,800));
-  if(!servingBoundedHotpath(db)||options.hydrateRich===false)return boundedRows;
+  if(!servingBoundedHotpath(db)||options.hydrateRich===false)return rows;
   return hydrateServingRichCandidates(
     db,
-    boundedRows.map((row)=>Number(row.id)).filter(Number.isFinite),
+    rows.map((row)=>Number(row.id)).filter(Number.isFinite),
   );
 }
 
