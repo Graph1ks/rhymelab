@@ -11,6 +11,7 @@ import {createServingV1ProductStorage} from '../scripts/serving-v1-product-core.
 import {
   DISTRIBUTION_COPY_STAGES,
   DISTRIBUTION_RANK_POLICY,
+  attachReadOnlyDatabase,
   copyDistributionStage,
   createRankTables,
   createSelectionStorage,
@@ -102,6 +103,32 @@ function seedSource(db){
     origin.run(100+row[0],core?'core':'generated','word',core?'fixture_core':'fixture_generated');
   }
 }
+
+test('distribution Master attachment is physically read-only',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'rhymelab-distribution-ro-'));
+  const sourcePath=join(dir,'source.sqlite');
+  const workPath=join(dir,'work.sqlite');
+  const source=new DatabaseSync(sourcePath);
+  seedSource(source);
+  source.close();
+
+  const work=new DatabaseSync(workPath);
+  try{
+    attachReadOnlyDatabase(work,sourcePath,{alias:'src'});
+    assert.equal(
+      work.prepare("SELECT value FROM src.meta WHERE key='schema'").get().value,
+      'rhymelab-serving-v1',
+    );
+    assert.throws(
+      ()=>work.exec("INSERT INTO src.meta(key,value) VALUES('should_not_write','1')"),
+      /readonly|read-only/i,
+    );
+  }finally{
+    try{work.exec('DETACH DATABASE src;');}catch{}
+    work.close();
+    await rm(dir,{recursive:true,force:true});
+  }
+});
 
 test('distribution rank v1 merges language-local usage percentiles before fallback rows',()=>{
   const db=new DatabaseSync(':memory:');
