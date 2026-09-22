@@ -18,6 +18,7 @@ import {
   germanAnalysisAtRhymeAnchor,
 } from '../scripts/german-rhyme-anchors.mjs';
 import { SERVING_V1_PRODUCT_SCHEMA } from '../scripts/serving-v1-product-core.mjs';
+import { matchesSyllableFilter } from './syllable-filter.mjs';
 import {
   ENGLISH_QUALITY_CANDIDATES,
   ENGLISH_WRITER_RANKING_V2_POLICY,
@@ -450,6 +451,11 @@ export function searchEnglishWriter(db,surface,options={}){
 
   const byNormalized=new Map();
   for(const candidate of retrieval.candidates){
+    if(!matchesSyllableFilter(
+      candidate.syllable_count,
+      options.syllableFilter||'all',
+      query?.syllableCount||0,
+    ))continue;
     let best=null;
     for(const queryPronunciation of retrieval.pronunciations){
       const score=scoreEnglishRhymeAnalyses(
@@ -655,6 +661,11 @@ export function searchEnglishWriterFromExternalQuery(db,queryDetail,options={}){
 
   const byNormalized=new Map();
   for(const candidate of retrieval.candidates){
+    if(!matchesSyllableFilter(
+      candidate.syllable_count,
+      options.syllableFilter||'all',
+      queryDetail?.syllableCount||queryAnalysis?.syllableCount||0,
+    ))continue;
     const score=scoreEnglishRhymeAnalyses(queryAnalysis,analysisFor(candidate));
     const tier=relationTier(score);
     if(tier>=99) continue;
