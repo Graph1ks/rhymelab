@@ -13,6 +13,7 @@ import {
   ENTITY_WRITER_RANKING_POLICY,
   rankAndDiversifyEntityRows,
 } from './entity-writer-ranking.mjs';
+import { matchesSyllableFilter } from './syllable-filter.mjs';
 import {
   ENTITY_EN_PHONETIC_RUNTIME,
   ENTITY_EN_RUNTIME_ANALYZER,
@@ -707,6 +708,11 @@ export function searchEntityRhymes(db, query, options = {}) {
       candidateAnalysis=null;
     }
     if(!candidateAnalysis)continue;
+    if(!matchesSyllableFilter(
+      candidateAnalysis.syllableCount,
+      options.syllableFilter||'all',
+      queryAnalysis.syllableCount||0,
+    ))continue;
     const score=profile.scoreWriterAnalyses(queryAnalysis,candidateAnalysis);
     const types=scoreTypes(score);
     if(!types.length) continue;
