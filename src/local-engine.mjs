@@ -546,10 +546,10 @@ export function lookupGermanCandidateRowsForAnalysis(db,analysis,options={}){
     options.includeVariants===true,
     options.includeHistorical===true,
     options.generatedOnly===true,
-    null,
+    options.metrics||null,
     options.syllableFilter||'all',
   );
-  if(!servingBoundedHotpath(db))return rows;
+  if(!servingBoundedHotpath(db)||options.hydrateRich===false)return rows;
   return hydrateServingRichCandidates(
     db,
     rows.map((row)=>Number(row.id)).filter(Number.isFinite),
@@ -827,6 +827,22 @@ export function findRhymes(db, word, options = {}) {
     &&typeof profile.prepareWriterAnalysis==='function'
     &&typeof profile.scoreWriterAnalyses==='function'
   );
+  const shortWriterRetrievalAnalysis=(prepared,fallback)=>{
+    if(!filteredWriterScoring)return fallback;
+    const anchors=Array.isArray(prepared?.anchors)?prepared.anchors:[];
+    const exactTarget=anchors
+      .filter((anchor)=>Number(anchor?.tailSyllables||0)===explicitWriterSyllableTarget)
+      .sort((a,b)=>
+        Number(b?.clipped===true)-Number(a?.clipped===true)
+        ||Number(b?.position||0)-Number(a?.position||0)
+      )[0];
+    const rightmost=anchors
+      .filter((anchor)=>anchor?.clipped!==true)
+      .sort((a,b)=>Number(b?.position||0)-Number(a?.position||0))[0];
+    return exactTarget?.prepared?.analysis
+      ||rightmost?.prepared?.analysis
+      ||fallback;
+  };
 
   const rowKey=(row)=>String(row?.id??row?.source_order_id??row?.ipa??'');
   const analysisFor=(row)=>{
@@ -901,16 +917,32 @@ export function findRhymes(db, word, options = {}) {
       }
     } catch { continue; }
 
-    const candidates=candidatePool(
-      db,
-      queryRow,
-      options.poolLimit,
-      includeVariants,
-      includeHistorical,
-      options.generatedOnly===true,
-      metrics,
-      options.syllableFilter||'all',
-    );
+    const candidates=filteredWriterScoring
+      ?lookupGermanCandidateRowsForAnalysis(
+        db,
+        shortWriterRetrievalAnalysis(queryPrepared,queryAnalysis),
+        {
+          queryNormalized:normalized,
+          querySyllables:queryRow.syllable_count,
+          includeVariants,
+          includeHistorical,
+          generatedOnly:options.generatedOnly===true,
+          syllableFilter:String(explicitWriterSyllableTarget),
+          poolLimit:options.poolLimit,
+          hydrateRich:false,
+          metrics,
+        },
+      )
+      :candidatePool(
+        db,
+        queryRow,
+        options.poolLimit,
+        includeVariants,
+        includeHistorical,
+        options.generatedOnly===true,
+        metrics,
+        options.syllableFilter||'all',
+      );
     for (const candidate of candidates) {
       let candidateAnalysis;
       let candidatePrepared;
