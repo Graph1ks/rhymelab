@@ -175,26 +175,77 @@ function lookupBoundedServingWriterRows(db,anchorKey,options={}){
   `);
   const requestedRange=syllableFilterRange(syllableFilter,querySyllables);
   if(requestedRange){
-    const filtered=db.prepare(`
+    const rangeWhere=[
+      'c.key_value=?',
+      'c.normalized<>?',
+      mode==='core'?'c.canonical_available=1':'(c.canonical_available=1 OR c.generated_available=1)',
+      includeVariants?'1=1':preferredColumn+'=1',
+      includeHistorical?'1=1':'c.historical=0',
+      generatedOnly?'c.generated_only=1':'1=1',
+    ].join(' AND ');
+    const bounds=db.prepare(`
+      SELECT MIN(c.syllable_count) AS min_count,MAX(c.syllable_count) AS max_count
+      FROM runtime_de_writer_candidate c
+      WHERE ${rangeWhere}
+    `).get(String(anchorKey),queryNormalized);
+    if(bounds?.min_count==null||bounds?.max_count==null)return [];
+    const min=Math.max(Number(requestedRange.min),Number(bounds.min_count));
+    const max=Math.min(
+      Math.min(Number(requestedRange.max),1000000),
+      Number(bounds.max_count),
+    );
+    if(min>max)return [];
+
+    const bucket=db.prepare(`
       ${servingWriterProjection(mode)}
-      WHERE c.key_value=?
-        AND c.normalized<>?
-        AND ${mode==='core'?'c.canonical_available=1':'(c.canonical_available=1 OR c.generated_available=1)'}
-        AND ${includeVariants?'1=1':preferredColumn+'=1'}
-        AND ${includeHistorical?'1=1':'c.historical=0'}
-        AND ${generatedOnly?'c.generated_only=1':'1=1'}
-        AND c.syllable_count BETWEEN ? AND ?
-      ORDER BY ABS(c.syllable_count-?),c.usage_rank IS NULL,c.usage_rank,c.source_order,c.pronunciation_id
+      WHERE ${rangeWhere}
+        AND c.syllable_count=?
+      ORDER BY c.usage_rank IS NULL,c.usage_rank,c.source_order,c.pronunciation_id
       LIMIT ?
     `);
-    return filtered.all(
-      String(anchorKey),
-      queryNormalized,
-      requestedRange.min,
-      Math.min(requestedRange.max,1000000),
-      querySyllables,
-      limit,
+    const counts=[];
+    for(let count=min;count<=max;count+=1)counts.push(count);
+    counts.sort((a,b)=>
+      Math.abs(a-querySyllables)-Math.abs(b-querySyllables)
+      ||a-b
     );
+
+    const out=[];
+    for(let index=0;index<counts.length&&out.length<limit;){
+      const distance=Math.abs(counts[index]-querySyllables);
+      const sameDistance=[];
+      while(
+        index<counts.length
+        &&Math.abs(counts[index]-querySyllables)===distance
+      ){
+        sameDistance.push(counts[index]);
+        index+=1;
+      }
+      const remaining=limit-out.length;
+      if(sameDistance.length===1){
+        out.push(...bucket.all(
+          String(anchorKey),
+          queryNormalized,
+          sameDistance[0],
+          remaining,
+        ));
+        continue;
+      }
+      const left=bucket.all(
+        String(anchorKey),
+        queryNormalized,
+        sameDistance[0],
+        remaining,
+      );
+      const right=bucket.all(
+        String(anchorKey),
+        queryNormalized,
+        sameDistance[1],
+        remaining,
+      );
+      out.push(...mergeBoundedRows(left,right,remaining));
+    }
+    return out;
   }
   const exact=querySyllables>0
     ?stmt.all(String(anchorKey),queryNormalized,querySyllables,limit)
