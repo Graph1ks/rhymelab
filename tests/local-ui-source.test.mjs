@@ -89,7 +89,7 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(searchState, /export function createSearchState/);
   assert.match(searchState, /export function searchStateToWriterParams/);
   assert.match(searchState, /export function writeSearchStateToUrl/);
-  assert.match(searchState, /SOUND_RELATIONS\.has\(state\.rhymeType\)\?'all':state\.rhymeType/);
+  assert.match(searchState, /type:state\.rhymeType/);
   assert.match(app, /resolveUnknownClientPronunciation/);
   assert.match(app, /resolveMissingQueryPronunciations/);
   assert.match(app, /query_ipa_\$\{language\}/);
