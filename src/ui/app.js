@@ -4,7 +4,7 @@ import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchSta
 import {enhanceSelect,syncEnhancedSelects} from './custom-select.mjs';
 
 const $ = (selector) => document.querySelector(selector);
-const $ = (selector) => [...document.querySelectorAll(selector)];
+const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 let filterSelectControls=[];
 function customSelectDomAvailable(){
