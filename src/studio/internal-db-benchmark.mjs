@@ -217,7 +217,7 @@ export async function runInternalDbBenchmark({
   })).filter((row)=>row.query);
   const dbs=databases.map((value)=>String(value)).filter(Boolean);
   const safeWarmups=Math.max(0,Math.min(3,Math.trunc(Number(warmups)||0)));
-  const safeRuns=Math.max(1,Math.min(10,Math.trunc(Number(runs)||1));
+  const safeRuns=Math.max(1,Math.min(10,Math.trunc(Number(runs)||1)));
   const samples=[];
   const total=normalizedCases.length*dbs.length*(safeWarmups+safeRuns);
   let current=0;
