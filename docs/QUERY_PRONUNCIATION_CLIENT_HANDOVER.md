@@ -31,6 +31,34 @@ Regression sentence:
 heute abend große gangbang party
 ```
 
+## German unknown-compound terminal-head recovery
+
+For an unknown German single token, the client may recover a source-backed terminal
+compound component even when the left remainder is not source-backed.
+
+Example:
+
+```text
+Krankenkassenwarteweise
+-> generated left remainder + source-backed Weise
+-> full ephemeral query IPA keeps Weise as a secondary-stress terminal domain
+```
+
+The mixed resolver method is:
+
+```text
+client_mixed_source_right_reference_compound
+```
+
+This is still query-only evidence. The generated left remainder is not lexical
+truth and is not persisted into canonical Word/Phrase/Entity data.
+
+For the German Word Writer only, if normal external-query retrieval produces zero
+Word candidates and the query explicitly carries a supported compound method plus
+components, the runtime may reuse the accepted canonical Writer retrieval for the
+source-backed terminal component. This is a bounded end-rhyme recovery path, not a
+general substring search and not a global Writer scoring/ranking change.
+
 ## Persistent generated-pronunciation cache
 
 Implementation:
@@ -40,7 +68,7 @@ Implementation:
 - store: `generated_pronunciations`
 - schema: `rhymelab-query-pronunciation-cache-v1`
 - maximum entries: 10,000
-- resolver policy: `client-total-query-pronunciation-v2`
+- resolver policy: `client-total-query-pronunciation-v3`
 
 The cache is a performance layer only. It is **not lexical truth** and must never be promoted into canonical Word, Phrase/Mosaic or Entity data.
 
