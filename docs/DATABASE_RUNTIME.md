@@ -132,6 +132,46 @@ accepted
 
 select the old split runtime deliberately.
 
+## Internal Master / Lite / Standard / Full comparison
+
+The canonical product default remains the Master/Developer Serving-v1 database
+above. For local distribution engineering only, RhymeLab can open the three
+materialized shipping editions alongside Master:
+
+```text
+Master    data/local/rhymelab-serving-v1.sqlite
+Lite      data/local/distribution/rhymelab-serving-v1-lite.sqlite
+Standard  data/local/distribution/rhymelab-serving-v1-standard.sqlite
+Full      data/local/distribution/rhymelab-serving-v1-full.sqlite
+```
+
+Start the development-only comparison surface with:
+
+```powershell
+npm run dev:distribution-lab
+```
+
+The selector is request-scoped:
+
+```text
+runtime_db=master|lite|standard|full
+```
+
+It does not replace the canonical default and it does not mutate a global active
+database. Normal startup does not expose the selector UI.
+
+Development path overrides:
+
+```text
+RHYMELAB_DISTRIBUTION_LITE_DB
+RHYMELAB_DISTRIBUTION_STANDARD_DB
+RHYMELAB_DISTRIBUTION_FULL_DB
+```
+
+The internal endpoint/UI, performance metrics, shipping isolation and future
+user-Settings migration contract are documented in
+`docs/INTERNAL_DISTRIBUTION_LAB.md`.
+
 ## Product invariant
 
 ```text
