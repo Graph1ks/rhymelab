@@ -565,6 +565,10 @@ const RESULT_SCORE_CACHE=new WeakMap();
 const RHYME_SEARCH_EVIDENCE_CACHE=new WeakMap();
 
 function resultEvidenceKey(row){
+  const pronunciationId=Number(row?.id??row?._pronunciationId);
+  if(Number.isFinite(pronunciationId)&&pronunciationId>0){
+    return 'pronunciation:'+pronunciationId;
+  }
   const normalized=String(row?.normalized||row?.word||'');
   const ipa=String(row?.ipa||'');
   return normalized&&ipa?normalized+'\u0000'+ipa:'';
