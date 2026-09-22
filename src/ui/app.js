@@ -363,9 +363,8 @@ function updateStickyLayout(){
   const stickyTop=searchStickyTop();
   const coreRect=core?.getBoundingClientRect?.();
   const coreHeight=Math.ceil(Number(coreRect?.height||core?.offsetHeight||60));
-  const stickyExpanded=Boolean(stage?.classList.contains('search-auto-compact')&&state.stickyPanelOverride);
   const cardHeight=Math.ceil(Number(card?.getBoundingClientRect?.()?.height||card?.offsetHeight||coreHeight));
-  const occupiedHeight=stickyExpanded?cardHeight:coreHeight;
+  const occupiedHeight=stage?.classList.contains('search-auto-compact')?cardHeight:coreHeight;
   root.style.setProperty('--search-sticky-top',`${stickyTop}px`);
   root.style.setProperty('--word-panel-sticky-top',`${stickyTop+occupiedHeight+STICKY_DETAIL_GAP}px`);
 }
@@ -427,19 +426,16 @@ function refreshSearchCompactThreshold(){
 }
 
 function syncSearchSectionControls(){
-  const stage=$('.search-stage');
-  const autoCompact=stage?.classList.contains('search-auto-compact');
-  for(const [name,config] of Object.entries(SEARCH_SECTION_CONFIG)){
-    const section=$(config.section);
-    const button=$(config.button);
-    const preferred=Boolean(state[config.stateKey]);
-    const actuallyExpanded=preferred&&(!autoCompact||state.stickyPanelOverride===name);
-    section?.classList.toggle('section-collapsed',!actuallyExpanded);
-    button?.classList.toggle('active',actuallyExpanded);
-    button?.setAttribute('aria-expanded',String(actuallyExpanded));
-  }
+  const searchSection=$('#searchOptionsSection');
+  searchSection?.classList.remove('section-collapsed');
+  $('#searchOptionsToggle')?.setAttribute('aria-expanded','true');
+  $('#resultFiltersSection')?.classList.add('hidden');
+  $('#resultFiltersToggle')?.setAttribute('aria-expanded','false');
+  state.searchOptionsExpanded=true;
+  state.resultFiltersExpanded=false;
+  state.stickyPanelOverride=null;
   updateStickyLayout();
-  if(!autoCompact)refreshSearchCompactThreshold();
+  refreshSearchCompactThreshold();
 }
 
 function setSearchSectionExpanded(name,expanded,{persist=true}={}){
