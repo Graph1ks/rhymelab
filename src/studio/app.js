@@ -658,6 +658,7 @@ function currentWriterSearchOptions(overrides={}){
     resultLanguage:resultLang,
     scope,
     rhymeType,
+    syllableFilter:syllableMode,
     includeVariants:variantMode==='all',
     includeHistorical,
     generated,
