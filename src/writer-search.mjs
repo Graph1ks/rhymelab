@@ -126,7 +126,7 @@ function compareSound(a, b) {
     || Number(a.usageRank ?? Number.MAX_SAFE_INTEGER) - Number(b.usageRank ?? Number.MAX_SAFE_INTEGER);
 }
 
-function externalTerminalRecoveryComponent(queryDetail) {
+export function externalTerminalRecoveryComponent(queryDetail) {
   if (String(queryDetail?.language || '').toLocaleLowerCase('en-US') !== 'de') return null;
   if (queryDetail?.kind && queryDetail.kind !== 'word') return null;
   const method = String(queryDetail?.queryPronunciation?.method || '').trim();
