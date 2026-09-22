@@ -1091,10 +1091,13 @@ export function distributionIntegrityReport(db,edition,{onProgress=null,deep=tru
   counts.generated_word_pronunciations=scalar(db,`
     SELECT COUNT(*) c
     FROM pronunciation p
-    JOIN pronunciation_origin po
-      ON po.pronunciation_id=p.pronunciation_id
-     AND po.domain='word'
     WHERE p.canonical_available=0 AND p.generated_available=1
+      AND EXISTS(
+        SELECT 1
+        FROM pronunciation_origin po
+        WHERE po.pronunciation_id=p.pronunciation_id
+          AND po.domain='word'
+      )
   `);
   onProgress?.({
     step:'count_generated_word_pronunciations',
