@@ -379,9 +379,19 @@ function updateFloatingSearchGeometry(){
   stage.style.setProperty('--search-fixed-width',`${Math.round(rect.width)}px`);
 }
 
+function searchCardFitsStickyViewport(){
+  if(typeof window==='undefined')return true;
+  const card=$('.search-card');
+  if(!card)return false;
+  const stickyTop=searchStickyTop();
+  const cardHeight=Math.ceil(Number(card.getBoundingClientRect?.()?.height||card.offsetHeight||0));
+  const available=Math.max(0,window.innerHeight-stickyTop-12);
+  return cardHeight>0&&cardHeight<=available;
+}
+
 function enterSearchAutoCompact(){
   const stage=$('.search-stage');
-  if(!stage||stage.classList.contains('search-auto-compact'))return;
+  if(!stage||stage.classList.contains('search-auto-compact')||!searchCardFitsStickyViewport())return;
   const rect=stage.getBoundingClientRect?.();
   const reserveHeight=Math.ceil(Number(rect?.height||stage.offsetHeight||0));
   if(reserveHeight>0&&stage.style)stage.style.height=`${reserveHeight}px`;
@@ -486,7 +496,7 @@ function syncFloatingSearchState(){
 
   if(stage.classList.contains('search-auto-compact')){
     updateFloatingSearchGeometry();
-    if(window.scrollY<threshold-36)exitSearchAutoCompact();
+    if(window.scrollY<threshold-36||!searchCardFitsStickyViewport())exitSearchAutoCompact();
     return;
   }
 
