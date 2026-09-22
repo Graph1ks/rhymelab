@@ -389,16 +389,50 @@ function candidateBeats(left,right,diversityWeight){
     ));
 }
 
-function bestCandidateIndex(remaining,diversityWeight){
-  let bestIndex=-1;
-  for(let index=0;index<remaining.length;index++){
-    if(bestIndex<0||candidateBeats(
-      remaining[index],
-      remaining[bestIndex],
-      diversityWeight,
-    ))bestIndex=index;
+function heapSiftDown(heap,index,diversityWeight){
+  while(true){
+    const left=index*2+1;
+    if(left>=heap.length)return;
+    const right=left+1;
+    let best=left;
+    if(
+      right<heap.length
+      &&candidateBeats(heap[right],heap[left],diversityWeight)
+    )best=right;
+    if(candidateBeats(heap[index],heap[best],diversityWeight))return;
+    [heap[index],heap[best]]=[heap[best],heap[index]];
+    index=best;
   }
-  return bestIndex;
+}
+
+function heapPush(heap,candidate,diversityWeight){
+  let index=heap.length;
+  heap.push(candidate);
+  while(index>0){
+    const parent=Math.floor((index-1)/2);
+    if(candidateBeats(heap[parent],heap[index],diversityWeight))break;
+    [heap[parent],heap[index]]=[heap[index],heap[parent]];
+    index=parent;
+  }
+}
+
+function heapPop(heap,diversityWeight){
+  if(!heap.length)return null;
+  const best=heap[0];
+  const tail=heap.pop();
+  if(heap.length){
+    heap[0]=tail;
+    heapSiftDown(heap,0,diversityWeight);
+  }
+  return best;
+}
+
+function buildCandidateHeap(candidates,diversityWeight){
+  const heap=[...candidates];
+  for(let index=Math.floor(heap.length/2)-1;index>=0;index--){
+    heapSiftDown(heap,index,diversityWeight);
+  }
+  return heap;
 }
 
 function updateCandidateRedundancy(candidate,selected){
@@ -431,7 +465,7 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
     options.diversityWeight??DEFAULT_DIVERSITY_WEIGHT
   );
   const completeTail=options.completeTail!==false;
-  const remaining=(rows||[]).map((row,baseIndex)=>({
+  const candidates=(rows||[]).map((row,baseIndex)=>({
     row,
     baseIndex,
     writer:writerUtilityFeatures(row,query),
@@ -439,28 +473,27 @@ export function rankWriterRecommendedResults(rows, query, options = {}) {
     maxRedundancy:0,
     comparedWinners:0,
   }));
+  const remaining=buildCandidateHeap(candidates,diversityWeight);
   const selected=[];
 
   while(remaining.length&&selected.length<limit){
-    let bestIndex=-1;
+    let winner=null;
 
     // Stale maxRedundancy is optimistic: unseen winners can only increase the
-    // penalty. Repeatedly refresh the current optimistic leader until the best
-    // candidate is fully evaluated against all selected winners. At that point
-    // every other candidate can only stay equal or get worse, so the winner is
-    // exactly the same as eager all-pairs evaluation.
+    // penalty. Keep candidates in an optimistic heap, refresh only the current
+    // leader, then reinsert it if its score worsened. This preserves the exact
+    // eager prefix without rescanning every remaining row on every refresh.
     while(remaining.length){
-      const optimisticIndex=bestCandidateIndex(remaining,diversityWeight);
-      const candidate=remaining[optimisticIndex];
+      const candidate=heapPop(remaining,diversityWeight);
       if(candidate.comparedWinners<selected.length){
         updateCandidateRedundancy(candidate,selected);
+        heapPush(remaining,candidate,diversityWeight);
         continue;
       }
-      bestIndex=optimisticIndex;
+      winner=candidate;
       break;
     }
 
-    const [winner]=remaining.splice(bestIndex,1);
     const state=selectionState(winner,diversityWeight);
     selected.push({
       ...winner,
