@@ -1,4 +1,4 @@
-export const CLIENT_QUERY_PRONUNCIATION_POLICY='client-total-query-pronunciation-v2';
+export const CLIENT_QUERY_PRONUNCIATION_POLICY='client-total-query-pronunciation-v3';
 export const CLIENT_QUERY_MAX_TOKENS=64;
 
 const LANGUAGES=new Set(['de','en']);
