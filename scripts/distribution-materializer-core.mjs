@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {pathToFileURL} from 'node:url';
 
 export const DISTRIBUTION_SCHEMA='rhymelab-distribution-v1';
 export const DISTRIBUTION_RANK_POLICY='distribution-rank-v1-language-normalized-usage-surface';
@@ -61,6 +62,13 @@ export function distributionMetaFingerprint(meta){
     product_adapter_revision:meta.product_adapter_revision||null,
     product_adapter_semantic_fingerprint:meta.product_adapter_semantic_fingerprint||null,
   })).digest('hex');
+}
+
+export function attachReadOnlyDatabase(db,path,{alias='src'}={}){
+  const uri=new URL(pathToFileURL(path));
+  uri.searchParams.set('mode','ro');
+  db.prepare('ATTACH DATABASE ? AS '+q(alias)).run(uri.href);
+  return uri.href;
 }
 
 export function readMeta(db,{alias='main'}={}){
@@ -1030,36 +1038,66 @@ export function writeDistributionManifest(db,{edition,sourceMeta,selection}){
   return values;
 }
 
-export function distributionIntegrityReport(db,edition){
+export function distributionIntegrityReport(db,edition,{onProgress=null}={}){
   const contract=editionContract(edition);
+
+  onProgress?.({step:'quick_check',status:'start'});
   const quick=db.prepare('PRAGMA quick_check').all();
+  onProgress?.({
+    step:'quick_check',
+    status:'complete',
+    rows:quick.length,
+    result:quick.length===1?String(quick[0]?.quick_check||''):null,
+  });
+
+  onProgress?.({step:'foreign_key_check',status:'start'});
   const foreign=db.prepare('PRAGMA foreign_key_check').all();
-  const counts={
-    phrases:scalar(db,'SELECT COUNT(*) c FROM runtime_phrase'),
-    entities:scalar(db,'SELECT COUNT(*) c FROM runtime_entity_identity'),
-    generated_word_pronunciations:scalar(db,`
-      SELECT COUNT(*) c
-      FROM pronunciation p
-      WHERE p.canonical_available=0 AND p.generated_available=1
-        AND EXISTS(
-          SELECT 1 FROM pronunciation_origin po
-          WHERE po.pronunciation_id=p.pronunciation_id AND po.domain='word'
-        )
-    `),
-  };
+  onProgress?.({
+    step:'foreign_key_check',
+    status:'complete',
+    violations:foreign.length,
+  });
+
+  const counts={};
+  onProgress?.({step:'count_phrases',status:'start'});
+  counts.phrases=scalar(db,'SELECT COUNT(*) c FROM runtime_phrase');
+  onProgress?.({step:'count_phrases',status:'complete',rows:counts.phrases});
+
+  onProgress?.({step:'count_entities',status:'start'});
+  counts.entities=scalar(db,'SELECT COUNT(*) c FROM runtime_entity_identity');
+  onProgress?.({step:'count_entities',status:'complete',rows:counts.entities});
+
+  onProgress?.({step:'count_generated_word_pronunciations',status:'start'});
+  counts.generated_word_pronunciations=scalar(db,`
+    SELECT COUNT(*) c
+    FROM pronunciation p
+    WHERE p.canonical_available=0 AND p.generated_available=1
+      AND EXISTS(
+        SELECT 1 FROM pronunciation_origin po
+        WHERE po.pronunciation_id=p.pronunciation_id AND po.domain='word'
+      )
+  `);
+  onProgress?.({
+    step:'count_generated_word_pronunciations',
+    status:'complete',
+    rows:counts.generated_word_pronunciations,
+  });
+
   const violations=[];
   if(quick.length!==1||String(quick[0]?.quick_check||'').toLowerCase()!=='ok')violations.push('quick_check');
   if(foreign.length)violations.push('foreign_key_check');
   if(!contract.features.phrases&&counts.phrases)violations.push('phrase_leakage');
   if(!contract.features.entities&&counts.entities)violations.push('entity_leakage');
   if(!contract.features.generated&&counts.generated_word_pronunciations)violations.push('generated_word_leakage');
-  return {
+  const report={
     ok:violations.length===0,
     violations,
     quick_check:quick,
     foreign_key_violations:foreign.length,
     counts,
   };
+  onProgress?.({step:'integrity',status:'complete',ok:report.ok,violations});
+  return report;
 }
 
 export function dropDistributionBuildStorage(db){
