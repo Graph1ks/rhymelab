@@ -643,7 +643,6 @@ function renderResults(){
     :writerStatus==='loading'
       ?'Writer-Suche läuft'
       :'Writer-Suche nicht verfügbar';
-  $('#filterLabel').textContent=(relation!=='all'||sort!=='recommended'||resultLang!=='both')?'Filter aktiv':'Filter & Aussprache';
 }
 function queueWriterSearch(delay=140){
   clearTimeout(writerDebounce);
@@ -1595,7 +1594,7 @@ function exportText(){
 }
 function runAuto(t){if(!auto)return;const el=$('#resultsScroll');if(t>pauseUntil&&!document.hidden&&!$('#dialog').open&&el.clientHeight>0){el.scrollTop+=(t-(lastFrame||t))*.018;if(el.scrollTop+el.clientHeight>=el.scrollHeight-2){if(pageSize<data().length){pageSize+=6;renderResults()}else{el.scrollTop=0;pauseUntil=t+1200}}}lastFrame=t;scrollFrame=requestAnimationFrame(runAuto)}
 function toggleAuto(){auto=!auto;$('#autoBtn').textContent=state.uiLanguage==='en'?'↕ Auto-scroll: '+(auto?'On':'Off'):'↕ Auto-Scroll: '+(auto?'An':'Aus');$('#autoBtn').classList.toggle('active',auto);$('#autoBtn').setAttribute('aria-pressed',auto);cancelAnimationFrame(scrollFrame);lastFrame=0;if(auto){pauseUntil=performance.now()+1000;scrollFrame=requestAnimationFrame(runAuto)}}
-function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','filterBtn','autoBtn','moreBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
+function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','autoBtn','moreBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
 const bindClick=(id,handler,{optional=false}={})=>{
   const element=document.getElementById(id);
   if(!element){
@@ -1616,7 +1615,6 @@ bindClick('exportBtn',exportText);
 bindClick('commandBtn',showCommands);
 bindClick('settingsBtn',showSettings);
 bindClick('settingsSide',showSettings);
-bindClick('filterBtn',showFilters);
 bindClick('languageBtn',()=>$('#directLanguageRoute')?.focus());
 bindClick('historyBtn',showHistory);
 bindClick('infoBtn',showInfo);
@@ -1747,7 +1745,6 @@ renderResults=function(){
   if(selectedResult&&!data().some(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult)){selectedResult='';selectedResultId='';selectedDetail=null;$('#detailDock').classList.add('hidden')}
   if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();
   $('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer'+(hiddenUsedCount?' · '+hiddenUsedCount+' verwendet ausgeblendet':'');
-  $('#filterLabel').textContent=$('#directFilters').classList.contains('hidden')?'Filter öffnen':hasActiveSearchFilters()?'Filter aktiv':'Filter sichtbar';
   lastResultRenderMs=Number((performance.now()-renderStarted).toFixed(1));
   if(internalDbLabEnabled)renderInternalDbLab();
 };
@@ -3433,7 +3430,7 @@ function renderBarNavigatorDock(body){
   });
 }
 
-function showFilters(){const deck=$('#directFilters');deck.classList.remove('hidden');$('#filterBtn').setAttribute('aria-expanded','true');$('#filterLabel').textContent='Filter sichtbar';animateSurface(deck);$('#directRhymeType')?.focus()}
+function showFilters(){const deck=$('#directFilters');deck.classList.remove('hidden');animateSurface(deck);$('#directRhymeType')?.focus()}
 function showSettings(){openEditorDock('settings')}
 function showHistory(){revision();openEditorDock('history')}
 function openEditorDock(tab){if(page!=='studio')navigate('studio');document.body.classList.remove('mobile-results');document.body.classList.add('editor-dock-open');setMobileActive('studio');dockTab=tab;$('#editorDock').dataset.tab=tab;$('#editorDock').classList.remove('hidden');renderDock();animateSurface($('#editorDock'))}
