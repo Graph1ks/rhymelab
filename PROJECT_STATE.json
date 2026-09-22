@@ -3814,7 +3814,7 @@
       "owner_report_fingerprint": null,
       "role": "development_espeak_reference_only_not_client_acceptance"
     },
-    "client_policy": "client-total-query-pronunciation-v2",
+    "client_policy": "client-total-query-pronunciation-v3",
     "execution_location": "end_user_client",
     "client_module": "src/ui/query-pronunciation-client.mjs",
     "browser_test_route": "/query-pronunciation-test",
@@ -3833,7 +3833,8 @@
     "methods": [
       "client_source_reference_compound",
       "client_rules",
-      "client_grapheme_fallback"
+      "client_grapheme_fallback",
+      "client_mixed_source_right_reference_compound"
     ],
     "client_quality": {
       "automated_product_sentinels": [
@@ -3880,11 +3881,25 @@
       ],
       "stale_entry_policy": "ignore_and_delete",
       "health_revision_unavailable_policy": "disable_persistent_cache_fail_closed",
-      "resolver_policy": "client-total-query-pronunciation-v2",
+      "resolver_policy": "client-total-query-pronunciation-v3",
       "handover": "docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md"
     },
     "generated_token_cache_persisted": true,
-    "generated_token_cache_canonical": false
+    "generated_token_cache_canonical": false,
+    "terminal_compound_recovery": {
+      "status": "CANDIDATE_PR_199_OWNER_DB_LAB_RERUN_PENDING",
+      "language": "de",
+      "scope": "unknown_single_token_query_only",
+      "policy": "de-external-query-terminal-component-v1",
+      "resolution": "source_backed_terminal_component_with_generated_left_remainder_allowed",
+      "word_fallback": "accepted_canonical_writer_retrieval_only_after_zero_normal_external_word_candidates",
+      "global_writer_retune": false,
+      "distribution_rebuild_required": false,
+      "candidate_branch": "fix/external-compound-right-head-rhyme",
+      "candidate_pull_request": 199,
+      "regression_query": "Krankenkassenwarteweise",
+      "recovered_terminal_component": "Weise"
+    }
   },
   "product_shell": {
     "id": "studio-v2",
@@ -3975,21 +3990,39 @@
     }
   },
   "active_continuation": {
-    "id": "DISTRIBUTION_DB_LAB_V2_BENCHMARK_EVIDENCE",
-    "status": "AWAITING_OWNER_BENCHMARK_RESPONSE",
+    "id": "DISTRIBUTION_DB_LAB_V2_OOV_COMPOUND_RERUN",
+    "status": "OWNER_BENCHMARK_ANALYZED_PR_199_OWNER_RERUN_PENDING",
     "handover": "docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md",
-    "current_main": "51853e523e55",
+    "current_main": "d266172eb29a",
     "expected_owner_evidence": [
-      "Bench current",
-      "Bench suite",
-      "Copy all rhymelab-internal-db-lab-copy-v2 JSON"
+      "Bench current on Krankenkassenwarteweise with PR #199",
+      "Copy all rhymelab-internal-db-lab-copy-v2 JSON",
+      "Arbeitsweise regression-control rerun"
     ],
-    "next_thread_action": "analyze_owner_evidence_then_optimize_measured_hotpaths_without_rebuilding_distributions",
+    "next_thread_action": "validate_terminal_component_recovery_quality_latency_and_normal_query_regression_before_merge",
     "do_not_repeat": [
       "distribution build",
       "distribution plan",
       "accepted ranking gates",
       "project re-explanation"
-    ]
+    ],
+    "candidate_branch": "fix/external-compound-right-head-rhyme",
+    "candidate_pull_request": 199,
+    "owner_evidence_received": true,
+    "observed_oov_compound": {
+      "query": "Krankenkassenwarteweise",
+      "master_results": 18,
+      "master_word_results": 0,
+      "master_phrase_results": 0,
+      "master_entity_results": 18,
+      "query_method_de": "client_rules"
+    },
+    "comparison_anchor": {
+      "query": "Weise",
+      "master_results": 1036,
+      "master_word_results": 428,
+      "master_phrase_results": 119,
+      "master_entity_results": 489
+    }
   }
 }

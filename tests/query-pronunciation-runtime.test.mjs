@@ -79,6 +79,33 @@ test('browser resolver may compose an unknown spelling from source-backed DB ref
   assert.ok(getPhonologyProfile('en').analyzeIpa(en.ipa).exactTailKey);
 });
 
+test('browser resolver recovers a source-backed German right head from a long unknown compound',async()=>{
+  const lookupReference=async(surface,language)=>{
+    if(language==='de'&&surface==='weise'){
+      return {surface:'Weise',preferredIpa:'ˈvaɪzə'};
+    }
+    return null;
+  };
+
+  const detail=await resolveUnknownClientPronunciation(
+    'Krankenkassenwarteweise',
+    'de',
+    {lookupReference},
+  );
+
+  assert.equal(detail.method,'client_mixed_source_right_reference_compound');
+  assert.equal(detail.sourceBacked,false);
+  assert.equal(detail.sourceBackedRightHead,true);
+  assert.deepEqual(detail.components,['krankenkassenwarte','Weise']);
+  assert.match(detail.ipa,/ˌvaɪzə$/u);
+
+  const analysis=getPhonologyProfile('de').analyzeIpa(detail.ipa);
+  assert.ok(
+    analysis.syllables.some((syllable)=>Number(syllable.stressLevel||0)===1),
+    'recovered right head must remain visible as a secondary-stress rhyme anchor',
+  );
+});
+
 test('browser pronunciation module contains no host executable, Node runtime, network, or search implementation',async()=>{
   const source=await readFile('src/ui/query-pronunciation-client.mjs','utf8');
   assert.doesNotMatch(source,/node:child_process|spawnSync|execFile|process\.|RHYMELAB_ESPEAK|espeak/iu);

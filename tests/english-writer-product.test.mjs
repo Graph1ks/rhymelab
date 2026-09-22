@@ -433,7 +433,7 @@ test('unified Writer accepts browser-generated multiword IPA as an ephemeral que
     assert.equal(result.query.kind,'phrase');
     assert.equal(result.query.tokenCount,3);
     assert.equal(result.query.generatedPronunciation,true);
-    assert.equal(result.query.queryPronunciation.policy,'client-total-query-pronunciation-v2');
+    assert.equal(result.query.queryPronunciation.policy,'client-total-query-pronunciation-v3');
     assert.equal(result.query.queryPronunciation.method,'client_token_chain');
     assert.deepEqual(result.query.queryPronunciation.components,['future','rhyme','time']);
     assert.ok(result.results.some((row)=>row.normalized==='time'));

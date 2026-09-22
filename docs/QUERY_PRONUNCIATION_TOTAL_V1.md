@@ -2,7 +2,7 @@
 
 Status: **implemented for single words and multi-word user queries**  
 Umbrella policy: `total-query-pronunciation-v1`  
-Client policy: `client-total-query-pronunciation-v2`
+Client policy: `client-total-query-pronunciation-v3`
 
 ## Product invariant
 
@@ -35,7 +35,7 @@ Only missing query pronunciation is generated in the end-user client.
 Implementation:
 
 - `src/ui/query-pronunciation-client.mjs`
-- policy `client-total-query-pronunciation-v2`
+- policy `client-total-query-pronunciation-v3`
 - maximum 64 pronunciation tokens per query
 
 The generator must remain browser-compatible and portable to Android/WebView-style packaging and Electron-style packaging.

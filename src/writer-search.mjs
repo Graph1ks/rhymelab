@@ -126,6 +126,35 @@ function compareSound(a, b) {
     || Number(a.usageRank ?? Number.MAX_SAFE_INTEGER) - Number(b.usageRank ?? Number.MAX_SAFE_INTEGER);
 }
 
+export function externalTerminalRecoveryComponent(queryDetail) {
+  if (String(queryDetail?.language || '').toLocaleLowerCase('en-US') !== 'de') return null;
+  if (queryDetail?.kind && queryDetail.kind !== 'word') return null;
+  const method = String(queryDetail?.queryPronunciation?.method || '').trim();
+  if (![
+    'client_source_reference_compound',
+    'client_mixed_source_right_reference_compound',
+  ].includes(method)) return null;
+  const components = Array.isArray(queryDetail?.queryPronunciation?.components)
+    ? queryDetail.queryPronunciation.components.map((value) => String(value || '').trim()).filter(Boolean)
+    : [];
+  if (components.length < 2) return null;
+  const terminal = components.at(-1);
+  const terminalNormalized = String(terminal || '')
+    .normalize('NFKC')
+    .trim()
+    .toLocaleLowerCase('de-DE');
+  const queryNormalized = String(
+    queryDetail?.normalized || queryDetail?.surface || queryDetail?.word || '',
+  ).normalize('NFKC').trim().toLocaleLowerCase('de-DE');
+  if (!terminalNormalized || terminalNormalized === queryNormalized) return null;
+  return {
+    surface: terminal,
+    normalized: terminalNormalized,
+    method,
+    components,
+  };
+}
+
 function createWriterScoringContext(
   profile,
   queryAnalysis,
@@ -397,7 +426,29 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
     options,
     scoringContext,
   );
-  const soundSorted = [...retrieval.results].sort(compareSound);
+
+  let terminalRecovery = null;
+  let terminalRecoveryResult = null;
+  let soundCandidates = retrieval.results;
+  if (!soundCandidates.length) {
+    terminalRecovery = externalTerminalRecoveryComponent(queryDetail);
+    if (terminalRecovery) {
+      terminalRecoveryResult = findWriterRhymes(db, terminalRecovery.surface, options);
+      if (terminalRecoveryResult?.results?.length) {
+        soundCandidates = terminalRecoveryResult.results.map((row) => ({
+          ...row,
+          writerRetrievalChannel: 'external_terminal_component',
+          writerRetrievalKey: terminalRecovery.normalized,
+        }));
+      } else {
+        terminalRecovery = null;
+        terminalRecoveryResult = null;
+      }
+    }
+  }
+  const soundSorted = terminalRecovery
+    ? [...soundCandidates]
+    : [...soundCandidates].sort(compareSound);
   const morphologyInput = [{
     normalized: queryNormalized,
     surface: querySurface,
@@ -477,14 +528,24 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
     },
     writerRetrieval: {
       policy: profile.writerAnchorPolicyVersion || null,
-      source: runtimeState.active ? 'writer_anchor' : 'hot.vowel_key LIKE suffix',
+      source: terminalRecovery
+        ? 'source-backed terminal compound component + accepted writer retrieval'
+        : (runtimeState.active ? 'writer_anchor' : 'hot.vowel_key LIKE suffix'),
       storage: runtimeState.active ? runtimeState.anchorStorage : null,
       candidateBasis: runtimeState.active ? runtimeState.anchorCandidateBasis : 'legacy-vowel-key-string-suffix-v1',
       rightEdgeKeys: retrieval.keys,
       baseCandidates: 0,
       rightEdgeCandidates: retrieval.results.length,
+      terminalComponentCandidates: terminalRecoveryResult?.results?.length || 0,
       mergedCandidates: soundSorted.length,
       externalQuery: true,
+      terminalComponentRecovery: terminalRecovery ? {
+        policy: 'de-external-query-terminal-component-v1',
+        surface: terminalRecovery.surface,
+        normalized: terminalRecovery.normalized,
+        queryPronunciationMethod: terminalRecovery.method,
+        sourceBacked: true,
+      } : null,
     },
     writerMorphology: {
       policy: WRITER_MORPHOLOGY_POLICY,
@@ -497,14 +558,26 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
     },
     ...(scoringContext.metrics?{
       performanceProfile:{
-        stages_ms:Object.fromEntries(
-          Object.entries(scoringContext.metrics)
-            .filter(([key])=>key.endsWith('_ms'))
-            .map(([key,value])=>[key,Number(value.toFixed(3))])
-        ),
-        counters:Object.fromEntries(
-          Object.entries(scoringContext.metrics).filter(([key])=>!key.endsWith('_ms'))
-        ),
+        stages_ms:{
+          ...Object.fromEntries(
+            Object.entries(scoringContext.metrics)
+              .filter(([key])=>key.endsWith('_ms'))
+              .map(([key,value])=>[key,Number(value.toFixed(3))])
+          ),
+          ...Object.fromEntries(
+            Object.entries(terminalRecoveryResult?.performanceProfile?.stages_ms||{})
+              .map(([key,value])=>[`terminal_recovery_${key}`,Number(value)])
+          ),
+        },
+        counters:{
+          ...Object.fromEntries(
+            Object.entries(scoringContext.metrics).filter(([key])=>!key.endsWith('_ms'))
+          ),
+          ...Object.fromEntries(
+            Object.entries(terminalRecoveryResult?.performanceProfile?.counters||{})
+              .map(([key,value])=>[`terminal_recovery_${key}`,Number(value)])
+          ),
+        },
       },
     }:{}),
     results,
