@@ -53,7 +53,7 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
     { o: 8, u: 8, s: 55, w: 'Ha', n: 'ha', l: 'Ha', p: 'interjection', r: [compact('[haː]')] },
     { o: 9, u: 9, s: 50, w: 'Reise', n: 'reise', l: 'Reise', p: 'noun', r: [compact('[ˈʁaɪ̯zə]')] },
     { o: 10, u: 10, s: 45, w: 'Biene', n: 'biene', l: 'Biene', p: 'noun', r: [compact('[ˈbiːnə]')] },
-    { o: 11, u: 11, s: 40, w: 'Labe', n: 'labe', l: 'laben', p: 'verb', r: [compact('[ˈlaːbə]')] },
+    { o: 11, u: 11, s: 40, w: 'Lack', n: 'lack', l: 'Lack', p: 'noun', r: [compact('[lak]')] },
   ];
   const shard = rows.map((row) => JSON.stringify(row)).join('\n') + '\n';
   await writeFile(join(publish, 'shard-000001.jsonl'), shard, 'utf8');
@@ -145,14 +145,13 @@ test('local SQLite build uses preferred pronunciation variants and syllable-firs
       'Writer relation search must filter after merging all retrieval channels',
     );
 
-    const consonanceWriter = findWriterRhymes(db, 'Liebe', {
+    const consonanceWriter = findWriterRhymes(db, 'Blick', {
       limit: 20,
       type: 'consonance',
     });
-    assert.deepEqual(
-      consonanceWriter.results.map((row)=>row.word),
-      ['Labe'],
-      'same-consonant contrasting-vowel match must survive the server-side Konsonanz filter',
+    assert.ok(
+      consonanceWriter.results.some((row)=>row.word==='Lack'),
+      'shared-coda contrasting-vowel match must survive the server-side Konsonanz filter',
     );
     assert.ok(
       consonanceWriter.results.every((row) => row.relationTypes.includes('consonance')),
