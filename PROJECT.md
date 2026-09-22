@@ -77,7 +77,8 @@ External models and online sources may be used during research, source acquisiti
 **Canonical runtime posture:** local-only, deterministic, no required runtime network  
 **Canonical runtime database:** `data/local/rhymelab-serving-v1.sqlite` for RhymeLab Writer, RhymePad, DE/EN Words, Phrase/Mosaic, Entities, Generated/Core selection, and Markov source materialization  
 **Archived runtime predecessors:** documented in `docs/DATABASE_RUNTIME.md`; they are not normal product fallbacks  
-**Planned distribution editions:** Lite / Standard / Full derived reproducibly from one accepted Master/Developer Serving dataset; authoritative contract: `docs/DISTRIBUTION_TIERS.md`
+**Distribution editions:** Lite / Standard / Full are reproducibly derived from one accepted Master/Developer Serving dataset with total product-entry budgets of 50k / 250k / 400k; authoritative contract: `docs/DISTRIBUTION_TIERS.md`  
+**Internal edition comparison:** development-only Studio DB Lab can compare Master / Lite / Standard / Full through request-scoped routing; authoritative contract: `docs/INTERNAL_DISTRIBUTION_LAB.md`
 
 ### Large-data build reliability
 
@@ -191,6 +192,7 @@ Use the files by responsibility:
 - AGENTS.md — operating contract for human/AI engineering work plus project-specific guardrails;
 - STATUS.md — current operational state;
 - docs/DISTRIBUTION_TIERS.md — durable Lite/Standard/Full database packaging and capability contract;
+- docs/INTERNAL_DISTRIBUTION_LAB.md — internal edition-comparison, performance-metrics, shipping-isolation and future Settings migration contract;
 - docs/HANDOVER.md and focused phase handovers — continuation context;
 - PROJECT_STATE.json — machine-readable project state;
 - CHANGELOG.md — curated meaningful product/release history from 2026-09-19 onward;
