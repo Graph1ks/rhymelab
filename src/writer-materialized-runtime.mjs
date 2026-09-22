@@ -183,16 +183,26 @@ function lookupBoundedServingWriterRows(db,anchorKey,options={}){
       includeHistorical?'1=1':'c.historical=0',
       generatedOnly?'c.generated_only=1':'1=1',
     ].join(' AND ');
-    const bounds=db.prepare(`
-      SELECT MIN(c.syllable_count) AS min_count,MAX(c.syllable_count) AS max_count
+    const minRow=db.prepare(`
+      SELECT c.syllable_count
       FROM runtime_de_writer_candidate c
       WHERE ${rangeWhere}
+      ORDER BY c.syllable_count ASC
+      LIMIT 1
     `).get(String(anchorKey),queryNormalized);
-    if(bounds?.min_count==null||bounds?.max_count==null)return [];
-    const min=Math.max(Number(requestedRange.min),Number(bounds.min_count));
+    if(minRow?.syllable_count==null)return [];
+    const maxRow=db.prepare(`
+      SELECT c.syllable_count
+      FROM runtime_de_writer_candidate c
+      WHERE ${rangeWhere}
+      ORDER BY c.syllable_count DESC
+      LIMIT 1
+    `).get(String(anchorKey),queryNormalized);
+    if(maxRow?.syllable_count==null)return [];
+    const min=Math.max(Number(requestedRange.min),Number(minRow.syllable_count));
     const max=Math.min(
       Math.min(Number(requestedRange.max),1000000),
-      Number(bounds.max_count),
+      Number(maxRow.syllable_count),
     );
     if(min>max)return [];
 
