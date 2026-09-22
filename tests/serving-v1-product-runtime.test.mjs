@@ -459,6 +459,22 @@ test('Serving product adapter exposes one DB as Core/all legacy-compatible runti
         queryNormalized:'zeit',querySyllables:1,generatedOnly:true,
       });
       assert.deepEqual(rows.map((row)=>row.normalized),['krankenscheindrucker']);
+      const oneSyllableRows=lookupMaterializedWriterAnchorRows(runtime.allDb,'aɪ-k',{
+        queryNormalized:'zeit',querySyllables:1,generatedOnly:true,syllableFilter:'1',
+      });
+      assert.deepEqual(
+        oneSyllableRows.map((row)=>row.normalized),
+        ['krankenscheindrucker'],
+        'Serving-v1 Writer range lookup must retain the exact requested syllable bucket',
+      );
+      const threePlusRows=lookupMaterializedWriterAnchorRows(runtime.allDb,'aɪ-k',{
+        queryNormalized:'zeit',querySyllables:1,generatedOnly:true,syllableFilter:'3',
+      });
+      assert.deepEqual(
+        threePlusRows,
+        [],
+        'Serving-v1 Writer range lookup must reject buckets outside an absolute syllable filter',
+      );
       const compatibilityRow=runtime.allDb.prepare('SELECT * FROM hot WHERE id=2').get();
       const writerFields=[
         'id','surface','normalized','usage_rank','usage_score','usage_count','usage_source_count',
