@@ -13,6 +13,15 @@ import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerfo
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
 import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
 import {collectStudioEnvironmentDiagnostics,diagnosticsFilename} from './diagnostics.mjs';
+import {
+  browserRuntimeMetrics,
+  internalDbLabCopyPayload,
+  internalDbSummaryMap,
+  loadInternalDbLabSelection,
+  saveInternalDbLabSelection,
+  studioCapabilitiesFromInternalDb,
+  studioRuntimeMetrics,
+} from './internal-db-lab.mjs';
 import {createStudioDomLocalizer,normalizeStudioUiLanguage} from './i18n.mjs';
 import {commandShortcutText,rankStudioCommands,studioCommandGroups} from './command-palette.mjs';
 import {STUDIO_DEVICE_GATES,createStudioDeviceAcceptance,mergeStudioDeviceAcceptanceReports,parseStudioDeviceAcceptance,studioDeviceAcceptanceFilename,studioDeviceAcceptanceSummary,studioDeviceEnvironmentLabel,studioDeviceGateEnvironmentStatus} from './device-acceptance.mjs';
@@ -107,6 +116,8 @@ const detailClient=createStudioDetailClient();
 const analysisClient=createStudioAnalysisClient();
 const documentStore=createStudioDocumentStore();
 let writerRows=[],writerStatus='idle',writerError='',writerQuerySyllables=0,writerWarnings=[],writerRuntimeTiming=null,writerCapabilities=null,writerDebounce=0;
+let writerClientTiming=null,writerExecution=null,lastResultRenderMs=null;
+let internalDbLabEnabled=false,internalDbLabPayload=null,internalDbLabActive=loadInternalDbLabSelection(),internalDbLabMetricsOpen=false;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
 let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all',analysisChainVisible=false;
 let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0,documentSaveGeneration=0,documentSaveChain=Promise.resolve(),mobileViewportCleanup=null;
@@ -665,13 +676,23 @@ async function refreshWriterResults(){
       entityCategory,
       entityCategories,
       queryPronunciationRevision:studioCapabilities.queryPronunciationRevision||'',
+      runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
     });
     if(requestedQuery!==query)return;
+    if(internalDbLabEnabled&&result.runtimeDb!==internalDbLabActive){
+      throw new Error('Internal DB routing mismatch: expected '+internalDbLabActive+' but backend returned '+String(result.runtimeDb));
+    }
     writerRows=result.rows;
     writerQuerySyllables=result.querySyllables;
     writerWarnings=result.warnings;
     writerRuntimeTiming=result.runtimeTiming;
+    writerClientTiming=result.clientTiming||null;
+    writerExecution=result.runtimeExecution||null;
     writerCapabilities=result.capabilities||writerCapabilities;
+    if(internalDbLabEnabled&&internalDbLabPayload){
+      const row=internalDbLabPayload.databases?.find((item)=>item.id===internalDbLabActive);
+      if(row)row.queryTiming=writerRuntimeTiming;
+    }
     writerStatus='ready';
     pageSize=density==='compact'?24:12;
     renderResults();
@@ -686,6 +707,8 @@ async function refreshWriterResults(){
     writerQuerySyllables=0;
     writerWarnings=[];
     writerRuntimeTiming=null;
+    writerClientTiming=null;
+    writerExecution=null;
     writerStatus='error';
     writerError=error instanceof Error?error.message:String(error);
     renderResults();
@@ -932,7 +955,7 @@ function setMobileActive(name){queryAll('[data-mobile]').forEach(b=>b.classList.
 function setMode(next){mode=next;stopPlay();queryAll('[data-mode]').forEach(b=>{const active=b.dataset.mode===next;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active)});$('#writeView').classList.toggle('hidden',next!=='write');$('#rhymeView').classList.toggle('hidden',next!=='rhyme');$('#performView').classList.toggle('hidden',next!=='perform');if(next==='rhyme')renderAnalysis();if(next==='perform')renderPerform();if(next==='write')requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea))}
 function analysisKey(){
   const s=song();
-  return [s.id,basis,generated,generatedOnly,...s.barIds.map((id,index)=>id+':'+s.barRevisions[index])].join('|');
+  return [s.id,basis,generated,generatedOnly,internalDbLabEnabled?internalDbLabActive:'default',...s.barIds.map((id,index)=>id+':'+s.barRevisions[index])].join('|');
 }
 function analysisRelationLabel(entry){
   if(!entry?.relation)return '—';
@@ -1099,6 +1122,7 @@ async function refreshSongAnalysis(force=false){
       language:basis,
       generated,
       generatedOnly,
+      runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
       signal:analysisAbort.signal,
     });
     if(token!==analysisRequest)return;
@@ -1675,7 +1699,23 @@ function writerTimingText(){
 }
 data=function(){return filterUnusedWriterRows(filterStudioWriterRows(baseData(),{rhymeType,syllableMode,querySyllables:writerQuerySyllables||syll(query)}))};
 resultHTML=function(r){const saved=state.saved.some(s=>s.word===r.word),kind=r.kind==='phrase'?'PHRASE':r.kind==='entity'?'NAME':'',active=selectedResultId?selectedResultId===r.id:selectedResult===r.word,shortRelation=({multisyllabic_perfect:'Multi-Voll',perfect:'Voll',multisyllabic_slant:'Multi-Slant',family:'Familie',slant:'Slant',assonance:'Asson.',consonance:'Konson.'})[r.relationType]||'Klang';return `<div class="result ${active?'is-selected':''}" data-result-word="${esc(r.word)}" data-result-id="${esc(r.id)}"><div class="grow"><button class="result-word" data-detail="${esc(r.word)}" data-detail-id="${esc(r.id)}" aria-label="Details zu ${esc(r.word)}" aria-pressed="${active}">${esc(r.word)}${kind?`<span class="result-kind">${kind}</span>`:''}</button><div class="result-meta"><b>${esc(r.relationLabel||'Klangtreffer')}</b><span>${r.syll||'—'} Silb.</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'} · ${r.lang.toUpperCase()}</span></div>${resultBadgeMarkup(r)}</div><span class="result-relation">${esc(shortRelation)}</span><span class="result-syll">${r.syll||'—'}</span><div class="result-actions"><button data-save="${esc(r.word)}" class="${saved?'saved':''}" aria-pressed="${saved}" aria-label="${esc(r.word)} ${saved?'entmerken':'merken'}">${icon('book')}</button><button data-insert="${esc(r.word)}" aria-label="${esc(r.word)} einsetzen">${icon('plus')}</button></div></div>`};
-renderResults=function(){baseRenderResults();const runtimeInline=$('#runtimeInline');if(runtimeInline)runtimeInline.textContent=writerTimingText();const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===density));queryAll('[data-density]').forEach(b=>{b.classList.toggle('active',b.dataset.density===density);b.setAttribute('aria-pressed',b.dataset.density===density)});queryAll('#results .result').forEach((r,i)=>r.style.setProperty('--i',i));const sig=[query,scope,relation,rhymeType,variantMode,entityCategories.join(','),includeHistorical,generated,generatedOnly,sort,basis,resultLang,syllableMode,density].join('|');if(sig!==resultSignature){animateSurface($('#results'),'results-enter');animateSurface($('#anchorWord'),'anchor-change');resultSignature=sig;$('#resultsScroll').scrollTop=0}syncInline();if(selectedResult&&!data().some(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult)){selectedResult='';selectedResultId='';selectedDetail=null;$('#detailDock').classList.add('hidden')}if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();$('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer'+(hiddenUsedCount?' · '+hiddenUsedCount+' verwendet ausgeblendet':'');$('#filterLabel').textContent=$('#directFilters').classList.contains('hidden')?'Filter öffnen':hasActiveSearchFilters()?'Filter aktiv':'Filter sichtbar'};
+renderResults=function(){
+  const renderStarted=performance.now();
+  baseRenderResults();
+  const runtimeInline=$('#runtimeInline');if(runtimeInline)runtimeInline.textContent=writerTimingText();
+  const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===density));
+  queryAll('[data-density]').forEach(b=>{b.classList.toggle('active',b.dataset.density===density);b.setAttribute('aria-pressed',b.dataset.density===density)});
+  queryAll('#results .result').forEach((r,i)=>r.style.setProperty('--i',i));
+  const sig=[query,scope,relation,rhymeType,variantMode,entityCategories.join(','),includeHistorical,generated,generatedOnly,sort,basis,resultLang,syllableMode,density,internalDbLabEnabled?internalDbLabActive:'default'].join('|');
+  if(sig!==resultSignature){animateSurface($('#results'),'results-enter');animateSurface($('#anchorWord'),'anchor-change');resultSignature=sig;$('#resultsScroll').scrollTop=0}
+  syncInline();
+  if(selectedResult&&!data().some(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult)){selectedResult='';selectedResultId='';selectedDetail=null;$('#detailDock').classList.add('hidden')}
+  if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();
+  $('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer'+(hiddenUsedCount?' · '+hiddenUsedCount+' verwendet ausgeblendet':'');
+  $('#filterLabel').textContent=$('#directFilters').classList.contains('hidden')?'Filter öffnen':hasActiveSearchFilters()?'Filter aktiv':'Filter sichtbar';
+  lastResultRenderMs=Number((performance.now()-renderStarted).toFixed(1));
+  if(internalDbLabEnabled)renderInternalDbLab();
+};
 renderEditor=function(){baseRenderEditor();selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});$('#fontSizeLive').textContent=state.fontSize;if(dockTab==='saved'||dockTab==='navigator')renderDock();};
 captureSelection=function(el){const old=query;baseCapture(el);if(!followSelection){query=old;renderResults()}selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail()};
 insertWord=function(word){if(selectionProof){const check=validateSelectionProof(song(),selectionProof);if(!check.valid){notify('Textstelle geändert. Bitte Zielwort erneut auswählen.');return}}baseInsert(word);animateSurface($(`#lyrics textarea[data-line="${activeLine}"]`)?.parentElement,'insert-flash');selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult)renderDetail()};
@@ -2033,6 +2073,210 @@ function savedThemeRows(){
     return '<div class="theme-saved-row">'+themePaletteMarkup(theme)+'<div><b>'+esc(theme.name)+'</b><small>'+(slots.length?'ersetzt '+slots.join(' + '):'Quickstyle · '+theme.mode)+'</small></div><div class="theme-saved-actions"><button data-theme-choice="'+esc(theme.id)+'" title="Anwenden">✓</button><button data-theme-edit="'+esc(theme.id)+'" title="Bearbeiten">✎</button><button data-theme-delete="'+esc(theme.id)+'" title="Löschen">×</button></div></div>';
   }).join('');
 }
+function formatLabBytes(value){
+  const bytes=Number(value||0);
+  if(!Number.isFinite(bytes)||bytes<=0)return '—';
+  if(bytes>=1024**3)return (bytes/1024**3).toFixed(bytes>=10*1024**3?1:2)+' GiB';
+  if(bytes>=1024**2)return (bytes/1024**2).toFixed(bytes>=100*1024**2?0:1)+' MiB';
+  if(bytes>=1024)return (bytes/1024).toFixed(1)+' KiB';
+  return bytes+' B';
+}
+function formatLabMs(value){
+  const ms=Number(value);
+  if(!Number.isFinite(ms))return '—';
+  return ms.toFixed(ms<10?1:0)+' ms';
+}
+function internalDbActiveSummary(){
+  return internalDbSummaryMap(internalDbLabPayload)[internalDbLabActive]||null;
+}
+function internalDbCardMarkup(row){
+  const caps=row?.capabilities||{};
+  const timing=row?.queryTiming||{};
+  const meta=row?.meta||{};
+  const capsMarkup=[
+    ['DE',caps.words_de],['EN',caps.words_en],['Phrases',caps.phrases],
+    ['Entities',caps.entities],['Generated',caps.generated],
+  ].map(([label,on])=>'<span class="'+(on?'':'off')+'">'+label+'</span>').join('');
+  return '<article class="internal-db-card '+(row?.id===internalDbLabActive?'active ':'')+(row?.available?'':'off')+'">'
+    +'<div class="internal-db-card-head"><b>'+esc(String(row?.id||'').toUpperCase())+'</b><span>'+(row?.available?'READY':'UNAVAILABLE')+'</span></div>'
+    +'<dl>'
+    +'<dt>File</dt><dd>'+formatLabBytes(row?.file?.sizeBytes)+'</dd>'
+    +'<dt>Allocated</dt><dd>'+formatLabBytes(row?.sqlite?.allocatedBytes)+'</dd>'
+    +'<dt>Free pages</dt><dd>'+formatLabBytes(row?.sqlite?.freeBytes)+'</dd>'
+    +'<dt>Pages</dt><dd>'+Number(row?.sqlite?.pageCount||0).toLocaleString('de-DE')+'</dd>'
+    +'<dt>Tables / Indexes</dt><dd>'+Number(row?.sqlite?.tables||0)+' / '+Number(row?.sqlite?.indexes||0)+'</dd>'
+    +'<dt>Target entries</dt><dd>'+esc(meta.distribution_total_target||'MASTER')+'</dd>'
+    +'<dt>Last query</dt><dd>'+formatLabMs(timing.searchMs)+'</dd>'
+    +'<dt>Ø100</dt><dd>'+formatLabMs(timing.averageLast100Ms)+'</dd>'
+    +'<dt>Samples</dt><dd>'+Number(timing.sampleCount||0)+'</dd>'
+    +'</dl><div class="capline">'+capsMarkup+'</div>'
+    +(row?.error?'<small class="small">'+esc(row.error)+'</small>':'')
+    +'</article>';
+}
+function currentInternalDbLabMetrics(){
+  return {
+    browser:browserRuntimeMetrics({
+      windowObj:window,
+      documentObj:document,
+      performanceObj:performance,
+      navigatorObj:navigator,
+    }),
+    studio:studioRuntimeMetrics({
+      activeDb:internalDbLabActive,
+      writerStatus,
+      writerRuntimeTiming,
+      writerClientTiming,
+      writerExecution,
+      lastRenderMs:lastResultRenderMs,
+      resultCount:writerRows.length,
+      visibleResultCount:data().length,
+      query,
+    }),
+  };
+}
+function renderInternalDbLab(){
+  const root=$('#internalDbLab');
+  if(!root)return;
+  root.classList.toggle('hidden',!internalDbLabEnabled);
+  if(!internalDbLabEnabled)return;
+  const map=internalDbSummaryMap(internalDbLabPayload);
+  const active=map[internalDbLabActive];
+  queryAll('#internalDbSwitch [data-runtime-db]').forEach((button)=>{
+    const row=map[button.dataset.runtimeDb];
+    const available=row?.available===true;
+    button.disabled=!available;
+    button.classList.toggle('active',button.dataset.runtimeDb===internalDbLabActive);
+    button.setAttribute('aria-pressed',String(button.dataset.runtimeDb===internalDbLabActive));
+    const small=button.querySelector('small');
+    if(small)small.textContent=available
+      ?formatLabBytes(row.file?.sizeBytes)+(row.meta?.distribution_total_target?' · '+Number(row.meta.distribution_total_target).toLocaleString('de-DE'):' · MASTER')
+      :'nicht verfügbar';
+  });
+  const status=$('#internalDbLabStatus');
+  if(status)status.textContent=active?.available
+    ?String(internalDbLabActive).toUpperCase()+' · '+formatLabBytes(active.file?.sizeBytes)+' · '+(writerExecution||'bereit')
+    :'DB nicht verfügbar';
+  const metrics=$('#internalDbMetrics');
+  metrics?.classList.toggle('hidden',!internalDbLabMetricsOpen);
+  $('#internalDbMetricsToggle')?.setAttribute('aria-expanded',String(internalDbLabMetricsOpen));
+  if(!metrics||!internalDbLabMetricsOpen)return;
+  const live=currentInternalDbLabMetrics();
+  const s=live.studio,b=live.browser,server=internalDbLabPayload?.server||{};
+  metrics.innerHTML='<div class="internal-db-metrics-head"><div><b>DB + Site Performance Lab</b><small>Per-request routing · Ergebnisse, Details und Song-Analyse bleiben an '+esc(internalDbLabActive.toUpperCase())+' gebunden.</small></div><small>Internal only · shipping=false</small></div>'
+    +'<div class="internal-db-live-grid">'
+    +'<div class="internal-db-metric"><small>Server search</small><b>'+formatLabMs(s.serverSearchMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>Client roundtrip</small><b>'+formatLabMs(s.clientRoundTripMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>Result render</small><b>'+formatLabMs(s.resultRenderMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>Results</small><b>'+Number(s.resultCount||0).toLocaleString('de-DE')+'</b></div>'
+    +'<div class="internal-db-metric"><small>TTFB</small><b>'+formatLabMs(b.navigation?.ttfbMs)+'</b></div>'
+    +'<div class="internal-db-metric"><small>FCP</small><b>'+formatLabMs(b.paint?.['first-contentful-paint'])+'</b></div>'
+    +'</div>'
+    +'<div class="internal-db-card-grid">'+(internalDbLabPayload?.databases||[]).map(internalDbCardMarkup).join('')+'</div>'
+    +'<div class="internal-db-tech-grid"><section class="internal-db-tech"><h4>Browser / Site</h4><pre>'+esc(JSON.stringify(b,null,2))+'</pre></section>'
+    +'<section class="internal-db-tech"><h4>Server / Process</h4><pre>'+esc(JSON.stringify(server,null,2))+'</pre></section></div>';
+}
+async function refreshInternalDbLabPayload({silent=false}={}){
+  if(!internalDbLabEnabled&&!silent)return null;
+  const response=await fetch('/api/internal/distribution-dbs',{headers:{accept:'application/json'}});
+  if(response.status===404){
+    internalDbLabEnabled=false;
+    internalDbLabPayload=null;
+    renderInternalDbLab();
+    return null;
+  }
+  const payload=await response.json();
+  if(!response.ok||payload?.enabled!==true)throw new Error(payload?.error||'Internal DB Lab unavailable');
+  internalDbLabEnabled=true;
+  internalDbLabPayload=payload;
+  const map=internalDbSummaryMap(payload);
+  if(!map[internalDbLabActive]?.available){
+    internalDbLabActive=map.master?.available?'master':Object.values(map).find((row)=>row.available)?.id||'master';
+    saveInternalDbLabSelection(internalDbLabActive);
+  }
+  studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
+  updateCapabilitySurface();
+  renderInternalDbLab();
+  return payload;
+}
+async function setInternalDbLabDb(id){
+  if(!internalDbLabEnabled)return;
+  const next=String(id||'').toLowerCase();
+  const summary=internalDbSummaryMap(internalDbLabPayload)[next];
+  if(!summary?.available){notify('DB '+String(next).toUpperCase()+' ist nicht verfügbar.');return}
+  if(next===internalDbLabActive)return;
+  internalDbLabActive=saveInternalDbLabSelection(next);
+  writerSearch.cancel();
+  detailClient.clear();
+  detailClient.cancel();
+  selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';
+  $('#detailDock')?.classList.add('hidden');
+  analysisAbort?.abort?.();analysisSignature='';analysisStatus='idle';analysisData=null;
+  writerRows=[];writerRuntimeTiming=null;writerClientTiming=null;writerExecution=null;lastResultRenderMs=null;
+  if(summary.capabilities?.generated!==true){generated=false;generatedOnly=false}
+  studioCapabilities=studioCapabilitiesFromInternalDb(summary,studioCapabilities);
+  updateCapabilitySurface();
+  renderResults();
+  renderInternalDbLab();
+  notify('Runtime DB → '+next.toUpperCase());
+  await refreshStudioCapabilities();
+  studioCapabilities=studioCapabilitiesFromInternalDb(internalDbActiveSummary(),studioCapabilities);
+  updateCapabilitySurface();
+  await refreshWriterResults();
+  if(mode==='rhyme')void refreshSongAnalysis(true);
+}
+async function copyInternalDbLabMetrics(){
+  const live=currentInternalDbLabMetrics();
+  const payload=internalDbLabCopyPayload({
+    payload:internalDbLabPayload,
+    activeDb:internalDbLabActive,
+    browser:live.browser,
+    studio:live.studio,
+  });
+  const text=JSON.stringify(payload,null,2);
+  try{
+    await navigator.clipboard.writeText(text);
+  }catch{
+    const area=document.createElement('textarea');
+    area.value=text;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';
+    document.body.append(area);area.select();document.execCommand('copy');area.remove();
+  }
+  notify('DB + Site Metrics kopiert.');
+  return payload;
+}
+async function initializeInternalDbLab(){
+  try{
+    const response=await fetch('/api/internal/distribution-dbs',{headers:{accept:'application/json'}});
+    if(response.status===404){renderInternalDbLab();return false}
+    const payload=await response.json();
+    if(!response.ok||payload?.enabled!==true){renderInternalDbLab();return false}
+    internalDbLabEnabled=true;
+    internalDbLabPayload=payload;
+    const map=internalDbSummaryMap(payload);
+    if(!map[internalDbLabActive]?.available)internalDbLabActive=map.master?.available?'master':'lite';
+    saveInternalDbLabSelection(internalDbLabActive);
+    studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
+    queryAll('#internalDbSwitch [data-runtime-db]').forEach((button)=>{
+      button.onclick=()=>{void setInternalDbLabDb(button.dataset.runtimeDb)};
+    });
+    $('#internalDbMetricsToggle').onclick=()=>{
+      internalDbLabMetricsOpen=!internalDbLabMetricsOpen;
+      renderInternalDbLab();
+    };
+    $('#internalDbMetricsCopy').onclick=()=>{void copyInternalDbLabMetrics()};
+    $('#internalDbMetricsRefresh').onclick=async()=>{
+      try{await refreshInternalDbLabPayload({silent:true});notify('DB-Metriken aktualisiert.')}
+      catch(error){notify('Metrics-Refresh fehlgeschlagen: '+(error instanceof Error?error.message:String(error)))}
+    };
+    renderInternalDbLab();
+    return true;
+  }catch(error){
+    console.warn('Internal DB Lab disabled:',error);
+    internalDbLabEnabled=false;
+    renderInternalDbLab();
+    return false;
+  }
+}
+
 function formatCapabilityCount(value){
   const count=Number(value||0);
   return new Intl.NumberFormat('de-DE',{notation:count>=100000?'compact':'standard',maximumFractionDigits:1}).format(count);
@@ -2074,7 +2318,13 @@ function updateCapabilitySurface(){
 }
 async function refreshStudioCapabilities(){
   try{
-    studioCapabilities=await loadStudioCapabilities();
+    studioCapabilities=await loadStudioCapabilities({
+      runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
+    });
+    if(internalDbLabEnabled){
+      const summary=internalDbSummaryMap(internalDbLabPayload)[internalDbLabActive];
+      studioCapabilities=studioCapabilitiesFromInternalDb(summary,studioCapabilities);
+    }
   }catch(error){
     studioCapabilities={status:'error',error:error instanceof Error?error.message:String(error)};
   }
@@ -2965,7 +3215,9 @@ async function loadSelectedDetail(row){
   selectedDetailStatus='loading';selectedDetail=null;selectedDetailError='';
   renderDetail();
   try{
-    const payload=await detailClient.load(row);
+    const payload=await detailClient.load(row,{
+      runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
+    });
     if(token!==detailRequest||selectedResultId!==row.id)return;
     selectedDetail=buildStudioDetailModel(row,payload);
     selectedDetailStatus='ready';
@@ -3078,6 +3330,7 @@ async function startStudio(){
   bindV2();
   setStudioUiLanguage(state.uiLanguage,{persistState:false});
   await initializeDocumentStore();
+  await initializeInternalDbLab();
   const capabilitiesReady=refreshStudioCapabilities();
   applyThemeChoice(state.theme,{persistState:false});
   document.documentElement.style.setProperty('--editor',state.fontSize+'px');
