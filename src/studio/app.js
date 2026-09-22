@@ -2156,17 +2156,23 @@ function currentInternalDbLabMetrics(){
       performanceObj:performance,
       navigatorObj:navigator,
     }),
-    studio:studioRuntimeMetrics({
-      activeDb:internalDbLabActive,
-      writerStatus,
-      writerRuntimeTiming,
-      writerClientTiming,
-      writerExecution,
-      lastRenderMs:lastResultRenderMs,
-      resultCount:writerRows.length,
-      visibleResultCount:data().length,
-      query,
-    }),
+    studio:{
+      ...studioRuntimeMetrics({
+        activeDb:internalDbLabActive,
+        writerStatus,
+        writerRuntimeTiming,
+        writerClientTiming,
+        writerServerTransport,
+        writerExecution,
+        writerEffectiveRequest,
+        writerRows,
+        lastRenderMs:lastResultRenderMs,
+        resultCount:writerRows.length,
+        visibleResultCount:data().length,
+        query,
+      }),
+      uiState:currentSearchUiState(),
+    },
   };
 }
 function renderInternalDbLab(){
@@ -2246,7 +2252,7 @@ async function setInternalDbLabDb(id){
   selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';
   $('#detailDock')?.classList.add('hidden');
   analysisAbort?.abort?.();analysisSignature='';analysisStatus='idle';analysisData=null;
-  writerRows=[];writerRuntimeTiming=null;writerClientTiming=null;writerExecution=null;lastResultRenderMs=null;
+  writerRows=[];writerRuntimeTiming=null;writerClientTiming=null;writerServerTransport=null;writerEffectiveRequest=null;writerExecution=null;lastResultRenderMs=null;
   if(summary.capabilities?.generated!==true){generated=false;generatedOnly=false}
   studioCapabilities=studioCapabilitiesFromInternalDb(summary,studioCapabilities);
   updateCapabilitySurface();
@@ -2260,12 +2266,14 @@ async function setInternalDbLabDb(id){
   if(mode==='rhyme')void refreshSongAnalysis(true);
 }
 async function copyInternalDbLabMetrics(){
+  try{await refreshInternalDbLabPayload({silent:true})}catch{}
   const live=currentInternalDbLabMetrics();
   const payload=internalDbLabCopyPayload({
     payload:internalDbLabPayload,
     activeDb:internalDbLabActive,
     browser:live.browser,
     studio:live.studio,
+    benchmark:internalDbBenchmarkReport,
   });
   const text=JSON.stringify(payload,null,2);
   try{
