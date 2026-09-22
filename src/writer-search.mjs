@@ -385,6 +385,7 @@ function collectRightEdgeCandidates(
         } catch { continue; }
         if(
           context?.disableSafePrefilter!==true
+          &&runtimeState.servingV1!==true
           &&typeof profile.writerMatchUpperBound==='function'
         ){
           const prefilterStarted=context?.metrics?performance.now():0;
