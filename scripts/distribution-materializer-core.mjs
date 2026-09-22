@@ -243,6 +243,12 @@ export function createSelectionStorage(db){
       canonical_available INTEGER NOT NULL,
       generated_available INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS _dist_entity_availability_state(
+      singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+      source_max_pronunciation_id INTEGER NOT NULL,
+      last_pronunciation_id INTEGER NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('building','complete'))
+    );
     CREATE TABLE IF NOT EXISTS _dist_entity_membership(
       entity_id INTEGER NOT NULL,
       category TEXT NOT NULL,
@@ -265,51 +271,129 @@ export function clearSelectionStorage(db){
   ])db.exec('DELETE FROM '+table+';');
 }
 
-export function ensureEntityAvailability(db,{alias='src',onProgress=null}={}){
+export function ensureEntityAvailability(db,{
+  alias='src',
+  onProgress=null,
+  chunkSize=100000,
+}={}){
   const p=prefix(alias);
   createSelectionStorage(db);
-  const existing=scalar(db,'SELECT COUNT(*) c FROM _dist_entity_availability');
-  if(existing>0){
-    onProgress?.({
-      phase:'selection',step:'entity_availability',status:'resume_skip',entities:existing,
-    });
-    return existing;
+  const sourceMax=Number(db.prepare(`
+    SELECT COALESCE(MAX(product_pronunciation_id),0) AS max_id
+    FROM ${p}runtime_entity_pronunciation
+  `).get()?.max_id||0);
+  const safeChunk=Math.max(1000,Math.trunc(Number(chunkSize)||100000));
+
+  let state=db.prepare(`
+    SELECT source_max_pronunciation_id,last_pronunciation_id,status
+    FROM _dist_entity_availability_state
+    WHERE singleton=1
+  `).get()||null;
+
+  if(state&&Number(state.source_max_pronunciation_id)!==sourceMax){
+    db.exec(`
+      DELETE FROM _dist_entity_availability;
+      DELETE FROM _dist_entity_availability_state;
+    `);
+    state=null;
   }
 
-  onProgress?.({phase:'selection',step:'entity_availability',status:'start'});
-  db.exec('BEGIN IMMEDIATE;');
-  try{
-    db.exec(`
-      INSERT INTO _dist_entity_availability(
-        entity_id,canonical_available,generated_available
-      )
-      SELECT
-        n.entity_id,
-        MAX(CASE
-          WHEN sp.eligible=1 AND sp.canonical_available=1 THEN 1 ELSE 0
-        END) AS canonical_available,
-        MAX(CASE
-          WHEN sp.eligible=1
-           AND (sp.canonical_available=1 OR sp.generated_available=1)
-          THEN 1 ELSE 0
-        END) AS generated_available
-      FROM ${p}runtime_entity_pronunciation ep
-      JOIN ${p}runtime_entity_name n
-        ON n.name_id=ep.name_id
-      JOIN ${p}pronunciation sp
-        ON sp.pronunciation_id=ep.serving_pronunciation_id
-      WHERE sp.eligible=1
-        AND (sp.canonical_available=1 OR sp.generated_available=1)
-      GROUP BY n.entity_id
-    `);
-    db.exec('COMMIT;');
-  }catch(error){
-    try{db.exec('ROLLBACK;')}catch{}
-    throw error;
+  if(state?.status==='complete'){
+    const entities=scalar(db,'SELECT COUNT(*) c FROM _dist_entity_availability');
+    onProgress?.({
+      phase:'selection',step:'entity_availability',status:'resume_skip',
+      entities,last_pronunciation_id:Number(state.last_pronunciation_id||0),
+      source_max_pronunciation_id:sourceMax,
+    });
+    return entities;
   }
+
+  if(!state){
+    db.prepare(`
+      INSERT INTO _dist_entity_availability_state(
+        singleton,source_max_pronunciation_id,last_pronunciation_id,status
+      ) VALUES(1,?,0,'building')
+    `).run(sourceMax);
+    state={source_max_pronunciation_id:sourceMax,last_pronunciation_id:0,status:'building'};
+  }
+
+  let last=Number(state.last_pronunciation_id||0);
+  const totalChunks=Math.max(1,Math.ceil(sourceMax/safeChunk));
+  onProgress?.({
+    phase:'selection',step:'entity_availability',status:last>0?'resume':'start',
+    last_pronunciation_id:last,source_max_pronunciation_id:sourceMax,
+    current:Math.min(totalChunks,Math.floor(last/safeChunk)),
+    total:totalChunks,
+  });
+
+  const upsert=db.prepare(`
+    INSERT INTO _dist_entity_availability(
+      entity_id,canonical_available,generated_available
+    )
+    SELECT
+      n.entity_id,
+      MAX(CASE
+        WHEN sp.eligible=1 AND sp.canonical_available=1 THEN 1 ELSE 0
+      END) AS canonical_available,
+      MAX(CASE
+        WHEN sp.eligible=1
+         AND (sp.canonical_available=1 OR sp.generated_available=1)
+        THEN 1 ELSE 0
+      END) AS generated_available
+    FROM ${p}runtime_entity_pronunciation ep
+    JOIN ${p}runtime_entity_name n
+      ON n.name_id=ep.name_id
+    JOIN ${p}pronunciation sp
+      ON sp.pronunciation_id=ep.serving_pronunciation_id
+    WHERE ep.product_pronunciation_id>?
+      AND ep.product_pronunciation_id<=?
+      AND sp.eligible=1
+      AND (sp.canonical_available=1 OR sp.generated_available=1)
+    GROUP BY n.entity_id
+    ON CONFLICT(entity_id) DO UPDATE SET
+      canonical_available=MAX(
+        _dist_entity_availability.canonical_available,
+        excluded.canonical_available
+      ),
+      generated_available=MAX(
+        _dist_entity_availability.generated_available,
+        excluded.generated_available
+      )
+  `);
+  const updateState=db.prepare(`
+    UPDATE _dist_entity_availability_state
+    SET last_pronunciation_id=?,status=?
+    WHERE singleton=1
+  `);
+
+  while(last<sourceMax){
+    const upper=Math.min(sourceMax,last+safeChunk);
+    const current=Math.ceil(upper/safeChunk);
+    onProgress?.({
+      phase:'selection',step:'entity_availability_chunk',status:'start',
+      current,total:totalChunks,from:last+1,to:upper,
+    });
+    db.exec('BEGIN IMMEDIATE;');
+    try{
+      upsert.run(last,upper);
+      updateState.run(upper,upper>=sourceMax?'complete':'building');
+      db.exec('COMMIT;');
+    }catch(error){
+      try{db.exec('ROLLBACK;')}catch{}
+      throw error;
+    }
+    last=upper;
+    onProgress?.({
+      phase:'selection',step:'entity_availability_chunk',status:'complete',
+      current,total:totalChunks,last_pronunciation_id:last,
+    });
+  }
+
   const entities=scalar(db,'SELECT COUNT(*) c FROM _dist_entity_availability');
   onProgress?.({
-    phase:'selection',step:'entity_availability',status:'complete',entities,
+    phase:'selection',step:'entity_availability',status:'complete',
+    entities,last_pronunciation_id:last,source_max_pronunciation_id:sourceMax,
+    current:totalChunks,total:totalChunks,
   });
   return entities;
 }
@@ -982,7 +1066,8 @@ export function dropDistributionBuildStorage(db){
   for(const table of [
     '_dist_core_rank','_dist_generated_rank','_dist_word_surface','_dist_pronunciation',
     '_dist_surface','_dist_phrase','_dist_phrase_window','_dist_entity',
-    '_dist_entity_availability','_dist_entity_membership','_dist_entity_name',
+    '_dist_entity_availability','_dist_entity_availability_state',
+    '_dist_entity_membership','_dist_entity_name',
     '_dist_entity_pronunciation','_dist_target','_dist_key',
     'distribution_build_stage',
   ]){
