@@ -22,6 +22,8 @@ import {
   rankWriterRecommendedResults,
 } from './writer-ranking-policy.mjs';
 
+const SOUND_RELATION_TYPES=new Set(['assonance','consonance']);
+
 const RHYME_TIER = new Map([
   ['multisyllabic_perfect', 0],
   ['perfect', 0],
@@ -629,8 +631,10 @@ export function findWriterRhymesFromExternalQuery(db, queryDetail, options = {})
 
 export function findWriterRhymes(db, word, options = {}) {
   const limit = clampLimit(options.limit, 250, 250);
+  const requestedType=normalizedWriterType(options.type);
   const base = findRhymes(db, word, {
     ...options,
+    type:SOUND_RELATION_TYPES.has(requestedType)?'all':requestedType,
     limit: 250,
     ensureTypeCoverage: false,
   });
@@ -680,7 +684,6 @@ export function findWriterRhymes(db, word, options = {}) {
     }
   }
 
-  const requestedType=normalizedWriterType(options.type);
   const soundSorted = [...merged.values()]
     .filter((row)=>writerRowMatchesType(row,requestedType))
     .sort(compareSound);
