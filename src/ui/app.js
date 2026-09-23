@@ -898,7 +898,7 @@ function appendClientPronunciations(params,generated){
 
 function selectedRuntimeDbPreference(){
   const value=String(localStorage.getItem('rhymelab.internal.dbLab.v1')||'').trim().toLowerCase();
-  return ['master','lite','standard','full'].includes(value)?value:'';
+  return ['lite','standard','full'].includes(value)?value:'standard';
 }
 function updateRuntimeDbBadge(value,{pending=false}={}){
   const badge=$('#searchDbBadge');
