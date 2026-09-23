@@ -2909,7 +2909,7 @@ async function setInternalDbLabDb(id){
   detailClient.cancel();
   selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';
   $('#detailDock')?.classList.add('hidden');
-  analysisAbort?.abort?.();analysisSignature='';analysisStatus='idle';analysisData=null;
+  analysisAbort?.abort?.();analysisSignature='';analysisStatus='idle';analysisData=null;allRhymeAbort?.abort?.();allRhymeSignature='';allRhymeStatus='idle';allRhymeData=null;
   writerRows=[];writerRuntimeTiming=null;writerClientTiming=null;writerServerTransport=null;writerEffectiveRequest=null;writerExecution=null;lastResultRenderMs=null;
   if(summary.capabilities?.generated!==true){generated=false;generatedOnly=false}
   studioCapabilities=studioCapabilitiesFromInternalDb(summary,studioCapabilities);
@@ -2921,7 +2921,7 @@ async function setInternalDbLabDb(id){
   studioCapabilities=studioCapabilitiesFromInternalDb(internalDbActiveSummary(),studioCapabilities);
   updateCapabilitySurface();
   await refreshWriterResults();
-  if(mode==='rhyme')void refreshSongAnalysis(true);
+  if(mode==='rhyme')void (analysisScope==='all'?refreshAllRhymeAnalysis(true):refreshSongAnalysis(true));
 }
 async function copyInternalDbLabMetrics(){
   try{await refreshInternalDbLabPayload({silent:true})}catch{}
