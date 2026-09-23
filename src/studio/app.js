@@ -1217,7 +1217,7 @@ function renderAnalysisSurface(){
       </section>
       <section class="analysis-card">
         <div class="row between"><div><h3>Bar-Dichte</h3><p class="small">≈ lokale Silbenschätzung · keine kanonische Phonetikmetrik</p></div><span class="analysis-estimate-badge">APPROX</span></div>
-        <div class="analysis-density-list">${s.lines.map((line,index)=>{
+        <div class="analysis-density-list">${trackedLines.map((line,index)=>{
           const count=syll(line);
           const width=Math.min(100,Math.max(2,count*4));
           return '<div class="analysis-density-row"><span>'+String(index+1).padStart(2,'0')+'</span><i><b style="width:'+width+'%"></b></i><strong>'+count+'</strong></div>';
