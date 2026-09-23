@@ -99,6 +99,13 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/function updateSearchPageChrome\(/u);
   assert.match(app,/function syncSearchPageCompact\(/u);
   assert.match(app,/bindClick\('searchPageFiltersToggle'/u);
+  assert.match(app,/STUDIO_FILTER_PANEL_KEY='rhymelab\.studio\.searchFiltersOpen\.v1'/u);
+  assert.match(app,/let studioSearchFiltersOpen=/u);
+  assert.match(app,/function setStudioSearchFiltersOpen\(/u);
+  assert.match(app,/function toggleVisibleSearchFilters\(/u);
+  assert.match(app,/function bindTransientOutsideDismissals\(/u);
+  assert.match(app,/target\.closest\('\.custom-select-popover'\)/u);
+  assert.match(app,/setStudioSearchFiltersOpen\(false\)/u);
   assert.match(css,/2026 ergonomic density \+ readable UI pass/u);
   assert.match(css,/\.find-only #directFilters\{[\s\S]*?display:none/u);
   assert.match(css,/\.find-only\.search-page-filters-open #directFilters\{[\s\S]*?display:block/u);
@@ -109,6 +116,10 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/\.search-submit\{[\s\S]*?width:48px!important/u);
   assert.match(css,/\.results-controlbar\{[\s\S]*?flex:0 0 auto/u);
   assert.match(css,/\.results-controlbar \.result-toolbar\{[\s\S]*?position:static/u);
+  assert.match(css,/Studio inspector filter ergonomics/u);
+  assert.match(css,/body:not\(\.find-only\) \.filter-deck-row\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/u);
+  assert.match(css,/\.filter-field>span\{[\s\S]*?font-weight:850/u);
+  assert.match(css,/\.filter-field \.custom-select-value\{[\s\S]*?font-weight:520/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
