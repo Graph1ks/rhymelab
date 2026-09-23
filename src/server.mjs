@@ -48,7 +48,6 @@ import {
   selectGeneratedOptinDatabases,
 } from './generated-optin-runtime.mjs';
 import {
-  DEFAULT_SERVING_V1_PRODUCT_DB_PATH,
   SERVING_V1_PRODUCT_RUNTIME,
   openServingV1ProductRuntime,
   servingV1ProductRuntimeState,
@@ -82,9 +81,8 @@ const searchDefaultRoute=process.argv.includes('--search-default')
 const studioDefaultRoute=process.argv.includes('--studio-default')
   ||String(process.env.RHYMELAB_STUDIO_DEFAULT||'').trim()==='1'
   ||!searchDefaultRoute;
-const servingV1DbPath=resolve(
-  process.env.RHYMELAB_SERVING_V1_DB||DEFAULT_SERVING_V1_PRODUCT_DB_PATH,
-);
+const internalDbPaths=internalDistributionDbPaths({env:process.env});
+const servingV1DbPath=internalDbPaths.standard;
 const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYMELAB_DB || 'data/local/rhymelab.sqlite');
 const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
 const phraseDbPath = resolve(process.env.RHYMELAB_PHRASE_DB || 'data/local/rhymelab-phrases-v1.sqlite');
@@ -124,10 +122,6 @@ const markovTestDir = resolve('src/markov-test');
 const writerQueryTiming=createRollingQueryTiming(100);
 const internalDbSwitcherEnabled=servingV1Active&&internalDistributionSwitcherEnabled({
   argv:process.argv.slice(2),
-  env:process.env,
-});
-const internalDbPaths=internalDistributionDbPaths({
-  masterPath:servingV1DbPath,
   env:process.env,
 });
 const internalDbQueryTimings=new Map(
@@ -205,38 +199,52 @@ if(!servingV1Active){
   }
 }
 
+function openDistributionRuntime(id,path){
+  const runtime=openServingV1ProductRuntime(path);
+  const state=servingV1ProductRuntimeState(runtime.coreDb);
+  const edition=String(state?.distribution?.edition||'').toLowerCase();
+  if(!state.available||edition!==id){
+    try{runtime.close?.()}catch{}
+    throw new Error(
+      !state.available
+        ?String(state.reason||'distribution_runtime_unavailable')
+        :`distribution_edition_mismatch: expected ${id}, got ${edition||'unknown'}`
+    );
+  }
+  return {runtime,state};
+}
+
 let servingV1Runtime=null;
 let servingV1State=null;
 if(servingV1Active){
   try{
-    servingV1Runtime=openServingV1ProductRuntime(servingV1DbPath);
-    servingV1State=servingV1ProductRuntimeState(servingV1Runtime.coreDb);
+    ({runtime:servingV1Runtime,state:servingV1State}=openDistributionRuntime('standard',servingV1DbPath));
   }catch(error){
-    console.error(`Cannot open Serving-v1 Product database at ${servingV1DbPath}`);
-    console.error('Build it with: npm run serving:v1:product:build');
+    console.error(`Cannot open STANDARD distribution database at ${servingV1DbPath}`);
+    console.error('Build it with: npm run distribution:build:standard');
     console.error(error instanceof Error?error.message:String(error));
     process.exit(1);
   }
 }
 
 if(internalDbSwitcherEnabled){
-  internalDbEntries.set('master',{
-    id:'master',
-    path:internalDbPaths.master,
+  internalDbEntries.set('standard',{
+    id:'standard',
+    path:internalDbPaths.standard,
     runtime:servingV1Runtime,
     state:servingV1State,
     error:null,
     owned:false,
   });
-  for(const id of INTERNAL_DISTRIBUTION_DB_IDS.filter((value)=>value!=='master')){
+  for(const id of INTERNAL_DISTRIBUTION_DB_IDS.filter((value)=>value!=='standard')){
     const path=internalDbPaths[id];
     try{
-      const runtime=openServingV1ProductRuntime(path);
+      const {runtime,state}=openDistributionRuntime(id,path);
       internalDbEntries.set(id,{
         id,
         path,
         runtime,
-        state:servingV1ProductRuntimeState(runtime.coreDb),
+        state,
         error:null,
         owned:true,
       });
@@ -276,10 +284,11 @@ function internalDbTimingSnapshot(id){
 
 function internalDistributionPayload(){
   return {
-    schema:'rhymelab-internal-distribution-lab-v1',
+    schema:'rhymelab-distribution-runtime-v1',
     enabled:internalDbSwitcherEnabled,
-    internalOnly:true,
-    shipping:false,
+    internalOnly:false,
+    shipping:true,
+    defaultDatabase:'standard',
     selectionMode:'per-request-query-parameter',
     parameter:'runtime_db',
     databases:INTERNAL_DISTRIBUTION_DB_IDS.map((id)=>{
