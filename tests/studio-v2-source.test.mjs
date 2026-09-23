@@ -22,6 +22,29 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(server,/['"]\/assets\/custom-select\.mjs['"]/u);
   assert.match(html,/STUDIO V2/u);
   assert.doesNotMatch(html,/STUDIO 02 · DEMO/u);
+  assert.match(html,/data-dock=["']settings["']>Einstellungen</button>/u);
+  assert.doesNotMatch(html,/Design 02/u);
+  assert.doesNotMatch(html,/id=["']internalDbLab["']/u);
+  assert.doesNotMatch(html,/INTERNAL_DB_LAB_(?:START|END)/u);
+  assert.match(app,/let settingsTab='general'/u);
+  assert.match(app,/function settingsTabButton\(/u);
+  assert.match(app,/function settingsRuntimeDbBody\(/u);
+  assert.match(app,/function bindRuntimeDatabaseSettings\(/u);
+  const settingsSurface=app.slice(app.indexOf('function settingsCopy()'),app.indexOf('function readThemeDraft()'));
+  assert.match(settingsSurface,/Allgemein/u);
+  assert.match(settingsSurface,/Design/u);
+  assert.match(settingsSurface,/Datenbank/u);
+  assert.match(settingsSurface,/Daten & Backup/u);
+  assert.match(settingsSurface,/\{id:'lite'/u);
+  assert.match(settingsSurface,/\{id:'standard'/u);
+  assert.match(settingsSurface,/\{id:'full'/u);
+  assert.doesNotMatch(settingsSurface,/\{id:'master'/u);
+  assert.doesNotMatch(settingsSurface,/Diagnostics|Acceptance|Benchmark|Bench current|Metrics/u);
+  assert.match(css,/Studio Settings 2026/u);
+  assert.match(css,/\.settings-layout/u);
+  assert.match(css,/\.settings-nav-item/u);
+  assert.match(css,/\.runtime-db-grid/u);
+  assert.match(css,/\.runtime-db-choice/u);
 
   assert.match(css,/--assist-width:470px/u);
   assert.match(css,/--bg:#EAE7DC/u);
@@ -230,12 +253,9 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/function exportStudioDeviceAcceptance\(/u);
   assert.match(app,/function importStudioDeviceAcceptanceFile\(/u);
   assert.match(app,/mergeStudioDeviceAcceptanceReports/u);
-  assert.match(app,/id="importDeviceAcceptance"/u);
-  assert.match(app,/id="deviceAcceptanceFile"/u);
   assert.match(app,/Teilreport exportieren/u);
   assert.match(app,/STUDIO_DEVICE_GATES/u);
   assert.match(app,/DEVICE_ACCEPTANCE_STORAGE_KEY/u);
-  assert.match(app,/id="deviceAcceptancePanel"/u);
   assert.match(app,/function renderDiagnosticsPanel\(/u);
   assert.match(app,/function exportStudioDiagnostics\(/u);
   assert.match(app,/collectStudioEnvironmentDiagnostics/u);
@@ -332,8 +352,7 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   const server=await readFile('src/server.mjs','utf8');
 
   assert.match(server,/const studioUiDir = resolve\('src\/studio'\)/u);
-  assert.match(server,/const studioHtmlSource=readFileSync\(resolve\(studioUiDir,'index\.html'\),'utf8'\)/u);
-  assert.match(server,/INTERNAL_DB_LAB_START/u);
+  assert.match(server,/const studioHtml=readFileSync\(resolve\(studioUiDir,'index\.html'\)\)/u);
   assert.match(server,/internalDbSwitcherEnabled/u);
   assert.match(server,/'\/studio': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
   assert.match(server,/'\/studio\/': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
@@ -492,7 +511,8 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/copyInternalDbLabMetrics/u);
   assert.match(app,/refreshInternalDbLabPayload\(\{silent:true\}\)/u);
   assert.match(app,/refreshStudioCapabilities\(\)/u);
-  assert.match(app,/id="capabilitySummary"/u);
+  assert.match(app,/class="settings-status-grid"/u);
+  assert.match(app,/id="settingsRuntimeDb"/u);
 
   assert.match(core,/export const queryAll=/u);
   assert.match(controls,/export function normalizeDensity/u);
