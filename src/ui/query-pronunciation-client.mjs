@@ -1,4 +1,4 @@
-export const CLIENT_QUERY_PRONUNCIATION_POLICY='client-total-query-pronunciation-v2';
+export const CLIENT_QUERY_PRONUNCIATION_POLICY='client-total-query-pronunciation-v3';
 export const CLIENT_QUERY_MAX_TOKENS=64;
 
 const LANGUAGES=new Set(['de','en']);
@@ -105,6 +105,32 @@ function scan(text,language){
   return out;
 }
 
+function germanOrthographicPostprocess(surface,ipa){
+  const text=simplify(surface,'de');
+  let out=String(ipa||'');
+
+  // Product OOV anchors need German Auslautverhärtung. Without this,
+  // spellings such as "Warg" resolve to ...g and miss the normal ...k
+  // rhyme domain used by source-backed German candidates.
+  const final=([
+    ['b','p'],
+    ['d','t'],
+    ['g','k'],
+  ]).find(([grapheme])=>text.endsWith(grapheme));
+  if(final&&out.endsWith(final[0]))out=out.slice(0,-final[0].length)+final[1];
+
+  // Common monomorphemic/verb-stem -ag anchors are long-a in the German
+  // rhyme domain (Tag / Schlag / trag / frag / lag / mag / jag / Prag).
+  // Keep -arg separate: its rhotic coda is the important rhyme signal.
+  if(/ag$/u.test(text)&&!/arg$/u.test(text)){
+    const index=out.lastIndexOf('a');
+    if(index>=0&&!out.slice(index,index+2).includes('ː')){
+      out=out.slice(0,index)+'aː'+out.slice(index+1);
+    }
+  }
+  return out;
+}
+
 function graphemeFallback(surface,language){
   const text=simplify(surface,language);
   const consonants=language==='de'
@@ -124,7 +150,8 @@ function graphemeFallback(surface,language){
 export function generateClientIpa(surface,language){
   const code=normalizeLanguage(language);
   const simplified=simplify(surface,code);
-  const ruleIpa=scan(simplified,code);
+  const scanned=scan(simplified,code);
+  const ruleIpa=code==='de'?germanOrthographicPostprocess(surface,scanned):scanned;
   return {
     language:code,
     surface:String(surface??'').normalize('NFKC').trim(),
