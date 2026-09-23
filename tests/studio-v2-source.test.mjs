@@ -128,8 +128,8 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(i18n,/#songTitle/u);
   assert.match(i18n,/\.project-list/u);
   assert.match(i18n,/#lyrics/u);
-  assert.match(app,/id="uiLanguageSelect"/u);
-  assert.match(app,/uiLanguageSelect/u);
+  assert.match(app,/data-setting-language/u);
+  assert.match(app,/setStudioUiLanguage\(button\.dataset\.settingLanguage/u);
   assert.match(css,/\.theme-quick:hover \.theme-quick-menu/u);
   assert.match(css,/\.theme-quick-menu::before/u);
   assert.match(css,/#themeMenuBtn\[aria-expanded="true"\] \+ \.theme-quick-menu/u);
