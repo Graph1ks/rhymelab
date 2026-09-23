@@ -411,11 +411,23 @@ function restoreStudioRevision(entry){
 }
 function changed(){const s=song();s.updatedAt=Date.now();$('#saveState').textContent='Speichert …';clearTimeout(saveTimer);saveTimer=setTimeout(()=>{revision('autosave');persist()},650);updateStats() }
 function notify(t){$('#toast').textContent=t;$('#toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.add('hidden'),3300)}
+function trackedStudioLineIndexes(current=song()){
+  return trackedEditorLineIndexes(current);
+}
+function trackedStudioLines(current=song()){
+  return trackedStudioLineIndexes(current).map((index)=>current.lines[index]);
+}
+function editorLineLabel(current,index){
+  const kind=editorLineKind(current.lines[index]);
+  const barNumber=trackedEditorBarNumber(current,index);
+  if(kind==='bar')return 'Bar '+String(barNumber).padStart(2,'0');
+  if(kind==='bracket')return 'Section';
+  return '';
+}
 function ensureActiveBarVisible({behavior}={}){
   const metrics=mobileViewportMetrics(window);
   if(!metrics.isMobile||page!=='studio'||mode!=='write'||document.body.classList.contains('mobile-results'))return;
-  const focused=document.activeElement?.matches?.('#lyrics textarea')?document.activeElement:null;
-  const target=focused||$('#lyrics textarea[data-line="'+activeLine+'"]');
+  const target=$('.lyrics-gutter-row[data-line="'+activeLine+'"]')||$('#lyricsEditor');
   const scroller=$('#editorScroll');
   if(!target||!scroller)return;
   const delta=mobileScrollDeltaForRect(target.getBoundingClientRect(),metrics,{
@@ -435,165 +447,219 @@ function bindMobileViewport(){
     windowObj:window,
     documentElement:document.documentElement,
     onChange:(metrics)=>{
-      if(metrics.isMobile&&document.activeElement?.matches?.('#lyrics textarea')){
+      if(metrics.isMobile&&document.activeElement?.matches?.('#lyricsEditor')){
         requestAnimationFrame(()=>ensureActiveBarVisible({behavior:'auto'}));
       }
     },
   });
 }
-function resizeArea(el){el.style.height='34px';el.style.height=el.scrollHeight+'px'}
-function renderEditor(){
-  const s=song();
-  $('#songTitle').textContent=s.title;
-  $('#lyrics').innerHTML=s.lines.map((line,index)=>{
-    const bar=barIdentity(s,index);
-    return `<div class="lyric-line ${index===activeLine?'active':''}" data-bar-id="${esc(bar.id)}"><button class="line-no" data-line="${index}" data-bar-id="${esc(bar.id)}" aria-label="Bar ${index+1} auswählen">${String(index+1).padStart(2,'0')}</button><textarea aria-label="Text Bar ${index+1}" data-line="${index}" data-bar-id="${esc(bar.id)}" data-bar-revision="${bar.revision}" rows="1" spellcheck="false">${esc(line)}</textarea><button class="syllable" data-bar-inspect="${index}" aria-label="Bar ${index+1} analysieren" title="Lokale Silbenschätzung · Klick für Bar Inspector">${syll(line)||'—'}</button></div>`;
-  }).join('');
-  queryAll('#lyrics textarea').forEach((el)=>{
-    resizeArea(el);
-    el.addEventListener('focus',()=>{
-      activateLine(+el.dataset.line);
-      requestAnimationFrame(()=>ensureActiveBarVisible());
-    });
-    el.addEventListener('pointerdown',()=>typingUndo.noteBoundary(),{passive:true});
-    el.addEventListener('compositionstart',()=>{
-      if(composingBarId)return;
-      compositionCommitBarId='';compositionCommitValue='';
-      pushUndo();
-      composingBarId=el.dataset.barId;
-    });
-    el.addEventListener('compositionend',()=>{
-      const index=+el.dataset.line;
-      const bar=setEditorBarText(song(),index,el.value);
-      if(bar){
-        el.value=bar.text;
-        el.dataset.barRevision=String(bar.revision);
-      }
-      composingBarId='';
-      compositionCommitBarId=el.dataset.barId;compositionCommitValue=el.value;
-      el.parentElement.querySelector('.syllable').textContent=syll(el.value)||'—';
-      resizeArea(el);
-      changed();
-      captureSelection(el);
-    });
-    el.addEventListener('input',(event)=>{
-      const index=+el.dataset.line;
-      const trailingCompositionCommit=compositionCommitBarId===el.dataset.barId&&compositionCommitValue===el.value;
-      if(trailingCompositionCommit){compositionCommitBarId='';compositionCommitValue=''}
-      else if(!event.isComposing&&composingBarId!==el.dataset.barId){
-        const shouldCheckpoint=typingUndo.shouldCheckpoint({
-          songId:song().id,
-          barId:el.dataset.barId,
-          inputType:event.inputType,
-          now:Date.now(),
-          composing:false,
-        });
-        if(shouldCheckpoint)pushUndo({coalesced:true});
-      }
-      const bar=setEditorBarText(song(),index,el.value);
-      if(bar){
-        if(el.value!==bar.text)el.value=bar.text;
-        el.dataset.barRevision=String(bar.revision);
-      }
-      el.parentElement.querySelector('.syllable').textContent=syll(el.value)||'—';
-      resizeArea(el);
-      if(!trailingCompositionCommit&&!event.isComposing&&composingBarId!==el.dataset.barId)changed();
-    });
-    ['click','keyup','select'].forEach((eventName)=>el.addEventListener(eventName,()=>{
-      if(composingBarId!==el.dataset.barId)captureSelection(el);
-    }));
-    el.addEventListener('paste',(event)=>{
-      const clipboard=event.clipboardData?.getData('text/plain');
-      if(clipboard==null)return;
-      event.preventDefault();
-      pushUndo();
-      const index=+el.dataset.line;
-      const result=pasteEditorText(song(),index,el.selectionStart,el.selectionEnd,clipboard);
-      if(!result)return;
-      activeLine=result.focusIndex;
-      renderEditor();
-      focusLine(result.focusIndex,result.selectionStart);
-      changed();
-    });
-    el.addEventListener('keydown',(event)=>{
-      if(event.isComposing||composingBarId===el.dataset.barId)return;
-      if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(event.key))typingUndo.noteBoundary();
-      const index=+el.dataset.line;
-      if(event.key==='Enter'){
-        event.preventDefault();
-        pushUndo();
-        const split=splitEditorBar(song(),index,el.selectionStart,el.selectionEnd);
-        if(!split)return;
-        activeLine=index+1;
-        renderEditor();
-        focusLine(activeLine,0);
-        changed();
-        return;
-      }
-      if(event.key==='Backspace'&&el.selectionStart===0&&el.selectionEnd===0&&index>0){
-        event.preventDefault();
-        pushUndo();
-        const merged=mergeEditorBarWithPrevious(song(),index);
-        if(!merged)return;
-        activeLine=merged.index;
-        renderEditor();
-        focusLine(activeLine,merged.caret);
-        changed();
-        return;
-      }
-      if(event.key==='Backspace'&&!el.value&&song().lines.length>1&&index===0){
-        event.preventDefault();
-        pushUndo();
-        removeEditorBar(song(),0);
-        activeLine=0;
-        renderEditor();
-        focusLine(0,0);
-        changed();
-      }
-    });
+function unifiedEditorLineHeights(){
+  const current=song();
+  const rows=queryAll('#lyricsMeasure .lyrics-measure-line');
+  const fallback=Math.max(34,Math.round((state.fontSize||21)*1.62));
+  return current.lines.map((_,index)=>{
+    const height=rows[index]?.getBoundingClientRect?.().height||fallback;
+    return Math.max(fallback,Math.ceil(height));
   });
-  queryAll('.line-no').forEach((el)=>el.onclick=()=>focusLine(+el.dataset.line));
-  queryAll('[data-bar-inspect]').forEach((el)=>el.onclick=()=>{
-    activeLine=+el.dataset.barInspect;
+}
+function renderUnifiedEditorGutters(){
+  const current=song();
+  const barGutter=$('#lyricsBarGutter'),syllableGutter=$('#lyricsSyllableGutter');
+  if(!barGutter||!syllableGutter)return;
+  const heights=unifiedEditorLineHeights();
+  barGutter.innerHTML=current.lines.map((line,index)=>{
+    const kind=editorLineKind(line),barNumber=trackedEditorBarNumber(current,index);
+    const height=heights[index];
+    if(kind==='bar'){
+      return '<button type="button" class="lyrics-gutter-row line-no '+(index===activeLine?'active':'')+'" data-line="'+index+'" style="height:'+height+'px" aria-label="Bar '+barNumber+' auswählen">'+String(barNumber).padStart(2,'0')+'</button>';
+    }
+    const label=kind==='bracket'?'§':'';
+    return '<span class="lyrics-gutter-row line-no is-untracked '+kind+' '+(index===activeLine?'active':'')+'" data-line="'+index+'" style="height:'+height+'px" aria-hidden="true">'+label+'</span>';
+  }).join('');
+  syllableGutter.innerHTML=current.lines.map((line,index)=>{
+    const kind=editorLineKind(line),barNumber=trackedEditorBarNumber(current,index);
+    const height=heights[index];
+    if(kind==='bar'){
+      return '<button type="button" class="lyrics-gutter-row syllable '+(index===activeLine?'active':'')+'" data-bar-inspect="'+index+'" style="height:'+height+'px" aria-label="Bar '+barNumber+' analysieren" title="Lokale Silbenschätzung · Klick für Bar Inspector">'+(syll(line)||'—')+'</button>';
+    }
+    return '<span class="lyrics-gutter-row syllable is-untracked '+kind+' '+(index===activeLine?'active':'')+'" style="height:'+height+'px" aria-hidden="true"></span>';
+  }).join('');
+  queryAll('#lyricsBarGutter [data-line]').forEach((node)=>node.onclick=()=>focusLine(+node.dataset.line));
+  queryAll('#lyricsSyllableGutter [data-bar-inspect]').forEach((node)=>node.onclick=()=>{
+    activeLine=+node.dataset.barInspect;
     activateLine(activeLine);
     openEditorDock('bar');
   });
+}
+function syncUnifiedEditorLayout(){
+  const editor=$('#lyricsEditor'),measure=$('#lyricsMeasure');
+  if(!editor||!measure)return;
+  const current=song();
+  measure.innerHTML=current.lines.map((line,index)=>{
+    const kind=editorLineKind(line);
+    return '<div class="lyrics-measure-line '+kind+'" data-line="'+index+'">'+(line?esc(line):'&#8203;')+'</div>';
+  }).join('');
+  editor.style.height='1px';
+  editor.style.height=Math.max(150,editor.scrollHeight)+'px';
+  renderUnifiedEditorGutters();
+}
+function resizeArea(el){
+  if(!el||el.id==='lyricsEditor')syncUnifiedEditorLayout();
+}
+function documentRangeForLine(index,start=0,end=start,current=song()){
+  const line=current.lines[index]||'';
+  const lineStart=editorLineStartOffset(current.lines,index);
+  const from=Math.max(0,Math.min(line.length,Number(start)||0));
+  const to=Math.max(from,Math.min(line.length,Number(end)||from));
+  return {start:lineStart+from,end:lineStart+to};
+}
+function renderEditor(){
+  const current=song();
+  $('#songTitle').textContent=current.title;
+  const documentText=editorDocumentText(current);
+  $('#lyrics').innerHTML='<div class="lyrics-notepad" id="lyricsNotepad"><div class="lyrics-gutter lyrics-bar-gutter" id="lyricsBarGutter" aria-label="Bar-Markierungen"></div><textarea id="lyricsEditor" class="lyrics-editor" aria-label="Songtext Editor" spellcheck="false" wrap="soft">'+esc(documentText)+'</textarea><div class="lyrics-gutter lyrics-syllable-gutter" id="lyricsSyllableGutter" aria-label="Silbenschätzung"></div><div id="lyricsMeasure" class="lyrics-measure" aria-hidden="true"></div></div>';
+  const editor=$('#lyricsEditor');
+  syncUnifiedEditorLayout();
+
+  editor.addEventListener('focus',()=>{
+    captureSelection(editor);
+    requestAnimationFrame(()=>ensureActiveBarVisible());
+  });
+  editor.addEventListener('pointerdown',()=>typingUndo.noteBoundary(),{passive:true});
+  editor.addEventListener('beforeinput',(event)=>{
+    if(event.isComposing)return;
+    const position=editorPositionFromOffset(song().lines,editor.selectionStart);
+    const bar=barIdentity(song(),position.index);
+    const shouldCheckpoint=typingUndo.shouldCheckpoint({
+      songId:song().id,
+      barId:bar?.id||'document',
+      inputType:event.inputType,
+      now:Date.now(),
+      composing:false,
+    });
+    if(shouldCheckpoint)pushUndo({coalesced:true});
+  });
+  editor.addEventListener('compositionstart',()=>{
+    if(composingBarId)return;
+    pushUndo();
+    composingBarId='document';
+  });
+  editor.addEventListener('compositionend',()=>{
+    reconcileEditorDocumentText(song(),editor.value);
+    composingBarId='';
+    analysisSignature='';
+    syncUnifiedEditorLayout();
+    changed();
+    captureSelection(editor);
+  });
+  editor.addEventListener('input',(event)=>{
+    reconcileEditorDocumentText(song(),editor.value);
+    const position=editorPositionFromOffset(song().lines,editor.selectionStart);
+    activeLine=position.index;
+    analysisSignature='';
+    syncUnifiedEditorLayout();
+    if(!event.isComposing&&composingBarId!=='document')changed();
+    if(!event.isComposing)captureSelection(editor);
+  });
+  ['click','keyup','select'].forEach((eventName)=>editor.addEventListener(eventName,()=>{
+    if(composingBarId!=='document')captureSelection(editor);
+  }));
+  editor.addEventListener('keydown',(event)=>{
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown','Enter','Backspace','Delete'].includes(event.key)){
+      typingUndo.noteBoundary();
+    }
+  });
+
+  activateLine(Math.max(0,Math.min(activeLine,current.lines.length-1)));
   updateStats();
   renderProjects();
   updateUndoRedoButtons();
 }
 function focusLine(index,pos){
-  const el=$(`#lyrics textarea[data-line="${index}"]`);
-  if(el){
-    el.focus();
-    const caret=pos??el.value.length;
-    el.setSelectionRange(caret,caret);
-    captureSelection(el);
-    requestAnimationFrame(()=>ensureActiveBarVisible());
-  }
+  const editor=$('#lyricsEditor'),current=song();
+  if(!editor||index<0||index>=current.lines.length)return;
+  const line=current.lines[index]||'';
+  const local=pos==null?line.length:Math.max(0,Math.min(line.length,Number(pos)||0));
+  const caret=editorLineStartOffset(current.lines,index)+local;
+  editor.focus();
+  editor.setSelectionRange(caret,caret);
+  activeLine=index;
+  captureSelection(editor);
+  requestAnimationFrame(()=>ensureActiveBarVisible());
 }
 function activateLine(index){
-  activeLine=index;
-  queryAll('.lyric-line').forEach((el,n)=>el.classList.toggle('active',n===index));
-  $('#activeBarLabel').textContent=`Bar ${String(index+1).padStart(2,'0')} ausgewählt`;
-  $('#mobileAnchor').textContent=`Bar ${index+1}: ${song().lines[index]||'Neue Zeile'}`;
+  const current=song();
+  activeLine=Math.max(0,Math.min(current.lines.length-1,Number(index)||0));
+  const kind=editorLineKind(current.lines[activeLine]);
+  const barNumber=trackedEditorBarNumber(current,activeLine);
+  queryAll('.lyrics-gutter-row[data-line]').forEach((node)=>node.classList.toggle('active',+node.dataset.line===activeLine));
+  queryAll('[data-bar-inspect]').forEach((node)=>node.classList.toggle('active',+node.dataset.barInspect===activeLine));
+  if(kind==='bar'){
+    $('#activeBarLabel').textContent='Bar '+String(barNumber).padStart(2,'0')+' ausgewählt';
+    $('#mobileAnchor').textContent='Bar '+barNumber+': '+(current.lines[activeLine]||'Neue Zeile');
+  }else if(kind==='bracket'){
+    $('#activeBarLabel').textContent='Section-Zeile · nicht getrackt';
+    $('#mobileAnchor').textContent=current.lines[activeLine]||'[Section]';
+  }else{
+    $('#activeBarLabel').textContent='Leere Zeile · nicht getrackt';
+    $('#mobileAnchor').textContent='Freie Leerzeile · nicht getrackt';
+  }
   if(dockTab==='bar'&&!$('#editorDock')?.classList.contains('hidden'))renderDock();
 }
-function captureSelection(el){
-  if(composingBarId===el.dataset.barId)return;
-  const index=+el.dataset.line,text=el.value;
-  let start=el.selectionStart,end=el.selectionEnd;
-  if(start===end){
-    while(start>0&&/[\p{L}\p{N}'’-]/u.test(text[start-1]))start--;
-    while(end<text.length&&/[\p{L}\p{N}'’-]/u.test(text[end]))end++;
+function captureSelection(editor){
+  if(!editor||composingBarId==='document')return;
+  const current=song();
+  const documentStart=Math.max(0,Number(editor.selectionStart)||0);
+  const documentEnd=Math.max(documentStart,Number(editor.selectionEnd)||documentStart);
+  const startPosition=editorPositionFromOffset(current.lines,documentStart);
+  const endPosition=editorPositionFromOffset(current.lines,documentEnd);
+  const index=startPosition.index;
+  const line=current.lines[index]||'';
+  const sameLine=index===endPosition.index;
+  let start=startPosition.offset;
+  let end=sameLine?endPosition.offset:start;
+  let queryStart=start,queryEnd=end;
+
+  if(sameLine&&documentStart===documentEnd){
+    while(queryStart>0&&/[\p{L}\p{N}'’-]/u.test(line[queryStart-1]))queryStart--;
+    while(queryEnd<line.length&&/[\p{L}\p{N}'’-]/u.test(line[queryEnd]))queryEnd++;
   }
-  const bar=barIdentity(song(),index);
-  selection={line:index,barId:bar?.id||'',barRevision:bar?.revision||0,start,end};
-  const q=text.slice(start,end).trim();
-  if(q&&q!==query){query=q;pageSize=6;queueWriterSearch()}
+
+  const bar=barIdentity(current,index);
+  const tracked=isTrackedEditorLine(line);
+  const queryRange=documentRangeForLine(index,queryStart,queryEnd,current);
+  selection={
+    line:index,
+    barId:bar?.id||'',
+    barRevision:bar?.revision||0,
+    start:queryStart,
+    end:queryEnd,
+    documentStart:sameLine?queryRange.start:documentStart,
+    documentEnd:sameLine?queryRange.end:documentEnd,
+    multiline:!sameLine,
+    tracked,
+  };
+
+  if(sameLine&&tracked){
+    const q=line.slice(queryStart,queryEnd).trim();
+    if(q&&q!==query){query=q;pageSize=6;queueWriterSearch()}
+  }
   activateLine(index);
 }
-function updateStats(){const s=song();const words=s.lines.join(' ').trim().split(/\s+/).filter(Boolean).length,totalSyllables=s.lines.reduce((sum,line)=>sum+syll(line),0),durationSeconds=(performanceBarDurationMs(s)*s.lines.length)/1000;$('#docStats').textContent=`${s.lines.length} Bars · ${words} Wörter`;$('#footerStats').textContent=`${s.lines.length} Bars · ${words} Wörter · ${totalSyllables} Silben≈ · ${durationSeconds.toFixed(1)} s≈ @ ${performanceConfig(s).bpm} BPM`;$('#miniDensity').innerHTML=s.lines.slice(0,16).map(x=>`<i style="height:${Math.max(3,syll(x)*1.5)}px"></i>`).join('');$('#savedCount').textContent=state.saved.length;activateLine(Math.min(activeLine,s.lines.length-1))}
+function updateStats(){
+  const current=song();
+  const trackedIndexes=trackedStudioLineIndexes(current);
+  const lines=trackedIndexes.map((index)=>current.lines[index]);
+  const words=lines.join(' ').trim().split(/\s+/).filter(Boolean).length;
+  const totalSyllables=lines.reduce((sum,line)=>sum+syll(line),0);
+  const durationSeconds=(performanceBarDurationMs(current)*trackedIndexes.length)/1000;
+  const ignored=current.lines.length-trackedIndexes.length;
+  $('#docStats').textContent=trackedIndexes.length+' Bars · '+current.lines.length+' Zeilen · '+words+' Wörter';
+  $('#footerStats').textContent=trackedIndexes.length+' Bars · '+words+' Wörter · '+totalSyllables+' Silben≈ · '+durationSeconds.toFixed(1)+' s≈ @ '+performanceConfig(current).bpm+' BPM'+(ignored?' · '+ignored+' frei':'');
+  $('#miniDensity').innerHTML=lines.slice(0,16).map((line)=>'<i style="height:'+Math.max(3,syll(line)*1.5)+'px"></i>').join('');
+  $('#savedCount').textContent=state.saved.length;
+  activateLine(Math.min(activeLine,current.lines.length-1));
+}
 function normalizeCandidateSurface(value){
   return String(value||'').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim();
 }
