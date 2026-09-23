@@ -1282,7 +1282,7 @@ function renderAllRhymeSurface(){
   const softCount=relations.length-primaryCount;
   const runtime=ready&&data.runtimeTiming?.currentMs!=null?' · '+Math.round(Number(data.runtimeTiming.currentMs))+' ms':'';
   const coverage=ready&&data.coverage
-    ?data.coverage.resolved+'/'+data.coverage.unique+' Wörter aufgelöst'+(data.coverage.truncated?' · auf 96 eindeutige Wörter begrenzt':'')
+    ?data.coverage.resolved+'/'+data.coverage.unique+' Wörter aufgelöst'+(data.coverage.truncated?' · auf 180 eindeutige Wörter begrenzt':'')
     :'';
   const stateMarkup=allRhymeStatus==='loading'
     ?'<div class="analysis-loading">Writer analysiert alle Wörter und ihre Klangrelationen …</div>'
