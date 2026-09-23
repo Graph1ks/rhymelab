@@ -1,3 +1,5 @@
+import {isTrackedEditorLine} from './editor-session.mjs';
+
 const DEFAULT_PERFORMANCE=Object.freeze({
   bpm:92,
   grid:16,
@@ -42,7 +44,7 @@ export function ensurePerformanceSong(song){
     :{};
 
   const barIds=Array.isArray(song.barIds)?song.barIds.map(String):[];
-  const barSet=new Set(barIds);
+  const barSet=new Set(barIds.filter((id,index)=>isTrackedEditorLine(song.lines?.[index]||'')));
   const legacy=song.steps&&typeof song.steps==='object'?song.steps:{};
   for(const [key,value] of Object.entries(legacy)){
     const match=/^(\d+)-(\d+)$/.exec(key);
@@ -254,14 +256,23 @@ export function performancePocketMetrics(song,barId){
 export function performancePreviousBarPlacements(song,barId){
   ensurePerformanceSong(song);
   const index=song.barIds.indexOf(String(barId));
-  if(index<=0)return {
+  if(index<0)return {
     previousBarId:null,
     previousSteps:[],
     currentSteps:[],
     sharedSteps:[],
     sharedCount:0,
   };
-  const previousBarId=song.barIds[index-1];
+  let previousIndex=index-1;
+  while(previousIndex>=0&&!isTrackedEditorLine(song.lines?.[previousIndex]||''))previousIndex--;
+  if(previousIndex<0)return {
+    previousBarId:null,
+    previousSteps:[],
+    currentSteps:[],
+    sharedSteps:[],
+    sharedCount:0,
+  };
+  const previousBarId=song.barIds[previousIndex];
   const config=performanceConfig(song);
   const stepsFor=(id)=>{
     const steps=[];
