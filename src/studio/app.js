@@ -8,7 +8,7 @@ import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchSta
 import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-controls.mjs';
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
-import {createStudioAnalysisClient,studioAnalysisWords} from './analysis-adapter.mjs';
+import {createStudioAnalysisClient,studioAnalysisWords,studioRhymeTypeCounts} from './analysis-adapter.mjs';
 import {barIdentity,createSelectionProof,duplicateEditorBar,editorBracketSegments,editorDocumentText,editorLineKind,editorLineStartOffset,editorPositionFromOffset,editorSnapshot,editorTrackableText,ensureEditorSong,insertEditorBar,isTrackedEditorLine,moveEditorBar,reconcileEditorDocumentText,removeEditorBar,replaceEditorDocumentRange,restoreEditorSnapshot,trackedEditorBarNumber,trackedEditorLineIndexes,validateSelectionProof} from './editor-session.mjs';
 import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarDurationMs,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceFlowFingerprint,performanceNeedsReview,performancePocketMetrics,performancePreviousBarPlacements,performanceStepDurationMs,performanceSyllablesPerSecond,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
@@ -136,7 +136,7 @@ let writerClientTiming=null,writerServerTransport=null,writerEffectiveRequest=nu
 let internalDbLabEnabled=false,internalDbLabPayload=null,internalDbLabActive=loadInternalDbLabSelection(),internalDbLabMetricsOpen=false;
 let internalDbBenchmarkReport=null,internalDbBenchmarkAbort=null,internalDbBenchmarkState=null;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
-let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all',analysisChainVisible=false;
+let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all',analysisChainVisible=false,analysisScope='end',allRhymeStatus='idle',allRhymeData=null,allRhymeError='',allRhymeRequest=0,allRhymeSignature='',allRhymeAbort=null;
 let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0,documentSaveGeneration=0,documentSaveChain=Promise.resolve(),mobileViewportCleanup=null;
 let uiLocalizer=null;
 const DEVICE_ACCEPTANCE_STORAGE_KEY='rhymelab.studio.deviceAcceptance.v1';
