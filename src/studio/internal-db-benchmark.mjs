@@ -173,7 +173,7 @@ function aggregateDatabaseSamples(samples,qualityComparisons){
     clientMapMs:benchmarkDistribution(pick(['timings','clientMapMs'])),
     responseBytes:benchmarkDistribution(pick(['bytes','response'])),
     resultCount:benchmarkDistribution(counts),
-    qualityVsMaster:{
+    qualityVsFull:{
       comparisons:qualityComparisons.length,
       meanTopJaccard:qualityComparisons.length
         ?qualityComparisons.reduce((sum,row)=>sum+Number(row.topJaccard||0),0)/qualityComparisons.length
@@ -190,7 +190,7 @@ export function summarizeInternalDbBenchmark(samples,cases,databases){
   const measured=samples.filter((row)=>!row.warmup&&row.ok);
   const quality=[];
   for(const testCase of cases){
-    const reference=measured.find((row)=>row.caseId===testCase.id&&row.database==='master');
+    const reference=measured.find((row)=>row.caseId===testCase.id&&row.database==='full');
     if(!reference)continue;
     for(const database of databases){
       const candidate=measured.find((row)=>row.caseId===testCase.id&&row.database===database);
@@ -217,7 +217,7 @@ export function summarizeInternalDbBenchmark(samples,cases,databases){
 
 export async function runInternalDbBenchmark({
   search,
-  databases=['master','lite','standard','full'],
+  databases=['lite','standard','full'],
   cases,
   baseOptions={},
   warmups=1,
