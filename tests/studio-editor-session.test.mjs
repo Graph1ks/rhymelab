@@ -5,11 +5,13 @@ import {
   barIdentity,
   createSelectionProof,
   duplicateEditorBar,
+  editorBracketSegments,
   editorDocumentText,
   editorLineKind,
   editorLineStartOffset,
   editorPositionFromOffset,
   editorSnapshot,
+  editorTrackableText,
   ensureEditorSong,
   insertEditorBar,
   mergeEditorBarWithPrevious,
@@ -206,7 +208,7 @@ test('removing a Bar also removes Bar-scoped Performance cues and anchors',()=>{
 });
 
 
-test('unified editor tracking ignores blank and fully bracketed lines',()=>{
+test('unified editor tracking ignores bracket segments but tracks outside lyric text',()=>{
   const song={
     id:'notepad-rules',
     lines:[
@@ -217,6 +219,8 @@ test('unified editor tracking ignores blank and fully bracketed lines',()=>{
       ' [ad libs: yeah] ',
       'zweite echte Bar',
       '[Hook] aber Text danach',
+      'Das zählt [das hier nicht] und das wieder',
+      '[one] [two]',
     ],
     steps:{},
   };
@@ -227,11 +231,18 @@ test('unified editor tracking ignores blank and fully bracketed lines',()=>{
   assert.equal(editorLineKind(song.lines[3]),'bracket');
   assert.equal(isTrackedEditorLine('[Bridge]'),false);
   assert.equal(isTrackedEditorLine('[Bridge] und weiter'),true);
-  assert.deepEqual(trackedEditorLineIndexes(song),[0,5,6]);
+  assert.equal(isTrackedEditorLine('vorher [Bridge] nachher'),true);
+  assert.equal(editorTrackableText('[Hook] aber Text danach'),'aber Text danach');
+  assert.equal(editorTrackableText('Das zählt [das hier nicht] und das wieder'),'Das zählt und das wieder');
+  assert.equal(editorTrackableText('[one] [two]'),'');
+  assert.deepEqual(editorBracketSegments('A [one] B [two]').map((entry)=>entry.content),['one','two']);
+  assert.deepEqual(trackedEditorLineIndexes(song),[0,5,6,7]);
   assert.equal(trackedEditorBarNumber(song,0),1);
   assert.equal(trackedEditorBarNumber(song,3),null);
   assert.equal(trackedEditorBarNumber(song,5),2);
   assert.equal(trackedEditorBarNumber(song,6),3);
+  assert.equal(trackedEditorBarNumber(song,7),4);
+  assert.equal(trackedEditorBarNumber(song,8),null);
 });
 
 test('unified document reconciliation preserves surrounding line identities through Enter and deletion',()=>{
