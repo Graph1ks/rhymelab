@@ -24,16 +24,16 @@ test('benchmark distribution reports deterministic min p50 p95 max and mean',()=
 });
 
 test('Writer quality fingerprint is order-sensitive and top overlap is explicit',()=>{
-  const master=writerResultQuality([row('a'),row('b'),row('c')]);
+  const full=writerResultQuality([row('a'),row('b'),row('c')]);
   const same=writerResultQuality([row('a'),row('b'),row('c')]);
   const reordered=writerResultQuality([row('b'),row('a'),row('c')]);
   const cut=writerResultQuality([row('a'),row('b')]);
 
-  assert.equal(master.fingerprint,same.fingerprint);
-  assert.notEqual(master.fingerprint,reordered.fingerprint);
-  assert.deepEqual(master.kinds,{word:3,phrase:0,entity:0,other:0});
+  assert.equal(full.fingerprint,same.fingerprint);
+  assert.notEqual(full.fingerprint,reordered.fingerprint);
+  assert.deepEqual(full.kinds,{word:3,phrase:0,entity:0,other:0});
 
-  const comparison=compareWriterQuality(master,cut);
+  const comparison=compareWriterQuality(full,cut);
   assert.equal(comparison.sameFingerprint,false);
   assert.equal(comparison.exactOrderedPrefix,2);
   assert.equal(comparison.topOverlapCount,2);
@@ -63,7 +63,7 @@ test('controlled benchmark excludes warmups, aggregates timings and detects nond
 
   const report=await runInternalDbBenchmark({
     search,
-    databases:['master','lite'],
+    databases:['full','lite'],
     cases:[{id:'q',query:'Arbeitsweise',queryBasis:'de',resultLanguage:'de'}],
     baseOptions:{generated:false},
     warmups:1,
@@ -72,23 +72,23 @@ test('controlled benchmark excludes warmups, aggregates timings and detects nond
 
   assert.equal(calls.length,6);
   assert.equal(report.samples.filter((sample)=>sample.warmup).length,2);
-  assert.equal(report.summary.databases.master.measuredRuns,2);
-  assert.equal(report.summary.databases.master.serverSearchMs.p50,30);
+  assert.equal(report.summary.databases.full.measuredRuns,2);
+  assert.equal(report.summary.databases.full.serverSearchMs.p50,30);
   assert.equal(report.summary.databases.lite.serverSearchMs.p50,10);
-  assert.equal(report.summary.databases.master.deterministic,true);
+  assert.equal(report.summary.databases.full.deterministic,true);
   assert.equal(report.summary.databases.lite.deterministic,false);
   assert.equal(report.summary.databases.lite.nondeterministicCases,1);
-  assert.equal(report.summary.databases.master.qualityVsMaster.meanTopJaccard,1);
+  assert.equal(report.summary.databases.full.qualityVsFull.meanTopJaccard,1);
 });
 
-test('summary compares each edition against Master for the same case only',()=>{
-  const masterQuality=writerResultQuality([row('a'),row('b'),row('c')]);
+test('summary compares each edition against Full for the same case only',()=>{
+  const fullQuality=writerResultQuality([row('a'),row('b'),row('c')]);
   const liteQuality=writerResultQuality([row('a'),row('b')]);
   const samples=[
-    {database:'master',caseId:'x',run:1,warmup:false,ok:true,resultCount:3,quality:masterQuality,timings:{serverSearchMs:30},bytes:{}},
+    {database:'full',caseId:'x',run:1,warmup:false,ok:true,resultCount:3,quality:fullQuality,timings:{serverSearchMs:30},bytes:{}},
     {database:'lite',caseId:'x',run:1,warmup:false,ok:true,resultCount:2,quality:liteQuality,timings:{serverSearchMs:10},bytes:{}},
   ];
-  const summary=summarizeInternalDbBenchmark(samples,[{id:'x'}],['master','lite']);
-  assert.equal(summary.databases.master.qualityVsMaster.meanTopJaccard,1);
-  assert.equal(summary.databases.lite.qualityVsMaster.meanTopJaccard,2/3);
+  const summary=summarizeInternalDbBenchmark(samples,[{id:'x'}],['full','lite']);
+  assert.equal(summary.databases.full.qualityVsFull.meanTopJaccard,1);
+  assert.equal(summary.databases.lite.qualityVsFull.meanTopJaccard,2/3);
 });
