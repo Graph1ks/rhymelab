@@ -681,7 +681,7 @@ function captureSelection(editor){
 function updateStats(){
   const current=song();
   const trackedIndexes=trackedStudioLineIndexes(current);
-  const lines=trackedIndexes.map((index)=>current.lines[index]);
+  const lines=trackedStudioLines(current);
   const words=lines.join(' ').trim().split(/\s+/).filter(Boolean).length;
   const totalSyllables=lines.reduce((sum,line)=>sum+syll(line),0);
   const durationSeconds=(performanceBarDurationMs(current)*trackedIndexes.length)/1000;
