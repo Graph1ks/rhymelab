@@ -90,11 +90,11 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/\.custom-select-popover/u);
   assert.match(css,/\.native-select-backing\{display:none!important\}/u);
   assert.match(html,/id="activeDbBadge"[^>]*class="active-db-badge"/u);
-  assert.match(html,/id="searchPageFiltersToggle"[^>]*aria-controls="directFilters"/u);
+  assert.match(html,/id="searchPageFiltersToggle"[^>]*aria-controls="directFilters"[^>]*hidden/u);
   assert.match(html,/class="results-controlbar"[^>]*>[\s\S]*class="result-toolbar"/u);
   assert.match(html,/class="results-controlbar"[\s\S]*<div class="results-scroll"/u);
   assert.doesNotMatch(html,/class="results-scroll"[^>]*>[\s\S]{0,200}class="result-toolbar"/u);
-  assert.match(app,/let searchPageFiltersOpen=false/u);
+  assert.match(app,/let searchPageFiltersOpen=true/u);
   assert.match(app,/function activeRuntimeDbLabel\(/u);
   assert.match(app,/function updateSearchPageChrome\(/u);
   assert.match(app,/function syncSearchPageCompact\(/u);
@@ -107,8 +107,8 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/target\.closest\('\.custom-select-popover'\)/u);
   assert.match(app,/setStudioSearchFiltersOpen\(false\)/u);
   assert.match(css,/2026 ergonomic density \+ readable UI pass/u);
-  assert.match(css,/\.find-only #directFilters\{[\s\S]*?display:none/u);
-  assert.match(css,/\.find-only\.search-page-filters-open #directFilters\{[\s\S]*?display:block/u);
+  assert.match(css,/\.find-only #directFilters\{\s*display:block;/u);
+  assert.match(css,/\.search-page-filter-toggle\{display:none!important\}/u);
   assert.match(css,/\.find-only\.search-page-compact \.inspector-title/u);
   assert.match(css,/\.theme-saved-actions button\{[\s\S]*?width:40px;[\s\S]*?height:40px/u);
   assert.match(css,/Search controls 2026/u);
