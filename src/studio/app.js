@@ -1283,6 +1283,13 @@ async function refreshSongAnalysis(force=false){
   try{
     const s=song();
     const trackedLines=trackedStudioLines(s);
+    if(!trackedLines.length){
+      analysisStatus='idle';
+      analysisData=null;
+      analysisError='';
+      if(mode==='rhyme')renderAnalysisSurface();
+      return;
+    }
     const result=await analysisClient.analyze(trackedLines,{
       language:basis,
       generated,
@@ -1302,8 +1309,17 @@ function renderAnalysis(){renderAnalysisSurface();void refreshSongAnalysis()}
 function renderPerform(){
   stopPlay();
   const s=song();
+  if(!isTrackedEditorLine(s.lines[activeLine]||'')){
+    const nearest=nearestTrackedStudioLine(s,activeLine);
+    if(nearest<0){
+      $('#performView').innerHTML='<div class="analysis-empty">Keine getrackte Bar vorhanden. Leerzeilen und [Section]-Zeilen werden nicht sequenziert.</div>';
+      return;
+    }
+    activeLine=nearest;
+  }
   const bar=barIdentity(s,activeLine);
   if(!bar)return;
+  const barNumber=trackedEditorBarNumber(s,activeLine);
   const barId=bar.id;
   const config=performanceConfig(s);
   const metrics=performanceBarMetrics(s,barId);
@@ -1331,7 +1347,7 @@ function renderPerform(){
     :'';
   $('#performView').innerHTML=`
     <div class="perform-head">
-      <div><div class="eyebrow">Perform / Bar ${String(activeLine+1).padStart(2,'0')}</div><h2>Flow sequenzieren.</h2><p>${esc(s.lines[activeLine]||'Leere Bar')}</p></div>
+      <div><div class="eyebrow">Perform / Bar ${String(barNumber).padStart(2,'0')}</div><h2>Flow sequenzieren.</h2><p>${esc(s.lines[activeLine]||'Leere Bar')}</p></div>
       <div class="perform-metrics">
         <span><b>${syllableEstimate||0}</b><small>Silben ≈</small></span>
         <span><b>${metrics.cues}</b><small>Cues</small></span>
@@ -3687,7 +3703,7 @@ function renderBarNavigatorDock(body){
     <div class="bar-navigator">
       <div class="bar-navigator-head">
         <div><span class="eyebrow">BAR NAVIGATOR</span><b>${trackedIndexes.length} Bars</b><small>Leerzeilen und [Section]-Zeilen werden nicht getrackt.</small></div>
-        <div class="bar-navigator-head-actions"><label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label><div class="row"><button id="navigatorAddBar" class="outline">＋ Bar</button><button id="navigatorDuplicateBar" class="outline">⧉ Duplizieren</button></div></div>
+        <div class="bar-navigator-head-actions"><label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label><div class="row"><button id="navigatorAddBar" class="outline">＋ Zeile</button><button id="navigatorDuplicateBar" class="outline">⧉ Duplizieren</button></div></div>
       </div>
       <div class="bar-navigator-list">
         ${rows.map((row)=>{
