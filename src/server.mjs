@@ -804,7 +804,7 @@ const server = createServer(async (req, res) => {
 
     if(url.pathname==='/api/internal/distribution-dbs'){
       if(!internalDbSwitcherEnabled){
-        return json(res,{error:'internal_distribution_db_switcher_disabled'},404,false);
+        return json(res,{enabled:false,error:'internal_distribution_db_switcher_disabled'},200,false);
       }
       return json(res,internalDistributionPayload(),200,false);
     }
