@@ -13,16 +13,14 @@ export function resolveServerRuntimeMode({
   env={},
 }={}){
   const args=Array.isArray(argv)?argv.map((value)=>String(value)):[];
-  if(args.includes('--legacy-runtime')||args.includes('--archive-runtime')){
-    return SERVER_RUNTIME_MODES.LEGACY_ARCHIVE;
-  }
-  if(args.includes('--serving-v1'))return SERVER_RUNTIME_MODES.SERVING_V1;
-
   const requested=String(env?.RHYMELAB_PRODUCT_RUNTIME||'')
     .trim()
     .toLocaleLowerCase('en-US');
-  if(['legacy','legacy-archive','archive','writer-v5','accepted'].includes(requested)){
-    return SERVER_RUNTIME_MODES.LEGACY_ARCHIVE;
+  const legacyRequested=args.includes('--legacy-runtime')
+    ||args.includes('--archive-runtime')
+    ||['legacy','legacy-archive','archive','writer-v5','accepted'].includes(requested);
+  if(legacyRequested){
+    throw new Error('legacy_archive_runtime_disabled_use_distribution_tiers');
   }
   return SERVER_RUNTIME_MODES.SERVING_V1;
 }
