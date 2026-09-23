@@ -116,14 +116,9 @@ const THEME_COLOR_FIELDS=[
 let themeEditingId='',themePreviewing=false,themeQuickCloseTimer=0;
 let settingsTab='general';
 let settingsReturnPage='studio',settingsReturnMobileResults=false;
-let searchPageFiltersOpen=false;
+let searchPageFiltersOpen=true;
 const STUDIO_FILTER_PANEL_KEY='rhymelab.studio.searchFiltersOpen.v1';
-let studioSearchFiltersOpen=(()=>{
-  try{
-    const stored=localStorage.getItem(STUDIO_FILTER_PANEL_KEY);
-    return stored==null?true:stored==='1';
-  }catch{return true}
-})();
+let studioSearchFiltersOpen=true;
 let studioCapabilities={status:'loading'};
 let sharedSearchState=localStorage.getItem(SEARCH_STATE_STORAGE_KEY)?loadSearchState():createSearchState({queryBasis:'de',resultLanguage:'both'}),pendingSharedResultId=sharedSearchState.selectedResultId||'';
 const writerSearch=createWriterSearchClient();
@@ -1117,7 +1112,7 @@ function clearCurrentDocument(){
 function navigate(target){
   stopPlay();
   if(page==='settings'&&target!=='settings'&&themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}
-  if(target==='search'&&page!=='search')searchPageFiltersOpen=false;
+  if(target==='search'&&page!=='search')searchPageFiltersOpen=true;
   page=target;
   document.body.classList.remove('mobile-results','find-only','settings-page','search-page-filters-open','search-page-compact','studio-search-filters-open');
   if(target!=='studio')document.body.classList.remove('focus');
@@ -2391,22 +2386,21 @@ function updateSearchPageChrome(){
   document.body.classList.toggle('studio-search-filters-open',studioOpen);
   document.body.classList.toggle('search-page-filters-open',searchOpen);
 }
-function setStudioSearchFiltersOpen(open,{persistChoice=true}={}){
-  studioSearchFiltersOpen=Boolean(open);
+function setStudioSearchFiltersOpen(_open,{persistChoice=true}={}){
+  studioSearchFiltersOpen=true;
   try{
-    if(persistChoice)localStorage.setItem(STUDIO_FILTER_PANEL_KEY,studioSearchFiltersOpen?'1':'0');
+    if(persistChoice)localStorage.setItem(STUDIO_FILTER_PANEL_KEY,'1');
   }catch{}
   updateSearchPageChrome();
-  if(studioSearchFiltersOpen)requestAnimationFrame(()=>animateSurface($('#directFilters')));
+  requestAnimationFrame(()=>animateSurface($('#directFilters')));
 }
-function setSearchPageFiltersOpen(open){
-  searchPageFiltersOpen=Boolean(open);
+function setSearchPageFiltersOpen(_open){
+  searchPageFiltersOpen=true;
   document.body.classList.remove('search-page-compact');
   updateSearchPageChrome();
 }
 function toggleVisibleSearchFilters(){
-  if(page==='search')setSearchPageFiltersOpen(!searchPageFiltersOpen);
-  else setStudioSearchFiltersOpen(!studioSearchFiltersOpen);
+  showFilters();
 }
 function syncSearchPageCompact(scrollTop=0){
   document.body.classList.toggle(
