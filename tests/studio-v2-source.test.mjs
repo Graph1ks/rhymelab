@@ -120,6 +120,11 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/body:not\(\.find-only\) \.filter-deck-row\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/u);
   assert.match(css,/\.filter-field>span\{[\s\S]*?font-weight:850/u);
   assert.match(css,/\.filter-field \.custom-select-value\{[\s\S]*?font-weight:520/u);
+  assert.match(css,/Unified Writer Notepad/u);
+  assert.match(css,/\.lyrics-notepad\{/u);
+  assert.match(css,/\.lyrics-editor\{[\s\S]*?overflow:hidden/u);
+  assert.match(css,/\.lyrics-measure\{/u);
+  assert.match(css,/\.lyrics-gutter-row\.is-untracked/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
@@ -128,6 +133,8 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/data-density="compact"/u);
   assert.match(html,/data-density="tiles"/u);
   assert.match(html,/id=["']redoBtn["']/u);
+  assert.match(html,/Ein zusammenhängender Editor/u);
+  assert.match(html,/\[Hook\][^<]*bleiben frei/u);
   assert.match(html,/data-dock=["']bar["']/u);
   assert.match(html,/data-dock=["']navigator["']/u);
   assert.match(html,/Bar Navigator/u);
@@ -196,7 +203,14 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/function previewThemeDraft\(/u);
   assert.match(app,/compositionstart/u);
   assert.match(app,/compositionend/u);
-  assert.match(app,/addEventListener\('paste'/u);
+  assert.match(app,/id="lyricsEditor"/u);
+  assert.match(app,/reconcileEditorDocumentText\(song\(\),editor\.value\)/u);
+  assert.match(app,/editorPositionFromOffset\(song\(\)\.lines,editor\.selectionStart\)/u);
+  assert.match(app,/function renderUnifiedEditorGutters\(/u);
+  assert.match(app,/function syncUnifiedEditorLayout\(/u);
+  assert.match(app,/function currentSelectionProof\(/u);
+  assert.doesNotMatch(app,/#lyrics textarea\[data-line=/u);
+  assert.doesNotMatch(app,/event\.key==='Enter'[\s\S]{0,220}preventDefault\(\)[\s\S]{0,220}splitEditorBar/u);
   assert.match(app,/validateSelectionProof\(song\(\),selectionProof\)/u);
   assert.match(app,/performUndo/u);
   assert.match(app,/performRedo/u);
@@ -580,6 +594,13 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(editorSession,/export function pasteEditorText/u);
   assert.match(editorSession,/export function createSelectionProof/u);
   assert.match(editorSession,/export function validateSelectionProof/u);
+  assert.match(editorSession,/export function editorLineKind/u);
+  assert.match(editorSession,/export function isTrackedEditorLine/u);
+  assert.match(editorSession,/export function trackedEditorLineIndexes/u);
+  assert.match(editorSession,/export function trackedEditorBarNumber/u);
+  assert.match(editorSession,/export function editorDocumentText/u);
+  assert.match(editorSession,/export function reconcileEditorDocumentText/u);
+  assert.match(editorSession,/export function replaceEditorDocumentRange/u);
   assert.match(performanceSession,/export function ensurePerformanceSong/u);
   assert.match(performanceSession,/export function setPerformanceCue/u);
   assert.match(performanceSession,/export function movePerformanceCue/u);
