@@ -957,7 +957,7 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/analysis/rhyme-scheme') {
       const analysisMode=url.searchParams.get('mode')==='all'?'all':'end';
-      const maxWords=analysisMode==='all'?240:200;
+      const maxWords=analysisMode==='all'?500:200;
       const words=url.searchParams.getAll('word').map((word)=>String(word||'').trim()).slice(0,maxWords);
       if(!words.some(Boolean))return json(res,{error:'at least one word is required'},400);
       const language=String(url.searchParams.get('language')||'de').trim().toLocaleLowerCase('en-US');
@@ -991,7 +991,7 @@ const server = createServer(async (req, res) => {
       const analysis=await analyzeSongEndRhymes(words,{
         searchAnchor,
         language:normalizedLanguage,
-        maxUnique:analysisMode==='all'?96:64,
+        maxUnique:analysisMode==='all'?180:64,
         concurrency:analysisMode==='all'?8:4,
       });
       return json(res,{
