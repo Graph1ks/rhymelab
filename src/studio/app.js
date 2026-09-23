@@ -1234,7 +1234,7 @@ function renderAllRhymeBars(current,trackedIndexes,trackedLines,data){
   const occurrenceTypes=new Map();
   for(const relation of relations){
     for(const occurrence of [relation.left,relation.right]){
-      if(!occurrence)return;
+      if(!occurrence)continue;
       const types=occurrenceTypes.get(occurrence.index)||new Set();
       types.add(relation.type);
       occurrenceTypes.set(occurrence.index,types);
@@ -1378,6 +1378,7 @@ async function refreshAllRhymeAnalysis(force=false){
   if(mode==='rhyme'&&analysisScope==='all')renderAllRhymeSurface();
 }
 function renderAnalysisSurface(){
+  if(analysisScope==='all'){renderAllRhymeSurface();return}
   const s=song(),trackedIndexes=trackedStudioLineIndexes(s),trackedLines=trackedStudioLines(s),words=studioAnalysisWords(trackedLines);
   const ready=analysisStatus==='ready'&&analysisData;
   const scheme=ready&&Array.isArray(analysisData.scheme)?analysisData.scheme:words.map(()=>'?');
@@ -1450,6 +1451,7 @@ function renderAnalysisSurface(){
     <div class="analysis-head row between wrap">
       <div><div class="eyebrow">Song Analysis</div><h2>Klang, Struktur, Spannung.</h2><p class="small">Reimschema, Stressdaten und Klangbeziehungen kommen aus dem kanonischen Writer-Runtime-Pfad. Lokale Silbenzählung ist separat als Approximation markiert.</p></div>
       <div class="row wrap">
+        ${analysisScopeToggleMarkup()}
         <span class="analysis-source">WRITER · ${esc(String(basis).toUpperCase())}${runtime}</span>
         <div class="analysis-language-toggle" role="group" aria-label="Analysesprache">
           <button data-analysis-language="de" class="${basis==='de'?'active':''}" aria-pressed="${basis==='de'}">DE</button>
@@ -1487,6 +1489,7 @@ function renderAnalysisSurface(){
     </div>`;
   $('#backWrite').onclick=()=>setMode('write');
   $('#refreshAnalysis').onclick=()=>{analysisSignature='';void refreshSongAnalysis(true)};
+  queryAll('[data-analysis-scope]').forEach((button)=>button.onclick=()=>setAnalysisScope(button.dataset.analysisScope));
   $('#analysisChainToggle').onclick=()=>{
     analysisChainVisible=!analysisChainVisible;
     renderAnalysisSurface();
@@ -1505,7 +1508,7 @@ function renderAnalysisSurface(){
     if(!['de','en','both'].includes(next)||basis===next)return;
     basis=next;
     pageSize=6;
-    analysisSignature='';
+    analysisSignature='';allRhymeSignature='';
     saveStudioSearchState({queryBasis:basis});
     syncInline();
     void refreshWriterResults();
@@ -1557,7 +1560,11 @@ async function refreshSongAnalysis(force=false){
   }
   if(mode==='rhyme')renderAnalysisSurface();
 }
-function renderAnalysis(){renderAnalysisSurface();void refreshSongAnalysis()}
+function renderAnalysis(){
+  renderAnalysisSurface();
+  if(analysisScope==='all')void refreshAllRhymeAnalysis();
+  else void refreshSongAnalysis();
+}
 function renderPerform(){
   stopPlay();
   const s=song();
