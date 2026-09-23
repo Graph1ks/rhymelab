@@ -114,6 +114,7 @@ const THEME_COLOR_FIELDS=[
   ['accent','Primary'],['accent2','Secondary'],['signal','Signal']
 ];
 let themeEditingId='',themePreviewing=false,themeQuickCloseTimer=0;
+let settingsTab='general';
 let studioCapabilities={status:'loading'};
 let sharedSearchState=localStorage.getItem(SEARCH_STATE_STORAGE_KEY)?loadSearchState():createSearchState({queryBasis:'de',resultLanguage:'both'}),pendingSharedResultId=sharedSearchState.selectedResultId||'';
 const writerSearch=createWriterSearchClient();
@@ -1362,7 +1363,7 @@ function legacyFilters(){showDialog('Dein Klang. Deine Suche.',`<div class="form
 function legacySettings(){showDialog('Dein Studio einrichten',`<label class="field">Schriftgröße im Editor<input id="fontRange" type="range" min="16" max="28" value="${state.fontSize}"></label><p class="small" id="fontValue">${state.fontSize} px</p><div class="row wrap" style="margin-top:20px"><button id="settingTheme" class="outline">Hell / Dunkel wechseln</button><button id="settingHistory" class="outline">Versionsverlauf</button></div><p class="notice">Texte, Revisionen und Performance-Cues werden lokal im versionierten IndexedDB-DocumentStore gespeichert. UI-Präferenzen bleiben in LocalStorage; Recovery-Punkte sind in den Studio-Einstellungen verfügbar.</p><div class="row wrap"><button id="sourceInfo" class="outline">Über Studio 02</button><button id="commandsSettings" class="outline">Tastenkürzel</button></div>`);$('#fontRange').oninput=e=>{state.fontSize=+e.target.value;document.documentElement.style.setProperty('--editor',state.fontSize+'px');queryAll('#lyrics textarea').forEach(resizeArea);$('#fontValue').textContent=state.fontSize+' px';persist()};$('#settingTheme').onclick=toggleTheme;$('#settingHistory').onclick=showHistory;$('#sourceInfo').onclick=showInfo;$('#commandsSettings').onclick=showCommands}
 function legacyToggleTheme(){toggleTheme()}
 function legacyHistory(){revision('history_open');showDialog('Deine letzten Fassungen',`<p class="notice">Wiederherstellen erzeugt zuvor eine Sicherung der aktuellen Fassung.</p>${(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,65))}…</p></div><button class="outline" data-revision="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p>Noch keine ältere Fassung vorhanden.</p>'}`);queryAll('[data-revision]').forEach(b=>b.onclick=()=>{if(restoreStudioRevision(song().revisions[+b.dataset.revision])){closeDialog();notify('Fassung wiederhergestellt · Bar-IDs und Cues erhalten.')}})}
-function showInfo(){showDialog('RhymeLab Studio 02',`<p>Ein gemeinsamer Schreibraum für Browser, Mobile und den späteren Electron-Adapter.</p><p class="notice">Reimsuche, Detail-/Provenienzflächen und Song-Reimschema laufen über die lokale Writer-Runtime. Dokumente, Revisionen und Performance-Cues liegen im versionierten IndexedDB-DocumentStore mit Recovery-Punkten.</p><p class="notice">Explizite Approximationen bleiben die UI-Silbenzählung und das darauf basierende Perform Auto-Map. Browser-, Touch- und Audio-Geräteabnahme bleibt vor dem Default-Route-Cutover erforderlich.</p>`)}
+function showInfo(){showDialog('RhymeLab Studio 02',`<p>Ein gemeinsamer Schreibraum für Browser, Mobile und den späteren Electron-Adapter.</p><p class="notice">Reimsuche, Detail-/Provenienzflächen und Song-Reimschema laufen über die lokale Writer-Runtime. Dokumente, Revisionen und Performance-Cues liegen im versionierten IndexedDB-DocumentStore mit Recovery-Punkten.</p><p class="notice">UI-Silbenzählung und Perform Auto-Map bleiben bewusst als lokale Hilfen gekennzeichnet.</p>`)}
 function studioCommandRegistry(){
   return [
     {id:'studio',group:'Navigation',label:'Studio öffnen',keywords:['studio','write','schreiben'],shortcut:'Alt+1',run:()=>navigate('studio')},
@@ -1392,7 +1393,6 @@ function studioCommandRegistry(){
     {id:'settings',group:'Ansicht',label:'Einstellungen öffnen',keywords:['settings','appearance','preferences'],run:showSettings},
     {id:'theme',group:'Ansicht',label:'Light / Dark wechseln',keywords:['theme','light','dark','appearance'],run:toggleTheme},
     {id:'language',group:'Ansicht',label:state.uiLanguage==='de'?'Interface auf English':'Interface auf Deutsch',keywords:['language','sprache','english','deutsch'],run:toggleStudioUiLanguage},
-    {id:'diagnostics',group:'System',label:'Browser-Diagnostics öffnen',keywords:['diagnostics','browser','runtime','acceptance'],run:()=>{showSettings();requestAnimationFrame(()=>$('#diagnosticsPanel')?.scrollIntoView({block:'nearest',behavior:'smooth'}))}},
     {id:'recovery',group:'System',label:'Recovery-Punkt erstellen',keywords:['recovery','backup','snapshot'],run:async()=>{await createRecoveryPoint();notify('Recovery-Punkt erstellt.');if(dockTab==='settings')renderDock()}},
   ];
 }
@@ -2359,60 +2359,10 @@ function stopStudioInternalDbBenchmark(){
   internalBenchmarkSearch.cancel();
 }
 function renderInternalDbLab(){
-  const root=$('#internalDbLab');
+  const root=$('#settingsRuntimeDb');
   if(!root)return;
-  root.classList.toggle('hidden',!internalDbLabEnabled);
-  if(!internalDbLabEnabled)return;
-  const map=internalDbSummaryMap(internalDbLabPayload);
-  const active=map[internalDbLabActive];
-  queryAll('#internalDbSwitch [data-runtime-db]').forEach((button)=>{
-    const row=map[button.dataset.runtimeDb];
-    const available=row?.available===true;
-    button.disabled=!available||Boolean(internalDbBenchmarkAbort);
-    button.classList.toggle('active',button.dataset.runtimeDb===internalDbLabActive);
-    button.setAttribute('aria-pressed',String(button.dataset.runtimeDb===internalDbLabActive));
-    const small=button.querySelector('small');
-    if(small)small.textContent=available
-      ?formatLabBytes(row.file?.sizeBytes)+(row.meta?.distribution_total_target?' · '+Number(row.meta.distribution_total_target).toLocaleString('de-DE'):' · MASTER')
-      :'nicht verfügbar';
-  });
-  const status=$('#internalDbLabStatus');
-  if(status)status.textContent=active?.available
-    ?String(internalDbLabActive).toUpperCase()+' · '+formatLabBytes(active.file?.sizeBytes)+' · '+(writerExecution||'bereit')
-    :'DB nicht verfügbar';
-  renderInternalDbBenchmarkProgress();
-  const metrics=$('#internalDbMetrics');
-  metrics?.classList.toggle('hidden',!internalDbLabMetricsOpen);
-  $('#internalDbMetricsToggle')?.setAttribute('aria-expanded',String(internalDbLabMetricsOpen));
-  if(!metrics||!internalDbLabMetricsOpen)return;
-  const live=currentInternalDbLabMetrics();
-  const s=live.studio,b=live.browser,server=internalDbLabPayload?.server||{};
-  const responseSize=formatLabBytes(s.responseBytes);
-  const fingerprint=String(s.resultQuality?.fingerprint||'—');
-  metrics.innerHTML='<div class="internal-db-metrics-head"><div><b>DB + Site Performance Lab</b><small>Per-request routing · vollständiger Request + Quality-Fingerprint + Transport-Pipeline.</small></div><small>Internal only · shipping=false</small></div>'
-    +'<div class="internal-db-live-grid">'
-    +'<div class="internal-db-metric"><small>DB/Search</small><b>'+formatLabMs(s.serverSearchMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Post-search</small><b>'+formatLabMs(s.serverPostSearchMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Serialize</small><b>'+formatLabMs(s.serverSerializeMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Headers</small><b>'+formatLabMs(s.clientHeadersMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Body read</small><b>'+formatLabMs(s.clientBodyReadMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>JSON parse</small><b>'+formatLabMs(s.clientParseMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Map DTO</small><b>'+formatLabMs(s.clientMapMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Total fetch</small><b>'+formatLabMs(s.clientTotalMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>DOM render</small><b>'+formatLabMs(s.resultRenderMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Response</small><b>'+responseSize+'</b></div>'
-    +'<div class="internal-db-metric"><small>Results</small><b>'+Number(s.resultCount||0).toLocaleString('de-DE')+'</b></div>'
-    +'<div class="internal-db-metric"><small>Fingerprint</small><b title="'+esc(fingerprint)+'">'+esc(fingerprint.replace('fnv1a32:',''))+'</b></div>'
-    +'<div class="internal-db-metric"><small>Query transfer</small><b>'+formatLabBytes(s.queryResource?.transferSize)+'</b></div>'
-    +'</div>'
-    +'<div class="internal-db-card-grid">'+(internalDbLabPayload?.databases||[]).map(internalDbCardMarkup).join('')+'</div>'
-    +internalDbBenchmarkMarkup()
-    +'<div class="internal-db-request-grid">'
-    +'<section class="internal-db-tech"><h4>Exact effective Writer request</h4><pre>'+esc(JSON.stringify(s.effectiveRequest,null,2))+'</pre></section>'
-    +'<section class="internal-db-tech"><h4>Result quality + UI state</h4><pre>'+esc(JSON.stringify({quality:s.resultQuality,uiState:s.uiState,queryResource:s.queryResource},null,2))+'</pre></section>'
-    +'</div>'
-    +'<div class="internal-db-tech-grid"><section class="internal-db-tech"><h4>Browser / Site · cumulative page context</h4><pre>'+esc(JSON.stringify(b,null,2))+'</pre></section>'
-    +'<section class="internal-db-tech"><h4>Server / Process · refreshed snapshot</h4><pre>'+esc(JSON.stringify(server,null,2))+'</pre></section></div>';
+  root.innerHTML=settingsRuntimeDbBody();
+  bindRuntimeDatabaseSettings();
 }
 async function refreshInternalDbLabPayload({silent=false}={}){
   if(!internalDbLabEnabled&&!silent)return null;
@@ -2428,8 +2378,8 @@ async function refreshInternalDbLabPayload({silent=false}={}){
   internalDbLabEnabled=true;
   internalDbLabPayload=payload;
   const map=internalDbSummaryMap(payload);
-  if(!map[internalDbLabActive]?.available){
-    internalDbLabActive=map.master?.available?'master':Object.values(map).find((row)=>row.available)?.id||'master';
+  if(!['lite','standard','full'].includes(internalDbLabActive)||!map[internalDbLabActive]?.available){
+    internalDbLabActive=['standard','full','lite','master'].find((id)=>map[id]?.available)||'master';
     saveInternalDbLabSelection(internalDbLabActive);
   }
   studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
@@ -2456,7 +2406,7 @@ async function setInternalDbLabDb(id){
   updateCapabilitySurface();
   renderResults();
   renderInternalDbLab();
-  notify('Runtime DB → '+next.toUpperCase());
+  notify('Datenbank → '+next.toUpperCase());
   await refreshStudioCapabilities();
   studioCapabilities=studioCapabilitiesFromInternalDb(internalDbActiveSummary(),studioCapabilities);
   updateCapabilitySurface();
@@ -2487,36 +2437,23 @@ async function copyInternalDbLabMetrics(){
 async function initializeInternalDbLab(){
   try{
     const response=await fetch('/api/internal/distribution-dbs',{headers:{accept:'application/json'}});
-    if(response.status===404){renderInternalDbLab();return false}
+    if(response.status===404){internalDbLabEnabled=false;internalDbLabPayload=null;renderInternalDbLab();return false}
     const payload=await response.json();
-    if(!response.ok||payload?.enabled!==true){renderInternalDbLab();return false}
+    if(!response.ok||payload?.enabled!==true){internalDbLabEnabled=false;internalDbLabPayload=payload||null;renderInternalDbLab();return false}
     internalDbLabEnabled=true;
     internalDbLabPayload=payload;
     const map=internalDbSummaryMap(payload);
-    if(!map[internalDbLabActive]?.available)internalDbLabActive=map.master?.available?'master':'lite';
+    if(!['lite','standard','full'].includes(internalDbLabActive)||!map[internalDbLabActive]?.available){
+      internalDbLabActive=['standard','full','lite','master'].find((id)=>map[id]?.available)||'master';
+    }
     saveInternalDbLabSelection(internalDbLabActive);
     studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
-    queryAll('#internalDbSwitch [data-runtime-db]').forEach((button)=>{
-      button.onclick=()=>{void setInternalDbLabDb(button.dataset.runtimeDb)};
-    });
-    $('#internalDbBenchCurrent').onclick=()=>{void runStudioInternalDbBenchmark('current')};
-    $('#internalDbBenchSuite').onclick=()=>{void runStudioInternalDbBenchmark('suite')};
-    $('#internalDbBenchStop').onclick=()=>stopStudioInternalDbBenchmark();
-    $('#internalDbMetricsToggle').onclick=()=>{
-      internalDbLabMetricsOpen=!internalDbLabMetricsOpen;
-      renderInternalDbLab();
-      if(internalDbLabMetricsOpen)void refreshInternalDbLabPayload({silent:true});
-    };
-    $('#internalDbMetricsCopy').onclick=()=>{void copyInternalDbLabMetrics()};
-    $('#internalDbMetricsRefresh').onclick=async()=>{
-      try{await refreshInternalDbLabPayload({silent:true});notify('DB-Metriken aktualisiert.')}
-      catch(error){notify('Metrics-Refresh fehlgeschlagen: '+(error instanceof Error?error.message:String(error)))}
-    };
     renderInternalDbLab();
     return true;
   }catch(error){
-    console.warn('Internal DB Lab disabled:',error);
+    console.warn('Runtime database selection unavailable:',error);
     internalDbLabEnabled=false;
+    internalDbLabPayload=null;
     renderInternalDbLab();
     return false;
   }
@@ -3040,7 +2977,56 @@ function exportStudioDiagnostics(){
   return report;
 }
 
-function renderSettingsDock(body){
+function settingsCopy(){
+  const en=state.uiLanguage==='en';
+  return en?{
+    title:'Settings',
+    subtitle:'Workspace, appearance, local database and backups — organized without developer tooling.',
+    general:'General',design:'Design',database:'Database',data:'Data & Backup',
+    generalTitle:'Workspace & interface',generalCopy:'The essentials you change during everyday writing.',
+    designTitle:'Appearance',designCopy:'Quick styles, typography and your own semantic color system.',
+    databaseTitle:'Local database',databaseCopy:'Choose which installed RhymeLab data package powers Writer requests.',
+    dataTitle:'Data & Backup',dataCopy:'Portable backups and local recovery points for your workspace.',
+  }:{
+    title:'Einstellungen',
+    subtitle:'Workspace, Darstellung, lokale Datenbank und Sicherungen — sauber getrennt ohne Developer-Werkzeuge.',
+    general:'Allgemein',design:'Design',database:'Datenbank',data:'Daten & Backup',
+    generalTitle:'Workspace & Oberfläche',generalCopy:'Die Dinge, die du beim täglichen Schreiben wirklich ändern willst.',
+    designTitle:'Darstellung',designCopy:'Quickstyles, Typografie und dein eigenes semantisches Farbsystem.',
+    databaseTitle:'Lokale Datenbank',databaseCopy:'Wähle, welches installierte RhymeLab-Datenpaket Writer-Anfragen bedient.',
+    dataTitle:'Daten & Backup',dataCopy:'Portable Backups und lokale Recovery-Punkte für deinen Workspace.',
+  };
+}
+function settingsTabButton(id,label,description){
+  const active=settingsTab===id;
+  return '<button type="button" class="settings-nav-item '+(active?'active':'')+'" data-settings-tab="'+id+'" role="tab" aria-selected="'+String(active)+'"><span>'+esc(label)+'</span><small>'+esc(description)+'</small></button>';
+}
+function settingsSectionHeader(eyebrow,title,copy){
+  return '<header class="settings-section-head"><span class="eyebrow">'+esc(eyebrow)+'</span><h3>'+esc(title)+'</h3><p>'+esc(copy)+'</p></header>';
+}
+function settingsGeneralMarkup(copy){
+  const runtimeReady=studioCapabilities.status==='ready';
+  const runtimeLabel=runtimeReady
+    ?(studioCapabilities.servingV1?'Serving v1':'Writer')
+    :(studioCapabilities.status==='loading'?'Wird verbunden …':'Eingeschränkt');
+  const dbLabel=['lite','standard','full'].includes(internalDbLabActive)&&internalDbLabEnabled
+    ?internalDbLabActive.toUpperCase()
+    :(studioCapabilities.servingV1?'Integriert':'Standard');
+  const storageLabel=documentStoreStatus==='ready'?'IndexedDB · bereit':documentStoreDetail();
+  return settingsSectionHeader('GENERAL',copy.generalTitle,copy.generalCopy)
+    +'<div class="settings-preference-list">'
+    +'<div class="settings-preference-row"><div><b>UI-Sprache</b><small>Sprache der Oberfläche</small></div><div class="settings-segmented" role="group" aria-label="UI-Sprache"><button data-setting-language="de" class="'+(state.uiLanguage==='de'?'active':'')+'">DE</button><button data-setting-language="en" class="'+(state.uiLanguage==='en'?'active':'')+'">EN</button></div></div>'
+    +'<div class="settings-preference-row"><div><b>Editor-Schrift</b><small>Nur dein Textbereich — UI bleibt konsistent</small></div><div class="settings-segmented settings-segmented-wide" role="group" aria-label="Editor-Schrift"><button data-setting-font="sans" class="'+((state.editorFont||'sans')==='sans'?'active':'')+'">Studio Sans</button><button data-setting-font="serif" class="'+(state.editorFont==='serif'?'active':'')+'">Editorial</button><button data-setting-font="mono" class="'+(state.editorFont==='mono'?'active':'')+'">Mono</button></div></div>'
+    +'<div class="settings-preference-row"><div><b>Schriftgröße</b><small>Editor-Zeilen von 16 bis 28 px</small></div><label class="settings-range"><input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"><output id="settingsFontValue">'+state.fontSize+' px</output></label></div>'
+    +'<div class="settings-preference-row"><div><b>Bewegung</b><small>Systemvorgabe respektieren oder Motion komplett abschalten</small></div><div class="settings-segmented" role="group" aria-label="Bewegung"><button data-setting-motion="auto" class="'+(state.motion!=='off'?'active':'')+'">System</button><button data-setting-motion="off" class="'+(state.motion==='off'?'active':'')+'">Aus</button></div></div>'
+    +'</div>'
+    +'<div class="settings-status-grid">'
+    +'<div><span>RUNTIME</span><b>'+esc(runtimeLabel)+'</b><small>'+(runtimeReady?'Verbunden':'Status prüfen')+'</small></div>'
+    +'<div><span>DATENBANK</span><b>'+esc(dbLabel)+'</b><small>Lokal · kein Cloud-Zwang</small></div>'
+    +'<div><span>WORKSPACE</span><b>'+esc(storageLabel)+'</b><small>Dokumente lokal gespeichert</small></div>'
+    +'</div>';
+}
+function settingsDesignMarkup(copy){
   const draft=activeThemeForBuilder(),colors=completeThemeColors(draft.colors);
   const lightChecked=Boolean(themeEditingId&&state.themeSlots&&state.themeSlots.light===themeEditingId);
   const darkChecked=Boolean(themeEditingId&&state.themeSlots&&state.themeSlots.dark===themeEditingId);
@@ -3049,14 +3035,86 @@ function renderSettingsDock(body){
     return '<label class="theme-color-field"><span>'+label+'</span><input type="color" data-theme-color="'+key+'" value="'+colors[key]+'" aria-label="'+label+' Farbe"><input type="text" data-theme-hex="'+key+'" value="'+colors[key]+'" maxlength="7" spellcheck="false" aria-label="'+label+' Hex"></label>';
   }).join('');
   const preview=THEME_COLOR_FIELDS.map(function(field){return '<i data-preview-color="'+field[0]+'" style="background:'+colors[field[0]]+'"></i>'}).join('');
-  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label><label>UI-Sprache<select id="uiLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select></label></div><div id="capabilitySummary" class="capability-summary">'+capabilityMarkup()+'</div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section><section class="theme-settings-card recovery-card"><div class="recovery-head"><div><h3>Data & Recovery</h3><p>Dokumente laufen primär über IndexedDB. Recovery-Punkte sichern den kompletten versionierten Studio-Snapshot vor größeren Änderungen. Portable Backups enthalten Dokumente, UI-Präferenzen und den gemeinsamen SearchState.</p></div><div class="recovery-head-actions"><button id="exportStudioBackup" class="outline">Backup exportieren</button><button id="importStudioBackup" class="outline">Backup importieren</button><button id="createRecoveryPoint" class="outline">Recovery-Punkt erstellen</button><input id="studioBackupFile" type="file" accept="application/json,.json" hidden></div></div><div id="recoveryPanel"></div></section><section class="theme-settings-card diagnostics-card"><div class="diagnostics-head"><div><h3>Browser & Runtime Diagnostics</h3><p>Acceptance Center für Parity-Manifest, Storage, Writer, Audio, VisualViewport, Touch/Pointer und Motion. Keine Daten werden hochgeladen.</p></div><div class="row"><button id="rerunDiagnostics" class="outline">Neu prüfen</button><button id="exportDiagnostics" class="outline">Diagnostics exportieren</button></div></div><div id="diagnosticsPanel"></div></section><section class="theme-settings-card device-acceptance-card"><div class="diagnostics-head"><div><h3>Real Device Acceptance</h3><p>Die sieben Gates müssen bewusst auf echter Hardware bestätigt werden. Reports von mehreren Geräten lassen sich zusammenführen; Studio markiert nie automatisch bestanden.</p></div><div class="row"><button id="resetDeviceAcceptance" class="outline">Zurücksetzen</button><button id="importDeviceAcceptance" class="outline">Acceptance importieren</button><button id="exportDeviceAcceptance" class="outline">Acceptance JSON exportieren</button><input id="deviceAcceptanceFile" type="file" accept="application/json,.json" hidden></div></div><div id="deviceAcceptancePanel"></div></section></div>';
-  $('#fontRange').oninput=function(event){setFontSize(+event.target.value)};
-  $('#editorFont').value=state.editorFont||'sans';
-  $('#editorFont').onchange=function(event){state.editorFont=event.target.value;applyEditorFont();persist()};
-  $('#motionSelect').value=state.motion;
-  $('#motionSelect').onchange=function(event){state.motion=event.target.value;document.documentElement.dataset.motion=state.motion;persist()};
-  $('#uiLanguageSelect').value=state.uiLanguage;
-  $('#uiLanguageSelect').onchange=function(event){setStudioUiLanguage(event.target.value,{notifyUser:true})};
+  return settingsSectionHeader('APPEARANCE',copy.designTitle,copy.designCopy)
+    +'<div class="settings-theme-grid">'
+    +'<section class="theme-settings-card settings-theme-library"><div class="settings-card-head"><div><h3>Quickstyles</h3><p>Light und Dark bleiben mit einem Klick erreichbar.</p></div></div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="settings-subhead"><span>Eigene Styles</span><button class="outline" data-theme-new>＋ Neu</button></div><div class="theme-saved-list">'+savedThemeRows()+'</div></section>'
+    +'<section class="theme-settings-card settings-theme-builder"><div class="theme-builder-head"><div><h3>Theme Studio</h3><p>Semantische Farben statt verstreuter CSS-Werte. Vorschau erfolgt live.</p></div></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section>'
+    +'</div>';
+}
+function settingsRuntimeDbBody(){
+  const map=internalDbSummaryMap(internalDbLabPayload);
+  const profiles=[
+    {id:'lite',label:'LITE',tag:'Kompakt',copy:'Kleinstes Paket für einen schlanken lokalen Footprint.'},
+    {id:'standard',label:'STANDARD',tag:'Empfohlen',copy:'Ausgewogene Paketgröße und Abdeckung für den täglichen Einsatz.'},
+    {id:'full',label:'FULL',tag:'Maximal',copy:'Größtes Paket mit der höchsten lokal verfügbaren Abdeckung.'},
+  ];
+  const activeUserTier=profiles.some((profile)=>profile.id===internalDbLabActive);
+  const activeText=activeUserTier?internalDbLabActive.toUpperCase():'Integrierte Runtime';
+  const summary=internalDbLabEnabled
+    ?'<div class="runtime-db-summary"><div><span>AKTIV</span><b>'+esc(activeText)+'</b></div><small>Wechsel wirkt direkt auf neue Writer-Anfragen.</small></div>'
+    :'<div class="runtime-db-summary is-fixed"><div><span>AKTIV</span><b>'+esc(activeText)+'</b></div><small>Dieser Build nutzt aktuell eine fest eingebundene Runtime-Datenbank.</small></div>';
+  const cards=profiles.map((profile)=>{
+    const row=map[profile.id];
+    const available=internalDbLabEnabled&&row?.available===true;
+    const active=available&&internalDbLabActive===profile.id;
+    const target=row?.meta?.distribution_total_target;
+    const meta=[
+      row?.file?.sizeBytes?formatLabBytes(row.file.sizeBytes):null,
+      target?Number(target).toLocaleString(state.uiLanguage==='en'?'en-US':'de-DE')+' Einträge':null,
+    ].filter(Boolean).join(' · ');
+    return '<button type="button" class="runtime-db-choice '+(active?'active ':'')+(!available?'disabled':'')+'" data-settings-runtime-db="'+profile.id+'" aria-pressed="'+String(active)+'" '+(!available?'disabled':'')+'>'
+      +'<span class="runtime-db-choice-top"><b>'+profile.label+'</b><em>'+profile.tag+'</em></span>'
+      +'<span class="runtime-db-choice-copy">'+profile.copy+'</span>'
+      +'<small>'+(available?(meta||'Installiert'):'Nicht in diesem Build verfügbar')+'</small>'
+      +'<i aria-hidden="true">'+(active?'✓':'')+'</i>'
+      +'</button>';
+  }).join('');
+  return summary+'<div class="runtime-db-grid">'+cards+'</div><p class="settings-footnote">Es werden nur installierte Datenpakete freigeschaltet. Nicht verfügbare Pakete bleiben sichtbar, aber nicht auswählbar.</p>';
+}
+function settingsDatabaseMarkup(copy){
+  return settingsSectionHeader('DATABASE',copy.databaseTitle,copy.databaseCopy)
+    +'<div id="settingsRuntimeDb" class="runtime-db-settings">'+settingsRuntimeDbBody()+'</div>';
+}
+function settingsDataMarkup(copy){
+  return settingsSectionHeader('DATA',copy.dataTitle,copy.dataCopy)
+    +'<section class="settings-backup-card"><div class="settings-card-head"><div><h3>Workspace sichern</h3><p>Portable Backups enthalten Dokumente, UI-Präferenzen und den gemeinsamen SearchState.</p></div><div class="recovery-head-actions"><button id="exportStudioBackup" class="outline">Backup exportieren</button><button id="importStudioBackup" class="outline">Backup importieren</button><input id="studioBackupFile" type="file" accept="application/json,.json" hidden></div></div></section>'
+    +'<section class="settings-backup-card"><div class="settings-card-head"><div><h3>Recovery-Punkte</h3><p>Lokale Snapshots für größere Änderungen oder schnelle Rücksprünge.</p></div><button id="createRecoveryPoint" class="primary">Recovery-Punkt erstellen</button></div><div id="recoveryPanel"></div></section>';
+}
+function bindRuntimeDatabaseSettings(){
+  queryAll('#settingsRuntimeDb [data-settings-runtime-db]').forEach((button)=>{
+    button.onclick=async()=>{
+      if(button.disabled)return;
+      button.disabled=true;
+      try{await setInternalDbLabDb(button.dataset.settingsRuntimeDb)}
+      finally{if(dockTab==='settings'&&settingsTab==='database')renderDock()}
+    };
+  });
+}
+function bindSettingsGeneral(){
+  queryAll('[data-setting-language]').forEach((button)=>button.onclick=()=>{
+    setStudioUiLanguage(button.dataset.settingLanguage,{notifyUser:true});
+    if(dockTab==='settings')renderDock();
+  });
+  queryAll('[data-setting-font]').forEach((button)=>button.onclick=()=>{
+    state.editorFont=button.dataset.settingFont;
+    applyEditorFont();
+    persist();
+    renderDock();
+  });
+  queryAll('[data-setting-motion]').forEach((button)=>button.onclick=()=>{
+    state.motion=button.dataset.settingMotion;
+    document.documentElement.dataset.motion=state.motion;
+    persist();
+    renderDock();
+  });
+  const range=$('#fontRange');
+  if(range)range.oninput=(event)=>{
+    setFontSize(+event.target.value);
+    const output=$('#settingsFontValue');
+    if(output)output.textContent=state.fontSize+' px';
+  };
+}
+function bindSettingsData(){
   $('#createRecoveryPoint').onclick=async function(){
     const button=this;button.disabled=true;
     try{
@@ -3081,26 +3139,34 @@ function renderSettingsDock(body){
     catch(error){notify('Backup-Datei ungültig: '+(error instanceof Error?error.message:String(error)))}
   };
   void renderRecoveryPanel();
-  $('#rerunDiagnostics').onclick=()=>{renderDiagnosticsPanel();notify('Browser-Diagnostics aktualisiert.')};
-  $('#exportDiagnostics').onclick=()=>{exportStudioDiagnostics();notify('Diagnostics als JSON exportiert.')};
-  $('#resetDeviceAcceptance').onclick=()=>{resetStudioDeviceAcceptance();notify('Device-Acceptance zurückgesetzt.')};
-  $('#importDeviceAcceptance').onclick=()=>$('#deviceAcceptanceFile').click();
-  $('#deviceAcceptanceFile').onchange=async function(){
-    const file=this.files?.[0];this.value='';
-    if(!file)return;
-    try{
-      const summary=await importStudioDeviceAcceptanceFile(file);
-      notify('Device-Acceptance zusammengeführt · '+summary.passed+'/'+summary.total+' bestätigt.');
-    }catch(error){
-      notify('Acceptance-Import fehlgeschlagen: '+(error instanceof Error?error.message:String(error)));
-    }
-  };
-  $('#exportDeviceAcceptance').onclick=()=>{exportStudioDeviceAcceptance();notify('Device-Acceptance als JSON exportiert.')};
-  renderDiagnosticsPanel();
-  renderDeviceAcceptancePanel();
-  $('#themeMode').value=draft.mode==='light'?'light':'dark';
-  updateThemeContrast(draft);
-  bindThemeSettings();
+}
+function renderSettingsDock(body){
+  const copy=settingsCopy();
+  const nav=settingsTabButton('general',copy.general,'Sprache · Schrift · Motion')
+    +settingsTabButton('design',copy.design,'Themes · Farben')
+    +settingsTabButton('database',copy.database,'LITE · STANDARD · FULL')
+    +settingsTabButton('data',copy.data,'Backup · Recovery');
+  const panel=settingsTab==='design'
+    ?settingsDesignMarkup(copy)
+    :settingsTab==='database'
+      ?settingsDatabaseMarkup(copy)
+      :settingsTab==='data'
+        ?settingsDataMarkup(copy)
+        :settingsGeneralMarkup(copy);
+  body.innerHTML='<div class="settings-shell"><header class="settings-header"><div><span class="eyebrow">RHYME LAB</span><h2>'+esc(copy.title)+'</h2><p>'+esc(copy.subtitle)+'</p></div><span class="settings-local-badge">LOCAL FIRST</span></header><div class="settings-layout"><nav class="settings-nav" role="tablist" aria-label="Einstellungsbereiche">'+nav+'</nav><section class="settings-content" role="tabpanel">'+panel+'</section></div></div>';
+  queryAll('[data-settings-tab]').forEach((button)=>button.onclick=()=>{
+    settingsTab=button.dataset.settingsTab;
+    renderDock();
+  });
+  if(settingsTab==='general')bindSettingsGeneral();
+  if(settingsTab==='design'){
+    const draft=activeThemeForBuilder();
+    $('#themeMode').value=draft.mode==='light'?'light':'dark';
+    updateThemeContrast(draft);
+    bindThemeSettings();
+  }
+  if(settingsTab==='database')bindRuntimeDatabaseSettings();
+  if(settingsTab==='data')bindSettingsData();
 }
 function readThemeDraft(){
   const current=activeThemeForBuilder(),colors={};
@@ -3444,7 +3510,7 @@ function showSettings(){openEditorDock('settings')}
 function showHistory(){revision();openEditorDock('history')}
 function openEditorDock(tab){if(page!=='studio')navigate('studio');document.body.classList.remove('mobile-results');document.body.classList.add('editor-dock-open');setMobileActive('studio');dockTab=tab;$('#editorDock').dataset.tab=tab;$('#editorDock').classList.remove('hidden');renderDock();animateSurface($('#editorDock'))}
 function closeEditorDock(){if(themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}document.body.classList.remove('editor-dock-open');$('#editorDock').classList.add('hidden');delete $('#editorDock').dataset.tab;dockTab='';}
-function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='navigator'){renderBarNavigatorDock(body)}else if(dockTab==='bar'){renderBarInspectorDock(body)}else if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else if(dockTab==='settings'){renderSettingsDock(body)}else{body.innerHTML=`<div class="studio-note"><b>Studio 02 · Desktop Workbench</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details sind angedockt. Kompakt zeigt dieselben Treffer dichter, Wortfeld lädt zum Stöbern ein.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste, Versionen und Darstellung hier unten öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + B</kbd> Bars · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln · In Treffern: <kbd>↑ ↓</kbd> auswählen, <kbd>Enter</kbd> einsetzen, <kbd>Space</kbd> merken.</p><p style="margin-top:9px"><b>Motion</b> · kurze gestaffelte Trefferwechsel, weiche Panel-Einblendung, Auswahl- und Einsetzfeedback. Systemseitig reduzierte Bewegung wird respektiert. Kein externer Dienst, keine Motion-Bibliothek erforderlich.</p><p style="margin-top:9px"><b>Runtime</b> · Reimtreffer kommen live aus /api/writer; Song-Reimschema und Reimrelationen laufen kanonisch über Writer; nur UI-Silbenzählung und Perform Auto-Map bleiben explizite Approximationen. Die vollständige Funktionsmatrix aus Konzept 1.0 bleibt verbindlich. Version 2 ersetzt dessen Popup-orientierte Desktop-Bedienung.</p><p style="margin-top:9px"><b>Prüfung</b> · Source-/Modell-Gates decken die migrierten Zustände ab. Reale Browser-, Touch- und Audio-Geräteabnahme bleibt vor dem Route-Cutover erforderlich.</p></div>`}}
+function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='navigator'){renderBarNavigatorDock(body)}else if(dockTab==='bar'){renderBarInspectorDock(body)}else if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else if(dockTab==='settings'){renderSettingsDock(body)}else{body.innerHTML=`<div class="studio-note"><b>RhymeLab Studio</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details, Versionen und Werkzeuge bleiben in Reichweite.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste und Versionen direkt öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + B</kbd> Bars · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln.</p><p style="margin-top:9px"><b>Lokal zuerst</b> · Texte, Präferenzen, Backups und Writer-Daten bleiben lokal in deinem Workspace.</p></div>`}}
 function setFontSize(n){state.fontSize=clamp(n,16,28);document.documentElement.style.setProperty('--editor',state.fontSize+'px');$('#fontSizeLive').textContent=state.fontSize;queryAll('#lyrics textarea').forEach(resizeArea);persist()}
 function applyEditorFont(){const value=({sans:'var(--font)',serif:'Georgia, serif',mono:'ui-monospace, monospace'})[state.editorFont||'sans'];document.documentElement.style.setProperty('--lyric-font',value);queryAll('#lyrics textarea').forEach(resizeArea)}
 function humanizeDetail(value){
