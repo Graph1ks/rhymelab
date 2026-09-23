@@ -3652,7 +3652,9 @@ function settingsRuntimeDbBody(){
     {id:'full',label:'FULL',tag:'Maximal',copy:'Größtes Paket mit der höchsten lokal verfügbaren Abdeckung.'},
   ];
   const activeUserTier=profiles.some((profile)=>profile.id===internalDbLabActive);
-  const activeText=activeUserTier?internalDbLabActive.toUpperCase():'Integrierte Runtime';
+  const activeText=internalDbLabEnabled&&activeUserTier
+    ?internalDbLabActive.toUpperCase()
+    :'STANDARD';
   const summary=internalDbLabEnabled
     ?'<div class="runtime-db-summary"><div><span>AKTIV</span><b>'+esc(activeText)+'</b></div><small>Wechsel wirkt direkt auf neue Writer-Anfragen.</small></div>'
     :'<div class="runtime-db-summary is-fixed"><div><span>AKTIV</span><b>'+esc(activeText)+'</b></div><small>Dieser Build nutzt aktuell eine fest eingebundene Runtime-Datenbank.</small></div>';
