@@ -93,6 +93,8 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /rhymelab\.searchOptionsExpanded\.v3/);
   assert.match(app, /toggleSearchSection\('searchOptions'\)/);
   assert.match(app, /function selectedRuntimeDbPreference\(/);
+  assert.match(app, /\['lite','standard','full'\]\.includes\(value\)\?value:'standard'/);
+  assert.doesNotMatch(app, /\['master','lite','standard','full'\]/);
   assert.match(app, /params\.set\('runtime_db',requestedDb\)/);
   assert.match(app, /function updateRuntimeDbBadge\(/);
   assert.match(app, /document\.addEventListener\('pointerdown'/);
