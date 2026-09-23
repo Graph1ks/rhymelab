@@ -436,6 +436,8 @@ function studioAnalysisResultCacheKey(scope,signature){
 }
 function queueAnalysisWarm(delay=1400){
   clearTimeout(analysisWarmTimer);
+  analysisWarmAbort?.abort?.();
+  analysisWarmAbort=null;
   const current=song();
   const lineIndex=activeLine;
   const raw=current.lines[lineIndex]||'';
