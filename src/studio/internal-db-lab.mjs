@@ -1,16 +1,16 @@
 import {writerResultQuality} from './internal-db-benchmark.mjs';
 
 export const INTERNAL_DB_LAB_STORAGE_KEY='rhymelab.internal.dbLab.v1';
-export const INTERNAL_DB_LAB_IDS=Object.freeze(['master','lite','standard','full']);
+export const INTERNAL_DB_LAB_IDS=Object.freeze(['lite','standard','full']);
 
 export function normalizeInternalDbLabId(value){
   const id=String(value||'').trim().toLowerCase();
-  return INTERNAL_DB_LAB_IDS.includes(id)?id:'master';
+  return INTERNAL_DB_LAB_IDS.includes(id)?id:'standard';
 }
 
 export function loadInternalDbLabSelection(storage=globalThis.localStorage){
-  try{return normalizeInternalDbLabId(storage?.getItem?.(INTERNAL_DB_LAB_STORAGE_KEY)||'master')}
-  catch{return 'master'}
+  try{return normalizeInternalDbLabId(storage?.getItem?.(INTERNAL_DB_LAB_STORAGE_KEY)||'standard')}
+  catch{return 'standard'}
 }
 
 export function saveInternalDbLabSelection(id,storage=globalThis.localStorage){
@@ -108,7 +108,7 @@ export function browserRuntimeMetrics({
 }
 
 export function studioRuntimeMetrics({
-  activeDb='master',
+  activeDb='standard',
   writerStatus='idle',
   writerRuntimeTiming=null,
   writerClientTiming=null,
@@ -166,7 +166,7 @@ export function studioCapabilitiesFromInternalDb(summary,current={}){
   return {
     ...current,
     status:'ready',
-    runtime:'serving-v1/'+String(summary.id||'master'),
+    runtime:'serving-v1/'+String(summary.id||'standard'),
     servingV1:true,
     deWriter:caps.words_de===true,
     enWriter:caps.words_en===true,
