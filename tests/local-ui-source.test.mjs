@@ -94,6 +94,9 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /function selectedRuntimeDbPreference\(/);
   assert.match(app, /params\.set\('runtime_db',requestedDb\)/);
   assert.match(app, /function updateRuntimeDbBadge\(/);
+  assert.match(app, /document\.addEventListener\('pointerdown'/);
+  assert.match(app, /target\.closest\('\.custom-select-popover'\)/);
+  assert.match(app, /setSearchSectionExpanded\('searchOptions',false\)/);
   assert.match(app, /#syllableFilter[\s\S]*?void search\(state\.query\)/);
   assert.match(app, /searchStateToWriterParams\(searchState\)/);
   assert.match(app, /writeSearchStateToUrl/);
@@ -228,6 +231,9 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /\.search-filter-surface\.section-collapsed\{margin:0!important\}/);
   assert.match(css, /#searchOptionsToggle\.search-core-toggle/);
   assert.match(css, /\.search-db-badge/);
+  assert.match(css, /Filter hierarchy: labels bold, selected values calm/);
+  assert.match(css, /\.search-filter-field>span\{[\s\S]*?font-weight:850/);
+  assert.match(css, /\.search-filter-field \.custom-select-value\{[\s\S]*?font-weight:520/);
   assert.match(css, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(css, /\.search-filter-field\.is-active/);
   assert.match(css, /\.search-core-flat/);
