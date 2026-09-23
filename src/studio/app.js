@@ -1145,6 +1145,238 @@ function analysisRelationLabel(entry){
   const relation=entry.relation;
   return relation.label+(relation.score?(' · '+Math.round(Number(relation.score)*100)+'%'):'');
 }
+const ANALYSIS_RHYME_TYPE_ORDER=['multisyllabic_perfect','perfect','multisyllabic_slant','family','slant','assonance','consonance','identity'];
+const ANALYSIS_RHYME_TYPE_LABELS={
+  identity:'Identisch',
+  multisyllabic_perfect:'Mehrsilbiger Vollreim',
+  perfect:'Vollreim',
+  multisyllabic_slant:'Mehrsilbiger Slant-Reim',
+  family:'Reimfamilie',
+  slant:'Slant-Reim',
+  assonance:'Assonanz',
+  consonance:'Konsonanz',
+};
+const ANALYSIS_RHYME_TYPE_RANK=new Map(ANALYSIS_RHYME_TYPE_ORDER.map((type,index)=>[type,index]));
+function analysisRhymeTone(type){return 'rhyme-tone-'+String(type||'unknown').replace(/[^a-z0-9_-]+/giu,'-')}
+function analysisRhymeTypeLabel(type){return ANALYSIS_RHYME_TYPE_LABELS[type]||humanizeDetail(type)}
+function analysisScopeToggleMarkup(){
+  return '<div class="analysis-scope-toggle" role="group" aria-label="Reim-Analyseumfang"><button data-analysis-scope="end" class="'+(analysisScope==='end'?'active':'')+'" aria-pressed="'+(analysisScope==='end')+'">Endreime</button><button data-analysis-scope="all" class="'+(analysisScope==='all'?'active':'')+'" aria-pressed="'+(analysisScope==='all')+'">Alle Reime</button></div>';
+}
+function setAnalysisScope(next){
+  if(!['end','all'].includes(next)||analysisScope===next)return;
+  analysisScope=next;
+  renderAnalysis();
+}
+function allRhymeKey(){return analysisKey()+':all-words-v1'}
+function studioAnalysisSections(current,trackedIndexes){
+  const trackedSet=new Set(trackedIndexes);
+  const sections=[];
+  let currentSection=null,pendingLabel='',automatic=1;
+  const close=()=>{
+    if(currentSection?.documentLineIndexes?.length)sections.push(currentSection);
+    currentSection=null;
+  };
+  for(let lineIndex=0;lineIndex<current.lines.length;lineIndex++){
+    const raw=current.lines[lineIndex]||'';
+    const kind=editorLineKind(raw);
+    if(kind==='bracket'){
+      close();
+      pendingLabel=editorBracketSegments(raw).map((entry)=>String(entry.content||'').trim()).filter(Boolean).join(' · ');
+      continue;
+    }
+    if(kind==='blank'){
+      if(currentSection?.documentLineIndexes?.length)close();
+      continue;
+    }
+    if(!trackedSet.has(lineIndex))continue;
+    if(!currentSection){
+      currentSection={
+        id:'section-'+sections.length+'-'+lineIndex,
+        label:pendingLabel||('Abschnitt '+automatic++),
+        explicit:Boolean(pendingLabel),
+        documentLineIndexes:[],
+      };
+      pendingLabel='';
+    }
+    currentSection.documentLineIndexes.push(lineIndex);
+  }
+  close();
+  return sections;
+}
+function analysisRhymeBadgeRow(relations){
+  const counts=studioRhymeTypeCounts(relations);
+  return ANALYSIS_RHYME_TYPE_ORDER.filter((type)=>counts[type]).map((type)=>
+    '<span class="analysis-rhyme-badge '+analysisRhymeTone(type)+'"><b>'+counts[type]+'</b> '+esc(analysisRhymeTypeLabel(type))+'</span>'
+  ).join('');
+}
+function analysisRhymeTypeBreakdown(relations){
+  const counts=studioRhymeTypeCounts(relations);
+  return ANALYSIS_RHYME_TYPE_ORDER.filter((type)=>counts[type]).map((type)=>{
+    const seen=new Set(),examples=[];
+    for(const relation of relations){
+      if(relation.type!==type)continue;
+      const pair=[relation.left?.surface||'',relation.right?.surface||''];
+      const key=pair.map((value)=>String(value).toLocaleLowerCase('de-DE')).sort().join('\u0000');
+      if(seen.has(key))continue;
+      seen.add(key);
+      examples.push(pair.join(' ↔ '));
+      if(examples.length>=7)break;
+    }
+    return '<article class="analysis-rhyme-type '+analysisRhymeTone(type)+'"><div><small>'+esc(analysisRhymeTypeLabel(type))+'</small><b>'+counts[type]+'</b></div><p>'+esc(examples.join(' · ')||'—')+'</p></article>';
+  }).join('')||'<div class="analysis-empty">Noch keine Klangrelationen gefunden.</div>';
+}
+function strongestRhymeType(types){
+  return [...types].sort((left,right)=>(ANALYSIS_RHYME_TYPE_RANK.get(left)??99)-(ANALYSIS_RHYME_TYPE_RANK.get(right)??99))[0]||'';
+}
+function renderAllRhymeBars(current,trackedIndexes,trackedLines,data){
+  const occurrences=Array.isArray(data?.occurrences)?data.occurrences:[];
+  const relations=Array.isArray(data?.occurrenceRelations)?data.occurrenceRelations:[];
+  const occurrenceTypes=new Map();
+  for(const relation of relations){
+    for(const occurrence of [relation.left,relation.right]){
+      if(!occurrence)return;
+      const types=occurrenceTypes.get(occurrence.index)||new Set();
+      types.add(relation.type);
+      occurrenceTypes.set(occurrence.index,types);
+    }
+  }
+  return trackedIndexes.map((documentLineIndex,analysisLineIndex)=>{
+    const barNumber=analysisLineIndex+1;
+    const barRelations=relations.filter((relation)=>relation.left?.lineIndex===analysisLineIndex||relation.right?.lineIndex===analysisLineIndex);
+    const barOccurrences=occurrences.filter((entry)=>entry.lineIndex===analysisLineIndex);
+    const words=barOccurrences.map((entry)=>{
+      const types=occurrenceTypes.get(entry.index)||new Set();
+      const strongest=strongestRhymeType(types);
+      const title=[...types].map(analysisRhymeTypeLabel).join(', ');
+      return '<button class="analysis-rhyme-token '+(strongest?analysisRhymeTone(strongest):'')+'" data-all-rhyme-anchor="'+esc(entry.surface)+'" title="'+esc(title||'Keine erkannte Reimrelation')+'">'+esc(entry.surface)+'</button>';
+    }).join(' ');
+    return '<article class="analysis-all-bar" data-all-rhyme-bar="'+documentLineIndex+'"><header><button class="analysis-all-bar-number" data-all-rhyme-jump="'+documentLineIndex+'">BAR '+String(barNumber).padStart(2,'0')+'</button><span><b>'+barRelations.length+'</b> Relationen</span></header><div class="analysis-all-bar-text">'+(words||esc(trackedLines[analysisLineIndex]||'—'))+'</div><div class="analysis-rhyme-badges">'+(analysisRhymeBadgeRow(barRelations)||'<span class="small">Keine Reimrelation</span>')+'</div></article>';
+  }).join('');
+}
+function renderAllRhymeSections(current,trackedIndexes,data){
+  const relations=Array.isArray(data?.occurrenceRelations)?data.occurrenceRelations:[];
+  const sections=studioAnalysisSections(current,trackedIndexes);
+  return sections.map((section)=>{
+    const analysisIndexes=new Set(section.documentLineIndexes.map((lineIndex)=>trackedIndexes.indexOf(lineIndex)).filter((index)=>index>=0));
+    const internal=relations.filter((relation)=>analysisIndexes.has(relation.left?.lineIndex)&&analysisIndexes.has(relation.right?.lineIndex));
+    const barNumbers=section.documentLineIndexes.map((lineIndex)=>trackedEditorBarNumber(current,lineIndex)).filter(Boolean);
+    const range=barNumbers.length===1?'Bar '+barNumbers[0]:(barNumbers.length?'Bars '+barNumbers[0]+'–'+barNumbers.at(-1):'');
+    return '<article class="analysis-section-card"><header><div><small>VERSE / SECTION</small><b>'+esc(section.label)+'</b></div><span>'+esc(range)+'</span></header><strong>'+internal.length+' Reimrelationen</strong><div class="analysis-rhyme-badges">'+(analysisRhymeBadgeRow(internal)||'<span class="small">Keine internen Reime erkannt.</span>')+'</div></article>';
+  }).join('')||'<div class="analysis-empty">Keine Verse/Sections erkannt.</div>';
+}
+function renderAllRhymeSurface(){
+  const current=song(),trackedIndexes=trackedStudioLineIndexes(current),trackedLines=trackedStudioLines(current);
+  const signature=allRhymeKey();
+  const ready=allRhymeStatus==='ready'&&allRhymeData&&allRhymeSignature===signature;
+  const data=ready?allRhymeData:null;
+  const relations=Array.isArray(data?.occurrenceRelations)?data.occurrenceRelations:[];
+  const occurrences=Array.isArray(data?.occurrences)?data.occurrences:[];
+  const rhymingBars=new Set();
+  for(const relation of relations){
+    if(relation.left?.lineIndex!=null)rhymingBars.add(relation.left.lineIndex);
+    if(relation.right?.lineIndex!=null)rhymingBars.add(relation.right.lineIndex);
+  }
+  const primaryCount=relations.filter((relation)=>relation.primary).length;
+  const softCount=relations.length-primaryCount;
+  const runtime=ready&&data.runtimeTiming?.currentMs!=null?' · '+Math.round(Number(data.runtimeTiming.currentMs))+' ms':'';
+  const coverage=ready&&data.coverage
+    ?data.coverage.resolved+'/'+data.coverage.unique+' Wörter aufgelöst'+(data.coverage.truncated?' · auf 96 eindeutige Wörter begrenzt':'')
+    :'';
+  const stateMarkup=allRhymeStatus==='loading'
+    ?'<div class="analysis-loading">Writer analysiert alle Wörter und ihre Klangrelationen …</div>'
+    :allRhymeStatus==='error'
+      ?'<div class="analysis-error">Alle-Reime-Analyse nicht verfügbar: '+esc(allRhymeError)+'</div>'
+      :!trackedLines.length
+        ?'<div class="analysis-empty">Noch keine getrackten Textzeilen vorhanden.</div>'
+        :'';
+  const bars=ready?renderAllRhymeBars(current,trackedIndexes,trackedLines,data):'';
+  const sections=ready?renderAllRhymeSections(current,trackedIndexes,data):'';
+  const types=ready?analysisRhymeTypeBreakdown(relations):'';
+  $('#rhymeView').innerHTML=`
+    <div class="analysis-head row between wrap">
+      <div><div class="eyebrow">Song Analysis</div><h2>Alle Reime im Text.</h2><p class="small">Kanonische Writer-Relationen über alle Wörter außerhalb von <code>[...]</code> — pro Bar, Verse/Section und gesamtem Text.</p></div>
+      <div class="row wrap">
+        ${analysisScopeToggleMarkup()}
+        <span class="analysis-source">WRITER · ${esc(String(basis).toUpperCase())}${runtime}</span>
+        <div class="analysis-language-toggle" role="group" aria-label="Analysesprache">
+          <button data-analysis-language="de" class="${basis==='de'?'active':''}" aria-pressed="${basis==='de'}">DE</button>
+          <button data-analysis-language="en" class="${basis==='en'?'active':''}" aria-pressed="${basis==='en'}">EN</button>
+          <button data-analysis-language="both" class="${basis==='both'?'active':''}" aria-pressed="${basis==='both'}">Cross DE+EN</button>
+        </div>
+        <button id="refreshAllRhymes" class="outline">Neu analysieren</button><button class="outline" id="backWrite">Zurück zum Text</button>
+      </div>
+    </div>
+    ${stateMarkup}
+    ${ready?`<div class="analysis-all-overview">
+      <article><small>GESAMTER TEXT</small><b>${relations.length}</b><span>Reimrelationen</span></article>
+      <article><small>PRIMÄR</small><b>${primaryCount}</b><span>Voll / Multi / Family / Slant / Identisch</span></article>
+      <article><small>SOFT</small><b>${softCount}</b><span>Assonanz / Konsonanz</span></article>
+      <article><small>BARS MIT REIM</small><b>${rhymingBars.size}/${trackedIndexes.length}</b><span>${occurrences.length} Wörter geprüft</span></article>
+    </div>
+    <section class="analysis-card analysis-all-type-card"><div class="row between wrap"><div><h3>Gesamter Text · nach Reimtyp</h3><p class="small">Zählung der tatsächlich gefundenen Wortpaar-Relationen. ${esc(coverage)}</p></div><span class="analysis-source">CANONICAL</span></div><div class="analysis-rhyme-type-grid">${types}</div></section>
+    <section class="analysis-card"><div><h3>Pro Verse / Section</h3><p class="small">Vollständig geklammerte Zeilen wie <code>[Verse 2]</code> benennen Sections; Leerzeilen trennen unbenannte Abschnitte. Inline <code>[...]</code> wird ignoriert.</p></div><div class="analysis-section-grid">${sections}</div></section>
+    <section class="analysis-card"><div><h3>Pro Bar</h3><p class="small">Nur Text außerhalb von <code>[...]</code> wird gewertet. Wörter mit erkannten Relationen sind dezent nach stärkstem Typ markiert.</p></div><div class="analysis-all-bars">${bars}</div></section>`:''}
+  `;
+  $('#backWrite').onclick=()=>setMode('write');
+  $('#refreshAllRhymes').onclick=()=>{allRhymeSignature='';void refreshAllRhymeAnalysis(true)};
+  queryAll('[data-analysis-scope]').forEach((button)=>button.onclick=()=>setAnalysisScope(button.dataset.analysisScope));
+  queryAll('[data-analysis-language]').forEach((button)=>button.onclick=()=>{
+    const next=button.dataset.analysisLanguage;
+    if(!['de','en','both'].includes(next)||basis===next)return;
+    basis=next;
+    pageSize=6;
+    analysisSignature='';allRhymeSignature='';
+    saveStudioSearchState({queryBasis:basis});
+    syncInline();
+    void refreshWriterResults();
+    void refreshAllRhymeAnalysis(true);
+  });
+  queryAll('[data-all-rhyme-jump]').forEach((button)=>button.onclick=()=>{
+    const lineIndex=Number(button.dataset.allRhymeJump);
+    setMode('write');
+    focusLine(lineIndex);
+  });
+  queryAll('[data-all-rhyme-anchor]').forEach((button)=>button.onclick=()=>{
+    const anchor=String(button.dataset.allRhymeAnchor||'').trim();
+    if(!anchor)return;
+    query=anchor;pageSize=6;followSelection=false;
+    saveStudioSearchState({anchor,queryBasis:basis});
+    syncFollowControls();
+    void refreshWriterResults();
+    notify('Writer-Anker: '+anchor);
+  });
+}
+async function refreshAllRhymeAnalysis(force=false){
+  const signature=allRhymeKey();
+  if(!force&&allRhymeSignature===signature&&(allRhymeStatus==='loading'||allRhymeStatus==='ready'))return;
+  allRhymeSignature=signature;
+  allRhymeAbort?.abort?.();
+  allRhymeAbort=new AbortController();
+  const token=++allRhymeRequest;
+  allRhymeStatus='loading';allRhymeData=null;allRhymeError='';
+  if(mode==='rhyme'&&analysisScope==='all')renderAllRhymeSurface();
+  try{
+    const current=song(),trackedLines=trackedStudioLines(current);
+    if(!trackedLines.length){
+      allRhymeStatus='idle';allRhymeData=null;allRhymeError='';
+      if(mode==='rhyme'&&analysisScope==='all')renderAllRhymeSurface();
+      return;
+    }
+    const result=await analysisClient.analyzeAll(trackedLines,{
+      language:basis,
+      generated,
+      generatedOnly,
+      runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
+      signal:allRhymeAbort.signal,
+    });
+    if(token!==allRhymeRequest)return;
+    allRhymeData=result;allRhymeStatus='ready';allRhymeError='';
+  }catch(error){
+    if(error?.name==='AbortError'||token!==allRhymeRequest)return;
+    allRhymeStatus='error';allRhymeError=error instanceof Error?error.message:String(error);
+  }
+  if(mode==='rhyme'&&analysisScope==='all')renderAllRhymeSurface();
+}
 function renderAnalysisSurface(){
   const s=song(),trackedIndexes=trackedStudioLineIndexes(s),trackedLines=trackedStudioLines(s),words=studioAnalysisWords(trackedLines);
   const ready=analysisStatus==='ready'&&analysisData;
