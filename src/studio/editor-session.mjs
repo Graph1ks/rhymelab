@@ -49,6 +49,163 @@ export function barIdentity(song,index){
   };
 }
 
+export function editorLineKind(value){
+  const raw=text(value);
+  const trimmed=raw.trim();
+  if(!trimmed)return 'blank';
+  if(/^\[[^\r\n]*\]$/u.test(trimmed))return 'bracket';
+  return 'bar';
+}
+
+export function isTrackedEditorLine(value){
+  return editorLineKind(value)==='bar';
+}
+
+export function trackedEditorLineIndexes(song){
+  ensureEditorSong(song);
+  return song.lines.map((line,index)=>isTrackedEditorLine(line)?index:-1).filter((index)=>index>=0);
+}
+
+export function trackedEditorBarNumber(song,index){
+  ensureEditorSong(song);
+  if(index<0||index>=song.lines.length||!isTrackedEditorLine(song.lines[index]))return null;
+  let number=0;
+  for(let current=0;current<=index;current++){
+    if(isTrackedEditorLine(song.lines[current]))number++;
+  }
+  return number;
+}
+
+export function editorDocumentText(song){
+  ensureEditorSong(song);
+  return song.lines.join('\n');
+}
+
+export function editorLineStartOffset(lines,index){
+  const source=Array.isArray(lines)?lines.map(text):[''];
+  const target=Math.max(0,Math.min(source.length-1,integer(index,0)));
+  let offset=0;
+  for(let current=0;current<target;current++)offset+=source[current].length+1;
+  return offset;
+}
+
+export function editorPositionFromOffset(lines,offset){
+  const source=Array.isArray(lines)&&lines.length?lines.map(text):[''];
+  const documentLength=source.reduce((sum,line,index)=>sum+line.length+(index<source.length-1?1:0),0);
+  const target=Math.max(0,Math.min(documentLength,Number(offset)||0));
+  let cursor=0;
+  for(let index=0;index<source.length;index++){
+    const end=cursor+source[index].length;
+    if(target<=end||index===source.length-1){
+      return {index,offset:Math.max(0,Math.min(source[index].length,target-cursor))};
+    }
+    cursor=end+1;
+  }
+  const last=source.length-1;
+  return {index:last,offset:source[last].length};
+}
+
+export function reconcileEditorDocumentText(song,value){
+  ensureEditorSong(song);
+  const normalized=text(value).replace(/\r\n?/g,'\n');
+  const nextLines=normalized.split('\n');
+  const oldLines=[...song.lines];
+  const oldIds=[...song.barIds];
+  const oldRevisions=[...song.barRevisions];
+
+  if(nextLines.length===oldLines.length&&nextLines.every((line,index)=>line===oldLines[index])){
+    return {changed:false,lines:[...song.lines],barIds:[...song.barIds],barRevisions:[...song.barRevisions]};
+  }
+
+  let prefix=0;
+  while(prefix<oldLines.length&&prefix<nextLines.length&&oldLines[prefix]===nextLines[prefix])prefix++;
+
+  let suffix=0;
+  while(
+    suffix<oldLines.length-prefix
+    &&suffix<nextLines.length-prefix
+    &&oldLines[oldLines.length-1-suffix]===nextLines[nextLines.length-1-suffix]
+  )suffix++;
+
+  const nextIds=new Array(nextLines.length);
+  const nextRevisions=new Array(nextLines.length);
+
+  for(let index=0;index<prefix;index++){
+    nextIds[index]=oldIds[index];
+    nextRevisions[index]=oldRevisions[index];
+  }
+  for(let offset=0;offset<suffix;offset++){
+    const oldIndex=oldLines.length-1-offset;
+    const nextIndex=nextLines.length-1-offset;
+    nextIds[nextIndex]=oldIds[oldIndex];
+    nextRevisions[nextIndex]=oldRevisions[oldIndex];
+  }
+
+  const oldMiddleStart=prefix;
+  const oldMiddleEnd=oldLines.length-suffix;
+  const nextMiddleStart=prefix;
+  const nextMiddleEnd=nextLines.length-suffix;
+  const oldMiddleLength=Math.max(0,oldMiddleEnd-oldMiddleStart);
+  const nextMiddleLength=Math.max(0,nextMiddleEnd-nextMiddleStart);
+  const paired=Math.min(oldMiddleLength,nextMiddleLength);
+
+  for(let offset=0;offset<paired;offset++){
+    const oldIndex=oldMiddleStart+offset;
+    const nextIndex=nextMiddleStart+offset;
+    nextIds[nextIndex]=oldIds[oldIndex];
+    const changed=oldLines[oldIndex]!==nextLines[nextIndex];
+    nextRevisions[nextIndex]=integer(oldRevisions[oldIndex],0)+(changed?1:0);
+    if(isTrackedEditorLine(oldLines[oldIndex])&&!isTrackedEditorLine(nextLines[nextIndex])){
+      removeBarScopedState(song,oldIds[oldIndex]);
+    }
+  }
+
+  for(let offset=paired;offset<nextMiddleLength;offset++){
+    const nextIndex=nextMiddleStart+offset;
+    const sequence=integer(song.editorNextBarId,1);
+    song.editorNextBarId=sequence+1;
+    nextIds[nextIndex]=`bar:${safeSongId(song)}:edit:${String(sequence).padStart(8,'0')}`;
+    nextRevisions[nextIndex]=0;
+  }
+
+  for(let offset=paired;offset<oldMiddleLength;offset++){
+    const oldIndex=oldMiddleStart+offset;
+    removeBarScopedState(song,oldIds[oldIndex]);
+  }
+
+  song.lines=nextLines.length?nextLines:[''];
+  song.barIds=nextIds;
+  song.barRevisions=nextRevisions;
+  ensureEditorSong(song);
+
+  return {
+    changed:true,
+    lines:[...song.lines],
+    barIds:[...song.barIds],
+    barRevisions:[...song.barRevisions],
+    prefix,
+    suffix,
+  };
+}
+
+export function replaceEditorDocumentRange(song,start,end,replacement){
+  ensureEditorSong(song);
+  const document=editorDocumentText(song);
+  const from=Math.max(0,Math.min(document.length,Number(start)||0));
+  const to=Math.max(from,Math.min(document.length,Number(end)||from));
+  const inserted=text(replacement).replace(/\r\n?/g,'\n');
+  const next=document.slice(0,from)+inserted+document.slice(to);
+  const result=reconcileEditorDocumentText(song,next);
+  const caret=from+inserted.length;
+  return {
+    ...result,
+    selectionStart:from,
+    selectionEnd:caret,
+    caret,
+    position:editorPositionFromOffset(song.lines,caret),
+  };
+}
+
 export function editorSnapshot(song){
   ensureEditorSong(song);
   return {
