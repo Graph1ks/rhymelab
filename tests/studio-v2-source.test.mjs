@@ -463,6 +463,8 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/'\/studio\/parity-manifest\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/ui\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/ui\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
   assert.match(server,/'\/assets\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/studioDefaultRoute\?studioHtml:writerHtml/u);
@@ -494,6 +496,28 @@ test('Studio shared SearchState re-export resolves to a served browser URL',asyn
     server,
     /'\/ui\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8', body: readFileSync\(resolve\(uiDir, 'search-state\.mjs'\)\) \}/u,
   );
+});
+
+test('Studio query-pronunciation wrappers resolve to the served shared client modules',async()=>{
+  const [clientWrapper,cacheWrapper,sharedClient,server]=await Promise.all([
+    readFile('src/studio/query-pronunciation-client.mjs','utf8'),
+    readFile('src/studio/query-pronunciation-cache.mjs','utf8'),
+    readFile('src/ui/query-pronunciation-client.mjs','utf8'),
+    readFile('src/server.mjs','utf8'),
+  ]);
+  assert.match(clientWrapper,/export \* from '\.\.\/ui\/query-pronunciation-client\.mjs';/u);
+  assert.match(cacheWrapper,/export \* from '\.\.\/ui\/query-pronunciation-cache\.mjs';/u);
+  assert.match(sharedClient,/client-total-query-pronunciation-v3/u);
+  assert.equal(
+    new URL('../ui/query-pronunciation-client.mjs','http://127.0.0.1:3030/studio/query-pronunciation-client.mjs').pathname,
+    '/ui/query-pronunciation-client.mjs',
+  );
+  assert.equal(
+    new URL('../ui/query-pronunciation-cache.mjs','http://127.0.0.1:3030/studio/query-pronunciation-cache.mjs').pathname,
+    '/ui/query-pronunciation-cache.mjs',
+  );
+  assert.match(server,/'\/ui\/query-pronunciation-client\.mjs'/u);
+  assert.match(server,/'\/ui\/query-pronunciation-cache\.mjs'/u);
 });
 
 test('Studio live migration contract keeps fallback routes through acceptance',async()=>{
@@ -637,8 +661,8 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(details,/export function createStudioDetailClient/u);
   assert.match(details,/export function buildStudioDetailModel/u);
-  assert.match(pronunciationClient,/CLIENT_QUERY_PRONUNCIATION_POLICY/u);
-  assert.match(pronunciationCache,/QUERY_PRONUNCIATION_CACHE_SCHEMA/u);
+  assert.match(pronunciationClient,/export \* from '\.\.\/ui\/query-pronunciation-client\.mjs';/u);
+  assert.match(pronunciationCache,/export \* from '\.\.\/ui\/query-pronunciation-cache\.mjs';/u);
 });
 
 
