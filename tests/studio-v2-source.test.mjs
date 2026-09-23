@@ -441,7 +441,7 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/'\/studio\/document-store\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/editor-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/analysisMode=url\.searchParams\.get\('mode'\)==='all'/u);
-  assert.match(server,/maxUnique:analysisMode==='all'\?96:64/u);
+  assert.match(server,/maxUnique:analysisMode==='all'\?180:64/u);
   assert.match(server,/'\/studio\/performance-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/mobile-viewport\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
