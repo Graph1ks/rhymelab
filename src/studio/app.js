@@ -3520,8 +3520,8 @@ function renderBarInspectorDock(body){
   const fingerprint=performanceFlowFingerprint(s,bar.id);
   const previous=performancePreviousBarPlacements(s,bar.id);
   const canonicalReady=analysisStatus==='ready'&&analysisData&&analysisSignature===analysisKey();
-  const detail=canonicalReady?analysisData.wordDetails?.[activeLine]:null;
-  const relation=canonicalReady?analysisData.lineRelations?.[activeLine]:null;
+  const detail=canonicalReady?analysisData.wordDetails?.[trackedPosition]:null;
+  const relation=canonicalReady?analysisData.lineRelations?.[trackedPosition]:null;
   const endWord=studioAnalysisWords([text])[0]||'—';
   const stress=detail?.stressPattern||(
     detail?.primaryStressSyllable!=null?'Primary · Silbe '+detail.primaryStressSyllable:'—'
