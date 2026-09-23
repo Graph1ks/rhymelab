@@ -165,10 +165,10 @@ export function runStudioDomAcceptance({
     checks.push(pass('single-scroll','Single mobile main scroller',dockOpen?'desktop dock':'no mobile dock conflict'));
   }
 
-  const activeLine=documentObj.querySelector('.lyric-line.active');
+  const activeLine=documentObj.querySelector('.lyrics-gutter-row.active')||documentObj.querySelector('.lyric-line.active');
   checks.push(activeLine
-    ?pass('active-bar','Active Bar surface','active lyric line present')
-    :fail('active-bar','Active Bar surface','no active lyric line'));
+    ?pass('active-bar','Active Bar surface','active editor line present')
+    :fail('active-bar','Active Bar surface','no active editor line'));
 
   let activeLineCovered=false;
   if(keyboardOpen&&activeLine){
