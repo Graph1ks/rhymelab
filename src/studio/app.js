@@ -3497,7 +3497,17 @@ function deleteCustomTheme(id){
 }
 
 function renderBarInspectorDock(body){
-  const s=song(),bar=barIdentity(s,activeLine);
+  const s=song();
+  if(!isTrackedEditorLine(s.lines[activeLine]||'')){
+    const nearest=nearestTrackedStudioLine(s,activeLine);
+    body.innerHTML='<div class="studio-note"><b>Diese Zeile wird nicht als Bar getrackt.</b><p>Leerzeilen und vollständig geklammerte Zeilen wie <code>[Hook]</code> bleiben frei editierbar und werden aus Bar-, Silben-, Reim- und Performance-Tracking ausgeschlossen.</p>'+(nearest>=0?'<button id="jumpNearestTrackedBar" class="outline">Nächste getrackte Bar öffnen</button>':'')+'</div>';
+    if(nearest>=0)$('#jumpNearestTrackedBar').onclick=()=>{activeLine=nearest;focusLine(nearest);renderBarInspectorDock(body)};
+    return;
+  }
+  const trackedIndexes=trackedStudioLineIndexes(s);
+  const trackedPosition=trackedIndexes.indexOf(activeLine);
+  const barNumber=trackedPosition+1;
+  const bar=barIdentity(s,activeLine);
   if(!bar){body.innerHTML='<p class="small">Keine aktive Bar.</p>';return}
   const text=s.lines[activeLine]||'';
   const words=(text.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[]).length;
@@ -3522,8 +3532,8 @@ function renderBarInspectorDock(body){
   body.innerHTML=`
     <div class="bar-inspector">
       <div class="bar-inspector-head">
-        <div><span class="eyebrow">BAR ${String(activeLine+1).padStart(2,'0')}</span><h3>${esc(endWord)}</h3><p>${esc(text||'Leere Bar')}</p></div>
-        <div class="row"><button data-bar-nav="-1" aria-label="Vorherige Bar" ${activeLine<=0?'disabled':''}>←</button><button data-bar-nav="1" aria-label="Nächste Bar" ${activeLine>=s.lines.length-1?'disabled':''}>→</button>${canonicalState}</div>
+        <div><span class="eyebrow">BAR ${String(barNumber).padStart(2,'0')}</span><h3>${esc(endWord)}</h3><p>${esc(text||'Leere Bar')}</p></div>
+        <div class="row"><button data-bar-nav="-1" aria-label="Vorherige Bar" ${trackedPosition<=0?'disabled':''}>←</button><button data-bar-nav="1" aria-label="Nächste Bar" ${trackedPosition>=trackedIndexes.length-1?'disabled':''}>→</button>${canonicalState}</div>
       </div>
       <div class="bar-inspector-grid">
         <div><small>WÖRTER</small><b>${words}</b><span>tokenisiert lokal</span></div>
@@ -3544,9 +3554,12 @@ function renderBarInspectorDock(body){
       <div class="bar-flow-row"><small>FLOW FINGERPRINT</small><code>${esc(fingerprint||'·')}</code><button id="openPerformFromBar" class="outline">Perform öffnen ↗</button></div>
     </div>`;
   queryAll('[data-bar-nav]').forEach((button)=>button.onclick=()=>{
-    const next=Math.max(0,Math.min(s.lines.length-1,activeLine+Number(button.dataset.barNav||0)));
+    const nextPosition=Math.max(0,Math.min(trackedIndexes.length-1,trackedPosition+Number(button.dataset.barNav||0)));
+    const next=trackedIndexes[nextPosition];
+    if(next==null)return;
     activeLine=next;activateLine(next);
     if(mode==='write')focusLine(next);
+    else renderBarInspectorDock(body);
   });
   if($('#loadBarAnalysis'))$('#loadBarAnalysis').onclick=async()=>{
     const button=$('#loadBarAnalysis');button.disabled=true;button.textContent='Writer analysiert …';
@@ -3661,15 +3674,17 @@ function jumpToStudioBar(barId,{focus=true}={}){
 function renderBarNavigatorDock(body){
   const current=song();
   const needle=barNavigatorQuery.trim().toLocaleLowerCase(state.uiLanguage==='en'?'en-US':'de-DE');
-  const rows=current.lines.map((line,index)=>({
+  const trackedIndexes=trackedStudioLineIndexes(current);
+  const rows=trackedIndexes.map((index)=>({
     index,
-    line,
+    line:current.lines[index],
     bar:barIdentity(current,index),
+    number:trackedEditorBarNumber(current,index),
   })).filter((row)=>!needle||String(row.line).toLocaleLowerCase(state.uiLanguage==='en'?'en-US':'de-DE').includes(needle));
   body.innerHTML=`
     <div class="bar-navigator">
       <div class="bar-navigator-head">
-        <div><span class="eyebrow">BAR NAVIGATOR</span><b>${current.lines.length} Bars</b><small>Stable Bar IDs · Drag, Pfeile oder Klick</small></div>
+        <div><span class="eyebrow">BAR NAVIGATOR</span><b>${trackedIndexes.length} Bars</b><small>Leerzeilen und [Section]-Zeilen werden nicht getrackt.</small></div>
         <div class="bar-navigator-head-actions"><label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label><div class="row"><button id="navigatorAddBar" class="outline">＋ Bar</button><button id="navigatorDuplicateBar" class="outline">⧉ Duplizieren</button></div></div>
       </div>
       <div class="bar-navigator-list">
@@ -3679,16 +3694,16 @@ function renderBarNavigatorDock(body){
           const active=row.index===activeLine;
           const preview=String(row.line||'').trim()||'Leere Bar';
           return `<article class="bar-navigator-row ${active?'is-active':''}" draggable="true" data-bar-navigator-id="${esc(row.bar.id)}">
-            <button class="bar-navigator-jump" data-bar-jump="${esc(row.bar.id)}" aria-label="Bar ${row.index+1} auswählen">
-              <span class="bar-navigator-number">${String(row.index+1).padStart(2,'0')}</span>
+            <button class="bar-navigator-jump" data-bar-jump="${esc(row.bar.id)}" aria-label="Bar ${row.number} auswählen">
+              <span class="bar-navigator-number">${String(row.number).padStart(2,'0')}</span>
               <span class="bar-navigator-copy">${esc(preview)}</span>
               <span class="bar-navigator-meta">${syll(row.line)||0} Silb. · ${metrics.cues} Cues${review?' · Timing prüfen':''}</span>
             </button>
             <div class="bar-navigator-actions">
-              <button data-bar-duplicate="${esc(row.bar.id)}" aria-label="Bar ${row.index+1} duplizieren" title="Duplizieren">⧉</button>
-              <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="-1" aria-label="Bar ${row.index+1} nach oben" ${row.index===0?'disabled':''}>↑</button>
-              <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="1" aria-label="Bar ${row.index+1} nach unten" ${row.index===current.lines.length-1?'disabled':''}>↓</button>
-              <button data-bar-delete="${esc(row.bar.id)}" aria-label="Bar ${row.index+1} löschen" title="Bar löschen" ${current.lines.length<=1?'disabled':''}>×</button>
+              <button data-bar-duplicate="${esc(row.bar.id)}" aria-label="Bar ${row.number} duplizieren" title="Duplizieren">⧉</button>
+              <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="-1" aria-label="Bar ${row.number} nach oben" ${row.number===1?'disabled':''}>↑</button>
+              <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="1" aria-label="Bar ${row.number} nach unten" ${row.number===trackedIndexes.length?'disabled':''}>↓</button>
+              <button data-bar-delete="${esc(row.bar.id)}" aria-label="Bar ${row.number} löschen" title="Bar löschen" ${current.lines.length<=1?'disabled':''}>×</button>
               <span class="bar-drag-handle" aria-hidden="true">⋮⋮</span>
             </div>
           </article>`;
@@ -3717,8 +3732,10 @@ function renderBarNavigatorDock(body){
   queryAll('[data-bar-reorder]').forEach((button)=>button.onclick=()=>{
     const id=button.dataset.barReorder;
     const from=current.barIds.indexOf(id);
-    const to=from+Number(button.dataset.barDirection||0);
-    if(to>=0&&to<current.lines.length)moveStudioBar(from,to);
+    const position=trackedIndexes.indexOf(from);
+    const targetPosition=position+Number(button.dataset.barDirection||0);
+    const to=trackedIndexes[targetPosition];
+    if(from>=0&&to!=null)moveStudioBar(from,to);
   });
   queryAll('[data-bar-navigator-id]').forEach((row)=>{
     row.addEventListener('dragstart',(event)=>{
