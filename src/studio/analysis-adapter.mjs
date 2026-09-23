@@ -4,9 +4,9 @@ function normalizeStudioAnalysisWord(value){
   return String(value??'').normalize('NFKC').trim().replace(/\s+/gu,' ').toLocaleLowerCase('de-DE');
 }
 
-export function studioAnalysisOccurrences(lines,{limit=240}={}){
+export function studioAnalysisOccurrences(lines,{limit=500}={}){
   const output=[];
-  const max=Math.max(1,Math.min(400,Number(limit)||240));
+  const max=Math.max(1,Math.min(800,Number(limit)||500));
   for(const [lineIndex,line] of (Array.isArray(lines)?lines:[]).entries()){
     let wordIndex=0;
     for(const match of String(line??'').normalize('NFKC').matchAll(STUDIO_WORD_PATTERN)){
@@ -117,7 +117,7 @@ export function createStudioAnalysisClient({fetchImpl=globalThis.fetch}={}){
       return requestWords(studioAnalysisWords(lines),{...options,mode:'end'});
     },
     async analyzeAll(lines,options={}){
-      const occurrences=studioAnalysisOccurrences(lines,{limit:240});
+      const occurrences=studioAnalysisOccurrences(lines,{limit:500});
       const payload=await requestWords(occurrences.map((entry)=>entry.surface),{...options,mode:'all'});
       return {
         ...payload,
