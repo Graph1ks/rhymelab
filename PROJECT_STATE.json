@@ -29,7 +29,7 @@
     "optional_espeak_ng_host_adapter": false,
     "generated_pronunciation_canonical_persistence": false,
     "query_pronunciation_generation_location": "end_user_client",
-    "unknown_query_pronunciation": "client-total-query-pronunciation-v2",
+    "unknown_query_pronunciation": "client-total-query-pronunciation-v3",
     "multiword_client_query_pronunciation": true,
     "query_pronunciation_cache": "rhymelab-query-pronunciation-cache-v1",
     "query_pronunciation_cache_revalidation": "health_revision_once_per_app_session",
@@ -3814,7 +3814,7 @@
       "owner_report_fingerprint": null,
       "role": "development_espeak_reference_only_not_client_acceptance"
     },
-    "client_policy": "client-total-query-pronunciation-v2",
+    "client_policy": "client-total-query-pronunciation-v3",
     "execution_location": "end_user_client",
     "client_module": "src/ui/query-pronunciation-client.mjs",
     "browser_test_route": "/query-pronunciation-test",
@@ -3880,7 +3880,7 @@
       ],
       "stale_entry_policy": "ignore_and_delete",
       "health_revision_unavailable_policy": "disable_persistent_cache_fail_closed",
-      "resolver_policy": "client-total-query-pronunciation-v2",
+      "resolver_policy": "client-total-query-pronunciation-v3",
       "handover": "docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md"
     },
     "generated_token_cache_persisted": true,
