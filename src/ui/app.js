@@ -148,11 +148,11 @@ const savedBasis=localStorage.getItem('rhymelab.searchBasis');
 const savedResultLanguage=localStorage.getItem('rhymelab.resultLanguage');
 const savedUiLanguage=localStorage.getItem('rhymelab.language');
 const savedResultView=localStorage.getItem('rhymelab.resultView');
-const savedSearchOptionsExpanded=localStorage.getItem('rhymelab.searchOptionsExpanded.v2');
+const savedSearchOptionsExpanded=localStorage.getItem('rhymelab.searchOptionsExpanded.v3');
 const savedResultFiltersExpanded=localStorage.getItem('rhymelab.resultFiltersExpanded.v2');
 const detectedUiLanguage=String(navigator.language||'en').toLocaleLowerCase('en-US').startsWith('de')?'de':'en';
 const initialBasis=['de','en','both'].includes(savedBasis)?savedBasis:'de';
-const defaultSearchSectionsExpanded=true;
+const defaultSearchSectionsExpanded=false;
 const state={
   lang:['de','en'].includes(savedUiLanguage)?savedUiLanguage:detectedUiLanguage,
   basis:initialBasis,
@@ -362,7 +362,7 @@ function syncContextFilters(){
 function renderAvailabilityBar(){const node=$('#availabilityBar');if(!node)return;const scopes=[['words',t('words')],['phrases',t('phrases')],['entities',t('entities')]];node.innerHTML=scopes.map(([scope,label])=>{const capability=scopeCapability(scope),status=!capability.available?'unavailable':capability.partial?'partial':'available',languages=capability.supportedLanguages.map((language)=>language.toUpperCase()).join('+')||'—';return`<span class="availability-chip ${status}"><span class="availability-dot" aria-hidden="true"></span><strong>${esc(label)}</strong><small>${esc(languages)}</small></span>`;}).join('');}
 const STICKY_DETAIL_GAP=24;
 const SEARCH_SECTION_CONFIG=Object.freeze({
-  searchOptions:{section:'#searchOptionsSection',button:'#searchOptionsToggle',stateKey:'searchOptionsExpanded',storageKey:'rhymelab.searchOptionsExpanded.v2'},
+  searchOptions:{section:'#searchOptionsSection',button:'#searchOptionsToggle',stateKey:'searchOptionsExpanded',storageKey:'rhymelab.searchOptionsExpanded.v3'},
   resultFilters:{section:'#resultFiltersSection',button:'#resultFiltersToggle',stateKey:'resultFiltersExpanded',storageKey:'rhymelab.resultFiltersExpanded.v2'},
 });
 
@@ -457,14 +457,17 @@ function refreshSearchCompactThreshold(){
 }
 
 function syncSearchSectionControls(){
+  const stage=$('.search-stage');
   const searchSection=$('#searchOptionsSection');
-  searchSection?.classList.remove('section-collapsed');
-  $('#searchOptionsToggle')?.setAttribute('aria-expanded','true');
+  const autoCompact=Boolean(stage?.classList.contains('search-auto-compact'));
+  const expanded=Boolean(state.searchOptionsExpanded&&(!autoCompact||state.stickyPanelOverride==='searchOptions'));
+  searchSection?.classList.toggle('section-collapsed',!expanded);
+  const toggle=$('#searchOptionsToggle');
+  toggle?.setAttribute('aria-expanded',String(expanded));
+  toggle?.classList.toggle('active',expanded);
   $('#resultFiltersSection')?.classList.add('hidden');
   $('#resultFiltersToggle')?.setAttribute('aria-expanded','false');
-  state.searchOptionsExpanded=true;
   state.resultFiltersExpanded=false;
-  state.stickyPanelOverride=null;
   updateStickyLayout();
   refreshSearchCompactThreshold();
 }
@@ -893,9 +896,24 @@ function appendClientPronunciations(params,generated){
   }
 }
 
+function selectedRuntimeDbPreference(){
+  const value=String(localStorage.getItem('rhymelab.internal.dbLab.v1')||'').trim().toLowerCase();
+  return ['master','lite','standard','full'].includes(value)?value:'';
+}
+function updateRuntimeDbBadge(value,{pending=false}={}){
+  const badge=$('#searchDbBadge');
+  if(!badge)return;
+  const label=String(value||'default').toUpperCase();
+  badge.textContent='DB '+label+(pending?' …':'');
+  badge.title=(state.lang==='de'?'Aktive lokale Datenbank: ':'Active local database: ')+label;
+}
 async function requestWriter(params){
+  const requestedDb=selectedRuntimeDbPreference();
+  if(requestedDb)params.set('runtime_db',requestedDb);
+  updateRuntimeDbBadge(requestedDb||'auto',{pending:true});
   const response=await fetch(`/api/writer?${params}`);
   const data=await response.json();
+  updateRuntimeDbBadge(data?.runtimeDb||'default');
   if(data?.runtimeTiming){
     state.runtimeTiming=data.runtimeTiming;
     renderRuntimeTiming();
@@ -982,6 +1000,7 @@ function installInteractiveControls(){
   installFilterSelectControls();
 
   $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();void search($('#searchInput').value);});
+  $('#searchOptionsToggle').addEventListener('click',()=>toggleSearchSection('searchOptions'));
   $$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{
     const language=button.dataset.uiLang;
     if(!['de','en'].includes(language))return;
@@ -1082,6 +1101,7 @@ async function bootstrap(){
 
   setScope($('#scopeFilter').value);
   syncSearchSectionControls();
+  updateRuntimeDbBadge('auto');
   applyLanguage();
   await loadCapabilities();
 
