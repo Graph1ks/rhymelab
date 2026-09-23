@@ -9,6 +9,7 @@ import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-control
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
 import {createStudioAnalysisClient,studioAnalysisWords,studioRhymeTypeCounts} from './analysis-adapter.mjs';
+import {readStudioAnalysisCache,writeStudioAnalysisCache} from './analysis-cache.mjs';
 import {barIdentity,createSelectionProof,duplicateEditorBar,editorBracketSegments,editorDocumentText,editorLineKind,editorLineStartOffset,editorPositionFromOffset,editorSnapshot,editorTrackableText,ensureEditorSong,insertEditorBar,isTrackedEditorLine,moveEditorBar,reconcileEditorDocumentText,removeEditorBar,replaceEditorDocumentRange,restoreEditorSnapshot,trackedEditorBarNumber,trackedEditorLineIndexes,validateSelectionProof} from './editor-session.mjs';
 import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarDurationMs,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceFlowFingerprint,performanceNeedsReview,performancePocketMetrics,performancePreviousBarPlacements,performanceStepDurationMs,performanceSyllablesPerSecond,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
@@ -137,6 +138,7 @@ let internalDbLabEnabled=false,internalDbLabPayload=null,internalDbLabActive=loa
 let internalDbBenchmarkReport=null,internalDbBenchmarkAbort=null,internalDbBenchmarkState=null;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
 let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all',analysisChainVisible=false,analysisScope='end',allRhymeStatus='idle',allRhymeData=null,allRhymeError='',allRhymeRequest=0,allRhymeSignature='',allRhymeAbort=null;
+let analysisWarmTimer=0,analysisWarmAbort=null,analysisWarmGeneration=0;
 let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0,documentSaveGeneration=0,documentSaveChain=Promise.resolve(),mobileViewportCleanup=null;
 let uiLocalizer=null;
 const DEVICE_ACCEPTANCE_STORAGE_KEY='rhymelab.studio.deviceAcceptance.v1';
@@ -409,7 +411,7 @@ function restoreStudioRevision(entry){
   changed();
   return true;
 }
-function changed(){const s=song();s.updatedAt=Date.now();$('#saveState').textContent='Speichert …';clearTimeout(saveTimer);saveTimer=setTimeout(()=>{revision('autosave');persist()},650);updateStats() }
+function changed(){const s=song();s.updatedAt=Date.now();$('#saveState').textContent='Speichert …';clearTimeout(saveTimer);saveTimer=setTimeout(()=>{revision('autosave');persist()},650);queueAnalysisWarm();updateStats() }
 function notify(t){$('#toast').textContent=t;$('#toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.add('hidden'),3300)}
 function trackedStudioLineIndexes(current=song()){
   return trackedEditorLineIndexes(current);
@@ -419,6 +421,53 @@ function trackedStudioLines(current=song()){
 }
 function trackedStudioLineText(current,index){
   return editorTrackableText(current.lines[index]||'');
+}
+function studioAnalysisRequestOptions(signal){
+  return {
+    language:basis,
+    generated,
+    generatedOnly,
+    runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
+    signal,
+  };
+}
+function studioAnalysisResultCacheKey(scope,signature){
+  return ['studio-analysis-v1',scope,signature].join('|');
+}
+function queueAnalysisWarm(delay=1400){
+  clearTimeout(analysisWarmTimer);
+  const current=song();
+  const lineIndex=activeLine;
+  const raw=current.lines[lineIndex]||'';
+  const line=trackedStudioLineText(current,lineIndex);
+  if(studioCapabilities.status!=='ready'||!isTrackedEditorLine(raw)||!line.trim())return;
+  const bar=barIdentity(current,lineIndex);
+  const warmSignature=[
+    current.id,
+    bar?.id||lineIndex,
+    bar?.revision||0,
+    basis,
+    generated?1:0,
+    generatedOnly?1:0,
+    studioCapabilities.queryPronunciationRevision||'no-revision',
+    internalDbLabEnabled?internalDbLabActive:'default',
+  ].join('|');
+  const generation=++analysisWarmGeneration;
+  analysisWarmTimer=setTimeout(async()=>{
+    if(generation!==analysisWarmGeneration)return;
+    analysisWarmAbort?.abort?.();
+    const controller=new AbortController();
+    analysisWarmAbort=controller;
+    try{
+      await analysisClient.analyzeAll([line],studioAnalysisRequestOptions(controller.signal));
+    }catch(error){
+      if(error?.name!=='AbortError')console.warn('Studio rhyme warmup failed:',error);
+    }finally{
+      if(generation===analysisWarmGeneration&&warmSignature){
+        analysisWarmAbort=null;
+      }
+    }
+  },Math.max(500,Number(delay)||1400));
 }
 function nearestTrackedStudioLine(current=song(),from=activeLine){
   const indexes=trackedStudioLineIndexes(current);
@@ -1140,7 +1189,16 @@ function setMobileActive(name){queryAll('[data-mobile]').forEach(b=>b.classList.
 function setMode(next){mode=next;stopPlay();queryAll('[data-mode]').forEach(b=>{const active=b.dataset.mode===next;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active)});$('#writeView').classList.toggle('hidden',next!=='write');$('#rhymeView').classList.toggle('hidden',next!=='rhyme');$('#performView').classList.toggle('hidden',next!=='perform');if(next==='rhyme')renderAnalysis();if(next==='perform')renderPerform();if(next==='write')requestAnimationFrame(()=>resizeArea($('#lyricsEditor')))}
 function analysisKey(){
   const s=song(),indexes=trackedStudioLineIndexes(s);
-  return [s.id,basis,generated,generatedOnly,internalDbLabEnabled?internalDbLabActive:'default',...indexes.map((index)=>s.barIds[index]+':'+s.barRevisions[index])].join('|');
+  return [
+    s.id,
+    'analysis-v2',
+    studioCapabilities.queryPronunciationRevision||'no-revision',
+    basis,
+    generated,
+    generatedOnly,
+    internalDbLabEnabled?internalDbLabActive:'default',
+    ...indexes.map((index)=>s.barIds[index]+':'+s.barRevisions[index]),
+  ].join('|');
 }
 function analysisRelationLabel(entry){
   if(!entry?.relation)return '—';
