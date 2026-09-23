@@ -6,28 +6,33 @@ RhymeLab is a **local-only** Node.js + SQLite project. Core search is determinis
 
 ## Current runtime
 
-RhymeLab `v0.11.0` now uses the canonical single-file Serving-v1 product runtime and Studio V2 shell:
+RhymeLab `v0.11.0` uses Studio V2 plus the Serving-v1 shipping distributions:
 
 ~~~text
 product shell          Studio V2 (default / route)
-product runtime        serving-v1-single-db-product-candidate
-canonical database     data/local/rhymelab-serving-v1.sqlite
-search channels        DE/EN Words + Phrase/Mosaic + Entities
-generated policy       available by default, explicit opt-out
-legacy Search          /search and /legacy
+runtime editions       LITE | STANDARD | FULL
+default database       data/local/distribution/rhymelab-serving-v1-standard.sqlite
+search channels        edition-dependent DE/EN Words + Phrase/Mosaic + Entities
+generated policy       FULL capability only
+legacy Search UI       /search and /legacy
 RhymePad fallback      /pad and /pad-legacy
 ~~~
 
-The accepted Writer/rhyme semantics remain deterministic and source-backed. Historical Writer-v5/v4 paths are retained as engineering/control inputs rather than the normal product route.
+The accepted Writer/rhyme semantics remain deterministic and source-backed.
+The approximately 20-GB Master/Developer database is a build/materialization source
+only and is not an application runtime.
 
-Markov / Constrained Lyric Decoder V2 is intentionally frozen. Its demo infrastructure may ship, but it is not part of RhymeLab product navigation.
+Markov / Constrained Lyric Decoder V2 is intentionally frozen. Its demo
+infrastructure may ship, but it is not part of RhymeLab product navigation.
 
 ## Local run
 
 Requirements:
 
 - Node.js 22.5+
-- canonical Serving-v1 database at `data/local/rhymelab-serving-v1.sqlite`
+- STANDARD distribution at
+  `data/local/distribution/rhymelab-serving-v1-standard.sqlite`
+- optional LITE/FULL distribution files for edition switching
 
 Run:
 
@@ -41,7 +46,8 @@ Open:
 http://127.0.0.1:3030
 ~~~
 
-Studio V2 is served at the root route. The previous Search and RhymePad remain available for regression/fallback use.
+Studio V2 is served at the root route. Search and RhymePad remain available as
+alternate UI surfaces, but they use the same shipping-tier database runtime.
 
 To temporarily restore Search as the root route:
 
@@ -49,47 +55,51 @@ To temporarily restore Search as the root route:
 npm run dev:search-default
 ~~~
 
-### Build the canonical Serving-v1 database
+### Build the shipping databases
 
-If the canonical product database is not available and the required local source/runtime material has already been prepared:
+The Master/Developer database remains the local build source. Materialize the
+runtime editions with:
 
 ~~~powershell
-npm run serving:v1:build
-npm run serving:v1:status
+npm run distribution:plan
+npm run distribution:build
+npm run distribution:verify:nesting
 ~~~
 
-Generated databases and downloaded/generated linguistic datasets stay local and gitignored.
+Generated databases and downloaded/generated linguistic datasets stay local and
+gitignored.
 
 ## Runtime overrides
 
 ~~~text
-RHYMELAB_SERVING_V1_DB   canonical Serving-v1 product database
-RHYMELAB_SEARCH_DEFAULT  set to 1 to use previous Search at /
-RHYMELAB_HOST            bind host, default 127.0.0.1
-RHYMELAB_PORT            port, default 3030
+RHYMELAB_DISTRIBUTION_LITE_DB      LITE path
+RHYMELAB_DISTRIBUTION_STANDARD_DB  STANDARD path
+RHYMELAB_DISTRIBUTION_FULL_DB      FULL path
+RHYMELAB_DISTRIBUTION_SWITCHER     set to 0 for fixed STANDARD-only runtime
+RHYMELAB_SEARCH_DEFAULT            set to 1 to use Search at /
+RHYMELAB_HOST                      bind host, default 127.0.0.1
+RHYMELAB_PORT                      port, default 3030
 ~~~
 
-Legacy Writer/database override variables remain available for explicit engineering/control modes.
+A file whose `distribution_edition` does not match its requested tier is rejected.
+Master and archived split databases cannot be selected as app runtimes.
 
-### Internal Master / Lite / Standard / Full comparison
+### LITE / STANDARD / FULL selection and diagnostics
 
-After the distribution SQLite files have been materialized locally, the owner can
-compare them through the real Studio UI with:
+Normal startup exposes the installed shipping editions in Studio Settings. The
+selection is request-scoped, so concurrent requests cannot cross database
+boundaries.
+
+For controlled cross-edition diagnostics:
 
 ~~~powershell
 npm run dev:distribution-lab
 ~~~
 
-This development-only mode exposes explicit Master / Lite / Standard / Full
-selection plus copyable database, Writer, browser/site and server/process metrics.
-The selected edition is routed per request; no global active-database state is
-mutated.
+The diagnostic benchmark compares LITE / STANDARD / FULL and uses FULL as the
+shipping-edition quality reference. It never opens Master as a runtime.
 
-Normal `npm run dev` does not expose this internal UI. The server removes the lab
-markup and disables its internal endpoint unless the explicit internal switcher is
-enabled.
-
-See `docs/INTERNAL_DISTRIBUTION_LAB.md`.
+See `docs/DATABASE_RUNTIME.md` and `docs/INTERNAL_DISTRIBUTION_LAB.md`.
 
 ### Browser unknown-word pronunciation test
 
