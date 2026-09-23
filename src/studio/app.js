@@ -1338,7 +1338,11 @@ function renderAllRhymeSurface(){
   }
   const primaryCount=relations.filter((relation)=>relation.primary).length;
   const softCount=relations.length-primaryCount;
-  const runtime=ready&&data.runtimeTiming?.currentMs!=null?' · '+Math.round(Number(data.runtimeTiming.currentMs))+' ms':'';
+  const runtime=ready&&data?.clientCacheHit
+    ?' · CACHE'
+    :ready&&data.runtimeTiming?.currentMs!=null
+      ?' · '+Math.round(Number(data.runtimeTiming.currentMs))+' ms'
+      :'';
   const coverage=ready&&data.coverage
     ?data.coverage.resolved+'/'+data.coverage.unique+' Wörter aufgelöst'+(data.coverage.truncated?' · auf 180 eindeutige Wörter begrenzt':'')
     :'';
@@ -1413,6 +1417,7 @@ async function refreshAllRhymeAnalysis(force=false){
   allRhymeAbort?.abort?.();
   allRhymeAbort=new AbortController();
   const token=++allRhymeRequest;
+  const cacheKey=studioAnalysisResultCacheKey('all',signature);
   allRhymeStatus='loading';allRhymeData=null;allRhymeError='';
   if(mode==='rhyme'&&analysisScope==='all')renderAllRhymeSurface();
   try{
@@ -1422,15 +1427,23 @@ async function refreshAllRhymeAnalysis(force=false){
       if(mode==='rhyme'&&analysisScope==='all')renderAllRhymeSurface();
       return;
     }
-    const result=await analysisClient.analyzeAll(trackedLines,{
-      language:basis,
-      generated,
-      generatedOnly,
-      runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
-      signal:allRhymeAbort.signal,
-    });
-    if(token!==allRhymeRequest)return;
-    allRhymeData=result;allRhymeStatus='ready';allRhymeError='';
+    if(!force){
+      const cached=await readStudioAnalysisCache(cacheKey);
+      if(token!==allRhymeRequest||allRhymeKey()!==signature)return;
+      if(cached){
+        allRhymeData={...cached,clientCacheHit:true};
+        allRhymeStatus='ready';allRhymeError='';
+        if(mode==='rhyme'&&analysisScope==='all')renderAllRhymeSurface();
+        return;
+      }
+    }
+    const result=await analysisClient.analyzeAll(
+      trackedLines,
+      studioAnalysisRequestOptions(allRhymeAbort.signal),
+    );
+    if(token!==allRhymeRequest||allRhymeKey()!==signature)return;
+    allRhymeData={...result,clientCacheHit:false};allRhymeStatus='ready';allRhymeError='';
+    void writeStudioAnalysisCache(cacheKey,result);
   }catch(error){
     if(error?.name==='AbortError'||token!==allRhymeRequest)return;
     allRhymeStatus='error';allRhymeError=error instanceof Error?error.message:String(error);
@@ -1460,9 +1473,11 @@ function renderAnalysisSurface(){
     :analysisStatus==='error'
       ?'<div class="analysis-error">Kanonische Analyse nicht verfügbar: '+esc(analysisError)+'</div>'
       :'';
-  const runtime=ready&&analysisData.runtimeTiming?.currentMs!=null
-    ?' · '+Math.round(Number(analysisData.runtimeTiming.currentMs))+' ms'
-    :'';
+  const runtime=ready&&analysisData?.clientCacheHit
+    ?' · CACHE'
+    :ready&&analysisData.runtimeTiming?.currentMs!=null
+      ?' · '+Math.round(Number(analysisData.runtimeTiming.currentMs))+' ms'
+      :'';
 
   const allPairs=ready&&Array.isArray(analysisData.pairs)
     ?analysisData.pairs.slice().sort((a,b)=>Number(b.primary)-Number(a.primary)||Number(b.score||0)-Number(a.score||0))
@@ -1593,6 +1608,7 @@ async function refreshSongAnalysis(force=false){
   analysisAbort?.abort?.();
   analysisAbort=new AbortController();
   const token=++analysisRequest;
+  const cacheKey=studioAnalysisResultCacheKey('end',signature);
   analysisStatus='loading';analysisData=null;analysisError='';
   renderAnalysisSurface();
   try{
@@ -1605,15 +1621,23 @@ async function refreshSongAnalysis(force=false){
       if(mode==='rhyme')renderAnalysisSurface();
       return;
     }
-    const result=await analysisClient.analyze(trackedLines,{
-      language:basis,
-      generated,
-      generatedOnly,
-      runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
-      signal:analysisAbort.signal,
-    });
-    if(token!==analysisRequest)return;
-    analysisData=result;analysisStatus='ready';analysisError='';
+    if(!force){
+      const cached=await readStudioAnalysisCache(cacheKey);
+      if(token!==analysisRequest||analysisKey()!==signature)return;
+      if(cached){
+        analysisData={...cached,clientCacheHit:true};
+        analysisStatus='ready';analysisError='';
+        if(mode==='rhyme')renderAnalysisSurface();
+        return;
+      }
+    }
+    const result=await analysisClient.analyze(
+      trackedLines,
+      studioAnalysisRequestOptions(analysisAbort.signal),
+    );
+    if(token!==analysisRequest||analysisKey()!==signature)return;
+    analysisData={...result,clientCacheHit:false};analysisStatus='ready';analysisError='';
+    void writeStudioAnalysisCache(cacheKey,result);
   }catch(error){
     if(error?.name==='AbortError'||token!==analysisRequest)return;
     analysisStatus='error';analysisError=error instanceof Error?error.message:String(error);
@@ -4346,7 +4370,7 @@ async function startStudio(){
   syncFollowControls();
   renderEditor();
   renderResults();
-  capabilitiesReady.finally(()=>{void refreshWriterResults()});
+  capabilitiesReady.finally(()=>{void refreshWriterResults();queueAnalysisWarm(1800)});
   revision('startup');
   persist();
 }
