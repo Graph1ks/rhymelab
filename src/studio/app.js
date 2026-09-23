@@ -9,7 +9,7 @@ import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-control
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
 import {createStudioAnalysisClient,studioAnalysisWords} from './analysis-adapter.mjs';
-import {barIdentity,createSelectionProof,duplicateEditorBar,editorDocumentText,editorLineKind,editorLineStartOffset,editorPositionFromOffset,editorSnapshot,ensureEditorSong,insertEditorBar,isTrackedEditorLine,moveEditorBar,reconcileEditorDocumentText,removeEditorBar,replaceEditorDocumentRange,restoreEditorSnapshot,trackedEditorBarNumber,trackedEditorLineIndexes,validateSelectionProof} from './editor-session.mjs';
+import {barIdentity,createSelectionProof,duplicateEditorBar,editorBracketSegments,editorDocumentText,editorLineKind,editorLineStartOffset,editorPositionFromOffset,editorSnapshot,editorTrackableText,ensureEditorSong,insertEditorBar,isTrackedEditorLine,moveEditorBar,reconcileEditorDocumentText,removeEditorBar,replaceEditorDocumentRange,restoreEditorSnapshot,trackedEditorBarNumber,trackedEditorLineIndexes,validateSelectionProof} from './editor-session.mjs';
 import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarDurationMs,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceFlowFingerprint,performanceNeedsReview,performancePocketMetrics,performancePreviousBarPlacements,performanceStepDurationMs,performanceSyllablesPerSecond,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
 import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
@@ -415,7 +415,10 @@ function trackedStudioLineIndexes(current=song()){
   return trackedEditorLineIndexes(current);
 }
 function trackedStudioLines(current=song()){
-  return trackedStudioLineIndexes(current).map((index)=>current.lines[index]);
+  return trackedStudioLineIndexes(current).map((index)=>editorTrackableText(current.lines[index]));
+}
+function trackedStudioLineText(current,index){
+  return editorTrackableText(current.lines[index]||'');
 }
 function nearestTrackedStudioLine(current=song(),from=activeLine){
   const indexes=trackedStudioLineIndexes(current);
@@ -490,7 +493,7 @@ function renderUnifiedEditorGutters(){
     const kind=editorLineKind(line),barNumber=trackedEditorBarNumber(current,index);
     const height=heights[index];
     if(kind==='bar'){
-      return '<button type="button" class="lyrics-gutter-row syllable '+(index===activeLine?'active':'')+'" data-bar-inspect="'+index+'" style="height:'+height+'px" aria-label="Bar '+barNumber+' analysieren" title="Lokale Silbenschätzung · Klick für Bar Inspector">'+(syll(line)||'—')+'</button>';
+      return '<button type="button" class="lyrics-gutter-row syllable '+(index===activeLine?'active':'')+'" data-bar-inspect="'+index+'" style="height:'+height+'px" aria-label="Bar '+barNumber+' analysieren" title="Lokale Silbenschätzung · Klick für Bar Inspector">'+(syll(editorTrackableText(line))||'—')+'</button>';
     }
     return '<span class="lyrics-gutter-row syllable is-untracked '+kind+' '+(index===activeLine?'active':'')+'" style="height:'+height+'px" aria-hidden="true"></span>';
   }).join('');
@@ -1340,7 +1343,7 @@ function renderPerform(){
   const pocket=performancePocketMetrics(s,barId);
   const previous=performancePreviousBarPlacements(s,barId);
   const barDurationMs=performanceBarDurationMs(s);
-  const syllableEstimate=syll(s.lines[activeLine]);
+  const syllableEstimate=syll(trackedStudioLineText(s,activeLine));
   const syllablesPerSecond=performanceSyllablesPerSecond(s,syllableEstimate);
   const fingerprint=performanceFlowFingerprint(s,barId);
   const steps=config.grid;
@@ -1464,7 +1467,7 @@ function renderPerform(){
   $('#playBtn').onclick=()=>playing?stopPlay():startPlay();
   $('#autoMap').onclick=()=>{
     pushUndo();
-    autoMapPerformanceBar(s,barId,syll(s.lines[activeLine]));
+    autoMapPerformanceBar(s,barId,syll(trackedStudioLineText(s,activeLine)));
     performanceMoveFrom=null;changed();renderPerform();
     notify('Auto-Map aus Silbenschätzung gesetzt · bitte Timing prüfen.');
   };
@@ -3542,8 +3545,9 @@ function renderBarInspectorDock(body){
   const bar=barIdentity(s,activeLine);
   if(!bar){body.innerHTML='<p class="small">Keine aktive Bar.</p>';return}
   const text=s.lines[activeLine]||'';
-  const words=(text.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[]).length;
-  const syllables=syll(text);
+  const trackedText=trackedStudioLineText(s,activeLine);
+  const words=(trackedText.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[]).length;
+  const syllables=syll(trackedText);
   const pocket=performancePocketMetrics(s,bar.id);
   const durationMs=performanceBarDurationMs(s);
   const syllablesPerSecond=performanceSyllablesPerSecond(s,syllables);
@@ -3552,7 +3556,7 @@ function renderBarInspectorDock(body){
   const canonicalReady=analysisStatus==='ready'&&analysisData&&analysisSignature===analysisKey();
   const detail=canonicalReady?analysisData.wordDetails?.[trackedPosition]:null;
   const relation=canonicalReady?analysisData.lineRelations?.[trackedPosition]:null;
-  const endWord=studioAnalysisWords([text])[0]||'—';
+  const endWord=studioAnalysisWords([trackedText])[0]||'—';
   const stress=detail?.stressPattern||(
     detail?.primaryStressSyllable!=null?'Primary · Silbe '+detail.primaryStressSyllable:'—'
   );
@@ -3744,7 +3748,7 @@ function renderBarNavigatorDock(body){
             <button class="bar-navigator-jump" data-bar-jump="${esc(row.bar.id)}" aria-label="Bar ${row.number} auswählen">
               <span class="bar-navigator-number">${String(row.number).padStart(2,'0')}</span>
               <span class="bar-navigator-copy">${esc(preview)}</span>
-              <span class="bar-navigator-meta">${syll(row.line)||0} Silb. · ${metrics.cues} Cues${review?' · Timing prüfen':''}</span>
+              <span class="bar-navigator-meta">${syll(editorTrackableText(row.line))||0} Silb. · ${metrics.cues} Cues${review?' · Timing prüfen':''}</span>
             </button>
             <div class="bar-navigator-actions">
               <button data-bar-duplicate="${esc(row.bar.id)}" aria-label="Bar ${row.number} duplizieren" title="Duplizieren">⧉</button>
