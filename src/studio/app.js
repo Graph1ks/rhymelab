@@ -494,7 +494,7 @@ function renderUnifiedEditorGutters(){
     }
     return '<span class="lyrics-gutter-row syllable is-untracked '+kind+' '+(index===activeLine?'active':'')+'" style="height:'+height+'px" aria-hidden="true"></span>';
   }).join('');
-  queryAll('#lyricsBarGutter [data-line]').forEach((node)=>node.onclick=()=>focusLine(+node.dataset.line));
+  queryAll('#lyricsBarGutter [data-line]').forEach((node)=>node.onclick=()=>selectEditorLine(+node.dataset.line));
   queryAll('#lyricsSyllableGutter [data-bar-inspect]').forEach((node)=>node.onclick=()=>{
     activeLine=+node.dataset.barInspect;
     activateLine(activeLine);
@@ -595,6 +595,20 @@ function focusLine(index,pos){
   editor.setSelectionRange(caret,caret);
   activeLine=index;
   captureSelection(editor);
+  requestAnimationFrame(()=>ensureActiveBarVisible());
+}
+function selectEditorLine(index){
+  const editor=$('#lyricsEditor'),current=song();
+  if(!editor||index<0||index>=current.lines.length)return;
+  const line=current.lines[index]||'';
+  const start=editorLineStartOffset(current.lines,index);
+  const end=start+line.length;
+  const oldQuery=query;
+  editor.focus();
+  editor.setSelectionRange(start,end);
+  activeLine=index;
+  captureSelection(editor);
+  if(followSelection&&query!==oldQuery){query=oldQuery;renderResults()}
   requestAnimationFrame(()=>ensureActiveBarVisible());
 }
 function activateLine(index){
