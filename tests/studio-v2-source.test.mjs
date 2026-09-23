@@ -18,6 +18,7 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/type=["']module["'][^>]*src=["']\/studio\/app\.js["']/u);
   assert.match(app,/from '\.\/custom-select\.mjs'/u);
   assert.match(server,/['"]\/studio\/custom-select\.mjs['"]/u);
+  assert.match(server,/['"]\/ui\/custom-select\.mjs['"]/u);
   assert.match(server,/['"]\/assets\/custom-select\.mjs['"]/u);
   assert.match(html,/STUDIO V2/u);
   assert.doesNotMatch(html,/STUDIO 02 · DEMO/u);
