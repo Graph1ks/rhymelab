@@ -3179,3 +3179,18 @@ body:not(.find-only):not(.studio-search-filters-open) #activeFilters:empty{
     grid-template-columns:1fr;
   }
 }
+
+
+/* Keep all four Writer search controls on one deliberate grid at narrow widths. */
+@media(max-width:1200px) and (min-width:801px){
+  body:not(.find-only) .searchbox{
+    grid-template-columns:minmax(120px,1fr) max-content 44px 44px;
+    gap:6px;
+  }
+}
+@media(max-width:800px){
+  body:not(.find-only) .searchbox{
+    grid-template-columns:minmax(90px,1fr) max-content 44px 44px;
+    gap:6px;
+  }
+}
