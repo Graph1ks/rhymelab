@@ -3031,3 +3031,20 @@ small,.small{font-size:12px}
     flex:1;
   }
 }
+
+
+.results-controlbar .view-choices button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+.results-controlbar .view-choices button svg{
+  width:15px;
+  height:15px;
+  flex:0 0 auto;
+}
+@media(max-width:480px){
+  .results-controlbar .view-choices button span{display:none}
+  .results-controlbar .view-choices button{min-width:44px}
+}
