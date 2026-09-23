@@ -2683,7 +2683,7 @@ async function renderRecoveryPanel(){
       button.disabled=true;
       try{
         await restoreRecoveryPoint(button.dataset.recoveryRestore);
-        renderDock();
+        if(page==='settings')renderSettingsPage();else if(dockTab)renderDock();
         notify('Recovery-Punkt wiederhergestellt.');
       }catch(error){
         notify('Recovery fehlgeschlagen: '+(error instanceof Error?error.message:String(error)));
@@ -2832,7 +2832,7 @@ function launchDeviceAcceptanceGuide(id){
   }
   activeDeviceGateGuide=id;
   renderActiveDeviceGuide();
-  const closeSettings=()=>{if(dockTab==='settings')closeEditorDock()};
+  const closeSettings=()=>{if(page==='settings')leaveSettings();else if(dockTab)closeEditorDock()};
   if(id==='editor.ime'){
     closeSettings();navigate('studio');setMode('write');
     focusLine(activeLine);
