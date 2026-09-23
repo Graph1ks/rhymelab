@@ -1117,8 +1117,8 @@ function navigate(target){
 function setMobileActive(name){queryAll('[data-mobile]').forEach(b=>b.classList.toggle('active',b.dataset.mobile===name))}
 function setMode(next){mode=next;stopPlay();queryAll('[data-mode]').forEach(b=>{const active=b.dataset.mode===next;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active)});$('#writeView').classList.toggle('hidden',next!=='write');$('#rhymeView').classList.toggle('hidden',next!=='rhyme');$('#performView').classList.toggle('hidden',next!=='perform');if(next==='rhyme')renderAnalysis();if(next==='perform')renderPerform();if(next==='write')requestAnimationFrame(()=>resizeArea($('#lyricsEditor')))}
 function analysisKey(){
-  const s=song();
-  return [s.id,basis,generated,generatedOnly,internalDbLabEnabled?internalDbLabActive:'default',...s.barIds.map((id,index)=>id+':'+s.barRevisions[index])].join('|');
+  const s=song(),indexes=trackedStudioLineIndexes(s);
+  return [s.id,basis,generated,generatedOnly,internalDbLabEnabled?internalDbLabActive:'default',...indexes.map((index)=>s.barIds[index]+':'+s.barRevisions[index])].join('|');
 }
 function analysisRelationLabel(entry){
   if(!entry?.relation)return '—';
@@ -1126,18 +1126,18 @@ function analysisRelationLabel(entry){
   return relation.label+(relation.score?(' · '+Math.round(Number(relation.score)*100)+'%'):'');
 }
 function renderAnalysisSurface(){
-  const s=song(),words=studioAnalysisWords(s.lines);
+  const s=song(),trackedIndexes=trackedStudioLineIndexes(s),trackedLines=trackedIndexes.map((index)=>s.lines[index]),words=studioAnalysisWords(trackedLines);
   const ready=analysisStatus==='ready'&&analysisData;
   const scheme=ready&&Array.isArray(analysisData.scheme)?analysisData.scheme:words.map(()=>'?');
-  const rows=s.lines.map((line,index)=>{
-    const relation=ready?analysisData.lineRelations?.[index]:null;
-    const detail=ready?analysisData.wordDetails?.[index]:null;
-    const relationText=relation?analysisRelationLabel(relation):index===0?'Start':'—';
+  const rows=trackedIndexes.map((lineIndex,analysisIndex)=>{
+    const relation=ready?analysisData.lineRelations?.[analysisIndex]:null;
+    const detail=ready?analysisData.wordDetails?.[analysisIndex]:null;
+    const relationText=relation?analysisRelationLabel(relation):analysisIndex===0?'Start':'—';
     const prior=relation?.prior!=null?' · Bar '+String(relation.prior+1).padStart(2,'0'):'';
     const stress=detail?.stressPattern||(
       detail?.primaryStressSyllable!=null?'Stress · '+detail.primaryStressSyllable:''
     );
-    return '<button class="analysis-line" data-analysis-bar="'+index+'"><span class="analysis-bar-no">'+String(index+1).padStart(2,'0')+'</span><span class="analysis-scheme-letter">'+esc(scheme[index]||'—')+'</span><span class="analysis-end-word">'+esc(words[index]||'—')+(stress?'<small>'+esc(stress)+'</small>':'')+'</span><span class="analysis-relation">'+esc(relationText+prior)+'</span></button>';
+    return '<button class="analysis-line" data-analysis-bar="'+lineIndex+'"><span class="analysis-bar-no">'+String(analysisIndex+1).padStart(2,'0')+'</span><span class="analysis-scheme-letter">'+esc(scheme[analysisIndex]||'—')+'</span><span class="analysis-end-word">'+esc(words[analysisIndex]||'—')+(stress?'<small>'+esc(stress)+'</small>':'')+'</span><span class="analysis-relation">'+esc(relationText+prior)+'</span></button>';
   }).join('');
   const coverage=ready&&analysisData.coverage
     ?'<span>'+analysisData.coverage.resolved+'/'+analysisData.coverage.unique+' Endwörter aufgelöst'+(analysisData.coverage.truncated?' · Analyse auf 64 eindeutige Wörter begrenzt':'')+'</span>'
@@ -1178,18 +1178,19 @@ function renderAnalysisSurface(){
     :'';
 
   const rhymeChain=ready
-    ?Object.entries(scheme.reduce((groups,label,index)=>{
+    ?Object.entries(scheme.reduce((groups,label,analysisIndex)=>{
       if(!label||label==='—')return groups;
-      (groups[label]||(groups[label]=[])).push({index,word:words[index]||'—'});
+      (groups[label]||(groups[label]=[])).push({lineIndex:trackedIndexes[analysisIndex],number:analysisIndex+1,word:words[analysisIndex]||'—'});
       return groups;
-    },{})).map(([label,items])=>'<div class="rhyme-chain-group"><span class="analysis-scheme-letter">'+esc(label)+'</span><div>'+items.map((item)=>'<button data-analysis-bar="'+item.index+'"><small>BAR '+String(item.index+1).padStart(2,'0')+'</small><b>'+esc(item.word)+'</b></button>').join('<i>→</i>')+'</div></div>').join('')
+    },{})).map(([label,items])=>'<div class="rhyme-chain-group"><span class="analysis-scheme-letter">'+esc(label)+'</span><div>'+items.map((item)=>'<button data-analysis-bar="'+item.lineIndex+'"><small>BAR '+String(item.number).padStart(2,'0')+'</small><b>'+esc(item.word)+'</b></button>').join('<i>→</i>')+'</div></div>').join('')
     :'';
   const stressFingerprint=ready&&Array.isArray(analysisData.wordDetails)
-    ?analysisData.wordDetails.map((detail,index)=>{
+    ?analysisData.wordDetails.map((detail,analysisIndex)=>{
       const value=detail?.stressPattern||(
         detail?.primaryStressSyllable!=null?'P'+detail.primaryStressSyllable:'—'
       );
-      return '<button data-analysis-bar="'+index+'" title="'+esc(words[index]||'Bar '+(index+1))+'"><small>'+String(index+1).padStart(2,'0')+'</small><b>'+esc(value||'—')+'</b></button>';
+      const lineIndex=trackedIndexes[analysisIndex];
+      return '<button data-analysis-bar="'+lineIndex+'" title="'+esc(words[analysisIndex]||'Bar '+(analysisIndex+1))+'"><small>'+String(analysisIndex+1).padStart(2,'0')+'</small><b>'+esc(value||'—')+'</b></button>';
     }).join('')
     :'';
 
@@ -1281,7 +1282,8 @@ async function refreshSongAnalysis(force=false){
   renderAnalysisSurface();
   try{
     const s=song();
-    const result=await analysisClient.analyze(s.lines,{
+    const trackedLines=trackedStudioLines(s);
+    const result=await analysisClient.analyze(trackedLines,{
       language:basis,
       generated,
       generatedOnly,
