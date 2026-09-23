@@ -3105,26 +3105,26 @@ function bindRuntimeDatabaseSettings(){
       if(button.disabled)return;
       button.disabled=true;
       try{await setInternalDbLabDb(button.dataset.settingsRuntimeDb)}
-      finally{if(dockTab==='settings'&&settingsTab==='database')renderDock()}
+      finally{if(page==='settings'&&settingsTab==='database')renderSettingsPage()}
     };
   });
 }
 function bindSettingsGeneral(){
   queryAll('[data-setting-language]').forEach((button)=>button.onclick=()=>{
     setStudioUiLanguage(button.dataset.settingLanguage,{notifyUser:true});
-    if(dockTab==='settings')renderDock();
+    if(page==='settings')renderSettingsPage();
   });
   queryAll('[data-setting-font]').forEach((button)=>button.onclick=()=>{
     state.editorFont=button.dataset.settingFont;
     applyEditorFont();
     persist();
-    renderDock();
+    if(page==='settings')renderSettingsPage();
   });
   queryAll('[data-setting-motion]').forEach((button)=>button.onclick=()=>{
     state.motion=button.dataset.settingMotion;
     document.documentElement.dataset.motion=state.motion;
     persist();
-    renderDock();
+    if(page==='settings')renderSettingsPage();
   });
   const range=$('#fontRange');
   if(range)range.oninput=(event)=>{
@@ -3159,7 +3159,18 @@ function bindSettingsData(){
   };
   void renderRecoveryPanel();
 }
-function renderSettingsDock(body){
+function leaveSettings(){
+  const target=settingsReturnPage&&settingsReturnPage!=='settings'?settingsReturnPage:'studio';
+  const restoreMobileResults=settingsReturnMobileResults&&target==='studio';
+  navigate(target);
+  if(restoreMobileResults){
+    document.body.classList.add('mobile-results');
+    setMobileActive('results');
+  }
+}
+function renderSettingsPage(){
+  const body=$('#largeView');
+  if(!body)return;
   const copy=settingsCopy();
   const nav=settingsTabButton('general',copy.general,'Sprache · Schrift · Motion')
     +settingsTabButton('design',copy.design,'Themes · Farben')
@@ -3172,10 +3183,13 @@ function renderSettingsDock(body){
       :settingsTab==='data'
         ?settingsDataMarkup(copy)
         :settingsGeneralMarkup(copy);
-  body.innerHTML='<div class="settings-shell"><header class="settings-header"><div><span class="eyebrow">RHYME LAB</span><h2>'+esc(copy.title)+'</h2><p>'+esc(copy.subtitle)+'</p></div><span class="settings-local-badge">LOCAL FIRST</span></header><div class="settings-layout"><nav class="settings-nav" role="tablist" aria-label="Einstellungsbereiche">'+nav+'</nav><section class="settings-content" role="tabpanel">'+panel+'</section></div></div>';
+  const backLabel=state.uiLanguage==='en'?'Back to workspace':'Zurück zum Workspace';
+  body.innerHTML='<div class="settings-page-view"><header class="settings-page-hero"><button id="settingsBack" class="settings-back" type="button">← <span>'+esc(backLabel)+'</span></button><div class="settings-page-title"><span class="eyebrow">RHYME LAB</span><h1>'+esc(copy.title)+'</h1><p>'+esc(copy.subtitle)+'</p></div><span class="settings-local-badge">LOCAL FIRST</span></header><div class="settings-layout"><nav class="settings-nav" role="tablist" aria-label="Einstellungsbereiche">'+nav+'</nav><section class="settings-content" role="tabpanel">'+panel+'</section></div></div>';
+  $('#settingsBack').onclick=leaveSettings;
   queryAll('[data-settings-tab]').forEach((button)=>button.onclick=()=>{
     settingsTab=button.dataset.settingsTab;
-    renderDock();
+    renderSettingsPage();
+    $('#largeView').scrollTop=0;
   });
   if(settingsTab==='general')bindSettingsGeneral();
   if(settingsTab==='design'){
@@ -3238,7 +3252,7 @@ function bindThemeSettings(){
   $('#replaceDark').onchange=function(event){if(event.target.checked)$('#replaceLight').checked=false};
   $('#themeRevert').onclick=function(){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()};
   $('#themeSave').onclick=saveThemeDraft;
-  Array.from(document.querySelectorAll('[data-theme-choice]')).forEach(function(button){button.onclick=function(){themePreviewing=false;applyThemeChoice(button.dataset.themeChoice);if(dockTab==='settings')renderDock()}});
+  Array.from(document.querySelectorAll('[data-theme-choice]')).forEach(function(button){button.onclick=function(){themePreviewing=false;applyThemeChoice(button.dataset.themeChoice);if(page==='settings')renderSettingsPage()}});
   Array.from(document.querySelectorAll('[data-theme-edit]')).forEach(function(button){button.onclick=function(){themeEditingId=button.dataset.themeEdit;themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()}});
   Array.from(document.querySelectorAll('[data-theme-delete]')).forEach(function(button){button.onclick=function(){deleteCustomTheme(button.dataset.themeDelete)}});
   $('[data-theme-new]').onclick=function(){themeEditingId='';themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()};
@@ -3649,7 +3663,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
   syncFilterDeckControls();
   if(['scope','rhymeType','syllables','lang','basis','languageRoute','variants','entityCategory','historical','generated','generatedOnly','corpus'].includes(f)||f.startsWith('entityCategory:'))void refreshWriterResults();else renderResults();
 }if(b.dataset.restoreVersion){if(restoreStudioRevision(song().revisions[+b.dataset.restoreVersion])){renderDock();notify('Fassung wiederhergestellt · aktuelle Fassung gesichert')}}});
-document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key.toLowerCase()==='b'){e.preventDefault();openEditorDock('navigator')}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
+document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key.toLowerCase()==='b'){e.preventDefault();openEditorDock('navigator')}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(page==='settings'){e.preventDefault();leaveSettings()}else if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
 const handle=$('#splitter');let drag=null;handle.addEventListener('pointerdown',e=>{if(window.innerWidth<=800)return;drag={x:e.clientX,width:+handle.getAttribute('aria-valuenow')};handle.setPointerCapture?.(e.pointerId);document.body.classList.add('resizing');e.preventDefault()});handle.addEventListener('pointermove',e=>{if(drag)setAssistWidth(drag.width+drag.x-e.clientX)});for(const event of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(event,()=>{if(!drag)return;drag=null;document.body.classList.remove('resizing');persist()});handle.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setAssistWidth(+handle.getAttribute('aria-valuenow')+(e.key==='ArrowLeft'?20:-20));persist()}if(e.key==='Home'){e.preventDefault();setAssistWidth(470);persist()}});if(window.innerWidth>800)setAssistWidth(state.assistWidth||470);window.addEventListener('resize',()=>{if(window.innerWidth>800)setAssistWidth(state.assistWidth||470)});document.body.dataset.studioVersion='2';}
 
 async function startStudio(){
