@@ -134,7 +134,7 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/data-density="tiles"/u);
   assert.match(html,/id=["']redoBtn["']/u);
   assert.match(html,/Ein zusammenhängender Editor/u);
-  assert.match(html,/\[Hook\][^<]*bleiben frei/u);
+  assert.match(html,/vollständig geklammerte Zeilen wie <code>\[Hook\]<\/code> bleiben frei/u);
   assert.match(html,/data-dock=["']bar["']/u);
   assert.match(html,/data-dock=["']navigator["']/u);
   assert.match(html,/Bar Navigator/u);
@@ -209,6 +209,8 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/function renderUnifiedEditorGutters\(/u);
   assert.match(app,/function syncUnifiedEditorLayout\(/u);
   assert.match(app,/function currentSelectionProof\(/u);
+  assert.match(app,/function selectEditorLine\(/u);
+  assert.match(app,/setSelectionRange\(start,end\)/u);
   assert.doesNotMatch(app,/#lyrics textarea\[data-line=/u);
   assert.doesNotMatch(app,/event\.key==='Enter'[\s\S]{0,220}preventDefault\(\)[\s\S]{0,220}splitEditorBar/u);
   assert.match(app,/validateSelectionProof\(song\(\),selectionProof\)/u);
