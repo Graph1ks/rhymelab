@@ -91,6 +91,9 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/\.native-select-backing\{display:none!important\}/u);
   assert.match(html,/id="activeDbBadge"[^>]*class="active-db-badge"/u);
   assert.match(html,/id="searchPageFiltersToggle"[^>]*aria-controls="directFilters"/u);
+  assert.match(html,/class="results-controlbar"[^>]*>[\s\S]*class="result-toolbar"/u);
+  assert.match(html,/class="results-controlbar"[\s\S]*<div class="results-scroll"/u);
+  assert.doesNotMatch(html,/class="results-scroll"[^>]*>[\s\S]{0,200}class="result-toolbar"/u);
   assert.match(app,/let searchPageFiltersOpen=false/u);
   assert.match(app,/function activeRuntimeDbLabel\(/u);
   assert.match(app,/function updateSearchPageChrome\(/u);
@@ -101,6 +104,11 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/\.find-only\.search-page-filters-open #directFilters\{[\s\S]*?display:block/u);
   assert.match(css,/\.find-only\.search-page-compact \.inspector-title/u);
   assert.match(css,/\.theme-saved-actions button\{[\s\S]*?width:40px;[\s\S]*?height:40px/u);
+  assert.match(css,/Search controls 2026/u);
+  assert.match(css,/\.find-only \.search-page-filter-toggle\{[\s\S]*?min-width:104px/u);
+  assert.match(css,/\.search-submit\{[\s\S]*?width:48px!important/u);
+  assert.match(css,/\.results-controlbar\{[\s\S]*?flex:0 0 auto/u);
+  assert.match(css,/\.results-controlbar \.result-toolbar\{[\s\S]*?position:static/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
