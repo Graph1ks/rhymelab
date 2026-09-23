@@ -1,5 +1,64 @@
 export const SONG_RHYME_ANALYSIS_SCHEMA='rhymelab-song-rhyme-analysis-v1';
 
+export function compactSongAnalysisAnchorResult(result){
+  return {
+    status:String(result?.status||''),
+    input:String(result?.input||''),
+    query:result?.query||null,
+    queries:result?.queries||null,
+    results:(Array.isArray(result?.results)?result.results:[]).map((row)=>({
+      word:String(row?.word||row?.surface||row?.normalized||''),
+      normalized:String(row?.normalized||row?.word||row?.surface||''),
+      primaryType:row?.primaryType==null?null:String(row.primaryType),
+      score:Number(row?.score||0),
+      language:String(row?.language||''),
+      relations:(Array.isArray(row?.relations)?row.relations:[])
+        .filter((entry)=>entry?.type==='assonance'||entry?.type==='consonance')
+        .map((entry)=>({type:String(entry.type),score:Number(entry.score||0)})),
+    })),
+  };
+}
+
+export function createSongAnalysisAnchorCache({maxEntries=384}={}){
+  const limit=Math.max(8,Math.min(4096,Number(maxEntries)||384));
+  const entries=new Map();
+  const trim=()=>{
+    while(entries.size>limit){
+      const oldest=entries.keys().next().value;
+      entries.delete(oldest);
+    }
+  };
+  return {
+    get size(){return entries.size},
+    get maxEntries(){return limit},
+    clear(){entries.clear()},
+    async resolve(key,loader){
+      const cacheKey=String(key||'');
+      if(!cacheKey)throw new TypeError('analysis cache key is required');
+      if(typeof loader!=='function')throw new TypeError('analysis cache loader is required');
+      if(entries.has(cacheKey)){
+        const pending=entries.get(cacheKey);
+        entries.delete(cacheKey);
+        entries.set(cacheKey,pending);
+        return {value:await pending,hit:true};
+      }
+      const pending=Promise.resolve().then(loader);
+      entries.set(cacheKey,pending);
+      trim();
+      try{
+        const value=await pending;
+        entries.delete(cacheKey);
+        entries.set(cacheKey,Promise.resolve(value));
+        trim();
+        return {value,hit:false};
+      }catch(error){
+        if(entries.get(cacheKey)===pending)entries.delete(cacheKey);
+        throw error;
+      }
+    },
+  };
+}
+
 const PRIMARY_TYPES=new Set([
   'multisyllabic_perfect',
   'perfect',

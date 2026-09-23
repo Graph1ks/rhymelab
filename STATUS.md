@@ -129,30 +129,28 @@ npm run distribution:build
 npm run distribution:verify:nesting
 ```
 
-The development-only Studio comparison surface is implemented as:
+The application runtime is now restricted to the three shipping editions:
 
-```powershell
-npm run dev:distribution-lab
+```text
+LITE | STANDARD | FULL
 ```
 
-It opens Master/Lite/Standard/Full read-only, routes Studio requests with a
-request-scoped `runtime_db` selector, and exposes copyable DB/browser/server
-performance metrics. DB Lab v2 additionally records the exact effective Writer
-request, order-sensitive quality fingerprints, per-query response bytes and
-Search/serialize/body-read/parse/map/render timing. `Bench current` and
-`Bench suite` execute controlled same-request comparisons with warmups excluded
-from p50/p95 statistics and detect repeat-run nondeterminism. Studio-only Writer
-traffic uses the compact `studio-writer-compact-v1` transport projection while
-ordinary `/api/writer` consumers retain the full response shape. Copy-all refreshes
-server/process metrics immediately before capture. Normal startup strips the
-internal UI and disables the internal endpoint. Full contract:
-`docs/INTERNAL_DISTRIBUTION_LAB.md`.
+STANDARD is the default. Studio Settings exposes installed shipping editions and
+routes selection per request with `runtime_db=lite|standard|full`. The
+Master/Developer database remains the read-only build/materialization source only
+and is rejected as an application edition. Controlled diagnostics remain available
+through `npm run dev:distribution-lab`; benchmark quality comparisons use FULL as
+the shipping-edition reference. DB diagnostics still record the exact effective
+Writer request, deterministic quality fingerprints, response bytes and
+Search/serialize/body-read/parse/map/render timings. Studio-only Writer traffic
+uses the compact `studio-writer-compact-v1` projection. Full contract:
+`docs/DATABASE_RUNTIME.md` and `docs/INTERNAL_DISTRIBUTION_LAB.md`.
 
 ## Serving-v1 performance candidate
 
 A report-grade steady-state benchmark is available as `npm run serving:v1:report:benchmark`. It measures the same persistent-worker unified-search path used by the Serving preview, discards worker startup plus warmup, then runs 20 fixed DE/EN/both cases over 7 deterministic measurement rounds by default (140 samples). It writes JSON and Markdown under `data/local/benchmark/`, records DB/runtime fingerprints and host metadata, and verifies that each query returns the same semantic result across repeats. A missed p50/p95/max target is report data rather than a process error; only an invalid/nondeterministic run fails the command.
 
-The normal `npm run dev` / `npm start` path targets the one-file `data/local/rhymelab-serving-v1.sqlite` Product adapter. Expensive unified-search channels execute through five persistent `worker_threads` (DE Words, EN Words, DE Phrase/Mosaic, DE Entities, EN Entities), each with its own read-only connection. Worker creation/DB opening happens before measured requests; workers are reused across requests.
+The normal `npm run dev` / `npm start` path targets `data/local/distribution/rhymelab-serving-v1-standard.sqlite` by default; LITE and FULL are request-scoped alternatives when installed. The 20-GB Master/Developer file is not opened as an app runtime. Expensive unified-search channels execute through five persistent `worker_threads` (DE Words, EN Words, DE Phrase/Mosaic, DE Entities, EN Entities), each with its own read-only connection. Worker creation/DB opening happens before measured requests; workers are reused across requests.
 
 The synchronous `searchUnifiedWriter()` implementation remains the semantic reference. CI fixture coverage requires the parallel Serving response to deep-equal the serial response for the same request. The Serving hotpath benchmark and Product Acceptance timing now measure the parallel path; the benchmark retains `--serial` as a diagnostic control.
 

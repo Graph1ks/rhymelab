@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {
   SONG_RHYME_ANALYSIS_SCHEMA,
   analyzeSongEndRhymes,
+  compactSongAnalysisAnchorResult,
+  createSongAnalysisAnchorCache,
   extractAnalysisEndWord,
 } from '../src/song-rhyme-analysis.mjs';
 
@@ -67,4 +69,51 @@ test('canonical analysis reports unresolved Writer anchors without inventing rel
   assert.deepEqual(analysis.coverage.unresolved,['unknown']);
   assert.equal(analysis.coverage.resolved,1);
   assert.equal(analysis.uniqueWordDetails.find((row)=>row.normalized==='unknown').unresolved,true);
+});
+
+
+test('song analysis anchor cache collapses duplicate work and keeps bounded LRU state',async()=>{
+  const cache=createSongAnalysisAnchorCache({maxEntries:8});
+  let calls=0;
+  const loader=async()=>{calls+=1;return {status:'ok',results:[]}};
+  const [first,second]=await Promise.all([
+    cache.resolve('de|nacht',loader),
+    cache.resolve('de|nacht',loader),
+  ]);
+  assert.equal(calls,1);
+  assert.equal(first.hit,false);
+  assert.equal(second.hit,true);
+  assert.equal(cache.size,1);
+
+  for(let index=0;index<10;index++){
+    await cache.resolve('key-'+index,async()=>({index}));
+  }
+  assert.equal(cache.size,8);
+});
+
+test('compact song analysis anchor cache payload keeps only analysis-relevant Writer fields',()=>{
+  const compact=compactSongAnalysisAnchorResult({
+    status:'ok',
+    input:'Nacht',
+    query:{surface:'Nacht',preferredIpa:'naxt'},
+    results:[{
+      word:'Macht',
+      normalized:'macht',
+      primaryType:'perfect',
+      score:.99,
+      language:'de',
+      relations:[
+        {type:'assonance',score:.7,debug:'drop'},
+        {type:'consonance',score:.5},
+        {type:'other',score:1},
+      ],
+      hugeDebugPayload:{drop:true},
+    }],
+  });
+  assert.equal(compact.results.length,1);
+  assert.deepEqual(compact.results[0].relations,[
+    {type:'assonance',score:.7},
+    {type:'consonance',score:.5},
+  ]);
+  assert.equal(Object.hasOwn(compact.results[0],'hugeDebugPayload'),false);
 });

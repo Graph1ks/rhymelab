@@ -1,6 +1,6 @@
 {
   "project": "RhymeLab",
-  "updated": "2026-09-22",
+  "updated": "2026-09-23",
   "phase": "STUDIO_V2_LIVE_ACCEPTANCE",
   "package_version": "0.11.0",
   "repository": {
@@ -14,14 +14,14 @@
   },
   "runtime": {
     "mode": "local_only",
-    "default_database": "data/local/rhymelab-serving-v1.sqlite",
+    "default_database": "data/local/distribution/rhymelab-serving-v1-standard.sqlite",
     "default_database_schema": "rhymelab-serving-v1-product-adapter-v1",
-    "default_runtime_id": "serving-v1-single-db-product-candidate",
+    "default_runtime_id": "serving-v1-shipping-distribution-standard",
     "default_writer_promoted": true,
     "legacy_control_database": "data/local/rhymelab.sqlite",
     "legacy_control_database_schema": "rhymelab-local-db-v4",
-    "legacy_control_optional_for_normal_startup": true,
-    "legacy_parameter": "ranking=legacy",
+    "legacy_control_optional_for_normal_startup": false,
+    "legacy_parameter": null,
     "core_search_requires_network": false,
     "core_search_allows_llm_inference": false,
     "core_search_allows_ml_model_inference": false,
@@ -29,30 +29,29 @@
     "optional_espeak_ng_host_adapter": false,
     "generated_pronunciation_canonical_persistence": false,
     "query_pronunciation_generation_location": "end_user_client",
-    "unknown_query_pronunciation": "client-total-query-pronunciation-v2",
+    "unknown_query_pronunciation": "client-total-query-pronunciation-v3",
     "multiword_client_query_pronunciation": true,
     "query_pronunciation_cache": "rhymelab-query-pronunciation-cache-v1",
     "query_pronunciation_cache_revalidation": "health_revision_once_per_app_session",
     "internal_distribution_lab": {
-      "status": "IMPLEMENTED_INTERNAL_ONLY_QUALITY_SPEED_V2",
+      "status": "SHIPPING_TIER_SELECTOR_WITH_DIAGNOSTICS",
       "command": "npm run dev:distribution-lab",
       "selector_parameter": "runtime_db",
       "selector_values": [
-        "master",
         "lite",
         "standard",
         "full"
       ],
       "routing": "per_request_no_global_active_db",
-      "shipping_ui": false,
-      "disabled_endpoint_status": 404,
+      "shipping_ui": true,
+      "disabled_endpoint_status": 200,
       "metrics_copy_schema": "rhymelab-internal-db-lab-copy-v2",
       "contract": "docs/INTERNAL_DISTRIBUTION_LAB.md",
-      "future_user_settings": "SEPARATE_PRODUCT_TASK_REUSE_REQUEST_SCOPED_ROUTING",
+      "future_user_settings": "IMPLEMENTED_IN_STUDIO_SETTINGS",
       "benchmark_schema": "rhymelab-internal-db-benchmark-v1",
       "benchmark_current": "1_warmup_5_measured_runs_per_available_database",
       "benchmark_suite": "12_fixed_de_en_queries_1_warmup_2_measured_runs_per_query_database",
-      "benchmark_quality": "ordered_result_fingerprint_top50_jaccard_exact_prefix_determinism",
+      "benchmark_quality": "ordered_result_fingerprint_top50_jaccard_exact_prefix_determinism_vs_full",
       "transport_projection": "studio-writer-compact-v1",
       "transport_projection_scope": "studio_requests_only_full_writer_api_unchanged",
       "per_query_metrics": [
@@ -68,9 +67,18 @@
         "resource_transfer_bytes",
         "result_render_ms"
       ],
-      "copy_refreshes_server_metrics": true
+      "copy_refreshes_server_metrics": true,
+      "default_database": "standard"
     },
-    "master_markov_capability": false
+    "master_markov_capability": false,
+    "legacy_control_runtime_selectable": false,
+    "shipping_runtime_editions": [
+      "lite",
+      "standard",
+      "full"
+    ],
+    "master_developer_runtime_selectable": false,
+    "master_developer_role": "distribution_build_source_only"
   },
   "legacy_control_baseline": {
     "status": "preserved",
@@ -3814,7 +3822,7 @@
       "owner_report_fingerprint": null,
       "role": "development_espeak_reference_only_not_client_acceptance"
     },
-    "client_policy": "client-total-query-pronunciation-v2",
+    "client_policy": "client-total-query-pronunciation-v3",
     "execution_location": "end_user_client",
     "client_module": "src/ui/query-pronunciation-client.mjs",
     "browser_test_route": "/query-pronunciation-test",
@@ -3880,7 +3888,7 @@
       ],
       "stale_entry_policy": "ignore_and_delete",
       "health_revision_unavailable_policy": "disable_persistent_cache_fail_closed",
-      "resolver_policy": "client-total-query-pronunciation-v2",
+      "resolver_policy": "client-total-query-pronunciation-v3",
       "handover": "docs/QUERY_PRONUNCIATION_CLIENT_HANDOVER.md"
     },
     "generated_token_cache_persisted": true,
@@ -3911,7 +3919,7 @@
     "handover": "docs/MARKOV_GENERATOR_HANDOVER.md"
   },
   "distribution": {
-    "status": "IMPLEMENTED_MATERIALIZER_AND_INTERNAL_COMPARISON",
+    "status": "IMPLEMENTED_MATERIALIZER_AND_SHIPPING_RUNTIME",
     "contract": "docs/DISTRIBUTION_TIERS.md",
     "master_database": "data/local/rhymelab-serving-v1.sqlite",
     "rank_policy": "distribution-rank-v1-language-normalized-usage-surface",
@@ -3972,7 +3980,15 @@
         "full": 0
       },
       "note": "Owner-local completed/vacuumed SQLite observations; benchmark timing acceptance remains separate."
-    }
+    },
+    "master_database_role": "build_source_only",
+    "master_runtime_selectable": false,
+    "runtime_editions": [
+      "lite",
+      "standard",
+      "full"
+    ],
+    "default_runtime_edition": "standard"
   },
   "active_continuation": {
     "id": "DISTRIBUTION_DB_LAB_V2_BENCHMARK_EVIDENCE",

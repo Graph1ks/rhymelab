@@ -2,7 +2,7 @@
 
 Status: **implemented for single words and multi-word user queries**  
 Umbrella policy: `total-query-pronunciation-v1`  
-Client policy: `client-total-query-pronunciation-v2`
+Client policy: `client-total-query-pronunciation-v3`
 
 ## Product invariant
 
@@ -35,7 +35,7 @@ Only missing query pronunciation is generated in the end-user client.
 Implementation:
 
 - `src/ui/query-pronunciation-client.mjs`
-- policy `client-total-query-pronunciation-v2`
+- policy `client-total-query-pronunciation-v3`
 - maximum 64 pronunciation tokens per query
 
 The generator must remain browser-compatible and portable to Android/WebView-style packaging and Electron-style packaging.
@@ -50,6 +50,10 @@ It must not depend on:
 - network access inside the generator.
 
 The surrounding product may use the existing RhymeLab DB/API to obtain source-backed token pronunciations and to perform the normal rhyme search.
+
+### German OOV rhyme-domain correction
+
+Client policy v3 keeps the existing deterministic browser-only resolver architecture but corrects German generated anchors for final devoicing and the common `-ag` rhyme domain. This is query-anchor logic only; it does not alter canonical candidate pronunciations or rankings. `TRAG` and `WARG` are regression sentinels for this behavior.
 
 ## Resolution order
 

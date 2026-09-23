@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
 test('Studio V2 production surface is present with its core visual/interaction contract',async()=>{
-  const [html,css,app]=await Promise.all([
+  const [html,css,app,server]=await Promise.all([
     readFile('src/studio/index.html','utf8'),
     readFile('src/studio/styles.css','utf8'),
     readFile('src/studio/app.js','utf8'),
+    readFile('src/server.mjs','utf8'),
   ]);
 
   assert.match(html,/RhymeLab Studio V2/u);
@@ -15,8 +16,49 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/id=["']runtimeStatus["']/u);
   assert.match(html,/Live Writer · lokale Datenbank/u);
   assert.match(html,/type=["']module["'][^>]*src=["']\/studio\/app\.js["']/u);
+  assert.match(app,/from '\.\/custom-select\.mjs'/u);
+  assert.match(app,/from '\.\/analysis-cache\.mjs'/u);
+  assert.match(server,/['"]\/studio\/analysis-cache\.mjs['"]/u);
+  assert.match(app,/queueAnalysisWarm/u);
+  assert.match(app,/readStudioAnalysisCache/u);
+  assert.match(app,/writeStudioAnalysisCache/u);
+  assert.match(server,/createSongAnalysisAnchorCache/u);
+  assert.match(server,/analysisCacheHits/u);
+  assert.match(server,/['"]\/studio\/custom-select\.mjs['"]/u);
+  assert.match(server,/['"]\/ui\/custom-select\.mjs['"]/u);
+  assert.match(server,/['"]\/assets\/custom-select\.mjs['"]/u);
   assert.match(html,/STUDIO V2/u);
   assert.doesNotMatch(html,/STUDIO 02 · DEMO/u);
+  assert.doesNotMatch(html,/data-dock=["']settings["']/u);
+  assert.match(html,/id=["']settingsSide["']/u);
+  assert.match(app,/function renderSettingsPage\(/u);
+  assert.match(app,/function leaveSettings\(/u);
+  assert.match(app,/target==='settings'/u);
+  assert.match(app,/settingsReturnPage/u);
+  assert.doesNotMatch(html,/Design 02/u);
+  assert.doesNotMatch(html,/id=["']internalDbLab["']/u);
+  assert.doesNotMatch(html,/INTERNAL_DB_LAB_(?:START|END)/u);
+  assert.match(app,/let settingsTab='general'/u);
+  assert.match(app,/function settingsTabButton\(/u);
+  assert.match(app,/function settingsRuntimeDbBody\(/u);
+  assert.match(app,/function bindRuntimeDatabaseSettings\(/u);
+  const settingsSurface=app.slice(app.indexOf('function settingsCopy()'),app.indexOf('function readThemeDraft()'));
+  assert.match(settingsSurface,/Allgemein/u);
+  assert.match(settingsSurface,/Design/u);
+  assert.match(settingsSurface,/Datenbank/u);
+  assert.match(settingsSurface,/Daten & Backup/u);
+  assert.match(settingsSurface,/\{id:'lite'/u);
+  assert.match(settingsSurface,/\{id:'standard'/u);
+  assert.match(settingsSurface,/\{id:'full'/u);
+  assert.doesNotMatch(settingsSurface,/\{id:'master'/u);
+  assert.doesNotMatch(settingsSurface,/Diagnostics|Acceptance|Benchmark|Bench current|Metrics/u);
+  assert.match(css,/Studio Settings 2026/u);
+  assert.match(css,/\.settings-layout/u);
+  assert.match(css,/\.settings-nav-item/u);
+  assert.match(css,/\.settings-page-hero/u);
+  assert.match(css,/\.settings-back/u);
+  assert.match(css,/\.runtime-db-grid/u);
+  assert.match(css,/\.runtime-db-choice/u);
 
   assert.match(css,/--assist-width:470px/u);
   assert.match(css,/--bg:#EAE7DC/u);
@@ -32,7 +74,10 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/100dvh/u);
   assert.match(css,/Studio 02: bounded settings dock \+ themed scrollbars/u);
   assert.match(css,/\.editor-dock-body\{[\s\S]*?min-height:0;[\s\S]*?overflow-y:auto;/u);
-  assert.match(css,/#editorDock\[data-tab=settings\]\{[\s\S]*?flex:1 1 460px;[\s\S]*?max-height:min\(68dvh,620px\)/u);
+  assert.match(css,/Studio Settings full-page workspace/u);
+  assert.match(css,/\.settings-page #largeView\{[\s\S]*?overflow:auto/u);
+  assert.match(css,/\.settings-page-view\{[\s\S]*?width:min\(1180px,calc\(100% - 48px\)\)/u);
+  assert.match(css,/#editorDock\[data-tab=settings\]\{display:none!important\}/u);
   assert.match(css,/\.theme-builder-actions\{[\s\S]*?position:sticky;[\s\S]*?bottom:0/u);
   assert.match(css,/\*::-webkit-scrollbar-thumb/u);
   assert.match(css,/scrollbar-color:color-mix\(in srgb,var\(--muted\) 52%,var\(--line\)\) transparent/u);
@@ -45,11 +90,57 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/\.writer-loading:after/u);
   assert.match(css,/Studio production detail parity/u);
   assert.match(css,/\.detail-fact-grid/u);
-  assert.match(css,/\.advanced-filters/u);
-  assert.match(css,/\.advanced-filter-grid/u);
-  assert.match(css,/\.advanced-check/u);
-  assert.match(css,/\.entity-category-multi/u);
-  assert.match(css,/\.entity-category-legacy\{display:none!important\}/u);
+  assert.match(css,/Search Filter Deck v2/u);
+  assert.match(css,/\.filter-deck-row\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/u);
+  assert.match(css,/\.filter-field\.is-active/u);
+  assert.match(css,/\.custom-select-trigger/u);
+  assert.match(css,/\.custom-select-popover/u);
+  assert.match(css,/\.native-select-backing\{display:none!important\}/u);
+  assert.match(html,/id="activeDbBadge"[^>]*class="active-db-badge"/u);
+  assert.match(html,/id="searchPageFiltersToggle"[^>]*aria-controls="directFilters"/u);
+  assert.doesNotMatch(html,/id="searchPageFiltersToggle"[^>]*aria-controls="directFilters"[^>]*hidden/u);
+  assert.match(html,/class="results-controlbar"[^>]*>[\s\S]*class="result-toolbar"/u);
+  assert.match(html,/class="results-controlbar"[\s\S]*<div class="results-scroll"/u);
+  assert.doesNotMatch(html,/class="results-scroll"[^>]*>[\s\S]{0,200}class="result-toolbar"/u);
+  assert.match(app,/let searchPageFiltersOpen=false/u);
+  assert.match(app,/function activeRuntimeDbLabel\(/u);
+  assert.match(app,/function updateSearchPageChrome\(/u);
+  assert.match(app,/function syncSearchPageCompact\(/u);
+  assert.match(app,/bindClick\('searchPageFiltersToggle'/u);
+  assert.match(app,/STUDIO_FILTER_PANEL_KEY='rhymelab\.studio\.searchFiltersOpen\.v1'/u);
+  assert.match(app,/let studioSearchFiltersOpen=/u);
+  assert.match(app,/function setStudioSearchFiltersOpen\(/u);
+  assert.match(app,/function toggleVisibleSearchFilters\(/u);
+  assert.match(app,/function bindTransientOutsideDismissals\(/u);
+  assert.match(app,/target\.closest\('\.custom-select-popover'\)/u);
+  assert.match(app,/setStudioSearchFiltersOpen\(false\)/u);
+  assert.match(css,/2026 ergonomic density \+ readable UI pass/u);
+  assert.match(css,/\.find-only #directFilters\{[\s\S]*?display:none/u);
+  assert.match(css,/\.find-only\.search-page-filters-open #directFilters\{[\s\S]*?display:block/u);
+  assert.doesNotMatch(css,/\.search-page-filter-toggle\{display:none!important\}/u);
+  assert.match(css,/\.find-only\.search-page-compact \.inspector-title/u);
+  assert.match(css,/\.theme-saved-actions button\{[\s\S]*?width:40px;[\s\S]*?height:40px/u);
+  assert.match(css,/Search controls 2026/u);
+  assert.match(css,/\.find-only \.search-page-filter-toggle\{[\s\S]*?min-width:104px/u);
+  assert.match(css,/\.search-submit\{[\s\S]*?width:48px!important/u);
+  assert.match(css,/\.results-controlbar\{[\s\S]*?flex:0 0 auto/u);
+  assert.match(css,/\.results-controlbar \.result-toolbar\{[\s\S]*?position:static/u);
+  assert.match(css,/Studio inspector filter ergonomics/u);
+  assert.match(css,/body:not\(\.find-only\) \.filter-deck-row\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/u);
+  assert.match(css,/\.filter-field>span\{[\s\S]*?font-weight:850/u);
+  assert.match(css,/\.filter-field \.custom-select-value\{[\s\S]*?font-weight:520/u);
+  assert.match(css,/Unified Writer Notepad/u);
+  assert.match(css,/\.lyrics-notepad\{/u);
+  assert.match(css,/\.lyrics-editor\{[\s\S]*?overflow:hidden/u);
+  assert.match(css,/\.lyrics-measure\{/u);
+  assert.match(css,/\.lyrics-gutter-row\.is-untracked/u);
+  assert.match(css,/Studio rhyme rail: compact is the only sidebar density/u);
+  assert.match(css,/body:not\(\.find-only\) \.results-controlbar \.view-choices\{[\s\S]*?display:none!important/u);
+  assert.match(css,/All-rhyme analysis/u);
+  assert.match(css,/\.analysis-scope-toggle\{/u);
+  assert.match(css,/\.analysis-rhyme-type-grid\{/u);
+  assert.match(css,/\.analysis-all-bars\{/u);
+  assert.match(css,/\.rhyme-tone-perfect\{/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
@@ -58,19 +149,22 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/data-density="compact"/u);
   assert.match(html,/data-density="tiles"/u);
   assert.match(html,/id=["']redoBtn["']/u);
+  assert.match(html,/Ein zusammenhängender Editor/u);
+  assert.match(html,/vollständig geklammerte Zeilen wie <code>\[Hook\]<\/code> bleiben frei/u);
   assert.match(html,/data-dock=["']bar["']/u);
   assert.match(html,/data-dock=["']navigator["']/u);
   assert.match(html,/Bar Navigator/u);
   assert.match(html,/Bar Inspector/u);
-  assert.match(html,/id=["']advancedFiltersToggle["']/u);
-  assert.match(html,/id=["']advancedPreset["']/u);
-  assert.match(html,/id=["']advancedRhymeType["']/u);
-  assert.match(html,/id=["']advancedVariants["']/u);
-  assert.match(html,/id=["']advancedEntityCategory["']/u);
-  assert.match(html,/id=["']advancedHideUsed["']/u);
-  assert.match(html,/id=["']advancedHistorical["']/u);
-  assert.match(html,/id=["']advancedGenerated["']/u);
-  assert.match(html,/id=["']advancedGeneratedOnly["']/u);
+  for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategories','directHideUsed']){
+    assert.match(html,new RegExp(`id=["']${id}["']`,'u'));
+  }
+  for(const type of ['all','multisyllabic_perfect','perfect','multisyllabic_slant','family','slant','assonance','consonance']){
+    assert.match(html,new RegExp(`<option value=["']${type}["']`,'u'));
+  }
+  assert.doesNotMatch(html,/id=["']advancedFiltersToggle["']/u);
+  assert.doesNotMatch(html,/id=["']advancedFilters["']/u);
+  assert.doesNotMatch(html,/id=["']advancedPreset["']/u);
+  assert.doesNotMatch(html,/id=["']advancedRhymeType["']/u);
   assert.match(html,/id=["']runtimeInline["']/u);
   assert.match(app,/dataset\.studioVersion='2'/u);
   assert.match(app,/function renderStartupFailure\(/u);
@@ -98,8 +192,8 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(i18n,/#songTitle/u);
   assert.match(i18n,/\.project-list/u);
   assert.match(i18n,/#lyrics/u);
-  assert.match(app,/id="uiLanguageSelect"/u);
-  assert.match(app,/uiLanguageSelect/u);
+  assert.match(app,/data-setting-language/u);
+  assert.match(app,/setStudioUiLanguage\(button\.dataset\.settingLanguage/u);
   assert.match(css,/\.theme-quick:hover \.theme-quick-menu/u);
   assert.match(css,/\.theme-quick-menu::before/u);
   assert.match(css,/#themeMenuBtn\[aria-expanded="true"\] \+ \.theme-quick-menu/u);
@@ -110,8 +204,8 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/\.command-group/u);
   assert.match(app,/customThemes/u);
   assert.match(app,/themeSlots/u);
-  assert.match(app,/Light-Style ersetzen/u);
-  assert.match(app,/Dark-Style ersetzen/u);
+  assert.match(app,/id="replaceLight"/u);
+  assert.match(app,/id="replaceDark"/u);
   assert.match(app,/function saveThemeDraft\(/u);
   assert.match(app,/function renderThemeQuickMenu\(/u);
   assert.match(app,/function setThemeQuickOpen\(/u);
@@ -125,7 +219,25 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/function previewThemeDraft\(/u);
   assert.match(app,/compositionstart/u);
   assert.match(app,/compositionend/u);
-  assert.match(app,/addEventListener\('paste'/u);
+  assert.match(app,/id="lyricsEditor"/u);
+  assert.match(app,/reconcileEditorDocumentText\(song\(\),editor\.value\)/u);
+  assert.match(app,/editorPositionFromOffset\(song\(\)\.lines,editor\.selectionStart\)/u);
+  assert.match(app,/function renderUnifiedEditorGutters\(/u);
+  assert.match(app,/function syncUnifiedEditorLayout\(/u);
+  assert.match(app,/const minimumLines=16/u);
+  assert.match(app,/editorTrackableText/u);
+  assert.match(app,/function renderAllRhymeSurface\(/u);
+  assert.match(app,/function refreshAllRhymeAnalysis\(/u);
+  assert.match(app,/analysisScope==='all'/u);
+  assert.match(app,/analysisClient\.analyzeAll/u);
+  assert.match(app,/function studioAnalysisSections\(/u);
+  assert.match(app,/studioRhymeTypeCounts/u);
+  assert.match(app,/page==='studio'\?'compact':density/u);
+  assert.match(app,/function currentSelectionProof\(/u);
+  assert.match(app,/function selectEditorLine\(/u);
+  assert.match(app,/setSelectionRange\(start,end\)/u);
+  assert.doesNotMatch(app,/#lyrics textarea\[data-line=/u);
+  assert.doesNotMatch(app,/event\.key==='Enter'[\s\S]{0,220}preventDefault\(\)[\s\S]{0,220}splitEditorBar/u);
   assert.match(app,/validateSelectionProof\(song\(\),selectionProof\)/u);
   assert.match(app,/performUndo/u);
   assert.match(app,/performRedo/u);
@@ -223,12 +335,9 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/function exportStudioDeviceAcceptance\(/u);
   assert.match(app,/function importStudioDeviceAcceptanceFile\(/u);
   assert.match(app,/mergeStudioDeviceAcceptanceReports/u);
-  assert.match(app,/id="importDeviceAcceptance"/u);
-  assert.match(app,/id="deviceAcceptanceFile"/u);
   assert.match(app,/Teilreport exportieren/u);
   assert.match(app,/STUDIO_DEVICE_GATES/u);
   assert.match(app,/DEVICE_ACCEPTANCE_STORAGE_KEY/u);
-  assert.match(app,/id="deviceAcceptancePanel"/u);
   assert.match(app,/function renderDiagnosticsPanel\(/u);
   assert.match(app,/function exportStudioDiagnostics\(/u);
   assert.match(app,/collectStudioEnvironmentDiagnostics/u);
@@ -322,12 +431,21 @@ test('Studio V2 production surface is present with its core visual/interaction c
 });
 
 test('Studio live default route leaves legacy Search and RhymePad routes in place',async()=>{
-  const server=await readFile('src/server.mjs','utf8');
+  const [server,app]=await Promise.all([
+    readFile('src/server.mjs','utf8'),
+    readFile('src/studio/app.js','utf8'),
+  ]);
 
   assert.match(server,/const studioUiDir = resolve\('src\/studio'\)/u);
-  assert.match(server,/const studioHtmlSource=readFileSync\(resolve\(studioUiDir,'index\.html'\),'utf8'\)/u);
-  assert.match(server,/INTERNAL_DB_LAB_START/u);
+  assert.match(server,/const studioHtml=readFileSync\(resolve\(studioUiDir,'index\.html'\)\)/u);
   assert.match(server,/internalDbSwitcherEnabled/u);
+  assert.match(server,/servingV1DbPath=internalDbPaths\.standard/u);
+  assert.match(server,/openDistributionRuntime\('standard',servingV1DbPath\)/u);
+  assert.doesNotMatch(server,/DEFAULT_SERVING_V1_PRODUCT_DB_PATH/u);
+  assert.doesNotMatch(server,/internalDbEntries\.set\('master'/u);
+  assert.match(server,/distribution_edition_mismatch/u);
+  assert.match(app,/\['lite','standard','full'\]/u);
+  assert.doesNotMatch(app,/\['master','lite','standard','full'\]/u);
   assert.match(server,/'\/studio': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
   assert.match(server,/'\/studio\/': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
   assert.match(server,/'\/studio\/styles\.css': \{ type: 'text\/css; charset=utf-8'/u);
@@ -341,6 +459,8 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/'\/studio\/document-model\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-store\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/editor-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/analysisMode=url\.searchParams\.get\('mode'\)==='all'/u);
+  assert.match(server,/maxUnique:analysisMode==='all'\?180:64/u);
   assert.match(server,/'\/studio\/performance-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/mobile-viewport\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
@@ -362,6 +482,8 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/'\/studio\/parity-manifest\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/ui\/query-pronunciation-client\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/'\/ui\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
   assert.match(server,/'\/assets\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/studioDefaultRoute\?studioHtml:writerHtml/u);
@@ -393,6 +515,28 @@ test('Studio shared SearchState re-export resolves to a served browser URL',asyn
     server,
     /'\/ui\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8', body: readFileSync\(resolve\(uiDir, 'search-state\.mjs'\)\) \}/u,
   );
+});
+
+test('Studio query-pronunciation wrappers resolve to the served shared client modules',async()=>{
+  const [clientWrapper,cacheWrapper,sharedClient,server]=await Promise.all([
+    readFile('src/studio/query-pronunciation-client.mjs','utf8'),
+    readFile('src/studio/query-pronunciation-cache.mjs','utf8'),
+    readFile('src/ui/query-pronunciation-client.mjs','utf8'),
+    readFile('src/server.mjs','utf8'),
+  ]);
+  assert.match(clientWrapper,/export \* from '\.\.\/ui\/query-pronunciation-client\.mjs';/u);
+  assert.match(cacheWrapper,/export \* from '\.\.\/ui\/query-pronunciation-cache\.mjs';/u);
+  assert.match(sharedClient,/client-total-query-pronunciation-v3/u);
+  assert.equal(
+    new URL('../ui/query-pronunciation-client.mjs','http://127.0.0.1:3030/studio/query-pronunciation-client.mjs').pathname,
+    '/ui/query-pronunciation-client.mjs',
+  );
+  assert.equal(
+    new URL('../ui/query-pronunciation-cache.mjs','http://127.0.0.1:3030/studio/query-pronunciation-cache.mjs').pathname,
+    '/ui/query-pronunciation-cache.mjs',
+  );
+  assert.match(server,/'\/ui\/query-pronunciation-client\.mjs'/u);
+  assert.match(server,/'\/ui\/query-pronunciation-cache\.mjs'/u);
 });
 
 test('Studio live migration contract keeps fallback routes through acceptance',async()=>{
@@ -461,8 +605,9 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/includeHistorical,/u);
   assert.match(app,/generatedOnly,/u);
   assert.match(app,/entityCategory,/u);
-  assert.match(app,/function syncAdvancedControls\(/u);
-  assert.match(app,/function applySearchPreset\(/u);
+  assert.match(app,/function syncFilterDeckControls\(/u);
+  assert.match(app,/function applyLanguageRoute\(/u);
+  assert.match(app,/function applyCorpusMode\(/u);
   assert.match(app,/function filterUnusedWriterRows\(/u);
   assert.match(app,/function resultBadges\(/u);
   assert.match(app,/function resultBadgeMarkup\(/u);
@@ -484,7 +629,8 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(app,/copyInternalDbLabMetrics/u);
   assert.match(app,/refreshInternalDbLabPayload\(\{silent:true\}\)/u);
   assert.match(app,/refreshStudioCapabilities\(\)/u);
-  assert.match(app,/id="capabilitySummary"/u);
+  assert.match(app,/class="settings-status-grid"/u);
+  assert.match(app,/id="settingsRuntimeDb"/u);
 
   assert.match(core,/export const queryAll=/u);
   assert.match(controls,/export function normalizeDensity/u);
@@ -511,18 +657,31 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(editorSession,/export function pasteEditorText/u);
   assert.match(editorSession,/export function createSelectionProof/u);
   assert.match(editorSession,/export function validateSelectionProof/u);
+  assert.match(editorSession,/export function editorLineKind/u);
+  assert.match(editorSession,/export function editorBracketSegments/u);
+  assert.match(editorSession,/export function editorTrackableText/u);
+  assert.match(editorSession,/export function isTrackedEditorLine/u);
+  assert.match(editorSession,/export function trackedEditorLineIndexes/u);
+  assert.match(editorSession,/export function trackedEditorBarNumber/u);
+  assert.match(editorSession,/export function editorDocumentText/u);
+  assert.match(editorSession,/export function reconcileEditorDocumentText/u);
+  assert.match(editorSession,/export function replaceEditorDocumentRange/u);
   assert.match(performanceSession,/export function ensurePerformanceSong/u);
   assert.match(performanceSession,/export function setPerformanceCue/u);
   assert.match(performanceSession,/export function movePerformanceCue/u);
   assert.match(performanceSession,/export function performanceNeedsReview/u);
   assert.match(performanceSession,/export function performanceStepDurationMs/u);
   assert.match(analysisAdapter,/export function createStudioAnalysisClient/u);
+  assert.match(analysisAdapter,/export function studioAnalysisOccurrences/u);
+  assert.match(analysisAdapter,/export function expandStudioRhymeRelations/u);
+  assert.match(analysisAdapter,/export function studioRhymeTypeCounts/u);
+  assert.match(analysisAdapter,/async analyzeAll/u);
   assert.match(analysisAdapter,/export function studioAnalysisWords/u);
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(details,/export function createStudioDetailClient/u);
   assert.match(details,/export function buildStudioDetailModel/u);
-  assert.match(pronunciationClient,/CLIENT_QUERY_PRONUNCIATION_POLICY/u);
-  assert.match(pronunciationCache,/QUERY_PRONUNCIATION_CACHE_SCHEMA/u);
+  assert.match(pronunciationClient,/export \* from '\.\.\/ui\/query-pronunciation-client\.mjs';/u);
+  assert.match(pronunciationCache,/export \* from '\.\.\/ui\/query-pronunciation-cache\.mjs';/u);
 });
 
 
@@ -589,7 +748,7 @@ test('Studio Writer adapter maps runtime rows and preserves canonical recommende
   assert.equal(params.get('generated_only'),'1');
   assert.equal(params.get('entity_category'),'musician');
   const relationOnly=buildWriterParams({query:'Zeit',rhymeType:'assonance'});
-  assert.equal(relationOnly.get('type'),'all');
+  assert.equal(relationOnly.get('type'),'assonance');
 
   const mapped=mapWriterResult({
     resultKind:'word',
@@ -711,7 +870,7 @@ test('Studio detail adapter uses canonical detail endpoints and keeps entities o
 });
 
 
-test('Studio full Writer filter matrix is wired without changing canonical recommended ordering',async()=>{
+test('Studio two-row filter deck preserves the full Writer filter matrix',async()=>{
   const [html,app,filters]=await Promise.all([
     readFile('src/studio/index.html','utf8'),
     readFile('src/studio/app.js','utf8'),
@@ -719,17 +878,20 @@ test('Studio full Writer filter matrix is wired without changing canonical recom
   ]);
 
   for(const id of [
-    'advancedFiltersToggle',
-    'advancedRhymeType',
-    'advancedVariants',
-    'advancedEntityCategory',
-    'advancedHistorical',
-    'advancedGenerated',
-    'advancedGeneratedOnly',
+    'directLanguageRoute','directScope','directRhymeType','directSyllables',
+    'directSort','directVariants','directCorpus','directEntityCategories','directHideUsed',
   ]){
-    assert.match(html,new RegExp("id=[\\\"']"+id+"[\\\"']"));
+    assert.match(html,new RegExp(`id=["']${id}["']`));
   }
-
+  assert.doesNotMatch(html,/advancedFiltersToggle|advancedRhymeType|advancedPreset/u);
+  assert.match(app,/function applyLanguageRoute\(/u);
+  assert.match(app,/function applyCorpusMode\(/u);
+  assert.match(app,/function corpusModeValue\(/u);
+  assert.match(app,/function setEntityCategories\(/u);
+  assert.match(app,/directEntityCategories/u);
+  assert.match(app,/enhanceSelect/u);
+  assert.match(app,/#directRhymeType/u);
+  assert.match(app,/rhymeType=e\.target\.value;[\s\S]*?refreshWriterResults\(\)/u);
   assert.match(app,/filterStudioWriterRows\(baseData\(\)/u);
   assert.match(app,/sortStudioWriterRows\(data\(\)/u);
   assert.match(filters,/sort==='closest'/u);
@@ -737,13 +899,7 @@ test('Studio full Writer filter matrix is wired without changing canonical recom
   assert.match(filters,/mode==='near2'/u);
   assert.match(filters,/mode==='near3'/u);
   assert.match(app,/writerCapabilities=result\.capabilities/u);
-  assert.match(app,/availableEntityCategories\(\)/u);
-  assert.match(html,/id=["']advancedEntityCategoryMulti["']/u);
-  assert.match(app,/function setEntityCategories\(/u);
   assert.match(app,/entityCategories=Array\.isArray\(sharedSearchState\.entityCategories\)/u);
-  assert.match(app,/data-entity-category/u);
-  assert.match(app,/advancedFilterCount\(\)/u);
-  assert.match(app,/generatedOnly=e\.target\.checked/u);
 });
 
 
@@ -823,7 +979,7 @@ test('shared SearchState preserves search context across standalone Search and S
 
   const params=searchStateToWriterParams(saved);
   assert.equal(params.get('scope'),'phrases');
-  assert.equal(params.get('type'),'all');
+  assert.equal(params.get('type'),'assonance');
   assert.equal(params.get('variants'),'all');
   assert.equal(params.get('historical'),'all');
   assert.equal(params.get('generated_only'),'1');
@@ -850,4 +1006,21 @@ test('Studio startup static controls stay synchronized with the golden-master DO
   assert.ok(ids.has('clearDocBtn'),'clear document control must be present in Studio HTML');
   assert.match(app,/bindClick\('clearDocBtn',clearCurrentDocument,\{optional:true\}\)/u);
   assert.deepEqual(required.filter((id)=>!ids.has(id)),[]);
+});
+
+
+test('Studio filter deck exposes only custom-visible selects and keeps native controls hidden as backing state',async()=>{
+  const [html,app,css]=await Promise.all([
+    readFile('src/studio/index.html','utf8'),
+    readFile('src/studio/app.js','utf8'),
+    readFile('src/studio/styles.css','utf8'),
+  ]);
+  for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategories']){
+    assert.match(html,new RegExp('<select id="'+id+'"[^>]*class="[^"]*native-select-backing','u'));
+  }
+  assert.doesNotMatch(html,/filter-multi-dropdown|<details[^>]+directEntityCategory/u);
+  assert.match(app,/installFilterSelectControls\(\)/u);
+  assert.match(app,/syncEnhancedSelects\(filterSelectControls\)/u);
+  assert.match(css,/\.custom-select-option\[aria-selected="true"\]/u);
+  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/u);
 });

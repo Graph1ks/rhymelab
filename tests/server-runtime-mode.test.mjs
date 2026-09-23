@@ -27,27 +27,27 @@ test('explicit Serving-v1 aliases keep the canonical runtime selected',()=>{
   );
 });
 
-test('the old split database bundle is archive-only and requires explicit opt-in',()=>{
+test('archived split database server modes are rejected',()=>{
   for(const value of ['legacy','legacy-archive','archive','writer-v5','accepted']){
-    assert.equal(
-      resolveServerRuntimeMode({argv:[],env:{RHYMELAB_PRODUCT_RUNTIME:value}}),
-      SERVER_RUNTIME_MODES.LEGACY_ARCHIVE,
+    assert.throws(
+      ()=>resolveServerRuntimeMode({argv:[],env:{RHYMELAB_PRODUCT_RUNTIME:value}}),
+      /legacy_archive_runtime_disabled_use_distribution_tiers/u,
     );
   }
   for(const flag of ['--legacy-runtime','--archive-runtime']){
-    assert.equal(
-      resolveServerRuntimeMode({argv:[flag],env:{}}),
-      SERVER_RUNTIME_MODES.LEGACY_ARCHIVE,
+    assert.throws(
+      ()=>resolveServerRuntimeMode({argv:[flag],env:{}}),
+      /legacy_archive_runtime_disabled_use_distribution_tiers/u,
     );
   }
 });
 
-test('explicit archive CLI wins over Serving-v1 environment aliases',()=>{
-  assert.equal(
-    resolveServerRuntimeMode({
+test('archive CLI cannot override the shipping distribution runtime',()=>{
+  assert.throws(
+    ()=>resolveServerRuntimeMode({
       argv:['--legacy-runtime'],
       env:{RHYMELAB_PRODUCT_RUNTIME:'serving-v1'},
     }),
-    SERVER_RUNTIME_MODES.LEGACY_ARCHIVE,
+    /legacy_archive_runtime_disabled_use_distribution_tiers/u,
   );
 });

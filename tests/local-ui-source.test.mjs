@@ -19,28 +19,27 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(html, /Instrument\+Sans/);
   assert.match(html, /IBM\+Plex\+Mono/);
   assert.match(html, /Material\+Symbols\+Outlined/);
-  assert.match(html, /id="scopeFilter"[^>]*type="hidden"[^>]*value="all"/);
-  assert.match(html, /data-scope="all"[^>]*class="scope-option active"/);
-  assert.match(html, /data-scope="words"[^>]*class="scope-option"/);
-  assert.match(html, /data-scope="phrases"[^>]*class="scope-option"/);
-  assert.match(html, /data-scope="entities"[^>]*class="scope-option"/);
+  assert.match(html, /id="languageRouteFilter"/);
+  assert.match(html, /id="scopeFilter"/);
+  assert.match(html, /id="typeFilter"/);
+  assert.match(html, /id="syllableFilter"/);
+  assert.match(html, /id="sortMode"/);
+  assert.match(html, /id="variantMode"/);
+  assert.match(html, /id="corpusMode"/);
   assert.match(html, /id="availabilityBar"/);
-  assert.match(html, /id="resultsToolbar"[^>]*search-results-toolbar/);
-  assert.match(html, /id="searchOptionsToggle"/);
-  assert.match(html, /id="resultFiltersToggle"/);
+  assert.match(html, /id="resultsToolbar"[^>]*search-filter-results/);
+  assert.match(html, /id="searchOptionsToggle"[^>]*class="search-core-toggle"/);
+  assert.doesNotMatch(html, /id="searchOptionsToggle"[^>]*class="search-core-toggle"[^>]*hidden/);
+  assert.match(html, /id="searchDbBadge"[^>]*class="search-db-badge"/);
+  assert.match(html, /id="resultFiltersToggle"[^>]*class="hidden"/);
   assert.match(html, /id="searchOptionsPanel"/);
   assert.match(html, /id="resultFiltersPanel"/);
   assert.match(html, /id="searchStageAnchor"/);
-  assert.match(html, /class="search search-core"/);
-  assert.match(html, /class="search-core-toggle"/);
-  assert.match(html, /data-i18n="searchOptionsShort"/);
-  assert.match(html, /data-i18n="resultFiltersShort"/);
-  assert.match(html, /data-basis="de"/);
-  assert.match(html, /data-basis="en"/);
-  assert.match(html, /data-basis="both"/);
-  assert.match(html, /data-result-language="de"/);
-  assert.match(html, /data-result-language="en"/);
-  assert.match(html, /data-result-language="both"/);
+  assert.match(html, /class="search search-core search-core-flat"/);
+  assert.match(html, /class="search-filter-row search-filter-primary"/);
+  assert.match(html, /class="search-filter-row search-filter-secondary"/);
+  assert.match(html, /value="de:both"/);
+  assert.match(html, /value="both:en"/);
   assert.match(html, /id="entityCategory"/);
   assert.match(html, /id="sourcesButton"/);
   assert.match(html, /id="sourcesDialog"/);
@@ -52,6 +51,9 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(html, /value="near1"/);
   assert.match(html, /value="near2"/);
   assert.match(html, /value="near3"/);
+  assert.match(html, /<option value="1">1<\/option>/);
+  assert.match(html, /<option value="2">2<\/option>/);
+  assert.match(html, /<option value="3">3\+<\/option>/);
   assert.match(html, /value="syllables"/);
   assert.doesNotMatch(html, /href="\/phrases"/);
 
@@ -83,13 +85,29 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /\/api\/writer\?/);
   assert.match(app, /from '\.\/search-state\.mjs'/);
   assert.match(app, /captureSharedSearchState/);
+  assert.match(app, /function applyLanguageRoute\(/);
+  assert.match(app, /function applyCorpusMode\(/);
+  assert.match(app, /function searchCardFitsStickyViewport\(/);
+  assert.match(app, /!searchCardFitsStickyViewport\(\)/);
+  assert.match(app, /const defaultSearchSectionsExpanded=false/);
+  assert.match(app, /rhymelab\.searchOptionsExpanded\.v3/);
+  assert.match(app, /toggleSearchSection\('searchOptions'\)/);
+  assert.match(app, /function selectedRuntimeDbPreference\(/);
+  assert.match(app, /\['lite','standard','full'\]\.includes\(value\)\?value:'standard'/);
+  assert.doesNotMatch(app, /\['master','lite','standard','full'\]/);
+  assert.match(app, /params\.set\('runtime_db',requestedDb\)/);
+  assert.match(app, /function updateRuntimeDbBadge\(/);
+  assert.match(app, /document\.addEventListener\('pointerdown'/);
+  assert.match(app, /target\.closest\('\.custom-select-popover'\)/);
+  assert.match(app, /setSearchSectionExpanded\('searchOptions',false\)/);
+  assert.match(app, /#syllableFilter[\s\S]*?void search\(state\.query\)/);
   assert.match(app, /searchStateToWriterParams\(searchState\)/);
   assert.match(app, /writeSearchStateToUrl/);
   assert.match(searchState, /SEARCH_STATE_SCHEMA='rhymelab-search-state-v1'/);
   assert.match(searchState, /export function createSearchState/);
   assert.match(searchState, /export function searchStateToWriterParams/);
   assert.match(searchState, /export function writeSearchStateToUrl/);
-  assert.match(searchState, /SOUND_RELATIONS\.has\(state\.rhymeType\)\?'all':state\.rhymeType/);
+  assert.match(searchState, /type:state\.rhymeType/);
   assert.match(app, /resolveUnknownClientPronunciation/);
   assert.match(app, /resolveMissingQueryPronunciations/);
   assert.match(app, /query_ipa_\$\{language\}/);
@@ -104,10 +122,13 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.doesNotMatch(pronunciationCache, /localStorage/);
   assert.match(queryTest, /readGeneratedPronunciationCache/);
   assert.match(queryTest, /persistent cache hits/);
-  assert.match(clientPronunciation, /client-total-query-pronunciation-v2/);
+  assert.match(clientPronunciation, /client-total-query-pronunciation-v3/);
   assert.match(clientPronunciation, /client_source_reference_compound/);
   assert.match(clientPronunciation, /client_token_chain/);
   assert.match(clientPronunciation, /tokenizeClientPronunciationInput/);
+  assert.match(clientPronunciation, /function germanOrthographicPostprocess\(/);
+  assert.match(clientPronunciation, /\['g','k'\]/);
+  assert.match(clientPronunciation, /\/ag\$\/u/);
   assert.doesNotMatch(app, /isSingleTokenQuery/);
   assert.doesNotMatch(queryTest, /if\(!\/\\s\/u\.test\(query\)\)/);
   assert.doesNotMatch(clientPronunciation, /node:child_process|spawnSync|process\.|RHYMELAB_ESPEAK|espeak/iu);
@@ -145,9 +166,6 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /function syncFloatingSearchState\(/);
   assert.match(app, /function syncSearchSectionControls\(/);
   assert.match(app, /function refreshSearchCompactThreshold\(/);
-  assert.match(app, /rhymelab\.searchOptionsExpanded\.v2/);
-  assert.match(app, /rhymelab\.resultFiltersExpanded\.v2/);
-  assert.match(app, /const defaultSearchSectionsExpanded=true/);
   assert.match(app, /searchAutoCompactThreshold/);
   assert.match(app, /stickyPanelOverride/);
   assert.match(app, /const STICKY_DETAIL_GAP=24/);
@@ -213,21 +231,29 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /\.result-row:focus-visible/);
   assert.match(css, /\.channel-block/);
   assert.match(css, /\.phrase-row/);
-  assert.match(css, /\.basis-option/);
-  assert.match(css, /\.result-language-option/);
-  assert.match(css, /\.scope-option/);
-  assert.match(css, /\.result-language-option\.active/);
+  assert.match(css, /Search Filter Deck v2/);
+  assert.match(css, /\.search-filter-row/);
+  assert.match(css, /2026 adaptive search \+ readability pass/);
+  assert.match(css, /\.search-filter-surface\.section-collapsed\{margin:0!important\}/);
+  assert.match(css, /#searchOptionsToggle\.search-core-toggle/);
+  assert.doesNotMatch(css, /#searchOptionsToggle\{display:none!important\}/);
+  assert.match(css, /\.search-db-badge/);
+  assert.match(css, /Filter hierarchy: labels bold, selected values calm/);
+  assert.match(css, /\.search-filter-field>span\{[\s\S]*?font-weight:850/);
+  assert.match(css, /\.search-filter-field \.custom-select-value\{[\s\S]*?font-weight:520/);
+  assert.match(css, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.search-filter-field\.is-active/);
+  assert.match(css, /\.search-core-flat/);
+  assert.match(css, /never create a nested scrollbar in sticky search/);
+  assert.match(css, /\.search-stage\.search-auto-compact \.search-card\{[\s\S]*?max-height:none;[\s\S]*?overflow:visible;/);
   assert.match(css, /background:var\(--surface-strong\)/);
-  assert.doesNotMatch(css, /\.basis-option\.active,\.result-language-option\.active,\.scope-option\.active/);
   assert.doesNotMatch(css, /inset 0 -2px 0 #b58a2b/);
   assert.match(css, /appearance:none/);
   assert.match(css, /\*::-webkit-scrollbar/);
   assert.match(css, /scrollbar-color/);
   assert.match(css, /\.sources-dialog/);
   assert.match(css, /\.more-button/);
-  assert.match(css, /\.search-mode-grid/);
   assert.match(css, /\.availability-chip/);
-  assert.match(css, /\.context-hidden/);
   assert.match(css, /\.ui-language-switch/);
   assert.match(css, /\.view-switch/);
   assert.match(css, /\.results-compact \.result-items/);
@@ -240,24 +266,40 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /overscroll-behavior:contain/);
   assert.doesNotMatch(css, /\.search-stage\.search-auto-compact\{[\s\S]{0,120}?position:sticky/);
   assert.match(css, /\.inspector-column\{top:var\(--word-panel-sticky-top,152px\)\}/);
-  assert.match(css, /\.search-core-toggle/);
-  assert.match(css, /grid-template-columns:auto minmax\(0,1fr\) auto 68px 68px/);
-  assert.match(css, /\.search-control-section\.section-collapsed \.search-section-panel/);
   assert.match(css, /grid-template-areas:"word word" "type score" "usage syllable"/);
   assert.match(css, /\.results-compact \.result-title-line strong\{[\s\S]*?white-space:normal/);
   assert.match(css, /\.results-compact \.result-word code\{[\s\S]*?white-space:normal/);
 
   assert.match(mobileCss, /@media\(max-width:720px\)/);
-  assert.match(mobileCss, /\.scope-segmented\{grid-template-columns:repeat\(2/);
-  assert.match(mobileCss, /\.language-segmented,\.result-language-segmented/);
   assert.match(mobileCss, /min-height:46px/);
   assert.match(mobileCss, /\.result-row \.type-col/);
   assert.match(mobileCss, /\.results-compact \.result-items/);
   assert.match(mobileCss, /\.ui-language-switch/);
   assert.match(mobileCss, /\.search-stage\.search-auto-compact\{top:var\(--search-sticky-top,60px\)\}/);
-  assert.match(mobileCss, /\.search-core-toggle-label\{display:none\}/);
   assert.match(mobileCss, /height:64px!important/);
   assert.match(mobileCss, /min-height:62px!important/);
-  assert.match(mobileCss, /grid-template-columns:auto minmax\(64px,1fr\) 72px 46px 46px!important/);
   assert.match(mobileCss, /\.results-compact \.result-items\{grid-template-columns:1fr!important\}/);
+});
+
+
+test('standalone Search filter deck hides every native select behind the shared custom listbox primitive',async()=>{
+  const [html,app,css,primitive]=await Promise.all([
+    readFile('src/ui/index.html','utf8'),
+    readFile('src/ui/app.js','utf8'),
+    readFile('src/ui/styles.css','utf8'),
+    readFile('src/ui/custom-select.mjs','utf8'),
+  ]);
+  for(const id of ['languageRouteFilter','scopeFilter','typeFilter','syllableFilter','sortMode','variantMode','corpusMode','entityCategory']){
+    assert.match(html,new RegExp('<select id="'+id+'"[^>]*class="[^"]*native-select-backing','u'));
+  }
+  assert.match(app,/installFilterSelectControls\(\)/u);
+  assert.match(app,/syncEnhancedSelects\(filterSelectControls\)/u);
+  assert.match(css,/\.native-select-backing\{display:none!important\}/u);
+  assert.match(css,/\.custom-select-popover/u);
+  assert.match(primitive,/role','combobox/u);
+  assert.match(primitive,/aria-activedescendant/u);
+  assert.match(primitive,/pointerdown/u);
+  assert.match(primitive,/key==='Escape'/u);
+  assert.match(primitive,/key==='Enter'/u);
+  assert.match(primitive,/MutationObserver/u);
 });

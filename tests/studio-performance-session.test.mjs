@@ -122,3 +122,33 @@ test('Perform metrics expose bar time, pocket, breath load, fingerprint and prev
   assert.deepEqual(previous.sharedSteps,[0,6]);
   assert.equal(previous.sharedCount,2);
 });
+
+
+test('performance tracking ignores blank and fully bracketed document lines',()=>{
+  const song={
+    id:'free-lines',
+    lines:['alpha beta','','[Hook]','gamma delta'],
+    barIds:['bar-a','blank','section','bar-b'],
+    barRevisions:[0,0,0,0],
+    performanceCues:{
+      'bar-a:0':{type:'accent',length:1},
+      'blank:1':{type:'hit',length:1},
+      'section:2':{type:'breath',length:1},
+      'bar-b:0':{type:'accent',length:1},
+    },
+    performanceAnchors:{'bar-a':0,blank:0,section:0,'bar-b':0},
+  };
+
+  ensurePerformanceSong(song);
+
+  assert.deepEqual(getPerformanceCue(song,'bar-a',0),{type:'accent',length:1});
+  assert.deepEqual(getPerformanceCue(song,'bar-b',0),{type:'accent',length:1});
+  assert.equal(getPerformanceCue(song,'blank',1),null);
+  assert.equal(getPerformanceCue(song,'section',2),null);
+  assert.equal(song.performanceAnchors.blank,undefined);
+  assert.equal(song.performanceAnchors.section,undefined);
+
+  const previous=performancePreviousBarPlacements(song,'bar-b');
+  assert.equal(previous.previousBarId,'bar-a');
+  assert.deepEqual(previous.sharedSteps,[0]);
+});

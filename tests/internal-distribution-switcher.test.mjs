@@ -14,41 +14,51 @@ import {
   requestedInternalDistributionDbId,
 } from '../src/internal-distribution-switcher.mjs';
 
-test('internal distribution switcher is opt-in only',()=>{
-  assert.equal(internalDistributionSwitcherEnabled({argv:[],env:{}}),false);
+test('shipping distribution switcher is enabled by default and can be explicitly disabled',()=>{
+  assert.equal(internalDistributionSwitcherEnabled({argv:[],env:{}}),true);
   assert.equal(
     internalDistributionSwitcherEnabled({argv:['--internal-db-switcher'],env:{}}),
     true,
   );
   assert.equal(
-    internalDistributionSwitcherEnabled({argv:[],env:{RHYMELAB_INTERNAL_DB_SWITCHER:'1'}}),
-    true,
+    internalDistributionSwitcherEnabled({argv:['--no-distribution-switcher'],env:{}}),
+    false,
+  );
+  assert.equal(
+    internalDistributionSwitcherEnabled({argv:[],env:{RHYMELAB_DISTRIBUTION_SWITCHER:'0'}}),
+    false,
   );
 });
 
-test('internal distribution DB IDs and per-request selection are closed to four editions',()=>{
-  assert.deepEqual(INTERNAL_DISTRIBUTION_DB_IDS,['master','lite','standard','full']);
+test('distribution runtime IDs are closed to LITE STANDARD FULL only',()=>{
+  assert.deepEqual(INTERNAL_DISTRIBUTION_DB_IDS,['lite','standard','full']);
   assert.equal(normalizeInternalDistributionDbId('STANDARD'),'standard');
-  assert.equal(normalizeInternalDistributionDbId('garbage'),'master');
+  assert.equal(normalizeInternalDistributionDbId('master'),'standard');
+  assert.equal(normalizeInternalDistributionDbId('garbage'),'standard');
 
   const selected=new URL('http://local/api/writer?runtime_db=full');
   assert.equal(requestedInternalDistributionDbId(selected,{enabled:true}),'full');
   assert.equal(requestedInternalDistributionDbId(selected,{enabled:false}),null);
   assert.equal(
     requestedInternalDistributionDbId(
+      new URL('http://local/api/writer?runtime_db=master'),
+      {enabled:true},
+    ),
+    null,
+  );
+  assert.equal(
+    requestedInternalDistributionDbId(
       new URL('http://local/api/writer?runtime_db=garbage'),
       {enabled:true},
     ),
-    'master',
+    null,
   );
 });
 
 test('distribution DB paths have explicit env overrides and stable local defaults',()=>{
   const paths=internalDistributionDbPaths({
-    masterPath:'data/local/rhymelab-serving-v1.sqlite',
     env:{RHYMELAB_DISTRIBUTION_LITE_DB:'tmp/custom-lite.sqlite'},
   });
-  assert.match(paths.master,/rhymelab-serving-v1\.sqlite$/u);
   assert.match(paths.lite,/custom-lite\.sqlite$/u);
   assert.match(paths.standard,/rhymelab-serving-v1-standard\.sqlite$/u);
   assert.match(paths.full,/rhymelab-serving-v1-full\.sqlite$/u);

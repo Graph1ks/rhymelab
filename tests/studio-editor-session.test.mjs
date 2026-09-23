@@ -5,16 +5,27 @@ import {
   barIdentity,
   createSelectionProof,
   duplicateEditorBar,
+  editorBracketSegments,
+  editorDocumentText,
+  editorLineKind,
+  editorLineStartOffset,
+  editorPositionFromOffset,
   editorSnapshot,
+  editorTrackableText,
   ensureEditorSong,
   insertEditorBar,
   mergeEditorBarWithPrevious,
+  isTrackedEditorLine,
   moveEditorBar,
   pasteEditorText,
+  reconcileEditorDocumentText,
+  replaceEditorDocumentRange,
   removeEditorBar,
   restoreEditorSnapshot,
   setEditorBarText,
   splitEditorBar,
+  trackedEditorBarNumber,
+  trackedEditorLineIndexes,
   validateSelectionProof,
 } from '../src/studio/editor-session.mjs';
 
@@ -194,4 +205,79 @@ test('removing a Bar also removes Bar-scoped Performance cues and anchors',()=>{
   assert.equal(song.performanceAnchors.b,undefined);
   assert.equal(song.performanceCues['a:0'].type,'hit');
   assert.equal(song.performanceAnchors.a,1);
+});
+
+
+test('unified editor tracking ignores bracket segments but tracks outside lyric text',()=>{
+  const song={
+    id:'notepad-rules',
+    lines:[
+      'erste echte Bar',
+      '',
+      '   ',
+      '[Verse 2]',
+      ' [ad libs: yeah] ',
+      'zweite echte Bar',
+      '[Hook] aber Text danach',
+      'Das zählt [das hier nicht] und das wieder',
+      '[one] [two]',
+    ],
+    steps:{},
+  };
+  ensureEditorSong(song);
+
+  assert.equal(editorLineKind(song.lines[0]),'bar');
+  assert.equal(editorLineKind(song.lines[1]),'blank');
+  assert.equal(editorLineKind(song.lines[3]),'bracket');
+  assert.equal(isTrackedEditorLine('[Bridge]'),false);
+  assert.equal(isTrackedEditorLine('[Bridge] und weiter'),true);
+  assert.equal(isTrackedEditorLine('vorher [Bridge] nachher'),true);
+  assert.equal(editorTrackableText('[Hook] aber Text danach'),'aber Text danach');
+  assert.equal(editorTrackableText('Das zählt [das hier nicht] und das wieder'),'Das zählt und das wieder');
+  assert.equal(editorTrackableText('[one] [two]'),'');
+  assert.deepEqual(editorBracketSegments('A [one] B [two]').map((entry)=>entry.content),['one','two']);
+  assert.deepEqual(trackedEditorLineIndexes(song),[0,5,6,7]);
+  assert.equal(trackedEditorBarNumber(song,0),1);
+  assert.equal(trackedEditorBarNumber(song,3),null);
+  assert.equal(trackedEditorBarNumber(song,5),2);
+  assert.equal(trackedEditorBarNumber(song,6),3);
+  assert.equal(trackedEditorBarNumber(song,7),4);
+  assert.equal(trackedEditorBarNumber(song,8),null);
+});
+
+test('unified document reconciliation preserves surrounding line identities through Enter and deletion',()=>{
+  const song={id:'unified',lines:['alpha','beta','gamma'],steps:{}};
+  ensureEditorSong(song);
+  const ids=[...song.barIds];
+
+  const inserted=reconcileEditorDocumentText(song,'alpha\nbe\n\nta\ngamma');
+  assert.equal(inserted.changed,true);
+  assert.equal(song.barIds[0],ids[0]);
+  assert.equal(song.barIds.at(-1),ids[2]);
+  assert.equal(song.barIds[1],ids[1]);
+  assert.equal(new Set(song.barIds).size,song.barIds.length);
+  assert.equal(isTrackedEditorLine(song.lines[2]),false);
+
+  const gammaId=song.barIds.at(-1);
+  reconcileEditorDocumentText(song,'alpha\nbeta\ngamma');
+  assert.equal(song.barIds[0],ids[0]);
+  assert.equal(song.barIds.at(-1),gammaId);
+  assert.deepEqual(song.lines,['alpha','beta','gamma']);
+});
+
+test('unified document offsets support cross-line selection and replacement',()=>{
+  const song={id:'ranges',lines:['eins zwei','','[Hook]','drei vier'],steps:{}};
+  ensureEditorSong(song);
+  const text=editorDocumentText(song);
+  assert.equal(text,'eins zwei\n\n[Hook]\ndrei vier');
+  assert.equal(editorLineStartOffset(song.lines,3),'eins zwei\n\n[Hook]\n'.length);
+  assert.deepEqual(editorPositionFromOffset(song.lines,text.indexOf('drei')+2),{index:3,offset:2});
+
+  const start=text.indexOf('zwei');
+  const end=text.indexOf('drei')+'drei'.length;
+  const result=replaceEditorDocumentRange(song,start,end,'NEU\n');
+  assert.equal(editorDocumentText(song),'eins NEU\n vier');
+  assert.equal(result.selectionStart,start);
+  assert.equal(result.selectionEnd,start+4);
+  assert.deepEqual(result.position,editorPositionFromOffset(song.lines,start+4));
 });

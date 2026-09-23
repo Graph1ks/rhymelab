@@ -9,7 +9,6 @@
   "scripts": {
     "dev": "node src/server.mjs",
     "dev:serving": "node src/server.mjs",
-    "dev:legacy": "node src/server.mjs --legacy-runtime",
     "start": "node src/server.mjs",
     "check": "node scripts/check-source.mjs",
     "test": "node --test tests/*.test.mjs",
@@ -216,7 +215,7 @@
     "distribution:build:full": "node --no-warnings scripts/build-distribution-tiers.mjs --edition full",
     "distribution:status": "node --no-warnings scripts/build-distribution-tiers.mjs --status",
     "distribution:verify:nesting": "node --no-warnings scripts/verify-distribution-nesting.mjs",
-    "dev:distribution-lab": "node src/server.mjs --studio-default --internal-db-switcher"
+    "dev:distribution-lab": "node src/server.mjs --studio-default"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"

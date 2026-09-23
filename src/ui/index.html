@@ -44,105 +44,42 @@
     <div id="searchStageAnchor" class="search-stage-anchor" aria-hidden="true"></div>
     <section class="search-stage" aria-label="Rhyme search">
       <div class="search-card">
-        <section id="searchOptionsSection" class="search-control-section search-options-section">
-          <div id="searchOptionsPanel" class="search-section-panel">
-            <div class="search-mode-grid">
-              <div class="mode-group">
-                <span class="mode-label" data-i18n="languageBasis">Query pronunciation</span>
-                <div class="segmented language-segmented" role="group" aria-label="Search language basis">
-                  <button type="button" data-basis="de" class="basis-option">
-                    <strong>DE</strong>
-                    <small data-i18n="basisGerman">German</small>
-                  </button>
-                  <button type="button" data-basis="en" class="basis-option">
-                    <strong>EN</strong>
-                    <small data-i18n="basisEnglish">English</small>
-                  </button>
-                  <button type="button" data-basis="both" class="basis-option">
-                    <strong>DE+EN</strong>
-                    <small data-i18n="basisBoth">Combined</small>
-                  </button>
-                </div>
-              </div>
-
-              <div class="mode-group">
-                <span class="mode-label" data-i18n="resultLanguage">Result language</span>
-                <div class="segmented result-language-segmented" role="group" aria-label="Result language">
-                  <button type="button" data-result-language="de" class="result-language-option">
-                    <strong>DE</strong>
-                    <small data-i18n="basisGerman">German</small>
-                  </button>
-                  <button type="button" data-result-language="en" class="result-language-option">
-                    <strong>EN</strong>
-                    <small data-i18n="basisEnglish">English</small>
-                  </button>
-                  <button type="button" data-result-language="both" class="result-language-option">
-                    <strong>DE+EN</strong>
-                    <small data-i18n="basisBoth">Combined</small>
-                  </button>
-                </div>
-              </div>
-
-              <div class="mode-group">
-                <span class="mode-label" data-i18n="searchIn">Search in</span>
-                <div class="segmented scope-segmented" role="group" aria-label="Search result scope">
-                  <button type="button" data-scope="all" class="scope-option active" data-i18n="scopeAllButton">All</button>
-                  <button type="button" data-scope="words" class="scope-option" data-i18n="scopeWords">Words</button>
-                  <button type="button" data-scope="phrases" class="scope-option" data-i18n="scopePhrasesShort">Phrases</button>
-                  <button type="button" data-scope="entities" class="scope-option" data-i18n="scopeEntities">Entities</button>
-                </div>
-                <input id="scopeFilter" type="hidden" value="all">
-              </div>
-
-              <div class="mode-group generated-optin-group">
-                <span class="mode-label" data-i18n="generatedData">Generated data</span>
-                <div class="generated-optin-stack">
-                  <label class="checkbox-line generated-optin-line" id="generatedFilter">
-                    <input id="generatedMode" type="checkbox" checked disabled>
-                    <span data-i18n="includeGenerated">Include generated pronunciation data</span>
-                  </label>
-                  <label class="checkbox-line generated-optin-line generated-only-line" id="generatedOnlyFilter">
-                    <input id="generatedOnlyMode" type="checkbox" disabled>
-                    <span data-i18n="generatedOnly">Generated only</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <form id="searchForm" class="search search-core" role="search">
+        <form id="searchForm" class="search search-core search-core-flat" role="search">
           <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
           <input id="searchInput" type="search" autocomplete="off" spellcheck="false" placeholder="Search a word, phrase or entity…" aria-label="Search a word, phrase or entity">
+          <span id="searchDbBadge" class="search-db-badge" title="Active local database">DB AUTO</span>
           <button class="search-button" type="submit" id="searchButton">Search</button>
-          <button type="button" id="searchOptionsToggle" class="search-core-toggle" aria-expanded="true" aria-controls="searchOptionsPanel" title="Search options">
-            <span class="material-symbols-outlined" aria-hidden="true">language</span>
-            <span class="search-core-toggle-label" data-i18n="searchOptionsShort">Options</span>
-          </button>
-          <button type="button" id="resultFiltersToggle" class="search-core-toggle" aria-expanded="true" aria-controls="resultFiltersPanel" title="Result filters">
+          <button type="button" id="searchOptionsToggle" class="search-core-toggle" aria-expanded="false" aria-controls="searchOptionsPanel" title="Filters">
             <span class="material-symbols-outlined" aria-hidden="true">tune</span>
             <span class="search-core-toggle-label" data-i18n="resultFiltersShort">Filters</span>
           </button>
+          <button type="button" id="resultFiltersToggle" class="hidden" aria-expanded="false" aria-controls="resultFiltersPanel" tabindex="-1"></button>
         </form>
 
-        <section id="resultFiltersSection" class="search-control-section result-filters-section hidden">
-          <div id="resultFiltersPanel" class="search-section-panel">
-            <div id="availabilityBar" class="availability-bar" aria-live="polite"></div>
-            <div id="resultsToolbar" class="toolbar-card search-results-toolbar">
-              <div class="toolbar-title">
-                <span class="material-symbols-outlined" aria-hidden="true">tune</span>
-                <strong data-i18n="browse">Browse results</strong>
-                <span id="resultCount" class="result-count"></span>
-                <div class="view-switch" role="group" aria-label="Result layout">
-                  <button type="button" class="view-option active" data-view="list" data-i18n="viewList">List</button>
-                  <button type="button" class="view-option" data-view="compact" data-i18n="viewCompact">Compact</button>
-                </div>
-              </div>
-
-              <div class="controls-grid">
-                <label>
-                  <span data-i18n="rhymeType">Rhyme type</span>
-                  <select id="typeFilter">
+        <section id="searchOptionsSection" class="search-control-section search-options-section search-filter-surface">
+          <div id="searchOptionsPanel" class="search-section-panel">
+            <div class="search-filter-deck">
+              <div class="search-filter-row search-filter-primary">
+                <label class="search-filter-field">
+                  <span data-i18n="languageRoute">Query → results</span>
+                  <select id="languageRouteFilter" class="native-select-backing">
+                    <option value="de:both">DE → DE+EN</option><option value="de:de">DE → DE</option><option value="de:en">DE → EN</option>
+                    <option value="en:both">EN → DE+EN</option><option value="en:en">EN → EN</option><option value="en:de">EN → DE</option>
+                    <option value="both:both">DE+EN → DE+EN</option><option value="both:de">DE+EN → DE</option><option value="both:en">DE+EN → EN</option>
+                  </select>
+                </label>
+                <label class="search-filter-field">
+                  <span data-i18n="searchIn">Search in</span>
+                  <select id="scopeFilter" class="native-select-backing">
+                    <option value="all" data-i18n-option="scopeAllButton">All</option>
+                    <option value="words" data-i18n-option="scopeWords">Words</option>
+                    <option value="phrases" data-i18n-option="scopePhrasesShort">Phrases</option>
+                    <option value="entities" data-i18n-option="scopeEntities">Entities</option>
+                  </select>
+                </label>
+                <label class="search-filter-field search-filter-accent">
+                  <span data-i18n="rhymeType">Rhyme / sound relation</span>
+                  <select id="typeFilter" class="native-select-backing">
                     <option value="all" data-i18n-option="all">All</option>
                     <option value="multisyllabic_perfect" data-i18n-option="type_multisyllabic_perfect">Multisyllabic perfect</option>
                     <option value="perfect" data-i18n-option="type_perfect">Perfect rhyme</option>
@@ -153,21 +90,23 @@
                     <option value="consonance" data-i18n-option="type_consonance">Consonance</option>
                   </select>
                 </label>
-
-                <label>
+                <label class="search-filter-field">
                   <span data-i18n="syllables">Syllables</span>
-                  <select id="syllableFilter">
-                    <option value="all" data-i18n-option="all" selected>All</option>
+                  <select id="syllableFilter" class="native-select-backing">
+                    <option value="all" data-i18n-option="all">All</option>
                     <option value="same" data-i18n-option="same">Same count</option>
                     <option value="near1" data-i18n-option="plusMinus1">±1 syllable</option>
                     <option value="near2" data-i18n-option="plusMinus2">±2 syllables</option>
                     <option value="near3" data-i18n-option="plusMinus3">±3 syllables</option>
+                    <option value="1">1</option><option value="2">2</option><option value="3">3+</option>
                   </select>
                 </label>
+              </div>
 
-                <label>
+              <div class="search-filter-row search-filter-secondary">
+                <label class="search-filter-field">
                   <span data-i18n="sort">Sort</span>
-                  <select id="sortMode">
+                  <select id="sortMode" class="native-select-backing">
                     <option value="recommended" data-i18n-option="recommended">Recommended</option>
                     <option value="syllables" data-i18n-option="syllableDistance">Syllable distance</option>
                     <option value="common" data-i18n-option="mostCommon">Most common</option>
@@ -175,32 +114,54 @@
                     <option value="alpha" data-i18n-option="alphabetical">A–Z</option>
                   </select>
                 </label>
-
-                <label id="variantFilter">
+                <label class="search-filter-field" id="variantFilter">
                   <span data-i18n="pronunciation">Pronunciation</span>
-                  <select id="variantMode">
+                  <select id="variantMode" class="native-select-backing">
                     <option value="preferred" data-i18n-option="standard">Standard</option>
                     <option value="all" data-i18n-option="allVariants">All variants</option>
                   </select>
                 </label>
-
-                <label id="entityCategoryFilter" class="context-hidden">
+                <label class="search-filter-field">
+                  <span data-i18n="corpusMode">Corpus</span>
+                  <select id="corpusMode" class="native-select-backing">
+                    <option value="current" data-i18n-option="corpusCurrent">Current · canonical</option>
+                    <option value="generated" data-i18n-option="corpusGenerated">Current + generated</option>
+                    <option value="generated_only" data-i18n-option="corpusGeneratedOnly">Generated only</option>
+                    <option value="historical" data-i18n-option="corpusHistorical">+ historical</option>
+                    <option value="complete" data-i18n-option="corpusComplete">Historical + generated</option>
+                    <option value="historical_generated_only" data-i18n-option="corpusHistoricalGeneratedOnly">Historical · generated only</option>
+                  </select>
+                </label>
+                <label class="search-filter-field" id="entityCategoryFilter">
                   <span data-i18n="entityCategory">Entity category</span>
-                  <select id="entityCategory">
+                  <select id="entityCategory" class="native-select-backing">
                     <option value="all" data-i18n-option="allEntities">All entities</option>
                   </select>
                 </label>
+              </div>
 
-                <label class="check-filter" id="historicalFilter">
-                  <span data-i18n="vocabulary">Vocabulary</span>
-                  <span class="checkbox-line">
-                    <input id="historicalMode" type="checkbox">
-                    <span data-i18n="includeHistorical">Include historical / obsolete</span>
-                  </span>
-                </label>
+              <div class="search-filter-footer">
+                <div id="availabilityBar" class="availability-bar" aria-live="polite"></div>
+                <div id="resultsToolbar" class="search-filter-results">
+                  <span id="resultCount" class="result-count"></span>
+                  <div class="view-switch" role="group" aria-label="Result layout">
+                    <button type="button" class="view-option active" data-view="list" data-i18n="viewList">List</button>
+                    <button type="button" class="view-option" data-view="compact" data-i18n="viewCompact">Compact</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="hidden" aria-hidden="true">
+                <label id="historicalFilter"><input id="historicalMode" type="checkbox"></label>
+                <label id="generatedFilter"><input id="generatedMode" type="checkbox" checked disabled></label>
+                <label id="generatedOnlyFilter"><input id="generatedOnlyMode" type="checkbox" disabled></label>
               </div>
             </div>
           </div>
+        </section>
+
+        <section id="resultFiltersSection" class="search-control-section result-filters-section hidden" aria-hidden="true">
+          <div id="resultFiltersPanel" class="search-section-panel"></div>
         </section>
       </div>
     </section>

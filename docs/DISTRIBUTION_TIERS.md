@@ -472,29 +472,43 @@ The implementation order is:
 
 `distribution:census` is implemented and the first rank policy is frozen. Use `npm run distribution:plan` before any build. Materialization commands are `distribution:build:lite`, `distribution:build:standard`, `distribution:build:full`, or `distribution:build` for all three. Existing outputs are never replaced without explicit `--replace`.
 
-## Internal edition comparison lab
+## Shipping edition runtime and diagnostics
 
-After the physical Lite/Standard/Full SQLite files exist, the owner can compare all
-four databases through the real Studio UI with the development-only DB Lab:
+After the physical Lite/Standard/Full SQLite files exist, Studio can select among
+the three shipping editions directly:
+
+```text
+LITE | STANDARD | FULL
+```
+
+STANDARD is the default runtime. Requests use the request-scoped selector:
+
+```text
+runtime_db=lite|standard|full
+```
+
+The Master/Developer database is not a runtime option. It remains the read-only
+source from which the three shipping editions are planned/materialized.
+
+Engineering diagnostics and controlled cross-edition benchmarks can still be run
+against the installed shipping editions with:
 
 ```powershell
 npm run dev:distribution-lab
 ```
 
-The lab exposes explicit Master / Lite / Standard / Full buttons and routes every
-relevant Studio request with a request-scoped
-`runtime_db=master|lite|standard|full` selector. It also exposes copyable
-database/browser/server performance metrics.
+FULL is the shipping-edition quality reference for that diagnostic benchmark.
 
-This is **internal tooling only**. In normal startup the internal endpoint is
-disabled and the DB Lab HTML is removed before Studio is served.
+Full runtime contract:
 
-Full contract:
+`docs/DATABASE_RUNTIME.md`
+
+Diagnostics contract:
 
 `docs/INTERNAL_DISTRIBUTION_LAB.md`
 
-The lab is useful for behavioral/performance comparison but does not replace
-`distribution:verify:nesting`, integrity checks, or physical release acceptance.
+Runtime diagnostics do not replace `distribution:verify:nesting`, integrity
+checks, or physical release acceptance.
 
 ## Owner commands
 

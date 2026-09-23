@@ -1,5 +1,6 @@
 
 import {$,queryAll,esc,icon,clamp} from './studio-core.mjs';
+import {enhanceSelect,syncEnhancedSelects} from './custom-select.mjs';
 import {STUDIO_DEMO_LINES,STUDIO_PREFERENCES_KEY,loadStudioPreferences,loadStudioState,studioPreferencesFromState,studioStateFromDocumentSnapshot,writeStudioPreferences,writeStudioState} from './document-adapter.mjs';
 import {createWriterSearchClient,estimateSyllables} from './search-adapter.mjs';
 import {STUDIO_RHYME_TYPE_LABELS,filterStudioWriterRows,sortStudioWriterRows} from './search-filters.mjs';
@@ -7,8 +8,9 @@ import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchSta
 import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-controls.mjs';
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
-import {createStudioAnalysisClient,studioAnalysisWords} from './analysis-adapter.mjs';
-import {barIdentity,createSelectionProof,duplicateEditorBar,editorSnapshot,ensureEditorSong,insertEditorBar,mergeEditorBarWithPrevious,moveEditorBar,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
+import {createStudioAnalysisClient,studioAnalysisWords,studioRhymeTypeCounts} from './analysis-adapter.mjs';
+import {readStudioAnalysisCache,writeStudioAnalysisCache} from './analysis-cache.mjs';
+import {barIdentity,createSelectionProof,duplicateEditorBar,editorBracketSegments,editorDocumentText,editorLineKind,editorLineStartOffset,editorPositionFromOffset,editorSnapshot,editorTrackableText,ensureEditorSong,insertEditorBar,isTrackedEditorLine,moveEditorBar,reconcileEditorDocumentText,removeEditorBar,replaceEditorDocumentRange,restoreEditorSnapshot,trackedEditorBarNumber,trackedEditorLineIndexes,validateSelectionProof} from './editor-session.mjs';
 import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarDurationMs,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceFlowFingerprint,performanceNeedsReview,performancePocketMetrics,performancePreviousBarPlacements,performanceStepDurationMs,performanceSyllablesPerSecond,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
 import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
@@ -113,6 +115,16 @@ const THEME_COLOR_FIELDS=[
   ['accent','Primary'],['accent2','Secondary'],['signal','Signal']
 ];
 let themeEditingId='',themePreviewing=false,themeQuickCloseTimer=0;
+let settingsTab='general';
+let settingsReturnPage='studio',settingsReturnMobileResults=false;
+let searchPageFiltersOpen=false;
+const STUDIO_FILTER_PANEL_KEY='rhymelab.studio.searchFiltersOpen.v1';
+let studioSearchFiltersOpen=(()=>{
+  try{
+    const stored=localStorage.getItem(STUDIO_FILTER_PANEL_KEY);
+    return stored==null?false:stored==='1';
+  }catch{return false}
+})();
 let studioCapabilities={status:'loading'};
 let sharedSearchState=localStorage.getItem(SEARCH_STATE_STORAGE_KEY)?loadSearchState():createSearchState({queryBasis:'de',resultLanguage:'both'}),pendingSharedResultId=sharedSearchState.selectedResultId||'';
 const writerSearch=createWriterSearchClient();
@@ -125,7 +137,8 @@ let writerClientTiming=null,writerServerTransport=null,writerEffectiveRequest=nu
 let internalDbLabEnabled=false,internalDbLabPayload=null,internalDbLabActive=loadInternalDbLabSelection(),internalDbLabMetricsOpen=false;
 let internalDbBenchmarkReport=null,internalDbBenchmarkAbort=null,internalDbBenchmarkState=null;
 let selectedDetail=null,selectedDetailStatus='idle',selectedDetailError='',detailRequest=0;
-let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all',analysisChainVisible=false;
+let analysisStatus='idle',analysisData=null,analysisError='',analysisRequest=0,analysisSignature='',analysisAbort=null,analysisRelationMode='all',analysisChainVisible=false,analysisScope='end',allRhymeStatus='idle',allRhymeData=null,allRhymeError='',allRhymeRequest=0,allRhymeSignature='',allRhymeAbort=null;
+let analysisWarmTimer=0,analysisWarmAbort=null,analysisWarmGeneration=0;
 let documentStoreStatus='idle',documentStoreError='',documentStoreInitialized=false,documentStoreAuthority=false,documentShadowTimer=0,documentSaveGeneration=0,documentSaveChain=Promise.resolve(),mobileViewportCleanup=null;
 let uiLocalizer=null;
 const DEVICE_ACCEPTANCE_STORAGE_KEY='rhymelab.studio.deviceAcceptance.v1';
@@ -148,7 +161,6 @@ let activeLine=3,selection={line:3,start:initial[3].lastIndexOf('Nacht'),end:ini
   includeHistorical=sharedSearchState.historical,
   generated=sharedSearchState.generated,
   generatedOnly=sharedSearchState.generatedOnly,
-  advancedExpanded=false,
   hideUsed=state.hideUsed!==false,
   hiddenUsedCount=0,
   sort=sharedSearchState.sort,
@@ -189,6 +201,7 @@ function setStudioUiLanguage(value,{persistState=true,notifyUser=false}={}){
   }
   if($('#uiLanguageSelect'))$('#uiLanguageSelect').value=state.uiLanguage;
   renderActiveDeviceGuide();
+  updateSearchPageChrome();
   if(persistState)persist();
   if(notifyUser)notify(state.uiLanguage==='en'?'Interface language: English':'Oberflächensprache: Deutsch');
   return state.uiLanguage;
@@ -398,13 +411,87 @@ function restoreStudioRevision(entry){
   changed();
   return true;
 }
-function changed(){const s=song();s.updatedAt=Date.now();$('#saveState').textContent='Speichert …';clearTimeout(saveTimer);saveTimer=setTimeout(()=>{revision('autosave');persist()},650);updateStats() }
+function changed(){const s=song();s.updatedAt=Date.now();$('#saveState').textContent='Speichert …';clearTimeout(saveTimer);saveTimer=setTimeout(()=>{revision('autosave');persist()},650);queueAnalysisWarm();updateStats() }
 function notify(t){$('#toast').textContent=t;$('#toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.add('hidden'),3300)}
+function trackedStudioLineIndexes(current=song()){
+  return trackedEditorLineIndexes(current);
+}
+function trackedStudioLines(current=song()){
+  return trackedStudioLineIndexes(current).map((index)=>editorTrackableText(current.lines[index]));
+}
+function trackedStudioLineText(current,index){
+  return editorTrackableText(current.lines[index]||'');
+}
+function studioAnalysisRequestOptions(signal){
+  return {
+    language:basis,
+    generated,
+    generatedOnly,
+    runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
+    signal,
+  };
+}
+function studioAnalysisResultCacheKey(scope,signature){
+  return ['studio-analysis-v1',scope,signature].join('|');
+}
+function queueAnalysisWarm(delay=1400){
+  clearTimeout(analysisWarmTimer);
+  analysisWarmAbort?.abort?.();
+  analysisWarmAbort=null;
+  const current=song();
+  const lineIndex=activeLine;
+  const raw=current.lines[lineIndex]||'';
+  const line=trackedStudioLineText(current,lineIndex);
+  if(studioCapabilities.status!=='ready'||!isTrackedEditorLine(raw)||!line.trim())return;
+  const bar=barIdentity(current,lineIndex);
+  const warmSignature=[
+    current.id,
+    bar?.id||lineIndex,
+    bar?.revision||0,
+    basis,
+    generated?1:0,
+    generatedOnly?1:0,
+    studioCapabilities.queryPronunciationRevision||'no-revision',
+    internalDbLabEnabled?internalDbLabActive:'default',
+  ].join('|');
+  const generation=++analysisWarmGeneration;
+  analysisWarmTimer=setTimeout(async()=>{
+    if(generation!==analysisWarmGeneration)return;
+    analysisWarmAbort?.abort?.();
+    const controller=new AbortController();
+    analysisWarmAbort=controller;
+    try{
+      await analysisClient.analyzeAll([line],studioAnalysisRequestOptions(controller.signal));
+    }catch(error){
+      if(error?.name!=='AbortError')console.warn('Studio rhyme warmup failed:',error);
+    }finally{
+      if(generation===analysisWarmGeneration&&warmSignature){
+        analysisWarmAbort=null;
+      }
+    }
+  },Math.max(500,Number(delay)||1400));
+}
+function nearestTrackedStudioLine(current=song(),from=activeLine){
+  const indexes=trackedStudioLineIndexes(current);
+  if(!indexes.length)return -1;
+  if(indexes.includes(from))return from;
+  return indexes.slice().sort((a,b)=>Math.abs(a-from)-Math.abs(b-from)||a-b)[0];
+}
+function trackedStudioBarPosition(current,index){
+  const indexes=trackedStudioLineIndexes(current);
+  return indexes.indexOf(index);
+}
+function editorLineLabel(current,index){
+  const kind=editorLineKind(current.lines[index]);
+  const barNumber=trackedEditorBarNumber(current,index);
+  if(kind==='bar')return 'Bar '+String(barNumber).padStart(2,'0');
+  if(kind==='bracket')return 'Section';
+  return '';
+}
 function ensureActiveBarVisible({behavior}={}){
   const metrics=mobileViewportMetrics(window);
   if(!metrics.isMobile||page!=='studio'||mode!=='write'||document.body.classList.contains('mobile-results'))return;
-  const focused=document.activeElement?.matches?.('#lyrics textarea')?document.activeElement:null;
-  const target=focused||$('#lyrics textarea[data-line="'+activeLine+'"]');
+  const target=$('.lyrics-gutter-row[data-line="'+activeLine+'"]')||$('#lyricsEditor');
   const scroller=$('#editorScroll');
   if(!target||!scroller)return;
   const delta=mobileScrollDeltaForRect(target.getBoundingClientRect(),metrics,{
@@ -424,171 +511,244 @@ function bindMobileViewport(){
     windowObj:window,
     documentElement:document.documentElement,
     onChange:(metrics)=>{
-      if(metrics.isMobile&&document.activeElement?.matches?.('#lyrics textarea')){
+      if(metrics.isMobile&&document.activeElement?.matches?.('#lyricsEditor')){
         requestAnimationFrame(()=>ensureActiveBarVisible({behavior:'auto'}));
       }
     },
   });
 }
-function resizeArea(el){el.style.height='34px';el.style.height=el.scrollHeight+'px'}
-function renderEditor(){
-  const s=song();
-  $('#songTitle').textContent=s.title;
-  $('#lyrics').innerHTML=s.lines.map((line,index)=>{
-    const bar=barIdentity(s,index);
-    return `<div class="lyric-line ${index===activeLine?'active':''}" data-bar-id="${esc(bar.id)}"><button class="line-no" data-line="${index}" data-bar-id="${esc(bar.id)}" aria-label="Bar ${index+1} auswählen">${String(index+1).padStart(2,'0')}</button><textarea aria-label="Text Bar ${index+1}" data-line="${index}" data-bar-id="${esc(bar.id)}" data-bar-revision="${bar.revision}" rows="1" spellcheck="false">${esc(line)}</textarea><button class="syllable" data-bar-inspect="${index}" aria-label="Bar ${index+1} analysieren" title="Lokale Silbenschätzung · Klick für Bar Inspector">${syll(line)||'—'}</button></div>`;
-  }).join('');
-  queryAll('#lyrics textarea').forEach((el)=>{
-    resizeArea(el);
-    el.addEventListener('focus',()=>{
-      activateLine(+el.dataset.line);
-      requestAnimationFrame(()=>ensureActiveBarVisible());
-    });
-    el.addEventListener('pointerdown',()=>typingUndo.noteBoundary(),{passive:true});
-    el.addEventListener('compositionstart',()=>{
-      if(composingBarId)return;
-      compositionCommitBarId='';compositionCommitValue='';
-      pushUndo();
-      composingBarId=el.dataset.barId;
-    });
-    el.addEventListener('compositionend',()=>{
-      const index=+el.dataset.line;
-      const bar=setEditorBarText(song(),index,el.value);
-      if(bar){
-        el.value=bar.text;
-        el.dataset.barRevision=String(bar.revision);
-      }
-      composingBarId='';
-      compositionCommitBarId=el.dataset.barId;compositionCommitValue=el.value;
-      el.parentElement.querySelector('.syllable').textContent=syll(el.value)||'—';
-      resizeArea(el);
-      changed();
-      captureSelection(el);
-    });
-    el.addEventListener('input',(event)=>{
-      const index=+el.dataset.line;
-      const trailingCompositionCommit=compositionCommitBarId===el.dataset.barId&&compositionCommitValue===el.value;
-      if(trailingCompositionCommit){compositionCommitBarId='';compositionCommitValue=''}
-      else if(!event.isComposing&&composingBarId!==el.dataset.barId){
-        const shouldCheckpoint=typingUndo.shouldCheckpoint({
-          songId:song().id,
-          barId:el.dataset.barId,
-          inputType:event.inputType,
-          now:Date.now(),
-          composing:false,
-        });
-        if(shouldCheckpoint)pushUndo({coalesced:true});
-      }
-      const bar=setEditorBarText(song(),index,el.value);
-      if(bar){
-        if(el.value!==bar.text)el.value=bar.text;
-        el.dataset.barRevision=String(bar.revision);
-      }
-      el.parentElement.querySelector('.syllable').textContent=syll(el.value)||'—';
-      resizeArea(el);
-      if(!trailingCompositionCommit&&!event.isComposing&&composingBarId!==el.dataset.barId)changed();
-    });
-    ['click','keyup','select'].forEach((eventName)=>el.addEventListener(eventName,()=>{
-      if(composingBarId!==el.dataset.barId)captureSelection(el);
-    }));
-    el.addEventListener('paste',(event)=>{
-      const clipboard=event.clipboardData?.getData('text/plain');
-      if(clipboard==null)return;
-      event.preventDefault();
-      pushUndo();
-      const index=+el.dataset.line;
-      const result=pasteEditorText(song(),index,el.selectionStart,el.selectionEnd,clipboard);
-      if(!result)return;
-      activeLine=result.focusIndex;
-      renderEditor();
-      focusLine(result.focusIndex,result.selectionStart);
-      changed();
-    });
-    el.addEventListener('keydown',(event)=>{
-      if(event.isComposing||composingBarId===el.dataset.barId)return;
-      if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(event.key))typingUndo.noteBoundary();
-      const index=+el.dataset.line;
-      if(event.key==='Enter'){
-        event.preventDefault();
-        pushUndo();
-        const split=splitEditorBar(song(),index,el.selectionStart,el.selectionEnd);
-        if(!split)return;
-        activeLine=index+1;
-        renderEditor();
-        focusLine(activeLine,0);
-        changed();
-        return;
-      }
-      if(event.key==='Backspace'&&el.selectionStart===0&&el.selectionEnd===0&&index>0){
-        event.preventDefault();
-        pushUndo();
-        const merged=mergeEditorBarWithPrevious(song(),index);
-        if(!merged)return;
-        activeLine=merged.index;
-        renderEditor();
-        focusLine(activeLine,merged.caret);
-        changed();
-        return;
-      }
-      if(event.key==='Backspace'&&!el.value&&song().lines.length>1&&index===0){
-        event.preventDefault();
-        pushUndo();
-        removeEditorBar(song(),0);
-        activeLine=0;
-        renderEditor();
-        focusLine(0,0);
-        changed();
-      }
-    });
+function unifiedEditorLineHeights(){
+  const current=song();
+  const rows=queryAll('#lyricsMeasure .lyrics-measure-line');
+  const fallback=Math.max(34,Math.round((state.fontSize||21)*1.62));
+  return current.lines.map((_,index)=>{
+    const height=rows[index]?.getBoundingClientRect?.().height||fallback;
+    return Math.max(fallback,Math.ceil(height));
   });
-  queryAll('.line-no').forEach((el)=>el.onclick=()=>focusLine(+el.dataset.line));
-  queryAll('[data-bar-inspect]').forEach((el)=>el.onclick=()=>{
-    activeLine=+el.dataset.barInspect;
+}
+function renderUnifiedEditorGutters(){
+  const current=song();
+  const barGutter=$('#lyricsBarGutter'),syllableGutter=$('#lyricsSyllableGutter');
+  if(!barGutter||!syllableGutter)return;
+  const heights=unifiedEditorLineHeights();
+  barGutter.innerHTML=current.lines.map((line,index)=>{
+    const kind=editorLineKind(line),barNumber=trackedEditorBarNumber(current,index);
+    const height=heights[index];
+    if(kind==='bar'){
+      return '<button type="button" class="lyrics-gutter-row line-no '+(index===activeLine?'active':'')+'" data-line="'+index+'" style="height:'+height+'px" aria-label="Bar '+barNumber+' auswählen">'+String(barNumber).padStart(2,'0')+'</button>';
+    }
+    const label=kind==='bracket'?'§':'';
+    return '<span class="lyrics-gutter-row line-no is-untracked '+kind+' '+(index===activeLine?'active':'')+'" data-line="'+index+'" style="height:'+height+'px" aria-hidden="true">'+label+'</span>';
+  }).join('');
+  syllableGutter.innerHTML=current.lines.map((line,index)=>{
+    const kind=editorLineKind(line),barNumber=trackedEditorBarNumber(current,index);
+    const height=heights[index];
+    if(kind==='bar'){
+      return '<button type="button" class="lyrics-gutter-row syllable '+(index===activeLine?'active':'')+'" data-bar-inspect="'+index+'" style="height:'+height+'px" aria-label="Bar '+barNumber+' analysieren" title="Lokale Silbenschätzung · Klick für Bar Inspector">'+(syll(editorTrackableText(line))||'—')+'</button>';
+    }
+    return '<span class="lyrics-gutter-row syllable is-untracked '+kind+' '+(index===activeLine?'active':'')+'" style="height:'+height+'px" aria-hidden="true"></span>';
+  }).join('');
+  queryAll('#lyricsBarGutter [data-line]').forEach((node)=>node.onclick=()=>selectEditorLine(+node.dataset.line));
+  queryAll('#lyricsSyllableGutter [data-bar-inspect]').forEach((node)=>node.onclick=()=>{
+    activeLine=+node.dataset.barInspect;
     activateLine(activeLine);
     openEditorDock('bar');
   });
+}
+function syncUnifiedEditorLayout(){
+  const editor=$('#lyricsEditor'),measure=$('#lyricsMeasure');
+  if(!editor||!measure)return;
+  const current=song();
+  measure.innerHTML=current.lines.map((line,index)=>{
+    const kind=editorLineKind(line);
+    return '<div class="lyrics-measure-line '+kind+'" data-line="'+index+'">'+(line?esc(line):'&#8203;')+'</div>';
+  }).join('');
+  const minimumLines=16;
+  const lineHeight=Math.max(34,Math.ceil((state.fontSize||21)*(window.innerWidth<=800?1.58:1.62)));
+  const minimumHeight=(lineHeight*minimumLines)+28;
+  editor.style.height='1px';
+  editor.style.height=Math.max(minimumHeight,editor.scrollHeight)+'px';
+  renderUnifiedEditorGutters();
+}
+function resizeArea(el){
+  if(!el||el.id==='lyricsEditor')syncUnifiedEditorLayout();
+}
+function documentRangeForLine(index,start=0,end=start,current=song()){
+  const line=current.lines[index]||'';
+  const lineStart=editorLineStartOffset(current.lines,index);
+  const from=Math.max(0,Math.min(line.length,Number(start)||0));
+  const to=Math.max(from,Math.min(line.length,Number(end)||from));
+  return {start:lineStart+from,end:lineStart+to};
+}
+function renderEditor(){
+  const current=song();
+  $('#songTitle').textContent=current.title;
+  const documentText=editorDocumentText(current);
+  $('#lyrics').innerHTML='<div class="lyrics-notepad" id="lyricsNotepad"><div class="lyrics-gutter lyrics-bar-gutter" id="lyricsBarGutter" aria-label="Bar-Markierungen"></div><textarea id="lyricsEditor" class="lyrics-editor" aria-label="Songtext Editor" spellcheck="false" wrap="soft">'+esc(documentText)+'</textarea><div class="lyrics-gutter lyrics-syllable-gutter" id="lyricsSyllableGutter" aria-label="Silbenschätzung"></div><div id="lyricsMeasure" class="lyrics-measure" aria-hidden="true"></div></div>';
+  const editor=$('#lyricsEditor');
+  syncUnifiedEditorLayout();
+
+  editor.addEventListener('focus',()=>{
+    captureSelection(editor);
+    requestAnimationFrame(()=>ensureActiveBarVisible());
+  });
+  editor.addEventListener('pointerdown',()=>typingUndo.noteBoundary(),{passive:true});
+  editor.addEventListener('beforeinput',(event)=>{
+    if(event.isComposing)return;
+    const position=editorPositionFromOffset(song().lines,editor.selectionStart);
+    const bar=barIdentity(song(),position.index);
+    const shouldCheckpoint=typingUndo.shouldCheckpoint({
+      songId:song().id,
+      barId:bar?.id||'document',
+      inputType:event.inputType,
+      now:Date.now(),
+      composing:false,
+    });
+    if(shouldCheckpoint)pushUndo({coalesced:true});
+  });
+  editor.addEventListener('compositionstart',()=>{
+    if(composingBarId)return;
+    pushUndo();
+    composingBarId='document';
+  });
+  editor.addEventListener('compositionend',()=>{
+    reconcileEditorDocumentText(song(),editor.value);
+    composingBarId='';
+    analysisSignature='';
+    syncUnifiedEditorLayout();
+    changed();
+    captureSelection(editor);
+  });
+  editor.addEventListener('input',(event)=>{
+    reconcileEditorDocumentText(song(),editor.value);
+    const position=editorPositionFromOffset(song().lines,editor.selectionStart);
+    activeLine=position.index;
+    analysisSignature='';
+    syncUnifiedEditorLayout();
+    if(!event.isComposing&&composingBarId!=='document')changed();
+    if(!event.isComposing)captureSelection(editor);
+  });
+  ['click','keyup','select'].forEach((eventName)=>editor.addEventListener(eventName,()=>{
+    if(composingBarId!=='document')captureSelection(editor);
+  }));
+  editor.addEventListener('keydown',(event)=>{
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown','Enter','Backspace','Delete'].includes(event.key)){
+      typingUndo.noteBoundary();
+    }
+  });
+
+  activateLine(Math.max(0,Math.min(activeLine,current.lines.length-1)));
   updateStats();
   renderProjects();
   updateUndoRedoButtons();
 }
 function focusLine(index,pos){
-  const el=$(`#lyrics textarea[data-line="${index}"]`);
-  if(el){
-    el.focus();
-    const caret=pos??el.value.length;
-    el.setSelectionRange(caret,caret);
-    captureSelection(el);
-    requestAnimationFrame(()=>ensureActiveBarVisible());
-  }
+  const editor=$('#lyricsEditor'),current=song();
+  if(!editor||index<0||index>=current.lines.length)return;
+  const line=current.lines[index]||'';
+  const local=pos==null?line.length:Math.max(0,Math.min(line.length,Number(pos)||0));
+  const caret=editorLineStartOffset(current.lines,index)+local;
+  editor.focus();
+  editor.setSelectionRange(caret,caret);
+  activeLine=index;
+  captureSelection(editor);
+  requestAnimationFrame(()=>ensureActiveBarVisible());
+}
+function selectEditorLine(index){
+  const editor=$('#lyricsEditor'),current=song();
+  if(!editor||index<0||index>=current.lines.length)return;
+  const line=current.lines[index]||'';
+  const start=editorLineStartOffset(current.lines,index);
+  const end=start+line.length;
+  const oldQuery=query;
+  editor.focus();
+  editor.setSelectionRange(start,end);
+  activeLine=index;
+  captureSelection(editor);
+  if(followSelection&&query!==oldQuery){query=oldQuery;renderResults()}
+  requestAnimationFrame(()=>ensureActiveBarVisible());
 }
 function activateLine(index){
-  activeLine=index;
-  queryAll('.lyric-line').forEach((el,n)=>el.classList.toggle('active',n===index));
-  $('#activeBarLabel').textContent=`Bar ${String(index+1).padStart(2,'0')} ausgewählt`;
-  $('#mobileAnchor').textContent=`Bar ${index+1}: ${song().lines[index]||'Neue Zeile'}`;
+  const current=song();
+  activeLine=Math.max(0,Math.min(current.lines.length-1,Number(index)||0));
+  const kind=editorLineKind(current.lines[activeLine]);
+  const barNumber=trackedEditorBarNumber(current,activeLine);
+  queryAll('.lyrics-gutter-row[data-line]').forEach((node)=>node.classList.toggle('active',+node.dataset.line===activeLine));
+  queryAll('[data-bar-inspect]').forEach((node)=>node.classList.toggle('active',+node.dataset.barInspect===activeLine));
+  if(kind==='bar'){
+    $('#activeBarLabel').textContent='Bar '+String(barNumber).padStart(2,'0')+' ausgewählt';
+    $('#mobileAnchor').textContent='Bar '+barNumber+': '+(current.lines[activeLine]||'Neue Zeile');
+  }else if(kind==='bracket'){
+    $('#activeBarLabel').textContent='Section-Zeile · nicht getrackt';
+    $('#mobileAnchor').textContent=current.lines[activeLine]||'[Section]';
+  }else{
+    $('#activeBarLabel').textContent='Leere Zeile · nicht getrackt';
+    $('#mobileAnchor').textContent='Freie Leerzeile · nicht getrackt';
+  }
   if(dockTab==='bar'&&!$('#editorDock')?.classList.contains('hidden'))renderDock();
 }
-function captureSelection(el){
-  if(composingBarId===el.dataset.barId)return;
-  const index=+el.dataset.line,text=el.value;
-  let start=el.selectionStart,end=el.selectionEnd;
-  if(start===end){
-    while(start>0&&/[\p{L}\p{N}'’-]/u.test(text[start-1]))start--;
-    while(end<text.length&&/[\p{L}\p{N}'’-]/u.test(text[end]))end++;
+function captureSelection(editor){
+  if(!editor||composingBarId==='document')return;
+  const current=song();
+  const documentStart=Math.max(0,Number(editor.selectionStart)||0);
+  const documentEnd=Math.max(documentStart,Number(editor.selectionEnd)||documentStart);
+  const startPosition=editorPositionFromOffset(current.lines,documentStart);
+  const endPosition=editorPositionFromOffset(current.lines,documentEnd);
+  const index=startPosition.index;
+  const line=current.lines[index]||'';
+  const sameLine=index===endPosition.index;
+  let start=startPosition.offset;
+  let end=sameLine?endPosition.offset:start;
+  let queryStart=start,queryEnd=end;
+
+  if(sameLine&&documentStart===documentEnd){
+    while(queryStart>0&&/[\p{L}\p{N}'’-]/u.test(line[queryStart-1]))queryStart--;
+    while(queryEnd<line.length&&/[\p{L}\p{N}'’-]/u.test(line[queryEnd]))queryEnd++;
   }
-  const bar=barIdentity(song(),index);
-  selection={line:index,barId:bar?.id||'',barRevision:bar?.revision||0,start,end};
-  const q=text.slice(start,end).trim();
-  if(q&&q!==query){query=q;pageSize=6;queueWriterSearch()}
+
+  const bar=barIdentity(current,index);
+  const bracketSegments=editorBracketSegments(line);
+  const overlapsBracket=sameLine&&bracketSegments.some((segment)=>queryStart<segment.end&&queryEnd>segment.start);
+  const tracked=isTrackedEditorLine(line)&&!overlapsBracket;
+  const queryRange=documentRangeForLine(index,queryStart,queryEnd,current);
+  selection={
+    line:index,
+    barId:bar?.id||'',
+    barRevision:bar?.revision||0,
+    start:queryStart,
+    end:queryEnd,
+    documentStart:sameLine?queryRange.start:documentStart,
+    documentEnd:sameLine?queryRange.end:documentEnd,
+    multiline:!sameLine,
+    tracked,
+  };
+
+  if(sameLine&&tracked){
+    const q=line.slice(queryStart,queryEnd).trim();
+    if(q&&q!==query){query=q;pageSize=6;queueWriterSearch()}
+  }
   activateLine(index);
 }
-function updateStats(){const s=song();const words=s.lines.join(' ').trim().split(/\s+/).filter(Boolean).length,totalSyllables=s.lines.reduce((sum,line)=>sum+syll(line),0),durationSeconds=(performanceBarDurationMs(s)*s.lines.length)/1000;$('#docStats').textContent=`${s.lines.length} Bars · ${words} Wörter`;$('#footerStats').textContent=`${s.lines.length} Bars · ${words} Wörter · ${totalSyllables} Silben≈ · ${durationSeconds.toFixed(1)} s≈ @ ${performanceConfig(s).bpm} BPM`;$('#miniDensity').innerHTML=s.lines.slice(0,16).map(x=>`<i style="height:${Math.max(3,syll(x)*1.5)}px"></i>`).join('');$('#savedCount').textContent=state.saved.length;activateLine(Math.min(activeLine,s.lines.length-1))}
+function updateStats(){
+  const current=song();
+  const trackedIndexes=trackedStudioLineIndexes(current);
+  const lines=trackedStudioLines(current);
+  const words=lines.join(' ').trim().split(/\s+/).filter(Boolean).length;
+  const totalSyllables=lines.reduce((sum,line)=>sum+syll(line),0);
+  const durationSeconds=(performanceBarDurationMs(current)*trackedIndexes.length)/1000;
+  const ignored=current.lines.length-trackedIndexes.length;
+  $('#docStats').textContent=trackedIndexes.length+' Bars · '+current.lines.length+' Zeilen · '+words+' Wörter';
+  $('#footerStats').textContent=trackedIndexes.length+' Bars · '+words+' Wörter · '+totalSyllables+' Silben≈ · '+durationSeconds.toFixed(1)+' s≈ @ '+performanceConfig(current).bpm+' BPM'+(ignored?' · '+ignored+' frei':'');
+  $('#miniDensity').innerHTML=lines.slice(0,16).map((line)=>'<i style="height:'+Math.max(3,syll(line)*1.5)+'px"></i>').join('');
+  $('#savedCount').textContent=state.saved.length;
+  activateLine(Math.min(activeLine,current.lines.length-1));
+}
 function normalizeCandidateSurface(value){
   return String(value||'').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim();
 }
 function lyricWordSet(){
   return new Set(
-    (song().lines.join(' ').match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[])
+    (trackedStudioLines(song()).join(' ').match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[])
       .map(normalizeCandidateSurface)
       .filter(Boolean),
   );
@@ -602,7 +762,7 @@ function writerRowAlreadyUsed(row,words,normalizedLyrics){
 function filterUnusedWriterRows(rows){
   hiddenUsedCount=0;
   if(!hideUsed||!rows.length)return rows;
-  const words=lyricWordSet(),normalizedLyrics=normalizeCandidateSurface(song().lines.join('\n'));
+  const words=lyricWordSet(),normalizedLyrics=normalizeCandidateSurface(trackedStudioLines(song()).join('\n'));
   const unused=rows.filter((row)=>!writerRowAlreadyUsed(row,words,normalizedLyrics));
   hiddenUsedCount=rows.length-unused.length;
   return unused;
@@ -644,7 +804,6 @@ function renderResults(){
     :writerStatus==='loading'
       ?'Writer-Suche läuft'
       :'Writer-Suche nicht verfügbar';
-  $('#filterLabel').textContent=(relation!=='all'||sort!=='recommended'||resultLang!=='both')?'Filter aktiv':'Filter & Aussprache';
 }
 function queueWriterSearch(delay=140){
   clearTimeout(writerDebounce);
@@ -751,7 +910,27 @@ async function refreshWriterResults(){
   }
 }
 
-function insertWord(word){const s=song();const {line,start,end}=selection;if(!s.lines[line]&&s.lines[line]!==''){notify('Bitte zuerst eine Textstelle auswählen.');return}pushUndo();const source=s.lines[line];const bar=setEditorBarText(s,line,source.slice(0,start)+word+source.slice(end));selection={line,barId:bar?.id||'',barRevision:bar?.revision||0,start,end:start+word.length};activeLine=line;renderEditor();changed();navigate('studio');setMode('write');const el=$(`#lyrics textarea[data-line="${line}"]`);el.focus();el.setSelectionRange(start,start+word.length);captureSelection(el);notify(`„${word}“ eingesetzt · Rückgängig verfügbar`)}
+function insertWord(word){
+  const current=song();
+  const fallback=documentRangeForLine(selection.line||0,selection.start||0,selection.end??selection.start??0,current);
+  const start=Number.isFinite(selection.documentStart)?selection.documentStart:fallback.start;
+  const end=Number.isFinite(selection.documentEnd)?selection.documentEnd:fallback.end;
+  pushUndo();
+  const result=replaceEditorDocumentRange(current,start,end,word);
+  activeLine=result.position.index;
+  analysisSignature='';
+  renderEditor();
+  changed();
+  navigate('studio');
+  setMode('write');
+  const editor=$('#lyricsEditor');
+  if(editor){
+    editor.focus();
+    editor.setSelectionRange(result.selectionStart,result.selectionEnd);
+    captureSelection(editor);
+  }
+  notify('„'+word+'“ eingesetzt · Rückgängig verfügbar');
+}
 function toggleSave(word){const i=state.saved.findIndex(x=>x.word===word);if(i>=0)state.saved.splice(i,1);else state.saved.push({word,anchor:query});persist();renderResults();updateStats();if(page==='saved')renderSaved()}
 function libraryTimestamp(item){return Math.max(Number(item?.updatedAt)||0,Number(item?.createdAt)||0)}
 function touchSong(item,at=Date.now()){if(item)item.updatedAt=Math.max(Number(item.updatedAt)||0,Number(at)||0)}
@@ -986,31 +1165,307 @@ function clearCurrentDocument(){
     notify('Text geleert · vorheriger Stand bleibt wiederherstellbar.');
   };
 }
-function navigate(target){stopPlay();page=target;document.body.classList.remove('mobile-results','find-only');if(target!=='studio')document.body.classList.remove('focus');$('#workspace').classList.toggle('hidden',target==='library'||target==='saved');$('#largeView').classList.toggle('hidden',target!=='library'&&target!=='saved');$('#breadcrumb').textContent=({studio:'Studio',search:'Reimsuche',library:'Meine Texte',saved:'Merkliste'})[target];document.body.classList.toggle('find-only',target==='search');queryAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===target));setMobileActive(target==='search'?'results':target);if(target==='library')renderLibrary();if(target==='saved')renderSaved();if(target==='studio'){requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea))}}
+function navigate(target){
+  stopPlay();
+  if(page==='settings'&&target!=='settings'&&themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}
+  if(target==='search'&&page!=='search')searchPageFiltersOpen=false;
+  page=target;
+  document.body.classList.remove('mobile-results','find-only','settings-page','search-page-filters-open','search-page-compact','studio-search-filters-open');
+  if(target!=='studio')document.body.classList.remove('focus');
+  const largePage=target==='library'||target==='saved'||target==='settings';
+  $('#workspace').classList.toggle('hidden',largePage);
+  $('#largeView').classList.toggle('hidden',!largePage);
+  $('#breadcrumb').textContent=({studio:'Studio',search:'Reimsuche',library:'Meine Texte',saved:'Merkliste',settings:'Einstellungen'})[target]||'Studio';
+  document.body.classList.toggle('find-only',target==='search');
+  document.body.classList.toggle('settings-page',target==='settings');
+  queryAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===target));
+  $('#settingsSide')?.classList.toggle('active',target==='settings');
+  setMobileActive(target==='search'?'results':target);
+  if(target==='library')renderLibrary();
+  if(target==='saved')renderSaved();
+  if(target==='settings')renderSettingsPage();
+  if(target==='search'||target==='studio')updateSearchPageChrome();
+  if(target==='studio')requestAnimationFrame(()=>resizeArea($('#lyricsEditor')));
+}
 function setMobileActive(name){queryAll('[data-mobile]').forEach(b=>b.classList.toggle('active',b.dataset.mobile===name))}
-function setMode(next){mode=next;stopPlay();queryAll('[data-mode]').forEach(b=>{const active=b.dataset.mode===next;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active)});$('#writeView').classList.toggle('hidden',next!=='write');$('#rhymeView').classList.toggle('hidden',next!=='rhyme');$('#performView').classList.toggle('hidden',next!=='perform');if(next==='rhyme')renderAnalysis();if(next==='perform')renderPerform();if(next==='write')requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea))}
+function setMode(next){mode=next;stopPlay();queryAll('[data-mode]').forEach(b=>{const active=b.dataset.mode===next;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active)});$('#writeView').classList.toggle('hidden',next!=='write');$('#rhymeView').classList.toggle('hidden',next!=='rhyme');$('#performView').classList.toggle('hidden',next!=='perform');if(next==='rhyme')renderAnalysis();if(next==='perform')renderPerform();if(next==='write')requestAnimationFrame(()=>resizeArea($('#lyricsEditor')))}
 function analysisKey(){
-  const s=song();
-  return [s.id,basis,generated,generatedOnly,internalDbLabEnabled?internalDbLabActive:'default',...s.barIds.map((id,index)=>id+':'+s.barRevisions[index])].join('|');
+  const s=song(),indexes=trackedStudioLineIndexes(s);
+  return [
+    s.id,
+    'analysis-v2',
+    studioCapabilities.queryPronunciationRevision||'no-revision',
+    basis,
+    generated,
+    generatedOnly,
+    internalDbLabEnabled?internalDbLabActive:'default',
+    ...indexes.map((index)=>s.barIds[index]+':'+s.barRevisions[index]),
+  ].join('|');
 }
 function analysisRelationLabel(entry){
   if(!entry?.relation)return '—';
   const relation=entry.relation;
   return relation.label+(relation.score?(' · '+Math.round(Number(relation.score)*100)+'%'):'');
 }
+const ANALYSIS_RHYME_TYPE_ORDER=['multisyllabic_perfect','perfect','multisyllabic_slant','family','slant','assonance','consonance','identity'];
+const ANALYSIS_RHYME_TYPE_LABELS={
+  identity:'Identisch',
+  multisyllabic_perfect:'Mehrsilbiger Vollreim',
+  perfect:'Vollreim',
+  multisyllabic_slant:'Mehrsilbiger Slant-Reim',
+  family:'Reimfamilie',
+  slant:'Slant-Reim',
+  assonance:'Assonanz',
+  consonance:'Konsonanz',
+};
+const ANALYSIS_RHYME_TYPE_RANK=new Map(ANALYSIS_RHYME_TYPE_ORDER.map((type,index)=>[type,index]));
+function analysisRhymeTone(type){return 'rhyme-tone-'+String(type||'unknown').replace(/[^a-z0-9_-]+/giu,'-')}
+function analysisRhymeTypeLabel(type){return ANALYSIS_RHYME_TYPE_LABELS[type]||humanizeDetail(type)}
+function analysisScopeToggleMarkup(){
+  return '<div class="analysis-scope-toggle" role="group" aria-label="Reim-Analyseumfang"><button data-analysis-scope="end" class="'+(analysisScope==='end'?'active':'')+'" aria-pressed="'+(analysisScope==='end')+'">Endreime</button><button data-analysis-scope="all" class="'+(analysisScope==='all'?'active':'')+'" aria-pressed="'+(analysisScope==='all')+'">Alle Reime</button></div>';
+}
+function setAnalysisScope(next){
+  if(!['end','all'].includes(next)||analysisScope===next)return;
+  analysisScope=next;
+  renderAnalysis();
+}
+function allRhymeKey(){return analysisKey()+':all-words-v1'}
+function studioAnalysisSections(current,trackedIndexes){
+  const trackedSet=new Set(trackedIndexes);
+  const sections=[];
+  let currentSection=null,pendingLabel='',automatic=1;
+  const close=()=>{
+    if(currentSection?.documentLineIndexes?.length)sections.push(currentSection);
+    currentSection=null;
+  };
+  for(let lineIndex=0;lineIndex<current.lines.length;lineIndex++){
+    const raw=current.lines[lineIndex]||'';
+    const kind=editorLineKind(raw);
+    if(kind==='bracket'){
+      close();
+      pendingLabel=editorBracketSegments(raw).map((entry)=>String(entry.content||'').trim()).filter(Boolean).join(' · ');
+      continue;
+    }
+    if(kind==='blank'){
+      if(currentSection?.documentLineIndexes?.length)close();
+      continue;
+    }
+    if(!trackedSet.has(lineIndex))continue;
+    if(!currentSection){
+      currentSection={
+        id:'section-'+sections.length+'-'+lineIndex,
+        label:pendingLabel||('Abschnitt '+automatic++),
+        explicit:Boolean(pendingLabel),
+        documentLineIndexes:[],
+      };
+      pendingLabel='';
+    }
+    currentSection.documentLineIndexes.push(lineIndex);
+  }
+  close();
+  return sections;
+}
+function analysisRhymeBadgeRow(relations){
+  const counts=studioRhymeTypeCounts(relations);
+  return ANALYSIS_RHYME_TYPE_ORDER.filter((type)=>counts[type]).map((type)=>
+    '<span class="analysis-rhyme-badge '+analysisRhymeTone(type)+'"><b>'+counts[type]+'</b> '+esc(analysisRhymeTypeLabel(type))+'</span>'
+  ).join('');
+}
+function analysisRhymeTypeBreakdown(relations){
+  const counts=studioRhymeTypeCounts(relations);
+  return ANALYSIS_RHYME_TYPE_ORDER.filter((type)=>counts[type]).map((type)=>{
+    const seen=new Set(),examples=[];
+    for(const relation of relations){
+      if(relation.type!==type)continue;
+      const pair=[relation.left?.surface||'',relation.right?.surface||''];
+      const key=pair.map((value)=>String(value).toLocaleLowerCase('de-DE')).sort().join('\u0000');
+      if(seen.has(key))continue;
+      seen.add(key);
+      examples.push(pair.join(' ↔ '));
+      if(examples.length>=7)break;
+    }
+    return '<article class="analysis-rhyme-type '+analysisRhymeTone(type)+'"><div><small>'+esc(analysisRhymeTypeLabel(type))+'</small><b>'+counts[type]+'</b></div><p>'+esc(examples.join(' · ')||'—')+'</p></article>';
+  }).join('')||'<div class="analysis-empty">Noch keine Klangrelationen gefunden.</div>';
+}
+function strongestRhymeType(types){
+  return [...types].sort((left,right)=>(ANALYSIS_RHYME_TYPE_RANK.get(left)??99)-(ANALYSIS_RHYME_TYPE_RANK.get(right)??99))[0]||'';
+}
+function renderAllRhymeBars(current,trackedIndexes,trackedLines,data){
+  const occurrences=Array.isArray(data?.occurrences)?data.occurrences:[];
+  const relations=Array.isArray(data?.occurrenceRelations)?data.occurrenceRelations:[];
+  const occurrenceTypes=new Map();
+  for(const relation of relations){
+    for(const occurrence of [relation.left,relation.right]){
+      if(!occurrence)continue;
+      const types=occurrenceTypes.get(occurrence.index)||new Set();
+      types.add(relation.type);
+      occurrenceTypes.set(occurrence.index,types);
+    }
+  }
+  return trackedIndexes.map((documentLineIndex,analysisLineIndex)=>{
+    const barNumber=analysisLineIndex+1;
+    const barRelations=relations.filter((relation)=>relation.left?.lineIndex===analysisLineIndex||relation.right?.lineIndex===analysisLineIndex);
+    const barOccurrences=occurrences.filter((entry)=>entry.lineIndex===analysisLineIndex);
+    const words=barOccurrences.map((entry)=>{
+      const types=occurrenceTypes.get(entry.index)||new Set();
+      const strongest=strongestRhymeType(types);
+      const title=[...types].map(analysisRhymeTypeLabel).join(', ');
+      return '<button class="analysis-rhyme-token '+(strongest?analysisRhymeTone(strongest):'')+'" data-all-rhyme-anchor="'+esc(entry.surface)+'" title="'+esc(title||'Keine erkannte Reimrelation')+'">'+esc(entry.surface)+'</button>';
+    }).join(' ');
+    return '<article class="analysis-all-bar" data-all-rhyme-bar="'+documentLineIndex+'"><header><button class="analysis-all-bar-number" data-all-rhyme-jump="'+documentLineIndex+'">BAR '+String(barNumber).padStart(2,'0')+'</button><span><b>'+barRelations.length+'</b> Relationen</span></header><div class="analysis-all-bar-text">'+(words||esc(trackedLines[analysisLineIndex]||'—'))+'</div><div class="analysis-rhyme-badges">'+(analysisRhymeBadgeRow(barRelations)||'<span class="small">Keine Reimrelation</span>')+'</div></article>';
+  }).join('');
+}
+function renderAllRhymeSections(current,trackedIndexes,data){
+  const relations=Array.isArray(data?.occurrenceRelations)?data.occurrenceRelations:[];
+  const sections=studioAnalysisSections(current,trackedIndexes);
+  return sections.map((section)=>{
+    const analysisIndexes=new Set(section.documentLineIndexes.map((lineIndex)=>trackedIndexes.indexOf(lineIndex)).filter((index)=>index>=0));
+    const internal=relations.filter((relation)=>analysisIndexes.has(relation.left?.lineIndex)&&analysisIndexes.has(relation.right?.lineIndex));
+    const barNumbers=section.documentLineIndexes.map((lineIndex)=>trackedEditorBarNumber(current,lineIndex)).filter(Boolean);
+    const range=barNumbers.length===1?'Bar '+barNumbers[0]:(barNumbers.length?'Bars '+barNumbers[0]+'–'+barNumbers.at(-1):'');
+    return '<article class="analysis-section-card"><header><div><small>VERSE / SECTION</small><b>'+esc(section.label)+'</b></div><span>'+esc(range)+'</span></header><strong>'+internal.length+' Reimrelationen</strong><div class="analysis-rhyme-badges">'+(analysisRhymeBadgeRow(internal)||'<span class="small">Keine internen Reime erkannt.</span>')+'</div></article>';
+  }).join('')||'<div class="analysis-empty">Keine Verse/Sections erkannt.</div>';
+}
+function renderAllRhymeSurface(){
+  const current=song(),trackedIndexes=trackedStudioLineIndexes(current),trackedLines=trackedStudioLines(current);
+  const signature=allRhymeKey();
+  const ready=allRhymeStatus==='ready'&&allRhymeData&&allRhymeSignature===signature;
+  const data=ready?allRhymeData:null;
+  const relations=Array.isArray(data?.occurrenceRelations)?data.occurrenceRelations:[];
+  const occurrences=Array.isArray(data?.occurrences)?data.occurrences:[];
+  const rhymingBars=new Set();
+  for(const relation of relations){
+    if(relation.left?.lineIndex!=null)rhymingBars.add(relation.left.lineIndex);
+    if(relation.right?.lineIndex!=null)rhymingBars.add(relation.right.lineIndex);
+  }
+  const primaryCount=relations.filter((relation)=>relation.primary).length;
+  const softCount=relations.length-primaryCount;
+  const runtime=ready&&data?.clientCacheHit
+    ?' · CACHE'
+    :ready&&data.runtimeTiming?.currentMs!=null
+      ?' · '+Math.round(Number(data.runtimeTiming.currentMs))+' ms'
+      :'';
+  const coverage=ready&&data.coverage
+    ?data.coverage.resolved+'/'+data.coverage.unique+' Wörter aufgelöst'+(data.coverage.truncated?' · auf 180 eindeutige Wörter begrenzt':'')
+    :'';
+  const stateMarkup=allRhymeStatus==='loading'
+    ?'<div class="analysis-loading">Writer analysiert alle Wörter und ihre Klangrelationen …</div>'
+    :allRhymeStatus==='error'
+      ?'<div class="analysis-error">Alle-Reime-Analyse nicht verfügbar: '+esc(allRhymeError)+'</div>'
+      :!trackedLines.length
+        ?'<div class="analysis-empty">Noch keine getrackten Textzeilen vorhanden.</div>'
+        :'';
+  const bars=ready?renderAllRhymeBars(current,trackedIndexes,trackedLines,data):'';
+  const sections=ready?renderAllRhymeSections(current,trackedIndexes,data):'';
+  const types=ready?analysisRhymeTypeBreakdown(relations):'';
+  $('#rhymeView').innerHTML=`
+    <div class="analysis-head row between wrap">
+      <div><div class="eyebrow">Song Analysis</div><h2>Alle Reime im Text.</h2><p class="small">Kanonische Writer-Relationen über alle Wörter außerhalb von <code>[...]</code> — pro Bar, Verse/Section und gesamtem Text.</p></div>
+      <div class="row wrap">
+        ${analysisScopeToggleMarkup()}
+        <span class="analysis-source">WRITER · ${esc(String(basis).toUpperCase())}${runtime}</span>
+        <div class="analysis-language-toggle" role="group" aria-label="Analysesprache">
+          <button data-analysis-language="de" class="${basis==='de'?'active':''}" aria-pressed="${basis==='de'}">DE</button>
+          <button data-analysis-language="en" class="${basis==='en'?'active':''}" aria-pressed="${basis==='en'}">EN</button>
+          <button data-analysis-language="both" class="${basis==='both'?'active':''}" aria-pressed="${basis==='both'}">Cross DE+EN</button>
+        </div>
+        <button id="refreshAllRhymes" class="outline">Neu analysieren</button><button class="outline" id="backWrite">Zurück zum Text</button>
+      </div>
+    </div>
+    ${stateMarkup}
+    ${ready?`<div class="analysis-all-overview">
+      <article><small>GESAMTER TEXT</small><b>${relations.length}</b><span>Reimrelationen</span></article>
+      <article><small>PRIMÄR</small><b>${primaryCount}</b><span>Voll / Multi / Family / Slant / Identisch</span></article>
+      <article><small>SOFT</small><b>${softCount}</b><span>Assonanz / Konsonanz</span></article>
+      <article><small>BARS MIT REIM</small><b>${rhymingBars.size}/${trackedIndexes.length}</b><span>${occurrences.length} Wörter geprüft</span></article>
+    </div>
+    <section class="analysis-card analysis-all-type-card"><div class="row between wrap"><div><h3>Gesamter Text · nach Reimtyp</h3><p class="small">Zählung der tatsächlich gefundenen Wortpaar-Relationen. ${esc(coverage)}</p></div><span class="analysis-source">CANONICAL</span></div><div class="analysis-rhyme-type-grid">${types}</div></section>
+    <section class="analysis-card"><div><h3>Pro Verse / Section</h3><p class="small">Vollständig geklammerte Zeilen wie <code>[Verse 2]</code> benennen Sections; Leerzeilen trennen unbenannte Abschnitte. Inline <code>[...]</code> wird ignoriert.</p></div><div class="analysis-section-grid">${sections}</div></section>
+    <section class="analysis-card"><div><h3>Pro Bar</h3><p class="small">Nur Text außerhalb von <code>[...]</code> wird gewertet. Wörter mit erkannten Relationen sind dezent nach stärkstem Typ markiert.</p></div><div class="analysis-all-bars">${bars}</div></section>`:''}
+  `;
+  $('#backWrite').onclick=()=>setMode('write');
+  $('#refreshAllRhymes').onclick=()=>{allRhymeSignature='';void refreshAllRhymeAnalysis(true)};
+  queryAll('[data-analysis-scope]').forEach((button)=>button.onclick=()=>setAnalysisScope(button.dataset.analysisScope));
+  queryAll('[data-analysis-language]').forEach((button)=>button.onclick=()=>{
+    const next=button.dataset.analysisLanguage;
+    if(!['de','en','both'].includes(next)||basis===next)return;
+    basis=next;
+    pageSize=6;
+    analysisSignature='';allRhymeSignature='';
+    saveStudioSearchState({queryBasis:basis});
+    syncInline();
+    void refreshWriterResults();
+    void refreshAllRhymeAnalysis(true);
+  });
+  queryAll('[data-all-rhyme-jump]').forEach((button)=>button.onclick=()=>{
+    const lineIndex=Number(button.dataset.allRhymeJump);
+    setMode('write');
+    focusLine(lineIndex);
+  });
+  queryAll('[data-all-rhyme-anchor]').forEach((button)=>button.onclick=()=>{
+    const anchor=String(button.dataset.allRhymeAnchor||'').trim();
+    if(!anchor)return;
+    query=anchor;pageSize=6;followSelection=false;
+    saveStudioSearchState({anchor,queryBasis:basis});
+    syncFollowControls();
+    void refreshWriterResults();
+    notify('Writer-Anker: '+anchor);
+  });
+}
+async function refreshAllRhymeAnalysis(force=false){
+  const signature=allRhymeKey();
+  if(!force&&allRhymeSignature===signature&&(allRhymeStatus==='loading'||allRhymeStatus==='ready'))return;
+  allRhymeSignature=signature;
+  allRhymeAbort?.abort?.();
+  allRhymeAbort=new AbortController();
+  const token=++allRhymeRequest;
+  const cacheKey=studioAnalysisResultCacheKey('all',signature);
+  allRhymeStatus='loading';allRhymeData=null;allRhymeError='';
+  if(mode==='rhyme'&&analysisScope==='all')renderAllRhymeSurface();
+  try{
+    const current=song(),trackedLines=trackedStudioLines(current);
+    if(!trackedLines.length){
+      allRhymeStatus='idle';allRhymeData=null;allRhymeError='';
+      if(mode==='rhyme'&&analysisScope==='all')renderAllRhymeSurface();
+      return;
+    }
+    if(!force){
+      const cached=await readStudioAnalysisCache(cacheKey);
+      if(token!==allRhymeRequest||allRhymeKey()!==signature)return;
+      if(cached){
+        allRhymeData={...cached,clientCacheHit:true};
+        allRhymeStatus='ready';allRhymeError='';
+        if(mode==='rhyme'&&analysisScope==='all')renderAllRhymeSurface();
+        return;
+      }
+    }
+    const result=await analysisClient.analyzeAll(
+      trackedLines,
+      studioAnalysisRequestOptions(allRhymeAbort.signal),
+    );
+    if(token!==allRhymeRequest||allRhymeKey()!==signature)return;
+    allRhymeData={...result,clientCacheHit:false};allRhymeStatus='ready';allRhymeError='';
+    void writeStudioAnalysisCache(cacheKey,result);
+  }catch(error){
+    if(error?.name==='AbortError'||token!==allRhymeRequest)return;
+    allRhymeStatus='error';allRhymeError=error instanceof Error?error.message:String(error);
+  }
+  if(mode==='rhyme'&&analysisScope==='all')renderAllRhymeSurface();
+}
 function renderAnalysisSurface(){
-  const s=song(),words=studioAnalysisWords(s.lines);
+  if(analysisScope==='all'){renderAllRhymeSurface();return}
+  const s=song(),trackedIndexes=trackedStudioLineIndexes(s),trackedLines=trackedStudioLines(s),words=studioAnalysisWords(trackedLines);
   const ready=analysisStatus==='ready'&&analysisData;
   const scheme=ready&&Array.isArray(analysisData.scheme)?analysisData.scheme:words.map(()=>'?');
-  const rows=s.lines.map((line,index)=>{
-    const relation=ready?analysisData.lineRelations?.[index]:null;
-    const detail=ready?analysisData.wordDetails?.[index]:null;
-    const relationText=relation?analysisRelationLabel(relation):index===0?'Start':'—';
+  const rows=trackedIndexes.map((lineIndex,analysisIndex)=>{
+    const relation=ready?analysisData.lineRelations?.[analysisIndex]:null;
+    const detail=ready?analysisData.wordDetails?.[analysisIndex]:null;
+    const relationText=relation?analysisRelationLabel(relation):analysisIndex===0?'Start':'—';
     const prior=relation?.prior!=null?' · Bar '+String(relation.prior+1).padStart(2,'0'):'';
     const stress=detail?.stressPattern||(
       detail?.primaryStressSyllable!=null?'Stress · '+detail.primaryStressSyllable:''
     );
-    return '<button class="analysis-line" data-analysis-bar="'+index+'"><span class="analysis-bar-no">'+String(index+1).padStart(2,'0')+'</span><span class="analysis-scheme-letter">'+esc(scheme[index]||'—')+'</span><span class="analysis-end-word">'+esc(words[index]||'—')+(stress?'<small>'+esc(stress)+'</small>':'')+'</span><span class="analysis-relation">'+esc(relationText+prior)+'</span></button>';
+    return '<button class="analysis-line" data-analysis-bar="'+lineIndex+'"><span class="analysis-bar-no">'+String(analysisIndex+1).padStart(2,'0')+'</span><span class="analysis-scheme-letter">'+esc(scheme[analysisIndex]||'—')+'</span><span class="analysis-end-word">'+esc(words[analysisIndex]||'—')+(stress?'<small>'+esc(stress)+'</small>':'')+'</span><span class="analysis-relation">'+esc(relationText+prior)+'</span></button>';
   }).join('');
   const coverage=ready&&analysisData.coverage
     ?'<span>'+analysisData.coverage.resolved+'/'+analysisData.coverage.unique+' Endwörter aufgelöst'+(analysisData.coverage.truncated?' · Analyse auf 64 eindeutige Wörter begrenzt':'')+'</span>'
@@ -1020,9 +1475,11 @@ function renderAnalysisSurface(){
     :analysisStatus==='error'
       ?'<div class="analysis-error">Kanonische Analyse nicht verfügbar: '+esc(analysisError)+'</div>'
       :'';
-  const runtime=ready&&analysisData.runtimeTiming?.currentMs!=null
-    ?' · '+Math.round(Number(analysisData.runtimeTiming.currentMs))+' ms'
-    :'';
+  const runtime=ready&&analysisData?.clientCacheHit
+    ?' · CACHE'
+    :ready&&analysisData.runtimeTiming?.currentMs!=null
+      ?' · '+Math.round(Number(analysisData.runtimeTiming.currentMs))+' ms'
+      :'';
 
   const allPairs=ready&&Array.isArray(analysisData.pairs)
     ?analysisData.pairs.slice().sort((a,b)=>Number(b.primary)-Number(a.primary)||Number(b.score||0)-Number(a.score||0))
@@ -1051,18 +1508,19 @@ function renderAnalysisSurface(){
     :'';
 
   const rhymeChain=ready
-    ?Object.entries(scheme.reduce((groups,label,index)=>{
+    ?Object.entries(scheme.reduce((groups,label,analysisIndex)=>{
       if(!label||label==='—')return groups;
-      (groups[label]||(groups[label]=[])).push({index,word:words[index]||'—'});
+      (groups[label]||(groups[label]=[])).push({lineIndex:trackedIndexes[analysisIndex],number:analysisIndex+1,word:words[analysisIndex]||'—'});
       return groups;
-    },{})).map(([label,items])=>'<div class="rhyme-chain-group"><span class="analysis-scheme-letter">'+esc(label)+'</span><div>'+items.map((item)=>'<button data-analysis-bar="'+item.index+'"><small>BAR '+String(item.index+1).padStart(2,'0')+'</small><b>'+esc(item.word)+'</b></button>').join('<i>→</i>')+'</div></div>').join('')
+    },{})).map(([label,items])=>'<div class="rhyme-chain-group"><span class="analysis-scheme-letter">'+esc(label)+'</span><div>'+items.map((item)=>'<button data-analysis-bar="'+item.lineIndex+'"><small>BAR '+String(item.number).padStart(2,'0')+'</small><b>'+esc(item.word)+'</b></button>').join('<i>→</i>')+'</div></div>').join('')
     :'';
   const stressFingerprint=ready&&Array.isArray(analysisData.wordDetails)
-    ?analysisData.wordDetails.map((detail,index)=>{
+    ?analysisData.wordDetails.map((detail,analysisIndex)=>{
       const value=detail?.stressPattern||(
         detail?.primaryStressSyllable!=null?'P'+detail.primaryStressSyllable:'—'
       );
-      return '<button data-analysis-bar="'+index+'" title="'+esc(words[index]||'Bar '+(index+1))+'"><small>'+String(index+1).padStart(2,'0')+'</small><b>'+esc(value||'—')+'</b></button>';
+      const lineIndex=trackedIndexes[analysisIndex];
+      return '<button data-analysis-bar="'+lineIndex+'" title="'+esc(words[analysisIndex]||'Bar '+(analysisIndex+1))+'"><small>'+String(analysisIndex+1).padStart(2,'0')+'</small><b>'+esc(value||'—')+'</b></button>';
     }).join('')
     :'';
 
@@ -1070,6 +1528,7 @@ function renderAnalysisSurface(){
     <div class="analysis-head row between wrap">
       <div><div class="eyebrow">Song Analysis</div><h2>Klang, Struktur, Spannung.</h2><p class="small">Reimschema, Stressdaten und Klangbeziehungen kommen aus dem kanonischen Writer-Runtime-Pfad. Lokale Silbenzählung ist separat als Approximation markiert.</p></div>
       <div class="row wrap">
+        ${analysisScopeToggleMarkup()}
         <span class="analysis-source">WRITER · ${esc(String(basis).toUpperCase())}${runtime}</span>
         <div class="analysis-language-toggle" role="group" aria-label="Analysesprache">
           <button data-analysis-language="de" class="${basis==='de'?'active':''}" aria-pressed="${basis==='de'}">DE</button>
@@ -1089,7 +1548,7 @@ function renderAnalysisSurface(){
       </section>
       <section class="analysis-card">
         <div class="row between"><div><h3>Bar-Dichte</h3><p class="small">≈ lokale Silbenschätzung · keine kanonische Phonetikmetrik</p></div><span class="analysis-estimate-badge">APPROX</span></div>
-        <div class="analysis-density-list">${s.lines.map((line,index)=>{
+        <div class="analysis-density-list">${trackedLines.map((line,index)=>{
           const count=syll(line);
           const width=Math.min(100,Math.max(2,count*4));
           return '<div class="analysis-density-row"><span>'+String(index+1).padStart(2,'0')+'</span><i><b style="width:'+width+'%"></b></i><strong>'+count+'</strong></div>';
@@ -1107,6 +1566,7 @@ function renderAnalysisSurface(){
     </div>`;
   $('#backWrite').onclick=()=>setMode('write');
   $('#refreshAnalysis').onclick=()=>{analysisSignature='';void refreshSongAnalysis(true)};
+  queryAll('[data-analysis-scope]').forEach((button)=>button.onclick=()=>setAnalysisScope(button.dataset.analysisScope));
   $('#analysisChainToggle').onclick=()=>{
     analysisChainVisible=!analysisChainVisible;
     renderAnalysisSurface();
@@ -1125,7 +1585,7 @@ function renderAnalysisSurface(){
     if(!['de','en','both'].includes(next)||basis===next)return;
     basis=next;
     pageSize=6;
-    analysisSignature='';
+    analysisSignature='';allRhymeSignature='';
     saveStudioSearchState({queryBasis:basis});
     syncInline();
     void refreshWriterResults();
@@ -1150,38 +1610,68 @@ async function refreshSongAnalysis(force=false){
   analysisAbort?.abort?.();
   analysisAbort=new AbortController();
   const token=++analysisRequest;
+  const cacheKey=studioAnalysisResultCacheKey('end',signature);
   analysisStatus='loading';analysisData=null;analysisError='';
   renderAnalysisSurface();
   try{
     const s=song();
-    const result=await analysisClient.analyze(s.lines,{
-      language:basis,
-      generated,
-      generatedOnly,
-      runtimeDb:internalDbLabEnabled?internalDbLabActive:'',
-      signal:analysisAbort.signal,
-    });
-    if(token!==analysisRequest)return;
-    analysisData=result;analysisStatus='ready';analysisError='';
+    const trackedLines=trackedStudioLines(s);
+    if(!trackedLines.length){
+      analysisStatus='idle';
+      analysisData=null;
+      analysisError='';
+      if(mode==='rhyme')renderAnalysisSurface();
+      return;
+    }
+    if(!force){
+      const cached=await readStudioAnalysisCache(cacheKey);
+      if(token!==analysisRequest||analysisKey()!==signature)return;
+      if(cached){
+        analysisData={...cached,clientCacheHit:true};
+        analysisStatus='ready';analysisError='';
+        if(mode==='rhyme')renderAnalysisSurface();
+        return;
+      }
+    }
+    const result=await analysisClient.analyze(
+      trackedLines,
+      studioAnalysisRequestOptions(analysisAbort.signal),
+    );
+    if(token!==analysisRequest||analysisKey()!==signature)return;
+    analysisData={...result,clientCacheHit:false};analysisStatus='ready';analysisError='';
+    void writeStudioAnalysisCache(cacheKey,result);
   }catch(error){
     if(error?.name==='AbortError'||token!==analysisRequest)return;
     analysisStatus='error';analysisError=error instanceof Error?error.message:String(error);
   }
   if(mode==='rhyme')renderAnalysisSurface();
 }
-function renderAnalysis(){renderAnalysisSurface();void refreshSongAnalysis()}
+function renderAnalysis(){
+  renderAnalysisSurface();
+  if(analysisScope==='all')void refreshAllRhymeAnalysis();
+  else void refreshSongAnalysis();
+}
 function renderPerform(){
   stopPlay();
   const s=song();
+  if(!isTrackedEditorLine(s.lines[activeLine]||'')){
+    const nearest=nearestTrackedStudioLine(s,activeLine);
+    if(nearest<0){
+      $('#performView').innerHTML='<div class="analysis-empty">Keine getrackte Bar vorhanden. Leerzeilen und [Section]-Zeilen werden nicht sequenziert.</div>';
+      return;
+    }
+    activeLine=nearest;
+  }
   const bar=barIdentity(s,activeLine);
   if(!bar)return;
+  const barNumber=trackedEditorBarNumber(s,activeLine);
   const barId=bar.id;
   const config=performanceConfig(s);
   const metrics=performanceBarMetrics(s,barId);
   const pocket=performancePocketMetrics(s,barId);
   const previous=performancePreviousBarPlacements(s,barId);
   const barDurationMs=performanceBarDurationMs(s);
-  const syllableEstimate=syll(s.lines[activeLine]);
+  const syllableEstimate=syll(trackedStudioLineText(s,activeLine));
   const syllablesPerSecond=performanceSyllablesPerSecond(s,syllableEstimate);
   const fingerprint=performanceFlowFingerprint(s,barId);
   const steps=config.grid;
@@ -1202,7 +1692,7 @@ function renderPerform(){
     :'';
   $('#performView').innerHTML=`
     <div class="perform-head">
-      <div><div class="eyebrow">Perform / Bar ${String(activeLine+1).padStart(2,'0')}</div><h2>Flow sequenzieren.</h2><p>${esc(s.lines[activeLine]||'Leere Bar')}</p></div>
+      <div><div class="eyebrow">Perform / Bar ${String(barNumber).padStart(2,'0')}</div><h2>Flow sequenzieren.</h2><p>${esc(s.lines[activeLine]||'Leere Bar')}</p></div>
       <div class="perform-metrics">
         <span><b>${syllableEstimate||0}</b><small>Silben ≈</small></span>
         <span><b>${metrics.cues}</b><small>Cues</small></span>
@@ -1305,7 +1795,7 @@ function renderPerform(){
   $('#playBtn').onclick=()=>playing?stopPlay():startPlay();
   $('#autoMap').onclick=()=>{
     pushUndo();
-    autoMapPerformanceBar(s,barId,syll(s.lines[activeLine]));
+    autoMapPerformanceBar(s,barId,syll(trackedStudioLineText(s,activeLine)));
     performanceMoveFrom=null;changed();renderPerform();
     notify('Auto-Map aus Silbenschätzung gesetzt · bitte Timing prüfen.');
   };
@@ -1360,10 +1850,10 @@ async function startPlay(){
 function showDialog(title,html){$('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=html;if(!$('#dialog').open)$('#dialog').showModal()}
 function closeDialog(){$('#dialog').close()}
 function legacyFilters(){showDialog('Dein Klang. Deine Suche.',`<div class="formgrid"><label class="field">Aussprache der Suchanfrage<select id="basis"><option value="de">Deutsch</option><option value="en">Englisch</option><option value="both">DE + EN</option></select></label><label class="field">Sprache der Ergebnisse<select id="resultLanguage"><option value="both">DE + EN</option><option value="de">Deutsch</option><option value="en">Englisch</option></select></label><label class="field">Reimbeziehung<select id="relation"><option value="all">Alle Beispiele</option><option value="rein">Reiner Reim</option><option value="nah">Naher Klang</option></select></label><label class="field">Reihenfolge<select id="sort"><option value="recommended">Writer-Empfehlung</option><option value="alpha">A–Z</option><option value="syllables">Silben aufsteigend</option></select></label></div><p class="notice">Die Live-Suche nutzt die lokale Writer-Runtime. Die vollständige Filtermatrix, Varianten, historische Formen, Generated-Daten und Provenienz sind im Studio über direkte und erweiterte Filter verfügbar.</p><div class="dialogactions"><button id="resetFilters">Zurücksetzen</button><button id="applyFilters" class="primary">Anwenden</button></div>`);$('#basis').value=basis;$('#resultLanguage').value=resultLang;$('#relation').value=relation;$('#sort').value=sort;$('#applyFilters').onclick=()=>{basis=$('#basis').value;resultLang=$('#resultLanguage').value;relation=$('#relation').value;sort=$('#sort').value;pageSize=6;void refreshWriterResults();closeDialog()};$('#resetFilters').onclick=()=>{basis='de';resultLang='both';relation='all';sort='recommended';void refreshWriterResults();closeDialog()}}
-function legacySettings(){showDialog('Dein Studio einrichten',`<label class="field">Schriftgröße im Editor<input id="fontRange" type="range" min="16" max="28" value="${state.fontSize}"></label><p class="small" id="fontValue">${state.fontSize} px</p><div class="row wrap" style="margin-top:20px"><button id="settingTheme" class="outline">Hell / Dunkel wechseln</button><button id="settingHistory" class="outline">Versionsverlauf</button></div><p class="notice">Texte, Revisionen und Performance-Cues werden lokal im versionierten IndexedDB-DocumentStore gespeichert. UI-Präferenzen bleiben in LocalStorage; Recovery-Punkte sind in den Studio-Einstellungen verfügbar.</p><div class="row wrap"><button id="sourceInfo" class="outline">Über Studio 02</button><button id="commandsSettings" class="outline">Tastenkürzel</button></div>`);$('#fontRange').oninput=e=>{state.fontSize=+e.target.value;document.documentElement.style.setProperty('--editor',state.fontSize+'px');queryAll('#lyrics textarea').forEach(resizeArea);$('#fontValue').textContent=state.fontSize+' px';persist()};$('#settingTheme').onclick=toggleTheme;$('#settingHistory').onclick=showHistory;$('#sourceInfo').onclick=showInfo;$('#commandsSettings').onclick=showCommands}
+function legacySettings(){showDialog('Dein Studio einrichten',`<label class="field">Schriftgröße im Editor<input id="fontRange" type="range" min="16" max="28" value="${state.fontSize}"></label><p class="small" id="fontValue">${state.fontSize} px</p><div class="row wrap" style="margin-top:20px"><button id="settingTheme" class="outline">Hell / Dunkel wechseln</button><button id="settingHistory" class="outline">Versionsverlauf</button></div><p class="notice">Texte, Revisionen und Performance-Cues werden lokal im versionierten IndexedDB-DocumentStore gespeichert. UI-Präferenzen bleiben in LocalStorage; Recovery-Punkte sind in den Studio-Einstellungen verfügbar.</p><div class="row wrap"><button id="sourceInfo" class="outline">Über Studio 02</button><button id="commandsSettings" class="outline">Tastenkürzel</button></div>`);$('#fontRange').oninput=e=>{state.fontSize=+e.target.value;document.documentElement.style.setProperty('--editor',state.fontSize+'px');resizeArea($('#lyricsEditor'));$('#fontValue').textContent=state.fontSize+' px';persist()};$('#settingTheme').onclick=toggleTheme;$('#settingHistory').onclick=showHistory;$('#sourceInfo').onclick=showInfo;$('#commandsSettings').onclick=showCommands}
 function legacyToggleTheme(){toggleTheme()}
 function legacyHistory(){revision('history_open');showDialog('Deine letzten Fassungen',`<p class="notice">Wiederherstellen erzeugt zuvor eine Sicherung der aktuellen Fassung.</p>${(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,65))}…</p></div><button class="outline" data-revision="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p>Noch keine ältere Fassung vorhanden.</p>'}`);queryAll('[data-revision]').forEach(b=>b.onclick=()=>{if(restoreStudioRevision(song().revisions[+b.dataset.revision])){closeDialog();notify('Fassung wiederhergestellt · Bar-IDs und Cues erhalten.')}})}
-function showInfo(){showDialog('RhymeLab Studio 02',`<p>Ein gemeinsamer Schreibraum für Browser, Mobile und den späteren Electron-Adapter.</p><p class="notice">Reimsuche, Detail-/Provenienzflächen und Song-Reimschema laufen über die lokale Writer-Runtime. Dokumente, Revisionen und Performance-Cues liegen im versionierten IndexedDB-DocumentStore mit Recovery-Punkten.</p><p class="notice">Explizite Approximationen bleiben die UI-Silbenzählung und das darauf basierende Perform Auto-Map. Browser-, Touch- und Audio-Geräteabnahme bleibt vor dem Default-Route-Cutover erforderlich.</p>`)}
+function showInfo(){showDialog('RhymeLab Studio 02',`<p>Ein gemeinsamer Schreibraum für Browser, Mobile und den späteren Electron-Adapter.</p><p class="notice">Reimsuche, Detail-/Provenienzflächen und Song-Reimschema laufen über die lokale Writer-Runtime. Dokumente, Revisionen und Performance-Cues liegen im versionierten IndexedDB-DocumentStore mit Recovery-Punkten.</p><p class="notice">UI-Silbenzählung und Perform Auto-Map bleiben bewusst als lokale Hilfen gekennzeichnet.</p>`)}
 function studioCommandRegistry(){
   return [
     {id:'studio',group:'Navigation',label:'Studio öffnen',keywords:['studio','write','schreiben'],shortcut:'Alt+1',run:()=>navigate('studio')},
@@ -1385,7 +1875,7 @@ function studioCommandRegistry(){
     {id:'export-text',group:'Dokument',label:'Text als TXT exportieren',keywords:['export','txt','download'],run:exportText},
     {id:'export-backup',group:'Dokument',label:'Workspace-Backup exportieren',keywords:['backup','json','workspace','export'],run:async()=>{await exportPortableStudioBackup();notify('Portables Studio Backup exportiert.')}},
     {id:'search-focus',group:'Writer',label:'Reimanker suchen',keywords:['anchor','search','writer','query'],shortcut:'Alt+R',run:()=>{if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}},
-    {id:'filters',group:'Writer',label:'Filter ein-/ausblenden',keywords:['filters','writer','options'],run:showFilters},
+    {id:'filters',group:'Writer',label:'Suchfilter fokussieren',keywords:['filters','writer','options','rhyme'],run:showFilters},
     {id:'hide-used',group:'Writer',label:hideUsed?'Verwendete Treffer wieder zeigen':'Verwendete Treffer ausblenden',keywords:['hide used','used','duplicates'],run:()=>{hideUsed=!hideUsed;state.hideUsed=hideUsed;persist();renderResults()}},
     {id:'auto-scroll',group:'Writer',label:auto?'Auto-Scroll ausschalten':'Auto-Scroll einschalten',keywords:['scroll','automatic','results'],run:toggleAuto},
     {id:'density',group:'Writer',label:'Trefferdichte wechseln',keywords:['density','compact','tiles','list'],shortcut:'Alt+L',run:()=>setDensity(nextDensity(density))},
@@ -1393,8 +1883,7 @@ function studioCommandRegistry(){
     {id:'settings',group:'Ansicht',label:'Einstellungen öffnen',keywords:['settings','appearance','preferences'],run:showSettings},
     {id:'theme',group:'Ansicht',label:'Light / Dark wechseln',keywords:['theme','light','dark','appearance'],run:toggleTheme},
     {id:'language',group:'Ansicht',label:state.uiLanguage==='de'?'Interface auf English':'Interface auf Deutsch',keywords:['language','sprache','english','deutsch'],run:toggleStudioUiLanguage},
-    {id:'diagnostics',group:'System',label:'Browser-Diagnostics öffnen',keywords:['diagnostics','browser','runtime','acceptance'],run:()=>{showSettings();requestAnimationFrame(()=>$('#diagnosticsPanel')?.scrollIntoView({block:'nearest',behavior:'smooth'}))}},
-    {id:'recovery',group:'System',label:'Recovery-Punkt erstellen',keywords:['recovery','backup','snapshot'],run:async()=>{await createRecoveryPoint();notify('Recovery-Punkt erstellt.');if(dockTab==='settings')renderDock()}},
+    {id:'recovery',group:'System',label:'Recovery-Punkt erstellen',keywords:['recovery','backup','snapshot'],run:async()=>{await createRecoveryPoint();notify('Recovery-Punkt erstellt.');if(page==='settings')renderSettingsPage()}},
   ];
 }
 function renderCommandPalette(queryValue=''){
@@ -1595,8 +2084,8 @@ function exportText(){
   notify('Text als TXT exportiert.');
 }
 function runAuto(t){if(!auto)return;const el=$('#resultsScroll');if(t>pauseUntil&&!document.hidden&&!$('#dialog').open&&el.clientHeight>0){el.scrollTop+=(t-(lastFrame||t))*.018;if(el.scrollTop+el.clientHeight>=el.scrollHeight-2){if(pageSize<data().length){pageSize+=6;renderResults()}else{el.scrollTop=0;pauseUntil=t+1200}}}lastFrame=t;scrollFrame=requestAnimationFrame(runAuto)}
-function toggleAuto(){auto=!auto;$('#autoBtn').textContent='Auto-Scroll: '+(auto?'An':'Aus');$('#autoBtn').setAttribute('aria-pressed',auto);cancelAnimationFrame(scrollFrame);lastFrame=0;if(auto){pauseUntil=performance.now()+1000;scrollFrame=requestAnimationFrame(runAuto)}}
-function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','filterBtn','autoBtn','moreBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
+function toggleAuto(){auto=!auto;$('#autoBtn').textContent=state.uiLanguage==='en'?'↕ Auto-scroll: '+(auto?'On':'Off'):'↕ Auto-Scroll: '+(auto?'An':'Aus');$('#autoBtn').classList.toggle('active',auto);$('#autoBtn').setAttribute('aria-pressed',auto);cancelAnimationFrame(scrollFrame);lastFrame=0;if(auto){pauseUntil=performance.now()+1000;scrollFrame=requestAnimationFrame(runAuto)}}
+function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','autoBtn','moreBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
 const bindClick=(id,handler,{optional=false}={})=>{
   const element=document.getElementById(id);
   if(!element){
@@ -1617,23 +2106,27 @@ bindClick('exportBtn',exportText);
 bindClick('commandBtn',showCommands);
 bindClick('settingsBtn',showSettings);
 bindClick('settingsSide',showSettings);
-bindClick('filterBtn',showFilters);
-bindClick('languageBtn',showFilters);
+bindClick('languageBtn',()=>{const target=$('#directLanguageRoute__trigger')||$('#directLanguageRoute');target?.focus()});
 bindClick('historyBtn',showHistory);
 bindClick('infoBtn',showInfo);
 bindClick('focusBtn',toggleFocus);
 bindClick('newSongSidebar',newSong);
 bindClick('renameBtn',()=>nameDialog('Titel ändern',song().title,t=>{song().title=t;persist();renderEditor()}));
 bindClick('addBar',()=>{
+  const current=song();
   pushUndo();
-  const current=song(),last=current.lines.length-1;
-  splitEditorBar(current,last,current.lines[last].length,current.lines[last].length);
-  activeLine=current.lines.length-1;
-  renderEditor();focusLine(activeLine,0);changed();
+  const inserted=insertEditorBar(current,Math.min(current.lines.length,activeLine+1),'');
+  if(!inserted)return;
+  activeLine=inserted.index;
+  analysisSignature='';
+  renderEditor();
+  focusLine(activeLine,0);
+  changed();
 });
 bindClick('undoBtn',performUndo);
 bindClick('redoBtn',performRedo);
 const searchForm=$('#searchForm');
+bindClick('searchPageFiltersToggle',toggleVisibleSearchFilters);
 searchForm.onsubmit=e=>{
   e.preventDefault();
   query=$('#searchInput').value.trim()||query;
@@ -1645,6 +2138,7 @@ bindClick('autoBtn',toggleAuto);
 bindClick('moreBtn',()=>{pageSize+=6;renderResults()});
 const resultsScroll=$('#resultsScroll');
 resultsScroll.addEventListener('scroll',()=>{
+  syncSearchPageCompact(resultsScroll.scrollTop);
   if(resultsScroll.scrollTop>0&&resultsScroll.scrollHeight-resultsScroll.scrollTop-resultsScroll.clientHeight<90&&pageSize<data().length){
     pageSize+=6;renderResults();
   }
@@ -1685,7 +2179,7 @@ document.addEventListener('keydown',e=>{
   if(e.altKey&&e.key==='1'){e.preventDefault();navigate('studio')}
   if(e.altKey&&e.key==='2'){e.preventDefault();navigate('search')}
   if(e.altKey&&key==='f'){e.preventDefault();toggleFocus()}
-});window.addEventListener('resize',()=>queryAll('#lyrics textarea').forEach(resizeArea));document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPlay();void flushStudioPersistence('visibility_hidden')}});window.addEventListener('pagehide',()=>{void flushStudioPersistence('pagehide');mobileViewportCleanup?.();uiLocalizer?.disconnect()});document.body.dataset.controls='bound';}
+});window.addEventListener('resize',()=>resizeArea($('#lyricsEditor')));document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPlay();void flushStudioPersistence('visibility_hidden')}});window.addEventListener('pagehide',()=>{void flushStudioPersistence('pagehide');mobileViewportCleanup?.();uiLocalizer?.disconnect()});document.body.dataset.controls='bound';}
 // Version 2: direct desktop controls and docked surfaces.
 let density=normalizeDensity(state.density),syllableMode='all',followSelection=true,selectedResult='',selectedResultId='',dockTab='',resultSignature='',selectionProof=null,barNavigatorQuery='';
 state.motion=state.motion||'auto';
@@ -1737,63 +2231,111 @@ data=function(){return filterUnusedWriterRows(filterStudioWriterRows(baseData(),
 resultHTML=function(r){const saved=state.saved.some(s=>s.word===r.word),kind=r.kind==='phrase'?'PHRASE':r.kind==='entity'?'NAME':'',active=selectedResultId?selectedResultId===r.id:selectedResult===r.word,shortRelation=({multisyllabic_perfect:'Multi-Voll',perfect:'Voll',multisyllabic_slant:'Multi-Slant',family:'Familie',slant:'Slant',assonance:'Asson.',consonance:'Konson.'})[r.relationType]||'Klang';return `<div class="result ${active?'is-selected':''}" data-result-word="${esc(r.word)}" data-result-id="${esc(r.id)}"><div class="grow"><button class="result-word" data-detail="${esc(r.word)}" data-detail-id="${esc(r.id)}" aria-label="Details zu ${esc(r.word)}" aria-pressed="${active}">${esc(r.word)}${kind?`<span class="result-kind">${kind}</span>`:''}</button><div class="result-meta"><b>${esc(r.relationLabel||'Klangtreffer')}</b><span>${r.syll||'—'} Silb.</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'} · ${r.lang.toUpperCase()}</span></div>${resultBadgeMarkup(r)}</div><span class="result-relation">${esc(shortRelation)}</span><span class="result-syll">${r.syll||'—'}</span><div class="result-actions"><button data-save="${esc(r.word)}" class="${saved?'saved':''}" aria-pressed="${saved}" aria-label="${esc(r.word)} ${saved?'entmerken':'merken'}">${icon('book')}</button><button data-insert="${esc(r.word)}" aria-label="${esc(r.word)} einsetzen">${icon('plus')}</button></div></div>`};
 renderResults=function(){
   const renderStarted=performance.now();
+  const effectiveDensity=page==='studio'?'compact':density;
+  if(page==='studio'&&pageSize<24)pageSize=24;
   baseRenderResults();
   const runtimeInline=$('#runtimeInline');if(runtimeInline)runtimeInline.textContent=writerTimingText();
-  const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===density));
+  const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===effectiveDensity));
   queryAll('[data-density]').forEach(b=>{b.classList.toggle('active',b.dataset.density===density);b.setAttribute('aria-pressed',b.dataset.density===density)});
   queryAll('#results .result').forEach((r,i)=>r.style.setProperty('--i',i));
-  const sig=[query,scope,relation,rhymeType,variantMode,entityCategories.join(','),includeHistorical,generated,generatedOnly,sort,basis,resultLang,syllableMode,density,internalDbLabEnabled?internalDbLabActive:'default'].join('|');
+  const sig=[query,scope,relation,rhymeType,variantMode,entityCategories.join(','),includeHistorical,generated,generatedOnly,sort,basis,resultLang,syllableMode,effectiveDensity,internalDbLabEnabled?internalDbLabActive:'default'].join('|');
   if(sig!==resultSignature){animateSurface($('#results'),'results-enter');animateSurface($('#anchorWord'),'anchor-change');resultSignature=sig;$('#resultsScroll').scrollTop=0}
   syncInline();
   if(selectedResult&&!data().some(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult)){selectedResult='';selectedResultId='';selectedDetail=null;$('#detailDock').classList.add('hidden')}
   if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();
   $('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer'+(hiddenUsedCount?' · '+hiddenUsedCount+' verwendet ausgeblendet':'');
-  $('#filterLabel').textContent=$('#directFilters').classList.contains('hidden')?'Filter öffnen':hasActiveSearchFilters()?'Filter aktiv':'Filter sichtbar';
   lastResultRenderMs=Number((performance.now()-renderStarted).toFixed(1));
   if(internalDbLabEnabled)renderInternalDbLab();
 };
-renderEditor=function(){baseRenderEditor();selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});$('#fontSizeLive').textContent=state.fontSize;if(dockTab==='saved'||dockTab==='navigator')renderDock();};
-captureSelection=function(el){const old=query;baseCapture(el);if(!followSelection){query=old;renderResults()}selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail()};
-insertWord=function(word){if(selectionProof){const check=validateSelectionProof(song(),selectionProof);if(!check.valid){notify('Textstelle geändert. Bitte Zielwort erneut auswählen.');return}}baseInsert(word);animateSurface($(`#lyrics textarea[data-line="${activeLine}"]`)?.parentElement,'insert-flash');selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult)renderDetail()};
+function currentSelectionProof(){
+  if(selection.multiline||!selection.tracked||!isTrackedEditorLine(song().lines[selection.line]||''))return null;
+  return createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});
+}
+renderEditor=function(){
+  baseRenderEditor();
+  selectionProof=currentSelectionProof();
+  $('#fontSizeLive').textContent=state.fontSize;
+  if(dockTab==='saved'||dockTab==='navigator')renderDock();
+};
+captureSelection=function(el){
+  const old=query;
+  baseCapture(el);
+  if(!followSelection){query=old;renderResults()}
+  selectionProof=currentSelectionProof();
+  if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();
+};
+insertWord=function(word){
+  if(selectionProof){
+    const check=validateSelectionProof(song(),selectionProof);
+    if(!check.valid){notify('Textstelle geändert. Bitte Zielwort erneut auswählen.');return}
+  }
+  baseInsert(word);
+  animateSurface($('#lyricsNotepad'),'insert-flash');
+  selectionProof=currentSelectionProof();
+  if(selectedResult)renderDetail();
+};
 toggleSave=function(word){baseToggleSave(word);const b=queryAll('[data-save]').find(b=>b.dataset.save===word);animateSurface(b,'bookmark-pop');if(dockTab==='saved')renderDock();if(selectedResult)renderDetail()};
 setMode=function(next){baseMode(next);animateSurface($(next==='write'?'#writeView':next==='rhyme'?'#rhymeView':'#performView'))};
-function currentSearchPreset(){
-  if(scope==='word'&&rhymeType==='all')return 'words';
-  if(scope==='phrase'&&rhymeType==='all')return 'phrases';
-  if(scope==='entity'&&rhymeType==='all')return 'entities';
-  if(scope==='all'&&STUDIO_RHYME_TYPE_LABELS[rhymeType])return rhymeType;
-  if(scope==='all'&&rhymeType==='all')return 'best';
-  return 'custom';
+let filterSelectControls=[];
+function customSelectDomAvailable(){
+  const probe=document.createElement?.('div');
+  return Boolean(probe&&typeof probe.appendChild==='function'&&document.body?.appendChild);
+}
+function installFilterSelectControls(){
+  if(!customSelectDomAvailable())return;
+  filterSelectControls=[
+    ['directLanguageRoute',{}],['directScope',{}],['directRhymeType',{}],['directSyllables',{}],
+    ['directSort',{}],['directVariants',{}],['directCorpus',{}],
+    ['directEntityCategories',{
+      mobileSheet:true,
+      mobileSheetBreakpoint:800,
+      placeholder:()=>state.uiLanguage==='en'?'All categories':'Alle Kategorien',
+      title:()=>state.uiLanguage==='en'?'Entity categories':'Entity-Kategorien',
+      resetLabel:()=>state.uiLanguage==='en'?'Reset selection':'Auswahl zurücksetzen',
+      closeLabel:()=>state.uiLanguage==='en'?'Close':'Schließen',
+    }],
+  ].map(([id,config])=>enhanceSelect($('#'+id),config)).filter(Boolean);
+}
+function syncFilterSelectControls(){
+  if(!customSelectDomAvailable())return;
+  syncEnhancedSelects(filterSelectControls);
+}
+function languageRouteValue(){
+  return basis+':'+resultLang;
+}
+function applyLanguageRoute(value){
+  const [nextBasis,nextResult]=String(value||'de:both').split(':');
+  if(!['de','en','both'].includes(nextBasis)||!['de','en','both'].includes(nextResult))return;
+  basis=nextBasis;
+  resultLang=nextResult;
+  saveStudioSearchState();
+  void refreshWriterResults();
+}
+function corpusModeValue(){
+  if(includeHistorical&&generatedOnly)return 'historical_generated_only';
+  if(includeHistorical&&generated)return 'complete';
+  if(includeHistorical)return 'historical';
+  if(generatedOnly)return 'generated_only';
+  if(generated)return 'generated';
+  return 'current';
+}
+function applyCorpusMode(value){
+  const mode=String(value||'current');
+  includeHistorical=mode==='historical'||mode==='complete'||mode==='historical_generated_only';
+  generated=mode==='generated'||mode==='generated_only'||mode==='complete'||mode==='historical_generated_only';
+  generatedOnly=mode==='generated_only'||mode==='historical_generated_only';
+  saveStudioSearchState();
+  syncFilterDeckControls();
+  void refreshWriterResults();
 }
 function syncScopeButtons(){
+  const control=$('#directScope');
+  if(control)control.value=scope;
   queryAll('[data-scope]').forEach((button)=>{
     const active=button.dataset.scope===scope;
     button.classList.toggle('active',active);
     button.setAttribute('aria-pressed',String(active));
   });
-}
-function applySearchPreset(value){
-  const preset=String(value||'best');
-  relation='all';
-  if(preset==='words'){scope='word';rhymeType='all'}
-  else if(preset==='phrases'){scope='phrase';rhymeType='all'}
-  else if(preset==='entities'){scope='entity';rhymeType='all'}
-  else if(STUDIO_RHYME_TYPE_LABELS[preset]){scope='all';rhymeType=preset}
-  else if(preset==='best'){scope='all';rhymeType='all'}
-  else return;
-  pageSize=density==='compact'?24:12;
-  syncScopeButtons();
-  void refreshWriterResults();
-}
-function advancedFilterCount(){
-  return [
-    rhymeType!=='all',
-    variantMode!=='preferred',
-    entityCategories.length>0,
-    includeHistorical,
-    generated,
-    generatedOnly,
-  ].filter(Boolean).length;
 }
 function availableEntityCategories(){
   const values=writerCapabilities?.entities?.categories;
@@ -1812,93 +2354,181 @@ function setEntityCategories(values,{refresh=true}={}){
   entityCategories=next;
   entityCategory=entityCategories[0]||'all';
   saveStudioSearchState({entityCategory,entityCategories});
-  syncAdvancedControls();
+  syncFilterDeckControls();
   if(refresh)void refreshWriterResults();
 }
-function syncAdvancedControls(){
-  const panel=$('#advancedFilters'),toggle=$('#advancedFiltersToggle');
-  if(!panel||!toggle)return;
-  panel.classList.toggle('hidden',!advancedExpanded);
-  toggle.setAttribute('aria-expanded',String(advancedExpanded));
-  $('#advancedPreset').value=currentSearchPreset();
-  $('#advancedRhymeType').value=rhymeType;
-  $('#advancedVariants').value=variantMode;
-  $('#advancedHideUsed').checked=hideUsed;
-  $('#advancedHistorical').checked=includeHistorical;
-  $('#advancedGenerated').checked=generated;
-  $('#advancedGeneratedOnly').checked=generatedOnly;
+function setFilterFieldActive(control,active){
+  control?.closest?.('.filter-field')?.classList.toggle('is-active',Boolean(active));
+}
+function syncFilterDeckControls(){
+  const languageRoute=$('#directLanguageRoute');
+  const scopeControl=$('#directScope');
+  const rhymeControl=$('#directRhymeType');
+  const syllableControl=$('#directSyllables');
+  const sortControl=$('#directSort');
+  const variantsControl=$('#directVariants');
+  const corpusControl=$('#directCorpus');
+  const hideUsedControl=$('#directHideUsed');
+  if(languageRoute)languageRoute.value=languageRouteValue();
+  if(scopeControl)scopeControl.value=scope;
+  if(rhymeControl)rhymeControl.value=rhymeType;
+  if(syllableControl)syllableControl.value=syllableMode;
+  if(sortControl)sortControl.value=sort;
+  if(variantsControl)variantsControl.value=variantMode;
+  if(corpusControl)corpusControl.value=corpusModeValue();
+  if(hideUsedControl){
+    hideUsedControl.classList.toggle('active',hideUsed);
+    hideUsedControl.setAttribute('aria-pressed',String(hideUsed));
+    hideUsedControl.textContent=state.uiLanguage==='en'
+      ?(hideUsed?'✓ Hide used':'○ Show used')
+      :(hideUsed?'✓ Verwendete aus':'○ Verwendete zeigen');
+  }
 
-  const categorySelect=$('#advancedEntityCategory');
-  const categoryMulti=$('#advancedEntityCategoryMulti');
+  setFilterFieldActive(languageRoute,basis!=='de'||resultLang!=='both');
+  setFilterFieldActive(scopeControl,scope!=='all');
+  setFilterFieldActive(rhymeControl,rhymeType!=='all');
+  setFilterFieldActive(syllableControl,syllableMode!=='all');
+  setFilterFieldActive(sortControl,sort!=='recommended');
+  setFilterFieldActive(variantsControl,variantMode!=='preferred');
+  setFilterFieldActive(corpusControl,includeHistorical||generated||generatedOnly);
+
   const categories=availableEntityCategories();
   if(categories.length){
     entityCategories=entityCategories.filter((value)=>categories.includes(value));
     entityCategory=entityCategories[0]||'all';
   }
-  categorySelect.innerHTML='<option value="all">Alle Entities</option>'+categories.map((value)=>'<option value="'+esc(value)+'">'+esc(humanizeDetail(value))+'</option>').join('');
-  categorySelect.value=entityCategory;
   const categoryAvailable=categories.length>0&&(scope==='all'||scope==='entity');
-  const categoryField=$('#advancedEntityCategoryField');
-  categoryField.classList.toggle('is-unavailable',!categoryAvailable);
-  categorySelect.disabled=!categoryAvailable;
-  categoryMulti.innerHTML='<button type="button" data-entity-category="all" class="'+(!entityCategories.length?'active':'')+'" aria-pressed="'+String(!entityCategories.length)+'">Alle</button>'
-    +categories.map((value)=>{
-      const active=entityCategories.includes(value);
-      return '<button type="button" data-entity-category="'+esc(value)+'" class="'+(active?'active':'')+'" aria-pressed="'+String(active)+'" '+(!categoryAvailable?'disabled':'')+'>'+esc(humanizeDetail(value))+'</button>';
-    }).join('');
-  queryAll('#advancedEntityCategoryMulti [data-entity-category]').forEach((button)=>button.onclick=()=>{
-    const value=button.dataset.entityCategory;
-    if(value==='all'){setEntityCategories([]);return}
-    const next=entityCategories.includes(value)
-      ?entityCategories.filter((item)=>item!==value)
-      :[...entityCategories,value];
-    setEntityCategories(next);
-  });
+  const categoryField=$('#directEntityCategoryField');
+  const categorySelect=$('#directEntityCategories');
+  categoryField?.classList.toggle('is-unavailable',!categoryAvailable);
+  categoryField?.classList.toggle('is-active',entityCategories.length>0);
+  if(categorySelect){
+    const signature=categories.map((value)=>value+'='+humanizeDetail(value)).join('|');
+    if(categorySelect.dataset.signature!==signature){
+      categorySelect.dataset.signature=signature;
+      categorySelect.innerHTML=categories.map((value)=>'<option value="'+esc(value)+'">'+esc(humanizeDetail(value))+'</option>').join('');
+    }
+    for(const option of categorySelect.options)option.selected=entityCategories.includes(option.value);
+    categorySelect.disabled=!categoryAvailable;
+  }
 
   const variantsAvailable=scope==='all'||scope==='word';
-  $('#advancedVariants').disabled=!variantsAvailable;
-  $('#advancedVariants').closest('label')?.classList.toggle('is-unavailable',!variantsAvailable);
+  if(variantsControl)variantsControl.disabled=!variantsAvailable;
+  variantsControl?.closest('.filter-field')?.classList.toggle('is-unavailable',!variantsAvailable);
 
   const generatedAvailable=studioCapabilities.generated===true;
-  const generatedField=$('#advancedGeneratedField');
-  const generatedOnlyField=$('#advancedGeneratedOnlyField');
-  generatedField.classList.toggle('is-unavailable',!generatedAvailable);
-  generatedOnlyField.classList.toggle('is-unavailable',!generatedAvailable||!generated);
-  $('#advancedGenerated').disabled=!generatedAvailable;
-  $('#advancedGeneratedOnly').disabled=!generatedAvailable||!generated;
-
-  const count=advancedFilterCount(),countEl=$('#advancedFilterCount');
-  countEl.textContent=String(count);
-  countEl.classList.toggle('hidden',count===0);
+  if(corpusControl){
+    for(const option of corpusControl.options){
+      option.disabled=String(option.value).includes('generated')&&!generatedAvailable;
+    }
+  }
+  syncFilterSelectControls();
 }
 function hasActiveSearchFilters(){
   return scope!=='all'||relation!=='all'||rhymeType!=='all'||syllableMode!=='all'||resultLang!=='both'||basis!=='de'||sort!=='recommended'||variantMode!=='preferred'||entityCategories.length>0||includeHistorical||generated||generatedOnly;
 }
+function activeSearchFilterCount(){
+  let count=0;
+  if(scope!=='all')count+=1;
+  if(relation!=='all'||rhymeType!=='all')count+=1;
+  if(syllableMode!=='all')count+=1;
+  if(resultLang!=='both'||basis!=='de')count+=1;
+  if(sort!=='recommended')count+=1;
+  if(variantMode!=='preferred')count+=1;
+  if(entityCategories.length)count+=1;
+  if(includeHistorical||generated||generatedOnly)count+=1;
+  return count;
+}
+function activeRuntimeDbLabel(){
+  if(internalDbLabEnabled&&internalDbLabActive)return String(internalDbLabActive).toUpperCase();
+  const runtime=String(studioCapabilities?.runtime||'');
+  const match=runtime.match(/serving-v1\/([^/\s]+)/u);
+  return String(match?.[1]||'DEFAULT').toUpperCase();
+}
+function updateSearchPageChrome(){
+  const badge=$('#activeDbBadge');
+  if(badge){
+    const label=activeRuntimeDbLabel();
+    badge.textContent='DB '+label;
+    badge.title=(state.uiLanguage==='en'?'Active local database: ':'Aktive lokale Datenbank: ')+label;
+  }
+  const toggle=$('#searchPageFiltersToggle');
+  const studioOpen=page==='studio'&&studioSearchFiltersOpen;
+  const searchOpen=page==='search'&&searchPageFiltersOpen;
+  const expanded=studioOpen||searchOpen;
+  if(toggle){
+    const count=activeSearchFilterCount();
+    toggle.setAttribute('aria-expanded',String(expanded));
+    toggle.classList.toggle('active',expanded||count>0);
+    toggle.setAttribute(
+      'aria-label',
+      state.uiLanguage==='en'
+        ?(expanded?'Hide search filters':'Show search filters')
+        :(expanded?'Suchfilter ausblenden':'Suchfilter einblenden'),
+    );
+    toggle.title=toggle.getAttribute('aria-label');
+    const label=toggle.querySelector('span');
+    if(label)label.textContent=(state.uiLanguage==='en'?'Filters':'Filter')+(count?' · '+count:'');
+  }
+  const deck=$('#directFilters');
+  if(deck){
+    const hidden=page==='studio'
+      ?!studioSearchFiltersOpen
+      :page==='search'
+        ?!searchPageFiltersOpen
+        :false;
+    deck.classList.toggle('hidden',hidden);
+  }
+  document.body.classList.toggle('studio-search-filters-open',studioOpen);
+  document.body.classList.toggle('search-page-filters-open',searchOpen);
+}
+function setStudioSearchFiltersOpen(open,{persistChoice=true}={}){
+  studioSearchFiltersOpen=Boolean(open);
+  try{
+    if(persistChoice)localStorage.setItem(STUDIO_FILTER_PANEL_KEY,studioSearchFiltersOpen?'1':'0');
+  }catch{}
+  updateSearchPageChrome();
+  if(studioSearchFiltersOpen)requestAnimationFrame(()=>animateSurface($('#directFilters')));
+}
+function setSearchPageFiltersOpen(open){
+  searchPageFiltersOpen=Boolean(open);
+  document.body.classList.remove('search-page-compact');
+  updateSearchPageChrome();
+  if(searchPageFiltersOpen)requestAnimationFrame(()=>animateSurface($('#directFilters')));
+}
+function toggleVisibleSearchFilters(){
+  if(page==='search')setSearchPageFiltersOpen(!searchPageFiltersOpen);
+  else setStudioSearchFiltersOpen(!studioSearchFiltersOpen);
+}
+function syncSearchPageCompact(scrollTop=0){
+  document.body.classList.toggle(
+    'search-page-compact',
+    page==='search'&&!searchPageFiltersOpen&&Number(scrollTop)>36,
+  );
+}
 function syncInline(){
-  for(const [id,value]of [['directBasis',basis],['directLang',resultLang],['directRelation',relation],['directSyllables',syllableMode],['directSort',sort]])$('#'+id).value=value;
-  syncAdvancedControls();
+  syncFilterDeckControls();
   const items=[];
   if(scope!=='all')items.push(['scope',scope==='word'?'Wörter':scope==='phrase'?'Phrasen':'Namen']);
-  if(relation!=='all')items.push(['relation',relation==='rein'?'Vollreime':'Slant / Klang']);
   if(rhymeType!=='all')items.push(['rhymeType',STUDIO_RHYME_TYPE_LABELS[rhymeType]||rhymeType]);
   if(syllableMode!=='all')items.push(['syllables','Silben: '+({same:'wie Anker',near:'±1',near2:'±2',near3:'±3','1':'1','2':'2','3':'3+'})[syllableMode]]);
-  if(resultLang!=='both')items.push(['lang','Ergebnis: '+resultLang.toUpperCase()]);
-  if(basis!=='de')items.push(['basis','Anker: '+(basis==='both'?'DE+EN':'EN')]);
+  if(resultLang!=='both'||basis!=='de')items.push(['languageRoute',(basis==='both'?'DE+EN':basis.toUpperCase())+' → '+(resultLang==='both'?'DE+EN':resultLang.toUpperCase())]);
   if(sort!=='recommended')items.push(['sort',({alpha:'A–Z',syllables:'Silbendistanz',closest:'Klangnähe',common:'Häufigkeit'})[sort]||sort]);
   if(variantMode!=='preferred')items.push(['variants','Alle Aussprachevarianten']);
   for(const category of entityCategories)items.push(['entityCategory:'+category,'Entity: '+humanizeDetail(category)]);
-  if(includeHistorical)items.push(['historical','Historisch']);
-  if(generated)items.push(['generated','Generated']);
-  if(generatedOnly)items.push(['generatedOnly','Nur Generated']);
-  $('#activeFilters').innerHTML=items.map(([id,label])=>`<button data-clear-filter="${id}" aria-label="Filter ${esc(label)} entfernen">${esc(label)} ×</button>`).join('');
+  if(includeHistorical||generated||generatedOnly)items.push(['corpus',$('#directCorpus')?.selectedOptions?.[0]?.textContent||'Korpus']);
+  $('#activeFilters').innerHTML=items.map(([id,label])=>'<button data-clear-filter="'+esc(id)+'" aria-label="Filter '+esc(label)+' entfernen">'+esc(label)+' ×</button>').join('');
+  updateSearchPageChrome();
 }
 function resetInline(){
-  scope='all';relation='all';rhymeType='all';variantMode='preferred';entityCategory='all';entityCategories=[];includeHistorical=false;generated=false;generatedOnly=false;sort='recommended';basis='de';resultLang='both';syllableMode='all';pageSize=12;
-  queryAll('[data-scope]').forEach(b=>{b.classList.toggle('active',b.dataset.scope==='all');b.setAttribute('aria-pressed',b.dataset.scope==='all')});
+  scope='all';relation='all';rhymeType='all';variantMode='preferred';entityCategory='all';entityCategories=[];includeHistorical=false;generated=false;generatedOnly=false;sort='recommended';basis='de';resultLang='both';syllableMode='all';pageSize=density==='compact'?24:12;
+  syncScopeButtons();
+  saveStudioSearchState();
+  syncFilterDeckControls();
   void refreshWriterResults();
 }
 function setDensity(v){density=v;state.density=v;pageSize=v==='compact'?24:12;renderResults();persist()}
-function toggleFollow(){followSelection=!followSelection;syncFollowControls();if(followSelection){const el=$(`#lyrics textarea[data-line="${activeLine}"]`);if(el&&el.selectionEnd>0)captureSelection(el)}saveStudioSearchState()}
+function toggleFollow(){followSelection=!followSelection;syncFollowControls();if(followSelection){const el=$('#lyricsEditor');if(el)captureSelection(el)}saveStudioSearchState()}
 
 function normalizeThemeHex(value,fallback){
   fallback=fallback||'#000000';
@@ -2141,7 +2771,7 @@ function internalDbCardMarkup(row){
     +'<dt>Free pages</dt><dd>'+formatLabBytes(row?.sqlite?.freeBytes)+'</dd>'
     +'<dt>Pages</dt><dd>'+Number(row?.sqlite?.pageCount||0).toLocaleString('de-DE')+'</dd>'
     +'<dt>Tables / Indexes</dt><dd>'+Number(row?.sqlite?.tables||0)+' / '+Number(row?.sqlite?.indexes||0)+'</dd>'
-    +'<dt>Target entries</dt><dd>'+esc(meta.distribution_total_target||'MASTER')+'</dd>'
+    +'<dt>Target entries</dt><dd>'+esc(meta.distribution_total_target||'—')+'</dd>'
     +'<dt>Last query</dt><dd>'+formatLabMs(timing.searchMs)+'</dd>'
     +'<dt>Ø100</dt><dd>'+formatLabMs(timing.averageLast100Ms)+'</dd>'
     +'<dt>Samples</dt><dd>'+Number(timing.sampleCount||0)+'</dd>'
@@ -2188,7 +2818,7 @@ function internalDbBenchmarkMarkup(){
   const report=internalDbBenchmarkReport;
   if(!report?.summary?.databases)return '';
   const rows=Object.entries(report.summary.databases).map(([database,summary])=>{
-    const quality=summary?.qualityVsMaster||{};
+    const quality=summary?.qualityVsFull||{};
     return '<tr class="'+(database===internalDbLabActive?'active':'')+'">'
       +'<td><b>'+esc(database.toUpperCase())+'</b><br><small>n='+Number(summary.measuredRuns||0)+'</small></td>'
       +'<td>'+formatLabMs(benchmarkMetric(summary,'serverSearchMs'))+'<br><small>p95 '+formatLabMs(benchmarkMetric(summary,'serverSearchMs','p95'))+'</small></td>'
@@ -2205,9 +2835,9 @@ function internalDbBenchmarkMarkup(){
   const mode=esc(String(report.mode||'benchmark'));
   return '<section class="internal-db-tech" style="margin-top:8px"><h4>Controlled benchmark · '+mode+'</h4>'
     +'<table class="internal-db-benchmark-table"><thead><tr>'
-    +'<th>DB</th><th>Search p50</th><th>Total p50</th><th>Serialize</th><th>Parse</th><th>Map</th><th>Response</th><th>Top50 vs Master</th><th>Exact</th><th>Determinism</th>'
+    +'<th>DB</th><th>Search p50</th><th>Total p50</th><th>Serialize</th><th>Parse</th><th>Map</th><th>Response</th><th>Top50 vs Full</th><th>Exact</th><th>Determinism</th>'
     +'</tr></thead><tbody>'+rows+'</tbody></table>'
-    +'<small>Warmups ausgeschlossen · p50/p95 aus gemessenen Runs · Quality vergleicht identische Result-IDs/Order gegen Master.</small></section>';
+    +'<small>Warmups ausgeschlossen · p50/p95 aus gemessenen Runs · Quality vergleicht identische Result-IDs/Order gegen Full.</small></section>';
 }
 function renderInternalDbBenchmarkProgress(){
   const root=$('#internalDbBenchmarkProgress');
@@ -2233,7 +2863,7 @@ function renderInternalDbBenchmarkProgress(){
 }
 function availableInternalBenchmarkDatabases(){
   const map=internalDbSummaryMap(internalDbLabPayload);
-  return ['master','lite','standard','full'].filter((id)=>map[id]?.available===true);
+  return ['lite','standard','full'].filter((id)=>map[id]?.available===true);
 }
 async function runStudioInternalDbBenchmark(mode='current'){
   if(!internalDbLabEnabled||internalDbBenchmarkAbort)return;
@@ -2331,60 +2961,10 @@ function stopStudioInternalDbBenchmark(){
   internalBenchmarkSearch.cancel();
 }
 function renderInternalDbLab(){
-  const root=$('#internalDbLab');
+  const root=$('#settingsRuntimeDb');
   if(!root)return;
-  root.classList.toggle('hidden',!internalDbLabEnabled);
-  if(!internalDbLabEnabled)return;
-  const map=internalDbSummaryMap(internalDbLabPayload);
-  const active=map[internalDbLabActive];
-  queryAll('#internalDbSwitch [data-runtime-db]').forEach((button)=>{
-    const row=map[button.dataset.runtimeDb];
-    const available=row?.available===true;
-    button.disabled=!available||Boolean(internalDbBenchmarkAbort);
-    button.classList.toggle('active',button.dataset.runtimeDb===internalDbLabActive);
-    button.setAttribute('aria-pressed',String(button.dataset.runtimeDb===internalDbLabActive));
-    const small=button.querySelector('small');
-    if(small)small.textContent=available
-      ?formatLabBytes(row.file?.sizeBytes)+(row.meta?.distribution_total_target?' · '+Number(row.meta.distribution_total_target).toLocaleString('de-DE'):' · MASTER')
-      :'nicht verfügbar';
-  });
-  const status=$('#internalDbLabStatus');
-  if(status)status.textContent=active?.available
-    ?String(internalDbLabActive).toUpperCase()+' · '+formatLabBytes(active.file?.sizeBytes)+' · '+(writerExecution||'bereit')
-    :'DB nicht verfügbar';
-  renderInternalDbBenchmarkProgress();
-  const metrics=$('#internalDbMetrics');
-  metrics?.classList.toggle('hidden',!internalDbLabMetricsOpen);
-  $('#internalDbMetricsToggle')?.setAttribute('aria-expanded',String(internalDbLabMetricsOpen));
-  if(!metrics||!internalDbLabMetricsOpen)return;
-  const live=currentInternalDbLabMetrics();
-  const s=live.studio,b=live.browser,server=internalDbLabPayload?.server||{};
-  const responseSize=formatLabBytes(s.responseBytes);
-  const fingerprint=String(s.resultQuality?.fingerprint||'—');
-  metrics.innerHTML='<div class="internal-db-metrics-head"><div><b>DB + Site Performance Lab</b><small>Per-request routing · vollständiger Request + Quality-Fingerprint + Transport-Pipeline.</small></div><small>Internal only · shipping=false</small></div>'
-    +'<div class="internal-db-live-grid">'
-    +'<div class="internal-db-metric"><small>DB/Search</small><b>'+formatLabMs(s.serverSearchMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Post-search</small><b>'+formatLabMs(s.serverPostSearchMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Serialize</small><b>'+formatLabMs(s.serverSerializeMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Headers</small><b>'+formatLabMs(s.clientHeadersMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Body read</small><b>'+formatLabMs(s.clientBodyReadMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>JSON parse</small><b>'+formatLabMs(s.clientParseMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Map DTO</small><b>'+formatLabMs(s.clientMapMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Total fetch</small><b>'+formatLabMs(s.clientTotalMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>DOM render</small><b>'+formatLabMs(s.resultRenderMs)+'</b></div>'
-    +'<div class="internal-db-metric"><small>Response</small><b>'+responseSize+'</b></div>'
-    +'<div class="internal-db-metric"><small>Results</small><b>'+Number(s.resultCount||0).toLocaleString('de-DE')+'</b></div>'
-    +'<div class="internal-db-metric"><small>Fingerprint</small><b title="'+esc(fingerprint)+'">'+esc(fingerprint.replace('fnv1a32:',''))+'</b></div>'
-    +'<div class="internal-db-metric"><small>Query transfer</small><b>'+formatLabBytes(s.queryResource?.transferSize)+'</b></div>'
-    +'</div>'
-    +'<div class="internal-db-card-grid">'+(internalDbLabPayload?.databases||[]).map(internalDbCardMarkup).join('')+'</div>'
-    +internalDbBenchmarkMarkup()
-    +'<div class="internal-db-request-grid">'
-    +'<section class="internal-db-tech"><h4>Exact effective Writer request</h4><pre>'+esc(JSON.stringify(s.effectiveRequest,null,2))+'</pre></section>'
-    +'<section class="internal-db-tech"><h4>Result quality + UI state</h4><pre>'+esc(JSON.stringify({quality:s.resultQuality,uiState:s.uiState,queryResource:s.queryResource},null,2))+'</pre></section>'
-    +'</div>'
-    +'<div class="internal-db-tech-grid"><section class="internal-db-tech"><h4>Browser / Site · cumulative page context</h4><pre>'+esc(JSON.stringify(b,null,2))+'</pre></section>'
-    +'<section class="internal-db-tech"><h4>Server / Process · refreshed snapshot</h4><pre>'+esc(JSON.stringify(server,null,2))+'</pre></section></div>';
+  root.innerHTML=settingsRuntimeDbBody();
+  bindRuntimeDatabaseSettings();
 }
 async function refreshInternalDbLabPayload({silent=false}={}){
   if(!internalDbLabEnabled&&!silent)return null;
@@ -2400,8 +2980,8 @@ async function refreshInternalDbLabPayload({silent=false}={}){
   internalDbLabEnabled=true;
   internalDbLabPayload=payload;
   const map=internalDbSummaryMap(payload);
-  if(!map[internalDbLabActive]?.available){
-    internalDbLabActive=map.master?.available?'master':Object.values(map).find((row)=>row.available)?.id||'master';
+  if(!['lite','standard','full'].includes(internalDbLabActive)||!map[internalDbLabActive]?.available){
+    internalDbLabActive=['standard','full','lite'].find((id)=>map[id]?.available)||'standard';
     saveInternalDbLabSelection(internalDbLabActive);
   }
   studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
@@ -2421,19 +3001,19 @@ async function setInternalDbLabDb(id){
   detailClient.cancel();
   selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';
   $('#detailDock')?.classList.add('hidden');
-  analysisAbort?.abort?.();analysisSignature='';analysisStatus='idle';analysisData=null;
+  analysisAbort?.abort?.();analysisSignature='';analysisStatus='idle';analysisData=null;allRhymeAbort?.abort?.();allRhymeSignature='';allRhymeStatus='idle';allRhymeData=null;
   writerRows=[];writerRuntimeTiming=null;writerClientTiming=null;writerServerTransport=null;writerEffectiveRequest=null;writerExecution=null;lastResultRenderMs=null;
   if(summary.capabilities?.generated!==true){generated=false;generatedOnly=false}
   studioCapabilities=studioCapabilitiesFromInternalDb(summary,studioCapabilities);
   updateCapabilitySurface();
   renderResults();
   renderInternalDbLab();
-  notify('Runtime DB → '+next.toUpperCase());
+  notify('Datenbank → '+next.toUpperCase());
   await refreshStudioCapabilities();
   studioCapabilities=studioCapabilitiesFromInternalDb(internalDbActiveSummary(),studioCapabilities);
   updateCapabilitySurface();
   await refreshWriterResults();
-  if(mode==='rhyme')void refreshSongAnalysis(true);
+  if(mode==='rhyme')void (analysisScope==='all'?refreshAllRhymeAnalysis(true):refreshSongAnalysis(true));
 }
 async function copyInternalDbLabMetrics(){
   try{await refreshInternalDbLabPayload({silent:true})}catch{}
@@ -2459,36 +3039,23 @@ async function copyInternalDbLabMetrics(){
 async function initializeInternalDbLab(){
   try{
     const response=await fetch('/api/internal/distribution-dbs',{headers:{accept:'application/json'}});
-    if(response.status===404){renderInternalDbLab();return false}
+    if(response.status===404){internalDbLabEnabled=false;internalDbLabPayload=null;renderInternalDbLab();return false}
     const payload=await response.json();
-    if(!response.ok||payload?.enabled!==true){renderInternalDbLab();return false}
+    if(!response.ok||payload?.enabled!==true){internalDbLabEnabled=false;internalDbLabPayload=payload||null;renderInternalDbLab();return false}
     internalDbLabEnabled=true;
     internalDbLabPayload=payload;
     const map=internalDbSummaryMap(payload);
-    if(!map[internalDbLabActive]?.available)internalDbLabActive=map.master?.available?'master':'lite';
+    if(!['lite','standard','full'].includes(internalDbLabActive)||!map[internalDbLabActive]?.available){
+      internalDbLabActive=['standard','full','lite'].find((id)=>map[id]?.available)||'standard';
+    }
     saveInternalDbLabSelection(internalDbLabActive);
     studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
-    queryAll('#internalDbSwitch [data-runtime-db]').forEach((button)=>{
-      button.onclick=()=>{void setInternalDbLabDb(button.dataset.runtimeDb)};
-    });
-    $('#internalDbBenchCurrent').onclick=()=>{void runStudioInternalDbBenchmark('current')};
-    $('#internalDbBenchSuite').onclick=()=>{void runStudioInternalDbBenchmark('suite')};
-    $('#internalDbBenchStop').onclick=()=>stopStudioInternalDbBenchmark();
-    $('#internalDbMetricsToggle').onclick=()=>{
-      internalDbLabMetricsOpen=!internalDbLabMetricsOpen;
-      renderInternalDbLab();
-      if(internalDbLabMetricsOpen)void refreshInternalDbLabPayload({silent:true});
-    };
-    $('#internalDbMetricsCopy').onclick=()=>{void copyInternalDbLabMetrics()};
-    $('#internalDbMetricsRefresh').onclick=async()=>{
-      try{await refreshInternalDbLabPayload({silent:true});notify('DB-Metriken aktualisiert.')}
-      catch(error){notify('Metrics-Refresh fehlgeschlagen: '+(error instanceof Error?error.message:String(error)))}
-    };
     renderInternalDbLab();
     return true;
   }catch(error){
-    console.warn('Internal DB Lab disabled:',error);
+    console.warn('Runtime database selection unavailable:',error);
     internalDbLabEnabled=false;
+    internalDbLabPayload=null;
     renderInternalDbLab();
     return false;
   }
@@ -2531,7 +3098,8 @@ function updateCapabilitySurface(){
   }
   const summary=$('#capabilitySummary');
   if(summary)summary.innerHTML=capabilityMarkup();
-  syncAdvancedControls();
+  syncFilterDeckControls();
+  updateSearchPageChrome();
 }
 async function refreshStudioCapabilities(){
   try{
@@ -2631,7 +3199,7 @@ function confirmPortableStudioImport(parsed,fileName='Backup'){
       await applyPortableStudioBackup(parsed);
       closeDialog();
       notify('Studio Backup importiert und verifiziert.');
-      if(dockTab==='settings')renderDock();
+      if(page==='settings')renderSettingsPage();
     }catch(error){
       notify('Backup-Import fehlgeschlagen: '+(error instanceof Error?error.message:String(error)));
       button.disabled=false;
@@ -2698,7 +3266,7 @@ async function renderRecoveryPanel(){
       button.disabled=true;
       try{
         await restoreRecoveryPoint(button.dataset.recoveryRestore);
-        renderDock();
+        if(page==='settings')renderSettingsPage();else if(dockTab)renderDock();
         notify('Recovery-Punkt wiederhergestellt.');
       }catch(error){
         notify('Recovery fehlgeschlagen: '+(error instanceof Error?error.message:String(error)));
@@ -2847,7 +3415,7 @@ function launchDeviceAcceptanceGuide(id){
   }
   activeDeviceGateGuide=id;
   renderActiveDeviceGuide();
-  const closeSettings=()=>{if(dockTab==='settings')closeEditorDock()};
+  const closeSettings=()=>{if(page==='settings')leaveSettings();else if(dockTab)closeEditorDock()};
   if(id==='editor.ime'){
     closeSettings();navigate('studio');setMode('write');
     focusLine(activeLine);
@@ -3012,7 +3580,56 @@ function exportStudioDiagnostics(){
   return report;
 }
 
-function renderSettingsDock(body){
+function settingsCopy(){
+  const en=state.uiLanguage==='en';
+  return en?{
+    title:'Settings',
+    subtitle:'Workspace, appearance, local database and backups — organized without developer tooling.',
+    general:'General',design:'Design',database:'Database',data:'Data & Backup',
+    generalTitle:'Workspace & interface',generalCopy:'The essentials you change during everyday writing.',
+    designTitle:'Appearance',designCopy:'Quick styles, typography and your own semantic color system.',
+    databaseTitle:'Local database',databaseCopy:'Choose which installed RhymeLab data package powers Writer requests.',
+    dataTitle:'Data & Backup',dataCopy:'Portable backups and local recovery points for your workspace.',
+  }:{
+    title:'Einstellungen',
+    subtitle:'Workspace, Darstellung, lokale Datenbank und Sicherungen — sauber getrennt ohne Developer-Werkzeuge.',
+    general:'Allgemein',design:'Design',database:'Datenbank',data:'Daten & Backup',
+    generalTitle:'Workspace & Oberfläche',generalCopy:'Die Dinge, die du beim täglichen Schreiben wirklich ändern willst.',
+    designTitle:'Darstellung',designCopy:'Quickstyles, Typografie und dein eigenes semantisches Farbsystem.',
+    databaseTitle:'Lokale Datenbank',databaseCopy:'Wähle, welches installierte RhymeLab-Datenpaket Writer-Anfragen bedient.',
+    dataTitle:'Daten & Backup',dataCopy:'Portable Backups und lokale Recovery-Punkte für deinen Workspace.',
+  };
+}
+function settingsTabButton(id,label,description){
+  const active=settingsTab===id;
+  return '<button type="button" class="settings-nav-item '+(active?'active':'')+'" data-settings-tab="'+id+'" role="tab" aria-selected="'+String(active)+'"><span>'+esc(label)+'</span><small>'+esc(description)+'</small></button>';
+}
+function settingsSectionHeader(eyebrow,title,copy){
+  return '<header class="settings-section-head"><span class="eyebrow">'+esc(eyebrow)+'</span><h3>'+esc(title)+'</h3><p>'+esc(copy)+'</p></header>';
+}
+function settingsGeneralMarkup(copy){
+  const runtimeReady=studioCapabilities.status==='ready';
+  const runtimeLabel=runtimeReady
+    ?(studioCapabilities.servingV1?'Serving v1':'Writer')
+    :(studioCapabilities.status==='loading'?'Wird verbunden …':'Eingeschränkt');
+  const dbLabel=['lite','standard','full'].includes(internalDbLabActive)&&internalDbLabEnabled
+    ?internalDbLabActive.toUpperCase()
+    :(studioCapabilities.servingV1?'Integriert':'Standard');
+  const storageLabel=documentStoreStatus==='ready'?'IndexedDB · bereit':documentStoreDetail();
+  return settingsSectionHeader('GENERAL',copy.generalTitle,copy.generalCopy)
+    +'<div class="settings-preference-list">'
+    +'<div class="settings-preference-row"><div><b>UI-Sprache</b><small>Sprache der Oberfläche</small></div><div class="settings-segmented" role="group" aria-label="UI-Sprache"><button data-setting-language="de" class="'+(state.uiLanguage==='de'?'active':'')+'">DE</button><button data-setting-language="en" class="'+(state.uiLanguage==='en'?'active':'')+'">EN</button></div></div>'
+    +'<div class="settings-preference-row"><div><b>Editor-Schrift</b><small>Nur dein Textbereich — UI bleibt konsistent</small></div><div class="settings-segmented settings-segmented-wide" role="group" aria-label="Editor-Schrift"><button data-setting-font="sans" class="'+((state.editorFont||'sans')==='sans'?'active':'')+'">Studio Sans</button><button data-setting-font="serif" class="'+(state.editorFont==='serif'?'active':'')+'">Editorial</button><button data-setting-font="mono" class="'+(state.editorFont==='mono'?'active':'')+'">Mono</button></div></div>'
+    +'<div class="settings-preference-row"><div><b>Schriftgröße</b><small>Editor-Zeilen von 16 bis 28 px</small></div><label class="settings-range"><input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"><output id="settingsFontValue">'+state.fontSize+' px</output></label></div>'
+    +'<div class="settings-preference-row"><div><b>Bewegung</b><small>Systemvorgabe respektieren oder Motion komplett abschalten</small></div><div class="settings-segmented" role="group" aria-label="Bewegung"><button data-setting-motion="auto" class="'+(state.motion!=='off'?'active':'')+'">System</button><button data-setting-motion="off" class="'+(state.motion==='off'?'active':'')+'">Aus</button></div></div>'
+    +'</div>'
+    +'<div class="settings-status-grid">'
+    +'<div><span>RUNTIME</span><b>'+esc(runtimeLabel)+'</b><small>'+(runtimeReady?'Verbunden':'Status prüfen')+'</small></div>'
+    +'<div><span>DATENBANK</span><b>'+esc(dbLabel)+'</b><small>Lokal · kein Cloud-Zwang</small></div>'
+    +'<div><span>WORKSPACE</span><b>'+esc(storageLabel)+'</b><small>Dokumente lokal gespeichert</small></div>'
+    +'</div>';
+}
+function settingsDesignMarkup(copy){
   const draft=activeThemeForBuilder(),colors=completeThemeColors(draft.colors);
   const lightChecked=Boolean(themeEditingId&&state.themeSlots&&state.themeSlots.light===themeEditingId);
   const darkChecked=Boolean(themeEditingId&&state.themeSlots&&state.themeSlots.dark===themeEditingId);
@@ -3021,14 +3638,88 @@ function renderSettingsDock(body){
     return '<label class="theme-color-field"><span>'+label+'</span><input type="color" data-theme-color="'+key+'" value="'+colors[key]+'" aria-label="'+label+' Farbe"><input type="text" data-theme-hex="'+key+'" value="'+colors[key]+'" maxlength="7" spellcheck="false" aria-label="'+label+' Hex"></label>';
   }).join('');
   const preview=THEME_COLOR_FIELDS.map(function(field){return '<i data-preview-color="'+field[0]+'" style="background:'+colors[field[0]]+'"></i>'}).join('');
-  body.innerHTML='<div class="theme-settings"><section class="theme-settings-card"><h3>Studio Appearance</h3><p>Quickstyles bleiben sofort erreichbar. Eigene Styles werden nur lokal in diesem Browser gespeichert.</p><div class="dock-settings" style="margin-top:13px"><label>Schriftgröße<input id="fontRange" type="range" min="16" max="28" value="'+state.fontSize+'"></label><label>Schrift<select id="editorFont"><option value="sans">Studio Sans</option><option value="serif">Editorial Serif</option><option value="mono">Monospace</option></select></label><label>Bewegung<select id="motionSelect"><option value="auto">System beachten</option><option value="off">Aus</option></select></label><label>UI-Sprache<select id="uiLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select></label></div><div id="capabilitySummary" class="capability-summary">'+capabilityMarkup()+'</div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="theme-saved-list">'+savedThemeRows()+'</div></section><section class="theme-settings-card"><div class="theme-builder-head"><div><h3>Custom Theme Studio</h3><p>Semantische Farben statt einzelner CSS-Werte. Änderungen werden live auf das Studio vorgespielt.</p></div><button class="outline" data-theme-new>Neu</button></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light-Style ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark-Style ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section><section class="theme-settings-card recovery-card"><div class="recovery-head"><div><h3>Data & Recovery</h3><p>Dokumente laufen primär über IndexedDB. Recovery-Punkte sichern den kompletten versionierten Studio-Snapshot vor größeren Änderungen. Portable Backups enthalten Dokumente, UI-Präferenzen und den gemeinsamen SearchState.</p></div><div class="recovery-head-actions"><button id="exportStudioBackup" class="outline">Backup exportieren</button><button id="importStudioBackup" class="outline">Backup importieren</button><button id="createRecoveryPoint" class="outline">Recovery-Punkt erstellen</button><input id="studioBackupFile" type="file" accept="application/json,.json" hidden></div></div><div id="recoveryPanel"></div></section><section class="theme-settings-card diagnostics-card"><div class="diagnostics-head"><div><h3>Browser & Runtime Diagnostics</h3><p>Acceptance Center für Parity-Manifest, Storage, Writer, Audio, VisualViewport, Touch/Pointer und Motion. Keine Daten werden hochgeladen.</p></div><div class="row"><button id="rerunDiagnostics" class="outline">Neu prüfen</button><button id="exportDiagnostics" class="outline">Diagnostics exportieren</button></div></div><div id="diagnosticsPanel"></div></section><section class="theme-settings-card device-acceptance-card"><div class="diagnostics-head"><div><h3>Real Device Acceptance</h3><p>Die sieben Gates müssen bewusst auf echter Hardware bestätigt werden. Reports von mehreren Geräten lassen sich zusammenführen; Studio markiert nie automatisch bestanden.</p></div><div class="row"><button id="resetDeviceAcceptance" class="outline">Zurücksetzen</button><button id="importDeviceAcceptance" class="outline">Acceptance importieren</button><button id="exportDeviceAcceptance" class="outline">Acceptance JSON exportieren</button><input id="deviceAcceptanceFile" type="file" accept="application/json,.json" hidden></div></div><div id="deviceAcceptancePanel"></div></section></div>';
-  $('#fontRange').oninput=function(event){setFontSize(+event.target.value)};
-  $('#editorFont').value=state.editorFont||'sans';
-  $('#editorFont').onchange=function(event){state.editorFont=event.target.value;applyEditorFont();persist()};
-  $('#motionSelect').value=state.motion;
-  $('#motionSelect').onchange=function(event){state.motion=event.target.value;document.documentElement.dataset.motion=state.motion;persist()};
-  $('#uiLanguageSelect').value=state.uiLanguage;
-  $('#uiLanguageSelect').onchange=function(event){setStudioUiLanguage(event.target.value,{notifyUser:true})};
+  return settingsSectionHeader('APPEARANCE',copy.designTitle,copy.designCopy)
+    +'<div class="settings-theme-grid">'
+    +'<section class="theme-settings-card settings-theme-library"><div class="settings-card-head"><div><h3>Quickstyles</h3><p>Light und Dark bleiben mit einem Klick erreichbar.</p></div></div><div class="theme-slot-list">'+themeSlotCard('light')+themeSlotCard('dark')+'</div><div class="settings-subhead"><span>Eigene Styles</span><button class="outline" data-theme-new>＋ Neu</button></div><div class="theme-saved-list">'+savedThemeRows()+'</div></section>'
+    +'<section class="theme-settings-card settings-theme-builder"><div class="theme-builder-head"><div><h3>Theme Studio</h3><p>Semantische Farben statt verstreuter CSS-Werte. Vorschau erfolgt live.</p></div></div><div id="themePalettePreview" class="theme-palette-preview">'+preview+'</div><div class="theme-builder-grid">'+fields+'</div><div class="theme-builder-meta"><input id="themeName" value="'+esc(draft.name||'Mein Studio')+'" maxlength="40" aria-label="Theme Name"><select id="themeMode" aria-label="Theme Basis"><option value="light">Light Basis</option><option value="dark">Dark Basis</option></select></div><div class="theme-replace-row"><label><input id="replaceLight" type="checkbox" '+(lightChecked?'checked':'')+'> Light ersetzen</label><label><input id="replaceDark" type="checkbox" '+(darkChecked?'checked':'')+'> Dark ersetzen</label></div><div class="theme-contrast"><span id="themeTextContrast"></span><span id="themeAccentContrast"></span></div><div class="theme-builder-actions"><button class="outline" id="themeRevert">Vorschau zurücksetzen</button><button class="primary" id="themeSave">'+(themeEditingId?'Style aktualisieren':'Style speichern')+'</button></div></section>'
+    +'</div>';
+}
+function settingsRuntimeDbBody(){
+  const map=internalDbSummaryMap(internalDbLabPayload);
+  const profiles=[
+    {id:'lite',label:'LITE',tag:'Kompakt',copy:'Kleinstes Paket für einen schlanken lokalen Footprint.'},
+    {id:'standard',label:'STANDARD',tag:'Empfohlen',copy:'Ausgewogene Paketgröße und Abdeckung für den täglichen Einsatz.'},
+    {id:'full',label:'FULL',tag:'Maximal',copy:'Größtes Paket mit der höchsten lokal verfügbaren Abdeckung.'},
+  ];
+  const activeUserTier=profiles.some((profile)=>profile.id===internalDbLabActive);
+  const activeText=internalDbLabEnabled&&activeUserTier
+    ?internalDbLabActive.toUpperCase()
+    :'STANDARD';
+  const summary=internalDbLabEnabled
+    ?'<div class="runtime-db-summary"><div><span>AKTIV</span><b>'+esc(activeText)+'</b></div><small>Wechsel wirkt direkt auf neue Writer-Anfragen.</small></div>'
+    :'<div class="runtime-db-summary is-fixed"><div><span>AKTIV</span><b>'+esc(activeText)+'</b></div><small>Dieser Build nutzt aktuell eine fest eingebundene Runtime-Datenbank.</small></div>';
+  const cards=profiles.map((profile)=>{
+    const row=map[profile.id];
+    const available=internalDbLabEnabled&&row?.available===true;
+    const active=available&&internalDbLabActive===profile.id;
+    const target=row?.meta?.distribution_total_target;
+    const meta=[
+      row?.file?.sizeBytes?formatLabBytes(row.file.sizeBytes):null,
+      target?Number(target).toLocaleString(state.uiLanguage==='en'?'en-US':'de-DE')+' Einträge':null,
+    ].filter(Boolean).join(' · ');
+    return '<button type="button" class="runtime-db-choice '+(active?'active ':'')+(!available?'disabled':'')+'" data-settings-runtime-db="'+profile.id+'" aria-pressed="'+String(active)+'" '+(!available?'disabled':'')+'>'
+      +'<span class="runtime-db-choice-top"><b>'+profile.label+'</b><em>'+profile.tag+'</em></span>'
+      +'<span class="runtime-db-choice-copy">'+profile.copy+'</span>'
+      +'<small>'+(available?(meta||'Installiert'):'Nicht in diesem Build verfügbar')+'</small>'
+      +'<i aria-hidden="true">'+(active?'✓':'')+'</i>'
+      +'</button>';
+  }).join('');
+  return summary+'<div class="runtime-db-grid">'+cards+'</div><p class="settings-footnote">Es werden nur installierte Datenpakete freigeschaltet. Nicht verfügbare Pakete bleiben sichtbar, aber nicht auswählbar.</p>';
+}
+function settingsDatabaseMarkup(copy){
+  return settingsSectionHeader('DATABASE',copy.databaseTitle,copy.databaseCopy)
+    +'<div id="settingsRuntimeDb" class="runtime-db-settings">'+settingsRuntimeDbBody()+'</div>';
+}
+function settingsDataMarkup(copy){
+  return settingsSectionHeader('DATA',copy.dataTitle,copy.dataCopy)
+    +'<section class="settings-backup-card"><div class="settings-card-head"><div><h3>Workspace sichern</h3><p>Portable Backups enthalten Dokumente, UI-Präferenzen und den gemeinsamen SearchState.</p></div><div class="recovery-head-actions"><button id="exportStudioBackup" class="outline">Backup exportieren</button><button id="importStudioBackup" class="outline">Backup importieren</button><input id="studioBackupFile" type="file" accept="application/json,.json" hidden></div></div></section>'
+    +'<section class="settings-backup-card"><div class="settings-card-head"><div><h3>Recovery-Punkte</h3><p>Lokale Snapshots für größere Änderungen oder schnelle Rücksprünge.</p></div><button id="createRecoveryPoint" class="primary">Recovery-Punkt erstellen</button></div><div id="recoveryPanel"></div></section>';
+}
+function bindRuntimeDatabaseSettings(){
+  queryAll('#settingsRuntimeDb [data-settings-runtime-db]').forEach((button)=>{
+    button.onclick=async()=>{
+      if(button.disabled)return;
+      button.disabled=true;
+      try{await setInternalDbLabDb(button.dataset.settingsRuntimeDb)}
+      finally{if(page==='settings'&&settingsTab==='database')renderSettingsPage()}
+    };
+  });
+}
+function bindSettingsGeneral(){
+  queryAll('[data-setting-language]').forEach((button)=>button.onclick=()=>{
+    setStudioUiLanguage(button.dataset.settingLanguage,{notifyUser:true});
+    if(page==='settings')renderSettingsPage();
+  });
+  queryAll('[data-setting-font]').forEach((button)=>button.onclick=()=>{
+    state.editorFont=button.dataset.settingFont;
+    applyEditorFont();
+    persist();
+    if(page==='settings')renderSettingsPage();
+  });
+  queryAll('[data-setting-motion]').forEach((button)=>button.onclick=()=>{
+    state.motion=button.dataset.settingMotion;
+    document.documentElement.dataset.motion=state.motion;
+    persist();
+    if(page==='settings')renderSettingsPage();
+  });
+  const range=$('#fontRange');
+  if(range)range.oninput=(event)=>{
+    setFontSize(+event.target.value);
+    const output=$('#settingsFontValue');
+    if(output)output.textContent=state.fontSize+' px';
+  };
+}
+function bindSettingsData(){
   $('#createRecoveryPoint').onclick=async function(){
     const button=this;button.disabled=true;
     try{
@@ -3053,26 +3744,49 @@ function renderSettingsDock(body){
     catch(error){notify('Backup-Datei ungültig: '+(error instanceof Error?error.message:String(error)))}
   };
   void renderRecoveryPanel();
-  $('#rerunDiagnostics').onclick=()=>{renderDiagnosticsPanel();notify('Browser-Diagnostics aktualisiert.')};
-  $('#exportDiagnostics').onclick=()=>{exportStudioDiagnostics();notify('Diagnostics als JSON exportiert.')};
-  $('#resetDeviceAcceptance').onclick=()=>{resetStudioDeviceAcceptance();notify('Device-Acceptance zurückgesetzt.')};
-  $('#importDeviceAcceptance').onclick=()=>$('#deviceAcceptanceFile').click();
-  $('#deviceAcceptanceFile').onchange=async function(){
-    const file=this.files?.[0];this.value='';
-    if(!file)return;
-    try{
-      const summary=await importStudioDeviceAcceptanceFile(file);
-      notify('Device-Acceptance zusammengeführt · '+summary.passed+'/'+summary.total+' bestätigt.');
-    }catch(error){
-      notify('Acceptance-Import fehlgeschlagen: '+(error instanceof Error?error.message:String(error)));
-    }
-  };
-  $('#exportDeviceAcceptance').onclick=()=>{exportStudioDeviceAcceptance();notify('Device-Acceptance als JSON exportiert.')};
-  renderDiagnosticsPanel();
-  renderDeviceAcceptancePanel();
-  $('#themeMode').value=draft.mode==='light'?'light':'dark';
-  updateThemeContrast(draft);
-  bindThemeSettings();
+}
+function leaveSettings(){
+  if(themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}
+  const target=settingsReturnPage&&settingsReturnPage!=='settings'?settingsReturnPage:'studio';
+  const restoreMobileResults=settingsReturnMobileResults&&target==='studio';
+  navigate(target);
+  if(restoreMobileResults){
+    document.body.classList.add('mobile-results');
+    setMobileActive('results');
+  }
+}
+function renderSettingsPage(){
+  const body=$('#largeView');
+  if(!body)return;
+  const copy=settingsCopy();
+  const nav=settingsTabButton('general',copy.general,'Sprache · Schrift · Motion')
+    +settingsTabButton('design',copy.design,'Themes · Farben')
+    +settingsTabButton('database',copy.database,'LITE · STANDARD · FULL')
+    +settingsTabButton('data',copy.data,'Backup · Recovery');
+  const panel=settingsTab==='design'
+    ?settingsDesignMarkup(copy)
+    :settingsTab==='database'
+      ?settingsDatabaseMarkup(copy)
+      :settingsTab==='data'
+        ?settingsDataMarkup(copy)
+        :settingsGeneralMarkup(copy);
+  const backLabel=state.uiLanguage==='en'?'Back to workspace':'Zurück zum Workspace';
+  body.innerHTML='<div class="settings-page-view"><header class="settings-page-hero"><button id="settingsBack" class="settings-back" type="button">← <span>'+esc(backLabel)+'</span></button><div class="settings-page-title"><span class="eyebrow">RHYME LAB</span><h1>'+esc(copy.title)+'</h1><p>'+esc(copy.subtitle)+'</p></div><span class="settings-local-badge">LOCAL FIRST</span></header><div class="settings-layout"><nav class="settings-nav" role="tablist" aria-label="Einstellungsbereiche">'+nav+'</nav><section class="settings-content" role="tabpanel">'+panel+'</section></div></div>';
+  $('#settingsBack').onclick=leaveSettings;
+  queryAll('[data-settings-tab]').forEach((button)=>button.onclick=()=>{
+    settingsTab=button.dataset.settingsTab;
+    renderSettingsPage();
+    $('#largeView').scrollTop=0;
+  });
+  if(settingsTab==='general')bindSettingsGeneral();
+  if(settingsTab==='design'){
+    const draft=activeThemeForBuilder();
+    $('#themeMode').value=draft.mode==='light'?'light':'dark';
+    updateThemeContrast(draft);
+    bindThemeSettings();
+  }
+  if(settingsTab==='database')bindRuntimeDatabaseSettings();
+  if(settingsTab==='data')bindSettingsData();
 }
 function readThemeDraft(){
   const current=activeThemeForBuilder(),colors={};
@@ -3123,12 +3837,12 @@ function bindThemeSettings(){
   $('#themeMode').onchange=previewThemeDraft;
   $('#replaceLight').onchange=function(event){if(event.target.checked)$('#replaceDark').checked=false};
   $('#replaceDark').onchange=function(event){if(event.target.checked)$('#replaceLight').checked=false};
-  $('#themeRevert').onclick=function(){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()};
+  $('#themeRevert').onclick=function(){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderSettingsPage()};
   $('#themeSave').onclick=saveThemeDraft;
-  Array.from(document.querySelectorAll('[data-theme-choice]')).forEach(function(button){button.onclick=function(){themePreviewing=false;applyThemeChoice(button.dataset.themeChoice);if(dockTab==='settings')renderDock()}});
-  Array.from(document.querySelectorAll('[data-theme-edit]')).forEach(function(button){button.onclick=function(){themeEditingId=button.dataset.themeEdit;themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()}});
+  Array.from(document.querySelectorAll('[data-theme-choice]')).forEach(function(button){button.onclick=function(){themePreviewing=false;applyThemeChoice(button.dataset.themeChoice);if(page==='settings')renderSettingsPage()}});
+  Array.from(document.querySelectorAll('[data-theme-edit]')).forEach(function(button){button.onclick=function(){themeEditingId=button.dataset.themeEdit;themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderSettingsPage()}});
   Array.from(document.querySelectorAll('[data-theme-delete]')).forEach(function(button){button.onclick=function(){deleteCustomTheme(button.dataset.themeDelete)}});
-  $('[data-theme-new]').onclick=function(){themeEditingId='';themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()};
+  $('[data-theme-new]').onclick=function(){themeEditingId='';themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderSettingsPage()};
 }
 function saveThemeDraft(){
   const draft=readThemeDraft(),id=themeEditingId||'custom-'+Date.now().toString(36);
@@ -3141,7 +3855,7 @@ function saveThemeDraft(){
   themeEditingId=id;
   themePreviewing=false;
   applyThemeChoice(replace||id);
-  renderDock();
+  if(page==='settings')renderSettingsPage();
   notify(replace?saved.name+' ersetzt jetzt '+(replace==='light'?'Light':'Dark')+'.':saved.name+' als Quickstyle gespeichert.');
 }
 function deleteCustomTheme(id){
@@ -3153,25 +3867,36 @@ function deleteCustomTheme(id){
   state.customThemes=state.customThemes.filter(function(item){return item.id!==id});
   themeEditingId='';
   applyThemeChoice(activeWasCustom?(theme.mode||'dark'):(activeSlot||state.theme));
-  renderDock();
+  if(page==='settings')renderSettingsPage();
   notify(theme.name+' gelöscht.');
 }
 
 function renderBarInspectorDock(body){
-  const s=song(),bar=barIdentity(s,activeLine);
+  const s=song();
+  if(!isTrackedEditorLine(s.lines[activeLine]||'')){
+    const nearest=nearestTrackedStudioLine(s,activeLine);
+    body.innerHTML='<div class="studio-note"><b>Diese Zeile wird nicht als Bar getrackt.</b><p>Leerzeilen und vollständig geklammerte Zeilen wie <code>[Hook]</code> bleiben frei editierbar und werden aus Bar-, Silben-, Reim- und Performance-Tracking ausgeschlossen.</p>'+(nearest>=0?'<button id="jumpNearestTrackedBar" class="outline">Nächste getrackte Bar öffnen</button>':'')+'</div>';
+    if(nearest>=0)$('#jumpNearestTrackedBar').onclick=()=>{activeLine=nearest;focusLine(nearest);renderBarInspectorDock(body)};
+    return;
+  }
+  const trackedIndexes=trackedStudioLineIndexes(s);
+  const trackedPosition=trackedIndexes.indexOf(activeLine);
+  const barNumber=trackedPosition+1;
+  const bar=barIdentity(s,activeLine);
   if(!bar){body.innerHTML='<p class="small">Keine aktive Bar.</p>';return}
   const text=s.lines[activeLine]||'';
-  const words=(text.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[]).length;
-  const syllables=syll(text);
+  const trackedText=trackedStudioLineText(s,activeLine);
+  const words=(trackedText.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[]).length;
+  const syllables=syll(trackedText);
   const pocket=performancePocketMetrics(s,bar.id);
   const durationMs=performanceBarDurationMs(s);
   const syllablesPerSecond=performanceSyllablesPerSecond(s,syllables);
   const fingerprint=performanceFlowFingerprint(s,bar.id);
   const previous=performancePreviousBarPlacements(s,bar.id);
   const canonicalReady=analysisStatus==='ready'&&analysisData&&analysisSignature===analysisKey();
-  const detail=canonicalReady?analysisData.wordDetails?.[activeLine]:null;
-  const relation=canonicalReady?analysisData.lineRelations?.[activeLine]:null;
-  const endWord=studioAnalysisWords([text])[0]||'—';
+  const detail=canonicalReady?analysisData.wordDetails?.[trackedPosition]:null;
+  const relation=canonicalReady?analysisData.lineRelations?.[trackedPosition]:null;
+  const endWord=studioAnalysisWords([trackedText])[0]||'—';
   const stress=detail?.stressPattern||(
     detail?.primaryStressSyllable!=null?'Primary · Silbe '+detail.primaryStressSyllable:'—'
   );
@@ -3183,8 +3908,8 @@ function renderBarInspectorDock(body){
   body.innerHTML=`
     <div class="bar-inspector">
       <div class="bar-inspector-head">
-        <div><span class="eyebrow">BAR ${String(activeLine+1).padStart(2,'0')}</span><h3>${esc(endWord)}</h3><p>${esc(text||'Leere Bar')}</p></div>
-        <div class="row"><button data-bar-nav="-1" aria-label="Vorherige Bar" ${activeLine<=0?'disabled':''}>←</button><button data-bar-nav="1" aria-label="Nächste Bar" ${activeLine>=s.lines.length-1?'disabled':''}>→</button>${canonicalState}</div>
+        <div><span class="eyebrow">BAR ${String(barNumber).padStart(2,'0')}</span><h3>${esc(endWord)}</h3><p>${esc(text||'Leere Bar')}</p></div>
+        <div class="row"><button data-bar-nav="-1" aria-label="Vorherige Bar" ${trackedPosition<=0?'disabled':''}>←</button><button data-bar-nav="1" aria-label="Nächste Bar" ${trackedPosition>=trackedIndexes.length-1?'disabled':''}>→</button>${canonicalState}</div>
       </div>
       <div class="bar-inspector-grid">
         <div><small>WÖRTER</small><b>${words}</b><span>tokenisiert lokal</span></div>
@@ -3205,9 +3930,12 @@ function renderBarInspectorDock(body){
       <div class="bar-flow-row"><small>FLOW FINGERPRINT</small><code>${esc(fingerprint||'·')}</code><button id="openPerformFromBar" class="outline">Perform öffnen ↗</button></div>
     </div>`;
   queryAll('[data-bar-nav]').forEach((button)=>button.onclick=()=>{
-    const next=Math.max(0,Math.min(s.lines.length-1,activeLine+Number(button.dataset.barNav||0)));
+    const nextPosition=Math.max(0,Math.min(trackedIndexes.length-1,trackedPosition+Number(button.dataset.barNav||0)));
+    const next=trackedIndexes[nextPosition];
+    if(next==null)return;
     activeLine=next;activateLine(next);
     if(mode==='write')focusLine(next);
+    else renderBarInspectorDock(body);
   });
   if($('#loadBarAnalysis'))$('#loadBarAnalysis').onclick=async()=>{
     const button=$('#loadBarAnalysis');button.disabled=true;button.textContent='Writer analysiert …';
@@ -3252,7 +3980,20 @@ function duplicateStudioBar(index=activeLine){
 }
 function deleteStudioBar(index=activeLine){
   const current=song();
-  if(current.lines.length<=1){notify('Der Text muss mindestens eine Bar behalten.');return false}
+  if(index<0||index>=current.lines.length)return false;
+  if(current.lines.length===1){
+    pushUndo();
+    reconcileEditorDocumentText(current,'');
+    activeLine=0;
+    selection={line:0,barId:current.barIds[0]||'',barRevision:current.barRevisions[0]||0,start:0,end:0,documentStart:0,documentEnd:0,multiline:false,tracked:false};
+    selectionProof=null;
+    analysisSignature='';
+    renderEditor();
+    changed();
+    focusLine(0,0);
+    notify('Zeile geleert.');
+    return true;
+  }
   const removed=barIdentity(current,index);
   if(!removed)return false;
   const activeBarId=current.barIds[activeLine]||'';
@@ -3306,6 +4047,8 @@ function moveStudioBar(fromIndex,toIndex){
   renderEditor();
   changed();
   if(dockTab==='navigator')renderDock();
+  const selectedLine=current.lines[selection.line]||'';
+  focusLine(selection.line,Math.min(selectedLine.length,selection.start||0));
   return true;
 }
 function jumpToStudioBar(barId,{focus=true}={}){
@@ -3322,16 +4065,18 @@ function jumpToStudioBar(barId,{focus=true}={}){
 function renderBarNavigatorDock(body){
   const current=song();
   const needle=barNavigatorQuery.trim().toLocaleLowerCase(state.uiLanguage==='en'?'en-US':'de-DE');
-  const rows=current.lines.map((line,index)=>({
+  const trackedIndexes=trackedStudioLineIndexes(current);
+  const rows=trackedIndexes.map((index)=>({
     index,
-    line,
+    line:current.lines[index],
     bar:barIdentity(current,index),
+    number:trackedEditorBarNumber(current,index),
   })).filter((row)=>!needle||String(row.line).toLocaleLowerCase(state.uiLanguage==='en'?'en-US':'de-DE').includes(needle));
   body.innerHTML=`
     <div class="bar-navigator">
       <div class="bar-navigator-head">
-        <div><span class="eyebrow">BAR NAVIGATOR</span><b>${current.lines.length} Bars</b><small>Stable Bar IDs · Drag, Pfeile oder Klick</small></div>
-        <div class="bar-navigator-head-actions"><label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label><div class="row"><button id="navigatorAddBar" class="outline">＋ Bar</button><button id="navigatorDuplicateBar" class="outline">⧉ Duplizieren</button></div></div>
+        <div><span class="eyebrow">BAR NAVIGATOR</span><b>${trackedIndexes.length} Bars</b><small>Leerzeilen und [Section]-Zeilen werden nicht getrackt.</small></div>
+        <div class="bar-navigator-head-actions"><label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label><div class="row"><button id="navigatorAddBar" class="outline">＋ Zeile</button><button id="navigatorDuplicateBar" class="outline">⧉ Duplizieren</button></div></div>
       </div>
       <div class="bar-navigator-list">
         ${rows.map((row)=>{
@@ -3340,16 +4085,16 @@ function renderBarNavigatorDock(body){
           const active=row.index===activeLine;
           const preview=String(row.line||'').trim()||'Leere Bar';
           return `<article class="bar-navigator-row ${active?'is-active':''}" draggable="true" data-bar-navigator-id="${esc(row.bar.id)}">
-            <button class="bar-navigator-jump" data-bar-jump="${esc(row.bar.id)}" aria-label="Bar ${row.index+1} auswählen">
-              <span class="bar-navigator-number">${String(row.index+1).padStart(2,'0')}</span>
+            <button class="bar-navigator-jump" data-bar-jump="${esc(row.bar.id)}" aria-label="Bar ${row.number} auswählen">
+              <span class="bar-navigator-number">${String(row.number).padStart(2,'0')}</span>
               <span class="bar-navigator-copy">${esc(preview)}</span>
-              <span class="bar-navigator-meta">${syll(row.line)||0} Silb. · ${metrics.cues} Cues${review?' · Timing prüfen':''}</span>
+              <span class="bar-navigator-meta">${syll(editorTrackableText(row.line))||0} Silb. · ${metrics.cues} Cues${review?' · Timing prüfen':''}</span>
             </button>
             <div class="bar-navigator-actions">
-              <button data-bar-duplicate="${esc(row.bar.id)}" aria-label="Bar ${row.index+1} duplizieren" title="Duplizieren">⧉</button>
-              <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="-1" aria-label="Bar ${row.index+1} nach oben" ${row.index===0?'disabled':''}>↑</button>
-              <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="1" aria-label="Bar ${row.index+1} nach unten" ${row.index===current.lines.length-1?'disabled':''}>↓</button>
-              <button data-bar-delete="${esc(row.bar.id)}" aria-label="Bar ${row.index+1} löschen" title="Bar löschen" ${current.lines.length<=1?'disabled':''}>×</button>
+              <button data-bar-duplicate="${esc(row.bar.id)}" aria-label="Bar ${row.number} duplizieren" title="Duplizieren">⧉</button>
+              <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="-1" aria-label="Bar ${row.number} nach oben" ${row.number===1?'disabled':''}>↑</button>
+              <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="1" aria-label="Bar ${row.number} nach unten" ${row.number===trackedIndexes.length?'disabled':''}>↓</button>
+              <button data-bar-delete="${esc(row.bar.id)}" aria-label="Bar ${row.number} löschen" title="Bar löschen">×</button>
               <span class="bar-drag-handle" aria-hidden="true">⋮⋮</span>
             </div>
           </article>`;
@@ -3378,8 +4123,10 @@ function renderBarNavigatorDock(body){
   queryAll('[data-bar-reorder]').forEach((button)=>button.onclick=()=>{
     const id=button.dataset.barReorder;
     const from=current.barIds.indexOf(id);
-    const to=from+Number(button.dataset.barDirection||0);
-    if(to>=0&&to<current.lines.length)moveStudioBar(from,to);
+    const position=trackedIndexes.indexOf(from);
+    const targetPosition=position+Number(button.dataset.barDirection||0);
+    const to=trackedIndexes[targetPosition];
+    if(from>=0&&to!=null)moveStudioBar(from,to);
   });
   queryAll('[data-bar-navigator-id]').forEach((row)=>{
     row.addEventListener('dragstart',(event)=>{
@@ -3411,14 +4158,25 @@ function renderBarNavigatorDock(body){
   });
 }
 
-function showFilters(){const hidden=$('#directFilters').classList.toggle('hidden');$('#filterBtn').setAttribute('aria-expanded',!hidden);$('#filterLabel').textContent=hidden?'Filter öffnen':'Filter sichtbar';if(!hidden)animateSurface($('#directFilters'))}
-function showSettings(){openEditorDock('settings')}
+function showFilters(){
+  if(page==='search')setSearchPageFiltersOpen(true);
+  else setStudioSearchFiltersOpen(true);
+  $('#directRhymeType__trigger')?.focus?.();
+}
+function showSettings(){
+  if(page!=='settings'){
+    settingsReturnPage=page==='settings'?'studio':page;
+    settingsReturnMobileResults=document.body.classList.contains('mobile-results');
+  }
+  if(dockTab)closeEditorDock();
+  navigate('settings');
+}
 function showHistory(){revision();openEditorDock('history')}
 function openEditorDock(tab){if(page!=='studio')navigate('studio');document.body.classList.remove('mobile-results');document.body.classList.add('editor-dock-open');setMobileActive('studio');dockTab=tab;$('#editorDock').dataset.tab=tab;$('#editorDock').classList.remove('hidden');renderDock();animateSurface($('#editorDock'))}
 function closeEditorDock(){if(themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}document.body.classList.remove('editor-dock-open');$('#editorDock').classList.add('hidden');delete $('#editorDock').dataset.tab;dockTab='';}
-function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='navigator'){renderBarNavigatorDock(body)}else if(dockTab==='bar'){renderBarInspectorDock(body)}else if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else if(dockTab==='settings'){renderSettingsDock(body)}else{body.innerHTML=`<div class="studio-note"><b>Studio 02 · Desktop Workbench</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details sind angedockt. Kompakt zeigt dieselben Treffer dichter, Wortfeld lädt zum Stöbern ein.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste, Versionen und Darstellung hier unten öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + B</kbd> Bars · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln · In Treffern: <kbd>↑ ↓</kbd> auswählen, <kbd>Enter</kbd> einsetzen, <kbd>Space</kbd> merken.</p><p style="margin-top:9px"><b>Motion</b> · kurze gestaffelte Trefferwechsel, weiche Panel-Einblendung, Auswahl- und Einsetzfeedback. Systemseitig reduzierte Bewegung wird respektiert. Kein externer Dienst, keine Motion-Bibliothek erforderlich.</p><p style="margin-top:9px"><b>Runtime</b> · Reimtreffer kommen live aus /api/writer; Song-Reimschema und Reimrelationen laufen kanonisch über Writer; nur UI-Silbenzählung und Perform Auto-Map bleiben explizite Approximationen. Die vollständige Funktionsmatrix aus Konzept 1.0 bleibt verbindlich. Version 2 ersetzt dessen Popup-orientierte Desktop-Bedienung.</p><p style="margin-top:9px"><b>Prüfung</b> · Source-/Modell-Gates decken die migrierten Zustände ab. Reale Browser-, Touch- und Audio-Geräteabnahme bleibt vor dem Route-Cutover erforderlich.</p></div>`}}
-function setFontSize(n){state.fontSize=clamp(n,16,28);document.documentElement.style.setProperty('--editor',state.fontSize+'px');$('#fontSizeLive').textContent=state.fontSize;queryAll('#lyrics textarea').forEach(resizeArea);persist()}
-function applyEditorFont(){const value=({sans:'var(--font)',serif:'Georgia, serif',mono:'ui-monospace, monospace'})[state.editorFont||'sans'];document.documentElement.style.setProperty('--lyric-font',value);queryAll('#lyrics textarea').forEach(resizeArea)}
+function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='navigator'){renderBarNavigatorDock(body)}else if(dockTab==='bar'){renderBarInspectorDock(body)}else if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else{body.innerHTML=`<div class="studio-note"><b>RhymeLab Studio</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details, Versionen und Werkzeuge bleiben in Reichweite.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste und Versionen direkt öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + B</kbd> Bars · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln.</p><p style="margin-top:9px"><b>Lokal zuerst</b> · Texte, Präferenzen, Backups und Writer-Daten bleiben lokal in deinem Workspace.</p></div>`}}
+function setFontSize(n){state.fontSize=clamp(n,16,28);document.documentElement.style.setProperty('--editor',state.fontSize+'px');$('#fontSizeLive').textContent=state.fontSize;resizeArea($('#lyricsEditor'));persist()}
+function applyEditorFont(){const value=({sans:'var(--font)',serif:'Georgia, serif',mono:'ui-monospace, monospace'})[state.editorFont||'sans'];document.documentElement.style.setProperty('--lyric-font',value);resizeArea($('#lyricsEditor'))}
 function humanizeDetail(value){
   return String(value||'').replace(/[._-]+/g,' ').replace(/\b\w/g,(char)=>char.toUpperCase());
 }
@@ -3498,29 +4256,84 @@ function renderDetail(){
 }
 function closeDetail(){detailClient.cancel();detailRequest++;selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';saveStudioSearchState({selectedResultId:''});$('#detailDock').classList.add('hidden');$('#resultsScroll').focus()}
 function moveResult(delta){const rows=sortedData();if(!rows.length)return;let index=rows.findIndex(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult);index=index<0?(delta>0?0:rows.length-1):Math.max(0,Math.min(rows.length-1,index+delta));if(index>=pageSize){pageSize=index+12;renderResults()}openDetail(rows[index].word,rows[index].id);const row=queryAll('#results .result').find(r=>r.dataset.resultId===selectedResultId);row?.scrollIntoView?.({block:'nearest',behavior:'smooth'})}
-function setAssistWidth(value){const max=clamp(window.innerWidth-660,350,640);const width=clamp(value,350,max);document.documentElement.style.setProperty('--assist-width',width+'px');$('#splitter').setAttribute('aria-valuenow',width);$('#splitter').setAttribute('aria-valuemax',max);state.assistWidth=width;queryAll('#lyrics textarea').forEach(resizeArea);}
-function bindV2(){for(const id of ['directBasis','directLang','directRelation','directSyllables','directSort','advancedFiltersToggle','advancedFilters','advancedPreset','advancedRhymeType','advancedVariants','advancedEntityCategory','advancedEntityCategoryMulti','advancedHideUsed','advancedHistorical','advancedGenerated','advancedGeneratedOnly','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();bindMobileViewport();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');$('#directBasis').onchange=e=>{basis=e.target.value;void refreshWriterResults()};
-$('#directLang').onchange=e=>{resultLang=e.target.value;void refreshWriterResults()};
-$('#directRelation').onchange=e=>{relation=e.target.value;renderResults()};
-$('#directSyllables').onchange=e=>{syllableMode=e.target.value;saveStudioSearchState();void refreshWriterResults()};
-$('#directSort').onchange=e=>{sort=e.target.value;saveStudioSearchState();renderResults()};
-$('#advancedFiltersToggle').onclick=()=>{advancedExpanded=!advancedExpanded;syncAdvancedControls();if(advancedExpanded)animateSurface($('#advancedFilters'))};
-$('#advancedPreset').onchange=e=>applySearchPreset(e.target.value);
-$('#advancedHideUsed').onchange=e=>{hideUsed=e.target.checked;state.hideUsed=hideUsed;persist();renderResults()};
-$('#advancedRhymeType').onchange=e=>{rhymeType=e.target.value;void refreshWriterResults()};
-$('#advancedVariants').onchange=e=>{variantMode=e.target.value;void refreshWriterResults()};
-$('#advancedEntityCategory').onchange=e=>{const value=e.target.value;setEntityCategories(value==='all'?[]:[value])};
-$('#advancedHistorical').onchange=e=>{includeHistorical=e.target.checked;void refreshWriterResults()};
-$('#advancedGenerated').onchange=e=>{generated=e.target.checked;if(!generated)generatedOnly=false;syncAdvancedControls();void refreshWriterResults()};
-$('#advancedGeneratedOnly').onchange=e=>{generatedOnly=e.target.checked;if(generatedOnly)generated=true;syncAdvancedControls();void refreshWriterResults()};queryAll('[data-density]').forEach(b=>b.onclick=()=>setDensity(b.dataset.density));queryAll('[data-dock]').forEach(b=>b.onclick=()=>{if(dockTab===b.dataset.dock)closeEditorDock();else{if(b.dataset.dock==='history')revision();openEditorDock(b.dataset.dock)}});$('#resultsScroll').addEventListener('keydown',e=>{if(e.target.closest('input')||e.target.closest('select')||e.target.closest('.view-choices'))return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();moveResult(e.key==='ArrowDown'?1:-1)}else if(e.key==='Enter'&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();insertWord(selectedResult)}else if(e.key===' '&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();toggleSave(selectedResult)}else if(e.key==='Escape')closeDetail()});
+function setAssistWidth(value){const max=clamp(window.innerWidth-660,350,640);const width=clamp(value,350,max);document.documentElement.style.setProperty('--assist-width',width+'px');$('#splitter').setAttribute('aria-valuenow',width);$('#splitter').setAttribute('aria-valuemax',max);state.assistWidth=width;resizeArea($('#lyricsEditor'));}
+function bindTransientOutsideDismissals(){
+  if(typeof document.addEventListener!=='function')return;
+  document.addEventListener('pointerdown',(event)=>{
+    const target=event.target;
+    if(!(target instanceof Element))return;
+
+    const dialog=$('#dialog');
+    if(dialog?.open&&target===dialog){
+      closeDialog();
+      return;
+    }
+
+    // Custom-select popovers are portalled to <body>; treat them as part of
+    // the originating surface so selecting an option never collapses it first.
+    if(target.closest('.custom-select-popover'))return;
+
+    const filterDeck=$('#directFilters');
+    const filterToggle=$('#searchPageFiltersToggle');
+    if(
+      page==='studio'
+      &&studioSearchFiltersOpen
+      &&filterDeck
+      &&!filterDeck.contains(target)
+      &&!filterToggle?.contains(target)
+    ){
+      setStudioSearchFiltersOpen(false);
+    }
+    if(
+      page==='search'
+      &&searchPageFiltersOpen
+      &&filterDeck
+      &&!filterDeck.contains(target)
+      &&!filterToggle?.contains(target)
+    ){
+      setSearchPageFiltersOpen(false);
+    }
+
+    const detail=$('#detailDock');
+    if(
+      detail
+      &&!detail.classList.contains('hidden')
+      &&!detail.contains(target)
+      &&!target.closest('[data-detail]')
+    ){
+      closeDetail();
+    }
+
+    const dock=$('#editorDock');
+    if(
+      dockTab
+      &&dock
+      &&!dock.classList.contains('hidden')
+      &&!dock.contains(target)
+      &&!target.closest('[data-dock]')
+    ){
+      closeEditorDock();
+    }
+  },{capture:true});
+}
+function bindV2(){bindTransientOutsideDismissals();for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategories','directHideUsed','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();bindMobileViewport();installFilterSelectControls();updateSearchPageChrome();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');
+$('#directLanguageRoute').onchange=e=>applyLanguageRoute(e.target.value);
+$('#directScope').onchange=e=>{scope=e.target.value;relation='all';pageSize=density==='compact'?24:12;saveStudioSearchState();syncScopeButtons();syncFilterDeckControls();void refreshWriterResults()};
+$('#directRhymeType').onchange=e=>{rhymeType=e.target.value;relation='all';pageSize=density==='compact'?24:12;saveStudioSearchState();syncFilterDeckControls();void refreshWriterResults()};
+$('#directSyllables').onchange=e=>{syllableMode=e.target.value;saveStudioSearchState();syncFilterDeckControls();void refreshWriterResults()};
+$('#directSort').onchange=e=>{sort=e.target.value;saveStudioSearchState();syncFilterDeckControls();renderResults()};
+$('#directVariants').onchange=e=>{variantMode=e.target.value;saveStudioSearchState();syncFilterDeckControls();void refreshWriterResults()};
+$('#directCorpus').onchange=e=>applyCorpusMode(e.target.value);
+$('#directEntityCategories').onchange=e=>setEntityCategories(Array.from(e.target.options||[]).filter((option)=>option.selected).map((option)=>option.value));
+$('#directHideUsed').onclick=()=>{hideUsed=!hideUsed;state.hideUsed=hideUsed;persist();syncFilterDeckControls();renderResults()};
+queryAll('[data-density]').forEach(b=>b.onclick=()=>setDensity(b.dataset.density));queryAll('[data-dock]').forEach(b=>b.onclick=()=>{if(dockTab===b.dataset.dock)closeEditorDock();else{if(b.dataset.dock==='history')revision();openEditorDock(b.dataset.dock)}});$('#resultsScroll').addEventListener('keydown',e=>{if(e.target.closest('input')||e.target.closest('select')||e.target.closest('.view-choices'))return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();moveResult(e.key==='ArrowDown'?1:-1)}else if(e.key==='Enter'&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();insertWord(selectedResult)}else if(e.key===' '&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();toggleSave(selectedResult)}else if(e.key==='Escape')closeDetail()});
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.clearFilter){
   const f=b.dataset.clearFilter;
-  if(f==='scope'){scope='all';queryAll('[data-scope]').forEach(x=>{x.classList.toggle('active',x.dataset.scope==='all');x.setAttribute('aria-pressed',x.dataset.scope==='all')})}
+  if(f==='scope'){scope='all';syncScopeButtons()}
   if(f==='relation')relation='all';
   if(f==='rhymeType')rhymeType='all';
   if(f==='syllables')syllableMode='all';
-  if(f==='lang')resultLang='both';
-  if(f==='basis')basis='de';
+  if(f==='lang'||f==='basis'||f==='languageRoute'){basis='de';resultLang='both'}
   if(f==='sort')sort='recommended';
   if(f==='variants')variantMode='preferred';
   if(f==='entityCategory'){entityCategory='all';entityCategories=[]}
@@ -3529,13 +4342,12 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
     entityCategories=entityCategories.filter((value)=>value!==category);
     entityCategory=entityCategories[0]||'all';
   }
-  if(f==='historical')includeHistorical=false;
-  if(f==='generated'){generated=false;generatedOnly=false}
-  if(f==='generatedOnly')generatedOnly=false;
-  if(['scope','rhymeType','syllables','lang','basis','variants','entityCategory','historical','generated','generatedOnly'].includes(f)||f.startsWith('entityCategory:'))void refreshWriterResults();else renderResults();
+  if(f==='historical'||f==='generated'||f==='generatedOnly'||f==='corpus'){includeHistorical=false;generated=false;generatedOnly=false}
+  syncFilterDeckControls();
+  if(['scope','rhymeType','syllables','lang','basis','languageRoute','variants','entityCategory','historical','generated','generatedOnly','corpus'].includes(f)||f.startsWith('entityCategory:'))void refreshWriterResults();else renderResults();
 }if(b.dataset.restoreVersion){if(restoreStudioRevision(song().revisions[+b.dataset.restoreVersion])){renderDock();notify('Fassung wiederhergestellt · aktuelle Fassung gesichert')}}});
-document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key.toLowerCase()==='b'){e.preventDefault();openEditorDock('navigator')}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
-const handle=$('#splitter');let drag=null;handle.addEventListener('pointerdown',e=>{if(window.innerWidth<=800)return;drag={x:e.clientX,width:+handle.getAttribute('aria-valuenow')};handle.setPointerCapture?.(e.pointerId);document.body.classList.add('resizing');e.preventDefault()});handle.addEventListener('pointermove',e=>{if(drag)setAssistWidth(drag.width+drag.x-e.clientX)});for(const event of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(event,()=>{if(!drag)return;drag=null;document.body.classList.remove('resizing');persist()});handle.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setAssistWidth(+handle.getAttribute('aria-valuenow')+(e.key==='ArrowLeft'?20:-20));persist()}if(e.key==='Home'){e.preventDefault();setAssistWidth(470);persist()}});if(window.innerWidth>800)setAssistWidth(state.assistWidth||470);if(window.innerWidth<=800){$('#directFilters').classList.add('hidden');$('#filterBtn').setAttribute('aria-expanded','false')}window.addEventListener('resize',()=>{if(window.innerWidth>800)setAssistWidth(state.assistWidth||470)});document.body.dataset.studioVersion='2';}
+document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key.toLowerCase()==='b'){e.preventDefault();openEditorDock('navigator')}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(page==='settings'){e.preventDefault();leaveSettings()}else if(page==='search'&&searchPageFiltersOpen){e.preventDefault();setSearchPageFiltersOpen(false)}else if(page==='studio'&&studioSearchFiltersOpen){e.preventDefault();setStudioSearchFiltersOpen(false)}else if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
+const handle=$('#splitter');let drag=null;handle.addEventListener('pointerdown',e=>{if(window.innerWidth<=800)return;drag={x:e.clientX,width:+handle.getAttribute('aria-valuenow')};handle.setPointerCapture?.(e.pointerId);document.body.classList.add('resizing');e.preventDefault()});handle.addEventListener('pointermove',e=>{if(drag)setAssistWidth(drag.width+drag.x-e.clientX)});for(const event of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(event,()=>{if(!drag)return;drag=null;document.body.classList.remove('resizing');persist()});handle.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setAssistWidth(+handle.getAttribute('aria-valuenow')+(e.key==='ArrowLeft'?20:-20));persist()}if(e.key==='Home'){e.preventDefault();setAssistWidth(470);persist()}});if(window.innerWidth>800)setAssistWidth(state.assistWidth||470);window.addEventListener('resize',()=>{if(window.innerWidth>800)setAssistWidth(state.assistWidth||470)});document.body.dataset.studioVersion='2';}
 
 async function startStudio(){
   uiLocalizer=createStudioDomLocalizer({
@@ -3562,7 +4374,7 @@ async function startStudio(){
   syncFollowControls();
   renderEditor();
   renderResults();
-  capabilitiesReady.finally(()=>{void refreshWriterResults()});
+  capabilitiesReady.finally(()=>{void refreshWriterResults();queueAnalysisWarm(1800)});
   revision('startup');
   persist();
 }

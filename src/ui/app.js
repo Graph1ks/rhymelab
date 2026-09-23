@@ -1,9 +1,28 @@
 import { CLIENT_QUERY_PRONUNCIATION_POLICY, resolveUnknownClientPronunciation } from './query-pronunciation-client.mjs';
 import { readGeneratedPronunciationCache, writeGeneratedPronunciationCache } from './query-pronunciation-cache.mjs';
 import {SEARCH_STATE_STORAGE_KEY,createSearchState,loadSearchState,saveSearchState,searchStateFromUrl,searchStateToWriterParams,writeSearchStateToUrl} from './search-state.mjs';
+import {enhanceSelect,syncEnhancedSelects} from './custom-select.mjs';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+
+let filterSelectControls=[];
+function customSelectDomAvailable(){
+  const probe=document.createElement?.('div');
+  return Boolean(probe&&typeof probe.appendChild==='function'&&document.body?.appendChild);
+}
+function installFilterSelectControls(){
+  if(!customSelectDomAvailable())return;
+  filterSelectControls=[
+    ['languageRouteFilter',{}],['scopeFilter',{}],['typeFilter',{}],['syllableFilter',{}],
+    ['sortMode',{}],['variantMode',{}],['corpusMode',{}],
+    ['entityCategory',{mobileSheet:true,mobileSheetBreakpoint:720}],
+  ].map(([id,config])=>enhanceSelect($('#'+id),config)).filter(Boolean);
+}
+function syncFilterSelectControls(){
+  if(!customSelectDomAvailable())return;
+  syncEnhancedSelects(filterSelectControls);
+}
 
 const PRIMARY_RHYME_TYPES = ['multisyllabic_perfect','perfect','multisyllabic_slant','family','slant'];
 const SOUND_RELATION_TYPES = ['assonance','consonance'];
@@ -13,7 +32,7 @@ const I18N = {
   en: {
     title:'RhymeLab Local',eyebrow:'UNIFIED RHYME WRITER',headline:'Find rhymes across words, phrases and names.',
     intro:'Search German, English or both. RhymeLab combines every locally available channel and still lets you isolate words, Phrase/Mosaic matches or Entities.',
-    noteLocal:'Runs locally',notePhonetic:'IPA-based',noteUsage:'Deterministic',navSearch:'SEARCH',navRhymePad:'RHYMEPAD',localRuntime:'LOCAL RUNTIME',browse:'Browse results',resultScope:'Results',languageBasis:'Query pronunciation',resultLanguage:'Result language',searchIn:'Search in',basisGerman:'German',basisEnglish:'English',basisBoth:'Combined',scopeAll:'Words + phrases + entities',scopeAllButton:'All',scopeWords:'Words',scopePhrases:'Phrases / Mosaic',scopePhrasesShort:'Phrases',scopeEntities:'Entities',words:'Words',phrases:'Phrases / Mosaic',entities:'Entities',word:'Word',phrase:'Phrase',entity:'Entity',filters:'Filters',filtersHint:'Rhyme, syllables, sorting and vocabulary',viewList:'List',viewCompact:'Compact',searchOptionsShort:'Options',resultFiltersShort:'Filters',rhymeType:'Rhyme / sound relation',
+    noteLocal:'Runs locally',notePhonetic:'IPA-based',noteUsage:'Deterministic',navSearch:'SEARCH',navRhymePad:'RHYMEPAD',localRuntime:'LOCAL RUNTIME',browse:'Browse results',resultScope:'Results',languageBasis:'Query pronunciation',resultLanguage:'Result language',searchIn:'Search in',basisGerman:'German',basisEnglish:'English',basisBoth:'Combined',scopeAll:'Words + phrases + entities',scopeAllButton:'All',scopeWords:'Words',scopePhrases:'Phrases / Mosaic',scopePhrasesShort:'Phrases',scopeEntities:'Entities',words:'Words',phrases:'Phrases / Mosaic',entities:'Entities',word:'Word',phrase:'Phrase',entity:'Entity',filters:'Filters',filtersHint:'Rhyme, syllables, sorting and vocabulary',viewList:'List',viewCompact:'Compact',searchOptionsShort:'Options',resultFiltersShort:'Filters',languageRoute:'Query → results',corpusMode:'Corpus',corpusCurrent:'Current · canonical',corpusGenerated:'Current + generated',corpusGeneratedOnly:'Generated only',corpusHistorical:'+ historical',corpusComplete:'Historical + generated',corpusHistoricalGeneratedOnly:'Historical · generated only',rhymeType:'Rhyme / sound relation',
     syllables:'Syllables',sort:'Sort',pronunciation:'Pronunciation',vocabulary:'Vocabulary',all:'All',same:'Same count',plusMinus1:'±1 syllable',plusMinus2:'±2 syllables',plusMinus3:'±3 syllables',
     recommended:'Recommended',syllableDistance:'Closest syllable count',mostCommon:'Most common',closest:'Closest rhyme',alphabetical:'A–Z',standard:'Standard',allVariants:'All variants',
     searching:'Searching…',includeHistorical:'Include historical / obsolete words',generatedData:'Generated data',includeGenerated:'Include generated pronunciation data',generatedOnly:'Generated only',generatedShort:'Generated',generatedUnavailable:'Generated data is not available in this local installation.',stats:'Stats',statsTitle:'Dataset stats',statsIntro:'Available searchable pronunciation records in this local installation.',coreData:'Core',total:'Total',grandTotal:'Grand total',statsDeWords:'German words',statsEnWords:'English words',statsPhrases:'Phrases / Mosaic',statsEntities:'Entities',statsUnit:'pronunciation records',statsLoading:'Loading dataset stats…',statsUnavailable:'Dataset stats are unavailable.',runtimeTiming:'Search runtime',runtimeTimingQuery:'Query',runtimeTimingAverage:'AVG · 100',runtimeTimingScope:'Server search · DB + scoring + ranking',scrollMore:'Scroll for more results…',searchPlaceholder:'Search a word, phrase or entity…',search:'Search',
@@ -31,7 +50,7 @@ const I18N = {
   de: {
     title:'RhymeLab Lokal',eyebrow:'VEREINHEITLICHTER REIM-WRITER',headline:'Reime für Wörter, Phrasen und Namen finden.',
     intro:'Deutsch, Englisch oder beides durchsuchen. RhymeLab vereint alle lokal verfügbaren Kanäle und lässt Wörter, Phrase/Mosaic-Treffer und Entitäten trotzdem getrennt auswählen.',
-    noteLocal:'Läuft lokal',notePhonetic:'IPA-basiert',noteUsage:'Deterministisch',navSearch:'SUCHE',navRhymePad:'RHYMEPAD',localRuntime:'LOKALE RUNTIME',browse:'Ergebnisse',resultScope:'Ergebnisse',languageBasis:'Aussprache der Suche',resultLanguage:'Treffersprache',searchIn:'Suchen in',basisGerman:'Deutsch',basisEnglish:'Englisch',basisBoth:'Kombiniert',scopeAll:'Wörter + Wortgruppen + Entitäten',scopeAllButton:'Alles',scopeWords:'Wörter',scopePhrases:'Wortgruppen / Mosaic',scopePhrasesShort:'Phrasen',scopeEntities:'Entitäten',words:'Wörter',phrases:'Wortgruppen / Mosaic',entities:'Entitäten',word:'Wort',phrase:'Wortgruppe',entity:'Entität',filters:'Filter',filtersHint:'Reim, Silben, Sortierung und Wortschatz',viewList:'Liste',viewCompact:'Kompakt',searchOptionsShort:'Optionen',resultFiltersShort:'Filter',rhymeType:'Reim / Klangbeziehung',
+    noteLocal:'Läuft lokal',notePhonetic:'IPA-basiert',noteUsage:'Deterministisch',navSearch:'SUCHE',navRhymePad:'RHYMEPAD',localRuntime:'LOKALE RUNTIME',browse:'Ergebnisse',resultScope:'Ergebnisse',languageBasis:'Aussprache der Suche',resultLanguage:'Treffersprache',searchIn:'Suchen in',basisGerman:'Deutsch',basisEnglish:'Englisch',basisBoth:'Kombiniert',scopeAll:'Wörter + Wortgruppen + Entitäten',scopeAllButton:'Alles',scopeWords:'Wörter',scopePhrases:'Wortgruppen / Mosaic',scopePhrasesShort:'Phrasen',scopeEntities:'Entitäten',words:'Wörter',phrases:'Wortgruppen / Mosaic',entities:'Entitäten',word:'Wort',phrase:'Wortgruppe',entity:'Entität',filters:'Filter',filtersHint:'Reim, Silben, Sortierung und Wortschatz',viewList:'Liste',viewCompact:'Kompakt',searchOptionsShort:'Optionen',resultFiltersShort:'Filter',languageRoute:'Suche → Treffer',corpusMode:'Korpus',corpusCurrent:'Aktuell · kanonisch',corpusGenerated:'Aktuell + generiert',corpusGeneratedOnly:'Nur generiert',corpusHistorical:'+ historisch',corpusComplete:'Historisch + generiert',corpusHistoricalGeneratedOnly:'Historisch · nur generiert',rhymeType:'Reim / Klangbeziehung',
     syllables:'Silben',sort:'Sortierung',pronunciation:'Aussprache',vocabulary:'Wortschatz',all:'Alle',same:'Gleiche Anzahl',plusMinus1:'±1 Silbe',plusMinus2:'±2 Silben',plusMinus3:'±3 Silben',
     recommended:'Empfohlen',syllableDistance:'Nächste Silbenzahl',mostCommon:'Am häufigsten',closest:'Ähnlichster Reim',alphabetical:'A–Z',standard:'Standard',allVariants:'Alle Varianten',
     searching:'Suche…',includeHistorical:'Historische / veraltete Wörter einbeziehen',generatedData:'Generierte Daten',includeGenerated:'Generierte Aussprachedaten einbeziehen',generatedOnly:'Nur generiert',generatedShort:'Generiert',generatedUnavailable:'Generierte Daten sind in dieser lokalen Installation nicht verfügbar.',stats:'Statistik',statsTitle:'Datenbestand',statsIntro:'Verfügbare durchsuchbare Aussprache-Datensätze dieser lokalen Installation.',coreData:'Kernbestand',total:'Gesamt',grandTotal:'Gesamtsumme',statsDeWords:'Deutsche Wörter',statsEnWords:'Englische Wörter',statsPhrases:'Phrasen / Mosaic',statsEntities:'Entitäten',statsUnit:'Aussprache-Datensätze',statsLoading:'Datenbestand wird geladen…',statsUnavailable:'Statistik zum Datenbestand ist nicht verfügbar.',runtimeTiming:'Such-Runtime',runtimeTimingQuery:'Abfrage',runtimeTimingAverage:'Ø · 100',runtimeTimingScope:'Server-Suche · DB + Scoring + Ranking',scrollMore:'Weiter scrollen für mehr Ergebnisse…',searchPlaceholder:'Wort, Phrase oder Entität suchen…',search:'Suchen',
@@ -129,11 +148,11 @@ const savedBasis=localStorage.getItem('rhymelab.searchBasis');
 const savedResultLanguage=localStorage.getItem('rhymelab.resultLanguage');
 const savedUiLanguage=localStorage.getItem('rhymelab.language');
 const savedResultView=localStorage.getItem('rhymelab.resultView');
-const savedSearchOptionsExpanded=localStorage.getItem('rhymelab.searchOptionsExpanded.v2');
+const savedSearchOptionsExpanded=localStorage.getItem('rhymelab.searchOptionsExpanded.v3');
 const savedResultFiltersExpanded=localStorage.getItem('rhymelab.resultFiltersExpanded.v2');
 const detectedUiLanguage=String(navigator.language||'en').toLocaleLowerCase('en-US').startsWith('de')?'de':'en';
 const initialBasis=['de','en','both'].includes(savedBasis)?savedBasis:'de';
-const defaultSearchSectionsExpanded=true;
+const defaultSearchSectionsExpanded=false;
 const state={
   lang:['de','en'].includes(savedUiLanguage)?savedUiLanguage:detectedUiLanguage,
   basis:initialBasis,
@@ -197,6 +216,7 @@ function applySharedSearchState(searchState,{entityCategory=true}={}){
     const valid=[...$('#entityCategory').options].some((option)=>option.value===next.entityCategory);
     $('#entityCategory').value=valid?next.entityCategory:'all';
   }
+  syncFilterSelectControls();
   return next;
 }
 
@@ -255,17 +275,94 @@ function rowTypes(row){const types=new Set();if(row.primaryType&&PRIMARY_RHYME_T
 function matchesType(row,type){return rowTypes(row).includes(type);}
 function displayScore(row,type){return SOUND_RELATION_TYPES.includes(type)?Number(relationFor(row,type)?.score||0):Number(row.score||0);}
 function rowSyllableDistance(row,querySyllables=Number(state.data?.query?.syllableCount||0)){const explicit=Number(row?.syllableDistance);if(Number.isFinite(explicit))return Math.abs(explicit);const count=Number(row?.syllableCount);return querySyllables>0&&Number.isFinite(count)?Math.abs(count-querySyllables):Number.MAX_SAFE_INTEGER;}
-function updateSyllableLabels(){const querySyllables=Number(state.data?.query?.syllableCount||0),range=(distance)=>querySyllables>0?` · ${Math.max(1,querySyllables-distance)}–${querySyllables+distance}`:'';const labels={all:t('all'),same:querySyllables>0?`${t('same')} · ${querySyllables}`:t('same'),near1:`${t('plusMinus1')}${range(1)}`,near2:`${t('plusMinus2')}${range(2)}`,near3:`${t('plusMinus3')}${range(3)}`};for(const option of $$('#syllableFilter option'))option.textContent=labels[option.value]||option.textContent;}
+function updateSyllableLabels(){const querySyllables=Number(state.data?.query?.syllableCount||0),range=(distance)=>querySyllables>0?` · ${Math.max(1,querySyllables-distance)}–${querySyllables+distance}`:'';const labels={all:t('all'),same:querySyllables>0?`${t('same')} · ${querySyllables}`:t('same'),near1:`${t('plusMinus1')}${range(1)}`,near2:`${t('plusMinus2')}${range(2)}`,near3:`${t('plusMinus3')}${range(3)}`};for(const option of $$('#syllableFilter option'))option.textContent=labels[option.value]||option.textContent;syncFilterSelectControls();}
 function syncViewControls(){const results=$('#results');if(results){results.classList.toggle('results-compact',state.view==='compact');results.classList.toggle('results-list',state.view!=='compact');}$$('.view-option').forEach((button)=>{const active=button.dataset.view===state.view;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});}
 function syncUiLanguageControls(){$$('.ui-lang-option').forEach((button)=>{const active=button.dataset.uiLang===state.lang;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});}
 function basisLanguages(basis){return basis==='both'?['de','en']:[basis];}
+function languageRouteValue(){return state.basis+':'+state.resultLanguage;}
+function syncLanguageRouteControl(){
+  const select=$('#languageRouteFilter');
+  if(!select)return;
+  const wanted=languageRouteValue();
+  if([...select.options].some((option)=>option.value===wanted))select.value=wanted;
+  for(const option of select.options){
+    const [basis,result]=option.value.split(':');
+    const basisAvailable=state.capabilities?.bases?.[basis]!==false;
+    const resultAvailable=basisLanguages(result).some((language)=>state.capabilities?.languages?.[language]?.available!==false);
+    option.disabled=!basisAvailable||!resultAvailable;
+  }
+  select.closest('.search-filter-field')?.classList.toggle('is-active',wanted!=='de:de');
+}
+function applyLanguageRoute(value,{rerun=true}={}){
+  const [basis,result]=String(value||'de:de').split(':');
+  if(!['de','en','both'].includes(basis)||!['de','en','both'].includes(result))return;
+  state.basis=basis;
+  state.resultLanguage=result;
+  localStorage.setItem('rhymelab.searchBasis',state.basis);
+  localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);
+  state.sectionVisible.clear();
+  syncCapabilityControls();
+  captureSharedSearchState();
+  applyLanguage();
+  if(rerun&&state.query)void search(state.query);
+  else renderCapabilityNotice();
+}
+function corpusModeValue(){
+  const historical=Boolean($('#historicalMode')?.checked);
+  if(historical&&state.generatedOnly)return 'historical_generated_only';
+  if(historical&&state.generatedOptIn)return 'complete';
+  if(historical)return 'historical';
+  if(state.generatedOnly)return 'generated_only';
+  if(state.generatedOptIn)return 'generated';
+  return 'current';
+}
+function syncCorpusModeControl(){
+  const select=$('#corpusMode');
+  if(!select)return;
+  const available=state.generatedCapability?.available===true;
+  const value=corpusModeValue();
+  select.value=value;
+  for(const option of select.options){
+    option.disabled=String(option.value).includes('generated')&&!available;
+  }
+  select.closest('.search-filter-field')?.classList.toggle('is-active',value!=='current');
+}
+function applyCorpusMode(value,{rerun=true}={}){
+  const mode=String(value||'current');
+  const historical=mode==='historical'||mode==='complete'||mode==='historical_generated_only';
+  state.generatedOptIn=mode==='generated'||mode==='generated_only'||mode==='complete'||mode==='historical_generated_only';
+  state.generatedOnly=mode==='generated_only'||mode==='historical_generated_only';
+  if($('#historicalMode'))$('#historicalMode').checked=historical;
+  syncGeneratedOptinControl();
+  syncCorpusModeControl();
+  state.wordCache.clear();
+  state.pronunciationMisses.clear();
+  state.sectionVisible.clear();
+  captureSharedSearchState();
+  if(rerun&&state.query)void search(state.query);
+  else renderCapabilityNotice();
+}
 function syncResultLanguageControls(){$$('.result-language-option').forEach((button)=>{const target=button.dataset.resultLanguage,active=target===state.resultLanguage,languages=basisLanguages(target),available=languages.some((language)=>state.capabilities?.languages?.[language]?.available!==false);button.disabled=!available;button.classList.toggle('active',active);button.classList.toggle('unavailable',!available);button.setAttribute('aria-pressed',String(active));button.setAttribute('aria-disabled',String(!available));});}
 function scopeCapability(scope,basis=state.resultLanguage){const languages=basisLanguages(basis),capabilities=state.capabilities;if(!capabilities)return{available:true,partial:false,supportedLanguages:languages};const flag=scope==='phrases'?'phraseMosaic':scope==='entities'?'entityRhymes':'wordWriter';if(scope==='all'){const supportedLanguages=languages.filter((language)=>{const row=capabilities.languages?.[language];return Boolean(row?.wordWriter||row?.phraseMosaic||row?.entityRhymes);});return{available:supportedLanguages.length>0,partial:supportedLanguages.length>0&&supportedLanguages.length<languages.length,supportedLanguages};}const supportedLanguages=languages.filter((language)=>Boolean(capabilities.languages?.[language]?.[flag]));return{available:supportedLanguages.length>0,partial:supportedLanguages.length>0&&supportedLanguages.length<languages.length,supportedLanguages};}
-function syncContextFilters(){const scope=$('#scopeFilter').value;$('#variantFilter')?.classList.toggle('context-hidden',scope==='phrases'||scope==='entities');$('#historicalFilter')?.classList.toggle('context-hidden',scope==='entities');const entityAvailable=Array.isArray(state.capabilities?.entities?.categories)&&state.capabilities.entities.categories.length>0;$('#entityCategoryFilter')?.classList.toggle('context-hidden',!entityAvailable||!(scope==='all'||scope==='entities'));}
+function syncContextFilters(){
+  const scope=$('#scopeFilter').value;
+  const variantUnavailable=scope==='phrases'||scope==='entities';
+  $('#variantMode').disabled=variantUnavailable;
+  $('#variantFilter')?.classList.toggle('is-unavailable',variantUnavailable);
+  const entityAvailable=Array.isArray(state.capabilities?.entities?.categories)&&state.capabilities.entities.categories.length>0&&(scope==='all'||scope==='entities');
+  $('#entityCategory').disabled=!entityAvailable;
+  $('#entityCategoryFilter')?.classList.toggle('is-unavailable',!entityAvailable);
+  $('#scopeFilter')?.closest('.search-filter-field')?.classList.toggle('is-active',scope!=='all');
+  $('#typeFilter')?.closest('.search-filter-field')?.classList.toggle('is-active',$('#typeFilter').value!=='all');
+  $('#syllableFilter')?.closest('.search-filter-field')?.classList.toggle('is-active',$('#syllableFilter').value!=='all');
+  $('#sortMode')?.closest('.search-filter-field')?.classList.toggle('is-active',$('#sortMode').value!=='recommended');
+  $('#variantMode')?.closest('.search-filter-field')?.classList.toggle('is-active',$('#variantMode').value!=='preferred');
+  syncFilterSelectControls();
+}
 function renderAvailabilityBar(){const node=$('#availabilityBar');if(!node)return;const scopes=[['words',t('words')],['phrases',t('phrases')],['entities',t('entities')]];node.innerHTML=scopes.map(([scope,label])=>{const capability=scopeCapability(scope),status=!capability.available?'unavailable':capability.partial?'partial':'available',languages=capability.supportedLanguages.map((language)=>language.toUpperCase()).join('+')||'—';return`<span class="availability-chip ${status}"><span class="availability-dot" aria-hidden="true"></span><strong>${esc(label)}</strong><small>${esc(languages)}</small></span>`;}).join('');}
 const STICKY_DETAIL_GAP=24;
 const SEARCH_SECTION_CONFIG=Object.freeze({
-  searchOptions:{section:'#searchOptionsSection',button:'#searchOptionsToggle',stateKey:'searchOptionsExpanded',storageKey:'rhymelab.searchOptionsExpanded.v2'},
+  searchOptions:{section:'#searchOptionsSection',button:'#searchOptionsToggle',stateKey:'searchOptionsExpanded',storageKey:'rhymelab.searchOptionsExpanded.v3'},
   resultFilters:{section:'#resultFiltersSection',button:'#resultFiltersToggle',stateKey:'resultFiltersExpanded',storageKey:'rhymelab.resultFiltersExpanded.v2'},
 });
 
@@ -287,9 +384,8 @@ function updateStickyLayout(){
   const stickyTop=searchStickyTop();
   const coreRect=core?.getBoundingClientRect?.();
   const coreHeight=Math.ceil(Number(coreRect?.height||core?.offsetHeight||60));
-  const stickyExpanded=Boolean(stage?.classList.contains('search-auto-compact')&&state.stickyPanelOverride);
   const cardHeight=Math.ceil(Number(card?.getBoundingClientRect?.()?.height||card?.offsetHeight||coreHeight));
-  const occupiedHeight=stickyExpanded?cardHeight:coreHeight;
+  const occupiedHeight=stage?.classList.contains('search-auto-compact')?cardHeight:coreHeight;
   root.style.setProperty('--search-sticky-top',`${stickyTop}px`);
   root.style.setProperty('--word-panel-sticky-top',`${stickyTop+occupiedHeight+STICKY_DETAIL_GAP}px`);
 }
@@ -304,9 +400,19 @@ function updateFloatingSearchGeometry(){
   stage.style.setProperty('--search-fixed-width',`${Math.round(rect.width)}px`);
 }
 
+function searchCardFitsStickyViewport(){
+  if(typeof window==='undefined')return true;
+  const card=$('.search-card');
+  if(!card)return false;
+  const stickyTop=searchStickyTop();
+  const cardHeight=Math.ceil(Number(card.getBoundingClientRect?.()?.height||card.offsetHeight||0));
+  const available=Math.max(0,window.innerHeight-stickyTop-12);
+  return cardHeight>0&&cardHeight<=available;
+}
+
 function enterSearchAutoCompact(){
   const stage=$('.search-stage');
-  if(!stage||stage.classList.contains('search-auto-compact'))return;
+  if(!stage||stage.classList.contains('search-auto-compact')||!searchCardFitsStickyViewport())return;
   const rect=stage.getBoundingClientRect?.();
   const reserveHeight=Math.ceil(Number(rect?.height||stage.offsetHeight||0));
   if(reserveHeight>0&&stage.style)stage.style.height=`${reserveHeight}px`;
@@ -352,18 +458,18 @@ function refreshSearchCompactThreshold(){
 
 function syncSearchSectionControls(){
   const stage=$('.search-stage');
-  const autoCompact=stage?.classList.contains('search-auto-compact');
-  for(const [name,config] of Object.entries(SEARCH_SECTION_CONFIG)){
-    const section=$(config.section);
-    const button=$(config.button);
-    const preferred=Boolean(state[config.stateKey]);
-    const actuallyExpanded=preferred&&(!autoCompact||state.stickyPanelOverride===name);
-    section?.classList.toggle('section-collapsed',!actuallyExpanded);
-    button?.classList.toggle('active',actuallyExpanded);
-    button?.setAttribute('aria-expanded',String(actuallyExpanded));
-  }
+  const searchSection=$('#searchOptionsSection');
+  const autoCompact=Boolean(stage?.classList.contains('search-auto-compact'));
+  const expanded=Boolean(state.searchOptionsExpanded&&(!autoCompact||state.stickyPanelOverride==='searchOptions'));
+  searchSection?.classList.toggle('section-collapsed',!expanded);
+  const toggle=$('#searchOptionsToggle');
+  toggle?.setAttribute('aria-expanded',String(expanded));
+  toggle?.classList.toggle('active',expanded);
+  $('#resultFiltersSection')?.classList.add('hidden');
+  $('#resultFiltersToggle')?.setAttribute('aria-expanded','false');
+  state.resultFiltersExpanded=false;
   updateStickyLayout();
-  if(!autoCompact)refreshSearchCompactThreshold();
+  refreshSearchCompactThreshold();
 }
 
 function setSearchSectionExpanded(name,expanded,{persist=true}={}){
@@ -414,15 +520,25 @@ function syncFloatingSearchState(){
 
   if(stage.classList.contains('search-auto-compact')){
     updateFloatingSearchGeometry();
-    if(window.scrollY<threshold-36)exitSearchAutoCompact();
+    if(window.scrollY<threshold-36||!searchCardFitsStickyViewport())exitSearchAutoCompact();
     return;
   }
 
   if(window.scrollY>=threshold)enterSearchAutoCompact();
 }
 
-function populateEntityCategories(){const select=$('#entityCategory');if(!select)return;const current=select.value||'all',categories=[...(state.capabilities?.entities?.categories||[])].sort((a,b)=>entityCategoryLabel(a).localeCompare(entityCategoryLabel(b),state.lang==='de'?'de':'en',{sensitivity:'base'}));const groups=new Map();for(const category of categories){const [family='other']=String(category).split('.');if(!groups.has(family))groups.set(family,[]);groups.get(family).push(category);}select.innerHTML=`<option value="all">${esc(t('allEntities'))}</option>`+[...groups.entries()].sort(([a],[b])=>humanize(a).localeCompare(humanize(b),state.lang==='de'?'de':'en',{sensitivity:'base'})).map(([family,items])=>`<optgroup label="${esc(humanize(family))}">${items.map((category)=>`<option value="${esc(category)}">${esc(entityCategoryLabel(category))}</option>`).join('')}</optgroup>`).join('');select.value=categories.includes(current)?current:'all';}
-function setScope(scope,{rerun=false}={}){const requested=['all','words','phrases','entities'].includes(scope)?scope:'all',capability=scopeCapability(requested),fallback=scopeCapability('all').available?'all':scopeCapability('words').available?'words':scopeCapability('entities').available?'entities':'phrases',next=capability.available?requested:fallback;$('#scopeFilter').value=next;$$('.scope-option').forEach((button)=>{const active=button.dataset.scope===next;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});syncContextFilters();renderAvailabilityBar();if(rerun&&state.query)search(state.query);}
+function populateEntityCategories(){const select=$('#entityCategory');if(!select)return;const current=select.value||'all',categories=[...(state.capabilities?.entities?.categories||[])].sort((a,b)=>entityCategoryLabel(a).localeCompare(entityCategoryLabel(b),state.lang==='de'?'de':'en',{sensitivity:'base'}));const groups=new Map();for(const category of categories){const [family='other']=String(category).split('.');if(!groups.has(family))groups.set(family,[]);groups.get(family).push(category);}select.innerHTML=`<option value="all">${esc(t('allEntities'))}</option>`+[...groups.entries()].sort(([a],[b])=>humanize(a).localeCompare(humanize(b),state.lang==='de'?'de':'en',{sensitivity:'base'})).map(([family,items])=>`<optgroup label="${esc(humanize(family))}">${items.map((category)=>`<option value="${esc(category)}">${esc(entityCategoryLabel(category))}</option>`).join('')}</optgroup>`).join('');select.value=categories.includes(current)?current:'all';syncFilterSelectControls();}
+function setScope(scope,{rerun=false}={}){
+  const requested=['all','words','phrases','entities'].includes(scope)?scope:'all';
+  const capability=scopeCapability(requested);
+  const fallback=scopeCapability('all').available?'all':scopeCapability('words').available?'words':scopeCapability('entities').available?'entities':'phrases';
+  const next=capability.available?requested:fallback;
+  $('#scopeFilter').value=next;
+  syncContextFilters();
+  renderAvailabilityBar();
+  captureSharedSearchState();
+  if(rerun&&state.query)void search(state.query);
+}
 function syncGeneratedOptinControl(){
   const input=$('#generatedMode');
   const onlyInput=$('#generatedOnlyMode');
@@ -443,9 +559,42 @@ function syncGeneratedOptinControl(){
   state.pronunciationRevision=state.generatedOptIn
     ?state.generatedPronunciationRevision
     :state.canonicalPronunciationRevision;
+  syncCorpusModeControl();
 }
 
-function syncCapabilityControls(){if(!state.capabilities){syncResultLanguageControls();setScope($('#scopeFilter').value);return;}$$('.basis-option').forEach((button)=>{const basis=button.dataset.basis,available=state.capabilities?.bases?.[basis]!==false,partial=basis==='both'&&Boolean(state.capabilities?.partialBases?.both);button.disabled=!available;button.classList.toggle('unavailable',!available);button.classList.toggle('partial',available&&partial);button.setAttribute('aria-disabled',String(!available));});if(state.capabilities?.bases?.[state.basis]===false){state.basis=state.capabilities?.bases?.de!==false?'de':state.capabilities?.bases?.en!==false?'en':'both';localStorage.setItem('rhymelab.searchBasis',state.basis);}syncResultLanguageControls();const targetLanguages=basisLanguages(state.resultLanguage),targetAvailable=targetLanguages.some((language)=>state.capabilities?.languages?.[language]?.available);if(!targetAvailable){state.resultLanguage=state.capabilities?.languages?.de?.available?'de':state.capabilities?.languages?.en?.available?'en':'both';localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);syncResultLanguageControls();}$$('.scope-option').forEach((button)=>{const capability=scopeCapability(button.dataset.scope);button.disabled=!capability.available;button.classList.toggle('unavailable',!capability.available);button.classList.toggle('partial',capability.partial);button.setAttribute('aria-disabled',String(!capability.available));});populateEntityCategories();setScope($('#scopeFilter').value);}
+function syncCapabilityControls(){
+  if(!state.capabilities){
+    syncResultLanguageControls();
+    syncLanguageRouteControl();
+    setScope($('#scopeFilter').value);
+    syncCorpusModeControl();
+    return;
+  }
+  if(state.capabilities?.bases?.[state.basis]===false){
+    state.basis=state.capabilities?.bases?.de!==false?'de':state.capabilities?.bases?.en!==false?'en':'both';
+    localStorage.setItem('rhymelab.searchBasis',state.basis);
+  }
+  syncResultLanguageControls();
+  const targetLanguages=basisLanguages(state.resultLanguage);
+  const targetAvailable=targetLanguages.some((language)=>state.capabilities?.languages?.[language]?.available);
+  if(!targetAvailable){
+    state.resultLanguage=state.capabilities?.languages?.de?.available?'de':state.capabilities?.languages?.en?.available?'en':'both';
+    localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);
+    syncResultLanguageControls();
+  }
+  syncLanguageRouteControl();
+  const scopeSelect=$('#scopeFilter');
+  if(scopeSelect){
+    for(const option of scopeSelect.options){
+      const capability=scopeCapability(option.value);
+      option.disabled=!capability.available;
+    }
+  }
+  populateEntityCategories();
+  setScope(scopeSelect?.value||'all');
+  syncGeneratedOptinControl();
+  syncCorpusModeControl();
+}
 function renderSources(){const list=$('#sourcesList');if(!list)return;const locale=state.lang==='de'?'de-DE':'en-US';list.innerHTML=[...SOURCE_CATALOG].sort((a,b)=>a.name.localeCompare(b.name,locale,{sensitivity:'base'})).map((source)=>`<article class="source-card"><h3>${esc(source.name)}</h3><p>${esc(source.detail[state.lang]||source.detail.en)}</p></article>`).join('');}
 function renderDatasetStats(){
   const node=$('#statsContent');
@@ -501,7 +650,31 @@ async function loadDatasetStats(){
     return null;
   }
 }
-function applyLanguage(){document.documentElement.lang=state.lang;document.title=t('title');$('#searchInput').placeholder=t('searchPlaceholder');$('#searchInput').setAttribute('aria-label',t('searchPlaceholder'));$('#searchButton').textContent=t('search');$$('[data-i18n]').forEach((node)=>{node.textContent=t(node.dataset.i18n);});$$('[data-i18n-option]').forEach((node)=>{node.textContent=t(node.dataset.i18nOption);});$$('[data-i18n-aria-label]').forEach((node)=>{node.setAttribute('aria-label',t(node.dataset.i18nAriaLabel));});$$('.basis-option').forEach((button)=>{const active=button.dataset.basis===state.basis;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});syncResultLanguageControls();$$('.scope-option').forEach((button)=>button.classList.toggle('active',button.dataset.scope===$('#scopeFilter').value));syncUiLanguageControls();syncViewControls();populateEntityCategories();syncContextFilters();syncGeneratedOptinControl();updateSyllableLabels();renderAvailabilityBar();renderSources();if(state.datasetStats)renderDatasetStats();renderRuntimeTiming();if(state.data)render();}
+function applyLanguage(){
+  document.documentElement.lang=state.lang;
+  document.title=t('title');
+  $('#searchInput').placeholder=t('searchPlaceholder');
+  $('#searchInput').setAttribute('aria-label',t('searchPlaceholder'));
+  $('#searchButton').textContent=t('search');
+  $$('[data-i18n]').forEach((node)=>{node.textContent=t(node.dataset.i18n);});
+  $$('[data-i18n-option]').forEach((node)=>{node.textContent=t(node.dataset.i18nOption);});
+  $$('[data-i18n-aria-label]').forEach((node)=>{node.setAttribute('aria-label',t(node.dataset.i18nAriaLabel));});
+  syncResultLanguageControls();
+  syncLanguageRouteControl();
+  syncUiLanguageControls();
+  syncViewControls();
+  populateEntityCategories();
+  syncContextFilters();
+  syncGeneratedOptinControl();
+  syncCorpusModeControl();
+  updateSyllableLabels();
+  renderAvailabilityBar();
+  renderSources();
+  if(state.datasetStats)renderDatasetStats();
+  renderRuntimeTiming();
+  syncFilterSelectControls();
+  if(state.data)render();
+}
 function compareRecommended(a,b){if(a.resultKind!==b.resultKind){const rank={word:0,phrase:1,entity:2};return Number(rank[a.resultKind]??9)-Number(rank[b.resultKind]??9);}const ar=Number(a.channelRank||a.writerRank||a.diversifiedPageRank||0),br=Number(b.channelRank||b.writerRank||b.diversifiedPageRank||0);if(ar&&br&&ar!==br)return ar-br;if(Number.isFinite(a.writerRank)&&Number.isFinite(b.writerRank))return a.writerRank-b.writerRank;return Number(a.rhymeTier??99)-Number(b.rhymeTier??99)||Number(a.syllableDistance||0)-Number(b.syllableDistance||0)||(a.usageRank==null)-(b.usageRank==null)||Number(a.usageRank??Number.MAX_SAFE_INTEGER)-Number(b.usageRank??Number.MAX_SAFE_INTEGER)||Number(b.score||0)-Number(a.score||0)||String(a.word||'').localeCompare(String(b.word||''),'de');}
 function compareForDisplayType(a,b,type){if(SOUND_RELATION_TYPES.includes(type)){const ar=relationFor(a,type),br=relationFor(b,type);return(Number(ar?.strength!=='strong')-Number(br?.strength!=='strong'))||displayScore(b,type)-displayScore(a,type)||a.syllableDistance-b.syllableDistance||(a.usageRank==null)-(b.usageRank==null)||(a.usageRank??Number.MAX_SAFE_INTEGER)-(b.usageRank??Number.MAX_SAFE_INTEGER)||b.score-a.score;}return compareRecommended(a,b);}
 function filteredResults(){if(!state.data)return[];const type=$('#typeFilter').value,syllable=$('#syllableFilter').value,scope=$('#scopeFilter').value,maximumDistance=syllable==='same'?0:syllable==='near1'?1:syllable==='near2'?2:syllable==='near3'?3:null;let rows=state.data.results.filter((row)=>{if(scope==='words'&&row.resultKind!=='word')return false;if(scope==='phrases'&&row.resultKind!=='phrase')return false;if(scope==='entities'&&row.resultKind!=='entity')return false;if(type!=='all'&&!matchesType(row,type))return false;if(maximumDistance!=null&&rowSyllableDistance(row)>maximumDistance)return false;return true;});const mode=$('#sortMode').value;rows=[...rows].sort((a,b)=>{const syllableOrder=(syllable!=='all'||mode==='syllables')?rowSyllableDistance(a)-rowSyllableDistance(b):0;if(syllableOrder)return syllableOrder;if(a.resultKind!==b.resultKind){const rank={word:0,phrase:1,entity:2};return Number(rank[a.resultKind]??9)-Number(rank[b.resultKind]??9);}if(type!=='all'&&mode==='recommended')return compareForDisplayType(a,b,type);if(mode==='common'){if(a.resultKind==='phrase')return Number(b.usageCount||0)-Number(a.usageCount||0)||compareRecommended(a,b);return(a.usageRank==null)-(b.usageRank==null)||Number(a.usageRank??Number.MAX_SAFE_INTEGER)-Number(b.usageRank??Number.MAX_SAFE_INTEGER)||compareRecommended(a,b);}if(mode==='closest')return(type!=='all'?displayScore(b,type)-displayScore(a,type):Number(b.score||0)-Number(a.score||0))||compareRecommended(a,b);if(mode==='alpha')return String(a.word||'').localeCompare(String(b.word||''),state.lang==='de'?'de':'en',{sensitivity:'base'});return compareRecommended(a,b);});return rows;}
@@ -723,9 +896,24 @@ function appendClientPronunciations(params,generated){
   }
 }
 
+function selectedRuntimeDbPreference(){
+  const value=String(localStorage.getItem('rhymelab.internal.dbLab.v1')||'').trim().toLowerCase();
+  return ['lite','standard','full'].includes(value)?value:'standard';
+}
+function updateRuntimeDbBadge(value,{pending=false}={}){
+  const badge=$('#searchDbBadge');
+  if(!badge)return;
+  const label=String(value||'default').toUpperCase();
+  badge.textContent='DB '+label+(pending?' …':'');
+  badge.title=(state.lang==='de'?'Aktive lokale Datenbank: ':'Active local database: ')+label;
+}
 async function requestWriter(params){
+  const requestedDb=selectedRuntimeDbPreference();
+  if(requestedDb)params.set('runtime_db',requestedDb);
+  updateRuntimeDbBadge(requestedDb||'auto',{pending:true});
   const response=await fetch(`/api/writer?${params}`);
   const data=await response.json();
+  updateRuntimeDbBadge(data?.runtimeDb||'default');
   if(data?.runtimeTiming){
     state.runtimeTiming=data.runtimeTiming;
     renderRuntimeTiming();
@@ -737,7 +925,6 @@ async function search(word){
   if(!state.query)return;
   $('#emptyState').classList.add('hidden');
   $('#workspace').classList.remove('hidden');
-  $('#resultFiltersSection').classList.remove('hidden');
   $('#loading').classList.remove('hidden');
   $('#error').classList.add('hidden');
   $('#results').innerHTML='';
@@ -791,16 +978,14 @@ async function search(word){
 }
 
 const REQUIRED_SINGLE_CONTROLS=[
-  '#searchForm','#searchInput','#scopeFilter','#typeFilter','#variantMode','#syllableFilter','#sortMode',
+  '#searchForm','#searchInput','#languageRouteFilter','#scopeFilter','#typeFilter','#variantMode','#syllableFilter','#sortMode','#corpusMode',
   '#historicalMode','#generatedMode','#generatedOnlyMode','#entityCategory','#statsButton','#statsClose','#statsDialog','#statsContent',
   '#runtimeTiming','#runtimeTimingCurrent','#runtimeTimingAverage','#runtimeTimingSamples',
   '#sourcesButton','#sourcesClose','#sourcesDialog','#results',
   '#resultsToolbar','#resultFiltersSection','#searchOptionsToggle','#resultFiltersToggle',
   '#searchOptionsSection','#searchOptionsPanel','#resultFiltersPanel','#searchStageAnchor','.search-stage',
 ];
-const REQUIRED_CONTROL_GROUPS=[
-  '.ui-lang-option','.view-option','.basis-option','.result-language-option','.scope-option',
-];
+const REQUIRED_CONTROL_GROUPS=['.ui-lang-option','.view-option'];
 
 function assertInteractiveControlSurface(){
   const missingSingles=REQUIRED_SINGLE_CONTROLS.filter((selector)=>!$(selector));
@@ -812,35 +997,83 @@ function assertInteractiveControlSurface(){
 
 function installInteractiveControls(){
   assertInteractiveControlSurface();
+  installFilterSelectControls();
 
-  $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();search($('#searchInput').value);});
+  $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();void search($('#searchInput').value);});
   $('#searchOptionsToggle').addEventListener('click',()=>toggleSearchSection('searchOptions'));
-  $('#resultFiltersToggle').addEventListener('click',()=>toggleSearchSection('resultFilters'));
-  $$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{const language=button.dataset.uiLang;if(!['de','en'].includes(language))return;state.lang=language;localStorage.setItem('rhymelab.language',language);applyLanguage();}));
-  $$('.view-option').forEach((button)=>button.addEventListener('click',()=>{const view=button.dataset.view;if(!['list','compact'].includes(view))return;state.view=view;localStorage.setItem('rhymelab.resultView',view);syncViewControls();if(state.data)render();}));
-  $$('.basis-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.basis=['de','en','both'].includes(button.dataset.basis)?button.dataset.basis:'de';localStorage.setItem('rhymelab.searchBasis',state.basis);syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
-  $$('.result-language-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;state.resultLanguage=['de','en','both'].includes(button.dataset.resultLanguage)?button.dataset.resultLanguage:'de';localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);state.sectionVisible.clear();syncCapabilityControls();applyLanguage();renderCapabilityNotice();if(state.query)search(state.query);}));
-  $$('.scope-option').forEach((button)=>button.addEventListener('click',()=>{if(button.disabled)return;setScope(button.dataset.scope,{rerun:true});renderCapabilityNotice();}));
-  ['typeFilter','variantMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{if(state.query)search(state.query);else renderCapabilityNotice();}));
-  ['syllableFilter','sortMode'].forEach((id)=>$('#'+id).addEventListener('change',()=>{state.visibleCount=state.pageSize;state.sectionVisible.clear();captureSharedSearchState();if(state.data)render();}));
-  $('#historicalMode').addEventListener('change',()=>{if(state.query)search(state.query);});
-  $('#generatedMode').addEventListener('change',()=>{
-    state.generatedOptIn=Boolean($('#generatedMode').checked&&state.generatedCapability?.available);
-    if(!state.generatedOptIn)state.generatedOnly=false;
-    syncGeneratedOptinControl();
-    state.wordCache.clear();
-    state.pronunciationMisses.clear();
-    if(state.query)search(state.query);
+  if(typeof document.addEventListener==='function')document.addEventListener('pointerdown',(event)=>{
+    const target=event.target;
+    if(!(target instanceof Element))return;
+    if(target.closest('.custom-select-popover'))return;
+    const stage=$('.search-stage');
+    if(
+      state.searchOptionsExpanded
+      &&stage
+      &&!stage.contains(target)
+    ){
+      setSearchSectionExpanded('searchOptions',false);
+    }
+  },{capture:true});
+  if(typeof document.addEventListener==='function')document.addEventListener('keydown',(event)=>{
+    if(event.key==='Escape'&&state.searchOptionsExpanded){
+      setSearchSectionExpanded('searchOptions',false);
+      $('#searchOptionsToggle')?.focus({preventScroll:true});
+    }
   });
-  $('#generatedOnlyMode').addEventListener('change',()=>{
-    state.generatedOnly=Boolean($('#generatedOnlyMode').checked&&state.generatedCapability?.available);
-    if(state.generatedOnly)state.generatedOptIn=true;
-    syncGeneratedOptinControl();
-    state.wordCache.clear();
-    state.pronunciationMisses.clear();
-    if(state.query)search(state.query);
+  $$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{
+    const language=button.dataset.uiLang;
+    if(!['de','en'].includes(language))return;
+    state.lang=language;
+    localStorage.setItem('rhymelab.language',language);
+    applyLanguage();
+  }));
+  $$('.view-option').forEach((button)=>button.addEventListener('click',()=>{
+    const view=button.dataset.view;
+    if(!['list','compact'].includes(view))return;
+    state.view=view;
+    localStorage.setItem('rhymelab.resultView',view);
+    syncViewControls();
+    if(state.data)render();
+  }));
+  $('#languageRouteFilter').addEventListener('change',(event)=>applyLanguageRoute(event.target.value,{rerun:true}));
+  $('#scopeFilter').addEventListener('change',(event)=>{setScope(event.target.value,{rerun:true});renderCapabilityNotice();});
+  $('#typeFilter').addEventListener('change',()=>{
+    state.visibleCount=state.pageSize;
+    state.sectionVisible.clear();
+    captureSharedSearchState();
+    syncContextFilters();
+    if(state.query)void search(state.query);
+    else renderCapabilityNotice();
   });
-  $('#entityCategory').addEventListener('change',()=>{state.sectionVisible.clear();if(state.query)search(state.query);});
+  $('#variantMode').addEventListener('change',()=>{
+    state.visibleCount=state.pageSize;
+    state.sectionVisible.clear();
+    captureSharedSearchState();
+    syncContextFilters();
+    if(state.query)void search(state.query);
+    else renderCapabilityNotice();
+  });
+  $('#syllableFilter').addEventListener('change',()=>{
+    state.visibleCount=state.pageSize;
+    state.sectionVisible.clear();
+    captureSharedSearchState();
+    syncContextFilters();
+    if(state.query)void search(state.query);
+    else if(state.data)render();
+  });
+  $('#sortMode').addEventListener('change',()=>{
+    state.visibleCount=state.pageSize;
+    state.sectionVisible.clear();
+    captureSharedSearchState();
+    syncContextFilters();
+    if(state.data)render();
+  });
+  $('#corpusMode').addEventListener('change',(event)=>applyCorpusMode(event.target.value,{rerun:true}));
+  $('#entityCategory').addEventListener('change',()=>{
+    state.sectionVisible.clear();
+    captureSharedSearchState();
+    if(state.query)void search(state.query);
+  });
   $('#statsButton').addEventListener('click',()=>{$('#statsDialog').showModal();void loadDatasetStats();});
   $('#statsClose').addEventListener('click',()=>{$('#statsDialog').close();});
   $('#statsDialog').addEventListener('click',(event)=>{if(event.target===$('#statsDialog'))$('#statsDialog').close();});
@@ -887,6 +1120,7 @@ async function bootstrap(){
 
   setScope($('#scopeFilter').value);
   syncSearchSectionControls();
+  updateRuntimeDbBadge('auto');
   applyLanguage();
   await loadCapabilities();
 

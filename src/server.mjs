@@ -48,7 +48,6 @@ import {
   selectGeneratedOptinDatabases,
 } from './generated-optin-runtime.mjs';
 import {
-  DEFAULT_SERVING_V1_PRODUCT_DB_PATH,
   SERVING_V1_PRODUCT_RUNTIME,
   openServingV1ProductRuntime,
   servingV1ProductRuntimeState,
@@ -58,7 +57,7 @@ import {
   resolveServerRuntimeMode,
 } from './server-runtime-mode.mjs';
 import {createServingV1ParallelWriterRuntime} from './unified-writer-parallel.mjs';
-import {analyzeSongEndRhymes} from './song-rhyme-analysis.mjs';
+import {analyzeSongEndRhymes,compactSongAnalysisAnchorResult,createSongAnalysisAnchorCache} from './song-rhyme-analysis.mjs';
 import {
   compactStudioWriterPayload,
   studioWriterPayloadStats,
@@ -76,14 +75,14 @@ const serverRuntimeMode=resolveServerRuntimeMode({
   env:process.env,
 });
 const servingV1Active=isServingV1(serverRuntimeMode);
+const songAnalysisAnchorCache=createSongAnalysisAnchorCache({maxEntries:384});
 const searchDefaultRoute=process.argv.includes('--search-default')
   ||String(process.env.RHYMELAB_SEARCH_DEFAULT||'').trim()==='1';
 const studioDefaultRoute=process.argv.includes('--studio-default')
   ||String(process.env.RHYMELAB_STUDIO_DEFAULT||'').trim()==='1'
   ||!searchDefaultRoute;
-const servingV1DbPath=resolve(
-  process.env.RHYMELAB_SERVING_V1_DB||DEFAULT_SERVING_V1_PRODUCT_DB_PATH,
-);
+const internalDbPaths=internalDistributionDbPaths({env:process.env});
+const servingV1DbPath=internalDbPaths.standard;
 const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYMELAB_DB || 'data/local/rhymelab.sqlite');
 const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
 const phraseDbPath = resolve(process.env.RHYMELAB_PHRASE_DB || 'data/local/rhymelab-phrases-v1.sqlite');
@@ -123,10 +122,6 @@ const markovTestDir = resolve('src/markov-test');
 const writerQueryTiming=createRollingQueryTiming(100);
 const internalDbSwitcherEnabled=servingV1Active&&internalDistributionSwitcherEnabled({
   argv:process.argv.slice(2),
-  env:process.env,
-});
-const internalDbPaths=internalDistributionDbPaths({
-  masterPath:servingV1DbPath,
   env:process.env,
 });
 const internalDbQueryTimings=new Map(
@@ -204,38 +199,52 @@ if(!servingV1Active){
   }
 }
 
+function openDistributionRuntime(id,path){
+  const runtime=openServingV1ProductRuntime(path);
+  const state=servingV1ProductRuntimeState(runtime.coreDb);
+  const edition=String(state?.distribution?.edition||'').toLowerCase();
+  if(!state.available||edition!==id){
+    try{runtime.close?.()}catch{}
+    throw new Error(
+      !state.available
+        ?String(state.reason||'distribution_runtime_unavailable')
+        :`distribution_edition_mismatch: expected ${id}, got ${edition||'unknown'}`
+    );
+  }
+  return {runtime,state};
+}
+
 let servingV1Runtime=null;
 let servingV1State=null;
 if(servingV1Active){
   try{
-    servingV1Runtime=openServingV1ProductRuntime(servingV1DbPath);
-    servingV1State=servingV1ProductRuntimeState(servingV1Runtime.coreDb);
+    ({runtime:servingV1Runtime,state:servingV1State}=openDistributionRuntime('standard',servingV1DbPath));
   }catch(error){
-    console.error(`Cannot open Serving-v1 Product database at ${servingV1DbPath}`);
-    console.error('Build it with: npm run serving:v1:product:build');
+    console.error(`Cannot open STANDARD distribution database at ${servingV1DbPath}`);
+    console.error('Build it with: npm run distribution:build:standard');
     console.error(error instanceof Error?error.message:String(error));
     process.exit(1);
   }
 }
 
 if(internalDbSwitcherEnabled){
-  internalDbEntries.set('master',{
-    id:'master',
-    path:internalDbPaths.master,
+  internalDbEntries.set('standard',{
+    id:'standard',
+    path:internalDbPaths.standard,
     runtime:servingV1Runtime,
     state:servingV1State,
     error:null,
     owned:false,
   });
-  for(const id of INTERNAL_DISTRIBUTION_DB_IDS.filter((value)=>value!=='master')){
+  for(const id of INTERNAL_DISTRIBUTION_DB_IDS.filter((value)=>value!=='standard')){
     const path=internalDbPaths[id];
     try{
-      const runtime=openServingV1ProductRuntime(path);
+      const {runtime,state}=openDistributionRuntime(id,path);
       internalDbEntries.set(id,{
         id,
         path,
         runtime,
-        state:servingV1ProductRuntimeState(runtime.coreDb),
+        state,
         error:null,
         owned:true,
       });
@@ -275,10 +284,11 @@ function internalDbTimingSnapshot(id){
 
 function internalDistributionPayload(){
   return {
-    schema:'rhymelab-internal-distribution-lab-v1',
+    schema:'rhymelab-distribution-runtime-v1',
     enabled:internalDbSwitcherEnabled,
-    internalOnly:true,
-    shipping:false,
+    internalOnly:false,
+    shipping:true,
+    defaultDatabase:'standard',
     selectionMode:'per-request-query-parameter',
     parameter:'runtime_db',
     databases:INTERNAL_DISTRIBUTION_DB_IDS.map((id)=>{
@@ -408,7 +418,7 @@ function requestRuntimeSelection(url){
         reason:null,
         databases:internalEntry.runtime.allDatabases,
         internalDbId:internalEntry.id,
-        internal:true,
+        internal:internalEntry.id!=='standard',
       };
     }
     if(generated&&generatedDataExplicitlyRequired(url)){
@@ -417,7 +427,7 @@ function requestRuntimeSelection(url){
         reason:'selected_distribution_generated_unavailable',
         databases:null,
         internalDbId:internalEntry.id,
-        internal:true,
+        internal:internalEntry.id!=='standard',
       };
     }
     return {
@@ -425,7 +435,7 @@ function requestRuntimeSelection(url){
       reason:null,
       databases:internalEntry.runtime.coreDatabases,
       internalDbId:internalEntry.id,
-      internal:true,
+      internal:internalEntry.id!=='standard',
     };
   }
 
@@ -447,7 +457,11 @@ function requestRuntimeSelection(url){
         activeGeneratedRuntime,
         false,
       );
-  return {...selection,internalDbId:null,internal:false};
+  return {
+    ...selection,
+    internalDbId:servingV1Active?'standard':null,
+    internal:false,
+  };
 }
 
 function requestRuntimeDatabases(url){
@@ -548,15 +562,7 @@ function generatedRuntimeHealth(){
 
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
 const padHtml = Buffer.from(materializeRhymePadV14().html);
-const studioHtmlSource=readFileSync(resolve(studioUiDir,'index.html'),'utf8');
-const studioHtml=Buffer.from(
-  internalDbSwitcherEnabled
-    ?studioHtmlSource
-    :studioHtmlSource.replace(
-        /<!-- INTERNAL_DB_LAB_START -->[\s\S]*?<!-- INTERNAL_DB_LAB_END -->/u,
-        '',
-      ),
-);
+const studioHtml=readFileSync(resolve(studioUiDir,'index.html'));
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const queryPronunciationTestHtml = readFileSync(resolve(queryPronunciationTestDir, 'index.html'));
 const markovTestHtml = readFileSync(resolve(markovTestDir, 'index.html'));
@@ -574,12 +580,16 @@ const assets = {
   '/studio/': { type: 'text/html; charset=utf-8', body: studioHtml },
   '/studio/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'styles.css')) },
   '/studio/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'app.js')) },
+  '/studio/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'custom-select.mjs')) },
   '/studio/studio-core.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'studio-core.mjs')) },
   '/studio/studio-controls.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'studio-controls.mjs')) },
   '/studio/search-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'search-adapter.mjs')) },
   '/studio/search-filters.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'search-filters.mjs')) },
   '/studio/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'search-state.mjs')) },
   '/ui/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'search-state.mjs')) },
+  '/ui/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'custom-select.mjs')) },
+  '/ui/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-client.mjs')) },
+  '/ui/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-cache.mjs')) },
   '/studio/document-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'document-adapter.mjs')) },
   '/studio/document-model.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'document-model.mjs')) },
   '/studio/document-store.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'document-store.mjs')) },
@@ -589,6 +599,7 @@ const assets = {
   '/studio/capability-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'capability-adapter.mjs')) },
   '/studio/detail-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'detail-adapter.mjs')) },
   '/studio/analysis-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'analysis-adapter.mjs')) },
+  '/studio/analysis-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'analysis-cache.mjs')) },
   '/studio/backup-portability.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'backup-portability.mjs')) },
   '/studio/diagnostics.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'diagnostics.mjs')) },
   '/studio/internal-db-lab.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'internal-db-lab.mjs')) },
@@ -607,6 +618,7 @@ const assets = {
   '/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'styles.css')) },
   '/assets/mobile.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'mobile.css')) },
   '/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'app.js')) },
+  '/assets/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'custom-select.mjs')) },
   '/assets/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'search-state.mjs')) },
   '/assets/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-client.mjs')) },
   '/assets/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-cache.mjs')) },
@@ -807,7 +819,7 @@ const server = createServer(async (req, res) => {
 
     if(url.pathname==='/api/internal/distribution-dbs'){
       if(!internalDbSwitcherEnabled){
-        return json(res,{error:'internal_distribution_db_switcher_disabled'},404,false);
+        return json(res,{enabled:false,error:'internal_distribution_db_switcher_disabled'},200,false);
       }
       return json(res,internalDistributionPayload(),200,false);
     }
@@ -826,7 +838,7 @@ const server = createServer(async (req, res) => {
           de:markovModelHealth(markovRuntime),
           en:markovModelHealth(markovEnglishRuntime),
         },
-        package_runtime: servingV1Active ? 'serving-v1-default' : 'legacy-archive-bundle',
+        package_runtime: servingV1Active ? 'serving-v1-standard' : 'legacy-archive-bundle',
         writer_database: healthDatabases.writerDb ? healthPath : null,
         writer_runtime: servingV1Active ? SERVING_V1_PRODUCT_RUNTIME : WRITER_RUNTIME_ID,
         serving_v1: servingV1Active ? {
@@ -835,7 +847,7 @@ const server = createServer(async (req, res) => {
           database:healthPath,
           state:healthState,
           distribution:healthRuntime?.capabilities||null,
-          internal_db:healthInternalEntry?.id||null,
+          internal_db:healthInternalEntry?.id||(servingV1Active?'standard':null),
         } : {
           enabled:false,
           default_runtime:false,
@@ -961,7 +973,9 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/analysis/rhyme-scheme') {
-      const words=url.searchParams.getAll('word').map((word)=>String(word||'').trim()).slice(0,200);
+      const analysisMode=url.searchParams.get('mode')==='all'?'all':'end';
+      const maxWords=analysisMode==='all'?500:200;
+      const words=url.searchParams.getAll('word').map((word)=>String(word||'').trim()).slice(0,maxWords);
       if(!words.some(Boolean))return json(res,{error:'at least one word is required'},400);
       const language=String(url.searchParams.get('language')||'de').trim().toLocaleLowerCase('en-US');
       const normalizedLanguage=['de','en','both'].includes(language)?language:'de';
@@ -975,6 +989,12 @@ const server = createServer(async (req, res) => {
         },503);
       }
       const started=performance.now();
+      let analysisCacheHits=0,analysisCacheMisses=0;
+      const generatedOverlay=generatedOptinRequested(url);
+      const generatedOnly=generatedOnlyRequested(url);
+      const runtimeCacheId=runtimeSelection.internalDbId
+        ?'internal:'+runtimeSelection.internalDbId
+        :(servingV1Active?'serving-v1':'legacy');
       const searchAnchor=async(word)=>{
         const options={
           language:normalizedLanguage,
@@ -985,20 +1005,38 @@ const server = createServer(async (req, res) => {
           includeHistorical:false,
           wordLimit:250,
           wordPoolLimit:1200,
-          generatedOnly:generatedOnlyRequested(url),
+          generatedOnly,
         };
-        return servingV1Active&&runtimeSelection.internal!==true
-          ?parallelWriterRuntime.search(word,options,{generatedOverlay:generatedOptinRequested(url)})
-          :searchUnifiedWriter(runtimeDatabases,word,options);
+        const normalizedWord=String(word||'').normalize('NFKC').trim().toLocaleLowerCase(normalizedLanguage==='en'?'en-US':'de-DE');
+        const cacheKey=[runtimeCacheId,normalizedLanguage,generatedOverlay?'generated':'canonical',generatedOnly?'only':'mixed',normalizedWord].join('|');
+        const cached=await songAnalysisAnchorCache.resolve(cacheKey,async()=>{
+          const result=servingV1Active&&runtimeSelection.internal!==true
+            ?await parallelWriterRuntime.search(word,options,{generatedOverlay})
+            :searchUnifiedWriter(runtimeDatabases,word,options);
+          return compactSongAnalysisAnchorResult(result);
+        });
+        if(cached.hit)analysisCacheHits+=1;
+        else analysisCacheMisses+=1;
+        return cached.value;
       };
       const analysis=await analyzeSongEndRhymes(words,{
         searchAnchor,
         language:normalizedLanguage,
-        maxUnique:64,
+        maxUnique:analysisMode==='all'?180:64,
+        concurrency:analysisMode==='all'?8:4,
       });
       return json(res,{
         ...analysis,
+        mode:analysisMode,
+        inputWordCount:words.length,
+        inputTruncated:url.searchParams.getAll('word').length>maxWords,
         runtimeTiming:{currentMs:Number((performance.now()-started).toFixed(3))},
+        analysisCache:{
+          hits:analysisCacheHits,
+          misses:analysisCacheMisses,
+          size:songAnalysisAnchorCache.size,
+          maxEntries:songAnalysisAnchorCache.maxEntries,
+        },
         runtimeDb:runtimeSelection.internalDbId||null,
       });
     }
