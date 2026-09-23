@@ -9,7 +9,7 @@ import {nextDensity,normalizeDensity,setExclusivePressed} from './studio-control
 import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
 import {createStudioAnalysisClient,studioAnalysisWords} from './analysis-adapter.mjs';
-import {barIdentity,createSelectionProof,duplicateEditorBar,editorSnapshot,ensureEditorSong,insertEditorBar,mergeEditorBarWithPrevious,moveEditorBar,pasteEditorText,removeEditorBar,restoreEditorSnapshot,setEditorBarText,splitEditorBar,validateSelectionProof} from './editor-session.mjs';
+import {barIdentity,createSelectionProof,duplicateEditorBar,editorDocumentText,editorLineKind,editorLineStartOffset,editorPositionFromOffset,editorSnapshot,ensureEditorSong,insertEditorBar,isTrackedEditorLine,moveEditorBar,reconcileEditorDocumentText,removeEditorBar,replaceEditorDocumentRange,restoreEditorSnapshot,trackedEditorBarNumber,trackedEditorLineIndexes,validateSelectionProof} from './editor-session.mjs';
 import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarDurationMs,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceFlowFingerprint,performanceNeedsReview,performancePocketMetrics,performancePreviousBarPlacements,performanceStepDurationMs,performanceSyllablesPerSecond,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
 import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
