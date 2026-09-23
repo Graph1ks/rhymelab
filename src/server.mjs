@@ -418,7 +418,7 @@ function requestRuntimeSelection(url){
         reason:null,
         databases:internalEntry.runtime.allDatabases,
         internalDbId:internalEntry.id,
-        internal:true,
+        internal:internalEntry.id!=='standard',
       };
     }
     if(generated&&generatedDataExplicitlyRequired(url)){
@@ -427,7 +427,7 @@ function requestRuntimeSelection(url){
         reason:'selected_distribution_generated_unavailable',
         databases:null,
         internalDbId:internalEntry.id,
-        internal:true,
+        internal:internalEntry.id!=='standard',
       };
     }
     return {
@@ -435,7 +435,7 @@ function requestRuntimeSelection(url){
       reason:null,
       databases:internalEntry.runtime.coreDatabases,
       internalDbId:internalEntry.id,
-      internal:true,
+      internal:internalEntry.id!=='standard',
     };
   }
 
@@ -457,7 +457,11 @@ function requestRuntimeSelection(url){
         activeGeneratedRuntime,
         false,
       );
-  return {...selection,internalDbId:null,internal:false};
+  return {
+    ...selection,
+    internalDbId:servingV1Active?'standard':null,
+    internal:false,
+  };
 }
 
 function requestRuntimeDatabases(url){
@@ -834,7 +838,7 @@ const server = createServer(async (req, res) => {
           de:markovModelHealth(markovRuntime),
           en:markovModelHealth(markovEnglishRuntime),
         },
-        package_runtime: servingV1Active ? 'serving-v1-default' : 'legacy-archive-bundle',
+        package_runtime: servingV1Active ? 'serving-v1-standard' : 'legacy-archive-bundle',
         writer_database: healthDatabases.writerDb ? healthPath : null,
         writer_runtime: servingV1Active ? SERVING_V1_PRODUCT_RUNTIME : WRITER_RUNTIME_ID,
         serving_v1: servingV1Active ? {
@@ -843,7 +847,7 @@ const server = createServer(async (req, res) => {
           database:healthPath,
           state:healthState,
           distribution:healthRuntime?.capabilities||null,
-          internal_db:healthInternalEntry?.id||null,
+          internal_db:healthInternalEntry?.id||(servingV1Active?'standard':null),
         } : {
           enabled:false,
           default_runtime:false,
