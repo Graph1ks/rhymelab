@@ -686,3 +686,48 @@ body{font-size:16px}
   .custom-select-trigger{font-size:13px;min-height:40px}
   .search-db-badge{font-size:10px}
 }
+
+
+/* Search readability comb pass */
+.brand small,
+.primary-nav-link,
+.topbar-meta,
+.mode-label,
+.ui-lang-option,
+.view-option,
+.availability-chip,
+.availability-chip strong,
+.availability-chip small,
+.stats-summary span,
+.stats-table thead th,
+.phrase-link,
+.kind-chip,
+.layer-badge,
+.meta-label,
+.rhyme-analysis h3,
+.pronunciation-list h3,
+.analysis-metric,
+.analysis-metric strong,
+.lexical-tags>div span,
+.metric .muted,
+.scroll-sentinel{
+  font-size:11px;
+}
+.search-filter-field>span{font-size:11px}
+.search-db-badge{font-size:11px}
+.search-core-toggle-label{font-size:11px}
+.custom-select-clear{font-size:11px;min-height:38px}
+.runtime-timing-head,
+.runtime-timing-metric>span,
+.runtime-timing-metric strong small,
+.runtime-timing-card>p{font-size:11px}
+.results-compact .result-word .sub,
+.results-compact .badge{font-size:11px}
+.topbar-button{font-size:11px;min-height:36px}
+.ui-lang-option,.view-option{min-height:36px}
+.primary-nav-link{min-height:34px}
+.search-core-toggle{min-height:44px}
+@media(max-width:720px){
+  .search-db-badge{font-size:11px}
+  .search-filter-field>span{font-size:11px}
+}
