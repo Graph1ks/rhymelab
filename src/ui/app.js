@@ -1001,7 +1001,7 @@ function installInteractiveControls(){
 
   $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();void search($('#searchInput').value);});
   $('#searchOptionsToggle').addEventListener('click',()=>toggleSearchSection('searchOptions'));
-  document.addEventListener('pointerdown',(event)=>{
+  if(typeof document.addEventListener==='function')document.addEventListener('pointerdown',(event)=>{
     const target=event.target;
     if(!(target instanceof Element))return;
     if(target.closest('.custom-select-popover'))return;
@@ -1014,7 +1014,7 @@ function installInteractiveControls(){
       setSearchSectionExpanded('searchOptions',false);
     }
   },{capture:true});
-  document.addEventListener('keydown',(event)=>{
+  if(typeof document.addEventListener==='function')document.addEventListener('keydown',(event)=>{
     if(event.key==='Escape'&&state.searchOptionsExpanded){
       setSearchSectionExpanded('searchOptions',false);
       $('#searchOptionsToggle')?.focus({preventScroll:true});
