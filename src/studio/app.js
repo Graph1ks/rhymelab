@@ -656,7 +656,9 @@ function captureSelection(editor){
   }
 
   const bar=barIdentity(current,index);
-  const tracked=isTrackedEditorLine(line);
+  const bracketSegments=editorBracketSegments(line);
+  const overlapsBracket=sameLine&&bracketSegments.some((segment)=>queryStart<segment.end&&queryEnd>segment.start);
+  const tracked=isTrackedEditorLine(line)&&!overlapsBracket;
   const queryRange=documentRangeForLine(index,queryStart,queryEnd,current);
   selection={
     line:index,
