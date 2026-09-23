@@ -417,6 +417,16 @@ function trackedStudioLineIndexes(current=song()){
 function trackedStudioLines(current=song()){
   return trackedStudioLineIndexes(current).map((index)=>current.lines[index]);
 }
+function nearestTrackedStudioLine(current=song(),from=activeLine){
+  const indexes=trackedStudioLineIndexes(current);
+  if(!indexes.length)return -1;
+  if(indexes.includes(from))return from;
+  return indexes.slice().sort((a,b)=>Math.abs(a-from)-Math.abs(b-from)||a-b)[0];
+}
+function trackedStudioBarPosition(current,index){
+  const indexes=trackedStudioLineIndexes(current);
+  return indexes.indexOf(index);
+}
 function editorLineLabel(current,index){
   const kind=editorLineKind(current.lines[index]);
   const barNumber=trackedEditorBarNumber(current,index);
