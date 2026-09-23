@@ -49,11 +49,27 @@ export function barIdentity(song,index){
   };
 }
 
+export function editorBracketSegments(value){
+  const raw=text(value);
+  return [...raw.matchAll(/\[[^\]\r\n]*\]/gu)].map((match)=>({
+    text:match[0],
+    content:match[0].slice(1,-1),
+    start:match.index??0,
+    end:(match.index??0)+match[0].length,
+  }));
+}
+
+export function editorTrackableText(value){
+  return text(value)
+    .replace(/\[[^\]\r\n]*\]/gu,' ')
+    .replace(/\s+/gu,' ')
+    .trim();
+}
+
 export function editorLineKind(value){
   const raw=text(value);
-  const trimmed=raw.trim();
-  if(!trimmed)return 'blank';
-  if(/^\[[^\r\n]*\]$/u.test(trimmed))return 'bracket';
+  if(!raw.trim())return 'blank';
+  if(!editorTrackableText(raw)&&editorBracketSegments(raw).length)return 'bracket';
   return 'bar';
 }
 
