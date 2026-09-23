@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
 test('Studio V2 production surface is present with its core visual/interaction contract',async()=>{
-  const [html,css,app]=await Promise.all([
+  const [html,css,app,server]=await Promise.all([
     readFile('src/studio/index.html','utf8'),
     readFile('src/studio/styles.css','utf8'),
     readFile('src/studio/app.js','utf8'),
+    readFile('src/server.mjs','utf8'),
   ]);
 
   assert.match(html,/RhymeLab Studio V2/u);
@@ -15,6 +16,9 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(html,/id=["']runtimeStatus["']/u);
   assert.match(html,/Live Writer · lokale Datenbank/u);
   assert.match(html,/type=["']module["'][^>]*src=["']\/studio\/app\.js["']/u);
+  assert.match(app,/from '\.\/custom-select\.mjs'/u);
+  assert.match(server,/['"]\/studio\/custom-select\.mjs['"]/u);
+  assert.match(server,/['"]\/assets\/custom-select\.mjs['"]/u);
   assert.match(html,/STUDIO V2/u);
   assert.doesNotMatch(html,/STUDIO 02 · DEMO/u);
 
