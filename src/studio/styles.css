@@ -2494,12 +2494,9 @@ small,.small{font-size:12px}
   font-weight:560;
 }
 .find-only #directFilters{
-  display:none;
+  display:block;
   margin-top:12px;
   animation:surface-in .2s var(--ease) both;
-}
-.find-only.search-page-filters-open #directFilters{
-  display:block;
 }
 .find-only .active-filters{
   padding-top:9px;
@@ -3685,3 +3682,9 @@ button.lyrics-gutter-row:hover{
     align-items:center;
   }
 }
+
+
+/* PR #203 acceptance fix: Writer filters are direct, persistent controls. */
+.search-page-filter-toggle{display:none!important}
+.find-only #directFilters,
+body:not(.find-only) #directFilters.hidden{display:block!important}
