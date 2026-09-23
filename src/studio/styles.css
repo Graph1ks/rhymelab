@@ -3048,3 +3048,134 @@ small,.small{font-size:12px}
   .results-controlbar .view-choices button span{display:none}
   .results-controlbar .view-choices button{min-width:44px}
 }
+
+
+/* Studio inspector filter ergonomics — roomy when open, invisible when not needed */
+body:not(.find-only) .search-page-filter-toggle{
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  width:44px!important;
+  min-width:44px!important;
+  height:44px;
+  min-height:44px;
+  padding:0!important;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:color-mix(in srgb,var(--panel) 92%,var(--bg));
+  color:var(--muted);
+}
+body:not(.find-only) .search-page-filter-toggle span{display:none}
+body:not(.find-only) .search-page-filter-toggle:hover{
+  border-color:color-mix(in srgb,var(--accent) 38%,var(--line));
+  background:color-mix(in srgb,var(--accent) 7%,var(--panel));
+  color:var(--accent);
+  transform:none;
+}
+body:not(.find-only) .search-page-filter-toggle.active{
+  border-color:color-mix(in srgb,var(--accent) 45%,var(--line));
+  background:var(--tint);
+  color:var(--accent);
+}
+body:not(.find-only) .filter-deck{
+  margin-top:10px;
+  padding:9px;
+  border-radius:13px;
+}
+body:not(.find-only) .filter-deck-row{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+body:not(.find-only) .filter-deck-secondary{margin-top:8px}
+body:not(.find-only) .filter-field{
+  min-height:58px;
+  gap:5px;
+  padding:8px 10px;
+  border-radius:10px;
+}
+body:not(.find-only) .filter-field>span{
+  font-size:10px;
+  line-height:1.15;
+  font-weight:850;
+  letter-spacing:.7px;
+  text-transform:uppercase;
+}
+body:not(.find-only) .filter-field .custom-select-trigger{
+  min-height:30px;
+  padding:2px 0;
+  font-size:13px;
+  line-height:1.25;
+  font-weight:520;
+}
+body:not(.find-only) .filter-actions{
+  gap:7px;
+  margin-top:9px;
+  padding-top:8px;
+}
+body:not(.find-only) .filter-action{
+  min-height:36px;
+  padding:6px 9px;
+  font-size:11px;
+  font-weight:650;
+}
+body:not(.find-only) #activeFilters{
+  padding-top:7px;
+}
+body:not(.find-only):not(.studio-search-filters-open) #activeFilters:empty{
+  display:none;
+}
+
+/* Full rhyme search: labels carry hierarchy, values stay calm and readable. */
+.find-only .filter-field>span{
+  font-weight:850;
+}
+.find-only .filter-field .custom-select-trigger{
+  font-weight:520;
+}
+.find-only .custom-select-value{
+  font-weight:520;
+}
+
+/* The same semantic hierarchy applies to all Studio custom filter selects. */
+.filter-field .custom-select-value{
+  font-weight:520;
+}
+.filter-field.is-active .custom-select-trigger{
+  font-weight:560;
+}
+
+/* Do not let narrow inspector widths squeeze back into 4 micro-columns. */
+@media(max-width:1200px) and (min-width:801px){
+  body:not(.find-only) .filter-deck-row{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  body:not(.find-only) .filter-field{
+    min-height:60px;
+  }
+}
+@media(max-width:800px){
+  body:not(.find-only) .filter-deck{
+    margin-top:8px;
+    padding:8px;
+  }
+  body:not(.find-only) .filter-deck-row{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+  }
+  body:not(.find-only) .filter-field{
+    min-height:62px;
+    padding:8px 9px;
+  }
+  body:not(.find-only) .filter-field>span{
+    font-size:10px;
+  }
+  body:not(.find-only) .filter-field .custom-select-trigger{
+    min-height:40px;
+    font-size:13px;
+  }
+}
+@media(max-width:430px){
+  body:not(.find-only) .filter-deck-row{
+    grid-template-columns:1fr;
+  }
+}
