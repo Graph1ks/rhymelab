@@ -731,3 +731,16 @@ body{font-size:16px}
   .search-db-badge{font-size:11px}
   .search-filter-field>span{font-size:11px}
 }
+
+
+/* Filter hierarchy: labels bold, selected values calm. */
+.search-filter-field>span{
+  font-weight:850;
+}
+.search-filter-field .custom-select-trigger,
+.search-filter-field .custom-select-value{
+  font-weight:520;
+}
+.search-filter-field.is-active .custom-select-trigger{
+  font-weight:560;
+}
