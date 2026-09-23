@@ -431,7 +431,10 @@ test('Studio V2 production surface is present with its core visual/interaction c
 });
 
 test('Studio live default route leaves legacy Search and RhymePad routes in place',async()=>{
-  const server=await readFile('src/server.mjs','utf8');
+  const [server,app]=await Promise.all([
+    readFile('src/server.mjs','utf8'),
+    readFile('src/studio/app.js','utf8'),
+  ]);
 
   assert.match(server,/const studioUiDir = resolve\('src\/studio'\)/u);
   assert.match(server,/const studioHtml=readFileSync\(resolve\(studioUiDir,'index\.html'\)\)/u);
