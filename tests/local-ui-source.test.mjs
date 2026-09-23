@@ -28,7 +28,7 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(html, /id="corpusMode"/);
   assert.match(html, /id="availabilityBar"/);
   assert.match(html, /id="resultsToolbar"[^>]*search-filter-results/);
-  assert.match(html, /id="searchOptionsToggle"[^>]*class="search-core-toggle"/);
+  assert.match(html, /id="searchOptionsToggle"[^>]*class="search-core-toggle"[^>]*hidden/);
   assert.match(html, /id="searchDbBadge"[^>]*class="search-db-badge"/);
   assert.match(html, /id="resultFiltersToggle"[^>]*class="hidden"/);
   assert.match(html, /id="searchOptionsPanel"/);
@@ -88,7 +88,7 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /function applyCorpusMode\(/);
   assert.match(app, /function searchCardFitsStickyViewport\(/);
   assert.match(app, /!searchCardFitsStickyViewport\(\)/);
-  assert.match(app, /const defaultSearchSectionsExpanded=false/);
+  assert.match(app, /const defaultSearchSectionsExpanded=true/);
   assert.match(app, /rhymelab\.searchOptionsExpanded\.v3/);
   assert.match(app, /toggleSearchSection\('searchOptions'\)/);
   assert.match(app, /function selectedRuntimeDbPreference\(/);
@@ -233,6 +233,8 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /2026 adaptive search \+ readability pass/);
   assert.match(css, /\.search-filter-surface\.section-collapsed\{margin:0!important\}/);
   assert.match(css, /#searchOptionsToggle\.search-core-toggle/);
+  assert.match(css, /#searchOptionsToggle\{display:none!important\}/);
+  assert.match(css, /\.search-filter-surface\.section-collapsed \.search-section-panel\{display:block!important\}/);
   assert.match(css, /\.search-db-badge/);
   assert.match(css, /Filter hierarchy: labels bold, selected values calm/);
   assert.match(css, /\.search-filter-field>span\{[\s\S]*?font-weight:850/);
