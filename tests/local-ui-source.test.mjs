@@ -119,10 +119,13 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.doesNotMatch(pronunciationCache, /localStorage/);
   assert.match(queryTest, /readGeneratedPronunciationCache/);
   assert.match(queryTest, /persistent cache hits/);
-  assert.match(clientPronunciation, /client-total-query-pronunciation-v2/);
+  assert.match(clientPronunciation, /client-total-query-pronunciation-v3/);
   assert.match(clientPronunciation, /client_source_reference_compound/);
   assert.match(clientPronunciation, /client_token_chain/);
   assert.match(clientPronunciation, /tokenizeClientPronunciationInput/);
+  assert.match(clientPronunciation, /function germanOrthographicPostprocess\(/);
+  assert.match(clientPronunciation, /\['g','k'\]/);
+  assert.match(clientPronunciation, /\/ag\$\/u/);
   assert.doesNotMatch(app, /isSingleTokenQuery/);
   assert.doesNotMatch(queryTest, /if\(!\/\\s\/u\.test\(query\)\)/);
   assert.doesNotMatch(clientPronunciation, /node:child_process|spawnSync|process\.|RHYMELAB_ESPEAK|espeak/iu);
