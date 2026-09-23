@@ -22,7 +22,7 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(server,/['"]\/assets\/custom-select\.mjs['"]/u);
   assert.match(html,/STUDIO V2/u);
   assert.doesNotMatch(html,/STUDIO 02 · DEMO/u);
-  assert.match(html,/data-dock=["']settings["']>Einstellungen</button>/u);
+  assert.match(html,/data-dock=["']settings["']>Einstellungen<\/button>/u);
   assert.doesNotMatch(html,/Design 02/u);
   assert.doesNotMatch(html,/id=["']internalDbLab["']/u);
   assert.doesNotMatch(html,/INTERNAL_DB_LAB_(?:START|END)/u);
