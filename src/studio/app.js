@@ -1001,7 +1001,7 @@ function navigate(target){
   if(page==='settings'&&target!=='settings'&&themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}
   if(target==='search'&&page!=='search')searchPageFiltersOpen=false;
   page=target;
-  document.body.classList.remove('mobile-results','find-only','settings-page','search-page-filters-open','search-page-compact');
+  document.body.classList.remove('mobile-results','find-only','settings-page','search-page-filters-open','search-page-compact','studio-search-filters-open');
   if(target!=='studio')document.body.classList.remove('focus');
   const largePage=target==='library'||target==='saved'||target==='settings';
   $('#workspace').classList.toggle('hidden',largePage);
@@ -1015,7 +1015,7 @@ function navigate(target){
   if(target==='library')renderLibrary();
   if(target==='saved')renderSaved();
   if(target==='settings')renderSettingsPage();
-  if(target==='search')updateSearchPageChrome();
+  if(target==='search'||target==='studio')updateSearchPageChrome();
   if(target==='studio')requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea));
 }
 function setMobileActive(name){queryAll('[data-mobile]').forEach(b=>b.classList.toggle('active',b.dataset.mobile===name))}
