@@ -512,8 +512,11 @@ function syncUnifiedEditorLayout(){
     const kind=editorLineKind(line);
     return '<div class="lyrics-measure-line '+kind+'" data-line="'+index+'">'+(line?esc(line):'&#8203;')+'</div>';
   }).join('');
+  const minimumLines=16;
+  const lineHeight=Math.max(34,Math.ceil((state.fontSize||21)*(window.innerWidth<=800?1.58:1.62)));
+  const minimumHeight=(lineHeight*minimumLines)+28;
   editor.style.height='1px';
-  editor.style.height=Math.max(150,editor.scrollHeight)+'px';
+  editor.style.height=Math.max(minimumHeight,editor.scrollHeight)+'px';
   renderUnifiedEditorGutters();
 }
 function resizeArea(el){
@@ -1143,7 +1146,7 @@ function analysisRelationLabel(entry){
   return relation.label+(relation.score?(' · '+Math.round(Number(relation.score)*100)+'%'):'');
 }
 function renderAnalysisSurface(){
-  const s=song(),trackedIndexes=trackedStudioLineIndexes(s),trackedLines=trackedIndexes.map((index)=>s.lines[index]),words=studioAnalysisWords(trackedLines);
+  const s=song(),trackedIndexes=trackedStudioLineIndexes(s),trackedLines=trackedStudioLines(s),words=studioAnalysisWords(trackedLines);
   const ready=analysisStatus==='ready'&&analysisData;
   const scheme=ready&&Array.isArray(analysisData.scheme)?analysisData.scheme:words.map(()=>'?');
   const rows=trackedIndexes.map((lineIndex,analysisIndex)=>{
@@ -1903,12 +1906,14 @@ data=function(){return filterUnusedWriterRows(filterStudioWriterRows(baseData(),
 resultHTML=function(r){const saved=state.saved.some(s=>s.word===r.word),kind=r.kind==='phrase'?'PHRASE':r.kind==='entity'?'NAME':'',active=selectedResultId?selectedResultId===r.id:selectedResult===r.word,shortRelation=({multisyllabic_perfect:'Multi-Voll',perfect:'Voll',multisyllabic_slant:'Multi-Slant',family:'Familie',slant:'Slant',assonance:'Asson.',consonance:'Konson.'})[r.relationType]||'Klang';return `<div class="result ${active?'is-selected':''}" data-result-word="${esc(r.word)}" data-result-id="${esc(r.id)}"><div class="grow"><button class="result-word" data-detail="${esc(r.word)}" data-detail-id="${esc(r.id)}" aria-label="Details zu ${esc(r.word)}" aria-pressed="${active}">${esc(r.word)}${kind?`<span class="result-kind">${kind}</span>`:''}</button><div class="result-meta"><b>${esc(r.relationLabel||'Klangtreffer')}</b><span>${r.syll||'—'} Silb.</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'} · ${r.lang.toUpperCase()}</span></div>${resultBadgeMarkup(r)}</div><span class="result-relation">${esc(shortRelation)}</span><span class="result-syll">${r.syll||'—'}</span><div class="result-actions"><button data-save="${esc(r.word)}" class="${saved?'saved':''}" aria-pressed="${saved}" aria-label="${esc(r.word)} ${saved?'entmerken':'merken'}">${icon('book')}</button><button data-insert="${esc(r.word)}" aria-label="${esc(r.word)} einsetzen">${icon('plus')}</button></div></div>`};
 renderResults=function(){
   const renderStarted=performance.now();
+  const effectiveDensity=page==='studio'?'compact':density;
+  if(page==='studio'&&pageSize<24)pageSize=24;
   baseRenderResults();
   const runtimeInline=$('#runtimeInline');if(runtimeInline)runtimeInline.textContent=writerTimingText();
-  const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===density));
+  const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===effectiveDensity));
   queryAll('[data-density]').forEach(b=>{b.classList.toggle('active',b.dataset.density===density);b.setAttribute('aria-pressed',b.dataset.density===density)});
   queryAll('#results .result').forEach((r,i)=>r.style.setProperty('--i',i));
-  const sig=[query,scope,relation,rhymeType,variantMode,entityCategories.join(','),includeHistorical,generated,generatedOnly,sort,basis,resultLang,syllableMode,density,internalDbLabEnabled?internalDbLabActive:'default'].join('|');
+  const sig=[query,scope,relation,rhymeType,variantMode,entityCategories.join(','),includeHistorical,generated,generatedOnly,sort,basis,resultLang,syllableMode,effectiveDensity,internalDbLabEnabled?internalDbLabActive:'default'].join('|');
   if(sig!==resultSignature){animateSurface($('#results'),'results-enter');animateSurface($('#anchorWord'),'anchor-change');resultSignature=sig;$('#resultsScroll').scrollTop=0}
   syncInline();
   if(selectedResult&&!data().some(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult)){selectedResult='';selectedResultId='';selectedDetail=null;$('#detailDock').classList.add('hidden')}
