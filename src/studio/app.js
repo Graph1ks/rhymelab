@@ -2173,7 +2173,7 @@ function resetInline(){
   void refreshWriterResults();
 }
 function setDensity(v){density=v;state.density=v;pageSize=v==='compact'?24:12;renderResults();persist()}
-function toggleFollow(){followSelection=!followSelection;syncFollowControls();if(followSelection){const el=$(`#lyrics textarea[data-line="${activeLine}"]`);if(el&&el.selectionEnd>0)captureSelection(el)}saveStudioSearchState()}
+function toggleFollow(){followSelection=!followSelection;syncFollowControls();if(followSelection){const el=$('#lyricsEditor');if(el)captureSelection(el)}saveStudioSearchState()}
 
 function normalizeThemeHex(value,fallback){
   fallback=fallback||'#000000';
