@@ -1001,6 +1001,25 @@ function installInteractiveControls(){
 
   $('#searchForm').addEventListener('submit',(event)=>{event.preventDefault();void search($('#searchInput').value);});
   $('#searchOptionsToggle').addEventListener('click',()=>toggleSearchSection('searchOptions'));
+  document.addEventListener('pointerdown',(event)=>{
+    const target=event.target;
+    if(!(target instanceof Element))return;
+    if(target.closest('.custom-select-popover'))return;
+    const stage=$('.search-stage');
+    if(
+      state.searchOptionsExpanded
+      &&stage
+      &&!stage.contains(target)
+    ){
+      setSearchSectionExpanded('searchOptions',false);
+    }
+  },{capture:true});
+  document.addEventListener('keydown',(event)=>{
+    if(event.key==='Escape'&&state.searchOptionsExpanded){
+      setSearchSectionExpanded('searchOptions',false);
+      $('#searchOptionsToggle')?.focus({preventScroll:true});
+    }
+  });
   $$('.ui-lang-option').forEach((button)=>button.addEventListener('click',()=>{
     const language=button.dataset.uiLang;
     if(!['de','en'].includes(language))return;
