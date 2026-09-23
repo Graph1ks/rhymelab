@@ -58,7 +58,7 @@ import {
   resolveServerRuntimeMode,
 } from './server-runtime-mode.mjs';
 import {createServingV1ParallelWriterRuntime} from './unified-writer-parallel.mjs';
-import {analyzeSongEndRhymes} from './song-rhyme-analysis.mjs';
+import {analyzeSongEndRhymes,compactSongAnalysisAnchorResult,createSongAnalysisAnchorCache} from './song-rhyme-analysis.mjs';
 import {
   compactStudioWriterPayload,
   studioWriterPayloadStats,
@@ -76,6 +76,7 @@ const serverRuntimeMode=resolveServerRuntimeMode({
   env:process.env,
 });
 const servingV1Active=isServingV1(serverRuntimeMode);
+const songAnalysisAnchorCache=createSongAnalysisAnchorCache({maxEntries:384});
 const searchDefaultRoute=process.argv.includes('--search-default')
   ||String(process.env.RHYMELAB_SEARCH_DEFAULT||'').trim()==='1';
 const studioDefaultRoute=process.argv.includes('--studio-default')
@@ -974,6 +975,12 @@ const server = createServer(async (req, res) => {
         },503);
       }
       const started=performance.now();
+      let analysisCacheHits=0,analysisCacheMisses=0;
+      const generatedOverlay=generatedOptinRequested(url);
+      const generatedOnly=generatedOnlyRequested(url);
+      const runtimeCacheId=runtimeSelection.internalDbId
+        ?'internal:'+runtimeSelection.internalDbId
+        :(servingV1Active?'serving-v1':'legacy');
       const searchAnchor=async(word)=>{
         const options={
           language:normalizedLanguage,
@@ -984,11 +991,19 @@ const server = createServer(async (req, res) => {
           includeHistorical:false,
           wordLimit:250,
           wordPoolLimit:1200,
-          generatedOnly:generatedOnlyRequested(url),
+          generatedOnly,
         };
-        return servingV1Active&&runtimeSelection.internal!==true
-          ?parallelWriterRuntime.search(word,options,{generatedOverlay:generatedOptinRequested(url)})
-          :searchUnifiedWriter(runtimeDatabases,word,options);
+        const normalizedWord=String(word||'').normalize('NFKC').trim().toLocaleLowerCase(normalizedLanguage==='en'?'en-US':'de-DE');
+        const cacheKey=[runtimeCacheId,normalizedLanguage,generatedOverlay?'generated':'canonical',generatedOnly?'only':'mixed',normalizedWord].join('|');
+        const cached=await songAnalysisAnchorCache.resolve(cacheKey,async()=>{
+          const result=servingV1Active&&runtimeSelection.internal!==true
+            ?await parallelWriterRuntime.search(word,options,{generatedOverlay})
+            :searchUnifiedWriter(runtimeDatabases,word,options);
+          return compactSongAnalysisAnchorResult(result);
+        });
+        if(cached.hit)analysisCacheHits+=1;
+        else analysisCacheMisses+=1;
+        return cached.value;
       };
       const analysis=await analyzeSongEndRhymes(words,{
         searchAnchor,
@@ -1002,6 +1017,12 @@ const server = createServer(async (req, res) => {
         inputWordCount:words.length,
         inputTruncated:url.searchParams.getAll('word').length>maxWords,
         runtimeTiming:{currentMs:Number((performance.now()-started).toFixed(3))},
+        analysisCache:{
+          hits:analysisCacheHits,
+          misses:analysisCacheMisses,
+          size:songAnalysisAnchorCache.size,
+          maxEntries:songAnalysisAnchorCache.maxEntries,
+        },
         runtimeDb:runtimeSelection.internalDbId||null,
       });
     }
