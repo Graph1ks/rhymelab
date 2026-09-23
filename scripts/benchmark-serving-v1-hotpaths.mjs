@@ -21,7 +21,7 @@ const numberArg=(flag,fallback)=>{
   return Number.isFinite(n)?n:fallback;
 };
 
-const servingPath=resolve(value('--serving','data/local/rhymelab-serving-v1.sqlite'));
+const servingPath=resolve(value('--serving','data/local/distribution/rhymelab-serving-v1-standard.sqlite'));
 const reportPath=resolve(value('--report','data/local/rhymelab-serving-v1-hotpath-benchmark.json'));
 const repeats=intArg('--repeats',1,1,5);
 const targetP50=numberArg('--target-p50-ms',100);
