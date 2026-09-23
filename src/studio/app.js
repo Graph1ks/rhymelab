@@ -1872,9 +1872,33 @@ renderResults=function(){
   lastResultRenderMs=Number((performance.now()-renderStarted).toFixed(1));
   if(internalDbLabEnabled)renderInternalDbLab();
 };
-renderEditor=function(){baseRenderEditor();selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});$('#fontSizeLive').textContent=state.fontSize;if(dockTab==='saved'||dockTab==='navigator')renderDock();};
-captureSelection=function(el){const old=query;baseCapture(el);if(!followSelection){query=old;renderResults()}selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail()};
-insertWord=function(word){if(selectionProof){const check=validateSelectionProof(song(),selectionProof);if(!check.valid){notify('Textstelle geändert. Bitte Zielwort erneut auswählen.');return}}baseInsert(word);animateSurface($(`#lyrics textarea[data-line="${activeLine}"]`)?.parentElement,'insert-flash');selectionProof=createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});if(selectedResult)renderDetail()};
+function currentSelectionProof(){
+  if(selection.multiline||!selection.tracked||!isTrackedEditorLine(song().lines[selection.line]||''))return null;
+  return createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});
+}
+renderEditor=function(){
+  baseRenderEditor();
+  selectionProof=currentSelectionProof();
+  $('#fontSizeLive').textContent=state.fontSize;
+  if(dockTab==='saved'||dockTab==='navigator')renderDock();
+};
+captureSelection=function(el){
+  const old=query;
+  baseCapture(el);
+  if(!followSelection){query=old;renderResults()}
+  selectionProof=currentSelectionProof();
+  if(selectedResult&&!$('#detailDock').classList.contains('hidden'))renderDetail();
+};
+insertWord=function(word){
+  if(selectionProof){
+    const check=validateSelectionProof(song(),selectionProof);
+    if(!check.valid){notify('Textstelle geändert. Bitte Zielwort erneut auswählen.');return}
+  }
+  baseInsert(word);
+  animateSurface($('#lyricsNotepad'),'insert-flash');
+  selectionProof=currentSelectionProof();
+  if(selectedResult)renderDetail();
+};
 toggleSave=function(word){baseToggleSave(word);const b=queryAll('[data-save]').find(b=>b.dataset.save===word);animateSurface(b,'bookmark-pop');if(dockTab==='saved')renderDock();if(selectedResult)renderDetail()};
 setMode=function(next){baseMode(next);animateSurface($(next==='write'?'#writeView':next==='rhyme'?'#rhymeView':'#performView'))};
 let filterSelectControls=[];
