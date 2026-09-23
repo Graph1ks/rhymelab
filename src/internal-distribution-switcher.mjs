@@ -2,29 +2,30 @@ import {existsSync,statSync} from 'node:fs';
 import {resolve} from 'node:path';
 
 export const INTERNAL_DISTRIBUTION_DB_IDS=Object.freeze([
-  'master','lite','standard','full',
+  'lite','standard','full',
 ]);
+export const DEFAULT_DISTRIBUTION_DB_ID='standard';
 
 export function internalDistributionSwitcherEnabled({
   argv=process.argv.slice(2),
   env=process.env,
 }={}){
-  return argv.includes('--internal-db-switcher')
-    ||String(env.RHYMELAB_INTERNAL_DB_SWITCHER||'').trim()==='1';
+  if(argv.includes('--no-distribution-switcher'))return false;
+  if(String(env.RHYMELAB_DISTRIBUTION_SWITCHER||'').trim()==='0')return false;
+  return true;
 }
 
-export function normalizeInternalDistributionDbId(value,{fallback='master'}={}){
+export function normalizeInternalDistributionDbId(value,{fallback=DEFAULT_DISTRIBUTION_DB_ID}={}){
   const id=String(value||'').trim().toLowerCase();
-  return INTERNAL_DISTRIBUTION_DB_IDS.includes(id)?id:fallback;
+  if(INTERNAL_DISTRIBUTION_DB_IDS.includes(id))return id;
+  if(fallback==null)return null;
+  return INTERNAL_DISTRIBUTION_DB_IDS.includes(fallback)?fallback:DEFAULT_DISTRIBUTION_DB_ID;
 }
 
 export function internalDistributionDbPaths({
-  masterPath,
   env=process.env,
 }={}){
-  if(!masterPath)throw new Error('masterPath is required');
   return Object.freeze({
-    master:resolve(masterPath),
     lite:resolve(
       env.RHYMELAB_DISTRIBUTION_LITE_DB
       ||'data/local/distribution/rhymelab-serving-v1-lite.sqlite'
@@ -149,7 +150,7 @@ export function requestedInternalDistributionDbId(url,{enabled=false}={}){
   if(!enabled)return null;
   const raw=url?.searchParams?.get?.('runtime_db');
   if(raw==null||raw==='')return null;
-  return normalizeInternalDistributionDbId(raw,{fallback:'master'});
+  return normalizeInternalDistributionDbId(raw,{fallback:null});
 }
 
 export function availableInternalRuntimeEntry(entries,id){
