@@ -41,6 +41,23 @@ test('browser-safe resolver produces analyzer-compatible IPA for every product s
   }
 });
 
+test('German OOV resolver keeps TRAG and WARG in their expected rhyme domains',()=>{
+  const profile=getPhonologyProfile('de');
+  const trag=generateClientIpa('TRAG','de');
+  const warg=generateClientIpa('WARG','de');
+  const tag=profile.analyzeIpa('ˈtaːk');
+  const karg=profile.analyzeIpa('ˈkaRk');
+  const stark=profile.analyzeIpa('ˈʃtaRk');
+
+  assert.equal(trag.ipa,'ˈtRaːk');
+  assert.equal(warg.ipa,'ˈvaRk');
+  assert.equal(profile.analyzeIpa(trag.ipa).exactTailKey,tag.exactTailKey);
+  assert.equal(profile.analyzeIpa(warg.ipa).exactTailKey,karg.exactTailKey);
+  assert.equal(profile.analyzeIpa(warg.ipa).exactTailKey,stark.exactTailKey);
+  assert.doesNotMatch(trag.ipa,/g$/u);
+  assert.doesNotMatch(warg.ipa,/g$/u);
+});
+
 test('browser-safe resolver is deterministic',()=>{
   for(const language of ['de','en']){
     for(const surface of SENTINELS){
