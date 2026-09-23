@@ -28,7 +28,8 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(html, /id="corpusMode"/);
   assert.match(html, /id="availabilityBar"/);
   assert.match(html, /id="resultsToolbar"[^>]*search-filter-results/);
-  assert.match(html, /id="searchOptionsToggle"[^>]*class="hidden"/);
+  assert.match(html, /id="searchOptionsToggle"[^>]*class="search-core-toggle"/);
+  assert.match(html, /id="searchDbBadge"[^>]*class="search-db-badge"/);
   assert.match(html, /id="resultFiltersToggle"[^>]*class="hidden"/);
   assert.match(html, /id="searchOptionsPanel"/);
   assert.match(html, /id="resultFiltersPanel"/);
@@ -87,6 +88,12 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /function applyCorpusMode\(/);
   assert.match(app, /function searchCardFitsStickyViewport\(/);
   assert.match(app, /!searchCardFitsStickyViewport\(\)/);
+  assert.match(app, /const defaultSearchSectionsExpanded=false/);
+  assert.match(app, /rhymelab\.searchOptionsExpanded\.v3/);
+  assert.match(app, /toggleSearchSection\('searchOptions'\)/);
+  assert.match(app, /function selectedRuntimeDbPreference\(/);
+  assert.match(app, /params\.set\('runtime_db',requestedDb\)/);
+  assert.match(app, /function updateRuntimeDbBadge\(/);
   assert.match(app, /#syllableFilter[\s\S]*?void search\(state\.query\)/);
   assert.match(app, /searchStateToWriterParams\(searchState\)/);
   assert.match(app, /writeSearchStateToUrl/);
@@ -217,6 +224,10 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /\.phrase-row/);
   assert.match(css, /Search Filter Deck v2/);
   assert.match(css, /\.search-filter-row/);
+  assert.match(css, /2026 adaptive search \+ readability pass/);
+  assert.match(css, /\.search-filter-surface\.section-collapsed\{margin:0!important\}/);
+  assert.match(css, /#searchOptionsToggle\.search-core-toggle/);
+  assert.match(css, /\.search-db-badge/);
   assert.match(css, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(css, /\.search-filter-field\.is-active/);
   assert.match(css, /\.search-core-flat/);
