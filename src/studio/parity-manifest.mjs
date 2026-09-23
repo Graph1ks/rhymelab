@@ -36,6 +36,7 @@ export const STUDIO_PARITY_MANIFEST=Object.freeze([
 
   item('editor.bars','Writing / Editor','Stable Bar-ID editor model','Pad','Composer',['src/studio/editor-session.mjs::barIdentity']),
   item('editor.geometry','Writing / Editor','Continuous document with tracked and free lines','Pad','Composer',['src/studio/editor-session.mjs::editorLineKind','src/studio/app.js::lyricsEditor']),
+  item('editor.bracket-metadata','Writing / Editor','Inline [bracket] metadata is excluded from lyric tracking','Studio extension','Composer + Analysis',['src/studio/editor-session.mjs::editorTrackableText']),
   item('editor.anchor','Writing / Editor','Selection-follow and pinned rhyme anchor','Pad','Composer + Inspector',['src/studio/app.js::toggleFollow']),
   item('editor.selection-proof','Writing / Editor','Stale-selection protection by Bar revision','Pad','Composer',['src/studio/editor-session.mjs::validateSelectionProof']),
   item('editor.replace','Writing / Editor','Replace selected word or range','Pad','Result action',['src/studio/app.js::insertWord']),
@@ -60,6 +61,7 @@ export const STUDIO_PARITY_MANIFEST=Object.freeze([
   item('library.predelete-recovery','Library','Automatic recovery checkpoint before permanent delete','Studio extension','My texts',['src/studio/app.js::before_permanent_song_delete']),
 
   item('analysis.scheme','Analysis','Canonical end-rhyme scheme','Pad','Reime',['src/studio/analysis-adapter.mjs::createStudioAnalysisClient']),
+  item('analysis.all-rhymes','Analysis','Canonical all-word rhyme analysis by Bar, Section and document','Studio extension','Reime',['src/studio/app.js::renderAllRhymeSurface','src/studio/analysis-adapter.mjs::analyzeAll']),
   item('analysis.relations','Analysis','Primary and soft relations inside verse','Pad','Reime',['src/studio/app.js::analysisRelationMode']),
   item('analysis.word-lab','Analysis','Word Laboratory IPA / stress','Pad','Reime',['src/studio/app.js::Word Laboratory']),
   item('analysis.stress','Analysis','Stress fingerprint','Pad','Reime',['src/studio/app.js::Stress Fingerprint']),
