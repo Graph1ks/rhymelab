@@ -1,5 +1,13 @@
 # Distribution DB Lab v2 — Thread Handover
 
+> **Historical handover notice (2026-09-23):** the runtime contract described below
+> has been superseded. The application no longer exposes or uses the
+> Master/Developer database. Product runtime is now restricted to
+> **LITE / STANDARD / FULL**, with **STANDARD** as default. Master remains only
+> the build/materialization source. See `docs/DATABASE_RUNTIME.md` and
+> `docs/INTERNAL_DISTRIBUTION_LAB.md`.
+
+
 **Status:** active continuation  
 **Last updated:** 2026-09-22  
 **Canonical repository:** `Graph1ks/rhymelab`  
