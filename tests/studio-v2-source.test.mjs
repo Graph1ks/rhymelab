@@ -125,6 +125,13 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/\.lyrics-editor\{[\s\S]*?overflow:hidden/u);
   assert.match(css,/\.lyrics-measure\{/u);
   assert.match(css,/\.lyrics-gutter-row\.is-untracked/u);
+  assert.match(css,/Studio rhyme rail: compact is the only sidebar density/u);
+  assert.match(css,/body:not\(\.find-only\) \.results-controlbar \.view-choices\{[\s\S]*?display:none!important/u);
+  assert.match(css,/All-rhyme analysis/u);
+  assert.match(css,/\.analysis-scope-toggle\{/u);
+  assert.match(css,/\.analysis-rhyme-type-grid\{/u);
+  assert.match(css,/\.analysis-all-bars\{/u);
+  assert.match(css,/\.rhyme-tone-perfect\{/u);
 
   assert.match(html,/class="splitter"/u);
   assert.match(html,/class="detail-dock hidden"/u);
@@ -208,6 +215,15 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/editorPositionFromOffset\(song\(\)\.lines,editor\.selectionStart\)/u);
   assert.match(app,/function renderUnifiedEditorGutters\(/u);
   assert.match(app,/function syncUnifiedEditorLayout\(/u);
+  assert.match(app,/const minimumLines=16/u);
+  assert.match(app,/editorTrackableText/u);
+  assert.match(app,/function renderAllRhymeSurface\(/u);
+  assert.match(app,/function refreshAllRhymeAnalysis\(/u);
+  assert.match(app,/analysisScope==='all'/u);
+  assert.match(app,/analysisClient\.analyzeAll/u);
+  assert.match(app,/function studioAnalysisSections\(/u);
+  assert.match(app,/studioRhymeTypeCounts/u);
+  assert.match(app,/page==='studio'\?'compact':density/u);
   assert.match(app,/function currentSelectionProof\(/u);
   assert.match(app,/function selectEditorLine\(/u);
   assert.match(app,/setSelectionRange\(start,end\)/u);
@@ -424,6 +440,8 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/'\/studio\/document-model\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/document-store\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/editor-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
+  assert.match(server,/analysisMode=url\.searchParams\.get\('mode'\)==='all'/u);
+  assert.match(server,/maxUnique:analysisMode==='all'\?96:64/u);
   assert.match(server,/'\/studio\/performance-session\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/mobile-viewport\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/capability-adapter\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
@@ -597,6 +615,8 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(editorSession,/export function createSelectionProof/u);
   assert.match(editorSession,/export function validateSelectionProof/u);
   assert.match(editorSession,/export function editorLineKind/u);
+  assert.match(editorSession,/export function editorBracketSegments/u);
+  assert.match(editorSession,/export function editorTrackableText/u);
   assert.match(editorSession,/export function isTrackedEditorLine/u);
   assert.match(editorSession,/export function trackedEditorLineIndexes/u);
   assert.match(editorSession,/export function trackedEditorBarNumber/u);
@@ -609,6 +629,10 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(performanceSession,/export function performanceNeedsReview/u);
   assert.match(performanceSession,/export function performanceStepDurationMs/u);
   assert.match(analysisAdapter,/export function createStudioAnalysisClient/u);
+  assert.match(analysisAdapter,/export function studioAnalysisOccurrences/u);
+  assert.match(analysisAdapter,/export function expandStudioRhymeRelations/u);
+  assert.match(analysisAdapter,/export function studioRhymeTypeCounts/u);
+  assert.match(analysisAdapter,/async analyzeAll/u);
   assert.match(analysisAdapter,/export function studioAnalysisWords/u);
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(details,/export function createStudioDetailClient/u);
