@@ -956,7 +956,9 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/analysis/rhyme-scheme') {
-      const words=url.searchParams.getAll('word').map((word)=>String(word||'').trim()).slice(0,200);
+      const analysisMode=url.searchParams.get('mode')==='all'?'all':'end';
+      const maxWords=analysisMode==='all'?240:200;
+      const words=url.searchParams.getAll('word').map((word)=>String(word||'').trim()).slice(0,maxWords);
       if(!words.some(Boolean))return json(res,{error:'at least one word is required'},400);
       const language=String(url.searchParams.get('language')||'de').trim().toLocaleLowerCase('en-US');
       const normalizedLanguage=['de','en','both'].includes(language)?language:'de';
@@ -989,10 +991,14 @@ const server = createServer(async (req, res) => {
       const analysis=await analyzeSongEndRhymes(words,{
         searchAnchor,
         language:normalizedLanguage,
-        maxUnique:64,
+        maxUnique:analysisMode==='all'?96:64,
+        concurrency:analysisMode==='all'?8:4,
       });
       return json(res,{
         ...analysis,
+        mode:analysisMode,
+        inputWordCount:words.length,
+        inputTruncated:url.searchParams.getAll('word').length>maxWords,
         runtimeTiming:{currentMs:Number((performance.now()-started).toFixed(3))},
         runtimeDb:runtimeSelection.internalDbId||null,
       });
