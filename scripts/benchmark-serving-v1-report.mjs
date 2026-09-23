@@ -37,7 +37,7 @@ const numberArg=(flag,fallback)=>{
 };
 const round=(number,digits=3)=>Number(Number(number).toFixed(digits));
 
-const servingPath=resolve(value('--serving','data/local/rhymelab-serving-v1.sqlite'));
+const servingPath=resolve(value('--serving','data/local/distribution/rhymelab-serving-v1-standard.sqlite'));
 const jsonPath=resolve(value(
   '--json',
   'data/local/benchmark/rhymelab-serving-v1-report-benchmark.json',
