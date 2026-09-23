@@ -665,7 +665,7 @@ function normalizeCandidateSurface(value){
 }
 function lyricWordSet(){
   return new Set(
-    (song().lines.join(' ').match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[])
+    (trackedStudioLines(song()).join(' ').match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[])
       .map(normalizeCandidateSurface)
       .filter(Boolean),
   );
@@ -679,7 +679,7 @@ function writerRowAlreadyUsed(row,words,normalizedLyrics){
 function filterUnusedWriterRows(rows){
   hiddenUsedCount=0;
   if(!hideUsed||!rows.length)return rows;
-  const words=lyricWordSet(),normalizedLyrics=normalizeCandidateSurface(song().lines.join('\n'));
+  const words=lyricWordSet(),normalizedLyrics=normalizeCandidateSurface(trackedStudioLines(song()).join('\n'));
   const unused=rows.filter((row)=>!writerRowAlreadyUsed(row,words,normalizedLyrics));
   hiddenUsedCount=rows.length-unused.length;
   return unused;
@@ -827,7 +827,27 @@ async function refreshWriterResults(){
   }
 }
 
-function insertWord(word){const s=song();const {line,start,end}=selection;if(!s.lines[line]&&s.lines[line]!==''){notify('Bitte zuerst eine Textstelle auswählen.');return}pushUndo();const source=s.lines[line];const bar=setEditorBarText(s,line,source.slice(0,start)+word+source.slice(end));selection={line,barId:bar?.id||'',barRevision:bar?.revision||0,start,end:start+word.length};activeLine=line;renderEditor();changed();navigate('studio');setMode('write');const el=$(`#lyrics textarea[data-line="${line}"]`);el.focus();el.setSelectionRange(start,start+word.length);captureSelection(el);notify(`„${word}“ eingesetzt · Rückgängig verfügbar`)}
+function insertWord(word){
+  const current=song();
+  const fallback=documentRangeForLine(selection.line||0,selection.start||0,selection.end??selection.start??0,current);
+  const start=Number.isFinite(selection.documentStart)?selection.documentStart:fallback.start;
+  const end=Number.isFinite(selection.documentEnd)?selection.documentEnd:fallback.end;
+  pushUndo();
+  const result=replaceEditorDocumentRange(current,start,end,word);
+  activeLine=result.position.index;
+  analysisSignature='';
+  renderEditor();
+  changed();
+  navigate('studio');
+  setMode('write');
+  const editor=$('#lyricsEditor');
+  if(editor){
+    editor.focus();
+    editor.setSelectionRange(result.selectionStart,result.selectionEnd);
+    captureSelection(editor);
+  }
+  notify('„'+word+'“ eingesetzt · Rückgängig verfügbar');
+}
 function toggleSave(word){const i=state.saved.findIndex(x=>x.word===word);if(i>=0)state.saved.splice(i,1);else state.saved.push({word,anchor:query});persist();renderResults();updateStats();if(page==='saved')renderSaved()}
 function libraryTimestamp(item){return Math.max(Number(item?.updatedAt)||0,Number(item?.createdAt)||0)}
 function touchSong(item,at=Date.now()){if(item)item.updatedAt=Math.max(Number(item.updatedAt)||0,Number(at)||0)}
@@ -1082,10 +1102,10 @@ function navigate(target){
   if(target==='saved')renderSaved();
   if(target==='settings')renderSettingsPage();
   if(target==='search'||target==='studio')updateSearchPageChrome();
-  if(target==='studio')requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea));
+  if(target==='studio')requestAnimationFrame(()=>resizeArea($('#lyricsEditor')));
 }
 function setMobileActive(name){queryAll('[data-mobile]').forEach(b=>b.classList.toggle('active',b.dataset.mobile===name))}
-function setMode(next){mode=next;stopPlay();queryAll('[data-mode]').forEach(b=>{const active=b.dataset.mode===next;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active)});$('#writeView').classList.toggle('hidden',next!=='write');$('#rhymeView').classList.toggle('hidden',next!=='rhyme');$('#performView').classList.toggle('hidden',next!=='perform');if(next==='rhyme')renderAnalysis();if(next==='perform')renderPerform();if(next==='write')requestAnimationFrame(()=>queryAll('#lyrics textarea').forEach(resizeArea))}
+function setMode(next){mode=next;stopPlay();queryAll('[data-mode]').forEach(b=>{const active=b.dataset.mode===next;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active)});$('#writeView').classList.toggle('hidden',next!=='write');$('#rhymeView').classList.toggle('hidden',next!=='rhyme');$('#performView').classList.toggle('hidden',next!=='perform');if(next==='rhyme')renderAnalysis();if(next==='perform')renderPerform();if(next==='write')requestAnimationFrame(()=>resizeArea($('#lyricsEditor')))}
 function analysisKey(){
   const s=song();
   return [s.id,basis,generated,generatedOnly,internalDbLabEnabled?internalDbLabActive:'default',...s.barIds.map((id,index)=>id+':'+s.barRevisions[index])].join('|');
@@ -1457,7 +1477,7 @@ async function startPlay(){
 function showDialog(title,html){$('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=html;if(!$('#dialog').open)$('#dialog').showModal()}
 function closeDialog(){$('#dialog').close()}
 function legacyFilters(){showDialog('Dein Klang. Deine Suche.',`<div class="formgrid"><label class="field">Aussprache der Suchanfrage<select id="basis"><option value="de">Deutsch</option><option value="en">Englisch</option><option value="both">DE + EN</option></select></label><label class="field">Sprache der Ergebnisse<select id="resultLanguage"><option value="both">DE + EN</option><option value="de">Deutsch</option><option value="en">Englisch</option></select></label><label class="field">Reimbeziehung<select id="relation"><option value="all">Alle Beispiele</option><option value="rein">Reiner Reim</option><option value="nah">Naher Klang</option></select></label><label class="field">Reihenfolge<select id="sort"><option value="recommended">Writer-Empfehlung</option><option value="alpha">A–Z</option><option value="syllables">Silben aufsteigend</option></select></label></div><p class="notice">Die Live-Suche nutzt die lokale Writer-Runtime. Die vollständige Filtermatrix, Varianten, historische Formen, Generated-Daten und Provenienz sind im Studio über direkte und erweiterte Filter verfügbar.</p><div class="dialogactions"><button id="resetFilters">Zurücksetzen</button><button id="applyFilters" class="primary">Anwenden</button></div>`);$('#basis').value=basis;$('#resultLanguage').value=resultLang;$('#relation').value=relation;$('#sort').value=sort;$('#applyFilters').onclick=()=>{basis=$('#basis').value;resultLang=$('#resultLanguage').value;relation=$('#relation').value;sort=$('#sort').value;pageSize=6;void refreshWriterResults();closeDialog()};$('#resetFilters').onclick=()=>{basis='de';resultLang='both';relation='all';sort='recommended';void refreshWriterResults();closeDialog()}}
-function legacySettings(){showDialog('Dein Studio einrichten',`<label class="field">Schriftgröße im Editor<input id="fontRange" type="range" min="16" max="28" value="${state.fontSize}"></label><p class="small" id="fontValue">${state.fontSize} px</p><div class="row wrap" style="margin-top:20px"><button id="settingTheme" class="outline">Hell / Dunkel wechseln</button><button id="settingHistory" class="outline">Versionsverlauf</button></div><p class="notice">Texte, Revisionen und Performance-Cues werden lokal im versionierten IndexedDB-DocumentStore gespeichert. UI-Präferenzen bleiben in LocalStorage; Recovery-Punkte sind in den Studio-Einstellungen verfügbar.</p><div class="row wrap"><button id="sourceInfo" class="outline">Über Studio 02</button><button id="commandsSettings" class="outline">Tastenkürzel</button></div>`);$('#fontRange').oninput=e=>{state.fontSize=+e.target.value;document.documentElement.style.setProperty('--editor',state.fontSize+'px');queryAll('#lyrics textarea').forEach(resizeArea);$('#fontValue').textContent=state.fontSize+' px';persist()};$('#settingTheme').onclick=toggleTheme;$('#settingHistory').onclick=showHistory;$('#sourceInfo').onclick=showInfo;$('#commandsSettings').onclick=showCommands}
+function legacySettings(){showDialog('Dein Studio einrichten',`<label class="field">Schriftgröße im Editor<input id="fontRange" type="range" min="16" max="28" value="${state.fontSize}"></label><p class="small" id="fontValue">${state.fontSize} px</p><div class="row wrap" style="margin-top:20px"><button id="settingTheme" class="outline">Hell / Dunkel wechseln</button><button id="settingHistory" class="outline">Versionsverlauf</button></div><p class="notice">Texte, Revisionen und Performance-Cues werden lokal im versionierten IndexedDB-DocumentStore gespeichert. UI-Präferenzen bleiben in LocalStorage; Recovery-Punkte sind in den Studio-Einstellungen verfügbar.</p><div class="row wrap"><button id="sourceInfo" class="outline">Über Studio 02</button><button id="commandsSettings" class="outline">Tastenkürzel</button></div>`);$('#fontRange').oninput=e=>{state.fontSize=+e.target.value;document.documentElement.style.setProperty('--editor',state.fontSize+'px');resizeArea($('#lyricsEditor'));$('#fontValue').textContent=state.fontSize+' px';persist()};$('#settingTheme').onclick=toggleTheme;$('#settingHistory').onclick=showHistory;$('#sourceInfo').onclick=showInfo;$('#commandsSettings').onclick=showCommands}
 function legacyToggleTheme(){toggleTheme()}
 function legacyHistory(){revision('history_open');showDialog('Deine letzten Fassungen',`<p class="notice">Wiederherstellen erzeugt zuvor eine Sicherung der aktuellen Fassung.</p>${(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,65))}…</p></div><button class="outline" data-revision="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p>Noch keine ältere Fassung vorhanden.</p>'}`);queryAll('[data-revision]').forEach(b=>b.onclick=()=>{if(restoreStudioRevision(song().revisions[+b.dataset.revision])){closeDialog();notify('Fassung wiederhergestellt · Bar-IDs und Cues erhalten.')}})}
 function showInfo(){showDialog('RhymeLab Studio 02',`<p>Ein gemeinsamer Schreibraum für Browser, Mobile und den späteren Electron-Adapter.</p><p class="notice">Reimsuche, Detail-/Provenienzflächen und Song-Reimschema laufen über die lokale Writer-Runtime. Dokumente, Revisionen und Performance-Cues liegen im versionierten IndexedDB-DocumentStore mit Recovery-Punkten.</p><p class="notice">UI-Silbenzählung und Perform Auto-Map bleiben bewusst als lokale Hilfen gekennzeichnet.</p>`)}
@@ -1720,11 +1740,15 @@ bindClick('focusBtn',toggleFocus);
 bindClick('newSongSidebar',newSong);
 bindClick('renameBtn',()=>nameDialog('Titel ändern',song().title,t=>{song().title=t;persist();renderEditor()}));
 bindClick('addBar',()=>{
+  const current=song();
   pushUndo();
-  const current=song(),last=current.lines.length-1;
-  splitEditorBar(current,last,current.lines[last].length,current.lines[last].length);
-  activeLine=current.lines.length-1;
-  renderEditor();focusLine(activeLine,0);changed();
+  const inserted=insertEditorBar(current,Math.min(current.lines.length,activeLine+1),'');
+  if(!inserted)return;
+  activeLine=inserted.index;
+  analysisSignature='';
+  renderEditor();
+  focusLine(activeLine,0);
+  changed();
 });
 bindClick('undoBtn',performUndo);
 bindClick('redoBtn',performRedo);
@@ -1782,7 +1806,7 @@ document.addEventListener('keydown',e=>{
   if(e.altKey&&e.key==='1'){e.preventDefault();navigate('studio')}
   if(e.altKey&&e.key==='2'){e.preventDefault();navigate('search')}
   if(e.altKey&&key==='f'){e.preventDefault();toggleFocus()}
-});window.addEventListener('resize',()=>queryAll('#lyrics textarea').forEach(resizeArea));document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPlay();void flushStudioPersistence('visibility_hidden')}});window.addEventListener('pagehide',()=>{void flushStudioPersistence('pagehide');mobileViewportCleanup?.();uiLocalizer?.disconnect()});document.body.dataset.controls='bound';}
+});window.addEventListener('resize',()=>resizeArea($('#lyricsEditor')));document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPlay();void flushStudioPersistence('visibility_hidden')}});window.addEventListener('pagehide',()=>{void flushStudioPersistence('pagehide');mobileViewportCleanup?.();uiLocalizer?.disconnect()});document.body.dataset.controls='bound';}
 // Version 2: direct desktop controls and docked surfaces.
 let density=normalizeDensity(state.density),syllableMode='all',followSelection=true,selectedResult='',selectedResultId='',dockTab='',resultSignature='',selectionProof=null,barNavigatorQuery='';
 state.motion=state.motion||'auto';
@@ -3709,8 +3733,8 @@ function showHistory(){revision();openEditorDock('history')}
 function openEditorDock(tab){if(page!=='studio')navigate('studio');document.body.classList.remove('mobile-results');document.body.classList.add('editor-dock-open');setMobileActive('studio');dockTab=tab;$('#editorDock').dataset.tab=tab;$('#editorDock').classList.remove('hidden');renderDock();animateSurface($('#editorDock'))}
 function closeEditorDock(){if(themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}document.body.classList.remove('editor-dock-open');$('#editorDock').classList.add('hidden');delete $('#editorDock').dataset.tab;dockTab='';}
 function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='navigator'){renderBarNavigatorDock(body)}else if(dockTab==='bar'){renderBarInspectorDock(body)}else if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else{body.innerHTML=`<div class="studio-note"><b>RhymeLab Studio</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details, Versionen und Werkzeuge bleiben in Reichweite.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste und Versionen direkt öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + B</kbd> Bars · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln.</p><p style="margin-top:9px"><b>Lokal zuerst</b> · Texte, Präferenzen, Backups und Writer-Daten bleiben lokal in deinem Workspace.</p></div>`}}
-function setFontSize(n){state.fontSize=clamp(n,16,28);document.documentElement.style.setProperty('--editor',state.fontSize+'px');$('#fontSizeLive').textContent=state.fontSize;queryAll('#lyrics textarea').forEach(resizeArea);persist()}
-function applyEditorFont(){const value=({sans:'var(--font)',serif:'Georgia, serif',mono:'ui-monospace, monospace'})[state.editorFont||'sans'];document.documentElement.style.setProperty('--lyric-font',value);queryAll('#lyrics textarea').forEach(resizeArea)}
+function setFontSize(n){state.fontSize=clamp(n,16,28);document.documentElement.style.setProperty('--editor',state.fontSize+'px');$('#fontSizeLive').textContent=state.fontSize;resizeArea($('#lyricsEditor'));persist()}
+function applyEditorFont(){const value=({sans:'var(--font)',serif:'Georgia, serif',mono:'ui-monospace, monospace'})[state.editorFont||'sans'];document.documentElement.style.setProperty('--lyric-font',value);resizeArea($('#lyricsEditor'))}
 function humanizeDetail(value){
   return String(value||'').replace(/[._-]+/g,' ').replace(/\b\w/g,(char)=>char.toUpperCase());
 }
@@ -3790,7 +3814,7 @@ function renderDetail(){
 }
 function closeDetail(){detailClient.cancel();detailRequest++;selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';saveStudioSearchState({selectedResultId:''});$('#detailDock').classList.add('hidden');$('#resultsScroll').focus()}
 function moveResult(delta){const rows=sortedData();if(!rows.length)return;let index=rows.findIndex(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult);index=index<0?(delta>0?0:rows.length-1):Math.max(0,Math.min(rows.length-1,index+delta));if(index>=pageSize){pageSize=index+12;renderResults()}openDetail(rows[index].word,rows[index].id);const row=queryAll('#results .result').find(r=>r.dataset.resultId===selectedResultId);row?.scrollIntoView?.({block:'nearest',behavior:'smooth'})}
-function setAssistWidth(value){const max=clamp(window.innerWidth-660,350,640);const width=clamp(value,350,max);document.documentElement.style.setProperty('--assist-width',width+'px');$('#splitter').setAttribute('aria-valuenow',width);$('#splitter').setAttribute('aria-valuemax',max);state.assistWidth=width;queryAll('#lyrics textarea').forEach(resizeArea);}
+function setAssistWidth(value){const max=clamp(window.innerWidth-660,350,640);const width=clamp(value,350,max);document.documentElement.style.setProperty('--assist-width',width+'px');$('#splitter').setAttribute('aria-valuenow',width);$('#splitter').setAttribute('aria-valuemax',max);state.assistWidth=width;resizeArea($('#lyricsEditor'));}
 function bindTransientOutsideDismissals(){
   if(typeof document.addEventListener!=='function')return;
   document.addEventListener('pointerdown',(event)=>{
