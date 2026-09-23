@@ -1,166 +1,113 @@
-# RhymeLab Canonical Database Runtime
+# RhymeLab Database Runtime
 
-## Canonical/default database
+## Product runtime contract
 
-RhymeLab uses one canonical product database by default:
+RhymeLab application runtime is restricted to the three materialized shipping
+editions:
 
 ```text
-data/local/rhymelab-serving-v1.sqlite
+LITE
+STANDARD
+FULL
 ```
 
-Schema family:
+The default edition is **STANDARD**.
+
+Default files:
 
 ```text
-rhymelab-serving-v1
+Lite      data/local/distribution/rhymelab-serving-v1-lite.sqlite
+Standard  data/local/distribution/rhymelab-serving-v1-standard.sqlite
+Full      data/local/distribution/rhymelab-serving-v1-full.sqlite
 ```
 
 Normal startup:
 
 ```bash
 npm run dev
-```
-
-and:
-
-```bash
 npm start
 ```
 
-both use this database without an additional runtime flag.
+opens STANDARD as the canonical runtime and exposes request-scoped selection among
+installed LITE / STANDARD / FULL editions.
 
-The same Serving-v1 database supplies the runtime data for:
+## Hard runtime boundary
 
-- RhymeLab Writer;
-- RhymePad;
-- German Words;
-- English Words;
-- Phrase / Mosaic;
-- Entities;
-- Generated/Core selection through the Serving-v1 product adapter;
-- the source Phrase/Mosaic rows used to materialize the Markov transition model.
+The application server must never use the Master/Developer database as a product
+runtime.
 
-The Markov transition SQLite remains a separate compact derived artifact:
+The development source database:
 
 ```text
-data/local/rhymelab-markov-v1.sqlite
+data/local/rhymelab-serving-v1.sqlite
 ```
 
-It is built from Phrase/Mosaic rows in the canonical Serving-v1 database:
+is approximately 20 GiB and remains a **build/materialization input only**. It is
+used by distribution census/planning/build tooling to derive LITE, STANDARD and
+FULL. It is not a selectable application database.
 
-```bash
-npm run markov:model:build
-```
+The server validates the selected file's
+`meta.distribution_edition`. A path that points to a Master database or to the
+wrong shipping edition fails the runtime edition check instead of being accepted
+silently.
 
-It is not an alternate lexical/rhyme database.
+Likewise, archived split-database server modes are disabled. Flags/environment
+values that request the old legacy/archive runtime fail explicitly.
 
-## Runtime rule
+## Request-scoped selection
 
-The product runtime must not silently fall back from Serving-v1 to an older split database.
-
-If `data/local/rhymelab-serving-v1.sqlite` is absent or fails its product/runtime contract, normal startup fails explicitly.
-
-This is intentional. A missing canonical database must be fixed rather than hidden by an older runtime.
-
-Check/build commands:
-
-```bash
-npm run serving:v1:product:status
-npm run serving:v1:product:build
-```
-
-## Archived predecessor databases
-
-The following files remain relevant to development history, source pipelines, reproducibility, or explicit archival comparison. They are **not the default application runtime**.
-
-| File | Historical role |
-| --- | --- |
-| `data/local/rhymelab.sqlite` | legacy v4/control rhyme database |
-| `data/local/rhymelab-v5.sqlite` | materialized German Writer v5 database |
-| `data/local/rhymelab-en-v1.sqlite` | split English Writer database |
-| `data/local/rhymelab-phrases-v1.sqlite` | split Phrase/Mosaic database |
-| `data/local/rhymelab-entities-v1.sqlite` | split Entity database |
-| `data/local/rhymelab-v5-generated-optin.sqlite` | old split Generated German overlay |
-| `data/local/rhymelab-en-v1-generated-optin.sqlite` | old split Generated English overlay |
-| `data/local/rhymelab-phrases-v1-generated-optin.sqlite` | old split Generated Phrase overlay |
-| `data/local/rhymelab-entities-v1-generated-optin.sqlite` | old split Generated Entity overlay |
-
-These names may remain in builders, migration tools, benchmarks, provenance records and historical documentation where they describe how Serving-v1 was produced.
-
-They must not be treated as a normal product fallback.
-
-## Explicit archive runtime
-
-For development-only historical comparison, the old split bundle can still be selected explicitly:
-
-```bash
-npm run dev:legacy
-```
-
-Equivalent low-level command:
-
-```bash
-node src/server.mjs --legacy-runtime
-```
-
-This mode exists for regression archaeology, not normal RhymeLab/RhymePad/Markov use.
-
-## Environment overrides
-
-Canonical Serving-v1 path override:
+The active edition is selected per request:
 
 ```text
-RHYMELAB_SERVING_V1_DB
+runtime_db=lite|standard|full
 ```
 
-Runtime selection:
+There is no process-global mutable database switch.
+
+STANDARD is the canonical default when no explicit selector is supplied. Studio
+and standalone Search persist the user's local edition preference and send it with
+Writer/detail/analysis/capability requests.
+
+Changing edition therefore cannot make concurrent requests cross database
+boundaries.
+
+## Capabilities
+
+Runtime behavior follows the distribution manifest stored in each database.
+
+### LITE
 
 ```text
-RHYMELAB_PRODUCT_RUNTIME=serving-v1
+Words DE/EN: yes
+Phrases:     no
+Entities:    no
+Generated:   no
 ```
 
-is equivalent to the default.
-
-Archive-only values such as:
+### STANDARD
 
 ```text
-legacy
-legacy-archive
-archive
-writer-v5
-accepted
+Words DE/EN: yes
+Phrases:     yes
+Entities:    yes
+Generated:   no
 ```
 
-select the old split runtime deliberately.
-
-## Internal Master / Lite / Standard / Full comparison
-
-The canonical product default remains the Master/Developer Serving-v1 database
-above. For local distribution engineering only, RhymeLab can open the three
-materialized shipping editions alongside Master:
+### FULL
 
 ```text
-Master    data/local/rhymelab-serving-v1.sqlite
-Lite      data/local/distribution/rhymelab-serving-v1-lite.sqlite
-Standard  data/local/distribution/rhymelab-serving-v1-standard.sqlite
-Full      data/local/distribution/rhymelab-serving-v1-full.sqlite
+Words DE/EN: yes
+Phrases:     yes
+Entities:    yes
+Generated:   yes
 ```
 
-Start the development-only comparison surface with:
+Unavailable channels are exposed through capability state; they must not silently
+fall back to another database.
 
-```powershell
-npm run dev:distribution-lab
-```
+## Runtime file overrides
 
-The selector is request-scoped:
-
-```text
-runtime_db=master|lite|standard|full
-```
-
-It does not replace the canonical default and it does not mutate a global active
-database. Normal startup does not expose the selector UI.
-
-Development path overrides:
+Development/package-specific paths may be supplied per shipping edition:
 
 ```text
 RHYMELAB_DISTRIBUTION_LITE_DB
@@ -168,20 +115,84 @@ RHYMELAB_DISTRIBUTION_STANDARD_DB
 RHYMELAB_DISTRIBUTION_FULL_DB
 ```
 
-The internal endpoint/UI, performance metrics, shipping isolation and future
-user-Settings migration contract are documented in
-`docs/INTERNAL_DISTRIBUTION_LAB.md`.
+The edition metadata check still applies. Pointing
+`RHYMELAB_DISTRIBUTION_STANDARD_DB` at a Master or FULL file is rejected.
+
+The selector can be disabled for a fixed STANDARD-only package with:
+
+```text
+RHYMELAB_DISTRIBUTION_SWITCHER=0
+```
+
+or:
+
+```text
+--no-distribution-switcher
+```
+
+Disabling selection does not re-enable Master or legacy runtimes; STANDARD remains
+the only application database in that mode.
+
+## Build-only Master workflow
+
+The Master/Developer database remains the authoritative source for reproducible
+shipping editions:
+
+```text
+Master / Developer source
+data/local/rhymelab-serving-v1.sqlite
+        |
+        +--> LITE
+        +--> STANDARD
+        +--> FULL
+```
+
+Relevant build commands:
+
+```bash
+npm run distribution:census
+npm run distribution:plan
+npm run distribution:build
+npm run distribution:verify:nesting
+```
+
+The build relationship remains:
+
+```text
+LITE subset STANDARD subset FULL subset MASTER
+```
+
+That nesting contract describes materialization provenance and identity coverage.
+It does **not** make Master a runtime edition.
+
+## Archived databases
+
+Older split databases remain in the repository's development history and may still
+be read by builders, migrations or isolated unit/fixture code. They are not
+selectable by the application server.
+
+Examples include:
+
+```text
+data/local/rhymelab.sqlite
+data/local/rhymelab-v5.sqlite
+data/local/rhymelab-en-v1.sqlite
+data/local/rhymelab-phrases-v1.sqlite
+data/local/rhymelab-entities-v1.sqlite
+```
+
+There is no supported `npm run dev:legacy` product-runtime command.
 
 ## Product invariant
 
 ```text
-RhymeLab
-RhymePad
-Markov candidate retrieval
-Markov transition source
-        │
-        ▼
-data/local/rhymelab-serving-v1.sqlite
+RhymeLab / Studio / Search / RhymePad
+                |
+                v
+      LITE | STANDARD | FULL
+                ^
+                |
+          STANDARD default
 ```
 
-There is one canonical lexical/phrase/entity product database. Older split databases are provenance/archive inputs only.
+Master/Developer storage is build-only. Product runtime is shipping-tier-only.
