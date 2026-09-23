@@ -2677,3 +2677,86 @@ small,.small{font-size:12px}
     font-size:18px;
   }
 }
+
+
+/* Readability comb pass — no product-critical microtype or microtargets. */
+.demo-label{font-size:11px}
+.topbar .outline{min-height:36px}
+.theme-menu-trigger{width:36px;min-height:36px}
+.editorfooter{font-size:12px}
+.mobile-nav button{font-size:12px}
+.inspector-title .pill{font-size:11px}
+.pin-anchor{min-height:34px;font-size:12px}
+#anchorSub{font-size:11px}
+.filter-field>span{font-size:11px}
+.filter-action{font-size:12px}
+.active-filters button{font-size:11px}
+#resultCount{font-size:12px}
+#resultCaption{font-size:11px}
+.runtime-inline{font-size:11px}
+.view-choices button{min-height:34px;font-size:12px}
+.result-kind{font-size:11px}
+.result-badges span{font-size:11px}
+.compact-heading{font-size:11px}
+.density-compact .result{
+  min-height:42px;
+}
+.density-compact .result-actions button{
+  width:34px;
+  min-width:34px;
+  height:34px;
+  min-height:34px;
+  padding:7px;
+}
+.density-compact .result-actions svg{width:15px;height:15px}
+.intro-banner{font-size:11px}
+.inspector-footer,
+.inspector-footer .grow{font-size:11px}
+.detail-labels span{font-size:11px}
+.detail-bottom small{font-size:11px}
+.dock-tabs button{font-size:12px}
+.saved-chip button{font-size:12px;min-height:34px}
+.revision p,.revision button{font-size:12px}
+.studio-note,.studio-note kbd{font-size:12px}
+
+/* Settings semantic labels are secondary, not microscopic. */
+.settings-status-grid span,
+.settings-subhead span,
+.runtime-db-summary span,
+.runtime-db-choice-top em,
+.theme-color-field>span,
+.theme-mode-badge,
+.theme-contrast span{font-size:11px}
+.active-db-badge{font-size:11px}
+
+/* Analysis / performance / library readability. */
+.analysis-card h3{font-size:16px}
+.analysis-card h4{font-size:14px}
+.analysis-card small,
+.analysis-line,
+.analysis-pair,
+.analysis-word-card,
+.performance small{font-size:12px}
+.performance button{font-size:12px}
+.library-folder-row button,
+.library-results-head,
+.songcard-meta{font-size:12px}
+.command-group-title{font-size:11px}
+.command-group button b{font-size:13px}
+.command-group button small,
+.command-group kbd{font-size:11px}
+.notice,.field{font-size:13px}
+.dialogactions button{font-size:13px}
+
+@media(max-width:800px){
+  .editorfooter{font-size:11px}
+  .mobile-nav button{font-size:12px}
+  .active-db-badge{font-size:10px}
+  .density-compact .result-actions button{
+    width:44px;
+    min-width:44px;
+    height:44px;
+    min-height:44px;
+    padding:10px;
+  }
+}
