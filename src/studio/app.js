@@ -989,6 +989,7 @@ function clearCurrentDocument(){
 }
 function navigate(target){
   stopPlay();
+  if(page==='settings'&&target!=='settings'&&themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}
   page=target;
   document.body.classList.remove('mobile-results','find-only','settings-page');
   if(target!=='studio')document.body.classList.remove('focus');
@@ -3160,6 +3161,7 @@ function bindSettingsData(){
   void renderRecoveryPanel();
 }
 function leaveSettings(){
+  if(themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}
   const target=settingsReturnPage&&settingsReturnPage!=='settings'?settingsReturnPage:'studio';
   const restoreMobileResults=settingsReturnMobileResults&&target==='studio';
   navigate(target);
@@ -3250,12 +3252,12 @@ function bindThemeSettings(){
   $('#themeMode').onchange=previewThemeDraft;
   $('#replaceLight').onchange=function(event){if(event.target.checked)$('#replaceDark').checked=false};
   $('#replaceDark').onchange=function(event){if(event.target.checked)$('#replaceLight').checked=false};
-  $('#themeRevert').onclick=function(){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()};
+  $('#themeRevert').onclick=function(){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderSettingsPage()};
   $('#themeSave').onclick=saveThemeDraft;
   Array.from(document.querySelectorAll('[data-theme-choice]')).forEach(function(button){button.onclick=function(){themePreviewing=false;applyThemeChoice(button.dataset.themeChoice);if(page==='settings')renderSettingsPage()}});
-  Array.from(document.querySelectorAll('[data-theme-edit]')).forEach(function(button){button.onclick=function(){themeEditingId=button.dataset.themeEdit;themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()}});
+  Array.from(document.querySelectorAll('[data-theme-edit]')).forEach(function(button){button.onclick=function(){themeEditingId=button.dataset.themeEdit;themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderSettingsPage()}});
   Array.from(document.querySelectorAll('[data-theme-delete]')).forEach(function(button){button.onclick=function(){deleteCustomTheme(button.dataset.themeDelete)}});
-  $('[data-theme-new]').onclick=function(){themeEditingId='';themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderDock()};
+  $('[data-theme-new]').onclick=function(){themeEditingId='';themePreviewing=false;applyThemeChoice(state.theme,{persistState:false});renderSettingsPage()};
 }
 function saveThemeDraft(){
   const draft=readThemeDraft(),id=themeEditingId||'custom-'+Date.now().toString(36);
@@ -3268,7 +3270,7 @@ function saveThemeDraft(){
   themeEditingId=id;
   themePreviewing=false;
   applyThemeChoice(replace||id);
-  renderDock();
+  if(page==='settings')renderSettingsPage();
   notify(replace?saved.name+' ersetzt jetzt '+(replace==='light'?'Light':'Dark')+'.':saved.name+' als Quickstyle gespeichert.');
 }
 function deleteCustomTheme(id){
@@ -3280,7 +3282,7 @@ function deleteCustomTheme(id){
   state.customThemes=state.customThemes.filter(function(item){return item.id!==id});
   themeEditingId='';
   applyThemeChoice(activeWasCustom?(theme.mode||'dark'):(activeSlot||state.theme));
-  renderDock();
+  if(page==='settings')renderSettingsPage();
   notify(theme.name+' gelöscht.');
 }
 
