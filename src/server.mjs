@@ -548,15 +548,7 @@ function generatedRuntimeHealth(){
 
 const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
 const padHtml = Buffer.from(materializeRhymePadV14().html);
-const studioHtmlSource=readFileSync(resolve(studioUiDir,'index.html'),'utf8');
-const studioHtml=Buffer.from(
-  internalDbSwitcherEnabled
-    ?studioHtmlSource
-    :studioHtmlSource.replace(
-        /<!-- INTERNAL_DB_LAB_START -->[\s\S]*?<!-- INTERNAL_DB_LAB_END -->/u,
-        '',
-      ),
-);
+const studioHtml=readFileSync(resolve(studioUiDir,'index.html'));
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const queryPronunciationTestHtml = readFileSync(resolve(queryPronunciationTestDir, 'index.html'));
 const markovTestHtml = readFileSync(resolve(markovTestDir, 'index.html'));
