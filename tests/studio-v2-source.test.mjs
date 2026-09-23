@@ -140,8 +140,8 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/\.command-group/u);
   assert.match(app,/customThemes/u);
   assert.match(app,/themeSlots/u);
-  assert.match(app,/Light-Style ersetzen/u);
-  assert.match(app,/Dark-Style ersetzen/u);
+  assert.match(app,/id="replaceLight"/u);
+  assert.match(app,/id="replaceDark"/u);
   assert.match(app,/function saveThemeDraft\(/u);
   assert.match(app,/function renderThemeQuickMenu\(/u);
   assert.match(app,/function setThemeQuickOpen\(/u);
