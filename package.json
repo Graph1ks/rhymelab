@@ -7,7 +7,7 @@
     "node": ">=22.5.0"
   },
   "scripts": {
-    "dev": "node src/server.mjs",
+    "dev": "node src/server.mjs --internal-db-switcher",
     "dev:serving": "node src/server.mjs",
     "dev:legacy": "node src/server.mjs --legacy-runtime",
     "start": "node src/server.mjs",
@@ -196,7 +196,7 @@
     "markov:data:bootstrap:de": "npm run markov:sources:acquire && npm run markov:model:build",
     "markov:data:bootstrap:en": "npm run markov:sources:acquire:en && npm run markov:model:build:en",
     "markov:lyrics:structure:analyze": "node --no-warnings scripts/analyze-lyric-structure.mjs",
-    "dev:studio-default": "node src/server.mjs --studio-default",
+    "dev:studio-default": "node src/server.mjs --studio-default --internal-db-switcher",
     "studio:v2:cutover:code": "node --no-warnings scripts/check-studio-v2-cutover.mjs --code-only",
     "studio:v2:cutover:check": "node --no-warnings scripts/check-studio-v2-cutover.mjs",
     "studio:v2:cutover:json": "node --no-warnings scripts/check-studio-v2-cutover.mjs --json",
