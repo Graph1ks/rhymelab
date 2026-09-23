@@ -22,7 +22,12 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(server,/['"]\/assets\/custom-select\.mjs['"]/u);
   assert.match(html,/STUDIO V2/u);
   assert.doesNotMatch(html,/STUDIO 02 · DEMO/u);
-  assert.match(html,/data-dock=["']settings["']>Einstellungen<\/button>/u);
+  assert.doesNotMatch(html,/data-dock=["']settings["']/u);
+  assert.match(html,/id=["']settingsSide["']/u);
+  assert.match(app,/function renderSettingsPage\(/u);
+  assert.match(app,/function leaveSettings\(/u);
+  assert.match(app,/target==='settings'/u);
+  assert.match(app,/settingsReturnPage/u);
   assert.doesNotMatch(html,/Design 02/u);
   assert.doesNotMatch(html,/id=["']internalDbLab["']/u);
   assert.doesNotMatch(html,/INTERNAL_DB_LAB_(?:START|END)/u);
@@ -43,6 +48,8 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/Studio Settings 2026/u);
   assert.match(css,/\.settings-layout/u);
   assert.match(css,/\.settings-nav-item/u);
+  assert.match(css,/\.settings-page-hero/u);
+  assert.match(css,/\.settings-back/u);
   assert.match(css,/\.runtime-db-grid/u);
   assert.match(css,/\.runtime-db-choice/u);
 
@@ -60,7 +67,10 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/100dvh/u);
   assert.match(css,/Studio 02: bounded settings dock \+ themed scrollbars/u);
   assert.match(css,/\.editor-dock-body\{[\s\S]*?min-height:0;[\s\S]*?overflow-y:auto;/u);
-  assert.match(css,/#editorDock\[data-tab=settings\]\{[\s\S]*?flex:1 1 460px;[\s\S]*?max-height:min\(68dvh,620px\)/u);
+  assert.match(css,/Studio Settings full-page workspace/u);
+  assert.match(css,/\.settings-page #largeView\{[\s\S]*?overflow:auto/u);
+  assert.match(css,/\.settings-page-view\{[\s\S]*?width:min\(1180px,calc\(100% - 48px\)\)/u);
+  assert.match(css,/#editorDock\[data-tab=settings\]\{display:none!important\}/u);
   assert.match(css,/\.theme-builder-actions\{[\s\S]*?position:sticky;[\s\S]*?bottom:0/u);
   assert.match(css,/\*::-webkit-scrollbar-thumb/u);
   assert.match(css,/scrollbar-color:color-mix\(in srgb,var\(--muted\) 52%,var\(--line\)\) transparent/u);
