@@ -152,13 +152,13 @@ const savedSearchOptionsExpanded=localStorage.getItem('rhymelab.searchOptionsExp
 const savedResultFiltersExpanded=localStorage.getItem('rhymelab.resultFiltersExpanded.v2');
 const detectedUiLanguage=String(navigator.language||'en').toLocaleLowerCase('en-US').startsWith('de')?'de':'en';
 const initialBasis=['de','en','both'].includes(savedBasis)?savedBasis:'de';
-const defaultSearchSectionsExpanded=false;
+const defaultSearchSectionsExpanded=true;
 const state={
   lang:['de','en'].includes(savedUiLanguage)?savedUiLanguage:detectedUiLanguage,
   basis:initialBasis,
   resultLanguage:['de','en','both'].includes(savedResultLanguage)?savedResultLanguage:initialBasis,
   view:['list','compact'].includes(savedResultView)?savedResultView:'list',
-  searchOptionsExpanded:savedSearchOptionsExpanded==null?defaultSearchSectionsExpanded:savedSearchOptionsExpanded==='1',
+  searchOptionsExpanded:true,
   resultFiltersExpanded:savedResultFiltersExpanded==null?defaultSearchSectionsExpanded:savedResultFiltersExpanded==='1',
   generatedOptIn:true,generatedOnly:false,generatedCapability:null,datasetStats:null,runtimeTiming:null,
   canonicalPronunciationRevision:null,generatedPronunciationRevision:null,
@@ -457,14 +457,13 @@ function refreshSearchCompactThreshold(){
 }
 
 function syncSearchSectionControls(){
-  const stage=$('.search-stage');
   const searchSection=$('#searchOptionsSection');
-  const autoCompact=Boolean(stage?.classList.contains('search-auto-compact'));
-  const expanded=Boolean(state.searchOptionsExpanded&&(!autoCompact||state.stickyPanelOverride==='searchOptions'));
-  searchSection?.classList.toggle('section-collapsed',!expanded);
+  state.searchOptionsExpanded=true;
+  state.stickyPanelOverride=null;
+  searchSection?.classList.remove('section-collapsed');
   const toggle=$('#searchOptionsToggle');
-  toggle?.setAttribute('aria-expanded',String(expanded));
-  toggle?.classList.toggle('active',expanded);
+  toggle?.setAttribute('aria-expanded','true');
+  toggle?.classList.add('active');
   $('#resultFiltersSection')?.classList.add('hidden');
   $('#resultFiltersToggle')?.setAttribute('aria-expanded','false');
   state.resultFiltersExpanded=false;
