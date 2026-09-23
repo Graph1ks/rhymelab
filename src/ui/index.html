@@ -47,9 +47,13 @@
         <form id="searchForm" class="search search-core search-core-flat" role="search">
           <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
           <input id="searchInput" type="search" autocomplete="off" spellcheck="false" placeholder="Search a word, phrase or entity…" aria-label="Search a word, phrase or entity">
+          <span id="searchDbBadge" class="search-db-badge" title="Active local database">DB AUTO</span>
           <button class="search-button" type="submit" id="searchButton">Search</button>
-          <button type="button" id="searchOptionsToggle" class="hidden" aria-expanded="true" aria-controls="searchOptionsPanel" tabindex="-1"></button>
-          <button type="button" id="resultFiltersToggle" class="hidden" aria-expanded="true" aria-controls="resultFiltersPanel" tabindex="-1"></button>
+          <button type="button" id="searchOptionsToggle" class="search-core-toggle" aria-expanded="false" aria-controls="searchOptionsPanel" title="Filters">
+            <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+            <span class="search-core-toggle-label" data-i18n="resultFiltersShort">Filters</span>
+          </button>
+          <button type="button" id="resultFiltersToggle" class="hidden" aria-expanded="false" aria-controls="resultFiltersPanel" tabindex="-1"></button>
         </form>
 
         <section id="searchOptionsSection" class="search-control-section search-options-section search-filter-surface">
