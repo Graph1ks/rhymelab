@@ -3622,7 +3622,20 @@ function duplicateStudioBar(index=activeLine){
 }
 function deleteStudioBar(index=activeLine){
   const current=song();
-  if(current.lines.length<=1){notify('Der Text muss mindestens eine Bar behalten.');return false}
+  if(index<0||index>=current.lines.length)return false;
+  if(current.lines.length===1){
+    pushUndo();
+    reconcileEditorDocumentText(current,'');
+    activeLine=0;
+    selection={line:0,barId:current.barIds[0]||'',barRevision:current.barRevisions[0]||0,start:0,end:0,documentStart:0,documentEnd:0,multiline:false,tracked:false};
+    selectionProof=null;
+    analysisSignature='';
+    renderEditor();
+    changed();
+    focusLine(0,0);
+    notify('Zeile geleert.');
+    return true;
+  }
   const removed=barIdentity(current,index);
   if(!removed)return false;
   const activeBarId=current.barIds[activeLine]||'';
@@ -3676,6 +3689,8 @@ function moveStudioBar(fromIndex,toIndex){
   renderEditor();
   changed();
   if(dockTab==='navigator')renderDock();
+  const selectedLine=current.lines[selection.line]||'';
+  focusLine(selection.line,Math.min(selectedLine.length,selection.start||0));
   return true;
 }
 function jumpToStudioBar(barId,{focus=true}={}){
@@ -3721,7 +3736,7 @@ function renderBarNavigatorDock(body){
               <button data-bar-duplicate="${esc(row.bar.id)}" aria-label="Bar ${row.number} duplizieren" title="Duplizieren">⧉</button>
               <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="-1" aria-label="Bar ${row.number} nach oben" ${row.number===1?'disabled':''}>↑</button>
               <button data-bar-reorder="${esc(row.bar.id)}" data-bar-direction="1" aria-label="Bar ${row.number} nach unten" ${row.number===trackedIndexes.length?'disabled':''}>↓</button>
-              <button data-bar-delete="${esc(row.bar.id)}" aria-label="Bar ${row.number} löschen" title="Bar löschen" ${current.lines.length<=1?'disabled':''}>×</button>
+              <button data-bar-delete="${esc(row.bar.id)}" aria-label="Bar ${row.number} löschen" title="Bar löschen">×</button>
               <span class="bar-drag-handle" aria-hidden="true">⋮⋮</span>
             </div>
           </article>`;
