@@ -2771,7 +2771,7 @@ function internalDbCardMarkup(row){
     +'<dt>Free pages</dt><dd>'+formatLabBytes(row?.sqlite?.freeBytes)+'</dd>'
     +'<dt>Pages</dt><dd>'+Number(row?.sqlite?.pageCount||0).toLocaleString('de-DE')+'</dd>'
     +'<dt>Tables / Indexes</dt><dd>'+Number(row?.sqlite?.tables||0)+' / '+Number(row?.sqlite?.indexes||0)+'</dd>'
-    +'<dt>Target entries</dt><dd>'+esc(meta.distribution_total_target||'MASTER')+'</dd>'
+    +'<dt>Target entries</dt><dd>'+esc(meta.distribution_total_target||'—')+'</dd>'
     +'<dt>Last query</dt><dd>'+formatLabMs(timing.searchMs)+'</dd>'
     +'<dt>Ø100</dt><dd>'+formatLabMs(timing.averageLast100Ms)+'</dd>'
     +'<dt>Samples</dt><dd>'+Number(timing.sampleCount||0)+'</dd>'
@@ -2818,7 +2818,7 @@ function internalDbBenchmarkMarkup(){
   const report=internalDbBenchmarkReport;
   if(!report?.summary?.databases)return '';
   const rows=Object.entries(report.summary.databases).map(([database,summary])=>{
-    const quality=summary?.qualityVsMaster||{};
+    const quality=summary?.qualityVsFull||{};
     return '<tr class="'+(database===internalDbLabActive?'active':'')+'">'
       +'<td><b>'+esc(database.toUpperCase())+'</b><br><small>n='+Number(summary.measuredRuns||0)+'</small></td>'
       +'<td>'+formatLabMs(benchmarkMetric(summary,'serverSearchMs'))+'<br><small>p95 '+formatLabMs(benchmarkMetric(summary,'serverSearchMs','p95'))+'</small></td>'
@@ -2835,9 +2835,9 @@ function internalDbBenchmarkMarkup(){
   const mode=esc(String(report.mode||'benchmark'));
   return '<section class="internal-db-tech" style="margin-top:8px"><h4>Controlled benchmark · '+mode+'</h4>'
     +'<table class="internal-db-benchmark-table"><thead><tr>'
-    +'<th>DB</th><th>Search p50</th><th>Total p50</th><th>Serialize</th><th>Parse</th><th>Map</th><th>Response</th><th>Top50 vs Master</th><th>Exact</th><th>Determinism</th>'
+    +'<th>DB</th><th>Search p50</th><th>Total p50</th><th>Serialize</th><th>Parse</th><th>Map</th><th>Response</th><th>Top50 vs Full</th><th>Exact</th><th>Determinism</th>'
     +'</tr></thead><tbody>'+rows+'</tbody></table>'
-    +'<small>Warmups ausgeschlossen · p50/p95 aus gemessenen Runs · Quality vergleicht identische Result-IDs/Order gegen Master.</small></section>';
+    +'<small>Warmups ausgeschlossen · p50/p95 aus gemessenen Runs · Quality vergleicht identische Result-IDs/Order gegen Full.</small></section>';
 }
 function renderInternalDbBenchmarkProgress(){
   const root=$('#internalDbBenchmarkProgress');
@@ -2863,7 +2863,7 @@ function renderInternalDbBenchmarkProgress(){
 }
 function availableInternalBenchmarkDatabases(){
   const map=internalDbSummaryMap(internalDbLabPayload);
-  return ['master','lite','standard','full'].filter((id)=>map[id]?.available===true);
+  return ['lite','standard','full'].filter((id)=>map[id]?.available===true);
 }
 async function runStudioInternalDbBenchmark(mode='current'){
   if(!internalDbLabEnabled||internalDbBenchmarkAbort)return;
@@ -2981,7 +2981,7 @@ async function refreshInternalDbLabPayload({silent=false}={}){
   internalDbLabPayload=payload;
   const map=internalDbSummaryMap(payload);
   if(!['lite','standard','full'].includes(internalDbLabActive)||!map[internalDbLabActive]?.available){
-    internalDbLabActive=['standard','full','lite','master'].find((id)=>map[id]?.available)||'master';
+    internalDbLabActive=['standard','full','lite'].find((id)=>map[id]?.available)||'standard';
     saveInternalDbLabSelection(internalDbLabActive);
   }
   studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
@@ -3046,7 +3046,7 @@ async function initializeInternalDbLab(){
     internalDbLabPayload=payload;
     const map=internalDbSummaryMap(payload);
     if(!['lite','standard','full'].includes(internalDbLabActive)||!map[internalDbLabActive]?.available){
-      internalDbLabActive=['standard','full','lite','master'].find((id)=>map[id]?.available)||'master';
+      internalDbLabActive=['standard','full','lite'].find((id)=>map[id]?.available)||'standard';
     }
     saveInternalDbLabSelection(internalDbLabActive);
     studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
