@@ -10,7 +10,8 @@ Before changing the project in a fresh thread/session, read:
 2. `docs/REACT_STUDIO_REPLATFORM.md` — active P0 continuation and feature-freeze contract
 3. `docs/REACT_STUDIO_PARITY_GATE.md` — hard no-capability-loss cutover gate
 4. `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md` — completed typed-domain boundary; reuse it instead of reimplementing legacy semantics
-5. `docs/STUDIO_V2_HANDOVER.md` — shipping Studio V2 behavioral golden master and implementation checkpoint
+5. `docs/REACT_STUDIO_R2_SHELL.md` — completed React shell/design-system boundary; extend it instead of building parallel chrome
+6. `docs/STUDIO_V2_HANDOVER.md` — shipping Studio V2 behavioral golden master and implementation checkpoint
 5. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — physical browser/touch/Web Audio acceptance matrix carried into migration acceptance
 6. `STATUS.md` — current operational state
 7. `PROJECT_STATE.json` — machine-readable current state
