@@ -58,20 +58,20 @@ export const BUILTIN_THEMES: Readonly<Record<ThemeMode, ThemeDefinition>> = Obje
   dark: Object.freeze({
     id: 'dark',
     name: 'Dark',
-    subtitle: 'Signal Noir',
+    subtitle: 'Bureau Bordeaux',
     mode: 'dark',
     colors: Object.freeze({
-      bg: '#272727',
-      panel: '#303030',
-      ink: '#F5F4EC',
-      muted: '#A3A3A3',
-      line: '#474747',
-      accent: '#FFE400',
-      accent2: '#FF652F',
-      signal: '#14A76C',
-      nav: '#232323',
-      tint: '#3A3823',
-      onAccent: '#272727',
+      bg: '#1B0D0F',
+      panel: '#2B181B',
+      ink: '#E0D3D1',
+      muted: '#B9A7A7',
+      line: '#655354',
+      accent: '#E85A4F',
+      accent2: '#EEA468',
+      signal: '#62C37E',
+      nav: '#221215',
+      tint: '#442B2F',
+      onAccent: '#171717',
     }),
   }),
 });
@@ -362,7 +362,7 @@ export function deleteCustomTheme(id: string): ThemePreferences {
   };
   const next: ThemePreferences = {
     ...prefs,
-    theme: prefs.theme === id ? 'dark' : prefs.theme,
+    theme: prefs.theme === id ? 'light' : prefs.theme,
     customThemes,
     themeSlots,
   };
@@ -425,9 +425,9 @@ export function resolveThemeChoice(
   }
 
   return {
-    ...BUILTIN_THEMES.dark,
-    slot: 'dark',
-    colors: completeThemeColors(BUILTIN_THEMES.dark.colors),
+    ...BUILTIN_THEMES.light,
+    slot: 'light',
+    colors: completeThemeColors(BUILTIN_THEMES.light.colors),
   };
 }
 
