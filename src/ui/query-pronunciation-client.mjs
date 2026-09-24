@@ -1,4 +1,4 @@
-export const CLIENT_QUERY_PRONUNCIATION_POLICY='client-total-query-pronunciation-v3';
+export const CLIENT_QUERY_PRONUNCIATION_POLICY='client-total-query-pronunciation-v4';
 export const CLIENT_QUERY_MAX_TOKENS=64;
 
 const LANGUAGES=new Set(['de','en']);
@@ -147,16 +147,36 @@ function graphemeFallback(surface,language){
   return chunks.join('')||'ə';
 }
 
+const GENERATED_VOWELS=new Set([
+  'a','e','i','o','u','y','ø','œ','ɛ','ɪ','ʊ','ʏ','ɔ','ə','ɐ','ɑ','ɒ','æ',
+  'ɚ','ɝ',
+]);
+
+function rightEdgeGeneratedStress(ipa,surface,language){
+  const raw=String(ipa||'').replaceAll('ˈ','').replaceAll('ˌ','');
+  if(!raw)return'';
+  const spelling=simplify(surface,language);
+  if(spelling.length<10)return'ˈ'+raw;
+  const points=[...raw];
+  let vowel=-1;
+  for(let index=points.length-1;index>=0;index-=1){
+    if(GENERATED_VOWELS.has(points[index])){vowel=index;break;}
+  }
+  if(vowel<=0)return'ˈ'+raw;
+  return points.slice(0,vowel).join('')+'ˈ'+points.slice(vowel).join('');
+}
+
 export function generateClientIpa(surface,language){
   const code=normalizeLanguage(language);
   const simplified=simplify(surface,code);
   const scanned=scan(simplified,code);
   const ruleIpa=code==='de'?germanOrthographicPostprocess(surface,scanned):scanned;
+  const bare=ruleIpa||graphemeFallback(surface,code);
   return {
     language:code,
     surface:String(surface??'').normalize('NFKC').trim(),
     normalized:normalizeClientSurface(surface,code),
-    ipa:'ˈ'+(ruleIpa||graphemeFallback(surface,code)),
+    ipa:rightEdgeGeneratedStress(bare,surface,code),
     method:ruleIpa?'client_rules':'client_grapheme_fallback',
     policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
     sourceBacked:false,
@@ -189,44 +209,137 @@ function demoteStress(ipa){
   return String(ipa||'').replaceAll('ˈ','ˌ');
 }
 
-async function findTwoPartReferenceCompound(normalized,language,lookupReference){
-  if(typeof lookupReference!=='function'||normalized.length<5)return null;
-  const candidates=[];
-  for(let split=2;split<=normalized.length-2;split+=1){
-    const left=normalized.slice(0,split);
-    const right=normalized.slice(split);
-    candidates.push({left,right,quality:Math.min(left.length,right.length)});
-  }
-  candidates.sort((a,b)=>b.quality-a.quality||b.left.length-a.left.length);
+function primaryStress(ipa){
+  const raw=String(ipa||'');
+  if(raw.includes('ˈ'))return raw;
+  const secondary=raw.lastIndexOf('ˌ');
+  if(secondary>=0)return raw.slice(0,secondary)+'ˈ'+raw.slice(secondary+1);
+  return raw?'ˈ'+raw:'';
+}
 
-  for(const candidate of candidates.slice(0,8)){
-    const [left,right]=await Promise.all([
-      lookupReference(candidate.left,language),
-      lookupReference(candidate.right,language),
-    ]);
-    const leftIpa=referenceIpa(left);
-    const rightIpa=referenceIpa(right);
-    if(!leftIpa||!rightIpa)continue;
-    const generated=left?.generatedPronunciation===true||right?.generatedPronunciation===true;
-    return {
-      language,
-      surface:normalized,
-      normalized,
-      ipa:`${leftIpa}${demoteStress(rightIpa)}`,
-      method:generated
-        ?'client_generated_overlay_reference_compound'
-        :'client_source_reference_compound',
-      policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
-      sourceBacked:!generated,
-      generatedReference:generated,
-      clientOnly:true,
-      components:[
-        left.surface||candidate.left,
-        right.surface||candidate.right,
-      ],
-    };
+function composeRightEdgePronunciations(parts){
+  const usable=(parts||[]).filter((part)=>referenceIpa(part)||part?.ipa);
+  if(!usable.length)return'';
+  return usable.map((part,index)=>{
+    const ipa=referenceIpa(part)||String(part?.ipa||'');
+    return index===usable.length-1?primaryStress(ipa):demoteStress(ipa);
+  }).join('');
+}
+
+function createReferenceLookup(lookupReference,language,maxLookups=128){
+  const cache=new Map();
+  let count=0;
+  return async(segment)=>{
+    const normalized=normalizeClientSurface(segment,language);
+    if(cache.has(normalized))return cache.get(normalized);
+    if(count>=maxLookups)return null;
+    count+=1;
+    const reference=await lookupReference(normalized,language);
+    const accepted=referenceIpa(reference)?reference:null;
+    cache.set(normalized,accepted);
+    return accepted;
+  };
+}
+
+async function resolvePrefixComponents(normalized,language,lookupReference){
+  if(!normalized)return[];
+  if(typeof lookupReference!=='function'){
+    return[generateClientIpa(normalized,language)];
+  }
+
+  const lookup=createReferenceLookup(lookupReference,language,48);
+  const parts=[];
+  let generated='';
+  let cursor=0;
+
+  const flushGenerated=()=>{
+    if(!generated)return;
+    parts.push(generateClientIpa(generated,language));
+    generated='';
+  };
+
+  while(cursor<normalized.length){
+    let match=null;
+    // Prefer long source-backed words at the current boundary. Three letters
+    // is the lower bound: enough for useful short lexemes without probing
+    // every two-letter coincidence in a long art word.
+    for(let end=normalized.length;end>=cursor+3;end-=1){
+      const reference=await lookup(normalized.slice(cursor,end));
+      if(reference){
+        match={end,reference};
+        break;
+      }
+    }
+
+    if(match){
+      flushGenerated();
+      parts.push(match.reference);
+      cursor=match.end;
+      continue;
+    }
+
+    generated+=normalized[cursor];
+    cursor+=1;
+  }
+
+  flushGenerated();
+  return parts;
+}
+
+async function findSourceBackedRightEdge(normalized,language,lookupReference){
+  if(typeof lookupReference!=='function'||normalized.length<6)return null;
+  const lookup=createReferenceLookup(lookupReference,language,96);
+  const starts=[];
+  for(let start=2;start<=normalized.length-3;start+=1)starts.push(start);
+
+  // Local DB probes are independent. Small batches avoid serial request latency
+  // without turning one OOV token into an unbounded fan-out.
+  for(let offset=0;offset<starts.length;offset+=8){
+    const batch=starts.slice(offset,offset+8);
+    const references=await Promise.all(
+      batch.map((start)=>lookup(normalized.slice(start))),
+    );
+    for(let index=0;index<batch.length;index+=1){
+      const reference=references[index];
+      if(reference)return{start:batch[index],reference};
+    }
   }
   return null;
+}
+
+async function resolveReferenceCompound(normalized,language,lookupReference){
+  const suffix=await findSourceBackedRightEdge(normalized,language,lookupReference);
+  if(!suffix)return null;
+
+  const prefixSurface=normalized.slice(0,suffix.start);
+  const prefixParts=await resolvePrefixComponents(
+    prefixSurface,
+    language,
+    lookupReference,
+  );
+  const parts=[...prefixParts,suffix.reference];
+  const generatedParts=prefixParts.filter(
+    (part)=>part?.clientOnly===true&&part?.sourceBacked===false,
+  );
+  const sourceParts=parts.filter((part)=>!generatedParts.includes(part));
+  const sourceBacked=generatedParts.length===0;
+
+  return {
+    language,
+    surface:normalized,
+    normalized,
+    ipa:composeRightEdgePronunciations(parts),
+    method:sourceBacked
+      ?'client_source_reference_compound_right_edge'
+      :'client_mixed_reference_compound_right_edge',
+    policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
+    sourceBacked,
+    generatedReference:!sourceBacked,
+    clientOnly:true,
+    components:parts.map((part)=>part?.surface).filter(Boolean),
+    generatedComponents:generatedParts.map((part)=>part.surface).filter(Boolean),
+    sourceBackedComponents:sourceParts.map((part)=>part?.surface).filter(Boolean),
+  };
 }
 
 async function resolveClientTokenPronunciation(
@@ -259,7 +372,7 @@ async function resolveClientTokenPronunciation(
     const exactDetail=sourceReferenceDetail(surface,language,exact);
     if(exactDetail)return exactDetail;
 
-    const compound=await findTwoPartReferenceCompound(
+    const compound=await resolveReferenceCompound(
       normalized,
       language,
       lookupReference,

@@ -1,0 +1,120 @@
+{
+  "schema": "rhymelab-react-studio-r1-bridge-v1",
+  "phase": "R1",
+  "baseline": "main@fbda43a9e4dd",
+  "policy": "identity_reexport_or_typed_orchestration_only",
+  "evidence": [
+    "apps/studio-react/src/legacy/legacy-parity.test.ts",
+    "React Studio Replatform CI"
+  ],
+  "modules": [
+    {
+      "source": "src/ui/search-state.mjs",
+      "bridge": "apps/studio-react/src/legacy/search.ts",
+      "role": "SearchState normalization, persistence and Writer params",
+      "status": "verified"
+    },
+    {
+      "source": "src/ui/query-pronunciation-client.mjs",
+      "bridge": "apps/studio-react/src/legacy/search.ts",
+      "role": "browser-safe unknown query pronunciation",
+      "status": "verified"
+    },
+    {
+      "source": "src/ui/query-pronunciation-cache.mjs",
+      "bridge": "apps/studio-react/src/legacy/search.ts",
+      "role": "revision/policy-gated IndexedDB pronunciation cache",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/search-adapter.mjs",
+      "bridge": "apps/studio-react/src/legacy/search.ts",
+      "role": "Writer request/result adapter",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/capability-adapter.mjs",
+      "bridge": "apps/studio-react/src/legacy/search.ts",
+      "role": "runtime capability normalization/loading",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/internal-db-lab.mjs",
+      "bridge": "apps/studio-react/src/legacy/search.ts",
+      "role": "LITE/STANDARD/FULL selection and capability overlay",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/document-model.mjs",
+      "bridge": "apps/studio-react/src/legacy/documents.ts",
+      "role": "versioned document model and stable Bar snapshots",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/document-store.mjs",
+      "bridge": "apps/studio-react/src/legacy/documents.ts",
+      "role": "IndexedDB document authority, backups and recovery",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/document-adapter.mjs",
+      "bridge": "apps/studio-react/src/legacy/documents.ts",
+      "role": "legacy state/preferences/document conversion",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/backup-portability.mjs",
+      "bridge": "apps/studio-react/src/legacy/documents.ts",
+      "role": "portable workspace backup/import",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/editor-session.mjs",
+      "bridge": "apps/studio-react/src/legacy/editor.ts",
+      "role": "editor/bar/selection semantics",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/edit-history.mjs",
+      "bridge": "apps/studio-react/src/legacy/editor.ts",
+      "role": "typing-burst undo coalescing",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/performance-session.mjs",
+      "bridge": "apps/studio-react/src/legacy/editor.ts",
+      "role": "Perform cue/config/metrics semantics",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/revision-diff.mjs",
+      "bridge": "apps/studio-react/src/legacy/editor.ts",
+      "role": "full-lyrics stable-Bar revision comparison",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/analysis-adapter.mjs",
+      "bridge": "apps/studio-react/src/legacy/services.ts",
+      "role": "canonical rhyme analysis adapter",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/detail-adapter.mjs",
+      "bridge": "apps/studio-react/src/legacy/services.ts",
+      "role": "word/phrase/entity detail model",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/diagnostics.mjs",
+      "bridge": "apps/studio-react/src/legacy/system.ts",
+      "role": "environment/runtime diagnostics model",
+      "status": "verified"
+    },
+    {
+      "source": "src/studio/device-acceptance.mjs",
+      "bridge": "apps/studio-react/src/legacy/system.ts",
+      "role": "seven-gate device acceptance model",
+      "status": "verified"
+    }
+  ]
+}

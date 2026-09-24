@@ -1,4 +1,70 @@
-# CURRENT CONTINUATION — Distribution DB Lab v2 benchmark evidence
+# CURRENT CONTINUATION — React Studio behavior-preserving replatform
+
+**Priority:** P0  
+**Feature development:** frozen  
+**Branch:** `refactor/react-studio-replatform`  
+**Read first:** `docs/REACT_STUDIO_REPLATFORM.md`  
+**Hard gate:** `docs/REACT_STUDIO_PARITY_GATE.md`
+
+The active engineering task is to port the current browser frontend to React +
+TypeScript + Vite + Base UI + Motion + TanStack Query + Zustand + TanStack Virtual
+without losing a single existing user-facing capability.
+
+The baseline is `main@fbda43a9e4dd`.
+The initial machine-readable inventory contains 82 existing Studio parity IDs plus
+11 Workflow UX v3 behaviors. All 93 rows must be `verified` before React may become
+the default product route.
+
+The existing Studio V2 source must remain intact as behavioral golden master and
+rollback implementation throughout migration. Do not restart feature development,
+do not delete old Studio, and do not reinterpret the port as permission to simplify
+editor, Search, Library, Analysis, Perform, mobile, persistence, recovery or runtime
+database behavior.
+
+R0 through R7 source parity are complete. R1–R6 contracts remain authoritative for
+their domain slices; R7 is documented in `docs/REACT_STUDIO_R7_PARITY.md`.
+
+R4 remains the persistence authority boundary: the existing IndexedDB DocumentStore
+is authoritative, React keeps only a working copy, and editor/Perform mutations
+serialize through the existing R1 document path.
+
+The R7 source layer closes all 93 mandatory implementation rows and keeps the
+fail-closed startup/search/preview/cutover infrastructure. The owner UX passes are
+now allowed to reshape the React presentation without rewriting legacy domain/runtime
+semantics.
+
+Owner UX **round 2** is implemented at functional checkpoint `9812a674669c`.
+Read `docs/REACT_STUDIO_UX_CORRECTION.md` before changing the React shell/editor/
+Search/Analysis/Perform/Settings presentation. Current behavior includes one sticky
+desktop/mobile Topbar, transient Search filters, compact-only Sound Explorer,
+permission-free curated Google Fonts with Oranienbaum default, insertion-boundary
+Bar drag preview, readable Library SVG actions, linked four-Bar All-Rhymes topology,
+and a persistent OKLCH Style Designer.
+
+Automated evidence on that functional checkpoint is 91/91 React tests, strict
+TypeScript, production build, reversible preview and the R7 source gate; React
+Replatform #278, Studio V2 Gate #606 and Full CI #1471 all pass. The parity inventory
+remains **93 ported / 0 in_progress / 0 pending / 0 verified**.
+
+Round-2 final cleanup removes the dead Tiles renderer, migrates old Tiles preferences
+to Compact, removes Sound Explorer toolbar horizontal scrolling, hardens transient
+filter dismissal and hue-sweep tests OKLCH random styles.
+
+The active continuation remains **owner visual acceptance + R7 real-browser /
+physical-device acceptance**, not R8. Diagnostics/device-acceptance tooling is no
+longer end-user Settings chrome; required IME, Web Audio, mobile navigation/swap,
+VisualViewport keyboard, touch and no-hover evidence is captured through the
+external/manual seven-gate report path and `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`.
+Promote only rows whose required interaction evidence is actually present. Run
+`npm run studio:react:r7:cutover` only as the full release gate; it is expected to
+fail until 7/7 physical gates and 93/93 verified rows exist.
+
+Do not switch the normal root route, delete Studio V2 or end the feature freeze
+before that full gate passes.
+
+---
+
+# PAUSED CONTINUATION — Distribution DB Lab v2 benchmark evidence
 
 The immediate active continuation is the owner-side quality/speed comparison of the
 completed Master/Lite/Standard/Full Serving-v1 databases.
@@ -30,7 +96,7 @@ project.
 
 ---
 
-# CURRENT CONTINUATION — Studio V2 live acceptance
+# GOLDEN-MASTER CONTINUATION — Studio V2 live acceptance
 
 The active product continuation is Studio V2 release acceptance.
 

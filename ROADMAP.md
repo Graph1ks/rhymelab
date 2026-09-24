@@ -1,6 +1,36 @@
 # RhymeLab Roadmap
 
-Last updated: 2026-09-18
+Last updated: 2026-09-24
+
+## Immediate P0 — React Studio behavior-preserving replatform — active
+
+New product feature development is frozen until the current Studio/Search/RhymePad
+frontend capability set has been ported and verified on the new frontend stack.
+
+Target stack:
+
+```text
+React + TypeScript + Vite
+Base UI + Motion
+TanStack Query + Zustand
+TanStack Virtual where needed
+```
+
+The migration is governed by:
+
+- `docs/REACT_STUDIO_REPLATFORM.md`
+- `docs/REACT_STUDIO_PARITY_GATE.md`
+- `apps/studio-react/parity-coverage.json`
+
+The current Studio V2 is the behavioral golden master. The initial cutover inventory
+contains 82 existing parity IDs plus 11 Workflow UX v3 behaviors. React cannot
+replace the shipping Studio until all mandatory rows are verified and the existing
+real-device/browser/touch/Web Audio acceptance obligations are satisfied.
+
+No accepted Writer/Serving-v1 semantics, IndexedDB document authority, stable Bar
+identity, editor interaction, Search capability, Library/recovery behavior,
+Analysis/Perform behavior, mobile behavior or runtime-edition behavior may be lost
+or silently simplified during the port.
 
 ## Phase 0 — German phonology + source pipeline — complete
 

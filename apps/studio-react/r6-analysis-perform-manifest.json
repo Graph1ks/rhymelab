@@ -1,0 +1,143 @@
+{
+  "schema": "rhymelab-react-studio-r6-analysis-perform-v1",
+  "phase": "R6",
+  "status": "automated_verified_browser_audio_acceptance_deferred",
+  "tested_code_head": "48600af0221c",
+  "invariant": "R6_reuses_existing_R1_analysis_and_performance_semantics_and_writes_Perform_mutations_through_R5_R4_persistence",
+  "document_authority": "existing IndexedDB DocumentStore through R4",
+  "react_document_authority": false,
+  "zustand_document_authority": false,
+  "analysis": {
+    "client": "existing createStudioAnalysisClient through R1 services bridge",
+    "state": "TanStack Query read-only server state",
+    "scopes": [
+      "end",
+      "all"
+    ],
+    "languages": [
+      "de",
+      "en",
+      "both"
+    ],
+    "stable_cache_identity": [
+      "songId",
+      "barId:barRevision",
+      "queryBasis",
+      "generated",
+      "generatedOnly",
+      "queryPronunciationRevision",
+      "runtimeDb"
+    ],
+    "tracked_lines_only": true,
+    "bracket_metadata_excluded": true,
+    "sections": "full bracket rows label sections; blank rows split unnamed sections",
+    "canonical_outputs": [
+      "end-rhyme scheme",
+      "primary/soft relations",
+      "all-word rhyme relations",
+      "IPA",
+      "stress",
+      "word laboratory"
+    ],
+    "derived_views": [
+      "rhyme chain",
+      "per-Bar",
+      "per-Section",
+      "whole document"
+    ],
+    "local_approximation_labels": [
+      "syllable density",
+      "verse syllables",
+      "duration"
+    ]
+  },
+  "perform": {
+    "bridge": "existing performance-session.mjs through R1 editor bridge",
+    "cue_types": [
+      "hit",
+      "accent",
+      "pause",
+      "breath",
+      "hold",
+      "erase"
+    ],
+    "accessible_move_source_target": true,
+    "desktop_drag_drop": true,
+    "grid": [
+      8,
+      16
+    ],
+    "feel": [
+      "straight",
+      "triplet"
+    ],
+    "tempo_scale": [
+      0.5,
+      1,
+      2
+    ],
+    "bpm_range": [
+      40,
+      220
+    ],
+    "pause_length": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "auto_map": "existing deterministic autoMapPerformanceBar using local syllable estimate",
+    "stable_bar_id_anchors": true,
+    "revision_invalidation": true,
+    "metrics": [
+      "bar duration",
+      "syllables/sec approx",
+      "pocket",
+      "breath load",
+      "flow fingerprint",
+      "previous-bar placements"
+    ],
+    "metronome": "Web Audio transport using existing performanceStepDurationMs"
+  },
+  "history_persistence": {
+    "perform_mutations": "EditorSessionProvider.mutateActiveSong",
+    "undo_redo": "R5 editor snapshots",
+    "revision_boundary": "R5 650ms revision schedule",
+    "persistence": "R4 DocumentWorkspaceProvider serialized autosave"
+  },
+  "parity": {
+    "total": 93,
+    "ported": 82,
+    "in_progress": 5,
+    "pending": 6,
+    "verified": 0,
+    "newly_ported_in_r6": 16
+  },
+  "boundary_diff_from_r5": {
+    "shipping_src_studio_files_changed": 0,
+    "backend_files_changed": 0,
+    "r1_bridge_files_changed": 0,
+    "root_changes": [
+      "package.json focused R6 gate only"
+    ]
+  },
+  "automated_verification": {
+    "strict_typescript": true,
+    "parity_inventory": true,
+    "test_files": 7,
+    "tests": 71,
+    "r6_contract_tests": 11,
+    "production_vite_build": true,
+    "react_replatform_run": 152,
+    "latest_tested_code_head": "48600af0221c"
+  },
+  "deferred_evidence": [
+    "real browser interaction acceptance before verified status",
+    "physical Web Audio timing and resume behavior in R7",
+    "real device touch/viewport/no-hover matrix in R7",
+    "editor.theme remains in_progress",
+    "workflow-v3.single-drawer-scroll remains pending"
+  ],
+  "cutover_verified": false,
+  "next_phase": "R7_AUTOMATED_AND_REAL_DEVICE_PARITY"
+}

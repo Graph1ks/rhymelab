@@ -2,6 +2,17 @@
 
 Studio V2 implementation parity is source-complete and the automated source/test gate passes. The owner authorized the reversible default-route cutover on 2026-09-21. Seven real-device checks still cannot be honestly certified from source inspection alone and remain required release acceptance evidence.
 
+## React replatform carry-forward
+
+These seven gates are **not superseded** by the React migration. They remain
+mandatory behavioral evidence for the new implementation. A React component test,
+source assertion or desktop-only browser test cannot substitute for the physical
+IME, Web Audio, mobile viewport, touch-target and no-hover checks below.
+
+The current Studio V2 is the baseline implementation. The React cutover may only
+reuse an acceptance result when the tested behavior and environment still apply;
+otherwise the relevant gate must be rerun against the React surface.
+
 ## Live route and rollback
 
 Normal `npm run dev` / `npm start` now serves Studio V2 at `/`.

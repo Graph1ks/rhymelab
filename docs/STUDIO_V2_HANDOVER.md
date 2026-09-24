@@ -5,6 +5,18 @@ PR: #185 — `feat: release Studio V2 as default RhymeLab shell`
 
 This file is the durable continuation checkpoint for the Studio V2 release branch. It records the implemented production-direction work so a later session can continue without reconstructing context from chat history.
 
+## Migration role — behavioral golden master
+
+As of 2026-09-24, new product feature development is frozen while the frontend is
+replatformed under `docs/REACT_STUDIO_REPLATFORM.md`.
+
+This Studio V2 implementation is now the **behavioral golden master** for the React
+port. Nothing documented here may be dropped merely because the implementation
+technology changes. The source remains intact as the shipping implementation and
+rollback surface until the React parity gate and post-cutover burn-in are complete.
+
+The hard migration gate is `docs/REACT_STUDIO_PARITY_GATE.md`.
+
 ## Current checkpoint
 
 Studio V2 has moved well beyond the original static redesign shell. The branch now contains the Writer integration, production document model, IndexedDB authority, recovery, Library hierarchy, Perform sequencing, canonical song analysis, mobile acceptance engineering, DE/EN localization, diagnostics, and desktop command/navigation improvements.

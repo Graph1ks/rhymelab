@@ -1,0 +1,81 @@
+{
+  "schema": "rhymelab-react-studio-r4-library-persistence-v1",
+  "phase": "R4",
+  "status": "automated_verified_browser_acceptance_deferred",
+  "invariant": "existing_R1_DocumentStore_document_adapter_and_portable_backup_remain_authoritative",
+  "persistence_authority": "existing IndexedDB DocumentStore",
+  "react_working_state": "rendering_and_mutation_working_copy_only",
+  "zustand_document_authority": false,
+  "localstorage_role": "fallback_only_when_IndexedDB_unavailable",
+  "autosave": {
+    "debounce_ms": 180,
+    "serialized": true,
+    "lifecycle_flush": [
+      "visibilitychange:hidden",
+      "pagehide"
+    ],
+    "existing_shadow_bridge": "shadowLegacyStudioStateToStore"
+  },
+  "library": [
+    "create/open/search/sort/rename documents",
+    "nested folder hierarchy",
+    "folder create/subfolder/rename/reorder/delete",
+    "document move by explicit action and drag/drop",
+    "Trash/restore",
+    "permanent delete"
+  ],
+  "recovery": [
+    "manual recovery point",
+    "recent recovery list",
+    "verified document restore",
+    "legacy migration backup restore",
+    "before_permanent_song_delete when IndexedDB is available",
+    "before_portable_import",
+    "before_recovery_restore through existing DocumentStore"
+  ],
+  "portable_backup": [
+    "existing portable backup schema",
+    "export snapshot + preferences + SearchState",
+    "64 MiB import guard",
+    "existing parser",
+    "pre-import recovery",
+    "post-import snapshot verification",
+    "preferences rehydration",
+    "SearchState rehydration"
+  ],
+  "cross_phase": [
+    {
+      "capability": "editor autosave driven by React editor changes",
+      "phase": "R5",
+      "reason": "R4 owns persistence infrastructure; the actual React editor mutation stream does not exist until R5"
+    },
+    {
+      "capability": "revision creation during editor lifecycle flush",
+      "phase": "R5",
+      "reason": "requires current editor revision semantics and stable Bar state"
+    }
+  ],
+  "forbidden": [
+    "parallel React or Zustand document database",
+    "new IndexedDB schema",
+    "replacement portable backup format",
+    "replacement migration logic",
+    "R1 bridge modification",
+    "shipping Studio V2 modification",
+    "backend or Serving-v1 modification"
+  ],
+  "automated_verification": {
+    "strict_typescript": true,
+    "parity_inventory": true,
+    "r1_regression": true,
+    "r2_regression": true,
+    "r3_regression": true,
+    "r4_contract_tests": 12,
+    "total_tests": 50,
+    "production_vite_build": true,
+    "full_repository_ci": true,
+    "studio_v2_gate": true
+  },
+  "cutover_verified": false,
+  "next_phase": "R5_EDITOR"
+}

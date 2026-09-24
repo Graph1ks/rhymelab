@@ -25,6 +25,20 @@ only and is not an application runtime.
 Markov / Constrained Lyric Decoder V2 is intentionally frozen. Its demo
 infrastructure may ship, but it is not part of RhymeLab product navigation.
 
+
+### Frontend replatform in progress
+
+New product feature development is temporarily frozen while Studio is migrated,
+behavior-for-behavior, to React + TypeScript + Vite + Base UI + Motion + TanStack
+Query + Zustand + TanStack Virtual. R0 scaffold/freeze, R1 typed-domain bridging,
+R2 shell/design-system foundations, R3 Search/Writer and R4
+Library/persistence/recovery are complete; R5 editor is next. The existing Studio
+V2 remains the shipping golden master until the hard parity gate passes. See
+`docs/REACT_STUDIO_REPLATFORM.md`, `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`,
+`docs/REACT_STUDIO_R2_SHELL.md`, `docs/REACT_STUDIO_R3_SEARCH_WRITER.md`,
+`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`, and
+`docs/REACT_STUDIO_PARITY_GATE.md`.
+
 ## Local run
 
 Requirements:
@@ -123,14 +137,16 @@ Repository state is authoritative. In a fresh development thread read:
 
 1. `AGENTS.md`
 2. `PROJECT.md`
-3. `docs/STUDIO_V2_HANDOVER.md`
-4. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`
-5. `docs/HANDOVER.md`
-6. `STATUS.md`
-7. `PROJECT_STATE.json`
-8. `ROADMAP.md`
-9. `DATA_SOURCES.md`
-10. the acceptance/domain documents relevant to the subsystem being changed
+3. `docs/REACT_STUDIO_REPLATFORM.md`
+4. `docs/REACT_STUDIO_PARITY_GATE.md`
+5. `docs/STUDIO_V2_HANDOVER.md`
+6. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`
+7. `docs/HANDOVER.md`
+8. `STATUS.md`
+9. `PROJECT_STATE.json`
+10. `ROADMAP.md`
+11. `DATA_SOURCES.md`
+12. the acceptance/domain documents relevant to the subsystem being changed
 
 `PROJECT.md` holds durable project intent, repository mode, architecture boundaries, cost/licensing/contribution policy, and QA expectations. `STATUS.md` plus the handover documents hold current continuation state. `CHANGELOG.md` is the curated meaningful history from 2026-09-19 onward.
 
@@ -177,7 +193,9 @@ The major accepted baselines are now:
 
 Current follow-up work is intentionally narrower:
 
-1. complete the seven real-device/browser/touch/Web Audio acceptance checks for live Studio V2;
+1. complete the P0 React Studio replatform with all mandatory parity rows verified before cutover;
+2. keep new product feature development frozen during the port;
+3. complete the seven real-device/browser/touch/Web Audio acceptance checks as migration/cutover evidence for the preserved Studio behaviors;
 2. fix only concrete Studio regressions found by that acceptance while keeping the Search-root rollback available;
 3. preserve Serving-v1 and the accepted Phrase/English/Entity/ranking semantics;
 4. keep Markov frozen and unlinked until the owner explicitly reopens that work;

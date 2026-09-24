@@ -2,6 +2,109 @@
 
 Last updated: 2026-09-24
 
+
+## P0 continuation — React Studio behavior-preserving replatform
+
+New product feature development is **frozen**. The active priority is the frontend
+replatform defined in `docs/REACT_STUDIO_REPLATFORM.md`.
+
+Migration baseline:
+
+```text
+main commit             fbda43a9e4dd
+migration branch        refactor/react-studio-replatform
+new frontend root       apps/studio-react/
+legacy parity IDs       82
+workflow-v3 additions   11
+mandatory cutover rows  93
+cutover rule            every row VERIFIED
+```
+
+The existing Studio V2 remains the shipping behavioral golden master and rollback
+surface. The React work must preserve every existing Search, editor, Library,
+Analysis, Perform, appearance, mobile, persistence, recovery, diagnostics and
+runtime-database behavior. No functional simplification is authorized.
+
+R0 through R7 source parity are complete. The isolated React package, hard parity
+inventory and dedicated CI remain the migration gate.
+
+R3 runs the existing live Search/Writer path inside React with one shared
+SearchState and the existing Writer/pronunciation/detail/runtime contracts.
+
+R4 ports Library and local data safety while retaining the existing IndexedDB
+DocumentStore as persistence authority. React holds only the render/mutation working
+copy; the 180-ms serialized save queue, lifecycle flush, Recovery and portable backup
+continue through the existing R1/R4 document path.
+
+R5 ports the real unified editor onto that persistence layer: stable Bar IDs,
+tracked/free lines, bracket metadata exclusion, Selection Proof, safe Writer insert,
+native replace/split/merge/multiline paste, IME transaction boundaries, undo/redo,
+revision compare/restore, Bar actions/Navigator, hold-drag, section long-press and the
+mobile Editor/Rhymes single-surface swap.
+
+R6 ports Analysis + Perform without replacing their existing semantics. Canonical
+Writer analysis remains authoritative for rhyme/IPA/stress; Perform keeps the existing
+stable-Bar-ID cue and timing model and writes through R5 history/revisions into R4
+persistence.
+
+R7 now completes the **source/automated parity layer**. The matrix is 93
+`ported`, 0 `in_progress`, 0 `pending`, 0 `verified`. The fail-closed startup
+guard, deterministic Search keyboard contract, source/device cutover checker and
+opt-in reversible React preview route remain. Owner UX round 2 intentionally replaces
+the old sidebar/mobile-drawer shell with one sticky Topbar and removes engineering
+diagnostics/device-acceptance UI from end-user Settings. The seven-gate acceptance
+model remains external/manual cutover evidence rather than product chrome. Studio V2
+continues at `/studio` and `/studio-legacy`.
+
+The original R7 source-parity checkpoint remains historical evidence. Current owner
+UX functional checkpoint `9812a674669c` passes strict TypeScript, 91/91 React tests,
+4/4 reversible-preview tests, production Vite build and the 93/93 source-port gate.
+React Studio Replatform #288, Studio V2 Gate #606 and Full RhymeLab CI #1471 all
+pass.
+
+**Cutover remains blocked.** `ported` is not `verified`. Physical IME, audible Web
+Audio timing, mobile navigation/swap, software-keyboard VisualViewport behavior,
+touch-target usability and touch-only/no-hover operation still require real browser
+and physical-device evidence. Browser interaction evidence required by
+`docs/UI_INTERACTION_CONTRACT.md` must likewise be captured before affected rows
+are promoted.
+
+Contracts:
+`docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`,
+`docs/REACT_STUDIO_R2_SHELL.md`,
+`docs/REACT_STUDIO_R3_SEARCH_WRITER.md`,
+`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`,
+`docs/REACT_STUDIO_R5_EDITOR.md`,
+`docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md`, and
+`docs/REACT_STUDIO_R7_PARITY.md`.
+
+Owner UX correction round 2 is implemented at functional checkpoint
+`9812a674669c`. It keeps the earlier typography/Studio/Search cleanup and additionally
+moves the app to one sticky Topbar, makes Sound Explorer compact-only, removes the
+Search tile view, adds transient filter behavior, previews Bar moves between rows,
+replaces browser-permission Local Font Access with 50 curated on-demand Google Fonts
+(default **Oranienbaum**), upgrades Library actions, rebuilds All Rhymes as linked
+four-Bar Rhyme Topology, and makes Settings a persistent OKLCH Style Designer plus
+Data Safety. The durable checklist is `docs/REACT_STUDIO_UX_CORRECTION.md`.
+
+Automated evidence on that functional checkpoint: 91/91 React tests, strict
+TypeScript, production build, reversible preview and the R7 source gate pass. React
+Studio Replatform #278, Studio V2 Gate #606 and RhymeLab CI #1471 including
+public-readiness all pass.
+
+Round-2 final cleanup also removes the dead Tiles renderer internally, migrates old
+`tiles` preferences to Compact, removes Sound Explorer toolbar horizontal scrolling,
+and closes filter surfaces on external scroll while preserving scrolling inside the
+active popup. The OKLCH randomizer is hue-sweep tested every 15° for both Light and
+Dark semantic contrast.
+
+Active continuation: **owner visual acceptance + R7 real-browser / physical-device acceptance**. R8 may begin
+only after the parity matrix reaches 93/93 `verified` and the full R7 cutover gate
+passes.
+
+The existing seven physical browser/touch/Web Audio Studio acceptance gates remain
+required cutover evidence rather than being discarded by the framework migration.
+
 ## Current continuation — Studio workflow UX v3
 
 Focused handover: `docs/STUDIO_V2_HANDOVER.md`. Real-device matrix:

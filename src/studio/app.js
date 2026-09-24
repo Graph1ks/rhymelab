@@ -2160,7 +2160,7 @@ function legacyFilters(){showDialog('Dein Klang. Deine Suche.',`<div class="form
 function legacySettings(){showDialog('Dein Studio einrichten',`<label class="field">Schriftgröße im Editor<input id="fontRange" type="range" min="16" max="28" value="${state.fontSize}"></label><p class="small" id="fontValue">${state.fontSize} px</p><div class="row wrap" style="margin-top:20px"><button id="settingTheme" class="outline">Hell / Dunkel wechseln</button><button id="settingHistory" class="outline">Versionsverlauf</button></div><p class="notice">Texte, Revisionen und Performance-Cues werden lokal im versionierten IndexedDB-DocumentStore gespeichert. UI-Präferenzen bleiben in LocalStorage; Recovery-Punkte sind in den Studio-Einstellungen verfügbar.</p><div class="row wrap"><button id="sourceInfo" class="outline">Über Studio 02</button><button id="commandsSettings" class="outline">Tastenkürzel</button></div>`);$('#fontRange').oninput=e=>{state.fontSize=+e.target.value;document.documentElement.style.setProperty('--editor',state.fontSize+'px');resizeArea($('#lyricsEditor'));$('#fontValue').textContent=state.fontSize+' px';persist()};$('#settingTheme').onclick=toggleTheme;$('#settingHistory').onclick=showHistory;$('#sourceInfo').onclick=showInfo;$('#commandsSettings').onclick=showCommands}
 function legacyToggleTheme(){toggleTheme()}
 function legacyHistory(){showHistory()}
-function showInfo(){showDialog('RhymeLab Studio 02',`<p>Ein gemeinsamer Schreibraum für Browser, Mobile und den späteren Electron-Adapter.</p><p class="notice">Reimsuche, Detail-/Provenienzflächen und Song-Reimschema laufen über die lokale Writer-Runtime. Dokumente, Revisionen und Performance-Cues liegen im versionierten IndexedDB-DocumentStore mit Recovery-Punkten.</p><p class="notice">UI-Silbenzählung und Perform Auto-Map bleiben bewusst als lokale Hilfen gekennzeichnet.</p>`)}
+function showInfo(){showDialog('Rhyme Bureau',`<p>Ein gemeinsamer Schreibraum für Browser, Mobile und den späteren Electron-Adapter.</p><p class="notice">Reimsuche, Detail-/Provenienzflächen und Song-Reimschema laufen über die lokale Writer-Runtime. Dokumente, Revisionen und Performance-Cues liegen im versionierten IndexedDB-DocumentStore mit Recovery-Punkten.</p><p class="notice">UI-Silbenzählung und Perform Auto-Map bleiben bewusst als lokale Hilfen gekennzeichnet.</p>`)}
 function studioCommandRegistry(){
   return [
     {id:'studio',group:'Navigation',label:'Studio öffnen',keywords:['studio','write','schreiben'],shortcut:'Alt+1',run:()=>navigate('studio')},
@@ -3902,7 +3902,7 @@ function settingsCopy(){
     general:'General',design:'Design',database:'Database',data:'Data & Backup',
     generalTitle:'Workspace & interface',generalCopy:'The essentials you change during everyday writing.',
     designTitle:'Appearance',designCopy:'Quick styles, typography and your own semantic color system.',
-    databaseTitle:'Local database',databaseCopy:'Choose which installed RhymeLab data package powers Writer requests.',
+    databaseTitle:'Local database',databaseCopy:'Choose which installed Rhyme Bureau data package powers Writer requests.',
     dataTitle:'Data & Backup',dataCopy:'Portable backups and local recovery points for your workspace.',
   }:{
     title:'Einstellungen',
@@ -3910,7 +3910,7 @@ function settingsCopy(){
     general:'Allgemein',design:'Design',database:'Datenbank',data:'Daten & Backup',
     generalTitle:'Workspace & Oberfläche',generalCopy:'Die Dinge, die du beim täglichen Schreiben wirklich ändern willst.',
     designTitle:'Darstellung',designCopy:'Quickstyles, Typografie und dein eigenes semantisches Farbsystem.',
-    databaseTitle:'Lokale Datenbank',databaseCopy:'Wähle, welches installierte RhymeLab-Datenpaket Writer-Anfragen bedient.',
+    databaseTitle:'Lokale Datenbank',databaseCopy:'Wähle, welches installierte Rhyme-Bureau-Datenpaket Writer-Anfragen bedient.',
     dataTitle:'Daten & Backup',dataCopy:'Portable Backups und lokale Recovery-Punkte für deinen Workspace.',
   };
 }
@@ -4085,7 +4085,7 @@ function renderSettingsPage(){
         ?settingsDataMarkup(copy)
         :settingsGeneralMarkup(copy);
   const backLabel=state.uiLanguage==='en'?'Back to workspace':'Zurück zum Workspace';
-  body.innerHTML='<div class="settings-page-view"><header class="settings-page-hero"><button id="settingsBack" class="settings-back" type="button">← <span>'+esc(backLabel)+'</span></button><div class="settings-page-title"><span class="eyebrow">RHYME LAB</span><h1>'+esc(copy.title)+'</h1><p>'+esc(copy.subtitle)+'</p></div><span class="settings-local-badge">LOCAL FIRST</span></header><div class="settings-layout"><nav class="settings-nav" role="tablist" aria-label="Einstellungsbereiche">'+nav+'</nav><section class="settings-content" role="tabpanel">'+panel+'</section></div></div>';
+  body.innerHTML='<div class="settings-page-view"><header class="settings-page-hero"><button id="settingsBack" class="settings-back" type="button">← <span>'+esc(backLabel)+'</span></button><div class="settings-page-title"><span class="eyebrow">RHYME BUREAU</span><h1>'+esc(copy.title)+'</h1><p>'+esc(copy.subtitle)+'</p></div><span class="settings-local-badge">LOCAL FIRST</span></header><div class="settings-layout"><nav class="settings-nav" role="tablist" aria-label="Einstellungsbereiche">'+nav+'</nav><section class="settings-content" role="tabpanel">'+panel+'</section></div></div>';
   $('#settingsBack').onclick=leaveSettings;
   queryAll('[data-settings-tab]').forEach((button)=>button.onclick=()=>{
     settingsTab=button.dataset.settingsTab;
@@ -4505,7 +4505,7 @@ function renderDock(){
   }else if(dockTab==='history'){
     renderHistoryDock(body);
   }else{
-    body.innerHTML='<div class="studio-note"><b>RhymeLab Studio</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details, Versionen und Werkzeuge bleiben in Reichweite.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Bar-Nummer halten und ziehen · Anker bei Bedarf fixieren · Wortdetails anklicken · Merkliste und Versionen direkt öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + B</kbd> Bars · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln.</p><p style="margin-top:9px"><b>Lokal zuerst</b> · Texte, Präferenzen, Backups und Writer-Daten bleiben lokal in deinem Workspace.</p></div>';
+    body.innerHTML='<div class="studio-note"><b>Rhyme Bureau Studio</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details, Versionen und Werkzeuge bleiben in Reichweite.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Bar-Nummer halten und ziehen · Anker bei Bedarf fixieren · Wortdetails anklicken · Merkliste und Versionen direkt öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + B</kbd> Bars · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln.</p><p style="margin-top:9px"><b>Lokal zuerst</b> · Texte, Präferenzen, Backups und Writer-Daten bleiben lokal in deinem Workspace.</p></div>';
   }
 }
 function setFontSize(n){state.fontSize=clamp(n,16,28);document.documentElement.style.setProperty('--editor',state.fontSize+'px');$('#fontSizeLive').textContent=state.fontSize;resizeArea($('#lyricsEditor'));persist()}

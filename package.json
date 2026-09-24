@@ -215,7 +215,25 @@
     "distribution:build:full": "node --no-warnings scripts/build-distribution-tiers.mjs --edition full",
     "distribution:status": "node --no-warnings scripts/build-distribution-tiers.mjs --status",
     "distribution:verify:nesting": "node --no-warnings scripts/verify-distribution-nesting.mjs",
-    "dev:distribution-lab": "node src/server.mjs --studio-default"
+    "dev:distribution-lab": "node src/server.mjs --studio-default",
+    "studio:react:install": "npm ci --prefix apps/studio-react --ignore-scripts --no-audit --no-fund",
+    "studio:react:dev": "npm --prefix apps/studio-react run dev",
+    "studio:react:typecheck": "npm --prefix apps/studio-react run typecheck",
+    "studio:react:test": "npm --prefix apps/studio-react run test",
+    "studio:react:build": "npm --prefix apps/studio-react run build",
+    "studio:react:parity": "node scripts/check-react-studio-parity.mjs",
+    "studio:react:parity:cutover": "node scripts/check-react-studio-parity.mjs --cutover",
+    "studio:react:verify": "npm run studio:react:parity && npm run studio:react:typecheck && npm run studio:react:test && npm run studio:react:build",
+    "studio:react:r1": "npm --prefix apps/studio-react run r1:verify",
+    "studio:react:r2": "npm --prefix apps/studio-react run r2:verify",
+    "studio:react:r3": "npm --prefix apps/studio-react run r3:verify",
+    "studio:react:r4": "npm --prefix apps/studio-react run r4:verify",
+    "studio:react:r5": "npm --prefix apps/studio-react run r5:verify",
+    "studio:react:r6": "npm --prefix apps/studio-react run r6:verify",
+    "studio:react:r7": "npm --prefix apps/studio-react run r7:verify && node --test tests/react-studio-preview.test.mjs && node scripts/check-react-studio-r7.mjs --code-only",
+    "studio:react:r7:gate": "node scripts/check-react-studio-r7.mjs --code-only",
+    "studio:react:r7:cutover": "node scripts/check-react-studio-r7.mjs",
+    "studio:react:r7:preview": "npm run studio:react:build && node src/server.mjs --react-studio-preview-default"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"

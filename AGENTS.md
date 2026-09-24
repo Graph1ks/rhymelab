@@ -7,20 +7,30 @@ This repository is the authoritative engineering/project memory for RhymeLab. Re
 Before changing the project in a fresh thread/session, read:
 
 1. `PROJECT.md` — durable product identity, repository mode, architecture/cost/license/contribution boundaries
-2. `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md` — immediate active continuation for Master/Lite/Standard/Full quality/speed benchmark evidence
-3. `docs/STUDIO_V2_HANDOVER.md` — current product-shell implementation and live-cutover checkpoint
-4. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — still-pending physical browser/touch/Web Audio acceptance matrix
-5. `STATUS.md` — current operational state
-6. `PROJECT_STATE.json` — machine-readable current state
-7. `docs/HANDOVER.md` — current continuation pointer plus historical chronology
-8. `docs/MARKOV_GENERATOR_HANDOVER.md` — frozen Markov demo boundary; do not reopen without explicit owner direction
-9. `docs/SERVING_V1.md` and `docs/SERVING_V1_PRODUCT_ADAPTER.md` — canonical Serving-v1 runtime/data contracts
-10. `docs/PHASE_11_ACCEPTANCE.md` — accepted/frozen German Phrase/Mosaic behavior
-11. `docs/PHASE_12C_ACCEPTANCE.md` and `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — accepted Entity runtime and isolated AI staging boundary
-12. `docs/UI_INTERACTION_CONTRACT.md` and `docs/UI_REDESIGN_PARITY.md` — browser interaction/parity contracts
-13. `docs/DISTRIBUTION_TIERS.md` — Lite/Standard/Full packaging contract
-14. `docs/INTERNAL_DISTRIBUTION_LAB.md` — internal Master/Lite/Standard/Full comparison and shipping-isolation contract
-15. `ROADMAP.md`, `DATA_SOURCES.md`, `docs/API.md`, and subsystem-specific acceptance/benchmark documents when relevant
+2. `docs/REACT_STUDIO_REPLATFORM.md` — active P0 continuation and feature-freeze contract
+3. `docs/REACT_STUDIO_PARITY_GATE.md` — hard no-capability-loss cutover gate
+4. `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md` — completed typed-domain boundary; reuse it instead of reimplementing legacy semantics
+5. `docs/REACT_STUDIO_R2_SHELL.md` — completed React shell/design-system boundary; extend it instead of building parallel chrome
+6. `docs/REACT_STUDIO_R3_SEARCH_WRITER.md` — completed Search/Writer port; reuse its shared SearchState and R1 data path
+7. `docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md` — completed Library/persistence/recovery port; IndexedDB DocumentStore remains authoritative
+8. `docs/REACT_STUDIO_R5_EDITOR.md` — completed unified React editor port on the R4 persistence path
+9. `docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md` — completed Analysis/Perform port
+10. `docs/REACT_STUDIO_R7_PARITY.md` — R7 source parity complete; physical/browser acceptance remains the active cutover blocker
+11. `docs/REACT_STUDIO_UX_CORRECTION.md` — owner-requested R7 UX correction checkpoint; visual acceptance remains pending
+12. `docs/STUDIO_V2_HANDOVER.md` — shipping Studio V2 behavioral golden master and implementation checkpoint
+13. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — physical browser/touch/Web Audio acceptance matrix carried into migration acceptance
+14. `STATUS.md` — current operational state
+15. `PROJECT_STATE.json` — machine-readable current state
+16. `docs/HANDOVER.md` — current continuation pointer plus historical chronology
+17. `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md` — preserved database benchmark continuation, subordinate during the feature freeze
+18. `docs/MARKOV_GENERATOR_HANDOVER.md` — frozen Markov demo boundary; do not reopen without explicit owner direction
+19. `docs/SERVING_V1.md` and `docs/SERVING_V1_PRODUCT_ADAPTER.md` — canonical Serving-v1 runtime/data contracts
+20. `docs/PHASE_11_ACCEPTANCE.md` — accepted/frozen German Phrase/Mosaic behavior
+21. `docs/PHASE_12C_ACCEPTANCE.md` and `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — accepted Entity runtime and isolated AI staging boundary
+22. `docs/UI_INTERACTION_CONTRACT.md` and `docs/UI_REDESIGN_PARITY.md` — browser interaction/parity contracts
+23. `docs/DISTRIBUTION_TIERS.md` — Lite/Standard/Full packaging contract
+24. `docs/INTERNAL_DISTRIBUTION_LAB.md` — internal Master/Lite/Standard/Full comparison and shipping-isolation contract
+25. `ROADMAP.md`, `DATA_SOURCES.md`, `docs/API.md`, and subsystem-specific acceptance/benchmark documents when relevant
 
 ## Operating model — solo-dev / owner-controlled
 
@@ -36,6 +46,22 @@ Default engineering behavior:
 - unsolicited external pull requests are not accepted; code/documentation contributions require explicit owner authorization and the existing CLA rules;
 - persist durable engineering decisions and project facts, not raw user/AI conversations, private discussions, or unrelated sensitive conversational content;
 - prefer focused changes over process ceremony, while preserving the repository's acceptance, provenance, licensing, security, and CI gates.
+
+## Frontend replatform feature freeze — active P0
+
+The owner has frozen new product feature development while the shipping browser frontend is replatformed to React + TypeScript + Vite + Base UI + Motion + TanStack Query + Zustand + TanStack Virtual.
+
+Hard rules:
+
+- `docs/REACT_STUDIO_REPLATFORM.md` is the active implementation plan.
+- `docs/REACT_STUDIO_PARITY_GATE.md` is a hard cutover gate, not advisory documentation.
+- Every capability currently represented by `src/studio/parity-manifest.mjs`, plus the captured Workflow UX v3 behaviors, must be verified in the React implementation before root-route cutover.
+- Do not delete, simplify, redesign away, defer, or silently alter an existing user-facing behavior as part of the port.
+- Preserve IndexedDB DocumentStore authority, stable Bar IDs, selection-proof/editor semantics, query-pronunciation behavior, runtime-edition selection, analysis/Perform semantics, recovery guarantees and the accepted Writer/Serving-v1 API behavior.
+- Keep the existing Studio V2 implementation intact as the behavioral golden master and rollback surface during migration.
+- New feature work is blocked unless the owner explicitly reopens it. Allowed work is migration, parity/regression coverage, migration-required bug fixes, and urgent correctness/security fixes.
+- A React control is not considered ported merely because it renders. It must have interaction evidence consistent with `docs/UI_INTERACTION_CONTRACT.md`.
+- `npm run studio:react:parity:cutover` is expected to fail until every mandatory row is verified.
 
 ## Long-running local data/build job standard
 
@@ -229,7 +255,7 @@ Frozen product rules:
 - `DE / EN / DE+EN` remains the unified language-basis contract;
 - English stays capability-gated until Phase 12 supplies a real accepted English runtime.
 
-Current active milestone: **Studio V2 live real-device acceptance and regression hardening**. Markov / Constrained Lyric Decoder V2 is frozen, demo-only and must remain unlinked from product surfaces.
+Current active milestone: **P0 React Studio behavior-preserving replatform**. New product feature work is frozen. Studio V2 remains the behavioral golden master; its seven real-device gates remain required parity/cutover evidence. Markov / Constrained Lyric Decoder V2 is frozen, demo-only and must remain unlinked from product surfaces.
 
 Read `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`, `docs/PHASE_12C_ACCEPTANCE.md`, and `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` before changing Entity runtime, AI staging, benchmark-review, or promotion boundaries.
 

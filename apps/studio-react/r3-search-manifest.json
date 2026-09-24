@@ -1,0 +1,83 @@
+{
+  "schema": "rhymelab-react-studio-r3-search-writer-v1",
+  "phase": "R3",
+  "status": "automated_verified_browser_acceptance_deferred",
+  "invariant": "reuse_R1_SearchState_pronunciation_Writer_capability_detail_runtime_bridges",
+  "shared_state": "one SearchStateProvider shared by Search and Studio assistant",
+  "server_state_owner": "TanStack Query",
+  "persistent_document_owner": "existing IndexedDB DocumentStore",
+  "runtime_editions": [
+    "lite",
+    "standard",
+    "full"
+  ],
+  "surfaces": [
+    "Search page",
+    "Studio Sound Explorer assistant",
+    "Saved results workspace"
+  ],
+  "capabilities": [
+    "query/result language routes",
+    "scope",
+    "rhyme relation",
+    "syllable filters",
+    "sorts",
+    "pronunciation variants",
+    "historical/generated corpus modes",
+    "Entity taxonomy multi-select",
+    "RhymePad-compatible presets",
+    "hide-used from read-only DocumentStore context",
+    "auto-scroll with manual pause",
+    "list/compact/tile density",
+    "continuous results without load-more",
+    "result metadata",
+    "detail and provenance",
+    "IPA variants",
+    "runtime timing",
+    "loading/empty/error states",
+    "visible runtime edition and availability",
+    "saved result preference compatibility",
+    "arrow selection and Space save"
+  ],
+  "intentionally_cross_phase": [
+    {
+      "capability": "insert selected Writer result into document",
+      "phase": "R5",
+      "reason": "requires the real editor Selection Proof and stable Bar/IME/undo semantics"
+    },
+    {
+      "capability": "Enter keyboard insert",
+      "phase": "R5",
+      "reason": "must execute the same safe insert operation rather than bypass Selection Proof"
+    },
+    {
+      "capability": "selection-follow/fixed-anchor integration",
+      "phase": "R5",
+      "reason": "requires the ported editor selection surface"
+    }
+  ],
+  "forbidden": [
+    "new Writer ranking or retrieval implementation",
+    "parallel SearchState truth",
+    "replacement query pronunciation policy",
+    "replacement runtime-edition persistence",
+    "fake result rows",
+    "unsafe insert without Selection Proof",
+    "R1 bridge modification"
+  ],
+  "evidence": [
+    "apps/studio-react/src/features/search/r3-search.test.ts",
+    "apps/studio-react/src/legacy/legacy-parity.test.ts",
+    "React Studio Replatform CI"
+  ],
+  "automated_verification": {
+    "parity_inventory": true,
+    "strict_typescript": true,
+    "r1_regression": true,
+    "r2_regression": true,
+    "r3_contract_tests": true,
+    "production_vite_build": true
+  },
+  "cutover_verified": false,
+  "next_phase": "R4_LIBRARY_PERSISTENCE_RECOVERY"
+}

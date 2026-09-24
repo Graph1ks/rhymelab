@@ -130,7 +130,7 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.doesNotMatch(pronunciationCache, /localStorage/);
   assert.match(queryTest, /readGeneratedPronunciationCache/);
   assert.match(queryTest, /persistent cache hits/);
-  assert.match(clientPronunciation, /client-total-query-pronunciation-v3/);
+  assert.match(clientPronunciation, /client-total-query-pronunciation-v4/);
   assert.match(clientPronunciation, /client_source_reference_compound/);
   assert.match(clientPronunciation, /client_token_chain/);
   assert.match(clientPronunciation, /tokenizeClientPronunciationInput/);
@@ -206,7 +206,7 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /English Wiktionary via Kaikki\/Wiktextract/);
   assert.match(app, /CMU Pronouncing Dictionary/);
   assert.match(app, /Leipzig Corpora Collection/);
-  assert.match(app, /RhymeLab curated modern lexicon/);
+  assert.match(app, /Rhyme Bureau curated modern lexicon/);
   assert.match(app, /QRank/);
   assert.match(app, /Wikidata/);
   assert.match(app, /ENTITY_CATEGORY_LABELS/);

@@ -1,0 +1,1067 @@
+{
+  "schema": "rhymelab-react-studio-parity-v1",
+  "baseline": {
+    "branch": "main",
+    "commit": "fbda43a9e4dd",
+    "legacy_manifest": "src/studio/parity-manifest.mjs",
+    "captured_at": "2026-09-24",
+    "policy": "no capability may be deleted, deferred, silently changed, or replaced without explicit owner approval"
+  },
+  "allowed_statuses": [
+    "pending",
+    "in_progress",
+    "ported",
+    "verified",
+    "blocked"
+  ],
+  "cutover_statuses": [
+    "verified"
+  ],
+  "legacy_capabilities": [
+    {
+      "id": "search.shared-state",
+      "group": "Search / Writer",
+      "capability": "Shared SearchState across Search and Studio",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchStateProvider.tsx",
+        "apps/studio-react/src/app/App.tsx",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.query-basis",
+      "group": "Search / Writer",
+      "capability": "DE / EN / DE+EN query pronunciation basis",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.result-language",
+      "group": "Search / Writer",
+      "capability": "DE / EN / DE+EN result language",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.scope",
+      "group": "Search / Writer",
+      "capability": "All / Words / Phrases / Entities scope",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.rhyme-types",
+      "group": "Search / Writer",
+      "capability": "Exact rhyme + sound-relation matrix",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.syllables",
+      "group": "Search / Writer",
+      "capability": "Same / ±1 / ±2 / ±3 / exact syllable filters",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.sorts",
+      "group": "Search / Writer",
+      "capability": "Recommended / proximity / syllables / common / A-Z",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/presentation.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.variants",
+      "group": "Search / Writer",
+      "capability": "Preferred and all pronunciation variants",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.historical",
+      "group": "Search / Writer",
+      "capability": "Historical / obsolete forms",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.generated",
+      "group": "Search / Writer",
+      "capability": "Generated pronunciation opt-in",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.generated-only",
+      "group": "Search / Writer",
+      "capability": "Generated-only result mode",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.entity-taxonomy",
+      "group": "Search / Writer",
+      "capability": "Entity taxonomy from runtime capabilities",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/presentation.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.entity-multi",
+      "group": "Search / Writer",
+      "capability": "Entity multi-select OR retrieval",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.hide-used",
+      "group": "Search / Writer",
+      "capability": "Hide already used lyric candidates",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/presentation.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.presets",
+      "group": "Search / Writer",
+      "capability": "Best / words / phrases / entities / rhyme presets",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/presentation.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.autoscroll",
+      "group": "Search / Writer",
+      "capability": "Opt-in auto-scroll with manual pause",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx"
+      ]
+    },
+    {
+      "id": "search.density",
+      "group": "Search / Writer",
+      "capability": "List / compact / tile density",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx",
+        "apps/studio-react/src/features/search/useSearchPreferences.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.paging",
+      "group": "Search / Writer",
+      "capability": "Continuous result loading without manual paging controls",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx"
+      ]
+    },
+    {
+      "id": "search.metadata",
+      "group": "Search / Writer",
+      "capability": "Legacy metadata tags and badges",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx",
+        "apps/studio-react/src/features/search/presentation.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.detail",
+      "group": "Search / Writer",
+      "capability": "Word / phrase / entity detail and provenance",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultDetail.tsx",
+        "apps/studio-react/src/features/search/data.ts"
+      ]
+    },
+    {
+      "id": "search.ipa",
+      "group": "Search / Writer",
+      "capability": "IPA and pronunciation variants",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultDetail.tsx",
+        "apps/studio-react/src/features/search/data.ts"
+      ]
+    },
+    {
+      "id": "search.runtime",
+      "group": "Search / Writer",
+      "capability": "Query runtime and rolling AVG100 telemetry",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "search.states",
+      "group": "Search / Writer",
+      "capability": "Loading / empty / unavailable / error states",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx"
+      ]
+    },
+    {
+      "id": "search.keyboard",
+      "group": "Search / Writer",
+      "capability": "Keyboard result navigation and actions",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx",
+        "apps/studio-react/src/features/system/model.ts",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
+      ]
+    },
+    {
+      "id": "editor.bars",
+      "group": "Writing / Editor",
+      "capability": "Stable Bar-ID editor model",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
+    },
+    {
+      "id": "editor.geometry",
+      "group": "Writing / Editor",
+      "capability": "Continuous document with tracked and free lines",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
+    },
+    {
+      "id": "editor.bracket-metadata",
+      "group": "Writing / Editor",
+      "capability": "Inline [bracket] metadata is excluded from lyric tracking",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
+    },
+    {
+      "id": "editor.anchor",
+      "group": "Writing / Editor",
+      "capability": "Selection-follow and pinned rhyme anchor",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
+    },
+    {
+      "id": "editor.selection-proof",
+      "group": "Writing / Editor",
+      "capability": "Stale-selection protection by Bar revision",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
+    },
+    {
+      "id": "editor.replace",
+      "group": "Writing / Editor",
+      "capability": "Replace selected word or range",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/search/ResultsList.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
+    },
+    {
+      "id": "editor.split",
+      "group": "Writing / Editor",
+      "capability": "Native Enter creates editable document lines",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
+    },
+    {
+      "id": "editor.merge",
+      "group": "Writing / Editor",
+      "capability": "Native Backspace/Delete edit across line boundaries",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
+    },
+    {
+      "id": "editor.paste",
+      "group": "Writing / Editor",
+      "capability": "Native multiline paste updates the unified document",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
+    },
+    {
+      "id": "editor.ime",
+      "group": "Writing / Editor",
+      "capability": "IME transaction safety",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts"
+      ]
+    },
+    {
+      "id": "editor.undo",
+      "group": "Writing / Editor",
+      "capability": "Undo / redo with typing-burst coalescing",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/legacy/editor.ts"
+      ]
+    },
+    {
+      "id": "editor.font",
+      "group": "Writing / Editor",
+      "capability": "Font family and size controls",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/Editor.module.css",
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx"
+      ]
+    },
+    {
+      "id": "editor.theme",
+      "group": "Writing / Editor",
+      "capability": "Light / dark / custom semantic themes",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/design-system/theme.ts",
+        "apps/studio-react/src/shell/ThemeControls.tsx",
+        "apps/studio-react/src/shell/SettingsPanel.tsx",
+        "apps/studio-react/src/shell/r2-shell.test.ts"
+      ]
+    },
+    {
+      "id": "editor.clear",
+      "group": "Writing / Editor",
+      "capability": "Safe clear with revision and recovery point",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
+    },
+    {
+      "id": "editor.autosave",
+      "group": "Writing / Editor",
+      "capability": "IndexedDB authoritative autosave",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx",
+        "apps/studio-react/src/features/library/persistence.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
+    },
+    {
+      "id": "editor.revisions",
+      "group": "Writing / Editor",
+      "capability": "Revision history and stable restore",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
+    },
+    {
+      "id": "editor.navigator",
+      "group": "Writing / Editor",
+      "capability": "Searchable Bar Navigator with stable reorder",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx"
+      ]
+    },
+    {
+      "id": "editor.bar-actions",
+      "group": "Writing / Editor",
+      "capability": "Create / duplicate / delete Bar actions",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts"
+      ]
+    },
+    {
+      "id": "library.documents",
+      "group": "Library",
+      "capability": "Create / open / search / sort / rename documents",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/model.ts",
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
+    },
+    {
+      "id": "library.folders",
+      "group": "Library",
+      "capability": "Nested folder hierarchy",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/model.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
+    },
+    {
+      "id": "library.folder-actions",
+      "group": "Library",
+      "capability": "Folder create / subfolder / rename / reorder / delete",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/model.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
+    },
+    {
+      "id": "library.move",
+      "group": "Library",
+      "capability": "Move documents between folders",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/model.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
+    },
+    {
+      "id": "library.trash",
+      "group": "Library",
+      "capability": "Trash / restore / permanent delete",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/model.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
+    },
+    {
+      "id": "library.predelete-recovery",
+      "group": "Library",
+      "capability": "Automatic recovery checkpoint before permanent delete",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx",
+        "apps/studio-react/src/features/library/persistence.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
+    },
+    {
+      "id": "analysis.scheme",
+      "group": "Analysis",
+      "capability": "Canonical end-rhyme scheme",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "analysis.all-rhymes",
+      "group": "Analysis",
+      "capability": "Canonical all-word rhyme analysis by Bar, Section and document",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "analysis.relations",
+      "group": "Analysis",
+      "capability": "Primary and soft relations inside verse",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "analysis.word-lab",
+      "group": "Analysis",
+      "capability": "Word Laboratory IPA / stress",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "analysis.stress",
+      "group": "Analysis",
+      "capability": "Stress fingerprint",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "analysis.chain",
+      "group": "Analysis",
+      "capability": "Optional rhyme-chain visualization",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "analysis.languages",
+      "group": "Analysis",
+      "capability": "DE / EN / Cross DE+EN controls",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "analysis.bar-inspector",
+      "group": "Analysis",
+      "capability": "Live Bar Inspector metrics",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "analysis.verse-totals",
+      "group": "Analysis",
+      "capability": "Verse totals and duration estimate",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "perform.cues",
+      "group": "Perform",
+      "capability": "Hit / accent / pause / breath / hold / erase",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "perform.move",
+      "group": "Perform",
+      "capability": "Cue move and drag with accessible alternative",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "perform.pause-length",
+      "group": "Perform",
+      "capability": "Pause length",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "perform.grid",
+      "group": "Perform",
+      "capability": "8/16 grid, straight/triplet, half/double time",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "perform.automap",
+      "group": "Perform",
+      "capability": "Auto-map and clear",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "perform.stable-cues",
+      "group": "Perform",
+      "capability": "Stable Bar-ID cue anchors and edit invalidation",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "perform.metronome",
+      "group": "Perform",
+      "capability": "Variable-timing Web Audio metronome",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
+    },
+    {
+      "id": "appearance.quick-switch",
+      "group": "Appearance / UX",
+      "capability": "One-click configured Light/Dark switch",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/ThemeControls.tsx",
+        "apps/studio-react/src/design-system/theme.ts",
+        "apps/studio-react/src/shell/r2-shell.test.ts"
+      ]
+    },
+    {
+      "id": "appearance.quickstyles",
+      "group": "Appearance / UX",
+      "capability": "Hover + explicit touch Quickstyles menu",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/ThemeControls.tsx",
+        "apps/studio-react/src/design-system/theme.ts"
+      ]
+    },
+    {
+      "id": "appearance.language",
+      "group": "Appearance / UX",
+      "capability": "Persistent DE / EN interface switch",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/state/uiStore.ts",
+        "apps/studio-react/src/shell/SettingsPanel.tsx",
+        "apps/studio-react/src/legacy/shell.ts",
+        "apps/studio-react/src/shell/r2-shell.test.ts"
+      ]
+    },
+    {
+      "id": "appearance.command-palette",
+      "group": "Appearance / UX",
+      "capability": "Searchable ranked keyboard command palette",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/CommandPalette.tsx",
+        "apps/studio-react/src/legacy/shell.ts",
+        "apps/studio-react/src/shell/r2-shell.test.ts"
+      ]
+    },
+    {
+      "id": "appearance.motion",
+      "group": "Appearance / UX",
+      "capability": "Restrained motion and reduced-motion support",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/styles/tokens.css",
+        "apps/studio-react/src/shell/Shell.module.css",
+        "apps/studio-react/src/shell/SurfaceContent.tsx"
+      ]
+    },
+    {
+      "id": "mobile.navigation",
+      "group": "Mobile",
+      "capability": "Bottom navigation",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/Shell.tsx",
+        "apps/studio-react/src/shell/Shell.module.css",
+        "apps/studio-react/src/shell/r2-shell.test.ts"
+      ]
+    },
+    {
+      "id": "mobile.swap",
+      "group": "Mobile",
+      "capability": "Single-surface editor/results swap",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/SurfaceContent.tsx",
+        "apps/studio-react/src/shell/Shell.module.css",
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx"
+      ]
+    },
+    {
+      "id": "mobile.keyboard",
+      "group": "Mobile",
+      "capability": "VisualViewport keyboard correction",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/Shell.tsx",
+        "apps/studio-react/src/legacy/shell.ts",
+        "apps/studio-react/src/shell/r2-shell.test.ts",
+        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx"
+      ]
+    },
+    {
+      "id": "mobile.touch",
+      "group": "Mobile",
+      "capability": "Primary touch targets >=44 CSS px",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/Shell.module.css",
+        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
+      ]
+    },
+    {
+      "id": "mobile.no-hover",
+      "group": "Mobile",
+      "capability": "No hover-only primary action",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/ThemeControls.tsx",
+        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
+      ]
+    },
+    {
+      "id": "system.backup",
+      "group": "System / Recovery",
+      "capability": "Portable workspace backup import/export",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/DataSafetyPanel.tsx",
+        "apps/studio-react/src/features/library/persistence.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
+    },
+    {
+      "id": "system.recovery",
+      "group": "System / Recovery",
+      "capability": "Manual recovery points and verified restore",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/DataSafetyPanel.tsx",
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx",
+        "apps/studio-react/src/features/library/persistence.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
+    },
+    {
+      "id": "system.persistence",
+      "group": "System / Recovery",
+      "capability": "Serialized autosave queue and lifecycle flush",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx",
+        "apps/studio-react/src/features/library/persistence.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
+    },
+    {
+      "id": "system.diagnostics",
+      "group": "System / Recovery",
+      "capability": "Environment + DOM acceptance diagnostics",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/system/model.ts",
+        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
+      ]
+    },
+    {
+      "id": "system.startup-bindings",
+      "group": "System / Recovery",
+      "capability": "Startup control binding guard",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/Shell.tsx",
+        "apps/studio-react/src/features/system/model.ts",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
+      ]
+    },
+    {
+      "id": "system.device-acceptance",
+      "group": "System / Recovery",
+      "capability": "Seven-gate multi-device acceptance merge",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
+        "apps/studio-react/src/features/system/model.ts",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
+      ]
+    },
+    {
+      "id": "system.cutover-gate",
+      "group": "System / Recovery",
+      "capability": "Deterministic source + device cutover gate",
+      "status": "ported",
+      "evidence": [
+        "scripts/check-react-studio-r7.mjs",
+        "apps/studio-react/src/features/system/r7-system.test.ts",
+        "tests/react-studio-preview.test.mjs"
+      ]
+    },
+    {
+      "id": "system.reversible-route",
+      "group": "System / Recovery",
+      "capability": "Reversible Studio-default route preview with legacy aliases",
+      "status": "ported",
+      "evidence": [
+        "src/react-studio-preview.mjs",
+        "src/server.mjs",
+        "tests/react-studio-preview.test.mjs"
+      ]
+    }
+  ],
+  "additional_current_capabilities": [
+    {
+      "id": "workflow-v3.compact-default",
+      "group": "Workflow UX v3",
+      "capability": "Compact is the first-run result density while preserving an existing density preference",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/useSearchPreferences.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "workflow-v3.bar-hold-drag",
+      "group": "Workflow UX v3",
+      "capability": "Hold bar number then drag with live transport ghost, drop-space preview and edge auto-scroll",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/Editor.module.css",
+        "apps/studio-react/src/legacy/editor.ts"
+      ]
+    },
+    {
+      "id": "workflow-v3.revision-diff",
+      "group": "Workflow UX v3",
+      "capability": "Full-lyrics line-by-line revision comparison before restore with pre-restore backup",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts"
+      ]
+    },
+    {
+      "id": "workflow-v3.section-long-press",
+      "group": "Workflow UX v3",
+      "capability": "1.5s long-press section-tag insertion at caret or selection with current section tag set",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx"
+      ]
+    },
+    {
+      "id": "workflow-v3.follow-selection-default",
+      "group": "Workflow UX v3",
+      "capability": "Rhyme search follows the current editor selection by default",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/editor/model.ts"
+      ]
+    },
+    {
+      "id": "workflow-v3.fixed-anchor-optin",
+      "group": "Workflow UX v3",
+      "capability": "Fixed rhyme anchor is explicit opt-in only",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/Search.module.css"
+      ]
+    },
+    {
+      "id": "workflow-v3.continuous-results",
+      "group": "Workflow UX v3",
+      "capability": "Continuous result loading with no manual load-more paging control",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx"
+      ]
+    },
+    {
+      "id": "workflow-v3.single-drawer-scroll",
+      "group": "Workflow UX v3",
+      "capability": "Bottom drawer has one explicit scroll owner with reliable wheel/touch scrolling",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/Shell.tsx",
+        "apps/studio-react/src/shell/Shell.module.css",
+        "scripts/check-react-studio-r7.mjs"
+      ]
+    },
+    {
+      "id": "workflow-v3.active-db-visible",
+      "group": "Workflow UX v3",
+      "capability": "Active LITE/STANDARD/FULL runtime database remains visibly identified in Studio and Search",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    },
+    {
+      "id": "workflow-v3.runtime-db-availability",
+      "group": "Workflow UX v3",
+      "capability": "Only installed LITE/STANDARD/FULL editions are selectable; missing editions remain visible disabled",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/data.ts"
+      ]
+    },
+    {
+      "id": "workflow-v3.runtime-db-fallback",
+      "group": "Workflow UX v3",
+      "capability": "Startup preference remains STANDARD then FULL then LITE and LITE-only installation remains valid",
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/legacy/search.ts",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
+    }
+  ]
+}

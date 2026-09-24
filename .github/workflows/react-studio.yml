@@ -1,0 +1,58 @@
+name: React Studio Replatform
+
+on:
+  pull_request:
+    paths:
+      - 'apps/studio-react/**'
+      - 'scripts/check-react-studio-parity.mjs'
+      - 'scripts/check-react-studio-r7.mjs'
+      - 'src/react-studio-preview.mjs'
+      - 'src/server.mjs'
+      - 'tests/react-studio-preview.test.mjs'
+      - 'src/studio/parity-manifest.mjs'
+      - 'docs/REACT_STUDIO_REPLATFORM.md'
+      - 'docs/REACT_STUDIO_PARITY_GATE.md'
+      - 'package.json'
+      - '.github/workflows/react-studio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: react-studio-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Validate parity inventory
+        run: node scripts/check-react-studio-parity.mjs
+
+      - name: Install locked React Studio dependencies
+        run: npm ci --prefix apps/studio-react --ignore-scripts --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm --prefix apps/studio-react run typecheck
+
+      - name: Test
+        run: npm --prefix apps/studio-react run test
+
+      - name: Build
+        run: npm --prefix apps/studio-react run build
+
+      - name: R7 reversible preview contract
+        run: node --test tests/react-studio-preview.test.mjs
+
+      - name: R7 source parity gate
+        run: node scripts/check-react-studio-r7.mjs --code-only

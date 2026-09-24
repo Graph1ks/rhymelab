@@ -627,22 +627,71 @@ export function adaptExternalQueryToEnglishAnalysis(queryDetail){
   }
 }
 
+function externalRightEdgeComponent(queryDetail){
+  const components=queryDetail?.queryPronunciation?.components;
+  if(!Array.isArray(components)||components.length<2)return null;
+  const component=String(components.at(-1)||'').normalize('NFKC').trim();
+  if(!component)return null;
+  const full=String(queryDetail?.normalized||queryDetail?.surface||'')
+    .normalize('NFKC').trim().toLocaleLowerCase('en-US');
+  if(component.toLocaleLowerCase('en-US')===full)return null;
+  return component;
+}
+
+function sourceBackedExternalRightEdgeAnchor(db,queryDetail,statements){
+  const component=externalRightEdgeComponent(queryDetail);
+  if(!component)return null;
+
+  const resolved=resolveEnglishRuntimeQuery(db,component,{statements});
+  if(resolved.status!=='ok'||!resolved.pronunciations?.length)return null;
+
+  const sourcePronunciation=resolved.pronunciations[0];
+  let analysis;
+  try{
+    analysis=analyzeStoredEnglishRuntimePronunciation(sourcePronunciation);
+  }catch{
+    return null;
+  }
+
+  const detail=detailFromPronunciations(component,resolved.pronunciations);
+  if(!detail||!analysis?.exactTailKey)return null;
+
+  return {
+    component,
+    detail,
+    bridge:{
+      analysis,
+      sourceIpa:analysis.canonicalPhonemes,
+      adaptedIpa:analysis.canonicalPhonemes,
+      sourceLanguage:'en',
+      sourceAnchorPosition:analysis.primaryStressSyllable||null,
+      policy:'source-backed-english-runtime-pronunciation-v1',
+    },
+  };
+}
+
 export function searchEnglishWriterFromExternalQuery(db,queryDetail,options={}){
   const bridge=adaptExternalQueryToEnglishAnalysis(queryDetail);
   if(!bridge)return null;
-  const {
-    analysis:queryAnalysis,
-    sourceIpa,
-    adaptedIpa,
-    sourceAnchorPosition,
-    policy,
-  }=bridge;
 
   const limit=clampInteger(options.limit,250,1,250);
   const requestedType=RHYME_TYPES.includes(String(options.type||''))
     ?String(options.type)
     :'all';
   const statements=options.statements||prepareEnglishRuntimeStatements(db,{generatedOnly:options.generatedOnly===true});
+  const rightEdgeAnchor=sourceBackedExternalRightEdgeAnchor(
+    db,
+    queryDetail,
+    statements,
+  );
+  const activeBridge=rightEdgeAnchor?.bridge||bridge;
+  const {
+    analysis:queryAnalysis,
+    sourceIpa,
+    adaptedIpa,
+    sourceAnchorPosition,
+    policy,
+  }=activeBridge;
   const retrieval=retrieveEnglishRuntimeCandidatesFromAnalysis(db,queryAnalysis,{
     statements,
     channelLimit:DEFAULT_ENGLISH_RUNTIME_CHANNEL_LIMIT,
@@ -664,7 +713,10 @@ export function searchEnglishWriterFromExternalQuery(db,queryDetail,options={}){
     if(!matchesSyllableFilter(
       candidate.syllable_count,
       options.syllableFilter||'all',
-      queryDetail?.syllableCount||queryAnalysis?.syllableCount||0,
+      rightEdgeAnchor?.detail?.syllableCount
+        ||queryDetail?.syllableCount
+        ||queryAnalysis?.syllableCount
+        ||0,
     ))continue;
     const score=scoreEnglishRhymeAnalyses(queryAnalysis,analysisFor(candidate));
     const tier=relationTier(score);
@@ -703,7 +755,11 @@ export function searchEnglishWriterFromExternalQuery(db,queryDetail,options={}){
       sourceIpa,
       adaptedIpa,
       sourceAnchorPosition,
-      policy,
+      policy:rightEdgeAnchor?'source-backed-right-edge-component-v1':policy,
+      originalPolicy:rightEdgeAnchor?bridge.policy:null,
+      rightEdgeComponent:rightEdgeAnchor?.detail?.surface||null,
+      rightEdgeSourceIpa:rightEdgeAnchor?.detail?.preferredIpa||null,
+      rightEdgeSyllableCount:rightEdgeAnchor?.detail?.syllableCount||null,
     },
     rankingPolicy:ENGLISH_WRITER_PRODUCT_POLICY,
     rankingEvidencePolicy:ENGLISH_WRITER_RANKING_V2_POLICY,
@@ -728,6 +784,7 @@ export function searchEnglishWriterFromExternalQuery(db,queryDetail,options={}){
       pronunciationCandidates:retrieval.candidates.length,
       normalizedCandidates:byNormalized.size,
       crossLanguage:true,
+      rightEdgeComponentAnchor:rightEdgeAnchor?.detail?.normalized||null,
     },
     selection:{
       mode:'english_writer_ranked_cross_language_query',

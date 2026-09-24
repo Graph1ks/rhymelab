@@ -1,4 +1,5 @@
 import {barsForSong,migrateLegacyStudioState} from './document-model.mjs';
+import {defaultStudioUiLanguage} from './i18n.mjs';
 
 export const STUDIO_STORAGE_KEY='rhymelab-studio-concept-v2';
 export const STUDIO_PREFERENCES_KEY='rhymelab-studio-preferences-v1';
@@ -29,12 +30,12 @@ export function createStudioState(){
     active:'demo',
     folders:['Nachtschicht','Entwürfe'],
     saved:[],
-    theme:'dark',
+    theme:'light',
     themeSlots:{light:null,dark:null},
     customThemes:[],
     fontSize:21,
     density:'compact',
-    uiLanguage:'de',
+    uiLanguage:defaultStudioUiLanguage(),
   };
 }
 
@@ -143,7 +144,7 @@ export function studioStateFromDocumentSnapshot(snapshot,baseState=createStudioS
     return {
       id:row.id,
       title:String(row.title||'Untitled'),
-      folder:String(folderById.get(row.folderId)||'Entwürfe'),
+      folder:row.folderId==null?'':String(folderById.get(row.folderId)||'Entwürfe'),
       lines:bars.length?bars.map((bar)=>String(bar.text??'')):[''],
       barIds:bars.length?bars.map((bar)=>String(bar.id)):[`bar:${row.id}:empty`],
       barRevisions:bars.length?bars.map((bar)=>Number(bar.revision)||0):[0],

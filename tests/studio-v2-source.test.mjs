@@ -10,7 +10,7 @@ test('Studio V2 production surface is present with its core visual/interaction c
     readFile('src/server.mjs','utf8'),
   ]);
 
-  assert.match(html,/RhymeLab Studio V2/u);
+  assert.match(html,/Rhyme Bureau Studio/u);
   assert.match(html,/href=["']\/studio\/styles\.css["']/u);
   assert.match(html,/src=["']\/studio\/app\.js["']/u);
   assert.match(html,/id=["']runtimeStatus["']/u);
@@ -551,7 +551,7 @@ test('Studio query-pronunciation wrappers resolve to the served shared client mo
   ]);
   assert.match(clientWrapper,/export \* from '\.\.\/ui\/query-pronunciation-client\.mjs';/u);
   assert.match(cacheWrapper,/export \* from '\.\.\/ui\/query-pronunciation-cache\.mjs';/u);
-  assert.match(sharedClient,/client-total-query-pronunciation-v3/u);
+  assert.match(sharedClient,/client-total-query-pronunciation-v4/u);
   assert.equal(
     new URL('../ui/query-pronunciation-client.mjs','http://127.0.0.1:3030/studio/query-pronunciation-client.mjs').pathname,
     '/ui/query-pronunciation-client.mjs',
