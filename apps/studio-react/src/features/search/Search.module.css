@@ -252,7 +252,7 @@
   border-radius: 5px;
   background: var(--rl-tint);
   color: var(--rl-accent);
-  font: 800 7px ui-monospace, monospace;
+  font: 800 11px ui-monospace, monospace;
 }
 
 .searchSubmit {
