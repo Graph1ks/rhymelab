@@ -6,7 +6,7 @@ import { Dialog } from '../design-system/primitives';
 import { EditorSessionProvider } from '../features/editor/EditorSessionProvider';
 import { useUiStore } from '../state/uiStore';
 import { Icon } from './icons';
-import { shellText } from './navigation';
+import { shellText, type AppSurface } from './navigation';
 import styles from './Shell.module.css';
 
 const HomePage = lazy(() => import('../features/intro/HomePage').then((module) => ({ default: module.HomePage })));
@@ -33,7 +33,60 @@ function DeferredSurface({ children }: { children: ReactNode }) {
   );
 }
 
-export function SurfaceContent() {
+const SURFACE_ENTRY_MOTION: Record<AppSurface, {
+  opacity: number;
+  x: number;
+  y: number;
+  scale: number;
+  rotate: number;
+}> = {
+  home: { opacity: 0, x: 0, y: 14, scale: 0.994, rotate: 0 },
+  studio: { opacity: 0, x: -12, y: 0, scale: 1, rotate: 0 },
+  search: { opacity: 0, x: 0, y: -10, scale: 1, rotate: 0 },
+  library: { opacity: 0, x: 14, y: 0, scale: 1, rotate: 0 },
+  saved: { opacity: 0, x: 0, y: 10, scale: 0.998, rotate: -0.15 },
+  settings: { opacity: 0, x: 12, y: 0, scale: 1, rotate: 0 },
+};
+
+function SurfaceTransition({
+  surface,
+  children,
+}: {
+  surface: AppSurface;
+  children: ReactNode;
+}) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <div className={styles.surfaceTransition} data-transition={surface}>
+      {!reduceMotion ? (
+        <div
+          key={`transition-${surface}`}
+          className={styles.pageTransition}
+          data-transition={surface}
+          aria-hidden="true"
+        >
+          <span>RHYME BUREAU / {surface.toUpperCase()}</span>
+        </div>
+      ) : null}
+      <motion.div
+        key={`surface-${surface}`}
+        className={styles.surfaceTransitionBody}
+        initial={reduceMotion ? false : SURFACE_ENTRY_MOTION[surface]}
+        animate={{ opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 }}
+        transition={{
+          duration: surface === 'home' ? 0.42 : 0.32,
+          delay: reduceMotion ? 0 : 0.1,
+          ease: 'easeOut',
+        }}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+}
+
+function SurfaceContentBody() {
   const surface = useUiStore((state) => state.surface);
   const language = useUiStore((state) => state.uiLanguage);
   const reduceMotion = useReducedMotion();
@@ -333,5 +386,14 @@ export function SurfaceContent() {
     >
       <DeferredSurface><LibraryWorkspace /></DeferredSurface>
     </motion.div>
+  );
+}
+
+export function SurfaceContent() {
+  const surface = useUiStore((state) => state.surface);
+  return (
+    <SurfaceTransition surface={surface}>
+      <SurfaceContentBody />
+    </SurfaceTransition>
   );
 }
