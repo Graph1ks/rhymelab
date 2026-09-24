@@ -1597,3 +1597,62 @@
     grid-template-columns: auto minmax(0, 1fr);
   }
 }
+
+/* Bureau archive. Directory, keyboard and context-menu behavior are unchanged. */
+.library {
+  background: var(--rl-panel);
+  box-shadow: none;
+  border-color: var(--rl-rule);
+}
+
+.libraryHeader h1,
+.dialogPopup h2,
+.safetyHead h2 {
+  font-family: var(--rl-font-editorial);
+  font-weight: 500;
+}
+
+.eyebrow,
+.explorerHead {
+  color: var(--rl-muted);
+  font-family: var(--rl-font-mono);
+  font-weight: 500;
+  letter-spacing: .08em;
+}
+
+.explorerToolbar {
+  border-color: var(--rl-rule);
+  background: var(--rl-paper);
+}
+
+.explorerSongRow,
+.explorerFolderRow {
+  border-bottom-color: color-mix(in srgb, var(--rl-rule) 55%, transparent);
+  border-radius: 4px;
+}
+
+.explorerName b { font-size: 13px; font-weight: 650; }
+.explorerPreview,
+.explorerBars,
+.explorerDate { font-size: 12px; }
+.explorerName small { color: var(--rl-ink); font-size: 10px; }
+
+.itemIcon {
+  border-radius: 4px 4px 9px 4px;
+  color: var(--rl-ink);
+}
+
+.explorerList:focus-visible {
+  outline: 2px solid var(--rl-ink);
+  outline-offset: -2px;
+}
+
+.contextMenu button { font-size: 12px; }
+.persistenceBadge { border-radius: 5px; }
+.safetyPanel { border-radius: 8px; }
+
+@media (pointer: coarse) {
+  .contextMenu button,
+  .explorerCommands button,
+  .explorerNav button { min-height: 44px; }
+}

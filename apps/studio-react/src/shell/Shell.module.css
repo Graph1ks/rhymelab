@@ -3125,6 +3125,229 @@
   to { transform: rotate(360deg); }
 }
 
+/* Bureau art direction. Presentation only; viewport and focus ownership above
+   remain authoritative. Keep control families scoped independently. */
+.appShell {
+  background: var(--rl-bg);
+}
+
+.topbar {
+  background: var(--rl-panel);
+  border-bottom-color: var(--rl-rule);
+  box-shadow: none;
+}
+
+.brandMark {
+  height: 40px;
+  width: 40px;
+  flex-basis: 40px;
+  border: 1px solid var(--rl-ink);
+  border-radius: 50% 50% 7px 50%;
+  background: var(--rl-ink);
+  color: var(--rl-panel);
+  box-shadow: 3px 3px 0 var(--rl-accent);
+  font-family: var(--rl-font-editorial);
+  font-size: 29px;
+  font-weight: 700;
+  letter-spacing: -.09em;
+  padding-right: 3px;
+}
+
+.brandName {
+  line-height: 1;
+}
+
+.brandName b {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.055em;
+}
+
+.brandName small {
+  display: block;
+  margin-top: 6px;
+  font: 500 9px/1 var(--rl-font-mono);
+  letter-spacing: -.02em;
+  color: var(--rl-muted);
+}
+
+.topNavButton {
+  border-radius: 6px;
+  color: var(--rl-ink);
+  font-weight: 650;
+}
+
+.topNavButton[data-active="true"] {
+  color: var(--rl-ink);
+  background: var(--rl-tint);
+}
+
+.topNavButton[data-active="true"]::after {
+  height: 3px;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.languageButton {
+  color: var(--rl-ink);
+  font-family: var(--rl-font-mono);
+}
+
+.studioModeBar {
+  flex-wrap: wrap;
+  gap: 6px;
+  border-bottom-color: var(--rl-rule);
+}
+
+.studioModeBar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 7px;
+  font-weight: 650;
+  transition: background-color var(--rl-duration-fast), border-color var(--rl-duration-fast);
+}
+
+.studioModeBar button > svg {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+}
+
+.studioModeBar button:nth-child(-n + 3) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--rl-muted);
+}
+
+.studioModeBar button:nth-child(-n + 3)[data-active="true"] {
+  border-color: var(--rl-ink);
+  background: var(--rl-ink);
+  color: var(--rl-panel);
+}
+
+.studioModeBar button:not(:disabled):hover {
+  border-color: var(--rl-ink);
+}
+
+.studioModeBar .focusTrigger,
+.studioModeBar .libraryTrigger {
+  color: var(--rl-ink) !important;
+}
+
+.contentViewport[data-surface="studio"] .primaryFoundation {
+  padding: clamp(16px, 1.5vw, 26px);
+}
+
+.contentViewport[data-surface="studio"] .assistFoundation {
+  border-left-color: var(--rl-rule);
+  background: var(--rl-panel);
+}
+
+.assistCollapse {
+  box-shadow: none;
+  border-radius: 6px;
+}
+
+.surfacePage {
+  background: var(--rl-panel);
+  border-color: var(--rl-rule);
+  border-radius: 8px;
+}
+
+.surfaceHeader h1,
+.styleDesignerHead h2,
+.libraryDialogHead h2 {
+  font-family: var(--rl-font-editorial);
+  font-weight: 500;
+  letter-spacing: -.045em;
+}
+
+.kicker,
+.phaseBadge,
+.libraryDialogHead p {
+  color: var(--rl-muted);
+  font-family: var(--rl-font-mono);
+  font-weight: 500;
+  letter-spacing: .1em;
+}
+
+.phaseBadge {
+  border-radius: 3px;
+  background: transparent;
+  transform: rotate(-2deg);
+}
+
+.styleDesigner {
+  background: var(--rl-panel);
+  border-radius: 10px;
+  border-color: var(--rl-rule);
+}
+
+.styleDesignerHead {
+  border-top: 3px solid var(--rl-accent);
+}
+
+.styleLibrary {
+  background: var(--rl-paper);
+}
+
+.styleLibraryItem,
+.styleResetButton,
+.colorControl,
+.contrastStrip > span,
+.contrastStrip > strong {
+  border-radius: 7px;
+}
+
+.styleLibraryItem b,
+.styleResetButton b,
+.colorControl b {
+  font-size: 12px;
+}
+
+.styleLibraryItem small,
+.styleResetButton small,
+.colorControl code {
+  font-size: 11px;
+}
+
+@media (min-width: 1600px) {
+  .contentViewport[data-surface="studio"] .primaryFoundation {
+    padding-inline: clamp(26px, 3vw, 96px);
+  }
+}
+
+@media (max-width: 1050px) and (min-width: 801px) {
+  .topbar { gap: 12px; }
+}
+
+@media (max-width: 800px) {
+  .brandName b { font-size: 18px; }
+  .brandName small { display: none; }
+  .contentViewport[data-surface="studio"] .primaryFoundation { padding: 12px; }
+  .studioModeBar { gap: 4px; }
+  .studioModeBar button { padding-inline: 8px; }
+  .studioModeBar button > svg { display: none; }
+  .topNavigation { justify-content: space-between; gap: 0; }
+  .topNavButton { padding-inline: 8px; }
+}
+
+@media (pointer: coarse) {
+  .topNavButton,
+  .languageButton,
+  .iconButton,
+  .themeMenuTrigger,
+  .studioModeBar button {
+    min-height: 44px;
+  }
+  .languageButton,
+  .iconButton,
+  .themeMenuTrigger { min-width: 44px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .surfaceLoading > span {
     animation: none;

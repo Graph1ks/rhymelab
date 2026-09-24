@@ -27,6 +27,17 @@
   --rl-tint: #F1D5CE;
   --rl-on-accent: #171717;
 
+  /* One semantic vocabulary across the ported workspaces. These aliases stay
+     live when the Style Designer applies an existing custom palette. */
+  --rl-surface: var(--rl-panel);
+  --rl-text: var(--rl-ink);
+  --rl-accent-contrast: var(--rl-on-accent);
+  --rl-font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --rl-font-editorial: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --rl-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --rl-rule: color-mix(in srgb, var(--rl-ink) 16%, var(--rl-panel));
+  --rl-paper: color-mix(in srgb, var(--rl-panel) 97%, var(--rl-ink));
+
   --rl-surface-raised: color-mix(in srgb, var(--rl-panel) 94%, var(--rl-ink) 6%);
   --rl-surface-soft: color-mix(in srgb, var(--rl-panel) 88%, var(--rl-bg) 12%);
   --rl-line-strong: color-mix(in srgb, var(--rl-line) 72%, var(--rl-ink) 28%);
@@ -50,8 +61,8 @@
   --rl-radius-pill: 999px;
 
   --rl-shadow-panel:
-    0 2px 7px color-mix(in srgb, var(--rl-ink) 4%, transparent),
-    0 18px 48px color-mix(in srgb, var(--rl-ink) 7%, transparent);
+    0 1px 2px color-mix(in srgb, var(--rl-ink) 4%, transparent),
+    0 8px 24px color-mix(in srgb, var(--rl-ink) 4%, transparent);
   --rl-shadow-popover:
     0 16px 42px color-mix(in srgb, #000 24%, transparent),
     0 2px 8px color-mix(in srgb, #000 12%, transparent);

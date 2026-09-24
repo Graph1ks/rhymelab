@@ -1,5 +1,4 @@
 import { motion, useReducedMotion } from 'motion/react';
-import type { CSSProperties } from 'react';
 
 import { Icon } from '../../shell/icons';
 import { useUiStore } from '../../state/uiStore';
@@ -141,30 +140,33 @@ export function HomePage() {
         </div>
 
         <div className={styles.soundStage} aria-hidden="true">
+          <div className={styles.specimenBack} />
           <motion.div
-            className={styles.orbit}
-            animate={reduceMotion ? undefined : { rotate: 360 }}
-            transition={reduceMotion ? undefined : { duration: 46, repeat: Infinity, ease: 'linear' }}
+            className={styles.specimen}
+            initial={reduceMotion ? false : { opacity: 0, y: 18, rotate: 0 }}
+            animate={{ opacity: 1, y: 0, rotate: -3 }}
+            transition={{ duration: 0.55, delay: 0.12 }}
           >
-            <span>PERFECT</span>
-            <span>SLANT</span>
-            <span>ASSONANZ</span>
-            <span>MOSAIC</span>
+            <div className={styles.specimenHead}>
+              <span>RB—001 / SOUND STUDY</span>
+              <Icon name="waveform" />
+            </div>
+            <div className={styles.specimenWords}>
+              <span>Nacht.</span>
+              <span>Macht.</span>
+              <span>Ge<em>macht.</em></span>
+            </div>
+            <div className={styles.specimenFoot}>
+              <span>{language === 'de' ? 'GLEICHER KLANG.' : 'SAME SOUND.'}<br />{language === 'de' ? 'ANDERE GESCHICHTE.' : 'ANOTHER STORY.'}</span>
+              <b>rb.</b>
+            </div>
           </motion.div>
-          <motion.div
-            className={styles.core}
-            animate={reduceMotion ? undefined : { scale: [1, 1.025, 1] }}
-            transition={reduceMotion ? undefined : { duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <small>RHYME DOMAIN</small>
-            <b>rb.</b>
-            <span>phonology → writer</span>
-          </motion.div>
-          <div className={styles.wave}>
-            {Array.from({ length: 21 }, (_, index) => (
-              <i key={index} style={{ '--i': index } as CSSProperties} />
-            ))}
+          <div className={styles.specimenSeal}>
+            <span>RHYME BUREAU</span>
+            <Icon name="spark" />
+            <span>LICENSE TO SLAY</span>
           </div>
+          <p className={styles.stageCaption}>WORDS IN. WORLDS OUT.</p>
         </div>
       </section>
 

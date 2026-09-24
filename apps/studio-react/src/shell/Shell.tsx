@@ -64,8 +64,11 @@ function Topbar() {
         onClick={() => navigate('home')}
         aria-label={language === 'de' ? 'Rhyme Bureau Intro' : 'Rhyme Bureau intro'}
       >
-        <span className={styles.brandMark}>rb.</span>
-        <span className={styles.brandName}>rhyme bureau</span>
+        <span className={styles.brandMark} aria-hidden="true">rb.</span>
+        <span className={styles.brandName}>
+          <b>rhyme bureau</b>
+          <small>Phonetic License to Slay.</small>
+        </span>
       </button>
 
       <nav className={styles.topNavigation} data-rhymelab-control="shell.navigation">

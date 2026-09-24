@@ -2482,3 +2482,163 @@
     font-size: 15px;
   }
 }
+
+/* Bureau sound desk. Row dimensions and virtualizer geometry stay unchanged. */
+.searchExperience {
+  border-color: var(--rl-rule);
+  border-radius: 8px;
+  background: var(--rl-panel);
+  box-shadow: none;
+}
+
+.searchTitle > p,
+.detailEyebrow,
+.savedDialogHead p {
+  color: var(--rl-muted);
+  font-family: var(--rl-font-mono);
+  font-weight: 500;
+  letter-spacing: .1em;
+}
+
+.searchExperience[data-variant="page"] .searchTitle h1,
+.savedHeader h1 {
+  font-family: var(--rl-font-editorial);
+  font-weight: 500;
+  letter-spacing: -.045em;
+}
+
+.searchExperience[data-variant="assistant"] .searchHeader {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.searchExperience[data-variant="assistant"] .searchTitle h1 {
+  font-weight: 650;
+}
+
+.runtimeSelect {
+  min-width: 112px;
+  margin-left: auto;
+}
+
+.runtimeSelectTrigger,
+.runtimeStatus,
+.runtimeEditions {
+  border-radius: 6px;
+}
+
+.runtimeSelect > span,
+.inputDbBadge,
+.languageRouteStatus > span,
+.anchorMeta > span,
+.searchExperience[data-variant="assistant"] .anchorMeta > span {
+  font-family: var(--rl-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .08em;
+}
+
+.anchorMeta b,
+.searchExperience[data-variant="assistant"] .anchorMeta b {
+  font-family: var(--rl-font-editorial);
+  font-weight: 600;
+  letter-spacing: -.02em;
+}
+
+.searchInputWrap {
+  border-color: var(--rl-rule);
+  border-radius: 7px;
+  background: var(--rl-paper);
+  box-shadow: none;
+}
+
+.searchInputWrap:focus-within {
+  border-color: var(--rl-ink);
+  box-shadow: var(--rl-focus-ring);
+}
+
+.searchSubmit {
+  border-radius: 5px;
+  background: var(--rl-ink);
+  color: var(--rl-panel);
+}
+
+.resultToolbar {
+  border-color: var(--rl-rule);
+  background: var(--rl-paper);
+}
+
+.toggleButton,
+.densityButtons,
+.filterField {
+  border-radius: 6px;
+}
+
+.resultRow {
+  border-radius: 4px;
+  transition: background-color var(--rl-duration-fast), border-color var(--rl-duration-fast);
+}
+
+.resultRow:hover {
+  background: var(--rl-paper);
+}
+
+.resultRow[data-selected="true"],
+.resultRow[data-density="list"][data-selected="true"] {
+  border-color: var(--rl-rule);
+  background: var(--rl-tint);
+  box-shadow: inset 3px 0 0 var(--rl-accent);
+}
+
+.kindBadge {
+  border-radius: 3px;
+  background: var(--rl-paper);
+  color: var(--rl-ink);
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+.savedButton {
+  color: var(--rl-ink);
+}
+
+.resultMain:focus-visible,
+.resultAction:focus-visible,
+.savedButton:focus-visible {
+  outline: 2px solid var(--rl-ink);
+  outline-offset: -3px;
+}
+
+.detailPanel {
+  background: var(--rl-paper);
+  border-color: var(--rl-rule);
+}
+
+.detailHead h2,
+.savedDialogHead h2 {
+  font-family: var(--rl-font-editorial);
+  font-weight: 500;
+}
+
+.searchState {
+  border-radius: 8px;
+}
+
+.searchState > b {
+  color: var(--rl-ink);
+  font-family: var(--rl-font-editorial);
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+
+.keyboardHint {
+  font-family: var(--rl-font-mono);
+}
+
+.savedCard {
+  border-radius: 6px;
+}
+
+@media (max-width: 800px) {
+  .searchExperience { border-radius: 0; }
+}

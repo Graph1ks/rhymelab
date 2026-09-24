@@ -1273,3 +1273,95 @@
   padding: clamp(42px, 8vh, 92px) clamp(24px, 6vw, 84px);
 }
 
+/* Bureau writing desk. Never alter textarea/measure metrics independently. */
+.titleBlock > p {
+  color: var(--rl-muted);
+  font-family: var(--rl-font-mono);
+  font-weight: 500;
+  letter-spacing: .12em;
+}
+
+.titleButton,
+.titleLine h1,
+.titleEditForm input {
+  font-family: var(--rl-font-editorial);
+  font-weight: 500;
+  letter-spacing: -.045em;
+}
+
+.titleLine span {
+  border-radius: 4px;
+  font-family: var(--rl-font-mono);
+  font-weight: 500;
+  letter-spacing: .02em;
+}
+
+.controlBar {
+  border-color: var(--rl-rule);
+}
+
+.headerActions button,
+.barActions button,
+.sizeControl button,
+.fontPickerTrigger {
+  border-radius: 6px;
+  background: var(--rl-panel);
+  transition: border-color var(--rl-duration-fast), background-color var(--rl-duration-fast);
+}
+
+.headerActions button:not(:disabled):hover,
+.barActions button:not(:disabled):hover,
+.sizeControl button:not(:disabled):hover {
+  border-color: var(--rl-ink);
+  background: var(--rl-tint);
+}
+
+.workspace:not([data-focus="true"]) .editorFrame {
+  border-color: var(--rl-rule);
+  border-radius: 6px;
+  background: var(--rl-panel);
+  box-shadow: var(--rl-shadow-panel);
+}
+
+.gutter,
+.syllableGutter {
+  background: var(--rl-paper);
+  border-color: var(--rl-rule);
+}
+
+.gutterRow,
+.syllableRow {
+  border-bottom-color: color-mix(in srgb, var(--rl-rule) 55%, transparent);
+  font-family: var(--rl-font-mono);
+}
+
+.footer {
+  padding-block: 3px;
+  font-family: var(--rl-font-mono);
+  font-size: 11px;
+}
+
+.revisionDialog,
+.fontDialog {
+  border-radius: 10px;
+}
+
+.revisionDialog h2,
+.fontDialog > header h2 {
+  font-family: var(--rl-font-editorial);
+  font-weight: 500;
+}
+
+@media (max-width: 560px) {
+  .fontControls { flex-wrap: wrap; }
+  .fontPickerTrigger { min-width: 0; flex: 1 1 145px; }
+  .titleEditForm { min-width: 0; }
+}
+
+@media (pointer: coarse) {
+  .headerActions button,
+  .barActions button,
+  .sizeControl button,
+  .fontPickerTrigger { min-height: 44px; }
+  .sizeControl button { width: 44px; }
+}

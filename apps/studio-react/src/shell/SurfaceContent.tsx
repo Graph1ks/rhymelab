@@ -96,7 +96,7 @@ export function SurfaceContent() {
             <p className={styles.kicker}>SETTINGS</p>
             <h1>{shellText('Einstellungen', language)}</h1>
           </div>
-          <span className={styles.phaseBadge}>R2 SHELL</span>
+          <span className={styles.phaseBadge}>BUREAU / PERSONAL EDITION</span>
         </header>
         <DeferredSurface><SettingsPanel /></DeferredSurface>
       </motion.div>
@@ -188,6 +188,7 @@ export function SurfaceContent() {
                   setStudioMode('write');
                 }}
               >
+                <Icon name="pen" />
                 {language === 'de' ? 'Schreiben' : 'Write'}
               </button>
               <button
@@ -199,6 +200,7 @@ export function SurfaceContent() {
                   setStudioMode('analysis');
                 }}
               >
+                <Icon name="grid" />
                 {language === 'de' ? 'Analyse' : 'Analysis'}
               </button>
               <button
@@ -210,6 +212,7 @@ export function SurfaceContent() {
                   setStudioMode('perform');
                 }}
               >
+                <Icon name="waveform" />
                 Perform
               </button>
               {(studioMode === 'write' || studioMode === 'perform') ? (
@@ -250,6 +253,7 @@ export function SurfaceContent() {
                 className={styles.libraryTrigger}
                 onClick={() => setLibraryOpen(true)}
               >
+                <Icon name="folder" />
                 {language === 'de' ? 'Bibliothek' : 'Library'}
               </button>
             </div>

@@ -1,8 +1,8 @@
 # Rhyme Bureau — Studio design pass
 
-Status: planned before implementation · 2026-09-24
+Status: implemented · automated checks passed · browser/owner acceptance pending · 2026-09-24
 Branch: `design/rhyme-bureau-studio-pass`
-Baseline: `main@0e29e21f8a23629a697fcdc3a7f397c129be2fea` (React merge #205)
+Baseline: `main@0e29e21f8a23` (React merge #205)
 
 ## Intent
 
@@ -91,4 +91,42 @@ No change to the owner's selected editor font or saved color palettes.
 
 ## Implementation evidence
 
-To be filled after implementation and verification; this plan is committed first.
+The plan was committed before implementation. All planned presentation areas have
+received the first pass. No new controls, feature dependencies or shipped assets were
+introduced. The only TSX edits are decorative branding, aria-hidden icons, the intro
+specimen and replacing the migration-phase Settings badge with product copy.
+
+| Check | Result |
+| --- | --- |
+| React parity inventory | 93/93 present; statuses unchanged |
+| Strict TypeScript | PASS |
+| React Vitest | 103/103 PASS across 8 files |
+| Production Vite build | PASS |
+| R7 source gate | PASS; still 0/93 browser/device verified |
+| Reversible preview tests | 4/4 PASS |
+| Repository source check | 470 JavaScript files PASS |
+| Repository tests | 690/690 PASS |
+| Public-readiness audit | PASS |
+| Diff whitespace check | PASS |
+| JSX contract comparison | All 65 event/accessibility/control attributes preserved across the three changed UI components; decorative aria-hidden additions excluded |
+| Protected paths | No backend, legacy bridge, provider, state-store or parity-inventory changes |
+| Semantic CSS references | No undefined --rl-* references remain in React CSS |
+| Visual/browser and real-device acceptance | PENDING; local preview inaccessible to supplied cloud browser |
+| Full-data Writer exercise | PENDING; owner-local SQLite distributions required |
+
+The AST comparison is a source-preservation check, not runtime interaction evidence.
+The existing runtime/domain tests remain intact; no gate or test was weakened.
+
+### Review locally
+
+After checking out this branch with the owner's existing local distributions:
+
+```bash
+npm run studio:react:install
+npm run studio:react:r7:preview
+```
+
+The existing preview command builds React and serves the candidate through the
+local runtime. The legacy Studio routes remain available. Review all viewports and
+flows in the verification plan before merging; keep the PR in draft until that
+geometry/interaction pass is complete.
