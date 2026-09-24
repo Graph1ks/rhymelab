@@ -2133,7 +2133,7 @@ function closeDialog(){const dialog=$('#dialog');if(dialog.open)dialog.close();d
 function legacyFilters(){showDialog('Dein Klang. Deine Suche.',`<div class="formgrid"><label class="field">Aussprache der Suchanfrage<select id="basis"><option value="de">Deutsch</option><option value="en">Englisch</option><option value="both">DE + EN</option></select></label><label class="field">Sprache der Ergebnisse<select id="resultLanguage"><option value="both">DE + EN</option><option value="de">Deutsch</option><option value="en">Englisch</option></select></label><label class="field">Reimbeziehung<select id="relation"><option value="all">Alle Beispiele</option><option value="rein">Reiner Reim</option><option value="nah">Naher Klang</option></select></label><label class="field">Reihenfolge<select id="sort"><option value="recommended">Writer-Empfehlung</option><option value="alpha">A–Z</option><option value="syllables">Silben aufsteigend</option></select></label></div><p class="notice">Die Live-Suche nutzt die lokale Writer-Runtime. Die vollständige Filtermatrix, Varianten, historische Formen, Generated-Daten und Provenienz sind im Studio über direkte und erweiterte Filter verfügbar.</p><div class="dialogactions"><button id="resetFilters">Zurücksetzen</button><button id="applyFilters" class="primary">Anwenden</button></div>`);$('#basis').value=basis;$('#resultLanguage').value=resultLang;$('#relation').value=relation;$('#sort').value=sort;$('#applyFilters').onclick=()=>{basis=$('#basis').value;resultLang=$('#resultLanguage').value;relation=$('#relation').value;sort=$('#sort').value;pageSize=6;void refreshWriterResults();closeDialog()};$('#resetFilters').onclick=()=>{basis='de';resultLang='both';relation='all';sort='recommended';void refreshWriterResults();closeDialog()}}
 function legacySettings(){showDialog('Dein Studio einrichten',`<label class="field">Schriftgröße im Editor<input id="fontRange" type="range" min="16" max="28" value="${state.fontSize}"></label><p class="small" id="fontValue">${state.fontSize} px</p><div class="row wrap" style="margin-top:20px"><button id="settingTheme" class="outline">Hell / Dunkel wechseln</button><button id="settingHistory" class="outline">Versionsverlauf</button></div><p class="notice">Texte, Revisionen und Performance-Cues werden lokal im versionierten IndexedDB-DocumentStore gespeichert. UI-Präferenzen bleiben in LocalStorage; Recovery-Punkte sind in den Studio-Einstellungen verfügbar.</p><div class="row wrap"><button id="sourceInfo" class="outline">Über Studio 02</button><button id="commandsSettings" class="outline">Tastenkürzel</button></div>`);$('#fontRange').oninput=e=>{state.fontSize=+e.target.value;document.documentElement.style.setProperty('--editor',state.fontSize+'px');resizeArea($('#lyricsEditor'));$('#fontValue').textContent=state.fontSize+' px';persist()};$('#settingTheme').onclick=toggleTheme;$('#settingHistory').onclick=showHistory;$('#sourceInfo').onclick=showInfo;$('#commandsSettings').onclick=showCommands}
 function legacyToggleTheme(){toggleTheme()}
-function legacyHistory(){revision('history_open');showDialog('Deine letzten Fassungen',`<p class="notice">Wiederherstellen erzeugt zuvor eine Sicherung der aktuellen Fassung.</p>${(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,65))}…</p></div><button class="outline" data-revision="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p>Noch keine ältere Fassung vorhanden.</p>'}`);queryAll('[data-revision]').forEach(b=>b.onclick=()=>{if(restoreStudioRevision(song().revisions[+b.dataset.revision])){closeDialog();notify('Fassung wiederhergestellt · Bar-IDs und Cues erhalten.')}})}
+function legacyHistory(){showHistory()}
 function showInfo(){showDialog('RhymeLab Studio 02',`<p>Ein gemeinsamer Schreibraum für Browser, Mobile und den späteren Electron-Adapter.</p><p class="notice">Reimsuche, Detail-/Provenienzflächen und Song-Reimschema laufen über die lokale Writer-Runtime. Dokumente, Revisionen und Performance-Cues liegen im versionierten IndexedDB-DocumentStore mit Recovery-Punkten.</p><p class="notice">UI-Silbenzählung und Perform Auto-Map bleiben bewusst als lokale Hilfen gekennzeichnet.</p>`)}
 function studioCommandRegistry(){
   return [
@@ -2407,8 +2407,8 @@ bindClick('autoBtn',toggleAuto);
 const resultsScroll=$('#resultsScroll');
 resultsScroll.addEventListener('scroll',()=>{
   syncSearchPageCompact(resultsScroll.scrollTop);
-  if(resultsScroll.scrollTop>0&&resultsScroll.scrollHeight-resultsScroll.scrollTop-resultsScroll.clientHeight<90&&pageSize<data().length){
-    pageSize+=6;renderResults();
+  if(resultsScroll.scrollHeight-resultsScroll.scrollTop-resultsScroll.clientHeight<120&&pageSize<data().length){
+    pageSize=Math.min(data().length,pageSize+(density==='compact'?24:12));renderResults();
   }
 },{passive:true});
 ['wheel','touchstart','pointerdown','focusin'].forEach((eventName)=>
@@ -2514,7 +2514,21 @@ renderResults=function(){
   $('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer'+(hiddenUsedCount?' · '+hiddenUsedCount+' verwendet ausgeblendet':'');
   lastResultRenderMs=Number((performance.now()-renderStarted).toFixed(1));
   if(internalDbLabEnabled)renderInternalDbLab();
+  queueInfiniteResultsFill();
 };
+let infiniteFillFrame=0;
+function queueInfiniteResultsFill(){
+  cancelAnimationFrame(infiniteFillFrame);
+  infiniteFillFrame=requestAnimationFrame(()=>{
+    const scroller=$('#resultsScroll');
+    const total=data().length;
+    if(!scroller||writerStatus!=='ready'||pageSize>=total)return;
+    if(scroller.scrollHeight<=scroller.clientHeight+100){
+      pageSize=Math.min(total,pageSize+(density==='compact'?24:12));
+      renderResults();
+    }
+  });
+}
 function currentSelectionProof(){
   if(selection.multiline||!selection.tracked||!isTrackedEditorLine(song().lines[selection.line]||''))return null;
   return createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});
@@ -4565,6 +4579,21 @@ function renderDetail(){
 function closeDetail(){detailClient.cancel();detailRequest++;selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';saveStudioSearchState({selectedResultId:''});$('#detailDock').classList.add('hidden');$('#resultsScroll').focus()}
 function moveResult(delta){const rows=sortedData();if(!rows.length)return;let index=rows.findIndex(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult);index=index<0?(delta>0?0:rows.length-1):Math.max(0,Math.min(rows.length-1,index+delta));if(index>=pageSize){pageSize=index+12;renderResults()}openDetail(rows[index].word,rows[index].id);const row=queryAll('#results .result').find(r=>r.dataset.resultId===selectedResultId);row?.scrollIntoView?.({block:'nearest',behavior:'smooth'})}
 function setAssistWidth(value){const max=clamp(window.innerWidth-660,350,640);const width=clamp(value,350,max);document.documentElement.style.setProperty('--assist-width',width+'px');$('#splitter').setAttribute('aria-valuenow',width);$('#splitter').setAttribute('aria-valuemax',max);state.assistWidth=width;resizeArea($('#lyricsEditor'));}
+function bindEditorDockWheelRouting(){
+  const body=$('#editorDockBody');
+  if(!body||body.dataset.wheelRouting==='1')return;
+  body.dataset.wheelRouting='1';
+  body.addEventListener('wheel',(event)=>{
+    if(!dockTab||event.ctrlKey)return;
+    const max=Math.max(0,body.scrollHeight-body.clientHeight);
+    if(max<=0)return;
+    const scale=event.deltaMode===1?22:event.deltaMode===2?body.clientHeight:1;
+    const delta=event.deltaY*scale;
+    const before=body.scrollTop;
+    body.scrollTop=Math.max(0,Math.min(max,before+delta));
+    if(body.scrollTop!==before)event.preventDefault();
+  },{passive:false});
+}
 function bindTransientOutsideDismissals(){
   if(typeof document.addEventListener!=='function')return;
   document.addEventListener('pointerdown',(event)=>{
@@ -4624,7 +4653,7 @@ function bindTransientOutsideDismissals(){
     }
   },{capture:true});
 }
-function bindV2(){bindTransientOutsideDismissals();for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategories','directHideUsed','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();bindMobileViewport();installFilterSelectControls();updateSearchPageChrome();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');
+function bindV2(){bindTransientOutsideDismissals();bindEditorDockWheelRouting();for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategories','directHideUsed','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();bindMobileViewport();installFilterSelectControls();updateSearchPageChrome();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');
 $('#directLanguageRoute').onchange=e=>applyLanguageRoute(e.target.value);
 $('#directScope').onchange=e=>{scope=e.target.value;relation='all';pageSize=density==='compact'?24:12;saveStudioSearchState();syncScopeButtons();syncFilterDeckControls();void refreshWriterResults()};
 $('#directRhymeType').onchange=e=>{rhymeType=e.target.value;relation='all';pageSize=density==='compact'?24:12;saveStudioSearchState();syncFilterDeckControls();void refreshWriterResults()};
@@ -4654,7 +4683,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
   syncFilterDeckControls();
   if(['scope','rhymeType','syllables','lang','basis','languageRoute','variants','entityCategory','historical','generated','generatedOnly','corpus'].includes(f)||f.startsWith('entityCategory:'))void refreshWriterResults();else renderResults();
 }if(b.dataset.restoreVersion){if(restoreStudioRevision(song().revisions[+b.dataset.restoreVersion])){renderDock();notify('Fassung wiederhergestellt · aktuelle Fassung gesichert')}}});
-document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key.toLowerCase()==='b'){e.preventDefault();openEditorDock('navigator')}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(page==='settings'){e.preventDefault();leaveSettings()}else if(page==='search'&&searchPageFiltersOpen){e.preventDefault();setSearchPageFiltersOpen(false)}else if(page==='studio'&&studioSearchFiltersOpen){e.preventDefault();setStudioSearchFiltersOpen(false)}else if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
+document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key.toLowerCase()==='b'){e.preventDefault();openEditorDock('navigator')}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(sectionQuickMenu){e.preventDefault();closeSectionQuickMenu()}else if(page==='settings'){e.preventDefault();leaveSettings()}else if(page==='search'&&searchPageFiltersOpen){e.preventDefault();setSearchPageFiltersOpen(false)}else if(page==='studio'&&studioSearchFiltersOpen){e.preventDefault();setStudioSearchFiltersOpen(false)}else if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
 const handle=$('#splitter');let drag=null;handle.addEventListener('pointerdown',e=>{if(window.innerWidth<=800)return;drag={x:e.clientX,width:+handle.getAttribute('aria-valuenow')};handle.setPointerCapture?.(e.pointerId);document.body.classList.add('resizing');e.preventDefault()});handle.addEventListener('pointermove',e=>{if(drag)setAssistWidth(drag.width+drag.x-e.clientX)});for(const event of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(event,()=>{if(!drag)return;drag=null;document.body.classList.remove('resizing');persist()});handle.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setAssistWidth(+handle.getAttribute('aria-valuenow')+(e.key==='ArrowLeft'?20:-20));persist()}if(e.key==='Home'){e.preventDefault();setAssistWidth(470);persist()}});if(window.innerWidth>800)setAssistWidth(state.assistWidth||470);window.addEventListener('resize',()=>{if(window.innerWidth>800)setAssistWidth(state.assistWidth||470)});document.body.dataset.studioVersion='2';}
 
 async function startStudio(){
@@ -4675,10 +4704,9 @@ async function startStudio(){
   const initialText=song().lines[activeLine]||'';
   const lastWord=initialText.match(/[\p{L}\p{N}'’-]+$/u);
   selection={line:activeLine,start:lastWord?initialText.length-lastWord[0].length:initialText.length,end:initialText.length};
-  if(sharedSearchState.anchor){
-    query=sharedSearchState.anchor;
-    followSelection=!lastWord||lastWord[0]===sharedSearchState.anchor;
-  }else if(lastWord)query=lastWord[0];
+  followSelection=true;
+  if(lastWord)query=lastWord[0];
+  else if(sharedSearchState.anchor)query=sharedSearchState.anchor;
   syncFollowControls();
   renderEditor();
   renderResults();
