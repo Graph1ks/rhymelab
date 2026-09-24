@@ -42,6 +42,7 @@ interface DocumentWorkspaceContextValue {
   authority: 'indexeddb' | 'localstorage';
   error: string;
   recoveryPoints: RecoveryRow[];
+  peekState: () => LegacyStudioState;
   mutate: (mutator: Mutator, options?: { immediate?: boolean }) => Promise<boolean>;
   replaceState: (state: LegacyStudioState, options?: { immediate?: boolean }) => Promise<boolean>;
   flush: (reason?: string) => Promise<boolean>;
@@ -178,6 +179,8 @@ export function DocumentWorkspaceProvider({ children }: { children: ReactNode })
     };
   }, [flush]);
 
+  const peekState = useCallback(() => stateRef.current, []);
+
   const replaceState = useCallback(async (
     next: LegacyStudioState,
     options: { immediate?: boolean } = {},
@@ -271,6 +274,7 @@ export function DocumentWorkspaceProvider({ children }: { children: ReactNode })
     authority,
     error,
     recoveryPoints,
+    peekState,
     mutate,
     replaceState,
     flush,
@@ -287,6 +291,7 @@ export function DocumentWorkspaceProvider({ children }: { children: ReactNode })
     flush,
     importPortableBackup,
     mutate,
+    peekState,
     recoveryPoints,
     refreshRecoveryPoints,
     replaceState,
