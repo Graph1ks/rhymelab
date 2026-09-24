@@ -641,11 +641,33 @@ function externalRightEdgeComponent(queryDetail){
 function sourceBackedExternalRightEdgeAnchor(db,queryDetail,statements){
   const component=externalRightEdgeComponent(queryDetail);
   if(!component)return null;
-  const detail=getEnglishWord(db,component,{statements});
-  if(!detail?.preferredIpa)return null;
-  const bridge=adaptExternalQueryToEnglishAnalysis(detail);
-  if(!bridge?.analysis)return null;
-  return {component,detail,bridge};
+
+  const resolved=resolveEnglishRuntimeQuery(db,component,{statements});
+  if(resolved.status!=='ok'||!resolved.pronunciations?.length)return null;
+
+  const sourcePronunciation=resolved.pronunciations[0];
+  let analysis;
+  try{
+    analysis=analyzeStoredEnglishRuntimePronunciation(sourcePronunciation);
+  }catch{
+    return null;
+  }
+
+  const detail=detailFromPronunciations(component,resolved.pronunciations);
+  if(!detail||!analysis?.exactTailKey)return null;
+
+  return {
+    component,
+    detail,
+    bridge:{
+      analysis,
+      sourceIpa:analysis.canonicalPhonemes,
+      adaptedIpa:analysis.canonicalPhonemes,
+      sourceLanguage:'en',
+      sourceAnchorPosition:analysis.primaryStressSyllable||null,
+      policy:'source-backed-english-runtime-pronunciation-v1',
+    },
+  };
 }
 
 export function searchEnglishWriterFromExternalQuery(db,queryDetail,options={}){
