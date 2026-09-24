@@ -15,7 +15,9 @@
     "test:r1": "vitest run src/legacy/legacy-parity.test.ts",
     "r1:verify": "npm run typecheck && npm run test:r1 && npm run build",
     "test:r2": "vitest run src/shell/r2-shell.test.ts",
-    "r2:verify": "npm run typecheck && npm run test:r1 && npm run test:r2 && npm run build"
+    "r2:verify": "npm run typecheck && npm run test:r1 && npm run test:r2 && npm run build",
+    "test:r3": "vitest run src/features/search/r3-search.test.ts",
+    "r3:verify": "npm run typecheck && npm run test:r1 && npm run test:r2 && npm run test:r3 && npm run build"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",
