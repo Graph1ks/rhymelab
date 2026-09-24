@@ -1,0 +1,178 @@
+export const STUDIO_DEVICE_ACCEPTANCE_SCHEMA='rhymelab-studio-device-acceptance-v1';
+export const STUDIO_DEVICE_ACCEPTANCE_VERSION=1;
+
+export const STUDIO_DEVICE_GATES=Object.freeze([
+  Object.freeze({
+    id:'editor.ime',
+    label:'IME composition input',
+    instruction:'Compose text with an IME, commit it, undo once, redo once, and verify one coherent edit transaction.',
+    requirements:Object.freeze({}),
+  }),
+  Object.freeze({
+    id:'perform.metronome',
+    label:'Web Audio metronome',
+    instruction:'Start/stop the metronome, change BPM/feel/tempo scale, and verify audible timing follows the current grid.',
+    requirements:Object.freeze({audio:true}),
+  }),
+  Object.freeze({
+    id:'mobile.navigation',
+    label:'Mobile bottom navigation',
+    instruction:'Switch Studio, Results, Library and Saved from the bottom navigation without losing active Bar or selection.',
+    requirements:Object.freeze({mobile:true,touch:true}),
+  }),
+  Object.freeze({
+    id:'mobile.swap',
+    label:'Single-surface editor/results swap',
+    instruction:'Open Results from a selected range, insert a result, and verify Studio returns to the exact insertion target.',
+    requirements:Object.freeze({mobile:true,touch:true}),
+  }),
+  Object.freeze({
+    id:'mobile.keyboard',
+    label:'Software-keyboard viewport',
+    instruction:'Focus Bars near the bottom of the document and verify the active line remains reachable above the software keyboard.',
+    requirements:Object.freeze({mobile:true,touch:true,visualViewport:true}),
+  }),
+  Object.freeze({
+    id:'mobile.touch',
+    label:'Primary touch targets',
+    instruction:'Operate primary Studio controls by touch and verify controls are comfortably tappable with no clipped rails.',
+    requirements:Object.freeze({mobile:true,touch:true}),
+  }),
+  Object.freeze({
+    id:'mobile.no-hover',
+    label:'No hover-only primary action',
+    instruction:'Use Quickstyles, Library actions, result actions and Perform controls using touch only.',
+    requirements:Object.freeze({mobile:true,touch:true}),
+  }),
+]);
+
+function text(value,max=400){
+  return String(value??'').trim().slice(0,max);
+}
+
+function normalizeEnvironment(environment={}){
+  return {
+    userAgent:text(environment.userAgent,1000),
+    language:text(environment.language,80),
+    platform:text(environment.platform,120),
+    viewportWidth:Number(environment.viewportWidth)||0,
+    viewportHeight:Number(environment.viewportHeight)||0,
+    devicePixelRatio:Number(environment.devicePixelRatio)||1,
+    maxTouchPoints:Number(environment.maxTouchPoints)||0,
+    coarsePointer:environment.coarsePointer===true,
+    audioSupported:environment.audioSupported!==false,
+    visualViewportSupported:environment.visualViewportSupported!==false,
+  };
+}
+
+export function studioDeviceGateEnvironmentStatus(gateId,environment={}){
+  const gate=STUDIO_DEVICE_GATES.find((entry)=>entry.id===gateId);
+  if(!gate)return {eligible:false,reason:'unknown gate'};
+  const env=normalizeEnvironment(environment);
+  const requirements=gate.requirements||{};
+  const failures=[];
+  if(requirements.mobile&&!(env.viewportWidth>0&&env.viewportWidth<=800))failures.push('viewport <= 800 CSS px');
+  if(requirements.touch&&env.maxTouchPoints<1&&!env.coarsePointer)failures.push('touch/coarse pointer');
+  if(requirements.audio&&env.audioSupported===false)failures.push('Web Audio support');
+  if(requirements.visualViewport&&env.visualViewportSupported===false)failures.push('VisualViewport support');
+  return {
+    eligible:failures.length===0,
+    reason:failures.length?'requires '+failures.join(' + '):'environment eligible',
+    failures,
+    environment:env,
+  };
+}
+
+export function studioDeviceEnvironmentLabel(environment={}){
+  const env=normalizeEnvironment(environment);
+  const parts=[
+    env.platform||'Unknown platform',
+    env.viewportWidth&&env.viewportHeight?Math.round(env.viewportWidth)+'×'+Math.round(env.viewportHeight):'',
+    env.maxTouchPoints?env.maxTouchPoints+' touch':'',
+  ].filter(Boolean);
+  return parts.join(' · ');
+}
+
+export function createStudioDeviceAcceptance({
+  environment={},
+  results={},
+  notes='',
+  testedAt=Date.now(),
+}={}){
+  const baseEnvironment=normalizeEnvironment(environment);
+  const normalizedResults={};
+  for(const gate of STUDIO_DEVICE_GATES){
+    const row=results?.[gate.id];
+    const requestedPass=row===true||row?.passed===true;
+    const evidenceEnvironment=normalizeEnvironment(row?.environment||(requestedPass?baseEnvironment:{}));
+    const eligibility=studioDeviceGateEnvironmentStatus(gate.id,evidenceEnvironment);
+    const passed=requestedPass&&eligibility.eligible;
+    normalizedResults[gate.id]={
+      passed,
+      note:text(row?.note),
+      testedAt:Number(row?.testedAt)||0,
+      environment:evidenceEnvironment,
+      eligibility:eligibility.reason,
+    };
+  }
+  return {
+    schema:STUDIO_DEVICE_ACCEPTANCE_SCHEMA,
+    version:STUDIO_DEVICE_ACCEPTANCE_VERSION,
+    testedAt:Number(testedAt)||Date.now(),
+    environment:baseEnvironment,
+    results:normalizedResults,
+    notes:text(notes,4000),
+  };
+}
+
+export function mergeStudioDeviceAcceptanceReports(inputs){
+  const parsed=(Array.isArray(inputs)?inputs:[inputs]).filter(Boolean).map(parseStudioDeviceAcceptance);
+  if(!parsed.length)return createStudioDeviceAcceptance();
+  const newest=parsed.slice().sort((a,b)=>Number(b.testedAt)-Number(a.testedAt))[0];
+  const results={};
+  for(const gate of STUDIO_DEVICE_GATES){
+    const rows=parsed
+      .map((report)=>report.results?.[gate.id])
+      .filter(Boolean)
+      .sort((a,b)=>Number(b.testedAt||0)-Number(a.testedAt||0));
+    const passedRows=rows.filter((row)=>row.passed);
+    results[gate.id]=passedRows[0]||rows[0]||{passed:false};
+  }
+  return createStudioDeviceAcceptance({
+    environment:newest.environment,
+    results,
+    notes:parsed.map((report)=>report.notes).filter(Boolean).join('\n').slice(0,4000),
+    testedAt:Math.max(...parsed.map((report)=>Number(report.testedAt)||0),Date.now()),
+  });
+}
+
+export function studioDeviceAcceptanceSummary(report){
+  const parsed=parseStudioDeviceAcceptance(report);
+  const passed=STUDIO_DEVICE_GATES.filter((gate)=>parsed.results[gate.id]?.passed).map((gate)=>gate.id);
+  const pending=STUDIO_DEVICE_GATES.filter((gate)=>!parsed.results[gate.id]?.passed).map((gate)=>gate.id);
+  return {
+    total:STUDIO_DEVICE_GATES.length,
+    passed:passed.length,
+    passedIds:passed,
+    pending,
+    ready:pending.length===0,
+  };
+}
+
+export function parseStudioDeviceAcceptance(input){
+  const value=typeof input==='string'?JSON.parse(input):input;
+  if(!value||typeof value!=='object'||value.schema!==STUDIO_DEVICE_ACCEPTANCE_SCHEMA){
+    throw new Error('Unbekanntes Studio Device-Acceptance-Format.');
+  }
+  if(Number(value.version)!==STUDIO_DEVICE_ACCEPTANCE_VERSION){
+    throw new Error('Nicht unterstützte Device-Acceptance-Version: '+String(value.version));
+  }
+  return createStudioDeviceAcceptance(value);
+}
+
+export function studioDeviceAcceptanceFilename(date=new Date()){
+  const stamp=date instanceof Date&&!Number.isNaN(date.valueOf())
+    ?date.toISOString().slice(0,19).replaceAll(':','-')
+    :'acceptance';
+  return `rhymelab-studio-device-acceptance-${stamp}.json`;
+}
