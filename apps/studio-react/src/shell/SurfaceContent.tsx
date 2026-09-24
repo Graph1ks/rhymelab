@@ -33,21 +33,6 @@ function DeferredSurface({ children }: { children: ReactNode }) {
   );
 }
 
-const SURFACE_ENTRY_MOTION: Record<AppSurface, {
-  opacity: number;
-  x: number;
-  y: number;
-  scale: number;
-  rotate: number;
-}> = {
-  home: { opacity: 0, x: 0, y: 14, scale: 0.994, rotate: 0 },
-  studio: { opacity: 0, x: -12, y: 0, scale: 1, rotate: 0 },
-  search: { opacity: 0, x: 0, y: -10, scale: 1, rotate: 0 },
-  library: { opacity: 0, x: 14, y: 0, scale: 1, rotate: 0 },
-  saved: { opacity: 0, x: 0, y: 10, scale: 0.998, rotate: -0.15 },
-  settings: { opacity: 0, x: 12, y: 0, scale: 1, rotate: 0 },
-};
-
 function SurfaceTransition({
   surface,
   children,
@@ -69,19 +54,12 @@ function SurfaceTransition({
           <span>RHYME BUREAU / {surface.toUpperCase()}</span>
         </div>
       ) : null}
-      <motion.div
-        key={`surface-${surface}`}
+      <div
         className={styles.surfaceTransitionBody}
-        initial={reduceMotion ? false : SURFACE_ENTRY_MOTION[surface]}
-        animate={{ opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 }}
-        transition={{
-          duration: surface === 'home' ? 0.42 : 0.32,
-          delay: reduceMotion ? 0 : 0.1,
-          ease: 'easeOut',
-        }}
+        data-transition={surface}
       >
         {children}
-      </motion.div>
+      </div>
     </div>
   );
 }
