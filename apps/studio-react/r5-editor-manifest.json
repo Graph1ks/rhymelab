@@ -1,0 +1,119 @@
+{
+  "schema": "rhymelab-react-studio-r5-editor-v1",
+  "phase": "R5",
+  "status": "automated_verified_browser_acceptance_deferred",
+  "tested_code_head": "85dbd349ac65984049ad7d079987756914816580",
+  "invariant": "R5_editor_mutations_write_through_R4_DocumentWorkspaceProvider_and_existing_R1_editor_document_bridges",
+  "document_authority": "existing IndexedDB DocumentStore through R4",
+  "react_document_authority": false,
+  "zustand_document_authority": false,
+  "rich_text_framework": false,
+  "editor": {
+    "geometry": "one unified textarea document",
+    "stable_bar_ids": true,
+    "tracked_and_free_lines": true,
+    "bracket_metadata_excluded_from_tracking": true,
+    "native_replace_split_merge_multiline_paste": true,
+    "ime_transaction_boundary": true,
+    "undo_redo_history_limit": 80,
+    "typing_coalescing_ms": 1100,
+    "font_size_range_px": [
+      16,
+      28
+    ],
+    "font_families": [
+      "sans",
+      "serif",
+      "mono"
+    ]
+  },
+  "writer_integration": {
+    "selection_follow_default": true,
+    "fixed_anchor_explicit_opt_in": true,
+    "selection_proof_required_for_insert": true,
+    "stale_selection_rejected_before_undo_checkpoint": true,
+    "keyboard_insert": "Enter",
+    "result_insert_button": true
+  },
+  "persistence": {
+    "r4_autosave_debounce_ms": 180,
+    "r5_revision_debounce_ms": 650,
+    "lifecycle_flush": [
+      "visibilitychange:hidden",
+      "pagehide"
+    ],
+    "revision_limit": 30,
+    "clear_revision": "before_clear_document",
+    "clear_recovery_when_indexeddb_available": true,
+    "restore_revision": "before_restore"
+  },
+  "bar_workflows": {
+    "actions": [
+      "create",
+      "duplicate",
+      "delete",
+      "move",
+      "jump"
+    ],
+    "navigator_search": true,
+    "hold_drag_ms": 260,
+    "pre_activation_move_cancel_px": 8,
+    "live_transport_ghost": true,
+    "drop_space_preview": true,
+    "edge_autoscroll": true
+  },
+  "section_long_press": {
+    "hold_ms": 1500,
+    "move_cancel_px": 9,
+    "tags": [
+      "[Intro]",
+      "[Verse]",
+      "[Pre-Chorus]",
+      "[Chorus]",
+      "[Post-Chorus]",
+      "[Hook]",
+      "[Bridge]",
+      "[Outro]"
+    ]
+  },
+  "mobile": {
+    "single_surface_editor_results_swap": true,
+    "outer_studio_scroll_owner_preserved": true
+  },
+  "parity": {
+    "total": 93,
+    "ported": 66,
+    "in_progress": 5,
+    "pending": 22,
+    "verified": 0,
+    "newly_ported_in_r5": 23
+  },
+  "boundary_diff_from_r4": {
+    "shipping_src_studio_files_changed": 0,
+    "backend_files_changed": 0,
+    "r1_bridge_files_changed": 0,
+    "root_changes": [
+      "package.json focused gate only"
+    ]
+  },
+  "automated_verification": {
+    "strict_typescript": true,
+    "parity_inventory": true,
+    "test_files": 6,
+    "tests": 60,
+    "r5_contract_tests": 10,
+    "production_vite_build": true,
+    "react_replatform_run": 132,
+    "full_repository_ci_run": 1315,
+    "studio_v2_gate_run": 450,
+    "latest_tested_code_head": "85dbd349ac65984049ad7d079987756914816580"
+  },
+  "deferred_evidence": [
+    "browser/component interaction acceptance before verified status",
+    "real device touch and IME matrix in R7",
+    "editor.theme remains in_progress",
+    "workflow-v3.single-drawer-scroll remains pending"
+  ],
+  "cutover_verified": false,
+  "next_phase": "R6_ANALYSIS_PERFORM"
+}
