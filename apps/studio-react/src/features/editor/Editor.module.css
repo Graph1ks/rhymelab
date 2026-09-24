@@ -44,6 +44,55 @@
   letter-spacing: -.045em;
 }
 
+.titleButton {
+  min-width: 0;
+  max-width: min(60vw, 720px);
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+  padding: 2px 5px 3px;
+  background: transparent;
+  color: var(--rl-text);
+  cursor: text;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+  font-size: clamp(1.45rem, 2.2vw, 2.25rem);
+  font-weight: 760;
+  letter-spacing: -.045em;
+}
+
+.titleButton:hover,
+.titleButton:focus-visible {
+  outline: 0;
+  background: color-mix(in srgb, var(--rl-accent) 7%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rl-accent) 22%, transparent);
+}
+
+.titleEditForm {
+  min-width: 240px;
+  width: min(60vw, 720px);
+  margin: 0;
+}
+
+.titleEditForm input {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--rl-accent) 48%, var(--rl-line));
+  border-radius: 9px;
+  padding: 2px 9px 4px;
+  outline: 0;
+  background: color-mix(in srgb, var(--rl-panel) 88%, var(--rl-bg));
+  color: var(--rl-text);
+  box-shadow: var(--rl-focus-ring);
+  font: inherit;
+  font-size: clamp(1.35rem, 2.05vw, 2.1rem);
+  font-weight: 760;
+  letter-spacing: -.04em;
+}
+
 .titleLine span,
 .titleLine i {
   flex: 0 0 auto;
@@ -325,8 +374,13 @@
 }
 
 .gutterRow button[data-active="true"] {
+  color: var(--rl-on-accent);
+  background: var(--rl-accent);
+}
+
+.syllableRow[data-active="true"] {
   color: var(--rl-accent);
-  background: color-mix(in srgb, var(--rl-accent) 8%, transparent);
+  background: color-mix(in srgb, var(--rl-accent) 10%, transparent);
 }
 
 .gutterRow[data-kind="bracket"] span {
@@ -348,6 +402,22 @@
   position: relative;
   background:
     linear-gradient(to bottom, transparent 97%, color-mix(in srgb, var(--rl-line) 28%, transparent) 100%);
+}
+
+.activeBarHighlight {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-block: 1px solid color-mix(in srgb, var(--rl-accent) 24%, transparent);
+  background: color-mix(in srgb, var(--rl-accent) 10%, transparent);
+  box-shadow: inset 4px 0 0 color-mix(in srgb, var(--rl-accent) 72%, transparent);
+}
+
+.textarea {
+  position: relative;
+  z-index: 1;
 }
 
 .textarea,
@@ -816,7 +886,9 @@
     flex-wrap: wrap;
   }
 
-  .titleLine h1 {
+  .titleLine h1,
+  .titleButton,
+  .titleEditForm {
     max-width: 100%;
     width: 100%;
     white-space: normal;
@@ -988,13 +1060,57 @@
   font-variant-numeric: tabular-nums;
 }
 
+.fontCategoryStrip {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px 12px;
+}
+
 .fontCategories {
   display: flex;
   gap: 6px;
   min-width: 0;
   overflow-x: auto;
-  padding: 0 22px 12px;
+  padding: 0;
+  scroll-behavior: smooth;
+  overscroll-behavior-inline: contain;
   scrollbar-width: none;
+}
+
+.fontCategoryArrow {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rl-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rl-panel) 90%, var(--rl-bg));
+  color: var(--rl-muted);
+  cursor: pointer;
+}
+
+.fontCategoryArrow:hover,
+.fontCategoryArrow:focus-visible {
+  border-color: color-mix(in srgb, var(--rl-accent) 48%, var(--rl-line));
+  outline: 0;
+  background: var(--rl-tint);
+  color: var(--rl-accent);
+  box-shadow: var(--rl-focus-ring);
+}
+
+.fontCategoryArrow svg {
+  width: 13px;
+  height: 13px;
+}
+
+.fontCategoryArrow[data-direction="left"] svg {
+  transform: rotate(90deg);
+}
+
+.fontCategoryArrow[data-direction="right"] svg {
+  transform: rotate(-90deg);
 }
 
 .fontCategories::-webkit-scrollbar {
