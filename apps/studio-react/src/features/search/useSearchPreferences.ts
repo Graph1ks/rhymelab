@@ -33,10 +33,15 @@ function writePreferencePatch(patch: Record<string, unknown>) {
   return next;
 }
 
+function supportedDensity(value: unknown): ResultDensity {
+  const normalized = normalizeDensity(value);
+  return normalized === 'tiles' ? 'compact' : normalized;
+}
+
 export function useSearchPreferences() {
   const initial = useMemo(() => loadStudioPreferences(), []);
   const [density, setDensityState] = useState<ResultDensity>(
-    normalizeDensity(initial.density),
+    supportedDensity(initial.density),
   );
   const [hideUsed, setHideUsedState] = useState(initial.hideUsed !== false);
   const [saved, setSaved] = useState<SavedResult[]>(readSaved(initial.saved));
@@ -44,7 +49,7 @@ export function useSearchPreferences() {
   useEffect(() => {
     const reload = () => {
       const current = loadStudioPreferences();
-      setDensityState(normalizeDensity(current.density));
+      setDensityState(supportedDensity(current.density));
       setHideUsedState(current.hideUsed !== false);
       setSaved(readSaved(current.saved));
     };
@@ -53,7 +58,7 @@ export function useSearchPreferences() {
   }, []);
 
   const setDensity = useCallback((next: ResultDensity) => {
-    const normalized = normalizeDensity(next);
+    const normalized = supportedDensity(next);
     setDensityState(normalized);
     writePreferencePatch({ density: normalized });
   }, []);
