@@ -1,13 +1,91 @@
 import { create } from 'zustand';
 
-export type MigrationSurface = 'overview' | 'parity';
+import { loadStudioPreferences } from '../legacy/documents';
+import {
+  normalizeStudioUiLanguage,
+  type StudioUiLanguage,
+} from '../legacy/shell';
+import {
+  persistAppearancePreferences,
+  toggleThemeChoice,
+} from '../design-system/theme';
+import type { AppSurface } from '../shell/navigation';
 
 type UiState = {
-  surface: MigrationSurface;
-  setSurface: (surface: MigrationSurface) => void;
+  surface: AppSurface;
+  uiLanguage: StudioUiLanguage;
+  themeChoice: string;
+  commandPaletteOpen: boolean;
+  quickstylesOpen: boolean;
+  settingsDrawerOpen: boolean;
+  navigate: (surface: AppSurface) => void;
+  setUiLanguage: (language: StudioUiLanguage | string) => void;
+  toggleUiLanguage: () => void;
+  setThemeChoice: (choice: string) => void;
+  toggleTheme: () => void;
+  setCommandPaletteOpen: (open: boolean) => void;
+  setQuickstylesOpen: (open: boolean) => void;
+  setSettingsDrawerOpen: (open: boolean) => void;
 };
 
-export const useUiStore = create<UiState>((set) => ({
-  surface: 'overview',
-  setSurface: (surface) => set({ surface }),
+const preferences = loadStudioPreferences();
+const initialLanguage = normalizeStudioUiLanguage(preferences.uiLanguage);
+const initialThemeChoice = typeof preferences.theme === 'string'
+  ? preferences.theme
+  : 'dark';
+
+export const useUiStore = create<UiState>((set, get) => ({
+  surface: 'studio',
+  uiLanguage: initialLanguage,
+  themeChoice: initialThemeChoice,
+  commandPaletteOpen: false,
+  quickstylesOpen: false,
+  settingsDrawerOpen: false,
+
+  navigate(surface) {
+    set({
+      surface,
+      settingsDrawerOpen: false,
+    });
+  },
+
+  setUiLanguage(value) {
+    const uiLanguage = normalizeStudioUiLanguage(value);
+    persistAppearancePreferences({ uiLanguage });
+    set({ uiLanguage });
+  },
+
+  toggleUiLanguage() {
+    get().setUiLanguage(get().uiLanguage === 'de' ? 'en' : 'de');
+  },
+
+  setThemeChoice(choice) {
+    const themeChoice = String(choice || 'dark');
+    persistAppearancePreferences({ theme: themeChoice });
+    set({
+      themeChoice,
+      quickstylesOpen: false,
+    });
+  },
+
+  toggleTheme() {
+    const themeChoice = toggleThemeChoice(get().themeChoice);
+    persistAppearancePreferences({ theme: themeChoice });
+    set({
+      themeChoice,
+      quickstylesOpen: false,
+    });
+  },
+
+  setCommandPaletteOpen(commandPaletteOpen) {
+    set({ commandPaletteOpen });
+  },
+
+  setQuickstylesOpen(quickstylesOpen) {
+    set({ quickstylesOpen });
+  },
+
+  setSettingsDrawerOpen(settingsDrawerOpen) {
+    set({ settingsDrawerOpen });
+  },
 }));
