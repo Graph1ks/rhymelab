@@ -9,6 +9,7 @@ import {
 
 import type { SearchState, SearchStateInput } from '../../legacy/contracts';
 import {
+  SEARCH_STATE_STORAGE_KEY,
   createSearchState,
   loadSearchState,
   patchSearchState,
@@ -27,16 +28,24 @@ type SearchStateContextValue = {
 const SearchStateContext = createContext<SearchStateContextValue | null>(null);
 
 function initialSearchState(): SearchState {
-  const stored = loadSearchState();
-  const fromUrl = typeof window !== 'undefined'
-    ? searchStateFromUrl(window.location.href, stored)
-    : stored;
+  let hasStoredState = false;
+  try {
+    hasStoredState = Boolean(globalThis.localStorage?.getItem?.(SEARCH_STATE_STORAGE_KEY));
+  } catch {
+    hasStoredState = false;
+  }
 
-  // Studio V2 uses Nacht as its first-run writing anchor while still honoring
-  // an already-persisted SearchState anchor.
-  return fromUrl.anchor
-    ? fromUrl
-    : patchSearchState(fromUrl, { anchor: 'Nacht' });
+  const base = hasStoredState
+    ? loadSearchState()
+    : createSearchState({
+        anchor: 'Nacht',
+        queryBasis: 'de',
+        resultLanguage: 'both',
+      });
+
+  return typeof window !== 'undefined'
+    ? searchStateFromUrl(window.location.href, base)
+    : base;
 }
 
 function persistSearchState(next: SearchState): SearchState {
