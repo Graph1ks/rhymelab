@@ -44,7 +44,7 @@ compare/restore, Bar actions/Navigator, 260-ms hold-drag with ghost/drop preview
 edge auto-scroll, 1.5-second section long-press, editor font controls and the mobile
 Editor/Rhymes single-surface swap.
 
-The functional R5 checkpoint `85dbd349ac65984049ad7d079987756914816580`
+The functional R5 checkpoint `85dbd349ac65`
 passes strict TypeScript, production Vite build and 60/60 automated tests. React
 Studio Replatform #132, Full RhymeLab CI #1315 and Studio V2 Gate #450 all pass.
 
