@@ -167,6 +167,171 @@ function themePreferences(input?: StudioPreferences): ThemePreferences {
   };
 }
 
+export function readThemePreferences(input?: StudioPreferences): ThemePreferences {
+  return themePreferences(input);
+}
+
+function linearToSrgb(channel: number): number {
+  const value = Math.max(0, Math.min(1, channel));
+  return value <= 0.0031308
+    ? 12.92 * value
+    : 1.055 * (value ** (1 / 2.4)) - 0.055;
+}
+
+function oklabLinearRgb(
+  lightness: number,
+  a: number,
+  b: number,
+): [number, number, number] {
+  const lRoot = lightness + 0.3963377774 * a + 0.2158037573 * b;
+  const mRoot = lightness - 0.1055613458 * a - 0.0638541728 * b;
+  const sRoot = lightness - 0.0894841775 * a - 1.291485548 * b;
+  const l = lRoot ** 3;
+  const m = mRoot ** 3;
+  const s = sRoot ** 3;
+  return [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+  ];
+}
+
+export function oklchToHex(
+  lightness: number,
+  chroma: number,
+  hue: number,
+): string {
+  const l = Math.max(0, Math.min(1, lightness));
+  const radians = ((Number(hue) || 0) % 360) * Math.PI / 180;
+  let c = Math.max(0, Number(chroma) || 0);
+  let rgb: [number, number, number] = [0, 0, 0];
+
+  for (let attempt = 0; attempt < 36; attempt += 1) {
+    const a = c * Math.cos(radians);
+    const b = c * Math.sin(radians);
+    rgb = oklabLinearRgb(l, a, b);
+    if (rgb.every((value) => value >= 0 && value <= 1)) break;
+    c *= 0.92;
+  }
+
+  return rgbHex(rgb.map((value) => linearToSrgb(value) * 255));
+}
+
+export interface ThemeContrastReport {
+  inkOnBg: number;
+  inkOnPanel: number;
+  onAccent: number;
+  readable: boolean;
+}
+
+export function themeContrastReport(colors: Partial<ThemeColors>): ThemeContrastReport {
+  const complete = completeThemeColors(colors);
+  const inkOnBg = contrastRatio(complete.ink, complete.bg);
+  const inkOnPanel = contrastRatio(complete.ink, complete.panel);
+  const onAccent = contrastRatio(complete.onAccent, complete.accent);
+  return {
+    inkOnBg,
+    inkOnPanel,
+    onAccent,
+    readable: inkOnBg >= 4.5 && inkOnPanel >= 4.5 && onAccent >= 4.5,
+  };
+}
+
+export function randomOklchTheme(
+  mode: ThemeMode,
+  options: {
+    hue?: number;
+    name?: string;
+    id?: string;
+  } = {},
+): ThemeDefinition {
+  const hue = Number.isFinite(options.hue)
+    ? Number(options.hue)
+    : Math.random() * 360;
+  const complement = (hue + 48) % 360;
+  const signalHue = (hue + 142) % 360;
+
+  const colors = mode === 'dark'
+    ? {
+        bg: oklchToHex(0.18, 0.025, hue),
+        panel: oklchToHex(0.235, 0.032, hue),
+        ink: oklchToHex(0.955, 0.018, hue + 15),
+        muted: oklchToHex(0.72, 0.028, hue + 8),
+        accent: oklchToHex(0.84, 0.155, hue),
+        accent2: oklchToHex(0.76, 0.15, complement),
+        signal: oklchToHex(0.74, 0.135, signalHue),
+      }
+    : {
+        bg: oklchToHex(0.955, 0.022, hue),
+        panel: oklchToHex(0.988, 0.014, hue + 10),
+        ink: oklchToHex(0.19, 0.028, hue + 20),
+        muted: oklchToHex(0.48, 0.035, hue + 15),
+        accent: oklchToHex(0.55, 0.17, hue),
+        accent2: oklchToHex(0.61, 0.16, complement),
+        signal: oklchToHex(0.52, 0.14, signalHue),
+      };
+
+  return {
+    id: options.id ?? `style-${Date.now().toString(36)}`,
+    name: options.name ?? (mode === 'dark' ? 'Night Signal' : 'Day Signal'),
+    subtitle: `OKLCH · H${Math.round(hue)}`,
+    mode,
+    colors: completeThemeColors(colors),
+  };
+}
+
+export function saveCustomTheme(theme: ThemeDefinition): ThemePreferences {
+  const prefs = themePreferences();
+  const nextTheme: ThemeDefinition = {
+    ...theme,
+    id: String(theme.id || `style-${Date.now().toString(36)}`),
+    name: String(theme.name || 'Untitled Style').trim() || 'Untitled Style',
+    mode: theme.mode === 'light' ? 'light' : 'dark',
+    colors: completeThemeColors(theme.colors),
+  };
+  const customThemes = [...(prefs.customThemes ?? [])];
+  const index = customThemes.findIndex((item) => item.id === nextTheme.id);
+  if (index >= 0) customThemes[index] = nextTheme;
+  else customThemes.push(nextTheme);
+  const next: ThemePreferences = { ...prefs, customThemes };
+  writeStudioPreferences(next);
+  return next;
+}
+
+export function deleteCustomTheme(id: string): ThemePreferences {
+  const prefs = themePreferences();
+  const customThemes = (prefs.customThemes ?? []).filter((theme) => theme.id !== id);
+  const themeSlots = {
+    ...prefs.themeSlots,
+    light: prefs.themeSlots?.light === id ? null : prefs.themeSlots?.light ?? null,
+    dark: prefs.themeSlots?.dark === id ? null : prefs.themeSlots?.dark ?? null,
+  };
+  const next: ThemePreferences = {
+    ...prefs,
+    theme: prefs.theme === id ? 'dark' : prefs.theme,
+    customThemes,
+    themeSlots,
+  };
+  writeStudioPreferences(next);
+  return next;
+}
+
+export function setThemeSlot(mode: ThemeMode, id: string | null): ThemePreferences {
+  const prefs = themePreferences();
+  const custom = id ? customThemeById(id, prefs) : null;
+  const validId = custom && custom.mode === mode ? custom.id : null;
+  const next: ThemePreferences = {
+    ...prefs,
+    themeSlots: {
+      ...prefs.themeSlots,
+      [mode]: validId,
+    },
+  };
+  writeStudioPreferences(next);
+  return next;
+}
+
+
 export function customThemeById(
   id: string | null | undefined,
   preferences?: StudioPreferences,
