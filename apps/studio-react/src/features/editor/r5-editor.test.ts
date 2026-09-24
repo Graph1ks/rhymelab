@@ -16,6 +16,10 @@ import {
   normalizeEditorFontValue,
 } from './SystemFontPicker';
 import {
+  editorFallbackLineHeight,
+  fallbackEditorLineTop,
+} from './geometry';
+import {
   activeEditorSong,
   asEditorSong,
   captureEditorRevision,
@@ -59,6 +63,19 @@ describe('R5 editor Google-font contract', () => {
     expect(editorFontStyle(DEFAULT_EDITOR_FONT)).toBe('normal');
     expect(editorFontWeight(DEFAULT_EDITOR_FONT)).toBe(400);
     expect(editorFontLabel(DEFAULT_EDITOR_FONT)).toBe('Oranienbaum');
+  });
+});
+
+describe('R5 editor gutter geometry', () => {
+  it('keeps fractional line height precision so long documents do not accumulate row drift', () => {
+    const lineHeight = editorFallbackLineHeight(32);
+    expect(lineHeight).toBeCloseTo(51.84, 8);
+
+    const exactTop = fallbackEditorLineTop(185, 32);
+    const roundedStackTop = 18 + 185 * Math.ceil(lineHeight);
+
+    expect(exactTop).toBeCloseTo(9608.4, 6);
+    expect(roundedStackTop - exactTop).toBeCloseTo(29.6, 6);
   });
 });
 
