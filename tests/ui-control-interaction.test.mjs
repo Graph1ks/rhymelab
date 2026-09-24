@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 async function uiRuntimeSource(app){
-  const shared=await readFile('src/ui/search-state.mjs','utf8');
+  const shared=await readFile('packages/shared-core/src/search/search-state.mjs','utf8');
   const sharedRuntime=shared
     .replace(/\bexport\s+/gu,'')
     .replace(/\bRHYME_TYPES\b/gu,'SEARCH_STATE_RHYME_TYPES');
