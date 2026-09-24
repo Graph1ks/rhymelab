@@ -21,6 +21,12 @@ do not delete old Studio, and do not reinterpret the port as permission to simpl
 editor, Search, Library, Analysis, Perform, mobile, persistence, recovery or runtime
 database behavior.
 
+R0 and R1 are complete. R1 is documented in
+`docs/REACT_STUDIO_R1_TYPED_BRIDGE.md` and provides strict typed bridges over 18
+existing domain/browser modules. The bridge tests assert direct function identity
+plus representative semantic parity. The next implementation action is **R2:
+shell/design system**, not another domain rewrite.
+
 ---
 
 # PAUSED CONTINUATION — Distribution DB Lab v2 benchmark evidence
