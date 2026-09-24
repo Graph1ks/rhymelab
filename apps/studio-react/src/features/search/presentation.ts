@@ -322,7 +322,9 @@ export function resultKindLabel(
             : (entry as Record<string, unknown>)?.category
         ))
       : []),
-  ].map(String).filter(Boolean);
+  ]
+    .filter((value) => value != null && String(value).trim() !== '')
+    .map(String);
 
   return categories[0]
     ? entityCategoryLabel(categories[0], language)
