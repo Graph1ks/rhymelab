@@ -163,7 +163,7 @@ export function HomePage() {
         <span><b>DE + EN</b>{language === 'de' ? 'Sprachrouten' : 'language routes'}</span>
         <span><b>50</b>{language === 'de' ? 'kuratierte Fonts' : 'curated fonts'}</span>
         <span><b>LOCAL-FIRST</b>IndexedDB</span>
-        <span><b>8</b>{language === 'de' ? 'Reim- & Klangtypen' : 'rhyme & sound types'}</span>
+        <span><b>7</b>{language === 'de' ? 'Reim- & Klangtypen' : 'rhyme & sound types'}</span>
       </div>
 
       <section className={styles.story}>

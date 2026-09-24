@@ -349,6 +349,8 @@ export function SearchExperience({
 
   const selectedRow = processed.rows.find((row) => row.id === state.selectedResultId) ?? null;
   const timing = runtimeTimingText(writer.data?.runtimeTiming);
+  const multisyllabicFilter = state.rhymeType === 'multisyllabic_perfect'
+    || state.rhymeType === 'multisyllabic_slant';
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -504,9 +506,13 @@ export function SearchExperience({
             <div className={styles.searchState}>
               <b>{language === 'de' ? 'Keine passenden Treffer.' : 'No matching results.'}</b>
               <p>
-                {language === 'de'
-                  ? 'Query, Runtime oder Filter ändern – die Writer-Semantik selbst bleibt unverändert.'
-                  : 'Change query, runtime or filters — Writer semantics stay unchanged.'}
+                {multisyllabicFilter
+                  ? (language === 'de'
+                      ? 'Mehrsilbig bedeutet hier mindestens zwei Reimsilben ab Hauptakzent – nicht einfach zwei Silben im ganzen Wort.'
+                      : 'Multisyllabic means at least two rhyme-domain syllables from primary stress, not merely two syllables in the whole word.')
+                  : (language === 'de'
+                      ? 'Query, Runtime oder Filter ändern – die Writer-Semantik selbst bleibt unverändert.'
+                      : 'Change query, runtime or filters — Writer semantics stay unchanged.')}
               </p>
             </div>
           ) : (
