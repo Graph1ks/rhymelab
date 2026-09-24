@@ -9,7 +9,7 @@ const item=(id,group,label,legacy,studio,evidence,status=READY,acceptance='sourc
 });
 
 export const STUDIO_PARITY_MANIFEST=Object.freeze([
-  item('search.shared-state','Search / Writer','Shared SearchState across Search and Studio','Search','Inspector',['src/ui/search-state.mjs::createSearchState']),
+  item('search.shared-state','Search / Writer','Shared SearchState across Search and Studio','Search','Inspector',['packages/shared-core/src/search/search-state.mjs::createSearchState']),
   item('search.query-basis','Search / Writer','DE / EN / DE+EN query pronunciation basis','Search + Pad','Filter deck',['src/studio/index.html::id="directLanguageRoute"']),
   item('search.result-language','Search / Writer','DE / EN / DE+EN result language','Search + Pad','Filter deck',['src/studio/index.html::id="directLanguageRoute"']),
   item('search.scope','Search / Writer','All / Words / Phrases / Entities scope','Search + Pad','Filter deck',['src/studio/index.html::id="directScope"']),
@@ -21,7 +21,7 @@ export const STUDIO_PARITY_MANIFEST=Object.freeze([
   item('search.generated','Search / Writer','Generated pronunciation opt-in','Search','Corpus selector',['src/studio/app.js::applyCorpusMode']),
   item('search.generated-only','Search / Writer','Generated-only result mode','Search','Corpus selector',['src/studio/app.js::applyCorpusMode']),
   item('search.entity-taxonomy','Search / Writer','Entity taxonomy from runtime capabilities','Search + Pad','Entity chips',['src/studio/app.js::availableEntityCategories']),
-  item('search.entity-multi','Search / Writer','Entity multi-select OR retrieval','Search','Entity chips',['src/ui/search-state.mjs::entityCategories','src/entity-writer-runtime.mjs::requestedCategories']),
+  item('search.entity-multi','Search / Writer','Entity multi-select OR retrieval','Search','Entity chips',['packages/shared-core/src/search/search-state.mjs::entityCategories','src/entity-writer-runtime.mjs::requestedCategories']),
   item('search.hide-used','Search / Writer','Hide already used lyric candidates','Pad','Direct action',['src/studio/index.html::id="directHideUsed"']),
   item('search.presets','Search / Writer','Best / words / phrases / entities / rhyme presets','Pad','Direct scope + rhyme composition',['src/studio/index.html::id="directScope"','src/studio/index.html::id="directRhymeType"'],ADAPTED),
   item('search.autoscroll','Search / Writer','Opt-in auto-scroll with manual pause','Pad','Inspector',['src/studio/app.js::toggleAuto']),
