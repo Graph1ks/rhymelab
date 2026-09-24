@@ -130,7 +130,7 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.doesNotMatch(pronunciationCache, /localStorage/);
   assert.match(queryTest, /readGeneratedPronunciationCache/);
   assert.match(queryTest, /persistent cache hits/);
-  assert.match(clientPronunciation, /client-total-query-pronunciation-v3/);
+  assert.match(clientPronunciation, /client-total-query-pronunciation-v4/);
   assert.match(clientPronunciation, /client_source_reference_compound/);
   assert.match(clientPronunciation, /client_token_chain/);
   assert.match(clientPronunciation, /tokenizeClientPronunciationInput/);
