@@ -1373,3 +1373,21 @@
     overflow-y: auto;
   }
 }
+
+
+/* R4 Library owns its folder/content scroll panes on desktop. */
+.contentViewport[data-surface="library"] {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+
+.contentViewport[data-surface="library"] .searchSurface {
+  height: 100%;
+  min-height: 0;
+}
+
+@media (max-width: 800px) {
+  .contentViewport[data-surface="library"] {
+    overflow-y: auto;
+  }
+}
