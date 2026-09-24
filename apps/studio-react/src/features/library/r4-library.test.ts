@@ -223,6 +223,29 @@ describe('R4 Library behavior', () => {
     expect(permanent.state.songs.some((song) => song.id === 's3')).toBe(false);
   });
 
+  it('applies every Explorer sort mode deterministically', () => {
+    expect(libraryRows(state(), {
+      trash: false,
+      folder: 'all',
+      query: '',
+      sort: 'title',
+    }).map((row) => row.id)).toEqual(['s2', 's1', 's3']);
+
+    expect(libraryRows(state(), {
+      trash: false,
+      folder: 'all',
+      query: '',
+      sort: 'created',
+    }).map((row) => row.id)).toEqual(['s3', 's2', 's1']);
+
+    expect(libraryRows(state(), {
+      trash: false,
+      folder: 'all',
+      query: '',
+      sort: 'bars',
+    }).map((row) => row.id)).toEqual(['s1', 's2', 's3']);
+  });
+
   it('searches title, lyric text and folders while preserving current sort modes', () => {
     expect(libraryRows(state(), {
       trash: false,
