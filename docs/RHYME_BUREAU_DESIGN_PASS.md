@@ -47,7 +47,8 @@ Personality belongs around the writing, never over it.
 | Perform | Strong rehearsal text hierarchy and coherent transport/tool surfaces | Timing, cues, BPM/grid/feel/count-in/loop, review invalidation, Web Audio and Focus |
 | Settings | Cohesive style workbench and data-safety surfaces; replace visible migration badge with product copy | Color generation/edit/save/apply/delete, defaults/reset, contrast report, backup/import/recovery |
 | Intro | Editorial poster composition and static sound specimen; retain existing copy and navigation actions | All entry points, language variants, reduced motion |
-| Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; wrap controls rather than clip them; coarse-pointer targets | No sidebar return, no new nested page scroll, no hover-only action |\n| Page transitions | Full-viewport Bureau transitions below the persistent topbar: case sheet (Home), drafting shutters (Studio), phonetic scan (Search), archive drawer (Library), evidence cards (Saved), calibration grid (Settings) | Surface state, providers, scroll ownership, pointer input, dialogs/popovers and `prefers-reduced-motion` |
+| Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; wrap controls rather than clip them; coarse-pointer targets | No sidebar return, no new nested page scroll, no hover-only action |
+| Page transitions | Full-viewport Bureau transitions below the persistent topbar: case sheet (Home), drafting shutters (Studio), phonetic scan (Search), archive drawer (Library), evidence cards (Saved), calibration grid (Settings) | Surface state, providers, scroll ownership, pointer input, dialogs/popovers and `prefers-reduced-motion` |
 
 ## No-capability-loss contract
 
@@ -75,6 +76,7 @@ Personality belongs around the writing, never over it.
 - Browser acceptance: 1920×1080, 3840×2160, 1366×768, 800px, 390px and 320px;
   Light/Dark/custom; Studio/Search/Library/Analysis/Perform/Settings/Intro; keyboard
   focus, transient popovers, continuous results, wrapping/gutters and mobile swap.
+- Transition acceptance: topbar remains stationary; all six shell surfaces have distinct motion; rapid navigation cannot strand a curtain; overlays never intercept pointer input; Studio mode/search-assistant state survives leaving and returning to Studio; reduced-motion shows no curtain/body animation.
 - Physical IME, touch/software keyboard and audible metronome remain separate gates.
 
 The provided cloud browser rejected the local development URL with
@@ -93,8 +95,10 @@ No change to the owner's selected editor font or saved color palettes.
 
 The plan was committed before implementation. All planned presentation areas have
 received the first pass. No new controls, feature dependencies or shipped assets were
-introduced. The only TSX edits are decorative branding, aria-hidden icons, the intro
-specimen and replacing the migration-phase Settings badge with product copy.
+introduced. TSX edits remain presentation-scoped: decorative branding/icons, the intro
+specimen, Settings product copy and the shell transition wrapper. The transition
+wrapper does not key or remount `SurfaceContentBody`; local Studio UI state therefore
+survives navigation exactly as before.
 
 | Check | Result |
 | --- | --- |
@@ -114,7 +118,9 @@ specimen and replacing the migration-phase Settings badge with product copy.
 | Visual/browser and real-device acceptance | PENDING; local preview inaccessible to supplied cloud browser |
 | Full-data Writer exercise | PENDING; owner-local SQLite distributions required |
 
-The page-transition layer was added after the first design pass as a presentation-only shell layer. It does not alter navigation state, editor/search providers or domain code; each surface remounts only the keyed decorative curtain/body animation beneath the persistent topbar.\n\nThe AST comparison is a source-preservation check, not runtime interaction evidence.
+The page-transition layer was added after the first design pass as a presentation-only shell layer. It does not alter navigation state, editor/search providers or domain code; only the keyed decorative curtain remounts beneath the persistent topbar; the workspace subtree stays mounted and the body animation restarts through a surface-specific CSS animation name.
+
+The AST comparison is a source-preservation check, not runtime interaction evidence.
 The existing runtime/domain tests remain intact; no gate or test was weakened.
 
 ### Review locally
