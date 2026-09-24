@@ -71,11 +71,13 @@ interface EditorSessionContextValue {
   focusRequest: EditorFocusRequest | null;
   setFollowSelection: (value: boolean) => void;
   captureSelection: (start: number, end: number) => void;
+  noteBoundary: () => void;
   beforeInput: (inputType: string, composing: boolean) => void;
   input: (value: string, start: number, end: number, composing: boolean) => void;
   compositionStart: () => void;
   compositionEnd: (value: string, start: number, end: number) => void;
   insertCandidate: (value: string) => Promise<EditorInsertOutcome>;
+  insertSectionTag: (value: string, start: number, end: number) => Promise<boolean>;
   undo: () => Promise<boolean>;
   redo: () => Promise<boolean>;
   createBarAfter: (index: number) => Promise<boolean>;
@@ -245,6 +247,10 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
     };
   }, [commitRevision, documents]);
 
+  const noteBoundary = useCallback(() => {
+    typingUndo.current.noteBoundary();
+  }, []);
+
   const beforeInput = useCallback((inputType: string, isComposing: boolean) => {
     if (isComposing) return;
     const current = currentSongCopy();
@@ -339,6 +345,48 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
       requestAnimationFrame(() => captureSelectionFromDocument(focus!.start, focus!.end));
     }
     return outcome;
+  }, [
+    captureSelectionFromDocument,
+    checkpoint,
+    documents,
+    requestFocus,
+    scheduleRevision,
+  ]);
+
+  const insertSectionTag = useCallback(async (
+    value: string,
+    start: number,
+    end: number,
+  ) => {
+    const tag = String(value ?? '').trim();
+    if (!tag) return false;
+    checkpoint();
+    let changed = false;
+    let focus = start;
+    await documents.mutate((state) => {
+      const current = activeEditorSong(state);
+      if (!current) return state;
+      ensureLegacyEditorSong(current);
+      const result = replaceEditorDocumentRange(
+        asEditorSong(current),
+        start,
+        end,
+        tag,
+      );
+      activeLine.current = result.position.index;
+      focus = result.caret;
+      touchSong(current);
+      changed = true;
+      return state;
+    });
+    if (changed) {
+      selectionProof.current = null;
+      setSelection(null);
+      scheduleRevision();
+      requestFocus(focus, focus);
+      requestAnimationFrame(() => captureSelectionFromDocument(focus, focus));
+    }
+    return changed;
   }, [
     captureSelectionFromDocument,
     checkpoint,
@@ -627,11 +675,13 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
     focusRequest,
     setFollowSelection,
     captureSelection: captureSelectionFromDocument,
+    noteBoundary,
     beforeInput,
     input,
     compositionStart,
     compositionEnd,
     insertCandidate,
+    insertSectionTag,
     undo,
     redo,
     createBarAfter,
@@ -659,8 +709,10 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
     historyVersion,
     input,
     insertCandidate,
+    insertSectionTag,
     jumpToBar,
     moveBar,
+    noteBoundary,
     redo,
     restoreRevision,
     revisionDiff,
