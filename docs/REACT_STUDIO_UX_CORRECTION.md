@@ -6,7 +6,7 @@ This contract records the owner-driven UX correction passes on top of the comple
 R7 source port. It does not waive browser/device acceptance and it does not promote
 any parity row to `verified`.
 
-Functional Round-2 checkpoint: `b2d16a4ed27e`.
+Functional Round-2 checkpoint: `9812a674669c`.
 
 ## Shell and navigation
 
@@ -148,7 +148,7 @@ owned by the Topbar and it does not expose engineering acceptance tooling.
 
 ## Automated checkpoint
 
-On `b2d16a4ed27e`:
+On `9812a674669c`:
 
 - strict TypeScript: PASS
 - React tests: **91 / 91 PASS**
@@ -156,9 +156,9 @@ On `b2d16a4ed27e`:
 - reversible preview contract: PASS
 - R7 source gate: PASS
 - parity source rows: 93 / 93 ported
-- React Studio Replatform #278: PASS
-- Studio V2 Gate #596: PASS
-- RhymeLab CI #1461 including public-readiness: PASS
+- React Studio Replatform #288: PASS
+- Studio V2 Gate #606: PASS
+- RhymeLab CI #1471 including public-readiness: PASS
 - shipping `src/studio/*` modified by this UX round: **0 files**
 - React legacy bridge modified by this UX round: **0 files**
 - backend/runtime modified by this UX round: **0 files**
