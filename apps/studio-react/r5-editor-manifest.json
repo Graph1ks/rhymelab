@@ -2,7 +2,7 @@
   "schema": "rhymelab-react-studio-r5-editor-v1",
   "phase": "R5",
   "status": "automated_verified_browser_acceptance_deferred",
-  "tested_code_head": "85dbd349ac65984049ad7d079987756914816580",
+  "tested_code_head": "85dbd349ac65",
   "invariant": "R5_editor_mutations_write_through_R4_DocumentWorkspaceProvider_and_existing_R1_editor_document_bridges",
   "document_authority": "existing IndexedDB DocumentStore through R4",
   "react_document_authority": false,
@@ -106,7 +106,7 @@
     "react_replatform_run": 132,
     "full_repository_ci_run": 1315,
     "studio_v2_gate_run": 450,
-    "latest_tested_code_head": "85dbd349ac65984049ad7d079987756914816580"
+    "latest_tested_code_head": "85dbd349ac65"
   },
   "deferred_evidence": [
     "browser/component interaction acceptance before verified status",
