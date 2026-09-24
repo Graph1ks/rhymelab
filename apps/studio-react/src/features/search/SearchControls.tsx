@@ -33,7 +33,7 @@ function useTransientPopup(
   open: boolean,
   setOpen: (open: boolean) => void,
 ) {
-  const popupRef = useRef<HTMLElement | null>(null);
+  const popupRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
