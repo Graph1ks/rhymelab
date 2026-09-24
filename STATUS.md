@@ -11,7 +11,7 @@ replatform defined in `docs/REACT_STUDIO_REPLATFORM.md`.
 Migration baseline:
 
 ```text
-main commit             fbda43a9e4dd915f3bd5c1fa53045cbe2055e919
+main commit             fbda43a9e4dd
 migration branch        refactor/react-studio-replatform
 new frontend root       apps/studio-react/
 legacy parity IDs       82
