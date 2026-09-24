@@ -157,7 +157,7 @@ const state={
   lang:['de','en'].includes(savedUiLanguage)?savedUiLanguage:detectedUiLanguage,
   basis:initialBasis,
   resultLanguage:['de','en','both'].includes(savedResultLanguage)?savedResultLanguage:initialBasis,
-  view:['list','compact'].includes(savedResultView)?savedResultView:'list',
+  view:['list','compact'].includes(savedResultView)?savedResultView:'compact',
   searchOptionsExpanded:savedSearchOptionsExpanded==null?defaultSearchSectionsExpanded:savedSearchOptionsExpanded==='1',
   resultFiltersExpanded:savedResultFiltersExpanded==null?defaultSearchSectionsExpanded:savedResultFiltersExpanded==='1',
   generatedOptIn:true,generatedOnly:false,generatedCapability:null,datasetStats:null,runtimeTiming:null,
@@ -896,16 +896,48 @@ function appendClientPronunciations(params,generated){
   }
 }
 
-function selectedRuntimeDbPreference(){
+let runtimeDbPreference='';
+let runtimeDbLabel='';
+function storedRuntimeDbPreference(){
   const value=String(localStorage.getItem('rhymelab.internal.dbLab.v1')||'').trim().toLowerCase();
-  return ['lite','standard','full'].includes(value)?value:'standard';
+  return ['lite','standard','full'].includes(value)?value:'';
+}
+function selectedRuntimeDbPreference(){
+  return runtimeDbPreference;
 }
 function updateRuntimeDbBadge(value,{pending=false}={}){
   const badge=$('#searchDbBadge');
   if(!badge)return;
-  const label=String(value||'default').toUpperCase();
+  const label=String(value||runtimeDbLabel||'…').toUpperCase();
   badge.textContent='DB '+label+(pending?' …':'');
   badge.title=(state.lang==='de'?'Aktive lokale Datenbank: ':'Active local database: ')+label;
+}
+async function initializeRuntimeDbPreference(){
+  const stored=storedRuntimeDbPreference();
+  try{
+    const response=await fetch('/api/internal/distribution-dbs',{headers:{accept:'application/json'}});
+    const payload=await response.json();
+    if(response.ok&&payload?.enabled===true){
+      const available=(payload.databases||[]).filter((row)=>row?.available===true).map((row)=>String(row.id));
+      runtimeDbPreference=available.includes(stored)
+        ?stored
+        :available.includes(String(payload.defaultDatabase||''))?String(payload.defaultDatabase)
+        :available[0]||'';
+      runtimeDbLabel=runtimeDbPreference||String(payload.defaultDatabase||'');
+      if(runtimeDbPreference)try{localStorage.setItem('rhymelab.internal.dbLab.v1',runtimeDbPreference)}catch{}
+      updateRuntimeDbBadge(runtimeDbLabel);
+      return runtimeDbPreference;
+    }
+  }catch{}
+  runtimeDbPreference='';
+  try{
+    const health=await fetch('/api/health',{headers:{accept:'application/json'}}).then((response)=>response.json());
+    runtimeDbLabel=String(health?.serving_v1?.internal_db||'');
+  }catch{
+    runtimeDbLabel='';
+  }
+  updateRuntimeDbBadge(runtimeDbLabel);
+  return runtimeDbPreference;
 }
 async function requestWriter(params){
   const requestedDb=selectedRuntimeDbPreference();
@@ -1120,8 +1152,9 @@ async function bootstrap(){
 
   setScope($('#scopeFilter').value);
   syncSearchSectionControls();
-  updateRuntimeDbBadge('auto');
+  updateRuntimeDbBadge('');
   applyLanguage();
+  await initializeRuntimeDbPreference();
   await loadCapabilities();
 
   applySharedSearchState(sharedSearchState,{entityCategory:true});
