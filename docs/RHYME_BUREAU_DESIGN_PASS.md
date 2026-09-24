@@ -47,7 +47,7 @@ Personality belongs around the writing, never over it.
 | Perform | Strong rehearsal text hierarchy and coherent transport/tool surfaces | Timing, cues, BPM/grid/feel/count-in/loop, review invalidation, Web Audio and Focus |
 | Settings | Cohesive style workbench and data-safety surfaces; replace visible migration badge with product copy | Color generation/edit/save/apply/delete, defaults/reset, contrast report, backup/import/recovery |
 | Intro | Editorial poster composition and static sound specimen; retain existing copy and navigation actions | All entry points, language variants, reduced motion |
-| Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; on desktop dock Sound Explorer flush to the workspace top/right/bottom and allow it to pop into a resizable second-window view with 1–4 adaptive result columns; closing/redocking restores the sidebar | No new nested page scroll, no duplicated search/editor state, no hover-only action |
+| Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership. With the inline Sound Explorer open, preserve the original left-anchored Studio. If it is collapsed, disabled or popped out, stop the inline assistant and animate Studio into the same shared `--rl-reading-width` centered canvas as Search; reopening/redocking restores the original left layout. Popout remains resizable with 1–4 adaptive result columns. | No new nested page scroll, no duplicated search/editor state, no focus-mode narrowing, no hover-only action |
 | Navigation motion | No full-page route transition. Use local micro-motion only: a shared active-nav underline and restrained interaction motion on the Bureau mark | Navigation remains immediate; reduced-motion removes non-essential logo motion and the active indicator changes without animated travel |
 
 ## No-capability-loss contract
@@ -68,7 +68,8 @@ Personality belongs around the writing, never over it.
 
 ## Verification plan
 
-- Sound Explorer popout acceptance: opening uses the live Studio/editor/search context; inline sidebar yields its width; 680/1080/1520px result thresholds produce 2/3/4 columns; runtime/filter/dialog portals stay inside the popout document; closing by Dock or window X restores the sidebar.
+- Sound Explorer popout acceptance: opening uses the live Studio/editor/search context; inline sidebar yields its width; Studio animates into the same centered reading-width token as Search; 680/1080/1520px result thresholds produce 2/3/4 columns; runtime/filter/dialog portals stay inside the popout document; closing by Dock or window X restores the sidebar and left-anchored Studio.
+- Studio inactive-assistant acceptance: collapsed and disabled states do not mount the inline SearchExperience; both center the Studio canvas using the shared reading-width token. Re-expanding/re-enabling returns to the original docked geometry with reduced-motion falling back to an immediate layout switch. Focus mode always remains full-bleed.
 
 - `npm run studio:react:verify` (inventory, types, all React tests, production build).
 - `npm run studio:react:r7:gate` and reversible-preview tests.
