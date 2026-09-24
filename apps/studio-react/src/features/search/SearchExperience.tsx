@@ -381,7 +381,7 @@ export function SearchExperience({
       className={styles.searchExperience}
       data-variant={variant}
       data-rhymelab-surface="search"
-      aria-label={language === 'de' ? 'RhymeLab Reimsuche' : 'RhymeLab rhyme search'}
+      aria-label={language === 'de' ? 'Rhyme Bureau Reimsuche' : 'Rhyme Bureau rhyme search'}
     >
       <header className={styles.searchHeader}>
         <div className={styles.searchTitle}>
