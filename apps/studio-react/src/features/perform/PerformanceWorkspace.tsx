@@ -88,6 +88,11 @@ export function PerformanceWorkspace({
   const [moveFrom, setMoveFrom] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playhead, setPlayhead] = useState(-1);
+  const [countInBars, setCountInBars] = useState<0 | 1 | 2>(1);
+  const [countInRemaining, setCountInRemaining] = useState(0);
+  const [flowMode, setFlowMode] = useState<'loop' | 'advance'>('advance');
+  const selectedBarIdRef = useRef('');
+  const flowModeRef = useRef<'loop' | 'advance'>('advance');
   const audioRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickRef = useRef(0);
@@ -108,6 +113,14 @@ export function PerformanceWorkspace({
   useEffect(() => {
     latestSongRef.current = editor.activeSong;
   }, [editor.activeSong]);
+
+  useEffect(() => {
+    selectedBarIdRef.current = selectedBarId;
+  }, [selectedBarId]);
+
+  useEffect(() => {
+    flowModeRef.current = flowMode;
+  }, [flowMode]);
 
   useEffect(() => {
     const selected = editor.selection?.barId;
@@ -137,7 +150,6 @@ export function PerformanceWorkspace({
   const syllables = selectedBar ? estimateSyllables(selectedBar.text) : 0;
   const syllablesPerSecond = song ? performanceSyllablesPerSecond(song, syllables) : 0;
   const transportSignature = [
-    selectedBarId,
     config.bpm,
     config.grid,
     config.feel,
@@ -150,6 +162,7 @@ export function PerformanceWorkspace({
     tickRef.current = 0;
     setPlaying(false);
     setPlayhead(-1);
+    setCountInRemaining(0);
   }, []);
 
   useEffect(() => {
@@ -222,7 +235,9 @@ export function PerformanceWorkspace({
       audioRef.current = context;
       await context.resume();
       setPlaying(true);
-      tickRef.current = 0;
+      selectedBarIdRef.current = bar.id;
+      tickRef.current = -(countInBars * current.config.grid);
+      setCountInRemaining(countInBars * 4);
 
       const pulse = () => {
         const latest = clonedPerformanceSong(latestSongRef.current);
@@ -232,14 +247,22 @@ export function PerformanceWorkspace({
         }
         const latestConfig = performanceConfig(latest);
         const steps = latestConfig.grid;
-        const currentStep = tickRef.current % steps;
-        setPlayhead(currentStep);
-        const cue = getPerformanceCue(latest, bar.id, currentStep);
+        const rawTick = tickRef.current;
+        const inCountIn = rawTick < 0;
+        const currentStep = ((rawTick % steps) + steps) % steps;
+        const activeBarId = selectedBarIdRef.current || bar.id;
+        setPlayhead(inCountIn ? -1 : currentStep);
+        setCountInRemaining(inCountIn
+          ? Math.ceil(Math.abs(rawTick) / Math.max(1, steps / 4))
+          : 0);
+        const cue = inCountIn ? null : getPerformanceCue(latest, activeBarId, currentStep);
 
         if (currentStep % (steps / 4) === 0 || cue?.type === 'accent' || cue?.type === 'hit') {
           const oscillator = context.createOscillator();
           const gain = context.createGain();
-          oscillator.frequency.value = cue?.type === 'accent' ? 1120 : currentStep === 0 ? 960 : 620;
+          oscillator.frequency.value = inCountIn
+            ? (currentStep === 0 ? 1080 : 720)
+            : cue?.type === 'accent' ? 1120 : currentStep === 0 ? 960 : 620;
           const gainValue = cue?.type === 'hit' || cue?.type === 'accent' ? 0.06 : 0.04;
           gain.gain.setValueAtTime(gainValue, context.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.045);
@@ -249,8 +272,17 @@ export function PerformanceWorkspace({
           oscillator.stop(context.currentTime + 0.05);
         }
 
+        if (!inCountIn && currentStep === steps - 1 && flowModeRef.current === 'advance') {
+          const activeIndex = bars.findIndex((item) => item.id === activeBarId);
+          const next = bars[activeIndex + 1];
+          if (next) {
+            selectedBarIdRef.current = next.id;
+            setSelectedBarId(next.id);
+          }
+        }
+
         const duration = performanceStepDurationMs(latest, currentStep);
-        tickRef.current = (currentStep + 1) % steps;
+        tickRef.current = rawTick + 1;
         timerRef.current = setTimeout(pulse, duration);
       };
 
@@ -287,7 +319,7 @@ export function PerformanceWorkspace({
       <header className={styles.header}>
         <div>
           <p>R6 · PERFORM / BAR {String(selectedBar.number).padStart(2, '0')}</p>
-          <h1>{language === 'de' ? 'Flow sequenzieren.' : 'Sequence the flow.'}</h1>
+          <h1>{language === 'de' ? 'Booth-Modus.' : 'Booth mode.'}</h1>
           <span>{selectedBar.text || (language === 'de' ? 'Leere Bar' : 'Empty bar')}</span>
         </div>
         <div className={styles.barNav}>
@@ -315,6 +347,30 @@ export function PerformanceWorkspace({
           </button>
         </div>
       </header>
+
+      <section className={styles.booth}>
+        <div className={styles.boothContext}>
+          <span>
+            <small>{language === 'de' ? 'DAVOR' : 'PREVIOUS'}</small>
+            {bars[currentBarIndex - 1]?.text || '—'}
+          </span>
+          <article>
+            <small>BAR {String(selectedBar.number).padStart(2, '0')}</small>
+            <b>{selectedBar.text || (language === 'de' ? 'Leere Bar' : 'Empty bar')}</b>
+          </article>
+          <span>
+            <small>{language === 'de' ? 'DANACH' : 'NEXT'}</small>
+            {bars[currentBarIndex + 1]?.text || '—'}
+          </span>
+        </div>
+        <div className={styles.boothStatus} data-playing={playing ? 'true' : 'false'}>
+          <small>{playing ? (countInRemaining ? 'COUNT-IN' : 'LIVE') : (language === 'de' ? 'BEREIT' : 'READY')}</small>
+          <strong>{countInRemaining || (playing ? String(playhead + 1).padStart(2, '0') : '—')}</strong>
+          <span>{flowMode === 'advance'
+            ? (language === 'de' ? 'Auto zur nächsten Bar' : 'Auto next bar')
+            : (language === 'de' ? 'Aktuelle Bar loopen' : 'Loop current bar')}</span>
+        </div>
+      </section>
 
       <div className={styles.metrics}>
         <Metric label={language === 'de' ? 'SILBEN ≈' : 'SYLLABLES ≈'} value={syllables} />
@@ -366,6 +422,21 @@ export function PerformanceWorkspace({
               {value === 0.5 ? '½×' : value === 2 ? '2×' : '1×'}
             </button>
           ))}
+        </div>
+        <div className={styles.segmented} role="group" aria-label={language === 'de' ? 'Count-in' : 'Count in'}>
+          {([0, 1, 2] as const).map((value) => (
+            <button type="button" key={value} data-active={countInBars === value} aria-pressed={countInBars === value} onClick={() => setCountInBars(value)}>
+              {value === 0 ? 'No count' : `${value} bar`}
+            </button>
+          ))}
+        </div>
+        <div className={styles.segmented} role="group" aria-label={language === 'de' ? 'Bar-Fortschritt' : 'Bar progression'}>
+          <button type="button" data-active={flowMode === 'loop'} aria-pressed={flowMode === 'loop'} onClick={() => setFlowMode('loop')}>
+            {language === 'de' ? 'Loop Bar' : 'Loop bar'}
+          </button>
+          <button type="button" data-active={flowMode === 'advance'} aria-pressed={flowMode === 'advance'} onClick={() => setFlowMode('advance')}>
+            {language === 'de' ? 'Auto weiter' : 'Auto next'}
+          </button>
         </div>
         <button type="button" className={styles.play} onClick={() => void start()} aria-pressed={playing}>
           {playing ? '■ Stop' : '▶ Metronom'}
