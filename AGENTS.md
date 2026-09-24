@@ -14,19 +14,20 @@ Before changing the project in a fresh thread/session, read:
 6. `docs/REACT_STUDIO_R3_SEARCH_WRITER.md` — completed Search/Writer port; reuse its shared SearchState and R1 data path
 7. `docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md` — completed Library/persistence/recovery port; IndexedDB DocumentStore remains authoritative
 8. `docs/REACT_STUDIO_R5_EDITOR.md` — completed unified React editor port on the R4 persistence path
-9. `docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md` — completed Analysis/Perform port; R7 automated + real-device parity is next
-10. `docs/STUDIO_V2_HANDOVER.md` — shipping Studio V2 behavioral golden master and implementation checkpoint
-11. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — physical browser/touch/Web Audio acceptance matrix carried into migration acceptance
-12. `STATUS.md` — current operational state
-13. `PROJECT_STATE.json` — machine-readable current state
-14. `docs/HANDOVER.md` — current continuation pointer plus historical chronology
-15. `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md` — preserved database benchmark continuation, subordinate during the feature freeze
-16. `docs/MARKOV_GENERATOR_HANDOVER.md` — frozen Markov demo boundary; do not reopen without explicit owner direction
-17. `docs/SERVING_V1.md` and `docs/SERVING_V1_PRODUCT_ADAPTER.md` — canonical Serving-v1 runtime/data contracts
-18. `docs/PHASE_11_ACCEPTANCE.md` — accepted/frozen German Phrase/Mosaic behavior
-19. `docs/PHASE_12C_ACCEPTANCE.md` and `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — accepted Entity runtime and isolated AI staging boundary
-20. `docs/UI_INTERACTION_CONTRACT.md` and `docs/UI_REDESIGN_PARITY.md` — browser interaction/parity contracts
-21. `docs/DISTRIBUTION_TIERS.md` — Lite/Standard/Full packaging contract
+9. `docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md` — completed Analysis/Perform port
+10. `docs/REACT_STUDIO_R7_PARITY.md` — R7 source parity complete; physical/browser acceptance remains the active cutover blocker
+11. `docs/STUDIO_V2_HANDOVER.md` — shipping Studio V2 behavioral golden master and implementation checkpoint
+12. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — physical browser/touch/Web Audio acceptance matrix carried into migration acceptance
+13. `STATUS.md` — current operational state
+14. `PROJECT_STATE.json` — machine-readable current state
+15. `docs/HANDOVER.md` — current continuation pointer plus historical chronology
+16. `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md` — preserved database benchmark continuation, subordinate during the feature freeze
+17. `docs/MARKOV_GENERATOR_HANDOVER.md` — frozen Markov demo boundary; do not reopen without explicit owner direction
+18. `docs/SERVING_V1.md` and `docs/SERVING_V1_PRODUCT_ADAPTER.md` — canonical Serving-v1 runtime/data contracts
+19. `docs/PHASE_11_ACCEPTANCE.md` — accepted/frozen German Phrase/Mosaic behavior
+20. `docs/PHASE_12C_ACCEPTANCE.md` and `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md` — accepted Entity runtime and isolated AI staging boundary
+21. `docs/UI_INTERACTION_CONTRACT.md` and `docs/UI_REDESIGN_PARITY.md` — browser interaction/parity contracts
+22. `docs/DISTRIBUTION_TIERS.md` — Lite/Standard/Full packaging contract
 20. `docs/INTERNAL_DISTRIBUTION_LAB.md` — internal Master/Lite/Standard/Full comparison and shipping-isolation contract
 21. `ROADMAP.md`, `DATA_SOURCES.md`, `docs/API.md`, and subsystem-specific acceptance/benchmark documents when relevant
 
