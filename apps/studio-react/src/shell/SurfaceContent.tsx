@@ -470,7 +470,13 @@ function SurfaceContentBody() {
               popup={soundExplorerWindow}
               onClosed={() => setSoundExplorerWindow(null)}
             >
-              <DeferredSurface><SearchExperience variant="popout" enabled /></DeferredSurface>
+              <DeferredSurface>
+                <SearchExperience
+                  variant="popout"
+                  enabled
+                  portalContainer={soundExplorerWindow.document.body}
+                />
+              </DeferredSurface>
             </SoundExplorerPopout>
           ) : null}
 
