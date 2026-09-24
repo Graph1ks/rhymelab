@@ -145,10 +145,11 @@ add(
 );
 add(
   'server.reversible-cutover',
-  server.includes("studioDefaultRoute?studioHtml:writerHtml")
+  server.includes("'/studio': { type: 'text/html; charset=utf-8', body: reactStudioHtml }")
+    &&server.includes("'/studio-legacy': { type: 'text/html; charset=utf-8', body: studioHtml }")
     &&server.includes("'/legacy'")
     &&server.includes("'/pad-legacy'"),
-  'reversible Studio-default route switch + legacy aliases',
+  'React default Studio route + preserved Studio V2/Search/RhymePad rollback aliases',
 );
 
 const requiredTests=[
