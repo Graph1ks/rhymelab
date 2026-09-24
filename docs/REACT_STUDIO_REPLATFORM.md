@@ -46,6 +46,8 @@ No percentage-complete shortcut is permitted. 99% parity is a failed cutover.
 
 ## Architecture boundary
 
+**R9 ownership update:** the historical `apps/studio-react/src/legacy` bridge is being removed. React must consume product behavior from `packages/shared-core` and browser-specific capabilities from `packages/platform-web`. Direct React imports from `src/studio` and `src/ui` are forbidden by `npm run studio:react:core-boundary`. See `docs/SHARED_CORE_ARCHITECTURE.md`.
+
 The migration is a frontend replatform, not a product/runtime rewrite.
 
 ```text
@@ -57,7 +59,9 @@ React / TypeScript / Vite
         +-- Zustand             -> ephemeral UI/session state
         +-- TanStack Virtual    -> large result/list rendering
         |
-existing browser-domain modules/adapters
+Shared Core (`packages/shared-core`)
+        |
+platform adapter (`packages/platform-web` on Web)
         |
 existing local HTTP API
         |

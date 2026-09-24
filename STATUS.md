@@ -1,3 +1,20 @@
+# CURRENT ARCHITECTURE — R9 Shared Core extraction
+
+RhymeLab is now moving from the completed React runtime cutover to a **Shared Core exit architecture**. The target is not to rewrite domain logic in React; it is to make React the only product UI while proven framework-independent behavior lives in neutral packages.
+
+- Shared Core: `packages/shared-core/`
+- Web platform adapters: `packages/platform-web/`
+- React typed boundary: `apps/studio-react/src/core/`
+- React `src/legacy/`: removed on `architecture/shared-core-r9`
+- React imports from `src/studio/` or `src/ui/`: forbidden by CI
+- Legacy Studio/Search/RhymePad surfaces: temporary rollback evidence only, not architecture
+
+Only authoritative domain behavior, data-format migration compatibility, replaceable platform adapters and parity-proven semantics graduate into Shared Core. Debug-only browser metrics, duplicate DOM orchestration and obsolete UI helpers do not.
+
+The seven physical browser/touch/IME/Web Audio gates remain pending. They still block deleting the rollback surfaces, but they do not change Shared Core ownership.
+
+See `docs/SHARED_CORE_ARCHITECTURE.md`.
+
 # CURRENT RUNTIME — React Studio R8 reversible cutover
 
 As of 2026-09-24, React Studio is the normal product shell at `/` and `/studio`. The historical `/studio-react` route remains an alias. Studio V2 is retained intact at `/studio-legacy` as the rollback/reference surface.
