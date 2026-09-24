@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 
 import { LibraryWorkspace } from '../features/library/LibraryWorkspace';
@@ -14,6 +15,7 @@ export function SurfaceContent() {
   const surface = useUiStore((state) => state.surface);
   const language = useUiStore((state) => state.uiLanguage);
   const reduceMotion = useReducedMotion();
+  const [mobileStudioPane, setMobileStudioPane] = useState<'editor' | 'results'>('editor');
 
   if (surface === 'settings') {
     return (
@@ -70,10 +72,29 @@ export function SurfaceContent() {
         <motion.div
           key="studio"
           className={styles.studioFoundation}
+          data-mobile-pane={mobileStudioPane}
           initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.18 }}
         >
+          <div className={styles.mobileStudioSwap} role="group" aria-label={language === 'de' ? 'Mobile Studio Ansicht' : 'Mobile Studio view'}>
+            <button
+              type="button"
+              data-active={mobileStudioPane === 'editor' ? 'true' : 'false'}
+              aria-pressed={mobileStudioPane === 'editor'}
+              onClick={() => setMobileStudioPane('editor')}
+            >
+              {language === 'de' ? 'Editor' : 'Editor'}
+            </button>
+            <button
+              type="button"
+              data-active={mobileStudioPane === 'results' ? 'true' : 'false'}
+              aria-pressed={mobileStudioPane === 'results'}
+              onClick={() => setMobileStudioPane('results')}
+            >
+              {language === 'de' ? 'Reime' : 'Rhymes'}
+            </button>
+          </div>
           <section className={styles.primaryFoundation}>
             <EditorWorkspace />
           </section>
