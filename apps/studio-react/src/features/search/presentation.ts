@@ -1,5 +1,5 @@
-import * as legacySearchFilters from '../../../../src/studio/search-filters.mjs';
-import * as legacyStudioControls from '../../../../src/studio/studio-controls.mjs';
+import * as legacySearchFilters from '../../../../../src/studio/search-filters.mjs';
+import * as legacyStudioControls from '../../../../../src/studio/studio-controls.mjs';
 
 import type {
   QueryBasis,
