@@ -20,11 +20,13 @@ import { useCanonicalAnalysis } from './data';
 import {
   ANALYSIS_RHYME_TYPE_ORDER,
   allRhymeBars,
+  analysisLineTokens,
   analysisRhymeTypeLabel,
   analysisSections,
   analysisTotals,
   relationCounts,
   rhymeChainGroups,
+  rhymeTopologyGroups,
   sectionRelations,
   strongestRhymeType,
   trackedAnalysisDocument,
@@ -37,7 +39,7 @@ import styles from './Analysis.module.css';
 type Scope = 'end' | 'all';
 type RelationMode = 'all' | 'primary' | 'soft';
 
-const RHYME_GROUP_COLORS = 8;
+const RHYME_GROUP_COLORS = 12;
 
 function rhymeGroupStyle(label: string | undefined): CSSProperties {
   const text = String(label || '?').toUpperCase();
@@ -45,6 +47,14 @@ function rhymeGroupStyle(label: string | undefined): CSSProperties {
   const index = Math.abs(code - 65) % RHYME_GROUP_COLORS;
   return { '--rhyme-color': `var(--rl-rhyme-group-${index})` } as CSSProperties;
 }
+
+function topologyGroupStyle(index: number | null | undefined): CSSProperties {
+  if (index == null || index < 0) return {};
+  return {
+    '--topology-color': `var(--rl-rhyme-group-${index % RHYME_GROUP_COLORS})`,
+  } as CSSProperties;
+}
+
 
 function RhymeLegend() {
   const language = useUiStore((state) => state.uiLanguage);
@@ -286,6 +296,9 @@ function AllAnalysis({ data, onOpenEditor }: { data: CanonicalAnalysisPayload; o
   const language = useUiStore((state) => state.uiLanguage);
   const editor = useEditorSession();
   const { patch } = useSharedSearchState();
+  const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
+  const [hoveredGroup, setHoveredGroup] = useState<number | null>(null);
+  const [relationFocus, setRelationFocus] = useState<'all' | 'primary'>('all');
   const song = editor.activeSong;
   if (!song) return null;
 
@@ -296,6 +309,8 @@ function AllAnalysis({ data, onOpenEditor }: { data: CanonicalAnalysisPayload; o
   const sections = analysisSections(structuredClone(song));
   const counts = relationCounts(relations);
   const primary = relations.filter((relation) => relation.primary).length;
+  const topology = rhymeTopologyGroups(occurrences, relations);
+  const activeGroup = hoveredGroup ?? selectedGroup;
   const rhymingBars = new Set<number>();
   relations.forEach((relation) => {
     if (relation.left?.lineIndex != null) rhymingBars.add(relation.left.lineIndex);
@@ -309,65 +324,263 @@ function AllAnalysis({ data, onOpenEditor }: { data: CanonicalAnalysisPayload; o
     patch({ anchor, selectedResultId: '' });
   };
 
+  const barBlocks = Array.from(
+    { length: Math.ceil(rows.length / 4) },
+    (_, blockIndex) => rows.slice(blockIndex * 4, blockIndex * 4 + 4),
+  );
+
   return (
     <div className={styles.all}>
       <section className={styles.overview}>
         <Metric label={language === 'de' ? 'GESAMTER TEXT' : 'WHOLE TEXT'} value={relations.length} />
         <Metric label={language === 'de' ? 'PRIMÄR' : 'PRIMARY'} value={primary} />
         <Metric label="SOFT" value={relations.length - primary} />
-        <Metric label={language === 'de' ? 'BARS MIT REIM' : 'BARS WITH RHYME'} value={String(rhymingBars.size) + '/' + String(document.indexes.length)} copy={String(occurrences.length) + ' words'} />
+        <Metric
+          label={language === 'de' ? 'REIMKETTEN' : 'RHYME CHAINS'}
+          value={topology.groups.length}
+          copy={String(rhymingBars.size) + '/' + String(document.indexes.length) + ' Bars'}
+        />
+      </section>
+
+      <section className={styles.rhymeMapCard}>
+        <div className={styles.rhymeMapHeader}>
+          <div>
+            <p>{language === 'de' ? 'RHYME TOPOLOGY' : 'RHYME TOPOLOGY'}</p>
+            <h2>{language === 'de' ? 'Der Text bleibt Text.' : 'Keep the lyrics readable.'}</h2>
+            <span>
+              {language === 'de'
+                ? 'Gruppenfarbe = zusammenhängende Reimkette · Unterkante = stärkster Reimtyp · Hover verbindet alle Treffer.'
+                : 'Group color = connected rhyme chain · underline = strongest rhyme type · hover links every occurrence.'}
+            </span>
+          </div>
+          <div className={styles.segmented}>
+            <button
+              type="button"
+              data-active={relationFocus === 'all'}
+              onClick={() => setRelationFocus('all')}
+            >
+              {language === 'de' ? 'Alle Beziehungen' : 'All relations'}
+            </button>
+            <button
+              type="button"
+              data-active={relationFocus === 'primary'}
+              onClick={() => setRelationFocus('primary')}
+            >
+              {language === 'de' ? 'Primär fokussieren' : 'Primary focus'}
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.rhymeMap}>
+          {barBlocks.map((block, blockIndex) => {
+            const blockGroups = [...new Set(
+              block.flatMap((row) => row.occurrences
+                .map((entry) => topology.occurrenceGroup.get(entry.index))
+                .filter((value): value is number => value != null)),
+            )];
+            return (
+              <section className={styles.rhymeBlock} key={String(blockIndex)}>
+                <header>
+                  <span>
+                    BARS {String(block[0]?.barNumber ?? 0).padStart(2, '0')}–{String(block.at(-1)?.barNumber ?? 0).padStart(2, '0')}
+                  </span>
+                  <div>
+                    {blockGroups.map((groupIndex) => {
+                      const group = topology.groups[groupIndex];
+                      return group ? (
+                        <button
+                          type="button"
+                          key={group.id}
+                          style={topologyGroupStyle(groupIndex)}
+                          data-active={activeGroup === groupIndex ? 'true' : 'false'}
+                          onPointerEnter={() => setHoveredGroup(groupIndex)}
+                          onPointerLeave={() => setHoveredGroup(null)}
+                          onClick={() => setSelectedGroup((current) => current === groupIndex ? null : groupIndex)}
+                          title={group.words.join(' · ')}
+                        >
+                          {group.id}
+                        </button>
+                      ) : null;
+                    })}
+                  </div>
+                </header>
+
+                <div className={styles.lyricBlock}>
+                  {block.map((row) => {
+                    const occurrenceByWord = new Map(row.occurrences.map((entry) => [entry.wordIndex, entry]));
+                    const groupIds = [...new Set(
+                      row.occurrences
+                        .map((entry) => topology.occurrenceGroup.get(entry.index))
+                        .filter((value): value is number => value != null),
+                    )];
+                    return (
+                      <article className={styles.lyricBar} key={song.barIds?.[row.documentLineIndex] ?? String(row.documentLineIndex)}>
+                        <button
+                          type="button"
+                          className={styles.lyricBarNumber}
+                          onClick={() => {
+                            editor.jumpToBar(song.barIds?.[row.documentLineIndex] ?? '');
+                            onOpenEditor();
+                          }}
+                        >
+                          {String(row.barNumber).padStart(2, '0')}
+                        </button>
+
+                        <p>
+                          {analysisLineTokens(row.text).map((token, tokenIndex) => {
+                            if (token.wordIndex == null) {
+                              return <span key={'gap-' + String(tokenIndex)}>{token.text}</span>;
+                            }
+                            const occurrence = occurrenceByWord.get(token.wordIndex);
+                            if (!occurrence) {
+                              return <span key={'word-' + String(tokenIndex)}>{token.text}</span>;
+                            }
+
+                            const occurrenceRelations = row.relations.filter(
+                              (relation: StudioOccurrenceRelation) => (
+                                relation.left.index === occurrence.index
+                                || relation.right.index === occurrence.index
+                              ),
+                            );
+                            const primaryOccurrence = occurrenceRelations.some((relation) => relation.primary);
+                            if (relationFocus === 'primary' && !primaryOccurrence) {
+                              return <span key={'soft-' + String(tokenIndex)}>{token.text}</span>;
+                            }
+
+                            const types = new Set(occurrenceRelations.map((relation) => relation.type));
+                            const strongest = strongestRhymeType(types);
+                            const groupIndex = topology.occurrenceGroup.get(occurrence.index);
+                            const group = groupIndex == null ? null : topology.groups[groupIndex];
+                            const dimmed = activeGroup != null && groupIndex !== activeGroup;
+                            return (
+                              <button
+                                type="button"
+                                key={'rhyme-' + String(occurrence.index)}
+                                className={styles.rhymeWord}
+                                data-rhyme-type={strongest || undefined}
+                                data-grouped={group ? 'true' : 'false'}
+                                data-dimmed={dimmed ? 'true' : 'false'}
+                                style={topologyGroupStyle(groupIndex)}
+                                title={[
+                                  group ? 'Chain ' + group.id : '',
+                                  strongest ? analysisRhymeTypeLabel(strongest, language) : '',
+                                  occurrenceRelations.length + ' relations',
+                                ].filter(Boolean).join(' · ')}
+                                onPointerEnter={() => {
+                                  if (groupIndex != null) setHoveredGroup(groupIndex);
+                                }}
+                                onPointerLeave={() => setHoveredGroup(null)}
+                                onClick={() => {
+                                  chooseAnchor(occurrence.surface);
+                                  if (groupIndex != null) setSelectedGroup(groupIndex);
+                                }}
+                              >
+                                {token.text}
+                                {group ? <sup>{group.id}</sup> : null}
+                              </button>
+                            );
+                          })}
+                        </p>
+
+                        <div className={styles.lyricBarChains}>
+                          {groupIds.map((groupIndex) => {
+                            const group = topology.groups[groupIndex];
+                            return group ? (
+                              <button
+                                type="button"
+                                key={group.id}
+                                style={topologyGroupStyle(groupIndex)}
+                                onPointerEnter={() => setHoveredGroup(groupIndex)}
+                                onPointerLeave={() => setHoveredGroup(null)}
+                                onClick={() => setSelectedGroup((current) => current === groupIndex ? null : groupIndex)}
+                              >
+                                {group.id}
+                              </button>
+                            ) : null;
+                          })}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+
+        <div className={styles.chainIndex}>
+          <div className={styles.chainIndexHead}>
+            <span>{language === 'de' ? 'REIMKETTEN' : 'RHYME CHAINS'}</span>
+            <small>
+              {language === 'de'
+                ? 'Kette anklicken = im gesamten Text isolieren'
+                : 'Click a chain to isolate it across the lyric'}
+            </small>
+          </div>
+          <div className={styles.chainIndexGrid}>
+            {topology.groups.length ? topology.groups.map((group) => (
+              <button
+                type="button"
+                key={group.id}
+                className={styles.chainIndexItem}
+                style={topologyGroupStyle(group.index)}
+                data-active={activeGroup === group.index ? 'true' : 'false'}
+                data-dimmed={activeGroup != null && activeGroup !== group.index ? 'true' : 'false'}
+                onPointerEnter={() => setHoveredGroup(group.index)}
+                onPointerLeave={() => setHoveredGroup(null)}
+                onClick={() => setSelectedGroup((current) => current === group.index ? null : group.index)}
+              >
+                <strong>{group.id}</strong>
+                <span>
+                  <b>{group.words.slice(0, 4).join(' · ')}</b>
+                  <small>Bars {group.barNumbers.join(', ')} · {group.relationCount} relations</small>
+                </span>
+              </button>
+            )) : (
+              <p className={styles.noChains}>
+                {language === 'de'
+                  ? 'Keine zusammenhängende primäre Reimkette erkannt. Soft-Beziehungen bleiben direkt im Text markiert.'
+                  : 'No connected primary rhyme chain detected. Soft relations remain marked directly in the lyric.'}
+              </p>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className={styles.card}>
-        <div className={styles.cardHeader}><div><p>{language === 'de' ? 'NACH REIMTYP' : 'BY RHYME TYPE'}</p><h2>{relations.length}</h2></div><span className={styles.canonical}>CANONICAL</span></div>
+        <div className={styles.cardHeader}>
+          <div><p>{language === 'de' ? 'NACH REIMTYP' : 'BY RHYME TYPE'}</p><h2>{relations.length}</h2></div>
+          <span className={styles.canonical}>CANONICAL</span>
+        </div>
         <div className={styles.types}>
           {ANALYSIS_RHYME_TYPE_ORDER.filter((type) => counts[type]).map((type) => (
-            <article key={type} data-rhyme-type={type}><small>{analysisRhymeTypeLabel(type, language)}</small><b>{counts[type]}</b></article>
+            <article key={type} data-rhyme-type={type}>
+              <small>{analysisRhymeTypeLabel(type, language)}</small>
+              <b>{counts[type]}</b>
+            </article>
           ))}
         </div>
       </section>
 
       <section className={styles.card}>
-        <div className={styles.cardHeader}><div><p>VERSE / SECTION</p><h2>{sections.length}</h2></div></div>
+        <div className={styles.cardHeader}>
+          <div><p>VERSE / SECTION</p><h2>{sections.length}</h2></div>
+        </div>
         <div className={styles.sections}>
           {sections.map((section) => {
             const internal = sectionRelations(section, relations);
             const sectionCounts = relationCounts(internal);
             return (
               <article key={section.id}>
-                <header><b>{section.label}</b><span>{section.barNumbers.length ? 'Bars ' + String(section.barNumbers[0]) + '–' + String(section.barNumbers.at(-1)) : ''}</span></header>
-                <strong>{internal.length} relations</strong>
-                <div>{ANALYSIS_RHYME_TYPE_ORDER.filter((type) => sectionCounts[type]).map((type) => <span key={type}>{sectionCounts[type]} {analysisRhymeTypeLabel(type, language)}</span>)}</div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className={styles.card}>
-        <div className={styles.cardHeader}><div><p>{language === 'de' ? 'PRO BAR' : 'BY BAR'}</p><h2>{rows.length} Bars</h2></div></div>
-        <div className={styles.bars}>
-          {rows.map((row) => {
-            const occurrenceTypes = new Map<number, Set<string>>();
-            row.relations.forEach((relation: StudioOccurrenceRelation) => {
-              [relation.left, relation.right].forEach((occurrence) => {
-                const types = occurrenceTypes.get(occurrence.index) ?? new Set<string>();
-                types.add(relation.type);
-                occurrenceTypes.set(occurrence.index, types);
-              });
-            });
-            return (
-              <article key={song.barIds?.[row.documentLineIndex] ?? String(row.documentLineIndex)}>
                 <header>
-                  <button type="button" onClick={() => { editor.jumpToBar(song.barIds?.[row.documentLineIndex] ?? ''); onOpenEditor(); }}>BAR {String(row.barNumber).padStart(2, '0')}</button>
-                  <span>{row.relations.length} relations</span>
+                  <b>{section.label}</b>
+                  <span>{section.barNumbers.length ? 'Bars ' + String(section.barNumbers[0]) + '–' + String(section.barNumbers.at(-1)) : ''}</span>
                 </header>
-                <div className={styles.tokens}>
-                  {row.occurrences.length ? row.occurrences.map((entry) => {
-                    const types = occurrenceTypes.get(entry.index) ?? new Set<string>();
-                    const strongest = strongestRhymeType(types);
-                    return <button type="button" key={String(entry.index)} data-rhyme-type={strongest || undefined} onClick={() => chooseAnchor(entry.surface)}>{entry.surface}</button>;
-                  }) : <span>{row.text || '—'}</span>}
+                <strong>{internal.length} relations</strong>
+                <div>
+                  {ANALYSIS_RHYME_TYPE_ORDER.filter((type) => sectionCounts[type]).map((type) => (
+                    <span key={type}>{sectionCounts[type]} {analysisRhymeTypeLabel(type, language)}</span>
+                  ))}
                 </div>
               </article>
             );
