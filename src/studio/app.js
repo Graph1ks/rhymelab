@@ -10,7 +10,7 @@ import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
 import {createStudioAnalysisClient,studioAnalysisWords,studioRhymeTypeCounts} from './analysis-adapter.mjs';
 import {readStudioAnalysisCache,writeStudioAnalysisCache} from './analysis-cache.mjs';
-import {barIdentity,createSelectionProof,duplicateEditorBar,editorBracketSegments,editorDocumentText,editorLineKind,editorLineStartOffset,editorPositionFromOffset,editorSnapshot,editorTrackableText,ensureEditorSong,insertEditorBar,isTrackedEditorLine,moveEditorBar,reconcileEditorDocumentText,removeEditorBar,replaceEditorDocumentRange,restoreEditorSnapshot,trackedEditorBarNumber,trackedEditorLineIndexes,validateSelectionProof} from './editor-session.mjs';
+import {barIdentity,createSelectionProof,duplicateEditorBar,editorBracketSegments,editorDocumentText,editorLineKind,editorLineStartOffset,editorPositionFromOffset,editorSnapshot,editorTrackableText,ensureEditorSong,isTrackedEditorLine,moveEditorBar,reconcileEditorDocumentText,removeEditorBar,replaceEditorDocumentRange,restoreEditorSnapshot,trackedEditorBarNumber,trackedEditorLineIndexes,validateSelectionProof} from './editor-session.mjs';
 import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarDurationMs,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceFlowFingerprint,performanceNeedsReview,performancePocketMetrics,performancePreviousBarPlacements,performanceStepDurationMs,performanceSyllablesPerSecond,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
 import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
@@ -4237,20 +4237,6 @@ function renderBarInspectorDock(body){
   };
 }
 
-function addStudioBarAfter(index=activeLine){
-  const current=song(),target=Math.max(-1,Math.min(current.lines.length-1,Number(index)));
-  pushUndo();
-  const inserted=insertEditorBar(current,target+1,'');
-  if(!inserted)return false;
-  activeLine=inserted.index;
-  selection={line:inserted.index,barId:inserted.id,barRevision:inserted.revision,start:0,end:0};
-  selectionProof=createSelectionProof(current,{index:inserted.index,start:0,end:0});
-  analysisSignature='';
-  renderEditor();changed();
-  if(dockTab==='navigator')renderDock();
-  focusLine(inserted.index,0);
-  return true;
-}
 function duplicateStudioBar(index=activeLine){
   const current=song(),source=barIdentity(current,index);
   if(!source)return false;
