@@ -6,10 +6,11 @@ RhymeLab is a **local-only** Node.js + SQLite project. Core search is determinis
 
 ## Current runtime
 
-RhymeLab `v0.11.0` uses Studio V2 plus the Serving-v1 shipping distributions:
+RhymeLab `v0.11.0` uses the React Studio plus the Serving-v1 shipping distributions:
 
 ~~~text
-product shell          Studio V2 (default / route)
+product shell          React Studio (default / and /studio routes)
+legacy rollback        Studio V2 at /studio-legacy
 runtime editions       LITE | STANDARD | FULL
 preferred database     STANDARD → FULL → LITE (first locally available edition)
 search channels        edition-dependent DE/EN Words + Phrase/Mosaic + Entities
@@ -26,17 +27,18 @@ Markov / Constrained Lyric Decoder V2 is intentionally frozen. Its demo
 infrastructure may ship, but it is not part of RhymeLab product navigation.
 
 
-### Frontend replatform in progress
+### React Studio cutover
 
-New product feature development is temporarily frozen while Studio is migrated,
-behavior-for-behavior, to React + TypeScript + Vite + Base UI + Motion + TanStack
-Query + Zustand + TanStack Virtual. R0 scaffold/freeze, R1 typed-domain bridging,
-R2 shell/design-system foundations, R3 Search/Writer and R4
-Library/persistence/recovery are complete; R5 editor is next. The existing Studio
-V2 remains the shipping golden master until the hard parity gate passes. See
-`docs/REACT_STUDIO_REPLATFORM.md`, `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`,
-`docs/REACT_STUDIO_R2_SHELL.md`, `docs/REACT_STUDIO_R3_SEARCH_WRITER.md`,
-`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`, and
+The behavior-preserving React + TypeScript + Vite replatform is now the normal
+runtime surface. The owner explicitly authorized a reversible R8 cutover after
+the R7 source-parity and UX work. React is served at `/` and `/studio`; the
+historical `/studio-react` route remains as an alias. Studio V2 is retained at
+`/studio-legacy` as the rollback/reference surface.
+
+The seven physical browser/touch/IME/Web Audio acceptance gates remain open and
+must not be represented as completed. They now govern burn-in completion and any
+future deletion of the legacy Studio rather than whether React is the default
+route. See `docs/REACT_STUDIO_REPLATFORM.md` and
 `docs/REACT_STUDIO_PARITY_GATE.md`.
 
 ## Local run
@@ -64,13 +66,20 @@ Open:
 http://127.0.0.1:3030
 ~~~
 
-Studio V2 is served at the root route. Search and RhymePad remain available as
-alternate UI surfaces, but they use the same shipping-tier database runtime.
+React Studio is served at the root route and at `/studio`. Studio V2 remains
+available at `/studio-legacy` for rollback/reference. Search and RhymePad remain
+available as alternate UI surfaces and use the same shipping-tier database runtime.
 
 To temporarily restore Search as the root route:
 
 ~~~powershell
 npm run dev:search-default
+~~~
+
+To temporarily restore Studio V2 as the root route:
+
+~~~powershell
+npm run dev:legacy-studio-default
 ~~~
 
 ### Build the shipping databases
@@ -193,9 +202,9 @@ The major accepted baselines are now:
 
 Current follow-up work is intentionally narrower:
 
-1. complete the P0 React Studio replatform with all mandatory parity rows verified before cutover;
-2. keep new product feature development frozen during the port;
-3. complete the seven real-device/browser/touch/Web Audio acceptance checks as migration/cutover evidence for the preserved Studio behaviors;
+1. burn in the owner-authorized reversible React Studio R8 cutover;
+2. keep new product feature development frozen while the remaining acceptance work is active;
+3. complete the seven real-device/browser/touch/Web Audio acceptance checks before declaring the migration complete or removing the legacy Studio;
 2. fix only concrete Studio regressions found by that acceptance while keeping the Search-root rollback available;
 3. preserve Serving-v1 and the accepted Phrase/English/Entity/ranking semantics;
 4. keep Markov frozen and unlinked until the owner explicitly reopens that work;
