@@ -15,7 +15,7 @@ import {
   writeStudioPreferences,
 } from '../../core/documents';
 import type {
-  LegacyStudioState,
+  WorkspaceState,
   PortableStudioBackup,
   SearchState,
 } from '../../core/contracts';
@@ -34,17 +34,17 @@ import {
 } from './persistence';
 import { cloneWorkspaceState } from './model';
 
-type Mutator = (state: LegacyStudioState) => LegacyStudioState | void;
+type Mutator = (state: WorkspaceState) => WorkspaceState | void;
 
 interface DocumentWorkspaceContextValue {
-  state: LegacyStudioState;
+  state: WorkspaceState;
   status: WorkspacePersistenceStatus;
   authority: 'indexeddb' | 'localstorage';
   error: string;
   recoveryPoints: RecoveryRow[];
-  peekState: () => LegacyStudioState;
+  peekState: () => WorkspaceState;
   mutate: (mutator: Mutator, options?: { immediate?: boolean }) => Promise<boolean>;
-  replaceState: (state: LegacyStudioState, options?: { immediate?: boolean }) => Promise<boolean>;
+  replaceState: (state: WorkspaceState, options?: { immediate?: boolean }) => Promise<boolean>;
   flush: (reason?: string) => Promise<boolean>;
   refreshRecoveryPoints: () => Promise<RecoveryRow[]>;
   createRecoveryPoint: (reason?: string) => Promise<void>;
@@ -55,7 +55,7 @@ interface DocumentWorkspaceContextValue {
 
 const DocumentWorkspaceContext = createContext<DocumentWorkspaceContextValue | null>(null);
 
-function initialState(): LegacyStudioState {
+function initialState(): WorkspaceState {
   // initializeDocumentWorkspace performs the authoritative IndexedDB load. This
   // synchronous value only prevents an empty React tree while that completes.
   const preferences = loadStudioPreferences();
@@ -64,23 +64,23 @@ function initialState(): LegacyStudioState {
     active: null,
     folders: [],
     ...preferences,
-  } as LegacyStudioState;
+  } as WorkspaceState;
 }
 
 export function DocumentWorkspaceProvider({ children }: { children: ReactNode }) {
   const storeRef = useRef(createWorkspaceStore());
   const initializedRef = useRef(false);
   const storeAvailableRef = useRef(false);
-  const stateRef = useRef<LegacyStudioState>(initialState());
+  const stateRef = useRef<WorkspaceState>(initialState());
   const queueRef = useRef<ReturnType<typeof createSerializedSaveQueue> | null>(null);
 
-  const [state, setState] = useState<LegacyStudioState>(stateRef.current);
+  const [state, setState] = useState<WorkspaceState>(stateRef.current);
   const [status, setStatus] = useState<WorkspacePersistenceStatus>('loading');
   const [authority, setAuthority] = useState<'indexeddb' | 'localstorage'>('localstorage');
   const [error, setError] = useState('');
   const [recoveryPoints, setRecoveryPoints] = useState<RecoveryRow[]>([]);
 
-  const publishState = useCallback((next: LegacyStudioState) => {
+  const publishState = useCallback((next: WorkspaceState) => {
     stateRef.current = next;
     setState(next);
     try {
@@ -92,7 +92,7 @@ export function DocumentWorkspaceProvider({ children }: { children: ReactNode })
   }, []);
 
   const saveNow = useCallback(async (
-    next: LegacyStudioState,
+    next: WorkspaceState,
     generation: number,
   ) => {
     setStatus('saving');
@@ -147,7 +147,7 @@ export function DocumentWorkspaceProvider({ children }: { children: ReactNode })
         const fallback = {
           ...loadStudioState(),
           ...loadStudioPreferences(),
-        } as LegacyStudioState;
+        } as WorkspaceState;
         publishState(fallback);
         setStatus('error');
         setAuthority('localstorage');
@@ -182,7 +182,7 @@ export function DocumentWorkspaceProvider({ children }: { children: ReactNode })
   const peekState = useCallback(() => stateRef.current, []);
 
   const replaceState = useCallback(async (
-    next: LegacyStudioState,
+    next: WorkspaceState,
     options: { immediate?: boolean } = {},
   ) => {
     const normalized = cloneWorkspaceState(next);

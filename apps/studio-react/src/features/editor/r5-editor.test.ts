@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { LegacyStudioSong, LegacyStudioState } from '../../core/contracts';
+import type { WorkspaceSong, WorkspaceState } from '../../core/contracts';
 import {
   editorDocumentText,
   ensureEditorSong,
@@ -31,7 +31,7 @@ import {
   snapshotForUndo,
 } from './model';
 
-function song(): LegacyStudioSong {
+function song(): WorkspaceSong {
   return {
     id: 's1',
     title: 'Draft',
@@ -244,7 +244,7 @@ describe('R5 editor orchestration model', () => {
 
   it('finds only the active non-deleted document', () => {
     const current = song();
-    const state: LegacyStudioState = {
+    const state: WorkspaceState = {
       songs: [current],
       active: current.id,
       folders: ['Entwürfe'],

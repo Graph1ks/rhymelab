@@ -4,7 +4,7 @@ import * as webDocumentAdapter from '../../../../packages/platform-web/src/docum
 import * as sharedBackupPortability from '../../../../packages/shared-core/src/document/backup-portability.mjs';
 
 import type {
-  LegacyStudioState,
+  WorkspaceState,
   StorageLike,
   StudioBarRow,
   StudioDocumentMigration,
@@ -19,7 +19,7 @@ type DocumentModelApi = {
   STUDIO_DOCUMENT_SCHEMA: string;
   STUDIO_DOCUMENT_VERSION: number;
   serializeLegacyStudioBackup(legacyState: unknown): string;
-  migrateLegacyStudioState(legacyState?: Partial<LegacyStudioState>): StudioDocumentMigration;
+  migrateWorkspaceState(legacyState?: Partial<WorkspaceState>): StudioDocumentMigration;
   validateStudioDocumentSnapshot(snapshot: unknown): StudioDocumentValidation;
   barsForSong(snapshot: StudioDocumentSnapshot, songId: string): StudioBarRow[];
   songText(snapshot: StudioDocumentSnapshot, songId: string): string;
@@ -62,8 +62,8 @@ type DocumentStoreApi = {
   STUDIO_DOCUMENT_DB_VERSION: number;
   openStudioDocumentDatabase(indexedDBImpl?: IDBFactory | null): Promise<IDBDatabase | null>;
   createStudioDocumentStore(options?: { indexedDBImpl?: IDBFactory | null }): StudioDocumentStore;
-  migrateLegacyStudioStateToStore(
-    legacyState: Partial<LegacyStudioState>,
+  migrateWorkspaceStateToStore(
+    legacyState: Partial<WorkspaceState>,
     store: StudioDocumentStore,
   ): Promise<{
     migration: StudioDocumentMigration;
@@ -72,8 +72,8 @@ type DocumentStoreApi = {
     verified: true;
     counts: StudioDocumentMigration['report']['counts'];
   }>;
-  shadowLegacyStudioStateToStore(
-    legacyState: Partial<LegacyStudioState>,
+  shadowWorkspaceStateToStore(
+    legacyState: Partial<WorkspaceState>,
     store: StudioDocumentStore,
   ): Promise<{
     report: StudioDocumentMigration['report'];
@@ -85,17 +85,17 @@ type DocumentAdapterApi = {
   STUDIO_STORAGE_KEY: string;
   STUDIO_PREFERENCES_KEY: string;
   STUDIO_DEMO_LINES: readonly string[];
-  createStudioState(): LegacyStudioState;
-  loadStudioState(storage?: StorageLike): LegacyStudioState;
-  writeStudioState(state: LegacyStudioState, storage?: StorageLike): void;
+  createStudioState(): WorkspaceState;
+  loadStudioState(storage?: StorageLike): WorkspaceState;
+  writeStudioState(state: WorkspaceState, storage?: StorageLike): void;
   loadStudioDocumentSnapshot(storage?: StorageLike): StudioDocumentMigration;
-  studioPreferencesFromState(state?: Partial<LegacyStudioState>): StudioPreferences;
+  studioPreferencesFromState(state?: Partial<WorkspaceState>): StudioPreferences;
   loadStudioPreferences(storage?: StorageLike): StudioPreferences;
-  writeStudioPreferences(state: Partial<LegacyStudioState>, storage?: StorageLike): void;
+  writeStudioPreferences(state: Partial<WorkspaceState>, storage?: StorageLike): void;
   studioStateFromDocumentSnapshot(
     snapshot: StudioDocumentSnapshot,
-    baseState?: LegacyStudioState,
-  ): LegacyStudioState;
+    baseState?: WorkspaceState,
+  ): WorkspaceState;
 };
 
 type BackupApi = {
@@ -119,7 +119,7 @@ const backupApi = sharedBackupPortability as unknown as BackupApi;
 export const STUDIO_DOCUMENT_SCHEMA = modelApi.STUDIO_DOCUMENT_SCHEMA;
 export const STUDIO_DOCUMENT_VERSION = modelApi.STUDIO_DOCUMENT_VERSION;
 export const serializeLegacyStudioBackup = modelApi.serializeLegacyStudioBackup;
-export const migrateLegacyStudioState = modelApi.migrateLegacyStudioState;
+export const migrateWorkspaceState = modelApi.migrateWorkspaceState;
 export const validateStudioDocumentSnapshot = modelApi.validateStudioDocumentSnapshot;
 export const barsForSong = modelApi.barsForSong;
 export const songText = modelApi.songText;
@@ -133,8 +133,8 @@ export const STUDIO_DOCUMENT_DB = storeApi.STUDIO_DOCUMENT_DB;
 export const STUDIO_DOCUMENT_DB_VERSION = storeApi.STUDIO_DOCUMENT_DB_VERSION;
 export const openStudioDocumentDatabase = storeApi.openStudioDocumentDatabase;
 export const createStudioDocumentStore = storeApi.createStudioDocumentStore;
-export const migrateLegacyStudioStateToStore = storeApi.migrateLegacyStudioStateToStore;
-export const shadowLegacyStudioStateToStore = storeApi.shadowLegacyStudioStateToStore;
+export const migrateWorkspaceStateToStore = storeApi.migrateWorkspaceStateToStore;
+export const shadowWorkspaceStateToStore = storeApi.shadowWorkspaceStateToStore;
 
 export const STUDIO_STORAGE_KEY = adapterApi.STUDIO_STORAGE_KEY;
 export const STUDIO_PREFERENCES_KEY = adapterApi.STUDIO_PREFERENCES_KEY;

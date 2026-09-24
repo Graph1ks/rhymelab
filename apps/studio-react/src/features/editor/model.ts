@@ -1,9 +1,9 @@
 import type {
   EditorSong,
   EditorSnapshot,
-  LegacyStudioRevision,
-  LegacyStudioSong,
-  LegacyStudioState,
+  WorkspaceRevision,
+  WorkspaceSong,
+  WorkspaceState,
   SelectionProof,
 } from '../../core/contracts';
 import {
@@ -37,7 +37,7 @@ export interface EditorSelectionState {
 
 export interface EditorRevisionResult {
   changed: boolean;
-  revision: LegacyStudioRevision | null;
+  revision: WorkspaceRevision | null;
 }
 
 export interface EditorInsertResult {
@@ -51,29 +51,29 @@ export interface EditorInsertResult {
 
 const WORD_CHARACTER = /[\p{L}\p{N}'’-]/u;
 
-export function asEditorSong(song: LegacyStudioSong): EditorSong {
+export function asEditorSong(song: WorkspaceSong): EditorSong {
   return song as unknown as EditorSong;
 }
 
-export function activeEditorSong(state: LegacyStudioState): LegacyStudioSong | null {
+export function activeEditorSong(state: WorkspaceState): WorkspaceSong | null {
   return state.songs.find((song) =>
     song.id === state.active && !song.deleted && !song.deletedAt
   ) ?? null;
 }
 
-export function ensureLegacyEditorSong(song: LegacyStudioSong): LegacyStudioSong {
+export function ensureLegacyEditorSong(song: WorkspaceSong): WorkspaceSong {
   ensureEditorSong(asEditorSong(song));
   if (!Array.isArray(song.revisions)) song.revisions = [];
   return song;
 }
 
-export function editorText(song: LegacyStudioSong): string {
+export function editorText(song: WorkspaceSong): string {
   ensureLegacyEditorSong(song);
   return editorDocumentText(asEditorSong(song));
 }
 
 export function captureEditorSelection(
-  song: LegacyStudioSong,
+  song: WorkspaceSong,
   rawStart: number,
   rawEnd: number,
 ): EditorSelectionState {
@@ -128,7 +128,7 @@ export function captureEditorSelection(
 }
 
 export function insertWithSelectionProof(
-  song: LegacyStudioSong,
+  song: WorkspaceSong,
   proof: SelectionProof | null,
   replacement: string,
 ): EditorInsertResult {
@@ -150,7 +150,7 @@ export function insertWithSelectionProof(
   };
 }
 
-function revisionSignature(revision: LegacyStudioRevision | undefined): string {
+function revisionSignature(revision: WorkspaceRevision | undefined): string {
   if (!revision) return '';
   const row = revision as Record<string, unknown>;
   if (typeof row.snapshotSignature === 'string') return row.snapshotSignature;
@@ -159,7 +159,7 @@ function revisionSignature(revision: LegacyStudioRevision | undefined): string {
 }
 
 export function captureEditorRevision(
-  song: LegacyStudioSong,
+  song: WorkspaceSong,
   reason = 'autosave',
   now = Date.now(),
 ): EditorRevisionResult {
@@ -173,7 +173,7 @@ export function captureEditorRevision(
     return { changed: false, revision: previous ?? null };
   }
 
-  const revision: LegacyStudioRevision = {
+  const revision: WorkspaceRevision = {
     at: now,
     reason,
     text: snapshot.lines.join('\n'),
@@ -186,8 +186,8 @@ export function captureEditorRevision(
 }
 
 export function restoreLegacyEditorRevision(
-  song: LegacyStudioSong,
-  revision: LegacyStudioRevision,
+  song: WorkspaceSong,
+  revision: WorkspaceRevision,
 ): boolean {
   ensureLegacyEditorSong(song);
   if (revision.snapshot) {
@@ -204,7 +204,7 @@ export function restoreLegacyEditorRevision(
 }
 
 export function clearLegacyEditorSong(
-  song: LegacyStudioSong,
+  song: WorkspaceSong,
   now = Date.now(),
 ): void {
   ensureLegacyEditorSong(song);
@@ -219,7 +219,7 @@ export function clearLegacyEditorSong(
   song.updatedAt = Math.max(Number(song.updatedAt) || 0, now);
 }
 
-export function snapshotForUndo(song: LegacyStudioSong): EditorSnapshot {
+export function snapshotForUndo(song: WorkspaceSong): EditorSnapshot {
   ensureLegacyEditorSong(song);
   return editorSnapshot(asEditorSong(song));
 }

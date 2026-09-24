@@ -2,11 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   createPortableStudioBackup,
-  migrateLegacyStudioState,
+  migrateWorkspaceState,
   studioStateFromDocumentSnapshot,
 } from '../../core/documents';
 import type {
-  LegacyStudioState,
+  WorkspaceState,
   SearchState,
   StudioDocumentSnapshot,
   StudioDocumentStore,
@@ -34,7 +34,7 @@ import {
   trashLibrarySong,
 } from './model';
 
-function state(): LegacyStudioState {
+function state(): WorkspaceState {
   return {
     songs: [
       {
@@ -167,7 +167,7 @@ describe('R4 Library behavior', () => {
     expect(moved.changed).toBe(true);
     expect(moved.state.songs.find((song) => song.id === 's3')?.folder).toBe('');
 
-    const snapshot = migrateLegacyStudioState(moved.state).snapshot;
+    const snapshot = migrateWorkspaceState(moved.state).snapshot;
     const hydrated = studioStateFromDocumentSnapshot(snapshot, moved.state);
     expect(hydrated.songs.find((song) => song.id === 's3')?.folder).toBe('');
     expect(hydrated.songs.find((song) => song.title === 'Root note')?.folder).toBe('');
@@ -223,7 +223,7 @@ describe('R4 Library behavior', () => {
     expect(trashed.state.active).toBe('s2');
     expect(trashed.state.songs.find((song) => song.id === 's1')?.deletedAt).toBe(1200);
 
-    const only: LegacyStudioState = {
+    const only: WorkspaceState = {
       songs: [{ id: 'solo', title: 'Solo', folder: 'Entwürfe', lines: ['x'] }],
       active: 'solo',
       folders: ['Entwürfe'],
@@ -354,7 +354,7 @@ describe('R4 serialized autosave queue', () => {
 describe('R4 portable backup orchestration', () => {
   it('exports the existing portable schema with current SearchState', async () => {
     const source = state();
-    const snapshot = migrateLegacyStudioState(source).snapshot;
+    const snapshot = migrateWorkspaceState(source).snapshot;
     const store = fakeStore(snapshot);
     const searchState: SearchState = {
       schema: 'rhymelab-search-state-v1',
@@ -381,10 +381,10 @@ describe('R4 portable backup orchestration', () => {
   });
 
   it('creates a pre-import recovery snapshot before replacing IndexedDB state', async () => {
-    const before = migrateLegacyStudioState(state()).snapshot;
+    const before = migrateWorkspaceState(state()).snapshot;
     const replacementState = state();
     replacementState.songs[0]!.title = 'Imported title';
-    const replacement = migrateLegacyStudioState(replacementState).snapshot;
+    const replacement = migrateWorkspaceState(replacementState).snapshot;
     const store = fakeStore(before);
     const payload = createPortableStudioBackup({ snapshot: replacement });
 
