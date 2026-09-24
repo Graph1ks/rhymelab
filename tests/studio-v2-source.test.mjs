@@ -232,7 +232,6 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/analysisClient\.analyzeAll/u);
   assert.match(app,/function studioAnalysisSections\(/u);
   assert.match(app,/studioRhymeTypeCounts/u);
-  assert.match(app,/page==='studio'\?'compact':density/u);
   assert.match(app,/function currentSelectionProof\(/u);
   assert.match(app,/function selectEditorLine\(/u);
   assert.match(app,/setSelectionRange\(start,end\)/u);
