@@ -219,6 +219,9 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
   const openSongMenu = (event: MouseEvent, id: string) => {
     event.preventDefault();
     event.stopPropagation();
+    if (event.currentTarget instanceof HTMLElement) {
+      event.currentTarget.focus({ preventScroll: true });
+    }
     setSelectedSongId(id);
     setSelectedFolder(null);
     setContextMenu({ kind: 'song', id, x: event.clientX, y: event.clientY });
@@ -227,6 +230,9 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
   const openFolderMenu = (event: MouseEvent, folderName: string) => {
     event.preventDefault();
     event.stopPropagation();
+    if (event.currentTarget instanceof HTMLElement) {
+      event.currentTarget.focus({ preventScroll: true });
+    }
     setSelectedFolder(folderName);
     setSelectedSongId(null);
     setContextMenu({ kind: 'folder', folder: folderName, x: event.clientX, y: event.clientY });
@@ -415,38 +421,49 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
   };
 
   useEffect(() => {
+    const blockedByModal = Boolean(nameDialog || confirm || moveState || safetyOpen);
+    const editableTarget = (target: EventTarget | null) => (
+      target instanceof HTMLInputElement
+      || target instanceof HTMLTextAreaElement
+      || target instanceof HTMLSelectElement
+      || (target instanceof HTMLElement && target.isContentEditable)
+    );
+
+    const copySelection = (mode: 'copy' | 'cut') => {
+      if (trash || blockedByModal) return false;
+      if (selectedSongId) {
+        setClipboard({ mode, kind: 'song', songId: selectedSongId });
+        return true;
+      }
+      if (selectedFolder && (mode === 'copy' || selectedFolder !== 'Entwürfe')) {
+        setClipboard({ mode, kind: 'folder', folder: selectedFolder });
+        return true;
+      }
+      return false;
+    };
+
     const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target;
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return;
-      if (nameDialog || confirm || moveState || safetyOpen) return;
+      if (editableTarget(event.target) || blockedByModal) return;
 
       const modifier = event.ctrlKey || event.metaKey;
-      if (modifier && event.key.toLowerCase() === 'c' && !trash) {
-        if (selectedSongId) {
+      const code = event.code || '';
+      if (modifier && !event.altKey && code === 'KeyC') {
+        if (copySelection('copy')) {
           event.preventDefault();
-          setClipboard({ mode: 'copy', kind: 'song', songId: selectedSongId });
-          return;
+          event.stopPropagation();
         }
-        if (selectedFolder) {
-          event.preventDefault();
-          setClipboard({ mode: 'copy', kind: 'folder', folder: selectedFolder });
-          return;
-        }
+        return;
       }
-      if (modifier && event.key.toLowerCase() === 'x' && !trash) {
-        if (selectedSongId) {
+      if (modifier && !event.altKey && code === 'KeyX') {
+        if (copySelection('cut')) {
           event.preventDefault();
-          setClipboard({ mode: 'cut', kind: 'song', songId: selectedSongId });
-          return;
+          event.stopPropagation();
         }
-        if (selectedFolder && selectedFolder !== 'Entwürfe') {
-          event.preventDefault();
-          setClipboard({ mode: 'cut', kind: 'folder', folder: selectedFolder });
-          return;
-        }
+        return;
       }
-      if (modifier && event.key.toLowerCase() === 'v' && clipboard && !trash) {
+      if (modifier && !event.altKey && code === 'KeyV' && clipboard && !trash) {
         event.preventDefault();
+        event.stopPropagation();
         void pasteClipboard();
         return;
       }
@@ -455,12 +472,14 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
           const song = workspace.state.songs.find((item) => item.id === selectedSongId);
           if (song) {
             event.preventDefault();
+            event.stopPropagation();
             setNameDialog({ type: 'rename-song', id: song.id, value: song.title || '' });
           }
           return;
         }
         if (selectedFolder && selectedFolder !== 'Entwürfe') {
           event.preventDefault();
+          event.stopPropagation();
           setNameDialog({ type: 'rename-folder', folder: selectedFolder, value: folderLeaf(selectedFolder) });
           return;
         }
@@ -480,8 +499,47 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
         navigateUp();
       }
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+
+    const onCopy = (event: ClipboardEvent) => {
+      if (editableTarget(event.target) || blockedByModal) return;
+      if (!copySelection('copy')) return;
+      event.preventDefault();
+      event.clipboardData?.setData(
+        'text/plain',
+        selectedSongId
+          ? String(workspace.state.songs.find((item) => item.id === selectedSongId)?.title || '')
+          : folderLeaf(selectedFolder || ''),
+      );
+    };
+
+    const onCut = (event: ClipboardEvent) => {
+      if (editableTarget(event.target) || blockedByModal) return;
+      if (!copySelection('cut')) return;
+      event.preventDefault();
+      event.clipboardData?.setData(
+        'text/plain',
+        selectedSongId
+          ? String(workspace.state.songs.find((item) => item.id === selectedSongId)?.title || '')
+          : folderLeaf(selectedFolder || ''),
+      );
+    };
+
+    const onPaste = (event: ClipboardEvent) => {
+      if (editableTarget(event.target) || blockedByModal || !clipboard || trash) return;
+      event.preventDefault();
+      void pasteClipboard();
+    };
+
+    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('copy', onCopy, true);
+    document.addEventListener('cut', onCut, true);
+    document.addEventListener('paste', onPaste, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener('copy', onCopy, true);
+      document.removeEventListener('cut', onCut, true);
+      document.removeEventListener('paste', onPaste, true);
+    };
   }, [
     clipboard,
     confirm,
@@ -689,7 +747,8 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                 data-cut={clipboard?.mode === 'cut' && clipboard.kind === 'folder' && clipboard.folder === folderName ? 'true' : 'false'}
                 role="button"
                 tabIndex={0}
-                onClick={() => {
+                onClick={(event) => {
+                  event.currentTarget.focus({ preventScroll: true });
                   setSelectedFolder(folderName);
                   setSelectedSongId(null);
                 }}
@@ -740,7 +799,8 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                 draggable={!trash}
                 role="button"
                 tabIndex={0}
-                onClick={() => {
+                onClick={(event) => {
+                  event.currentTarget.focus({ preventScroll: true });
                   setSelectedSongId(item.id);
                   setSelectedFolder(null);
                 }}
