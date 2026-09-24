@@ -7,8 +7,9 @@ This repository is the authoritative engineering/project memory for RhymeLab. Re
 Before changing the project in a fresh thread/session, read:
 
 1. `PROJECT.md` — durable product identity, repository mode, architecture/cost/license/contribution boundaries
-2. `docs/REACT_STUDIO_REPLATFORM.md` — active P0 continuation and feature-freeze contract
-3. `docs/REACT_STUDIO_PARITY_GATE.md` — hard no-capability-loss cutover gate
+2. `SECURITY.md` and `docs/SECURITY_ARCHITECTURE.md` — application security baseline, localhost/browser trust boundary, supply-chain gates, and future BYOK AI containment contract
+3. `docs/REACT_STUDIO_REPLATFORM.md` — active P0 continuation and feature-freeze contract
+4. `docs/REACT_STUDIO_PARITY_GATE.md — hard no-capability-loss cutover gate
 4. `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md` — completed typed-domain boundary; reuse it instead of reimplementing legacy semantics
 5. `docs/REACT_STUDIO_R2_SHELL.md` — completed React shell/design-system boundary; extend it instead of building parallel chrome
 6. `docs/REACT_STUDIO_R3_SEARCH_WRITER.md` — completed Search/Writer port; reuse its shared SearchState and R1 data path
@@ -119,6 +120,12 @@ Hard requirements:
 - every newly added primary button/segmented control/filter must be added to the control-surface preflight and interaction regression test in the same change;
 - do not use broad CSS active-state selectors that override unrelated control families;
 - after user-reported interaction regressions, preserve the exact failure mode in regression coverage before merge.
+
+## Security hard boundary
+
+Security controls are product behavior, not optional infrastructure. Do not weaken same-origin/CSP/origin validation, reintroduce wildcard localhost CORS, expose internal exception details, persist provider credentials in browser storage, or grant future AI/model output arbitrary filesystem/network/shell/database authority without an explicit owner security decision and accompanying regression tests.
+
+Future BYOK AI integrations must follow `docs/SECURITY_ARCHITECTURE.md`. Prompt instructions are not a sandbox: authority must be constrained outside the model through typed allowlisted capabilities, deterministic validation, explicit user approval for high-impact actions, secret isolation, and bounded provider egress.
 
 ## Hard runtime boundary
 
