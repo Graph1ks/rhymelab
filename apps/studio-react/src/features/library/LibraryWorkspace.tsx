@@ -403,7 +403,7 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                 onClick={() => setNameDialog({ type: 'new-folder', value: language === 'de' ? 'Neuer Ordner' : 'New folder' })}
                 aria-label={language === 'de' ? 'Neuer Hauptordner' : 'New root folder'}
               >
-                +
+                <Icon name="plus" />
               </button>
             ) : null}
           </div>
@@ -453,7 +453,7 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                     title={folderName}
                   >
                     <span>
-                      <i>{depth ? '↳' : '▱'}</i>
+                      <i>{depth ? '↳' : <Icon name="folder" />}</i>
                       <b>{folderLeaf(folderName)}</b>
                       {folderParent(folderName) ? <em>{folderParent(folderName)}</em> : null}
                     </span>
@@ -470,7 +470,7 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                           value: language === 'de' ? 'Neuer Ordner' : 'New folder',
                         })}
                         title={language === 'de' ? 'Unterordner' : 'Subfolder'}
-                      >+</button>
+                      ><Icon name="plus" /></button>
                       {!protectedFolder ? (
                         <button
                           type="button"
@@ -480,7 +480,7 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                             value: folderLeaf(folderName),
                           })}
                           title={language === 'de' ? 'Umbenennen' : 'Rename'}
-                        >✎</button>
+                        ><Icon name="edit" /></button>
                       ) : null}
                       <button
                         type="button"
@@ -490,7 +490,7 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                           if (result.changed) void workspace.replaceState(result.state);
                         }}
                         title={language === 'de' ? 'Nach oben' : 'Move up'}
-                      >↑</button>
+                      ><Icon name="arrowUp" /></button>
                       <button
                         type="button"
                         disabled={index >= siblings.length - 1}
@@ -499,14 +499,14 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                           if (result.changed) void workspace.replaceState(result.state);
                         }}
                         title={language === 'de' ? 'Nach unten' : 'Move down'}
-                      >↓</button>
+                      ><Icon name="arrowDown" /></button>
                       {!protectedFolder ? (
                         <button
                           type="button"
                           className={styles.dangerText}
                           onClick={() => setConfirm({ type: 'delete-folder', folder: folderName })}
                           title={language === 'de' ? 'Ordnerstruktur löschen' : 'Delete folder tree'}
-                        >×</button>
+                        ><Icon name="trash" /></button>
                       ) : null}
                     </div>
                   ) : null}
