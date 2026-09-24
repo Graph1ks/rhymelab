@@ -34,6 +34,14 @@
   text-transform: uppercase;
 }
 
+.brandLine {
+  margin: 9px 0 0;
+  color: var(--rl-ink);
+  font-size: clamp(1rem, 1.55vw, 1.45rem);
+  font-weight: 760;
+  letter-spacing: -.02em;
+}
+
 .hero h1 {
   max-width: 980px;
   margin: 14px 0 0;
