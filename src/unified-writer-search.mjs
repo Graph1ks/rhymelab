@@ -445,21 +445,9 @@ function germanLexicalQuery(writerDb, input, fallback = null) {
 }
 
 function englishLexicalQuery(englishDb, input, fallback = null) {
-  const compoundToken=compoundRightEdgeComponent(fallback);
-  if (compoundToken) {
-    const detail=getEnglishWord(englishDb,compoundToken);
-    if(detail?.preferredIpa){
-      return {
-        ...detail,
-        kind:'word',
-        language:'en',
-        ipa:detail.preferredIpa,
-        resolvable:true,
-        pronunciationProvenance:'english_writer_compound_right_edge_lexical_anchor',
-        sourceQuerySurface:String(input||'').trim(),
-      };
-    }
-  }
+  // The accepted English Writer already performs source-backed right-edge
+  // recovery for generated compound queries. Keep the external query intact
+  // so its provenance and crossLanguageQuery contract remain observable.
   if (fallback?.generatedPronunciation) return fallback;
   const token = rightEdgeQueryToken(input);
   if (!token) return fallback;
