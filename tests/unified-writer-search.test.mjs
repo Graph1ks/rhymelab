@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   ACCEPTED_PHRASE_MOSAIC_ANCHOR_FINGERPRINT,
+  compoundRightEdgeComponent,
   normalizeUnifiedLanguageBasis,
   normalizeUnifiedResultLanguage,
   normalizeUnifiedResultScope,
@@ -24,6 +25,27 @@ test('unified Writer normalizes result language independently from query languag
   assert.equal(normalizeUnifiedResultLanguage('both', 'de'), 'both');
   assert.equal(normalizeUnifiedResultLanguage('', 'en'), 'en');
   assert.equal(normalizeUnifiedResultLanguage('unsupported', 'de'), 'de');
+});
+
+test('unified Writer extracts source-backed compound right-edge components only for compound resolver methods', () => {
+  assert.equal(compoundRightEdgeComponent({
+    queryPronunciation: {
+      method: 'client_source_reference_compound_right_edge',
+      components: ['Alt', 'Kassen', 'Verwaltungs', 'Anker'],
+    },
+  }), 'Anker');
+  assert.equal(compoundRightEdgeComponent({
+    queryPronunciation: {
+      method: 'client_mixed_reference_compound_right_edge',
+      components: ['Growth', 'Hormon', 'Producer'],
+    },
+  }), 'Producer');
+  assert.equal(compoundRightEdgeComponent({
+    queryPronunciation: {
+      method: 'client_token_chain',
+      components: ['holy', 'night'],
+    },
+  }), '');
 });
 
 test('unified Writer exposes the lexical right edge of multi-token queries', () => {
