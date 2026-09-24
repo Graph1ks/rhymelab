@@ -4222,7 +4222,7 @@
       "contract": "docs/REACT_STUDIO_R5_EDITOR.md",
       "manifest": "apps/studio-react/r5-editor-manifest.json",
       "source_root": "apps/studio-react/src/features/editor",
-      "tested_code_head": "85dbd349ac65984049ad7d079987756914816580",
+      "tested_code_head": "85dbd349ac65",
       "unified_document": true,
       "stable_bar_ids": true,
       "tracked_free_lines": true,
