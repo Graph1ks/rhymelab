@@ -113,6 +113,7 @@ function LanguageRoutePicker() {
   const { state, patch } = useSharedSearchState();
   const [open, setOpen] = useState(false);
   const current = languageRouteValue(state.queryBasis, state.resultLanguage);
+  const routeLabel = (value: string) => value === 'both' ? 'DE + EN' : value.toUpperCase();
   const queryRows = [
     { value: 'de', label: 'DE' },
     { value: 'en', label: 'EN' },
@@ -132,7 +133,7 @@ function LanguageRoutePicker() {
       >
         <span className={styles.filterLabel}>{language === 'de' ? 'SPRACHEN' : 'LANGUAGES'}</span>
         <Popover.Trigger className={styles.filterTrigger}>
-          <span>{current.replace(':', ' → ').replace('both', 'DE + EN').replace(/^de/u, 'DE').replace(/^en/u, 'EN')}</span>
+          <span>{routeLabel(state.queryBasis)} → {routeLabel(state.resultLanguage)}</span>
           <Icon name="chevron" />
         </Popover.Trigger>
       </div>
