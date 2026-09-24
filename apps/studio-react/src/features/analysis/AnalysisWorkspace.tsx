@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import type { StudioOccurrenceRelation, StudioRhymePair } from '../../legacy/contracts';
 import {
@@ -129,8 +129,8 @@ function EndAnalysis({ data, onOpenEditor }: { data: CanonicalAnalysisPayload; o
   const song = editor.activeSong;
   if (!song) return null;
 
-  const document = useMemo(() => trackedAnalysisDocument(structuredClone(song)), [song]);
-  const totals = useMemo(() => analysisTotals(structuredClone(song)), [song]);
+  const document = trackedAnalysisDocument(structuredClone(song));
+  const totals = analysisTotals(structuredClone(song));
   const scheme = Array.isArray(data.scheme) ? data.scheme : document.lines.map(() => '?');
   const pairs = Array.isArray(data.pairs) ? data.pairs : [];
   const filteredPairs = pairs.filter((pair) => (
@@ -265,8 +265,8 @@ function AllAnalysis({ data, onOpenEditor }: { data: CanonicalAnalysisPayload; o
   const song = editor.activeSong;
   if (!song) return null;
 
-  const document = useMemo(() => trackedAnalysisDocument(structuredClone(song)), [song]);
-  const rows = useMemo(() => allRhymeBars(document, data), [data, document]);
+  const document = trackedAnalysisDocument(structuredClone(song));
+  const rows = allRhymeBars(document, data);
   const relations = Array.isArray(data.occurrenceRelations) ? data.occurrenceRelations : [];
   const occurrences = Array.isArray(data.occurrences) ? data.occurrences : [];
   const sections = analysisSections(structuredClone(song));
