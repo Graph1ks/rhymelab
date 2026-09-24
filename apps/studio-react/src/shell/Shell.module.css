@@ -138,7 +138,7 @@
   border: 1px solid var(--rl-line);
   border-radius: 5px;
   color: var(--rl-muted);
-  font: 700 9px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+  font: 700 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
   text-align: center;
 }
 
@@ -832,7 +832,7 @@
 .secondaryButton kbd {
   margin-left: auto;
   color: var(--rl-muted);
-  font: 700 8px ui-monospace, monospace;
+  font: 700 11px ui-monospace, monospace;
 }
 
 /* Quickstyles popover */
@@ -997,7 +997,7 @@
 .commandItem kbd {
   flex: 0 0 auto;
   color: var(--rl-muted);
-  font: 700 8px ui-monospace, monospace;
+  font: 700 11px ui-monospace, monospace;
 }
 
 .commandHint,
