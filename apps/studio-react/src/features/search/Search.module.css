@@ -2800,3 +2800,9 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+/* Leave a small control pocket for the Studio sidebar popout trigger. */
+.searchExperience[data-variant="assistant"] .searchHeader {
+  padding-right: 52px;
+}
