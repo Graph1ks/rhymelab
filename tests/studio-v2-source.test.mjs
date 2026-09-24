@@ -253,9 +253,11 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/function renderBarNavigatorDock\(/u);
   assert.match(app,/function bindEditorBarDrag\(/u);
   assert.match(app,/BAR_DRAG_HOLD_MS=260/u);
+  assert.match(app,/runEditorBarDragAutoScroll/u);
   assert.match(app,/bar-transport-ghost/u);
   assert.match(app,/bar-drop-preview/u);
-  assert.match(app,/function addStudioBarAfter\(/u);
+  assert.doesNotMatch(app,/function addStudioBarAfter\(/u);
+  assert.doesNotMatch(app,/insertEditorBar/u);
   assert.match(app,/function duplicateStudioBar\(/u);
   assert.match(app,/function deleteStudioBar\(/u);
   assert.match(app,/duplicateEditorBar/u);
