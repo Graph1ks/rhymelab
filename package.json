@@ -228,7 +228,8 @@
     "studio:react:r2": "npm --prefix apps/studio-react run r2:verify",
     "studio:react:r3": "npm --prefix apps/studio-react run r3:verify",
     "studio:react:r4": "npm --prefix apps/studio-react run r4:verify",
-    "studio:react:r5": "npm --prefix apps/studio-react run r5:verify"
+    "studio:react:r5": "npm --prefix apps/studio-react run r5:verify",
+    "studio:react:r6": "npm --prefix apps/studio-react run r6:verify"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"
