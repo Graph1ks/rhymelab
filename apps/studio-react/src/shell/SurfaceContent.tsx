@@ -54,9 +54,16 @@ function copyPresentationToPopout(popup: Window) {
 
 function prepareSoundExplorerPopout(popup: Window): HTMLElement {
   const doc = popup.document;
-  doc.open();
-  doc.write('<!doctype html><html><head></head><body><div id="sound-explorer-popout-root"></div></body></html>');
-  doc.close();
+
+  // Keep the popout as the same live React surface without using HTML-string
+  // document injection. A blank same-origin window already owns a complete
+  // document, so reset its head/body with DOM APIs and portal into that root.
+  doc.head.replaceChildren();
+  doc.body.replaceChildren();
+
+  const root = doc.createElement('div');
+  root.id = 'sound-explorer-popout-root';
+  doc.body.appendChild(root);
 
   const base = doc.createElement('base');
   base.href = document.baseURI;
