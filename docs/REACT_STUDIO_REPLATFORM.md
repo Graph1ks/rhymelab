@@ -95,7 +95,9 @@ Versions are deliberately pinned in the new isolated frontend package so depende
 - TypeScript 5.9.x;
 - Vitest 5.0.x.
 
-Before a later dependency bump, run the full parity gate. Dependency upgrades are not bundled casually into functional port work.
+The Vite-based frontend build/development toolchain requires Node.js 22.12+; this does **not** raise the existing RhymeLab shipping/runtime minimum by itself. Built frontend assets remain served by the existing local runtime.
+
+Before a later dependency bump, run the full parity gate. Dependency upgrades are not bundled casually into functional port work. Vite is configured to emit a bundled dependency license inventory with production builds.
 
 ## Migration phases
 
