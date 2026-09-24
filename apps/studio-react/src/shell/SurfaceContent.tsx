@@ -12,6 +12,7 @@ import { PerformanceWorkspace } from '../features/perform/PerformanceWorkspace';
 import { SavedWorkspace } from '../features/search/SavedWorkspace';
 import { SearchExperience } from '../features/search/SearchExperience';
 import { useUiStore } from '../state/uiStore';
+import { Icon } from './icons';
 import { shellText } from './navigation';
 import { SettingsPanel } from './SettingsPanel';
 import styles from './Shell.module.css';
