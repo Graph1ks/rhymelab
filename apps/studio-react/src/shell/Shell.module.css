@@ -390,10 +390,17 @@
 }
 
 .studioFoundation {
+  --studio-reading-inset: max(0px, calc((100% - min(82%, 1440px)) / 2));
   min-height: calc(var(--visual-viewport-height, 100dvh) - var(--rl-topbar-height) - 24px);
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--rl-assist-width);
   gap: 10px;
+  box-sizing: border-box;
+  transition:
+    grid-template-columns 420ms cubic-bezier(.22, 1, .36, 1),
+    gap 420ms cubic-bezier(.22, 1, .36, 1),
+    padding-inline 420ms cubic-bezier(.22, 1, .36, 1);
 }
 
 .primaryFoundation,
@@ -1398,6 +1405,9 @@
 
   .contentViewport[data-surface="studio"] .primaryFoundation {
     margin: 8px 0 16px 8px;
+    transition:
+      margin 420ms cubic-bezier(.22, 1, .36, 1),
+      border-radius 260ms ease;
   }
 
   .contentViewport[data-surface="studio"] .assistFoundation[data-r3="true"] {
@@ -3017,13 +3027,35 @@
 
 
 /* Studio Sound Explorer controls: pause queries or collapse the assistant into a right rail. */
-.studioFoundation[data-assist-collapsed="true"] {
-  grid-template-columns: minmax(0, 1fr) 46px;
-}
+/* When Sound Explorer is unavailable inline, Studio adopts the exact same
+   centered desktop reading width as full Search. The grid track and symmetric
+   inset animate together, so the existing editor DOM simply glides into place. */
+@media (min-width: 801px) {
+  .studioFoundation[data-assist-collapsed="true"],
+  .studioFoundation[data-search-enabled="false"],
+  .studioFoundation[data-search-popout="true"] {
+    grid-template-columns: minmax(0, 1fr) 0;
+    gap: 0;
+    padding-inline: var(--studio-reading-inset);
+  }
 
-.studioFoundation[data-search-enabled="false"],
-.studioFoundation[data-search-popout="true"] {
-  grid-template-columns: minmax(0, 1fr);
+  .studioFoundation[data-assist-collapsed="true"] > .primaryFoundation,
+  .studioFoundation[data-search-enabled="false"] > .primaryFoundation,
+  .studioFoundation[data-search-popout="true"] > .primaryFoundation {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* Collapsed keeps a tiny reopen rail, but it floats over the far-right edge
+     instead of stealing width from the centered writing canvas. */
+  .studioFoundation[data-assist-collapsed="true"] > .assistFoundation {
+    position: absolute;
+    inset: 0 0 0 auto;
+    z-index: 48;
+    width: 46px;
+    min-width: 46px;
+    border-left: 1px solid var(--rl-rule);
+  }
 }
 
 .assistFoundation {
@@ -3405,6 +3437,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .studioFoundation,
+  .contentViewport[data-surface="studio"] .primaryFoundation {
+    transition: none;
+  }
+
   .brandMark {
     transition: none;
   }
