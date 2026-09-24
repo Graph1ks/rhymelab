@@ -53,6 +53,10 @@ function formatCount(value: number): string {
   }).format(value);
 }
 
+function routeLanguageLabel(value: string): string {
+  return value === 'both' ? 'DE + EN' : String(value || '').toUpperCase();
+}
+
 function RuntimeSelector({
   runtime,
   compact = false,
@@ -419,6 +423,7 @@ export function SearchExperience({
   const timing = runtimeTimingText(writer.data?.runtimeTiming);
   const multisyllabicFilter = state.rhymeType === 'multisyllabic_perfect'
     || state.rhymeType === 'multisyllabic_slant';
+  const routeStatus = `${routeLanguageLabel(state.queryBasis)} → ${routeLanguageLabel(state.resultLanguage)}`;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -472,6 +477,19 @@ export function SearchExperience({
         </div>
         <RuntimeSelector runtime={runtime} compact={variant === 'assistant'} />
       </header>
+
+      <button
+        type="button"
+        className={styles.languageRouteStatus}
+        data-active={state.queryBasis !== state.resultLanguage ? 'true' : 'false'}
+        onClick={() => setFiltersOpen(true)}
+        title={language === 'de'
+          ? 'Eingabesprache → Ergebnissprache · klicken zum Ändern'
+          : 'Query language → result language · click to change'}
+      >
+        <span>{language === 'de' ? 'SPRACHROUTE' : 'LANGUAGE ROUTE'}</span>
+        <b>{routeStatus}</b>
+      </button>
 
       <form className={styles.searchForm} onSubmit={submit}>
         <div
