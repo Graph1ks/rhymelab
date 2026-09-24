@@ -133,7 +133,7 @@ function externalClientQueryDetail(input, language, pronunciation = null) {
     generatedPronunciation: true,
     pronunciationProvenance: 'client_generated_query_pronunciation',
     queryPronunciation: {
-      policy: 'client-total-query-pronunciation-v2',
+      policy: 'client-total-query-pronunciation-v4',
       generated: true,
       sourceBacked: pronunciation?.sourceBacked === true,
       clientOnly: true,
