@@ -162,7 +162,6 @@ export function useWriterSearch(
       state.scope,
       state.rhymeType,
       state.syllableFilter,
-      state.sort,
       state.variantMode,
       state.historical,
       state.generated,
