@@ -401,32 +401,52 @@
 
 .filterPopup,
 .entityPopup {
-  min-width: max(var(--anchor-width), 180px);
-  max-width: min(330px, calc(100vw - 20px));
+  min-width: max(var(--anchor-width), 248px);
+  width: max-content;
+  max-width: min(380px, calc(100vw - 24px));
   max-height: min(56dvh, 460px);
   overflow-y: auto;
-  border: 1px solid var(--rl-line);
-  border-radius: 10px;
-  background: var(--rl-panel);
+  border: 1px solid color-mix(in srgb, var(--rl-line) 78%, var(--rl-ink) 22%);
+  border-radius: 14px;
+  padding: 5px;
+  background: color-mix(in srgb, var(--rl-panel) 96%, transparent);
   color: var(--rl-ink);
-  box-shadow: var(--rl-shadow-popover);
+  box-shadow:
+    0 20px 55px rgb(0 0 0 / .28),
+    0 2px 10px rgb(0 0 0 / .14);
+  backdrop-filter: blur(18px);
 }
 
 .filterOption {
-  min-height: 38px;
+  min-height: 42px;
   display: grid;
-  grid-template-columns: 17px minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr);
   align-items: center;
-  gap: 7px;
-  padding: 7px 9px;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 9px;
   outline: 0;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .filterOption[data-highlighted] {
-  background: var(--rl-tint);
+  background: color-mix(in srgb, var(--rl-accent) 11%, var(--rl-panel));
   color: var(--rl-accent);
+}
+
+.filterOption[data-selected] {
+  background: color-mix(in srgb, var(--rl-accent) 8%, var(--rl-panel));
+  color: var(--rl-accent);
+  font-weight: 760;
+}
+
+.filterOption [data-base-ui-select-item-text] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .filterOption[data-disabled] {
@@ -1756,6 +1776,7 @@
   align-items: center;
   flex-direction: row;
   padding: 5px 10px;
+  overflow: hidden;
 }
 
 .searchExperience[data-variant="assistant"] .resultCount {
@@ -1763,7 +1784,9 @@
 }
 
 .searchExperience[data-variant="assistant"] .resultTools {
+  flex: 0 0 auto;
   margin-left: auto;
+  overflow: visible;
 }
 
 .searchExperience[data-variant="assistant"] .keyboardHint {
@@ -1917,7 +1940,7 @@
 
 @media (max-width: 800px) {
   .searchExperience[data-variant="assistant"] .resultToolbar {
-    overflow-x: auto;
+    overflow: hidden;
   }
 
   .searchBody[data-detail="true"] {
@@ -1994,5 +2017,55 @@
 @media (min-width: 1200px) {
   .searchExperience[data-variant="page"] .resultRow[data-density="compact"] {
     min-height: 62px;
+  }
+}
+
+
+/* UX correction round 2: transient filter menus and compact assistant toolbar. */
+.searchExperience[data-variant="assistant"] .resultCount small {
+  display: none;
+}
+
+.searchExperience[data-variant="assistant"] .toggleButton {
+  min-height: 34px;
+  padding-inline: 10px;
+}
+
+.searchExperience[data-variant="assistant"] .resultTools {
+  gap: 5px;
+}
+
+.searchExperience[data-variant="assistant"] .densityButtons {
+  display: none;
+}
+
+.searchExperience[data-variant="page"] .densityButtons button {
+  min-width: 88px;
+}
+
+.filterPopup {
+  overscroll-behavior: contain;
+}
+
+.filterPopup::-webkit-scrollbar {
+  width: 8px;
+}
+
+.languageRoutePopup {
+  border-radius: 15px;
+  padding: 15px;
+  background: color-mix(in srgb, var(--rl-panel) 97%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.languageRouteMatrix button {
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .filterPopup,
+  .entityPopup {
+    min-width: min(290px, calc(100vw - 20px));
+    max-width: calc(100vw - 20px);
   }
 }
