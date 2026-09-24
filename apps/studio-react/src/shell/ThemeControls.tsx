@@ -63,6 +63,7 @@ export function ThemeControls() {
       >
         <Popover.Trigger
           className={styles.themeMenuTrigger}
+          data-rhymelab-control="shell.quickstyles"
           aria-label={shellText('Quickstyles öffnen', language)}
         >
           <Icon name="chevron" />
