@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 
+import { Dialog } from '../design-system/primitives';
+
 import { LibraryWorkspace } from '../features/library/LibraryWorkspace';
 import { AnalysisWorkspace } from '../features/analysis/AnalysisWorkspace';
 import { EditorSessionProvider } from '../features/editor/EditorSessionProvider';
@@ -17,6 +19,8 @@ export function SurfaceContent() {
   const surface = useUiStore((state) => state.surface);
   const language = useUiStore((state) => state.uiLanguage);
   const reduceMotion = useReducedMotion();
+  const libraryOpen = useUiStore((state) => state.libraryOpen);
+  const setLibraryOpen = useUiStore((state) => state.setLibraryOpen);
   const [mobileStudioPane, setMobileStudioPane] = useState<'editor' | 'results'>('editor');
   const [studioMode, setStudioMode] = useState<'write' | 'analysis' | 'perform'>('write');
 
@@ -118,11 +122,18 @@ export function SurfaceContent() {
               </button>
               <button
                 type="button"
-                data-active={studioMode === 'perform' ? 'true' : 'false'}
+                data-active={studioMode === 'perform' ? 'true' : 'false'
                 aria-pressed={studioMode === 'perform'}
                 onClick={() => setStudioMode('perform')}
               >
                 Perform
+              </button>
+              <button
+                type="button"
+                className={styles.libraryTrigger}
+                onClick={() => setLibraryOpen(true)}
+              >
+                {language === 'de' ? 'Bibliothek' : 'Library'}
               </button>
             </div>
             <div className={styles.studioModeSurface} data-mode={studioMode}>
@@ -139,6 +150,24 @@ export function SurfaceContent() {
           <aside className={styles.assistFoundation} data-r3="true">
             <SearchExperience variant="assistant" />
           </aside>
+
+          <Dialog.Root open={libraryOpen} onOpenChange={setLibraryOpen}>
+            <Dialog.Portal>
+              <Dialog.Backdrop className={styles.libraryDialogBackdrop} />
+              <Dialog.Viewport className={styles.libraryDialogViewport}>
+                <Dialog.Popup className={styles.libraryDialog}>
+                  <div className={styles.libraryDialogHead}>
+                    <div>
+                      <p>LOCAL LIBRARY</p>
+                      <h2>{language === 'de' ? 'Bibliothek' : 'Library'}</h2>
+                    </div>
+                    <Dialog.Close aria-label={language === 'de' ? 'Schließen' : 'Close'}>×</Dialog.Close>
+                  </div>
+                  <LibraryWorkspace onDone={() => setLibraryOpen(false)} />
+                </Dialog.Popup>
+              </Dialog.Viewport>
+            </Dialog.Portal>
+          </Dialog.Root>
         </motion.div>
       </EditorSessionProvider>
     );
