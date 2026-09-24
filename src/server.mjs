@@ -70,9 +70,22 @@ import {
   generatedOnlyRequested,
 } from './generated-runtime-request-policy.mjs';
 import {createTokenBucketRateLimiter} from './request-rate-limit.mjs';
+import {
+  assertSafeServerBinding,
+  createRequestId,
+  isLoopbackAddress,
+  publicHttpError,
+  readJsonRequestBody,
+  requestUrlFromTrustedBase,
+  securityHeaders,
+} from './http-security.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
+const serverBinding=assertSafeServerBinding({host,env:process.env});
+if(serverBinding.remote){
+  console.warn('SECURITY: non-loopback binding explicitly enabled via RHYMELAB_ALLOW_REMOTE=1.');
+}
 const serverRuntimeMode=resolveServerRuntimeMode({
   argv:process.argv.slice(2),
   env:process.env,
@@ -681,31 +694,19 @@ function studioRouteModePayload(){
   };
 }
 
-function json(res,data,status=200,allowCors=true,diagnostics=null){
+function json(res,data,status=200,_legacyAllowCors=false,diagnostics=null){
   const serializeStarted=performance.now();
   const body=JSON.stringify(data);
   const serializeMs=performance.now()-serializeStarted;
   const responseBytes=Buffer.byteLength(body);
   const headers={
-    'content-type':'application/json; charset=utf-8',
+    ...securityHeaders({
+      contentType:'application/json; charset=utf-8',
+      requestId:res.getHeader('x-request-id')||null,
+    }),
     'content-length':String(responseBytes),
-    'x-content-type-options':'nosniff',
     'cache-control':'no-store',
   };
-  if(allowCors){
-    headers['access-control-allow-origin']='*';
-    headers['access-control-expose-headers']=[
-      'content-length',
-      'server-timing',
-      'x-rhymelab-search-ms',
-      'x-rhymelab-before-serialize-ms',
-      'x-rhymelab-json-serialize-ms',
-      'x-rhymelab-response-bytes',
-      'x-ratelimit-limit',
-      'x-ratelimit-remaining',
-      'retry-after',
-    ].join(', ');
-  }
   if(diagnostics?.measured===true){
     const searchMs=Number(diagnostics.searchMs);
     const beforeSerializeMs=Number(diagnostics.beforeSerializeMs);
@@ -725,11 +726,15 @@ function json(res,data,status=200,allowCors=true,diagnostics=null){
   return {serializeMs,responseBytes};
 }
 
-function asset(res, entry) {
-  res.writeHead(200, {
-    'content-type': entry.type,
-    'cache-control': 'no-store',
-    'x-content-type-options': 'nosniff',
+function asset(res,entry){
+  const isHtml=String(entry.type||'').toLowerCase().startsWith('text/html');
+  res.writeHead(200,{
+    ...securityHeaders({
+      contentType:entry.type,
+      isHtml,
+      requestId:res.getHeader('x-request-id')||null,
+    }),
+    'cache-control':'no-store',
   });
   res.end(entry.body);
 }
@@ -756,41 +761,31 @@ function clientQueryPronunciation(url, language) {
   };
 }
 
-async function readJsonBody(req, maxBytes = 32 * 1024) {
-  let size = 0;
-  const chunks = [];
-  for await (const chunk of req) {
-    size += chunk.length;
-    if (size > maxBytes) throw new Error('Request body too large');
-    chunks.push(chunk);
-  }
-  const raw = Buffer.concat(chunks).toString('utf8').trim();
-  if (!raw) throw new Error('Request body is required');
-  return JSON.parse(raw);
-}
-
 function isAllowedLocalWriteOrigin(req) {
-  const origin = String(req.headers.origin || '').trim();
-  if (!origin) return true;
-  try {
-    const parsed = new URL(origin);
-    const localHost = parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost' || parsed.hostname === '::1';
-    return localHost && (!parsed.port || parsed.port === String(port));
-  } catch {
+  const origin=String(req.headers.origin||'').trim();
+  if(!origin)return isLoopbackAddress(req.socket?.remoteAddress);
+  if(origin==='null')return false;
+  try{
+    const parsed=new URL(origin);
+    const localHost=parsed.hostname==='127.0.0.1'||parsed.hostname==='localhost'||parsed.hostname==='::1';
+    return parsed.protocol==='http:'&&localHost&&(!parsed.port||parsed.port===String(port));
+  }catch{
     return false;
   }
 }
 
 const server = createServer(async (req, res) => {
+  const requestId=createRequestId();
+  res.setHeader('x-request-id',requestId);
   try {
-    const url = new URL(req.url || '/', `http://${req.headers.host || `${host}:${port}`}`);
+    const url=requestUrlFromTrustedBase(req.url,{host,port});
 
     if (req.method === 'GET' && assets[url.pathname]) return asset(res, assets[url.pathname]);
 
     if (url.pathname === '/api/benchmark/review') {
       if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405, false);
       if (!isAllowedLocalWriteOrigin(req)) return json(res, { error: 'Benchmark writes are localhost-only' }, 403, false);
-      const body = await readJsonBody(req);
+      const body = await readJsonRequestBody(req);
       const saved = await saveBenchmarkReview(body);
       const state = await loadBenchmarkState();
       return json(res, { saved, summary: state.summary, next_task: state.next_task }, 200, false);
@@ -799,7 +794,7 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/markov/generate') {
       if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405, false);
       if (!isAllowedLocalWriteOrigin(req)) return json(res, { error: 'Markov generation is localhost-only' }, 403, false);
-      const body=await readJsonBody(req,512*1024);
+      const body=await readJsonRequestBody(req,{maxBytes:512*1024});
       const rows=Array.isArray(body?.rows)?body.rows.slice(0,600):[];
       if(rows.length<2)return json(res,{error:'At least two Writer candidates are required.'},400,false);
       const language=body?.language==='en'?'en':'de';
@@ -1188,11 +1183,12 @@ const server = createServer(async (req, res) => {
 
     return json(res, { error: 'Not found' }, 404);
   } catch (error) {
-    const status=Number(error?.statusCode)||500;
-    return json(res, {
-      error:error instanceof Error?error.message:String(error),
-      ...(error?.runtimeDb?{runtimeDb:error.runtimeDb}:{}),
-    }, status, req.method === 'GET' && !String(req.url || '').startsWith('/api/benchmark/'));
+    const publicError=publicHttpError(error,{requestId});
+    if(publicError.statusCode>=500){
+      const errorName=error instanceof Error?error.name:'Error';
+      console.error(`[http ${requestId}] ${errorName} (${publicError.body.code})`);
+    }
+    return json(res,publicError.body,publicError.statusCode,false);
   }
 });
 
