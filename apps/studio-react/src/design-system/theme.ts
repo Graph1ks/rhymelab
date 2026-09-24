@@ -274,7 +274,51 @@ export function randomOklchTheme(
   return {
     id: options.id ?? `style-${Date.now().toString(36)}`,
     name: options.name ?? (mode === 'dark' ? 'Night Signal' : 'Day Signal'),
-    subtitle: `OKLCH · H${Math.round(hue)}`,
+    subtitle: 'Generated palette',
+    mode,
+    colors: completeThemeColors(colors),
+  };
+}
+
+export function randomWildTheme(
+  options: {
+    mode?: ThemeMode;
+    hue?: number;
+    name?: string;
+    id?: string;
+  } = {},
+): ThemeDefinition {
+  const mode = options.mode ?? (Math.random() < 0.5 ? 'light' : 'dark');
+  const hue = Number.isFinite(options.hue) ? Number(options.hue) : Math.random() * 360;
+  const panelHue = (hue + 72 + Math.random() * 48) % 360;
+  const accentHue = (hue + 150 + Math.random() * 80) % 360;
+  const accent2Hue = (accentHue + 72 + Math.random() * 96) % 360;
+  const signalHue = (accentHue + 165 + Math.random() * 70) % 360;
+
+  const colors = mode === 'dark'
+    ? {
+        bg: oklchToHex(0.18, 0.075, hue),
+        panel: oklchToHex(0.245, 0.09, panelHue),
+        ink: oklchToHex(0.965, 0.018, panelHue + 180),
+        muted: oklchToHex(0.74, 0.045, panelHue + 160),
+        accent: oklchToHex(0.82, 0.22, accentHue),
+        accent2: oklchToHex(0.76, 0.205, accent2Hue),
+        signal: oklchToHex(0.79, 0.19, signalHue),
+      }
+    : {
+        bg: oklchToHex(0.94, 0.07, hue),
+        panel: oklchToHex(0.985, 0.055, panelHue),
+        ink: oklchToHex(0.17, 0.035, panelHue + 180),
+        muted: oklchToHex(0.43, 0.055, panelHue + 165),
+        accent: oklchToHex(0.52, 0.22, accentHue),
+        accent2: oklchToHex(0.57, 0.205, accent2Hue),
+        signal: oklchToHex(0.49, 0.18, signalHue),
+      };
+
+  return {
+    id: options.id ?? `style-${Date.now().toString(36)}`,
+    name: options.name ?? 'Wild Card',
+    subtitle: 'Chromatic wild card',
     mode,
     colors: completeThemeColors(colors),
   };
