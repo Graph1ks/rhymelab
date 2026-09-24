@@ -12,6 +12,7 @@ import {
   openMarkovModel,
  } from './markov-model-runtime.mjs';
 import {generateLyricCandidatesV2} from './lyric-decoder-v2.mjs';
+import {loadReactStudioPreviewAssets,reactStudioPreviewMode} from './react-studio-preview.mjs';
 import { WRITER_RUNTIME_ID, selectRhymeRuntimeDatabases } from './runtime-db-routing.mjs';
 import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
@@ -82,6 +83,10 @@ const searchDefaultRoute=process.argv.includes('--search-default')
 const studioDefaultRoute=process.argv.includes('--studio-default')
   ||String(process.env.RHYMELAB_STUDIO_DEFAULT||'').trim()==='1'
   ||!searchDefaultRoute;
+const reactStudioPreview=reactStudioPreviewMode({
+  argv:process.argv.slice(2),
+  env:process.env,
+});
 const internalDbPaths=internalDistributionDbPaths({env:process.env});
 let servingV1DbPath=internalDbPaths.standard;
 let servingV1DbId='standard';
@@ -121,6 +126,7 @@ const studioUiDir = resolve('src/studio');
 const benchmarkUiDir = resolve('src/benchmark-ui');
 const queryPronunciationTestDir = resolve('src/query-pronunciation-test');
 const markovTestDir = resolve('src/markov-test');
+const reactStudioDistDir = resolve('apps/studio-react/dist');
 const writerQueryTiming=createRollingQueryTiming(100);
 const internalDbSwitcherEnabled=servingV1Active&&internalDistributionSwitcherEnabled({
   argv:process.argv.slice(2),
@@ -565,8 +571,19 @@ const studioHtml=readFileSync(resolve(studioUiDir,'index.html'));
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const queryPronunciationTestHtml = readFileSync(resolve(queryPronunciationTestDir, 'index.html'));
 const markovTestHtml = readFileSync(resolve(markovTestDir, 'index.html'));
+const reactStudioAssets=reactStudioPreview.enabled
+  ?loadReactStudioPreviewAssets(reactStudioDistDir)
+  :{};
+const reactStudioHtml=reactStudioPreview.enabled
+  ?reactStudioAssets['/studio-react/']?.body
+  :null;
 const assets = {
-  '/': { type: 'text/html; charset=utf-8', body: studioDefaultRoute?studioHtml:writerHtml },
+  '/': {
+    type: 'text/html; charset=utf-8',
+    body: reactStudioPreview.defaultRoute
+      ?reactStudioHtml
+      :(studioDefaultRoute?studioHtml:writerHtml),
+  },
   '/search': { type: 'text/html; charset=utf-8', body: writerHtml },
   '/search/': { type: 'text/html; charset=utf-8', body: writerHtml },
   '/legacy': { type: 'text/html; charset=utf-8', body: writerHtml },
@@ -577,6 +594,8 @@ const assets = {
   '/pad/': { type: 'text/html; charset=utf-8', body: padHtml },
   '/studio': { type: 'text/html; charset=utf-8', body: studioHtml },
   '/studio/': { type: 'text/html; charset=utf-8', body: studioHtml },
+  '/studio-legacy': { type: 'text/html; charset=utf-8', body: studioHtml },
+  '/studio-legacy/': { type: 'text/html; charset=utf-8', body: studioHtml },
   '/studio/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'styles.css')) },
   '/studio/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'app.js')) },
   '/studio/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'custom-select.mjs')) },
@@ -635,13 +654,20 @@ const assets = {
   '/markov-test/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(markovTestDir, 'styles.css')) },
   '/markov-test/markov-core.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(markovTestDir, 'markov-core.mjs')) },
   '/markov-test/markov-controls.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(markovTestDir, 'markov-controls.mjs')) },
+  ...reactStudioAssets,
 };
 
 function studioRouteModePayload(){
   return {
     studioDefaultRoute,
-    defaultRoute:studioDefaultRoute?'studio':'search',
+    reactStudioPreview:reactStudioPreview.enabled,
+    reactStudioPreviewDefault:reactStudioPreview.defaultRoute,
+    defaultRoute:reactStudioPreview.defaultRoute
+      ?'react-studio'
+      :(studioDefaultRoute?'studio':'search'),
+    reactStudio:'/studio-react',
     studio:'/studio',
+    legacyStudio:'/studio-legacy',
     search:'/search',
     legacySearch:'/legacy',
     legacyPad:'/pad-legacy',
