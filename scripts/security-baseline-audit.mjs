@@ -49,6 +49,9 @@ const server=read('src/server.mjs');
 if(/access-control-allow-origin['"]?\s*[:=]\s*['"]\*['"]/i.test(server)){
   fail('src/server.mjs: wildcard CORS is forbidden for the localhost API.');
 }
+if(!/server\.maxRequestsPerSocket\s*=\s*\d+/.test(server)){
+  fail('src/server.mjs: maxRequestsPerSocket resource bound is missing.');
+}
 if(!server.includes("from './http-security.mjs'")){
   fail('src/server.mjs: HTTP security boundary module is not wired in.');
 }
