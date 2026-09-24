@@ -62,10 +62,10 @@ function Topbar() {
         type="button"
         className={styles.brand}
         onClick={() => navigate('home')}
-        aria-label={language === 'de' ? 'RhymeLab Intro' : 'RhymeLab intro'}
+        aria-label={language === 'de' ? 'Rhyme Bureau Intro' : 'Rhyme Bureau intro'}
       >
-        <span className={styles.brandMark}>r.</span>
-        <span className={styles.brandName}>rhymelab</span>
+        <span className={styles.brandMark}>rb.</span>
+        <span className={styles.brandName}>rhyme bureau</span>
       </button>
 
       <nav className={styles.topNavigation} data-rhymelab-control="shell.navigation">
@@ -124,6 +124,7 @@ export function Shell() {
   const themeChoice = useUiStore((state) => state.themeChoice);
   const language = useUiStore((state) => state.uiLanguage);
   const surface = useUiStore((state) => state.surface);
+  const focusMode = useUiStore((state) => state.focusMode);
   const reduceMotion = useReducedMotion();
   const startupErrorRef = useRef<HTMLDivElement>(null);
 
@@ -160,6 +161,7 @@ export function Shell() {
       className={styles.appShell}
       data-rhymelab-app-shell="true"
       data-rhymelab-controls="checking"
+      data-focus={focusMode ? 'true' : 'false'}
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
