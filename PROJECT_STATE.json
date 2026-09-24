@@ -4005,7 +4005,7 @@
   "active_continuation": {
     "id": "REACT_STUDIO_REPLATFORM",
     "priority": "P0",
-    "status": "R6_ANALYSIS_PERFORM_AUTOMATED_VERIFIED_R7_NEXT",
+    "status": "R7_SOURCE_PARITY_COMPLETE_DEVICE_ACCEPTANCE_ACTIVE",
     "branch": "refactor/react-studio-replatform",
     "handover": "docs/REACT_STUDIO_REPLATFORM.md",
     "parity_gate": "docs/REACT_STUDIO_PARITY_GATE.md",
@@ -4040,12 +4040,13 @@
       ]
     },
     "r1_contract": "docs/REACT_STUDIO_R1_TYPED_BRIDGE.md",
-    "next_thread_action": "execute_R7_automated_browser_and_real_device_parity_and_verify_only_evidenced_rows",
+    "next_thread_action": "run_R7_real_browser_and_physical_device_acceptance_then_promote_only_evidenced_rows_to_verified",
     "r2_contract": "docs/REACT_STUDIO_R2_SHELL.md",
     "r3_contract": "docs/REACT_STUDIO_R3_SEARCH_WRITER.md",
     "r4_contract": "docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md",
     "r5_contract": "docs/REACT_STUDIO_R5_EDITOR.md",
-    "r6_contract": "docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md"
+    "r6_contract": "docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md",
+    "r7_contract": "docs/REACT_STUDIO_R7_PARITY.md"
   },
   "studio_v2": {
     "status": "LIVE_DEFAULT_PENDING_REAL_DEVICE_ACCEPTANCE",
@@ -4092,7 +4093,7 @@
     "real_device_acceptance": "pending_7_gates"
   },
   "react_studio_replatform": {
-    "status": "R6_COMPLETE_R7_NEXT",
+    "status": "R7_SOURCE_COMPLETE_DEVICE_ACCEPTANCE_ACTIVE_R8_BLOCKED",
     "priority": "P0",
     "stack": [
       "React 19.3",
@@ -4331,6 +4332,52 @@
       "full_ci_run": 1335,
       "studio_v2_gate_run": 470,
       "next_phase": "R7_AUTOMATED_AND_REAL_DEVICE_PARITY"
+    },
+    "r7": {
+      "status": "AUTOMATED_SOURCE_PARITY_COMPLETE_PHYSICAL_ACCEPTANCE_PENDING",
+      "contract": "docs/REACT_STUDIO_R7_PARITY.md",
+      "manifest": "apps/studio-react/r7-parity-manifest.json",
+      "tested_code_head": "c9725ed3312b",
+      "parity": {
+        "ported": 93,
+        "in_progress": 0,
+        "pending": 0,
+        "verified": 0,
+        "total": 93
+      },
+      "startup_binding_guard": true,
+      "diagnostics_ui": true,
+      "device_acceptance_ui": true,
+      "seven_gate_report_merge": true,
+      "search_keyboard_contract": true,
+      "single_drawer_scroll_owner": true,
+      "reversible_preview_route": true,
+      "normal_root_route_changed": false,
+      "react_preview_route": "/studio-react",
+      "studio_v2_rollback_routes": [
+        "/studio",
+        "/studio-legacy"
+      ],
+      "focused_verification": "npm run studio:react:r7",
+      "source_gate": "npm run studio:react:r7:gate",
+      "full_cutover_gate": "npm run studio:react:r7:cutover",
+      "automated_tests": 82,
+      "r7_contract_tests": 11,
+      "reversible_preview_tests": 4,
+      "react_replatform_run": 182,
+      "full_ci_run": 1365,
+      "studio_v2_gate_run": 500,
+      "physical_device_gates_pending": [
+        "editor.ime",
+        "perform.metronome",
+        "mobile.navigation",
+        "mobile.swap",
+        "mobile.keyboard",
+        "mobile.touch",
+        "mobile.no-hover"
+      ],
+      "cutover_ready": false,
+      "next_phase": "R8_REVERSIBLE_CUTOVER_ONLY_AFTER_93_OF_93_VERIFIED"
     }
   }
 }
