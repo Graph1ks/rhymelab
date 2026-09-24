@@ -69,6 +69,7 @@ import {
   generatedDataRequested,
   generatedOnlyRequested,
 } from './generated-runtime-request-policy.mjs';
+import {createTokenBucketRateLimiter} from './request-rate-limit.mjs';
 
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
@@ -128,6 +129,12 @@ const queryPronunciationTestDir = resolve('src/query-pronunciation-test');
 const markovTestDir = resolve('src/markov-test');
 const reactStudioDistDir = resolve('apps/studio-react/dist');
 const writerQueryTiming=createRollingQueryTiming(100);
+const writerRateLimiter=createTokenBucketRateLimiter({
+  capacity:Number(process.env.RHYMELAB_WRITER_RATE_BURST||16),
+  refillPerSecond:Number(process.env.RHYMELAB_WRITER_RATE_RPS||8),
+  maxEntries:Number(process.env.RHYMELAB_WRITER_RATE_KEYS||4096),
+});
+
 const internalDbSwitcherEnabled=servingV1Active&&internalDistributionSwitcherEnabled({
   argv:process.argv.slice(2),
   env:process.env,
@@ -694,6 +701,9 @@ function json(res,data,status=200,allowCors=true,diagnostics=null){
       'x-rhymelab-before-serialize-ms',
       'x-rhymelab-json-serialize-ms',
       'x-rhymelab-response-bytes',
+      'x-ratelimit-limit',
+      'x-ratelimit-remaining',
+      'retry-after',
     ].join(', ');
   }
   if(diagnostics?.measured===true){
@@ -919,6 +929,19 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/writer') {
+      const rateKey=String(req.socket?.remoteAddress||'anonymous');
+      const rate=writerRateLimiter.consume(rateKey);
+      res.setHeader('x-ratelimit-limit',String(Math.floor(rate.capacity)));
+      res.setHeader('x-ratelimit-remaining',String(Math.max(0,Math.floor(rate.remaining))));
+      if(!rate.allowed){
+        const retrySeconds=Math.max(1,Math.ceil(rate.retryAfterMs/1000));
+        res.setHeader('retry-after',String(retrySeconds));
+        return json(res,{
+          error:'Too many Writer requests.',
+          status:'rate_limited',
+          retryAfterMs:rate.retryAfterMs,
+        },429);
+      }
       const q = url.searchParams.get('q') || '';
       if (!q.trim()) return json(res, { error: 'q is required' }, 400);
       const runtimeSelection=requestRuntimeSelection(url);
