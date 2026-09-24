@@ -2308,3 +2308,51 @@
   width: 12px;
   height: 12px;
 }
+
+
+/* Always-visible query/result language route. */
+.languageRouteStatus {
+  align-self: flex-start;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 24px 6px;
+  border: 1px solid var(--rl-line);
+  border-radius: 999px;
+  padding: 0 9px;
+  background: color-mix(in srgb, var(--rl-bg) 58%, var(--rl-panel));
+  color: var(--rl-muted);
+  cursor: pointer;
+  font: inherit;
+}
+
+.searchExperience[data-variant="assistant"] .languageRouteStatus {
+  margin-inline: 14px;
+}
+
+.languageRouteStatus > span {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+
+.languageRouteStatus > b {
+  color: var(--rl-ink);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .02em;
+}
+
+.languageRouteStatus[data-active="true"] {
+  border-color: color-mix(in srgb, var(--rl-accent) 38%, var(--rl-line));
+  background: color-mix(in srgb, var(--rl-accent) 7%, var(--rl-panel));
+}
+
+.languageRouteStatus:hover,
+.languageRouteStatus:focus-visible {
+  border-color: color-mix(in srgb, var(--rl-accent) 52%, var(--rl-line));
+  outline: 0;
+  color: var(--rl-accent);
+  box-shadow: var(--rl-focus-ring);
+}
