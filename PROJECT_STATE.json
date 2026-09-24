@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-24",
-  "phase": "REACT_STUDIO_REPLATFORM_R1_COMPLETE",
+  "phase": "REACT_STUDIO_REPLATFORM_R2_COMPLETE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -4005,7 +4005,7 @@
   "active_continuation": {
     "id": "REACT_STUDIO_REPLATFORM",
     "priority": "P0",
-    "status": "R1_TYPED_BRIDGE_VERIFIED_R2_NEXT",
+    "status": "R2_SHELL_DESIGN_SYSTEM_VERIFIED_R3_NEXT",
     "branch": "refactor/react-studio-replatform",
     "handover": "docs/REACT_STUDIO_REPLATFORM.md",
     "parity_gate": "docs/REACT_STUDIO_PARITY_GATE.md",
@@ -4040,7 +4040,8 @@
       ]
     },
     "r1_contract": "docs/REACT_STUDIO_R1_TYPED_BRIDGE.md",
-    "next_thread_action": "implement_R2_shell_and_design_system_on_existing_typed_bridge_without_reimplementing_domain_semantics"
+    "next_thread_action": "implement_R3_Search_Writer_through_R1_bridges_without_parallel_search_state_ranking_or_runtime_semantics",
+    "r2_contract": "docs/REACT_STUDIO_R2_SHELL.md"
   },
   "studio_v2": {
     "status": "LIVE_DEFAULT_PENDING_REAL_DEVICE_ACCEPTANCE",
@@ -4087,7 +4088,7 @@
     "real_device_acceptance": "pending_7_gates"
   },
   "react_studio_replatform": {
-    "status": "R1_COMPLETE_R2_NEXT",
+    "status": "R2_COMPLETE_R3_NEXT",
     "priority": "P0",
     "stack": [
       "React 19.3",
@@ -4119,6 +4120,30 @@
       "runtime_edition_contract_preserved": true,
       "focused_verification": "npm run studio:react:r1",
       "next_phase": "R2_SHELL_AND_DESIGN_SYSTEM"
+    },
+    "r2": {
+      "status": "AUTOMATED_VERIFIED_REAL_DEVICE_ACCEPTANCE_DEFERRED",
+      "contract": "docs/REACT_STUDIO_R2_SHELL.md",
+      "manifest": "apps/studio-react/r2-shell-manifest.json",
+      "source_root": "apps/studio-react/src/shell",
+      "breakpoints": {
+        "sidebar_rail": 1150,
+        "mobile": 800,
+        "compact_mobile": 560
+      },
+      "semantic_design_tokens": true,
+      "base_ui_primitive_boundary": true,
+      "light_dark_slots_preserved": true,
+      "saved_custom_theme_slots_consumed": true,
+      "de_en_preference_preserved": true,
+      "ranked_command_palette_reuses_legacy_matcher": true,
+      "visual_viewport_reuses_legacy_controller": true,
+      "single_normal_content_scroll_owner": true,
+      "domain_feature_semantics_reimplemented": false,
+      "user_facing_cutover_rows_verified_by_r2": false,
+      "real_device_acceptance_pending": true,
+      "focused_verification": "npm run studio:react:r2",
+      "next_phase": "R3_SEARCH_WRITER"
     }
   }
 }
