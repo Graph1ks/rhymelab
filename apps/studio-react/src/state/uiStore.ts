@@ -18,6 +18,8 @@ type UiState = {
   commandPaletteOpen: boolean;
   quickstylesOpen: boolean;
   settingsDrawerOpen: boolean;
+  libraryOpen: boolean;
+  savedOpen: boolean;
   navigate: (surface: AppSurface) => void;
   setUiLanguage: (language: StudioUiLanguage | string) => void;
   toggleUiLanguage: () => void;
@@ -26,6 +28,8 @@ type UiState = {
   setCommandPaletteOpen: (open: boolean) => void;
   setQuickstylesOpen: (open: boolean) => void;
   setSettingsDrawerOpen: (open: boolean) => void;
+  setLibraryOpen: (open: boolean) => void;
+  setSavedOpen: (open: boolean) => void;
 };
 
 const preferences = loadStudioPreferences();
@@ -41,6 +45,8 @@ export const useUiStore = create<UiState>((set, get) => ({
   commandPaletteOpen: false,
   quickstylesOpen: false,
   settingsDrawerOpen: false,
+  libraryOpen: false,
+  savedOpen: false,
 
   navigate(surface) {
     set({
@@ -87,5 +93,13 @@ export const useUiStore = create<UiState>((set, get) => ({
 
   setSettingsDrawerOpen(settingsDrawerOpen) {
     set({ settingsDrawerOpen });
+  },
+
+  setLibraryOpen(libraryOpen) {
+    set({ libraryOpen });
+  },
+
+  setSavedOpen(savedOpen) {
+    set({ savedOpen });
   },
 }));
