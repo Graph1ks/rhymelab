@@ -56,7 +56,7 @@ function RuntimeSelector({
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const editions: RuntimeEdition[] = ['lite', 'standard', 'full'];
-  const activeLabel = runtime.selected?.toUpperCase()
+  const activeLabel = runtime.activeEdition?.toUpperCase()
     ?? String(runtime.capabilities?.runtime || 'Writer').replace(/^serving-v1\/?/u, '').toUpperCase();
 
   return (
@@ -350,8 +350,8 @@ export function SearchExperience({
             autoComplete="off"
             aria-label={language === 'de' ? 'Reimanker suchen' : 'Search rhyme anchor'}
           />
-          {runtime.selected ? (
-            <span className={styles.inputDbBadge}>{runtime.selected.toUpperCase()}</span>
+          {runtime.activeEdition ? (
+            <span className={styles.inputDbBadge}>{runtime.activeEdition.toUpperCase()}</span>
           ) : null}
           <button type="submit" className={styles.searchSubmit}>
             <span>{language === 'de' ? 'Suchen' : 'Search'}</span>
