@@ -82,7 +82,8 @@ const studioDefaultRoute=process.argv.includes('--studio-default')
   ||String(process.env.RHYMELAB_STUDIO_DEFAULT||'').trim()==='1'
   ||!searchDefaultRoute;
 const internalDbPaths=internalDistributionDbPaths({env:process.env});
-const servingV1DbPath=internalDbPaths.standard;
+let servingV1DbPath=internalDbPaths.standard;
+let servingV1DbId='standard';
 const legacyDbPath = resolve(process.env.RHYMELAB_LEGACY_DB || process.env.RHYMELAB_DB || 'data/local/rhymelab.sqlite');
 const writerDbPath = resolve(process.env.RHYMELAB_WRITER_DB || DEFAULT_WRITER_DB_PATH);
 const phraseDbPath = resolve(process.env.RHYMELAB_PHRASE_DB || 'data/local/rhymelab-phrases-v1.sqlite');
@@ -217,26 +218,7 @@ function openDistributionRuntime(id,path){
 let servingV1Runtime=null;
 let servingV1State=null;
 if(servingV1Active){
-  try{
-    ({runtime:servingV1Runtime,state:servingV1State}=openDistributionRuntime('standard',servingV1DbPath));
-  }catch(error){
-    console.error(`Cannot open STANDARD distribution database at ${servingV1DbPath}`);
-    console.error('Build it with: npm run distribution:build:standard');
-    console.error(error instanceof Error?error.message:String(error));
-    process.exit(1);
-  }
-}
-
-if(internalDbSwitcherEnabled){
-  internalDbEntries.set('standard',{
-    id:'standard',
-    path:internalDbPaths.standard,
-    runtime:servingV1Runtime,
-    state:servingV1State,
-    error:null,
-    owned:false,
-  });
-  for(const id of INTERNAL_DISTRIBUTION_DB_IDS.filter((value)=>value!=='standard')){
+  for(const id of INTERNAL_DISTRIBUTION_DB_IDS){
     const path=internalDbPaths[id];
     try{
       const {runtime,state}=openDistributionRuntime(id,path);
@@ -259,6 +241,22 @@ if(internalDbSwitcherEnabled){
       });
     }
   }
+
+  servingV1DbId=['standard','full','lite'].find((id)=>internalDbEntries.get(id)?.runtime)||'';
+  if(!servingV1DbId){
+    console.error('Cannot open any shipping distribution database (LITE / STANDARD / FULL).');
+    for(const id of INTERNAL_DISTRIBUTION_DB_IDS){
+      const entry=internalDbEntries.get(id);
+      console.error(`  ${id.toUpperCase()}: ${entry?.error||'unavailable'} · ${internalDbPaths[id]}`);
+    }
+    console.error('Build or install at least one edition with: npm run distribution:build');
+    process.exit(1);
+  }
+  const canonicalEntry=internalDbEntries.get(servingV1DbId);
+  servingV1DbPath=canonicalEntry.path;
+  servingV1Runtime=canonicalEntry.runtime;
+  servingV1State=canonicalEntry.state;
+  canonicalEntry.owned=false;
 }
 
 function requestedInternalRuntimeEntry(url){
@@ -288,7 +286,7 @@ function internalDistributionPayload(){
     enabled:internalDbSwitcherEnabled,
     internalOnly:false,
     shipping:true,
-    defaultDatabase:'standard',
+    defaultDatabase:servingV1DbId,
     selectionMode:'per-request-query-parameter',
     parameter:'runtime_db',
     databases:INTERNAL_DISTRIBUTION_DB_IDS.map((id)=>{
@@ -418,7 +416,7 @@ function requestRuntimeSelection(url){
         reason:null,
         databases:internalEntry.runtime.allDatabases,
         internalDbId:internalEntry.id,
-        internal:internalEntry.id!=='standard',
+        internal:internalEntry.id!==servingV1DbId,
       };
     }
     if(generated&&generatedDataExplicitlyRequired(url)){
@@ -427,7 +425,7 @@ function requestRuntimeSelection(url){
         reason:'selected_distribution_generated_unavailable',
         databases:null,
         internalDbId:internalEntry.id,
-        internal:internalEntry.id!=='standard',
+        internal:internalEntry.id!==servingV1DbId,
       };
     }
     return {
@@ -435,7 +433,7 @@ function requestRuntimeSelection(url){
       reason:null,
       databases:internalEntry.runtime.coreDatabases,
       internalDbId:internalEntry.id,
-      internal:internalEntry.id!=='standard',
+      internal:internalEntry.id!==servingV1DbId,
     };
   }
 
@@ -459,7 +457,7 @@ function requestRuntimeSelection(url){
       );
   return {
     ...selection,
-    internalDbId:servingV1Active?'standard':null,
+    internalDbId:servingV1Active?servingV1DbId:null,
     internal:false,
   };
 }
@@ -838,7 +836,7 @@ const server = createServer(async (req, res) => {
           de:markovModelHealth(markovRuntime),
           en:markovModelHealth(markovEnglishRuntime),
         },
-        package_runtime: servingV1Active ? 'serving-v1-standard' : 'legacy-archive-bundle',
+        package_runtime: servingV1Active ? 'serving-v1-'+servingV1DbId : 'legacy-archive-bundle',
         writer_database: healthDatabases.writerDb ? healthPath : null,
         writer_runtime: servingV1Active ? SERVING_V1_PRODUCT_RUNTIME : WRITER_RUNTIME_ID,
         serving_v1: servingV1Active ? {
@@ -847,7 +845,7 @@ const server = createServer(async (req, res) => {
           database:healthPath,
           state:healthState,
           distribution:healthRuntime?.capabilities||null,
-          internal_db:healthInternalEntry?.id||(servingV1Active?'standard':null),
+          internal_db:healthInternalEntry?.id||(servingV1Active?servingV1DbId:null),
         } : {
           enabled:false,
           default_runtime:false,
@@ -1154,13 +1152,13 @@ server.listen(port, host, () => {
   console.log(`Markov DE database: ${markovRuntime.available ? markovModelPath : 'unavailable — npm run markov:model:build'}`);
   console.log(`Markov EN database: ${markovEnglishRuntime.available ? markovEnglishModelPath : 'unavailable — npm run markov:model:build:en'}`);
   if(servingV1Active){
-    console.log(`Product runtime: Serving-v1 canonical/default`);
+    console.log(`Product runtime: Serving-v1 ${servingV1DbId.toUpperCase()} (best available shipping edition)`);
     console.log(`Serving-v1 SQLite: ${servingV1DbPath}`);
     console.log(`Serving-v1 runtime: ${SERVING_V1_PRODUCT_RUNTIME}`);
     console.log(`Writer execution: ${parallelWriterRuntime.health().execution} · ${parallelWriterRuntime.health().workers} workers`);
     console.log('Generated data: Serving-v1 all-mode default ON · generated=0 opts out');
     if(internalDbSwitcherEnabled){
-      console.log('INTERNAL DB LAB: ENABLED · per-request Master / Lite / Standard / Full switcher');
+      console.log('Distribution selector: ENABLED · per-request LITE / STANDARD / FULL');
       for(const id of INTERNAL_DISTRIBUTION_DB_IDS){
         const entry=internalDbEntries.get(id);
         console.log(`  ${id.padEnd(8)} ${entry?.runtime?'ready':'unavailable'} · ${internalDbPaths[id]}`);
