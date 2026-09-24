@@ -30,10 +30,11 @@ infrastructure may ship, but it is not part of RhymeLab product navigation.
 
 New product feature development is temporarily frozen while Studio is migrated,
 behavior-for-behavior, to React + TypeScript + Vite + Base UI + Motion + TanStack
-Query + Zustand + TanStack Virtual. R0 scaffold/freeze and R1 typed-domain bridging
-are complete; R2 shell/design-system work is next. The existing Studio V2 remains
-the shipping golden master until the hard parity gate passes. See
-`docs/REACT_STUDIO_REPLATFORM.md`, `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`, and
+Query + Zustand + TanStack Virtual. R0 scaffold/freeze, R1 typed-domain bridging
+and R2 shell/design-system foundations are complete; R3 Search/Writer is next.
+The existing Studio V2 remains the shipping golden master until the hard parity
+gate passes. See `docs/REACT_STUDIO_REPLATFORM.md`,
+`docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`, `docs/REACT_STUDIO_R2_SHELL.md`, and
 `docs/REACT_STUDIO_PARITY_GATE.md`.
 
 ## Local run
