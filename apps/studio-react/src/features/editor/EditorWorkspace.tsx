@@ -25,7 +25,12 @@ import { useUiStore } from '../../state/uiStore';
 import { useDocumentWorkspace } from '../library/DocumentWorkspaceProvider';
 import { useEditorSession } from './EditorSessionProvider';
 import { asEditorSong } from './model';
-import { editorFontFamily, SystemFontPicker } from './SystemFontPicker';
+import {
+  editorFontFamily,
+  editorFontStyle,
+  editorFontWeight,
+  SystemFontPicker,
+} from './SystemFontPicker';
 import styles from './Editor.module.css';
 
 const SECTION_TAGS = [
@@ -144,6 +149,8 @@ export function EditorWorkspace() {
   const fontSize = Math.max(16, Math.min(32, Number(documents.state.fontSize) || 21));
   const editorFont = String(documents.state.editorFont || 'sans');
   const fontFamily = editorFontFamily(editorFont);
+  const fontStyle = editorFontStyle(editorFont);
+  const fontWeight = editorFontWeight(editorFont);
 
   const trackedIndexes = useMemo(
     () => song ? trackedEditorLineIndexes(asEditorSong(song)) : [],
@@ -180,7 +187,7 @@ export function EditorWorkspace() {
     const observer = new ResizeObserver(update);
     observer.observe(textarea);
     return () => observer.disconnect();
-  }, [editor.documentText, fontFamily, fontSize, lines.length]);
+  }, [editor.documentText, fontFamily, fontSize, fontStyle, fontWeight, lines.length]);
 
   useEffect(() => () => {
     if (dragRef.current?.timer) clearTimeout(dragRef.current.timer);
@@ -461,6 +468,8 @@ export function EditorWorkspace() {
             style={{
               '--editor-font-size': `${fontSize}px`,
               '--editor-font-family': fontFamily,
+              '--editor-font-style': fontStyle,
+              '--editor-font-weight': String(fontWeight),
             } as CSSProperties}
           >
             {dragVisual?.active ? (
