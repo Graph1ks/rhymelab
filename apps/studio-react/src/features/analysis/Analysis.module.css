@@ -1,4 +1,12 @@
 .workspace {
+  --rl-rhyme-group-0: #ffd84a;
+  --rl-rhyme-group-1: #ff7a59;
+  --rl-rhyme-group-2: #63d6ff;
+  --rl-rhyme-group-3: #9ee66e;
+  --rl-rhyme-group-4: #c78cff;
+  --rl-rhyme-group-5: #ff8fc7;
+  --rl-rhyme-group-6: #7ce6c2;
+  --rl-rhyme-group-7: #ffb95e;
   min-height: 0;
   height: 100%;
   overflow: auto;
@@ -131,7 +139,7 @@
 }
 
 .card {
-  grid-column: span 6;
+  grid-column: 1 / -1;
   min-width: 0;
   border: 1px solid var(--rl-line);
   border-radius: 16px;
@@ -142,7 +150,7 @@
 .card:nth-child(3),
 .card:nth-child(4),
 .card:nth-child(5) {
-  grid-column: span 12;
+  grid-column: 1 / -1;
 }
 
 .cardHeader {
@@ -214,7 +222,7 @@
 
 .scheme > button {
   display: grid;
-  grid-template-columns: 38px 42px minmax(120px, .8fr) minmax(160px, 1.2fr);
+  grid-template-columns: 42px 46px minmax(0, .9fr) minmax(0, 1.25fr);
   align-items: center;
   gap: 8px;
   min-height: 48px;
@@ -234,8 +242,16 @@
 }
 
 .scheme strong {
-  color: var(--rl-accent);
-  font-size: 1.15rem;
+  color: var(--rhyme-color, var(--rl-accent));
+  font-size: 1.25rem;
+}
+
+.scheme > button {
+  border-left: 4px solid var(--rhyme-color, var(--rl-line));
+}
+
+.scheme > button:hover {
+  background: color-mix(in srgb, var(--rhyme-color, var(--rl-accent)) 8%, var(--rl-panel));
 }
 
 .scheme b {
@@ -276,8 +292,8 @@
   place-items: center;
   min-height: 34px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--rl-accent) 14%, var(--rl-panel));
-  color: var(--rl-accent);
+  background: color-mix(in srgb, var(--rhyme-color, var(--rl-accent)) 16%, var(--rl-panel));
+  color: var(--rhyme-color, var(--rl-accent));
 }
 
 .chain span {
@@ -594,5 +610,103 @@
 
   .pairs {
     grid-template-columns: 1fr;
+  }
+}
+
+
+/* R7 UX correction: explicit rhyme-type language and one-column analysis flow. */
+.rhymeLegend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 9px 0 12px;
+  border-bottom: 1px solid var(--rl-line);
+}
+
+.rhymeLegend > span {
+  margin-right: 2px;
+  color: var(--rl-muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .1em;
+}
+
+.rhymeLegend i,
+.types article,
+.pairs > button,
+.tokens button[data-rhyme-type] {
+  --rhyme-type-color: var(--rl-muted);
+}
+
+.rhymeLegend i {
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--rhyme-type-color) 55%, var(--rl-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rhyme-type-color) 9%, var(--rl-panel));
+  color: var(--rhyme-type-color);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.rhymeLegend small {
+  margin-left: auto;
+  color: var(--rl-muted);
+  font-size: 11px;
+}
+
+[data-rhyme-type="multisyllabic_perfect"] { --rhyme-type-color: #ffd84a; }
+[data-rhyme-type="perfect"] { --rhyme-type-color: #ff9f43; }
+[data-rhyme-type="multisyllabic_slant"] { --rhyme-type-color: #63d6ff; }
+[data-rhyme-type="family"] { --rhyme-type-color: #9ee66e; }
+[data-rhyme-type="slant"] { --rhyme-type-color: #c78cff; }
+[data-rhyme-type="assonance"] { --rhyme-type-color: #ff8fc7; }
+[data-rhyme-type="consonance"] { --rhyme-type-color: #7ce6c2; }
+
+.types article[data-rhyme-type] {
+  border-left: 4px solid var(--rhyme-type-color);
+  background: color-mix(in srgb, var(--rhyme-type-color) 7%, var(--rl-panel));
+}
+
+.types article[data-rhyme-type] small,
+.types article[data-rhyme-type] b {
+  color: var(--rhyme-type-color);
+}
+
+.pairs > button[data-rhyme-type] {
+  border-left: 4px solid var(--rhyme-type-color);
+  background: color-mix(in srgb, var(--rhyme-type-color) 5%, var(--rl-panel));
+}
+
+.pairs > button[data-rhyme-type] em,
+.pairs > button[data-rhyme-type] strong {
+  color: var(--rhyme-type-color);
+}
+
+.tokens button[data-rhyme-type] {
+  border-color: color-mix(in srgb, var(--rhyme-type-color) 52%, var(--rl-line));
+  background: color-mix(in srgb, var(--rhyme-type-color) 8%, var(--rl-panel));
+  color: var(--rhyme-type-color);
+}
+
+.card {
+  overflow: hidden;
+}
+
+.grid,
+.all {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.overview {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1180px) {
+  .rhymeLegend small {
+    width: 100%;
+    margin-left: 0;
   }
 }
