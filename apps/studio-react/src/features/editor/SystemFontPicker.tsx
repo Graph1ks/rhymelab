@@ -5,117 +5,129 @@ import { Dialog } from '../../design-system/primitives';
 import { useUiStore } from '../../state/uiStore';
 import styles from './Editor.module.css';
 
-export interface LocalFontFace {
+export interface CuratedGoogleFont {
   family: string;
-  fullName: string;
-  postscriptName: string;
-  style: string;
+  category: string;
+  note: string;
+  fallback: 'serif' | 'sans-serif' | 'monospace' | 'cursive';
 }
 
-const FALLBACK_FONTS: LocalFontFace[] = [
-  { family: 'Arial', fullName: 'Arial', postscriptName: 'Arial', style: 'Regular' },
-  { family: 'Helvetica', fullName: 'Helvetica', postscriptName: 'Helvetica', style: 'Regular' },
-  { family: 'Segoe UI', fullName: 'Segoe UI', postscriptName: 'SegoeUI', style: 'Regular' },
-  { family: 'San Francisco', fullName: 'San Francisco', postscriptName: 'SanFrancisco', style: 'Regular' },
-  { family: 'Georgia', fullName: 'Georgia', postscriptName: 'Georgia', style: 'Regular' },
-  { family: 'Times New Roman', fullName: 'Times New Roman', postscriptName: 'TimesNewRomanPSMT', style: 'Regular' },
-  { family: 'Verdana', fullName: 'Verdana', postscriptName: 'Verdana', style: 'Regular' },
-  { family: 'Tahoma', fullName: 'Tahoma', postscriptName: 'Tahoma', style: 'Regular' },
-  { family: 'Trebuchet MS', fullName: 'Trebuchet MS', postscriptName: 'TrebuchetMS', style: 'Regular' },
-  { family: 'Courier New', fullName: 'Courier New', postscriptName: 'CourierNewPSMT', style: 'Regular' },
-  { family: 'Consolas', fullName: 'Consolas', postscriptName: 'Consolas', style: 'Regular' },
-  { family: 'Menlo', fullName: 'Menlo', postscriptName: 'Menlo-Regular', style: 'Regular' },
-];
+export const DEFAULT_EDITOR_FONT = 'google:Oranienbaum';
 
-type QueryLocalFonts = () => Promise<Array<{
-  family?: string;
-  fullName?: string;
-  postscriptName?: string;
-  style?: string;
-}>>;
+export const CURATED_GOOGLE_FONTS: readonly CuratedGoogleFont[] = Object.freeze([
+  { family: 'Inter', category: 'Modern Sans', note: 'Neutral · crisp · UI-clean', fallback: 'sans-serif' },
+  { family: 'Manrope', category: 'Modern Sans', note: 'Wide · contemporary · calm', fallback: 'sans-serif' },
+  { family: 'DM Sans', category: 'Modern Sans', note: 'Friendly · readable · balanced', fallback: 'sans-serif' },
+  { family: 'Plus Jakarta Sans', category: 'Modern Sans', note: 'Polished · geometric · premium', fallback: 'sans-serif' },
+  { family: 'Space Grotesk', category: 'Modern Sans', note: 'Technical · editorial · character', fallback: 'sans-serif' },
 
-function normalizedFaces(rows: Awaited<ReturnType<QueryLocalFonts>>): LocalFontFace[] {
-  const seen = new Set<string>();
-  return rows
-    .map((row) => ({
-      family: String(row.family || row.fullName || '').trim(),
-      fullName: String(row.fullName || row.family || '').trim(),
-      postscriptName: String(row.postscriptName || '').trim(),
-      style: String(row.style || 'Regular').trim(),
-    }))
-    .filter((row) => {
-      if (!row.family || !row.fullName) return false;
-      const key = [row.family, row.fullName, row.style].join('\u0000');
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .sort((a, b) => a.family.localeCompare(b.family) || a.fullName.localeCompare(b.fullName));
+  { family: 'Outfit', category: 'Geometric', note: 'Clean · modern · compact', fallback: 'sans-serif' },
+  { family: 'Sora', category: 'Geometric', note: 'Sharp · future-facing · precise', fallback: 'sans-serif' },
+  { family: 'Urbanist', category: 'Geometric', note: 'Smooth · contemporary · open', fallback: 'sans-serif' },
+  { family: 'Montserrat', category: 'Geometric', note: 'Architectural · strong · familiar', fallback: 'sans-serif' },
+  { family: 'Poppins', category: 'Geometric', note: 'Round · graphic · confident', fallback: 'sans-serif' },
+
+  { family: 'Oranienbaum', category: 'Editorial Serif', note: 'Default · elegant · literary', fallback: 'serif' },
+  { family: 'Lora', category: 'Editorial Serif', note: 'Readable · lyrical · warm', fallback: 'serif' },
+  { family: 'Libre Baskerville', category: 'Editorial Serif', note: 'Classic · sturdy · long-form', fallback: 'serif' },
+  { family: 'Cormorant Garamond', category: 'Editorial Serif', note: 'High-fashion · delicate · expressive', fallback: 'serif' },
+  { family: 'Merriweather', category: 'Editorial Serif', note: 'Robust · bookish · screen-friendly', fallback: 'serif' },
+
+  { family: 'Bodoni Moda', category: 'Magazine', note: 'Fashion · contrast · dramatic', fallback: 'serif' },
+  { family: 'Fraunces', category: 'Magazine', note: 'Variable · expressive · retro-modern', fallback: 'serif' },
+  { family: 'DM Serif Display', category: 'Magazine', note: 'Bold editorial · classy · spacious', fallback: 'serif' },
+  { family: 'Prata', category: 'Magazine', note: 'Luxury · sharp · headline-led', fallback: 'serif' },
+  { family: 'Playfair Display', category: 'Magazine', note: 'Classic magazine · high contrast', fallback: 'serif' },
+
+  { family: 'EB Garamond', category: 'Book', note: 'Literary · historic · fluid', fallback: 'serif' },
+  { family: 'Crimson Pro', category: 'Book', note: 'Professional · quiet · long-form', fallback: 'serif' },
+  { family: 'Spectral', category: 'Book', note: 'Contemporary serif · dense text', fallback: 'serif' },
+  { family: 'Alegreya', category: 'Book', note: 'Humanist · rhythmic · expressive', fallback: 'serif' },
+  { family: 'Literata', category: 'Book', note: 'Reading-first · literary · modern', fallback: 'serif' },
+
+  { family: 'Bebas Neue', category: 'Condensed / Poster', note: 'Tall · bold · poster', fallback: 'sans-serif' },
+  { family: 'Oswald', category: 'Condensed / Poster', note: 'Newsroom · condensed · assertive', fallback: 'sans-serif' },
+  { family: 'Anton', category: 'Condensed / Poster', note: 'Heavy · loud · headline', fallback: 'sans-serif' },
+  { family: 'Archivo Narrow', category: 'Condensed / Poster', note: 'Utility · compact · readable', fallback: 'sans-serif' },
+  { family: 'Roboto Condensed', category: 'Condensed / Poster', note: 'Efficient · familiar · clean', fallback: 'sans-serif' },
+
+  { family: 'Figtree', category: 'Humanist Sans', note: 'Fresh · natural · highly readable', fallback: 'sans-serif' },
+  { family: 'Work Sans', category: 'Humanist Sans', note: 'Practical · warm · balanced', fallback: 'sans-serif' },
+  { family: 'Source Sans 3', category: 'Humanist Sans', note: 'Professional · versatile · clear', fallback: 'sans-serif' },
+  { family: 'Nunito Sans', category: 'Humanist Sans', note: 'Soft · approachable · legible', fallback: 'sans-serif' },
+  { family: 'Mulish', category: 'Humanist Sans', note: 'Minimal · relaxed · modern', fallback: 'sans-serif' },
+
+  { family: 'JetBrains Mono', category: 'Mono / Tech', note: 'Dense · technical · exceptionally clear', fallback: 'monospace' },
+  { family: 'IBM Plex Mono', category: 'Mono / Tech', note: 'Industrial · editorial · technical', fallback: 'monospace' },
+  { family: 'Space Mono', category: 'Mono / Tech', note: 'Retro-tech · distinctive · wide', fallback: 'monospace' },
+  { family: 'Roboto Mono', category: 'Mono / Tech', note: 'Neutral · functional · readable', fallback: 'monospace' },
+  { family: 'Source Code Pro', category: 'Mono / Tech', note: 'Clean · precise · restrained', fallback: 'monospace' },
+
+  { family: 'Caveat', category: 'Handwriting', note: 'Loose · natural · songwriter', fallback: 'cursive' },
+  { family: 'Kalam', category: 'Handwriting', note: 'Marker · energetic · readable', fallback: 'cursive' },
+  { family: 'Patrick Hand', category: 'Handwriting', note: 'Notebook · casual · clean', fallback: 'cursive' },
+  { family: 'Shadows Into Light', category: 'Handwriting', note: 'Thin · intimate · handwritten', fallback: 'cursive' },
+  { family: 'Permanent Marker', category: 'Handwriting', note: 'Bold marker · raw · loud', fallback: 'cursive' },
+
+  { family: 'Syne', category: 'Character', note: 'Art-school · unconventional · modern', fallback: 'sans-serif' },
+  { family: 'Unbounded', category: 'Character', note: 'Wide · futuristic · statement', fallback: 'sans-serif' },
+  { family: 'Bungee', category: 'Character', note: 'Display · urban · maximal', fallback: 'sans-serif' },
+  { family: 'Righteous', category: 'Character', note: 'Retro-future · rounded · iconic', fallback: 'sans-serif' },
+  { family: 'Rubik Mono One', category: 'Character', note: 'Block · brutal · poster', fallback: 'sans-serif' },
+]);
+
+const FONT_BY_FAMILY = new Map(CURATED_GOOGLE_FONTS.map((font) => [font.family, font]));
+const loadedFontLinks = new Map<string, HTMLLinkElement>();
+
+function googleFontValue(family: string) {
+  return `google:${family}`;
 }
 
-interface EditorFontSelection {
-  family: string;
-  style: string;
+function familyFromValue(value: string): string {
+  if (value.startsWith('google:')) return value.slice('google:'.length).trim();
+  return '';
 }
 
-function parseSystemFontValue(value: string): EditorFontSelection | null {
-  if (!value.startsWith('system:')) return null;
-  const raw = value.slice('system:'.length);
-  const separator = raw.indexOf('::');
-  const familyRaw = separator >= 0 ? raw.slice(0, separator) : raw;
-  const styleRaw = separator >= 0 ? raw.slice(separator + 2) : 'Regular';
-  try {
-    const family = decodeURIComponent(familyRaw).replaceAll('"', '').trim();
-    const style = decodeURIComponent(styleRaw).trim() || 'Regular';
-    return family ? { family, style } : null;
-  } catch {
-    const family = familyRaw.replaceAll('"', '').trim();
-    return family ? { family, style: styleRaw.trim() || 'Regular' } : null;
-  }
+export function normalizeEditorFontValue(value: unknown): string {
+  const text = String(value ?? '').trim();
+  const family = familyFromValue(text);
+  if (family && FONT_BY_FAMILY.has(family)) return googleFontValue(family);
+  if (text === 'mono') return googleFontValue('JetBrains Mono');
+  return DEFAULT_EDITOR_FONT;
 }
 
-export function systemFontValue(face: Pick<LocalFontFace, 'family' | 'style'>): string {
-  return `system:${encodeURIComponent(face.family)}::${encodeURIComponent(face.style || 'Regular')}`;
+export function ensureEditorFontLoaded(value: string): void {
+  if (typeof document === 'undefined') return;
+  const normalized = normalizeEditorFontValue(value);
+  const family = familyFromValue(normalized);
+  if (!family || loadedFontLinks.has(family)) return;
+
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.dataset.rhymelabGoogleFont = family;
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, '+')}&display=swap`;
+  document.head.append(link);
+  loadedFontLinks.set(family, link);
 }
 
 export function editorFontFamily(value: string): string {
-  const system = parseSystemFontValue(value);
-  if (system) return `"${system.family}", system-ui, sans-serif`;
-  return ({
-    sans: 'var(--rl-font, Inter, system-ui, sans-serif)',
-    serif: 'Georgia, Cambria, serif',
-    mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-  } as Record<string, string>)[value] ?? 'var(--rl-font, Inter, system-ui, sans-serif)';
+  const normalized = normalizeEditorFontValue(value);
+  const family = familyFromValue(normalized);
+  const font = FONT_BY_FAMILY.get(family);
+  const fallback = font?.fallback ?? 'serif';
+  return `"${family || 'Oranienbaum'}", ${fallback}`;
 }
 
-export function editorFontStyle(value: string): 'normal' | 'italic' | 'oblique' {
-  const style = parseSystemFontValue(value)?.style.toLocaleLowerCase() ?? '';
-  if (style.includes('oblique')) return 'oblique';
-  if (style.includes('italic')) return 'italic';
+export function editorFontStyle(_value: string): 'normal' {
   return 'normal';
 }
 
-export function editorFontWeight(value: string): number {
-  const style = parseSystemFontValue(value)?.style.toLocaleLowerCase() ?? '';
-  if (/thin|hairline/u.test(style)) return 100;
-  if (/extra\s*light|ultra\s*light/u.test(style)) return 200;
-  if (/light/u.test(style)) return 300;
-  if (/medium/u.test(style)) return 500;
-  if (/semi\s*bold|demi\s*bold/u.test(style)) return 600;
-  if (/extra\s*bold|ultra\s*bold/u.test(style)) return 800;
-  if (/black|heavy/u.test(style)) return 900;
-  if (/bold/u.test(style)) return 700;
+export function editorFontWeight(_value: string): number {
   return 400;
 }
 
 export function editorFontLabel(value: string): string {
-  const system = parseSystemFontValue(value);
-  if (system) return system.style && system.style !== 'Regular'
-    ? `${system.family} · ${system.style}`
-    : system.family;
-  if (value === 'serif') return 'Georgia';
-  if (value === 'mono') return 'System Mono';
-  return 'System Sans';
+  return familyFromValue(normalizeEditorFontValue(value)) || 'Oranienbaum';
 }
 
 export function SystemFontPicker({
@@ -126,54 +138,48 @@ export function SystemFontPicker({
   onChange: (value: string) => void;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
+  const normalizedValue = normalizeEditorFontValue(value);
   const [open, setOpen] = useState(false);
-  const [faces, setFaces] = useState<LocalFontFace[]>(FALLBACK_FONTS);
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'unsupported' | 'denied'>('idle');
+  const [category, setCategory] = useState('All');
+  const [previewed, setPreviewed] = useState('');
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open || status !== 'idle') return;
-    const queryLocalFonts = (window as Window & { queryLocalFonts?: QueryLocalFonts }).queryLocalFonts;
-    if (!queryLocalFonts) {
-      setStatus('unsupported');
-      return;
-    }
-    setStatus('loading');
-    void queryLocalFonts.call(window)
-      .then((rows) => {
-        const next = normalizedFaces(rows);
-        if (next.length) setFaces(next);
-        setStatus('ready');
-      })
-      .catch(() => setStatus('denied'));
-  }, [open, status]);
+    ensureEditorFontLoaded(normalizedValue);
+  }, [normalizedValue]);
+
+  const categories = useMemo(
+    () => ['All', ...new Set(CURATED_GOOGLE_FONTS.map((font) => font.category))],
+    [],
+  );
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
-    if (!needle) return faces;
-    return faces.filter((face) => (
-      face.family.toLocaleLowerCase().includes(needle)
-      || face.fullName.toLocaleLowerCase().includes(needle)
-      || face.style.toLocaleLowerCase().includes(needle)
+    return CURATED_GOOGLE_FONTS.filter((font) => (
+      (category === 'All' || font.category === category)
+      && (!needle
+        || font.family.toLocaleLowerCase().includes(needle)
+        || font.category.toLocaleLowerCase().includes(needle)
+        || font.note.toLocaleLowerCase().includes(needle))
     ));
-  }, [faces, query]);
+  }, [category, query]);
 
   const virtualizer = useVirtualizer({
     count: filtered.length,
     getScrollElement: () => scrollerRef.current,
-    estimateSize: () => 58,
-    overscan: 8,
+    estimateSize: () => 70,
+    overscan: 6,
   });
 
-  const currentFamily = editorFontLabel(value);
+  const currentFamily = editorFontLabel(normalizedValue);
 
   const changeOpen = (next: boolean) => {
     setOpen(next);
     if (!next) {
       setQuery('');
-      setFaces(FALLBACK_FONTS);
-      setStatus('idle');
+      setCategory('All');
+      setPreviewed('');
     }
   };
 
@@ -183,18 +189,10 @@ export function SystemFontPicker({
         type="button"
         className={styles.fontPickerTrigger}
         onClick={() => setOpen(true)}
-        title={language === 'de' ? 'Systemschrift auswählen' : 'Choose system font'}
+        title={language === 'de' ? 'Google Font auswählen' : 'Choose Google Font'}
       >
         <span>{language === 'de' ? 'Schrift' : 'Font'}</span>
-        <b
-          style={{
-            fontFamily: editorFontFamily(value),
-            fontStyle: editorFontStyle(value),
-            fontWeight: editorFontWeight(value),
-          }}
-        >
-          {currentFamily}
-        </b>
+        <b style={{ fontFamily: editorFontFamily(normalizedValue) }}>{currentFamily}</b>
       </button>
 
       <Dialog.Root open={open} onOpenChange={changeOpen}>
@@ -204,18 +202,12 @@ export function SystemFontPicker({
             <Dialog.Popup className={styles.fontDialog}>
               <header>
                 <div>
-                  <p>{language === 'de' ? 'LOKALE SYSTEMSCHRIFTEN' : 'LOCAL SYSTEM FONTS'}</p>
-                  <h2>{language === 'de' ? 'Schrift auswählen' : 'Choose a font'}</h2>
+                  <p>GOOGLE FONTS · CURATED 50</p>
+                  <h2>{language === 'de' ? 'Deine Schreibstimme' : 'Your writing voice'}</h2>
                   <span>
-                    {status === 'ready'
-                      ? `${faces.length} ${language === 'de' ? 'lokale Styles verfügbar' : 'local styles available'}`
-                      : status === 'loading'
-                        ? (language === 'de' ? 'Systemschriften werden einmalig gelesen …' : 'Reading system fonts once …')
-                        : status === 'denied'
-                          ? (language === 'de' ? 'Zugriff nicht erlaubt · sichere Fallback-Liste aktiv.' : 'Access denied · safe fallback list active.')
-                          : status === 'unsupported'
-                            ? (language === 'de' ? 'Browser unterstützt Local Font Access nicht · Fallback-Liste aktiv.' : 'Browser lacks Local Font Access · fallback list active.')
-                            : (language === 'de' ? 'Lokale Fonts werden erst nach Öffnen angefragt.' : 'Local fonts are requested only after opening.')}
+                    {language === 'de'
+                      ? '10 Stilwelten · jeweils 5 kuratierte Fonts · nur gewählte Fonts werden geladen.'
+                      : '10 style worlds · five curated fonts each · only chosen fonts are loaded.'}
                   </span>
                 </div>
                 <Dialog.Close aria-label={language === 'de' ? 'Schließen' : 'Close'}>×</Dialog.Close>
@@ -228,10 +220,26 @@ export function SystemFontPicker({
                   type="search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder={language === 'de' ? 'Familie oder Style suchen …' : 'Search family or style …'}
+                  placeholder={language === 'de' ? 'Font, Stil oder Charakter suchen …' : 'Search font, style or character …'}
                 />
                 <b>{filtered.length}</b>
               </label>
+
+              <div className={styles.fontCategories} role="group" aria-label={language === 'de' ? 'Font-Kategorien' : 'Font categories'}>
+                {categories.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    data-active={category === item ? 'true' : 'false'}
+                    onClick={() => {
+                      setCategory(item);
+                      scrollerRef.current?.scrollTo({ top: 0 });
+                    }}
+                  >
+                    {item === 'All' ? (language === 'de' ? 'Alle' : 'All') : item}
+                  </button>
+                ))}
+              </div>
 
               <div ref={scrollerRef} className={styles.fontList}>
                 <div
@@ -239,32 +247,40 @@ export function SystemFontPicker({
                   style={{ height: virtualizer.getTotalSize() }}
                 >
                   {virtualizer.getVirtualItems().map((item) => {
-                    const face = filtered[item.index];
-                    if (!face) return null;
-                    const faceValue = systemFontValue(face);
-                    const selected = value === faceValue;
+                    const font = filtered[item.index];
+                    if (!font) return null;
+                    const fontValue = googleFontValue(font.family);
+                    const selected = normalizedValue === fontValue;
+                    const previewReady = previewed === font.family || selected;
                     return (
                       <button
-                        key={face.family + face.fullName + face.style}
+                        key={font.family}
                         type="button"
                         className={styles.fontRow}
                         data-selected={selected ? 'true' : 'false'}
                         style={{
                           transform: `translateY(${item.start}px)`,
-                          fontFamily: `"${face.family}", system-ui, sans-serif`,
-                          fontStyle: editorFontStyle(faceValue),
-                          fontWeight: editorFontWeight(faceValue),
+                        }}
+                        onPointerEnter={(event) => {
+                          if (event.pointerType !== 'mouse') return;
+                          ensureEditorFontLoaded(fontValue);
+                          setPreviewed(font.family);
+                        }}
+                        onFocus={() => {
+                          ensureEditorFontLoaded(fontValue);
+                          setPreviewed(font.family);
                         }}
                         onClick={() => {
-                          onChange(faceValue);
+                          ensureEditorFontLoaded(fontValue);
+                          onChange(fontValue);
                           changeOpen(false);
                         }}
                       >
                         <span>
-                          <b>{face.fullName}</b>
-                          <small>{face.family} · {face.style || 'Regular'}</small>
+                          <b style={{ fontFamily: previewReady ? editorFontFamily(fontValue) : undefined }}>{font.family}</b>
+                          <small>{font.category} · {font.note}</small>
                         </span>
-                        {selected ? <strong>✓</strong> : null}
+                        {selected ? <strong>✓</strong> : <em>Aa</em>}
                       </button>
                     );
                   })}
@@ -274,8 +290,8 @@ export function SystemFontPicker({
               <footer>
                 <span>
                   {language === 'de'
-                    ? 'Virtualisiert: nur sichtbare Einträge werden gerendert.'
-                    : 'Virtualized: only visible rows are rendered.'}
+                    ? 'Oranienbaum ist der RhymeLab-Default. Auswahl wird lokal mit deinem Workspace gespeichert.'
+                    : 'Oranienbaum is the RhymeLab default. Your choice is stored locally with the workspace.'}
                 </span>
               </footer>
             </Dialog.Popup>
