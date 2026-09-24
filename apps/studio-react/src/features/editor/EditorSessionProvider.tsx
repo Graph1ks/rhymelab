@@ -62,6 +62,14 @@ export interface EditorInsertOutcome {
   reason?: string;
 }
 
+export interface ActiveSongMutationOptions {
+  checkpoint?: boolean;
+  immediate?: boolean;
+  revision?: boolean;
+}
+
+export type ActiveSongMutator = (song: LegacyStudioSong) => boolean | void;
+
 interface EditorSessionContextValue {
   activeSong: LegacyStudioSong | null;
   documentText: string;
@@ -80,6 +88,10 @@ interface EditorSessionContextValue {
   compositionEnd: (value: string, start: number, end: number) => void;
   insertCandidate: (value: string) => Promise<EditorInsertOutcome>;
   insertSectionTag: (value: string, start: number, end: number) => Promise<boolean>;
+  mutateActiveSong: (
+    mutator: ActiveSongMutator,
+    options?: ActiveSongMutationOptions,
+  ) => Promise<boolean>;
   undo: () => Promise<boolean>;
   redo: () => Promise<boolean>;
   createBarAfter: (index: number) => Promise<boolean>;
@@ -667,6 +679,32 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
     return restored;
   }, [checkpoint, currentSongCopy, documents, requestFocus, scheduleRevision]);
 
+  const mutateActiveSong = useCallback(async (
+    mutator: ActiveSongMutator,
+    options: ActiveSongMutationOptions = {},
+  ) => {
+    const {
+      checkpoint: withCheckpoint = true,
+      immediate = false,
+      revision = true,
+    } = options;
+    if (!currentSongCopy()) return false;
+    if (withCheckpoint) checkpoint();
+
+    let changed = false;
+    await documents.mutate((state) => {
+      const song = activeEditorSong(state);
+      if (!song) return state;
+      ensureLegacyEditorSong(song);
+      changed = mutator(song) !== false;
+      if (changed) touchSong(song);
+      return state;
+    }, { immediate });
+
+    if (changed && revision) scheduleRevision();
+    return changed;
+  }, [checkpoint, currentSongCopy, documents, scheduleRevision]);
+
   const revisionDiff = useCallback((revision: LegacyStudioRevision) => {
     const current = currentSongCopy();
     if (!current) return null;
@@ -691,6 +729,7 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
     compositionEnd,
     insertCandidate,
     insertSectionTag,
+    mutateActiveSong,
     undo,
     redo,
     createBarAfter,
@@ -720,6 +759,7 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
     insertCandidate,
     insertSectionTag,
     jumpToBar,
+    mutateActiveSong,
     moveBar,
     noteBoundary,
     redo,
