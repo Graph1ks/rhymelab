@@ -329,6 +329,7 @@ export function moveLibraryFolder(
   if (next === folder) return { state: source, changed: false, reason: 'unchanged' };
 
   const state = cloneWorkspaceState(source);
+  if (parent) ensureLibraryFolder(state, parent);
   const subtree = state.folders.filter((item) => folderContains(folder, item));
   const outside = new Set(
     state.folders
