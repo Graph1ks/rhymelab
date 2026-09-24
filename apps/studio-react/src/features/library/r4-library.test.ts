@@ -237,7 +237,7 @@ describe('R4 serialized autosave queue', () => {
 
   it('serializes overlapping flushes instead of racing IndexedDB writes', async () => {
     const order: string[] = [];
-    let releaseFirst: (() => void) | null = null;
+    let releaseFirst: () => void = () => {};
     const queue = createSerializedSaveQueue({
       save: async (next) => {
         const active = String(next.active);
@@ -259,7 +259,7 @@ describe('R4 serialized autosave queue', () => {
     const secondFlush = queue.flush(second);
     await Promise.resolve();
     expect(order).toEqual(['start:s1']);
-    releaseFirst?.();
+    releaseFirst();
     await Promise.all([firstFlush, secondFlush]);
 
     expect(order).toEqual([
