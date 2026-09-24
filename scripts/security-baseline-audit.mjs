@@ -32,6 +32,19 @@ for(const path of workflowFiles){
   }
 }
 
+const gitignore=read('.gitignore');
+if(/^package-lock\.json$/m.test(gitignore)){
+  fail('.gitignore: root package-lock.json must remain tracked for reproducible installs.');
+}
+
+const viteConfig=read('apps/studio-react/vite.config.ts');
+if(!/sourcemap:\s*false/.test(viteConfig)){
+  fail('apps/studio-react/vite.config.ts: production source maps must remain disabled.');
+}
+if(!/cors:\s*false/.test(viteConfig)||!/fs:\s*\{[\s\S]*strict:\s*true/.test(viteConfig)){
+  fail('apps/studio-react/vite.config.ts: local Vite CORS/fs hardening is missing.');
+}
+
 const server=read('src/server.mjs');
 if(/access-control-allow-origin['"]?\s*[:=]\s*['"]\*['"]/i.test(server)){
   fail('src/server.mjs: wildcard CORS is forbidden for the localhost API.');
