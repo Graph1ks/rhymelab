@@ -32,7 +32,9 @@ export function estimateSyllables(surface){
 }
 
 export function writerScope(scope){
-  return ({word:'words',phrase:'phrases',entity:'entities'})[scope]||'all';
+  const normalized=String(scope||'all').trim().toLocaleLowerCase('en-US');
+  if(['words','phrases','entities','all'].includes(normalized))return normalized;
+  return ({word:'words',phrase:'phrases',entity:'entities'})[normalized]||'all';
 }
 
 export function writerRelationType(row){
