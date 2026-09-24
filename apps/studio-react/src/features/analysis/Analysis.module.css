@@ -7,6 +7,10 @@
   --rl-rhyme-group-5: #ff8fc7;
   --rl-rhyme-group-6: #7ce6c2;
   --rl-rhyme-group-7: #ffb95e;
+  --rl-rhyme-group-8: #7fa7ff;
+  --rl-rhyme-group-9: #f39bff;
+  --rl-rhyme-group-10: #86e0ff;
+  --rl-rhyme-group-11: #d6e36c;
   min-height: 0;
   height: 100%;
   overflow: auto;
@@ -664,6 +668,7 @@
 [data-rhyme-type="slant"] { --rhyme-type-color: #c78cff; }
 [data-rhyme-type="assonance"] { --rhyme-type-color: #ff8fc7; }
 [data-rhyme-type="consonance"] { --rhyme-type-color: #7ce6c2; }
+[data-rhyme-type="identity"] { --rhyme-type-color: #f4f4f4; }
 
 .types article[data-rhyme-type] {
   border-left: 4px solid var(--rhyme-type-color);
@@ -708,5 +713,365 @@
   .rhymeLegend small {
     width: 100%;
     margin-left: 0;
+  }
+}
+
+
+/* Research-led All Rhymes topology view. */
+.rhymeMapCard {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--rl-line);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 78% -10%,
+      color-mix(in srgb, var(--rl-accent) 5%, transparent),
+      transparent 32rem
+    ),
+    color-mix(in srgb, var(--rl-panel) 92%, var(--rl-bg));
+}
+
+.rhymeMapHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--rl-line);
+}
+
+.rhymeMapHeader p {
+  margin: 0 0 4px;
+  color: var(--rl-accent);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .13em;
+}
+
+.rhymeMapHeader h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2vw, 2rem);
+  letter-spacing: -.045em;
+}
+
+.rhymeMapHeader > div:first-child > span {
+  display: block;
+  max-width: 820px;
+  margin-top: 7px;
+  color: var(--rl-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.rhymeMap {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px 18px;
+}
+
+.rhymeBlock {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--rl-line) 78%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--rl-bg) 20%, var(--rl-panel));
+}
+
+.rhymeBlock > header {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 0 11px;
+  border-bottom: 1px solid color-mix(in srgb, var(--rl-line) 70%, transparent);
+  background: color-mix(in srgb, var(--rl-bg) 30%, transparent);
+}
+
+.rhymeBlock > header > span {
+  color: var(--rl-muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .1em;
+}
+
+.rhymeBlock > header > div {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.rhymeBlock > header button,
+.lyricBarChains button {
+  width: 27px;
+  min-width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--topology-color) 54%, var(--rl-line));
+  border-radius: 7px;
+  padding: 0;
+  background: color-mix(in srgb, var(--topology-color) 12%, var(--rl-panel));
+  color: var(--topology-color);
+  cursor: pointer;
+  font: 850 10px/1 var(--rl-font, system-ui, sans-serif);
+}
+
+.rhymeBlock > header button:hover,
+.rhymeBlock > header button[data-active="true"],
+.lyricBarChains button:hover {
+  background: color-mix(in srgb, var(--topology-color) 22%, var(--rl-panel));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--topology-color) 42%, transparent);
+}
+
+.lyricBlock {
+  display: grid;
+}
+
+.lyricBar {
+  min-width: 0;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px 9px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--rl-line) 52%, transparent);
+}
+
+.lyricBar:first-child {
+  border-top: 0;
+}
+
+.lyricBar:hover {
+  background: color-mix(in srgb, var(--rl-ink) 2.5%, transparent);
+}
+
+.lyricBarNumber {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--rl-muted);
+  cursor: pointer;
+  font: 760 11px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.lyricBarNumber:hover {
+  background: var(--rl-tint);
+  color: var(--rl-accent);
+}
+
+.lyricBar > p {
+  min-width: 0;
+  margin: 0;
+  color: var(--rl-ink);
+  font-size: clamp(14px, 1.2vw, 17px);
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+
+.rhymeWord {
+  --rhyme-type-color: var(--rl-muted);
+  position: relative;
+  display: inline;
+  min-height: 0 !important;
+  margin: 0 1px;
+  border: 0 !important;
+  border-bottom: 2px solid var(--rhyme-type-color) !important;
+  border-radius: 5px 5px 2px 2px !important;
+  padding: 2px 4px 1px !important;
+  background: color-mix(in srgb, var(--rhyme-type-color) 8%, transparent) !important;
+  color: var(--rl-ink) !important;
+  cursor: pointer;
+  font: inherit !important;
+  line-height: inherit;
+  transition:
+    opacity var(--rl-duration-fast) ease,
+    background-color var(--rl-duration-fast) ease,
+    box-shadow var(--rl-duration-fast) ease;
+}
+
+.rhymeWord[data-grouped="true"] {
+  background: color-mix(in srgb, var(--topology-color) 18%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--topology-color) 28%, transparent);
+}
+
+.rhymeWord:hover,
+.rhymeWord:focus-visible {
+  background: color-mix(in srgb, var(--topology-color, var(--rhyme-type-color)) 30%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--topology-color, var(--rhyme-type-color)) 55%, transparent);
+}
+
+.rhymeWord[data-dimmed="true"] {
+  opacity: .2;
+}
+
+.rhymeWord sup {
+  margin-left: 2px;
+  color: var(--topology-color);
+  font: 850 8px/1 var(--rl-font, system-ui, sans-serif);
+  vertical-align: super;
+}
+
+.lyricBarChains {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.chainIndex {
+  border-top: 1px solid var(--rl-line);
+  padding: 14px 16px 17px;
+  background: color-mix(in srgb, var(--rl-bg) 18%, transparent);
+}
+
+.chainIndexHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.chainIndexHead > span {
+  color: var(--rl-muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .11em;
+}
+
+.chainIndexHead small {
+  color: var(--rl-muted);
+  font-size: 11px;
+}
+
+.chainIndexGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+  gap: 6px;
+}
+
+.chainIndexItem {
+  --topology-color: var(--rl-accent);
+  min-width: 0;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--topology-color) 36%, var(--rl-line));
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--topology-color) 5%, transparent);
+  color: var(--rl-ink);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    opacity var(--rl-duration-fast) ease,
+    background-color var(--rl-duration-fast) ease;
+}
+
+.chainIndexItem > strong {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--topology-color) 17%, var(--rl-panel));
+  color: var(--topology-color);
+  font-size: 12px;
+}
+
+.chainIndexItem > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.chainIndexItem b,
+.chainIndexItem small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chainIndexItem b {
+  font-size: 11px;
+}
+
+.chainIndexItem small {
+  color: var(--rl-muted);
+  font-size: 10px;
+}
+
+.chainIndexItem:hover,
+.chainIndexItem[data-active="true"] {
+  background: color-mix(in srgb, var(--topology-color) 12%, transparent);
+}
+
+.chainIndexItem[data-dimmed="true"] {
+  opacity: .3;
+}
+
+.noChains {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--rl-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+@media (max-width: 800px) {
+  .rhymeMapHeader {
+    flex-direction: column;
+  }
+
+  .rhymeMapHeader .segmented {
+    width: 100%;
+  }
+
+  .rhymeMapHeader .segmented button {
+    flex: 1 1 0;
+  }
+
+  .rhymeMap {
+    padding-inline: 10px;
+  }
+
+  .lyricBar {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 7px;
+    padding-inline: 5px 8px;
+  }
+
+  .lyricBarChains {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .lyricBar > p {
+    font-size: 15px;
+    line-height: 1.85;
+  }
+
+  .chainIndex {
+    padding-inline: 10px;
+  }
+
+  .chainIndexHead {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .chainIndexGrid {
+    grid-template-columns: 1fr;
   }
 }
