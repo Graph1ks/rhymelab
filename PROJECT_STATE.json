@@ -4400,7 +4400,11 @@
         "settings_workspace": "OKLCH_STYLE_DESIGNER_PLUS_DATA_SAFETY",
         "settings_duplicate_language": false,
         "settings_duplicate_commands": false,
-        "settings_visible_diagnostics": false
+        "settings_visible_diagnostics": false,
+        "search_tiles_renderer_removed": true,
+        "sound_explorer_horizontal_toolbar_scroll": false,
+        "external_filter_scroll_dismissal": true,
+        "oklch_hue_sweep_step_degrees": 15
       }
     }
   }
