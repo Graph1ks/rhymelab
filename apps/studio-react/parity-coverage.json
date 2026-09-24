@@ -556,113 +556,193 @@
       "id": "analysis.scheme",
       "group": "Analysis",
       "capability": "Canonical end-rhyme scheme",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "analysis.all-rhymes",
       "group": "Analysis",
       "capability": "Canonical all-word rhyme analysis by Bar, Section and document",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "analysis.relations",
       "group": "Analysis",
       "capability": "Primary and soft relations inside verse",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "analysis.word-lab",
       "group": "Analysis",
       "capability": "Word Laboratory IPA / stress",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "analysis.stress",
       "group": "Analysis",
       "capability": "Stress fingerprint",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "analysis.chain",
       "group": "Analysis",
       "capability": "Optional rhyme-chain visualization",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "analysis.languages",
       "group": "Analysis",
       "capability": "DE / EN / Cross DE+EN controls",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "analysis.bar-inspector",
       "group": "Analysis",
       "capability": "Live Bar Inspector metrics",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "analysis.verse-totals",
       "group": "Analysis",
       "capability": "Verse totals and duration estimate",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/analysis/AnalysisWorkspace.tsx",
+        "apps/studio-react/src/features/analysis/model.ts",
+        "apps/studio-react/src/features/analysis/data.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "perform.cues",
       "group": "Perform",
       "capability": "Hit / accent / pause / breath / hold / erase",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "perform.move",
       "group": "Perform",
       "capability": "Cue move and drag with accessible alternative",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "perform.pause-length",
       "group": "Perform",
       "capability": "Pause length",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "perform.grid",
       "group": "Perform",
       "capability": "8/16 grid, straight/triplet, half/double time",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "perform.automap",
       "group": "Perform",
       "capability": "Auto-map and clear",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "perform.stable-cues",
       "group": "Perform",
       "capability": "Stable Bar-ID cue anchors and edit invalidation",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "perform.metronome",
       "group": "Perform",
       "capability": "Variable-timing Web Audio metronome",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts",
+        "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
+      ]
     },
     {
       "id": "appearance.quick-switch",
