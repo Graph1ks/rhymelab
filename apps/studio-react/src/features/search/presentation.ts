@@ -42,11 +42,12 @@ type SearchFilterApi = {
   ): WriterResultRow[];
 };
 
-export type ResultDensity = 'list' | 'compact' | 'tiles';
+export type ResultDensity = 'list' | 'compact';
+export type LegacyResultDensity = ResultDensity | 'tiles';
 
 type StudioControlsApi = {
-  normalizeDensity(value: unknown): ResultDensity;
-  nextDensity(value: unknown): ResultDensity;
+  normalizeDensity(value: unknown): LegacyResultDensity;
+  nextDensity(value: unknown): LegacyResultDensity;
 };
 
 const filterApi = legacySearchFilters as unknown as SearchFilterApi;
