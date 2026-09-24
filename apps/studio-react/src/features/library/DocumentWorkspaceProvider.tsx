@@ -11,6 +11,7 @@ import {
 
 import {
   loadStudioPreferences,
+  loadStudioState,
   writeStudioPreferences,
 } from '../../legacy/documents';
 import type {
@@ -142,6 +143,11 @@ export function DocumentWorkspaceProvider({ children }: { children: ReactNode })
         if (cancelled) return;
         initializedRef.current = true;
         storeAvailableRef.current = false;
+        const fallback = {
+          ...loadStudioState(),
+          ...loadStudioPreferences(),
+        } as LegacyStudioState;
+        publishState(fallback);
         setStatus('error');
         setAuthority('localstorage');
         setError(initError instanceof Error ? initError.message : String(initError));
