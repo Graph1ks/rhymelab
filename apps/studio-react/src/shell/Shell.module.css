@@ -1513,3 +1513,233 @@
     min-height: 0;
   }
 }
+
+
+/* R7 startup + acceptance */
+.startupFailure {
+  position: fixed;
+  inset: 10px 10px auto;
+  z-index: 220;
+  border: 1px solid color-mix(in srgb, var(--rl-accent-2) 62%, var(--rl-line));
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--rl-accent-2) 10%, var(--rl-panel));
+  color: var(--rl-accent-2);
+  box-shadow: var(--rl-shadow-popover);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.startupFailure[hidden] {
+  display: none;
+}
+
+.systemAcceptance {
+  grid-column: 1 / -1;
+  border: 1px solid var(--rl-line);
+  border-radius: var(--rl-radius-lg);
+  padding: 18px;
+  background: color-mix(in srgb, var(--rl-panel) 90%, var(--rl-bg));
+}
+
+.systemAcceptanceHead,
+.deviceGateList article header,
+.systemAcceptanceActions,
+.deviceGateList article > div:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.systemAcceptanceHead {
+  align-items: flex-start;
+}
+
+.systemAcceptanceHead h2 {
+  margin: 0;
+  letter-spacing: -.035em;
+}
+
+.systemAcceptanceHead > div > span {
+  display: block;
+  margin-top: 6px;
+  color: var(--rl-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.systemAcceptanceHead > strong {
+  border: 1px solid var(--rl-line);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: var(--rl-muted);
+  font-size: 9px;
+  letter-spacing: .08em;
+}
+
+.systemAcceptanceHead > strong[data-ready="true"] {
+  border-color: color-mix(in srgb, var(--rl-signal) 58%, var(--rl-line));
+  color: var(--rl-signal);
+}
+
+.systemDiagnosticsSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.systemDiagnosticsSummary > div {
+  min-width: 0;
+  border: 1px solid var(--rl-line);
+  border-radius: 11px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--rl-panel) 82%, var(--rl-bg));
+}
+
+.systemDiagnosticsSummary small,
+.deviceGateList small {
+  display: block;
+  color: var(--rl-muted);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.systemDiagnosticsSummary b {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.systemDiagnosticsSummary span {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--rl-muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.systemAcceptanceActions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.systemAcceptanceActions button,
+.deviceGateList button {
+  min-height: 38px;
+  border: 1px solid var(--rl-line);
+  border-radius: 10px;
+  padding: 0 11px;
+  background: var(--rl-surface);
+  color: var(--rl-text);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.systemAcceptanceActions button:hover,
+.deviceGateList button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--rl-accent) 50%, var(--rl-line));
+}
+
+.deviceGateList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.deviceGateList article {
+  min-width: 0;
+  border: 1px solid var(--rl-line);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--rl-panel);
+}
+
+.deviceGateList article[data-passed="true"] {
+  border-color: color-mix(in srgb, var(--rl-signal) 54%, var(--rl-line));
+}
+
+.deviceGateList article header b {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+.deviceGateList article header > span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 5px 7px;
+  background: var(--rl-bg);
+  color: var(--rl-muted);
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.deviceGateList article[data-passed="true"] header > span {
+  color: var(--rl-signal);
+}
+
+.deviceGateList article p {
+  min-height: 42px;
+  margin: 10px 0 4px;
+  color: var(--rl-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.deviceEligibility {
+  min-height: 13px;
+}
+
+.deviceGateList textarea {
+  width: 100%;
+  min-height: 70px;
+  resize: vertical;
+  margin: 9px 0;
+  border: 1px solid var(--rl-line);
+  border-radius: 9px;
+  padding: 8px 9px;
+  background: var(--rl-bg);
+  color: var(--rl-text);
+  font: inherit;
+  font-size: 10px;
+}
+
+.deviceGateList article > div:last-child {
+  justify-content: flex-start;
+}
+
+.deviceGateList button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.systemAcceptanceMessage {
+  margin: 12px 0 0;
+  color: var(--rl-muted);
+  font-size: 10px;
+}
+
+@media (max-width: 800px) {
+  .systemDiagnosticsSummary,
+  .deviceGateList {
+    grid-template-columns: 1fr;
+  }
+
+  .systemAcceptanceHead {
+    flex-direction: column;
+  }
+
+  .systemAcceptanceActions button,
+  .deviceGateList button {
+    min-height: 44px;
+  }
+}
