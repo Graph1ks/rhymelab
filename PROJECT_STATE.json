@@ -4338,7 +4338,7 @@
       "status": "AUTOMATED_SOURCE_PARITY_AND_UX_ROUND2_COMPLETE_PHYSICAL_ACCEPTANCE_PENDING",
       "contract": "docs/REACT_STUDIO_R7_PARITY.md",
       "manifest": "apps/studio-react/r7-parity-manifest.json",
-      "tested_code_head": "b2d16a4ed27e",
+      "tested_code_head": "9812a674669c",
       "parity": {
         "ported": 93,
         "in_progress": 0,
@@ -4365,9 +4365,9 @@
       "automated_tests": 91,
       "r7_contract_tests": 13,
       "reversible_preview_tests": 4,
-      "react_replatform_run": 278,
-      "full_ci_run": 1461,
-      "studio_v2_gate_run": 596,
+      "react_replatform_run": 288,
+      "full_ci_run": 1471,
+      "studio_v2_gate_run": 606,
       "physical_device_gates_pending": [
         "editor.ime",
         "perform.metronome",
