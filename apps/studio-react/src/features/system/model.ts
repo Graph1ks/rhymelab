@@ -88,13 +88,13 @@ export function collectReactStartupBindingStatus(
 }
 
 export function currentDeviceEnvironment(
-  windowObj: Window | Record<string, unknown> = globalThis.window,
+  windowObj: Window | Record<string, unknown> = typeof window === 'undefined' ? {} : window,
 ): DeviceEnvironment {
-  const value = windowObj as Window & {
+  const value = (windowObj ?? {}) as Partial<Window> & {
     webkitAudioContext?: typeof AudioContext;
     navigator?: Navigator & { userAgentData?: { platform?: string } };
   };
-  const viewport = value.visualViewport;
+  const viewport = value.visualViewport ?? null;
   let coarsePointer = false;
   try {
     coarsePointer = value.matchMedia?.('(pointer: coarse)')?.matches === true;
@@ -116,7 +116,7 @@ export function currentDeviceEnvironment(
 }
 
 export function loadDeviceAcceptance(
-  storage: Pick<Storage, 'getItem'> | null | undefined = globalThis.localStorage,
+  storage: Pick<Storage, 'getItem'> | null | undefined = typeof localStorage === 'undefined' ? undefined : localStorage,
 ): StudioDeviceAcceptance {
   try {
     const raw = storage?.getItem?.(DEVICE_ACCEPTANCE_STORAGE_KEY);
@@ -129,7 +129,7 @@ export function loadDeviceAcceptance(
 
 export function persistDeviceAcceptance(
   report: StudioDeviceAcceptance,
-  storage: Pick<Storage, 'setItem'> | null | undefined = globalThis.localStorage,
+  storage: Pick<Storage, 'setItem'> | null | undefined = typeof localStorage === 'undefined' ? undefined : localStorage,
 ): StudioDeviceAcceptance {
   storage?.setItem?.(DEVICE_ACCEPTANCE_STORAGE_KEY, JSON.stringify(report));
   return report;
@@ -171,7 +171,8 @@ export function reactStudioDiagnostics(options: {
   startupBindings: StartupBindingStatus;
   deviceAcceptance: ReturnType<typeof studioDeviceAcceptanceSummary>;
 } {
-  const documentObj = (options.documentObj ?? globalThis.document) as Document;
+  const documentObj = (options.documentObj
+    ?? (typeof document === 'undefined' ? undefined : document)) as Document | undefined;
   const startupBindings = collectReactStartupBindingStatus(documentObj);
   const diagnostics = collectStudioEnvironmentDiagnostics({
     ...options,
