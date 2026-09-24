@@ -96,6 +96,23 @@ test('browser resolver may compose an unknown spelling from source-backed DB ref
   assert.ok(getPhonologyProfile('en').analyzeIpa(en.ipa).exactTailKey);
 });
 
+test('browser resolver restores recursive source-backed compound decomposition for art words',async()=>{
+  const references=new Map([
+    ['arsch',{surface:'Arsch',preferredIpa:'ˈaRʃ'}],
+    ['geweih',{surface:'Geweih',preferredIpa:'gəˈvaɪ'}],
+    ['anbeter',{surface:'Anbeter',preferredIpa:'ˈanbeːtɐ'}],
+  ]);
+  const detail=await resolveUnknownClientPronunciation('Arschgeweihanbeter','de',{
+    lookupReference:async(surface)=>references.get(surface)||null,
+  });
+
+  assert.equal(detail.method,'client_source_reference_compound');
+  assert.equal(detail.sourceBacked,true);
+  assert.deepEqual(detail.components,['Arsch','Geweih','Anbeter']);
+  assert.ok(detail.ipa);
+  assert.ok(getPhonologyProfile('de').analyzeIpa(detail.ipa).exactTailKey);
+});
+
 test('browser pronunciation module contains no host executable, Node runtime, network, or search implementation',async()=>{
   const source=await readFile('src/ui/query-pronunciation-client.mjs','utf8');
   assert.doesNotMatch(source,/node:child_process|spawnSync|execFile|process\.|RHYMELAB_ESPEAK|espeak/iu);

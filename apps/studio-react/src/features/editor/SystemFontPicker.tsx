@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 import { Dialog } from '../../design-system/primitives';
@@ -142,7 +142,6 @@ export function SystemFontPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
-  const [previewed, setPreviewed] = useState('');
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -172,6 +171,15 @@ export function SystemFontPicker({
     overscan: 6,
   });
 
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    const frame = requestAnimationFrame(() => {
+      scrollerRef.current?.scrollTo({ top: 0 });
+      virtualizer.measure();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [category, filtered.length, open, query, virtualizer]);
+
   const currentFamily = editorFontLabel(normalizedValue);
 
   const changeOpen = (next: boolean) => {
@@ -179,7 +187,6 @@ export function SystemFontPicker({
     if (!next) {
       setQuery('');
       setCategory('All');
-      setPreviewed('');
     }
   };
 
@@ -206,8 +213,8 @@ export function SystemFontPicker({
                   <h2>{language === 'de' ? 'Deine Schreibstimme' : 'Your writing voice'}</h2>
                   <span>
                     {language === 'de'
-                      ? '10 Stilwelten · jeweils 5 kuratierte Fonts · nur gewählte Fonts werden geladen.'
-                      : '10 style worlds · five curated fonts each · only chosen fonts are loaded.'}
+                      ? '10 Stilwelten · jeweils 5 kuratierte Fonts · sichtbare Vorschauen werden bei Bedarf geladen.'
+                      : '10 style worlds · five curated fonts each · visible previews load on demand.'}
                   </span>
                 </div>
                 <Dialog.Close aria-label={language === 'de' ? 'Schließen' : 'Close'}>×</Dialog.Close>
@@ -251,7 +258,7 @@ export function SystemFontPicker({
                     if (!font) return null;
                     const fontValue = googleFontValue(font.family);
                     const selected = normalizedValue === fontValue;
-                    const previewReady = previewed === font.family || selected;
+                    ensureEditorFontLoaded(fontValue);
                     return (
                       <button
                         key={font.family}
@@ -261,15 +268,6 @@ export function SystemFontPicker({
                         style={{
                           transform: `translateY(${item.start}px)`,
                         }}
-                        onPointerEnter={(event) => {
-                          if (event.pointerType !== 'mouse') return;
-                          ensureEditorFontLoaded(fontValue);
-                          setPreviewed(font.family);
-                        }}
-                        onFocus={() => {
-                          ensureEditorFontLoaded(fontValue);
-                          setPreviewed(font.family);
-                        }}
                         onClick={() => {
                           ensureEditorFontLoaded(fontValue);
                           onChange(fontValue);
@@ -277,7 +275,7 @@ export function SystemFontPicker({
                         }}
                       >
                         <span>
-                          <b style={{ fontFamily: previewReady ? editorFontFamily(fontValue) : undefined }}>{font.family}</b>
+                          <b style={{ fontFamily: editorFontFamily(fontValue) }}>{font.family}</b>
                           <small>{font.category} · {font.note}</small>
                         </span>
                         {selected ? <strong>✓</strong> : <em>Aa</em>}

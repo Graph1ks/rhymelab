@@ -11,9 +11,9 @@ export const STUDIO_RHYME_TYPES=Object.freeze([
 
 export const STUDIO_RHYME_TYPE_LABELS=Object.freeze({
   all:'Alle Reimtypen',
-  multisyllabic_perfect:'Mehrsilbiger Vollreim',
+  multisyllabic_perfect:'Vollreim · 2+ Reimsilben',
   perfect:'Vollreim',
-  multisyllabic_slant:'Mehrsilbiger Slant-Reim',
+  multisyllabic_slant:'Slant · 2+ Reimsilben',
   family:'Reimfamilie',
   slant:'Slant-Reim',
   assonance:'Assonanz',

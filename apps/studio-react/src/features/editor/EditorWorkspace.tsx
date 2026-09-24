@@ -49,8 +49,6 @@ const SECTION_TAGS = [
 const BAR_HOLD_MS = 220;
 const SECTION_HOLD_MS = 1500;
 
-type DockTab = 'history';
-
 interface DragState {
   sourceIndex: number;
   targetIndex: number;
@@ -151,7 +149,7 @@ export function EditorWorkspace() {
   } | null>(null);
 
   const [lineHeights, setLineHeights] = useState<number[]>([]);
-  const [dockTab, setDockTab] = useState<DockTab | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [comparison, setComparison] = useState<{
     revision: LegacyStudioRevision;
     diff: RevisionDiff;
@@ -471,8 +469,8 @@ export function EditorWorkspace() {
           <button type="button" onClick={() => void editor.redo()} disabled={!editor.canRedo} aria-label={language === 'de' ? 'Wiederholen' : 'Redo'}>↷</button>
           <button
             type="button"
-            data-active={dockTab === 'history' ? 'true' : 'false'}
-            onClick={() => setDockTab((current) => current === 'history' ? null : 'history')}
+            data-active={historyOpen ? 'true' : 'false'}
+            onClick={() => setHistoryOpen(true)}
           >
             {language === 'de' ? 'Verlauf' : 'History'}
           </button>
@@ -607,33 +605,6 @@ export function EditorWorkspace() {
           </div>
         </div>
 
-        {dockTab ? (
-          <aside className={styles.dock} data-tab={dockTab}>
-            <header>
-              <div>
-                <p>REVISION HISTORY</p>
-                <h2>{language === 'de' ? 'Fassungen vergleichen' : 'Compare revisions'}</h2>
-              </div>
-              <button type="button" onClick={() => setDockTab(null)} aria-label={language === 'de' ? 'Dock schließen' : 'Close dock'}>×</button>
-            </header>
-            <div className={styles.historyList}>
-              {revisions.length ? revisions.slice().reverse().map((revision, reverseIndex) => (
-                <article key={String(revision.at ?? reverseIndex)}>
-                  <div>
-                    <b>{revisionTime(revision.at, language)}</b>
-                    <small>{revision.reason || 'revision'}</small>
-                    <p>{revisionPreview(revision) || (language === 'de' ? 'Leere Fassung' : 'Empty revision')}</p>
-                  </div>
-                  <button type="button" onClick={() => compareRevision(revision)}>
-                    {language === 'de' ? 'Vergleichen' : 'Compare'}
-                  </button>
-                </article>
-              )) : (
-                <p className={styles.emptyDock}>{language === 'de' ? 'Noch keine Fassungen.' : 'No revisions yet.'}</p>
-              )}
-            </div>
-          </aside>
-        ) : null}
       </div>
 
       <footer className={styles.footer}>
@@ -686,6 +657,43 @@ export function EditorWorkspace() {
               </button>
             ))}
           </nav>
+        </div>
+      ) : null}
+
+
+      {historyOpen ? (
+        <div className={styles.dialogBackdrop} role="presentation" onPointerDown={(event) => {
+          if (event.target === event.currentTarget) setHistoryOpen(false);
+        }}>
+          <section className={`${styles.revisionDialog} ${styles.historyDialog}`} role="dialog" aria-modal="true" aria-label={language === 'de' ? 'Versionsverlauf' : 'Revision history'}>
+            <header>
+              <div>
+                <p>REVISION HISTORY</p>
+                <h2>{language === 'de' ? 'Fassungen' : 'Revisions'}</h2>
+                <span>{revisions.length} {language === 'de' ? 'gespeicherte Fassungen' : 'saved revisions'}</span>
+              </div>
+              <button type="button" onClick={() => setHistoryOpen(false)} aria-label={language === 'de' ? 'Schließen' : 'Close'}>×</button>
+            </header>
+            <div className={styles.historyList}>
+              {revisions.length ? revisions.slice().reverse().map((revision, reverseIndex) => (
+                <article key={String(revision.at ?? reverseIndex)}>
+                  <div>
+                    <b>{revisionTime(revision.at, language)}</b>
+                    <small>{revision.reason || 'revision'}</small>
+                    <p>{revisionPreview(revision) || (language === 'de' ? 'Leere Fassung' : 'Empty revision')}</p>
+                  </div>
+                  <button type="button" onClick={() => {
+                    setHistoryOpen(false);
+                    compareRevision(revision);
+                  }}>
+                    {language === 'de' ? 'Vergleichen' : 'Compare'}
+                  </button>
+                </article>
+              )) : (
+                <p className={styles.emptyDock}>{language === 'de' ? 'Noch keine Fassungen.' : 'No revisions yet.'}</p>
+              )}
+            </div>
+          </section>
         </div>
       ) : null}
 

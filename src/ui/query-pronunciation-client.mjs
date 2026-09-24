@@ -229,6 +229,66 @@ async function findTwoPartReferenceCompound(normalized,language,lookupReference)
   return null;
 }
 
+async function findMultipartSourceCompound(normalized,language,lookupReference){
+  if(typeof lookupReference!=='function'||normalized.length<7)return null;
+  const lookupCache=new Map();
+  let lookupCount=0;
+  const maxLookups=64;
+
+  const sourceLookup=async(segment)=>{
+    if(lookupCache.has(segment))return lookupCache.get(segment);
+    if(lookupCount>=maxLookups)return null;
+    lookupCount+=1;
+    const reference=await lookupReference(segment,language);
+    const accepted=referenceIpa(reference)&&reference?.generatedPronunciation!==true
+      ?reference
+      :null;
+    lookupCache.set(segment,accepted);
+    return accepted;
+  };
+
+  const search=async(start,partsLeft)=>{
+    if(start===normalized.length)return [];
+    if(partsLeft<=0)return null;
+    const remaining=normalized.length-start;
+    if(remaining<2)return null;
+
+    for(let end=normalized.length;end>=start+2;end-=1){
+      const tailLength=normalized.length-end;
+      if(tailLength>0&&tailLength<2)continue;
+      const segment=normalized.slice(start,end);
+      const reference=await sourceLookup(segment);
+      if(!reference)continue;
+      if(end===normalized.length)return [reference];
+      const tail=await search(end,partsLeft-1);
+      if(tail?.length)return [reference,...tail];
+    }
+    return null;
+  };
+
+  // The fast balanced two-part path runs first. This pass exists for real
+  // compounds whose useful DB decomposition needs three or four known pieces.
+  for(const maxParts of [3,4]){
+    const references=await search(0,maxParts);
+    if(!references||references.length<3)continue;
+    const ipas=references.map(referenceIpa);
+    if(ipas.some((ipa)=>!ipa))continue;
+    return {
+      language,
+      surface:normalized,
+      normalized,
+      ipa:ipas.map((ipa,index)=>index===0?ipa:demoteStress(ipa)).join(''),
+      method:'client_source_reference_compound',
+      policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
+      sourceBacked:true,
+      generatedReference:false,
+      clientOnly:true,
+      components:references.map((reference)=>reference.surface).filter(Boolean),
+    };
+  }
+  return null;
+}
+
 async function resolveClientTokenPronunciation(
   surface,
   language,
@@ -260,6 +320,10 @@ async function resolveClientTokenPronunciation(
     if(exactDetail)return exactDetail;
 
     const compound=await findTwoPartReferenceCompound(
+      normalized,
+      language,
+      lookupReference,
+    )||await findMultipartSourceCompound(
       normalized,
       language,
       lookupReference,
