@@ -206,7 +206,7 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /English Wiktionary via Kaikki\/Wiktextract/);
   assert.match(app, /CMU Pronouncing Dictionary/);
   assert.match(app, /Leipzig Corpora Collection/);
-  assert.match(app, /RhymeLab curated modern lexicon/);
+  assert.match(app, /Rhyme Bureau curated modern lexicon/);
   assert.match(app, /QRank/);
   assert.match(app, /Wikidata/);
   assert.match(app, /ENTITY_CATEGORY_LABELS/);
