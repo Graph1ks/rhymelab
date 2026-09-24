@@ -2,7 +2,7 @@
   "schema": "rhymelab-react-studio-r6-analysis-perform-v1",
   "phase": "R6",
   "status": "automated_verified_browser_audio_acceptance_deferred",
-  "tested_code_head": "48600af0221c5d9429813e697b381af3a794383e",
+  "tested_code_head": "48600af0221c",
   "invariant": "R6_reuses_existing_R1_analysis_and_performance_semantics_and_writes_Perform_mutations_through_R5_R4_persistence",
   "document_authority": "existing IndexedDB DocumentStore through R4",
   "react_document_authority": false,
@@ -129,7 +129,7 @@
     "r6_contract_tests": 11,
     "production_vite_build": true,
     "react_replatform_run": 152,
-    "latest_tested_code_head": "48600af0221c5d9429813e697b381af3a794383e"
+    "latest_tested_code_head": "48600af0221c"
   },
   "deferred_evidence": [
     "real browser interaction acceptance before verified status",
