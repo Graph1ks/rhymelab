@@ -59,7 +59,7 @@ continues at `/studio` and `/studio-legacy`.
 The original R7 source-parity checkpoint remains historical evidence. Current owner
 UX functional checkpoint `9812a674669c` passes strict TypeScript, 91/91 React tests,
 4/4 reversible-preview tests, production Vite build and the 93/93 source-port gate.
-React Studio Replatform #278, Studio V2 Gate #596 and Full RhymeLab CI #1461 all
+React Studio Replatform #288, Studio V2 Gate #606 and Full RhymeLab CI #1471 all
 pass.
 
 **Cutover remains blocked.** `ported` is not `verified`. Physical IME, audible Web
@@ -89,8 +89,14 @@ Data Safety. The durable checklist is `docs/REACT_STUDIO_UX_CORRECTION.md`.
 
 Automated evidence on that functional checkpoint: 91/91 React tests, strict
 TypeScript, production build, reversible preview and the R7 source gate pass. React
-Studio Replatform #278, Studio V2 Gate #596 and RhymeLab CI #1461 including
+Studio Replatform #278, Studio V2 Gate #606 and RhymeLab CI #1471 including
 public-readiness all pass.
+
+Round-2 final cleanup also removes the dead Tiles renderer internally, migrates old
+`tiles` preferences to Compact, removes Sound Explorer toolbar horizontal scrolling,
+and closes filter surfaces on external scroll while preserving scrolling inside the
+active popup. The OKLCH randomizer is hue-sweep tested every 15° for both Light and
+Dark semantic contrast.
 
 Active continuation: **owner visual acceptance + R7 real-browser / physical-device acceptance**. R8 may begin
 only after the parity matrix reaches 93/93 `verified` and the full R7 cutover gate
