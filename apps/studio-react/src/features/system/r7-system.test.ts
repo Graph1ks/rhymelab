@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import * as legacyDiagnostics from '../../../../src/studio/diagnostics.mjs';
-import * as legacyDevice from '../../../../src/studio/device-acceptance.mjs';
+import * as legacyDiagnostics from '../../../../../src/studio/diagnostics.mjs';
+import * as legacyDevice from '../../../../../src/studio/device-acceptance.mjs';
 
 import {
   collectStudioEnvironmentDiagnostics,
