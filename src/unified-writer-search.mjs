@@ -139,6 +139,7 @@ function externalClientQueryDetail(input, language, pronunciation = null) {
       clientOnly: true,
       method: pronunciation?.method || 'client_unknown',
       components: pronunciation?.components || null,
+      rightEdgeComponent: pronunciation?.rightEdgeComponent || null,
       language,
       locale,
       networkRequiredForGeneration: false,
@@ -399,6 +400,8 @@ export function rightEdgeQueryToken(input) {
 }
 
 export function compoundRightEdgeComponent(fallback) {
+  const explicit=String(fallback?.queryPronunciation?.rightEdgeComponent||'').trim();
+  if(explicit)return explicit;
   const method=String(fallback?.queryPronunciation?.method||'');
   if(![
     'client_source_reference_compound_right_edge',
