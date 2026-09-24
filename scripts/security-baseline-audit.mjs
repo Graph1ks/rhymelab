@@ -60,6 +60,23 @@ if(securityModule.includes("'unsafe-eval'")){
   fail("src/http-security.mjs: CSP must not permit 'unsafe-eval'.");
 }
 
+const htmlSources=[
+  ...walk('src',(path)=>/\.html$/i.test(path)),
+  'apps/studio-react/index.html',
+];
+for(const path of htmlSources){
+  const source=read(path);
+  if(/<script\b(?![^>]*\bsrc\s*=)[^>]*>[\s\S]*?<\/script>/i.test(source)){
+    fail(`${path}: inline script conflicts with the strict CSP.`);
+  }
+  if(/\son[a-z]+\s*=/i.test(source)){
+    fail(`${path}: inline event handler conflicts with script-src-attr 'none'.`);
+  }
+  if(/(?:href|src)\s*=\s*["']\s*javascript:/i.test(source)){
+    fail(`${path}: javascript: URL is forbidden.`);
+  }
+}
+
 const executableSources=[
   ...walk('src',(path)=>/\.(?:mjs|js)$/i.test(path)),
   ...walk('apps/studio-react/src',(path)=>/\.(?:ts|tsx|js|mjs)$/i.test(path)),
@@ -82,5 +99,5 @@ if(failures.length){
   for(const item of failures)console.error(' - '+item);
   process.exitCode=1;
 }else{
-  console.log(`Security baseline audit passed · ${workflowFiles.length} workflows · ${executableSources.length} runtime source files`);
+  console.log(`Security baseline audit passed · ${workflowFiles.length} workflows · ${executableSources.length} runtime source files · ${htmlSources.length} HTML surfaces`);
 }
