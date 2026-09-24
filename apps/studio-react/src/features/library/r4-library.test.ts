@@ -17,10 +17,13 @@ import {
 } from './persistence';
 import {
   createLibraryFolder,
+  createLibrarySong,
   deleteLibraryFolder,
+  duplicateLibrarySong,
   folderChildren,
   folderContains,
   libraryRows,
+  moveLibraryFolder,
   moveLibrarySong,
   permanentlyDeleteLibrarySong,
   renameLibraryFolder,
@@ -151,6 +154,37 @@ describe('R4 Library behavior', () => {
     expect(result.songCount).toBe(1);
     expect(result.state.folders).not.toContain('Songs/Hooks');
     expect(result.state.songs.find((song) => song.id === 's2')?.folder).toBe('Songs');
+  });
+
+  it('supports root-level documents for Explorer-style navigation', () => {
+    const created = createLibrarySong(state(), 'Root note', '', 1050);
+    expect(created.changed).toBe(true);
+    expect(created.state.songs.at(-1)?.folder).toBe('');
+
+    const moved = moveLibrarySong(created.state, 's3', '', 1060);
+    expect(moved.changed).toBe(true);
+    expect(moved.state.songs.find((song) => song.id === 's3')?.folder).toBe('');
+  });
+
+  it('copies a text without carrying deletion state or revision identity', () => {
+    const copied = duplicateLibrarySong(state(), 's2', 'Songs/Verses', 1070);
+    expect(copied.changed).toBe(true);
+    expect(copied.id).toBeTruthy();
+    const row = copied.state.songs.find((song) => song.id === copied.id);
+    expect(row?.folder).toBe('Songs/Verses');
+    expect(row?.lines).toEqual(['Hook line']);
+    expect(row?.revisions).toEqual([]);
+    expect(row?.deleted).toBe(false);
+    expect(row?.deletedAt).toBeNull();
+  });
+
+  it('moves folder subtrees without losing nested document paths', () => {
+    const moved = moveLibraryFolder(state(), 'Songs/Hooks', 'Archive', 1080);
+    expect(moved.changed).toBe(true);
+    expect(moved.folder).toBe('Archive/Hooks');
+    expect(moved.state.folders).toContain('Archive/Hooks');
+    expect(moved.state.songs.find((song) => song.id === 's2')?.folder).toBe('Archive/Hooks');
+    expect(moveLibraryFolder(state(), 'Songs', 'Songs/Hooks').reason).toBe('folder_cycle');
   });
 
   it('moves documents between folders and creates missing path segments', () => {
