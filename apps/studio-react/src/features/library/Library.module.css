@@ -1059,7 +1059,7 @@
 .dialogBackdrop {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 280;
   background: rgba(0, 0, 0, .54);
   backdrop-filter: blur(4px);
 }
@@ -1067,7 +1067,7 @@
 .dialogViewport {
   position: fixed;
   inset: 0;
-  z-index: 201;
+  z-index: 281;
   display: grid;
   place-items: center;
   padding: 18px;
