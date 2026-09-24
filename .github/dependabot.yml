@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /apps/studio-react
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      react-studio-runtime:
+        dependency-type: production
+      react-studio-tooling:
+        dependency-type: development
