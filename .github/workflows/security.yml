@@ -41,11 +41,8 @@ jobs:
       - name: Audit React dependency graph
         run: npm audit --prefix apps/studio-react --audit-level=high
 
+      - name: Verify locked root dependency graph
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
       - name: Audit root runtime dependency graph
-        run: |
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          echo RHYMELAB_ROOT_LOCK_B64_BEGIN
-          base64 -w0 package-lock.json
-          echo
-          echo RHYMELAB_ROOT_LOCK_B64_END
-          npm audit --omit=dev --audit-level=high
+        run: npm audit --omit=dev --audit-level=high
