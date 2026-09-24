@@ -137,6 +137,16 @@ test('GROWTHHORMONPRODUCER keeps a usable right-edge rhyme anchor in EN and DE',
     assert.ok(detail?.ipa,language+' compound must resolve');
     assert.match(detail.method,/compound_right_edge$/u);
     assert.equal(detail.components.at(-1)?.toLocaleLowerCase('en-US'),'producer');
+    assert.equal(detail.components[0]?.toLocaleLowerCase('en-US'),'growth');
+    if(language==='en'){
+      assert.ok(detail.generatedComponents?.some(
+        (part)=>part.toLocaleLowerCase('en-US').includes('hormon'),
+      ));
+    }else{
+      assert.ok(detail.sourceBackedComponents?.some(
+        (part)=>part.toLocaleLowerCase('en-US')==='hormon',
+      ));
+    }
 
     const profile=getPhonologyProfile(language);
     const analysis=profile.analyzeIpa(detail.ipa);
