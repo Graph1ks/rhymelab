@@ -27,6 +27,7 @@ import {
   removeEditorBar,
   replaceEditorDocumentRange,
   restoreEditorSnapshot,
+  validateSelectionProof,
 } from '../../legacy/editor';
 import { useDocumentWorkspace } from '../library/DocumentWorkspaceProvider';
 import { touchSong } from '../library/model';
@@ -327,7 +328,8 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
 
     checkpoint();
     let outcome: EditorInsertOutcome = { ok: false, reason: 'selection_missing' };
-    let focus: { start: number; end: number } | null = null;
+    let focusStart = -1;
+    let focusEnd = -1;
     await documents.mutate((state) => {
       const current = activeEditorSong(state);
       if (!current) {
@@ -339,18 +341,16 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
       if (result.ok) {
         touchSong(current);
         activeLine.current = result.line ?? activeLine.current;
-        focus = {
-          start: result.selectionStart ?? result.caret ?? 0,
-          end: result.selectionEnd ?? result.caret ?? 0,
-        };
+        focusStart = result.selectionStart ?? result.caret ?? 0;
+        focusEnd = result.selectionEnd ?? result.caret ?? 0;
       }
       return state;
     });
 
-    if (outcome.ok && focus) {
+    if (outcome.ok && focusStart >= 0 && focusEnd >= 0) {
       scheduleRevision();
-      requestFocus(focus.start, focus.end);
-      requestAnimationFrame(() => captureSelectionFromDocument(focus!.start, focus!.end));
+      requestFocus(focusStart, focusEnd);
+      requestAnimationFrame(() => captureSelectionFromDocument(focusStart, focusEnd));
     }
     return outcome;
   }, [
