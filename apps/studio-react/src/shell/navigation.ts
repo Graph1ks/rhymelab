@@ -18,8 +18,8 @@ export interface NavigationItem {
 }
 
 export const NAVIGATION_ITEMS: readonly NavigationItem[] = Object.freeze([
-  { id: 'studio', label: 'Studio', mobileLabel: 'Schreiben', shortcut: '1', icon: 'pen' },
-  { id: 'search', label: 'Reimsuche', mobileLabel: 'Entdecken', shortcut: '2', icon: 'search' },
+  { id: 'studio', label: 'Studio', mobileLabel: 'Schreiben', icon: 'pen' },
+  { id: 'search', label: 'Reimsuche', mobileLabel: 'Entdecken', icon: 'search' },
 ]);
 
 const FALLBACK_EN: Record<string, string> = {
@@ -53,4 +53,25 @@ export function navigationLabel(
   mobile = false,
 ): string {
   return shellText(mobile ? item.mobileLabel : item.label, language);
+}
+
+
+export function isTextEditingTarget(target: EventTarget | null): boolean {
+  if (!target || typeof target !== 'object') return false;
+  const element = target as {
+    tagName?: string;
+    isContentEditable?: boolean;
+    getAttribute?: (name: string) => string | null;
+  };
+  const tag = String(element.tagName || '').toUpperCase();
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  if (element.isContentEditable === true) return true;
+  const role = element.getAttribute?.('role');
+  return role === 'textbox' || role === 'searchbox';
+}
+
+export function commandPaletteShortcutLabel(platform = ''): string {
+  return /mac|iphone|ipad|ipod/u.test(platform.toLocaleLowerCase())
+    ? '⌘ ⇧ K'
+    : 'Ctrl ⇧ K';
 }
