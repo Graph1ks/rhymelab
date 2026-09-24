@@ -1948,8 +1948,8 @@
 }
 
 .topbar {
-  position: relative;
-  top: auto;
+  position: sticky;
+  top: 0;
   z-index: 90;
   width: 100%;
   height: var(--rl-topbar-height);
