@@ -34,6 +34,7 @@ import {
   normalizeEditorFontValue,
   SystemFontPicker,
 } from './SystemFontPicker';
+import { editorFallbackLineHeight, fallbackEditorLineTop } from './geometry';
 import styles from './Editor.module.css';
 
 const SECTION_TAGS = [
@@ -310,8 +311,8 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
     }
   };
 
-  const fallbackLineHeight = Math.max(34, fontSize * 1.62);
-  const rowTop = (index: number) => lineMetrics[index]?.top ?? 18 + index * fallbackLineHeight;
+  const fallbackLineHeight = editorFallbackLineHeight(fontSize);
+  const rowTop = (index: number) => lineMetrics[index]?.top ?? fallbackEditorLineTop(index, fontSize);
   const rowHeight = (index: number) => lineMetrics[index]?.height ?? fallbackLineHeight;
   const rowCenter = (index: number) => lineMetrics[index]?.firstLineCenter ?? fallbackLineHeight / 2;
   const boundaryTop = (index: number) => {
