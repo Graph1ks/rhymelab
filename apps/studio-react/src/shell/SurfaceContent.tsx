@@ -1,21 +1,37 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 
 import { Dialog } from '../design-system/primitives';
 
-import { HomePage } from '../features/intro/HomePage';
-import { LibraryWorkspace } from '../features/library/LibraryWorkspace';
-import { AnalysisWorkspace } from '../features/analysis/AnalysisWorkspace';
 import { EditorSessionProvider } from '../features/editor/EditorSessionProvider';
-import { EditorWorkspace } from '../features/editor/EditorWorkspace';
-import { PerformanceWorkspace } from '../features/perform/PerformanceWorkspace';
-import { SavedWorkspace } from '../features/search/SavedWorkspace';
-import { SearchExperience } from '../features/search/SearchExperience';
 import { useUiStore } from '../state/uiStore';
 import { Icon } from './icons';
 import { shellText } from './navigation';
-import { SettingsPanel } from './SettingsPanel';
 import styles from './Shell.module.css';
+
+const HomePage = lazy(() => import('../features/intro/HomePage').then((module) => ({ default: module.HomePage })));
+const LibraryWorkspace = lazy(() => import('../features/library/LibraryWorkspace').then((module) => ({ default: module.LibraryWorkspace })));
+const AnalysisWorkspace = lazy(() => import('../features/analysis/AnalysisWorkspace').then((module) => ({ default: module.AnalysisWorkspace })));
+const EditorWorkspace = lazy(() => import('../features/editor/EditorWorkspace').then((module) => ({ default: module.EditorWorkspace })));
+const PerformanceWorkspace = lazy(() => import('../features/perform/PerformanceWorkspace').then((module) => ({ default: module.PerformanceWorkspace })));
+const SavedWorkspace = lazy(() => import('../features/search/SavedWorkspace').then((module) => ({ default: module.SavedWorkspace })));
+const SearchExperience = lazy(() => import('../features/search/SearchExperience').then((module) => ({ default: module.SearchExperience })));
+const SettingsPanel = lazy(() => import('./SettingsPanel').then((module) => ({ default: module.SettingsPanel })));
+
+function DeferredSurface({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={(
+        <div className={styles.surfaceLoading} aria-live="polite" aria-busy="true">
+          <span />
+          <b>RHYME BUREAU</b>
+        </div>
+      )}
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 export function SurfaceContent() {
   const surface = useUiStore((state) => state.surface);
@@ -63,7 +79,7 @@ export function SurfaceContent() {
   }, [focusMode, setFocusMode, studioMode, surface, toggleFocusMode]);
 
   if (surface === 'home') {
-    return <HomePage />;
+    return <DeferredSurface><HomePage /></DeferredSurface>;
   }
 
   if (surface === 'settings') {
@@ -82,7 +98,7 @@ export function SurfaceContent() {
           </div>
           <span className={styles.phaseBadge}>R2 SHELL</span>
         </header>
-        <SettingsPanel />
+        <DeferredSurface><SettingsPanel /></DeferredSurface>
       </motion.div>
     );
   }
@@ -96,7 +112,7 @@ export function SurfaceContent() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.16 }}
       >
-        <SearchExperience variant="page" />
+        <DeferredSurface><SearchExperience variant="page" /></DeferredSurface>
       </motion.div>
     );
   }
@@ -110,7 +126,7 @@ export function SurfaceContent() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.16 }}
       >
-        <SavedWorkspace />
+        <DeferredSurface><SavedWorkspace /></DeferredSurface>
       </motion.div>
     );
   }
@@ -238,12 +254,18 @@ export function SurfaceContent() {
               </button>
             </div>
             <div className={styles.studioModeSurface} data-mode={studioMode}>
-              {studioMode === 'write' ? <EditorWorkspace focusMode={focusMode} /> : null}
+              {studioMode === 'write' ? (
+                <DeferredSurface><EditorWorkspace focusMode={focusMode} /></DeferredSurface>
+              ) : null}
               {studioMode === 'analysis' ? (
-                <AnalysisWorkspace onOpenEditor={() => setStudioMode('write')} />
+                <DeferredSurface>
+                  <AnalysisWorkspace onOpenEditor={() => setStudioMode('write')} />
+                </DeferredSurface>
               ) : null}
               {studioMode === 'perform' ? (
-                <PerformanceWorkspace focusMode={focusMode} onOpenEditor={() => { setFocusMode(false); setStudioMode('write'); }} />
+                <DeferredSurface>
+                  <PerformanceWorkspace focusMode={focusMode} onOpenEditor={() => { setFocusMode(false); setStudioMode('write'); }} />
+                </DeferredSurface>
               ) : null}
             </div>
           </section>
@@ -270,7 +292,7 @@ export function SurfaceContent() {
               {assistCollapsed ? (
                 <span className={styles.assistRailLabel}>SOUND EXPLORER</span>
               ) : !focusMode ? (
-                <SearchExperience variant="assistant" enabled />
+                <DeferredSurface><SearchExperience variant="assistant" enabled /></DeferredSurface>
               ) : null}
             </aside>
           ) : null}
@@ -287,7 +309,7 @@ export function SurfaceContent() {
                     </div>
                     <Dialog.Close aria-label={language === 'de' ? 'Schließen' : 'Close'}>×</Dialog.Close>
                   </div>
-                  <LibraryWorkspace onDone={() => setLibraryOpen(false)} />
+                  <DeferredSurface><LibraryWorkspace onDone={() => setLibraryOpen(false)} /></DeferredSurface>
                 </Dialog.Popup>
               </Dialog.Viewport>
             </Dialog.Portal>
@@ -305,7 +327,7 @@ export function SurfaceContent() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.16 }}
     >
-      <LibraryWorkspace />
+      <DeferredSurface><LibraryWorkspace /></DeferredSurface>
     </motion.div>
   );
 }
