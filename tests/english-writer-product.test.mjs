@@ -108,6 +108,9 @@ function fixtureEnglishDb(){
   insertEnglishPublishRow(insert,publishRow(7,'wine','W AY1 N',{rank:2650,zipf:4.5}));
   insertEnglishPublishRow(insert,publishRow(8,'shine','SH AY1 N',{rank:4100,zipf:4.2}));
   insertEnglishPublishRow(insert,publishRow(9,'wiser','W AY1 Z ER0',{rank:4500,zipf:4.1}));
+  insertEnglishPublishRow(insert,publishRow(10,'producer','P R AH0 D UW1 S ER0',{rank:5200,zipf:4.0}));
+  insertEnglishPublishRow(insert,publishRow(11,'reducer','R IH0 D UW1 S ER0',{rank:6200,zipf:3.9}));
+  insertEnglishPublishRow(insert,publishRow(12,'seducer','S AH0 D UW1 S ER0',{rank:7200,zipf:3.8}));
   const meta=db.prepare('INSERT INTO meta(key,value) VALUES(?,?)');
   const values={
     schema:ACCEPTED_ENGLISH_DB_SCHEMA,
@@ -317,6 +320,37 @@ test('Arbeitsweise and Weise bridge to the same English right-edge rhyme neighbo
       a.results.map((row)=>row.normalized),
       w.results.map((row)=>row.normalized),
     );
+  }finally{
+    db.close();
+  }
+});
+
+
+test('generated compound queries recover the source-backed producer rhyme neighborhood',()=>{
+  const db=fixtureEnglishDb();
+  try{
+    const result=searchEnglishWriterFromExternalQuery(db,{
+      kind:'word',
+      language:'en',
+      surface:'GROWTHHORMONPRODUCER',
+      normalized:'growthhormonproducer',
+      preferredIpa:'ˌgɹaʊθˌhɔɹmənpɹəˈdusɚ',
+      ipa:'ˌgɹaʊθˌhɔɹmənpɹəˈdusɚ',
+      syllableCount:6,
+      generatedPronunciation:true,
+      queryPronunciation:{
+        policy:'client-total-query-pronunciation-v4',
+        method:'client_mixed_reference_compound_right_edge',
+        components:['growthhormon','producer'],
+      },
+    },{limit:20});
+
+    assert.ok(result);
+    assert.equal(result.crossLanguageQuery.policy,'source-backed-right-edge-component-v1');
+    assert.equal(result.crossLanguageQuery.rightEdgeComponent,'producer');
+    assert.equal(result.writerRetrieval.rightEdgeComponentAnchor,'producer');
+    assert.ok(result.results.some((row)=>row.normalized==='reducer'));
+    assert.ok(result.results.some((row)=>row.normalized==='seducer'));
   }finally{
     db.close();
   }
