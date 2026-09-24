@@ -101,11 +101,11 @@ function FontControls() {
   return (
     <div className={styles.fontControls}>
       <div className={styles.segmented} role="group" aria-label={language === 'de' ? 'Editor-Schrift' : 'Editor font'}>
-        {[
+        {([
           ['sans', 'Sans'],
           ['serif', 'Editorial'],
           ['mono', 'Mono'],
-        ].map(([value, label]) => (
+        ] as const).map(([value, label]) => (
           <button
             key={value}
             type="button"
