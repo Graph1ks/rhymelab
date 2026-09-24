@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 
 import { Dialog } from '../design-system/primitives';
 
+import { HomePage } from '../features/home/HomePage';
 import { LibraryWorkspace } from '../features/library/LibraryWorkspace';
 import { AnalysisWorkspace } from '../features/analysis/AnalysisWorkspace';
 import { EditorSessionProvider } from '../features/editor/EditorSessionProvider';
@@ -23,6 +24,10 @@ export function SurfaceContent() {
   const setLibraryOpen = useUiStore((state) => state.setLibraryOpen);
   const [mobileStudioPane, setMobileStudioPane] = useState<'editor' | 'results'>('editor');
   const [studioMode, setStudioMode] = useState<'write' | 'analysis' | 'perform'>('write');
+
+  if (surface === 'home') {
+    return <HomePage />;
+  }
 
   if (surface === 'settings') {
     return (

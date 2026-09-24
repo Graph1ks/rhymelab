@@ -61,8 +61,8 @@ function Topbar() {
       <button
         type="button"
         className={styles.brand}
-        onClick={() => navigate('studio')}
-        aria-label="RhymeLab Studio"
+        onClick={() => navigate('home')}
+        aria-label={language === 'de' ? 'RhymeLab Intro' : 'RhymeLab intro'}
       >
         <span className={styles.brandMark}>r.</span>
         <span className={styles.brandName}>rhymelab</span>

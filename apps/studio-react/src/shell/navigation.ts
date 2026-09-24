@@ -1,7 +1,7 @@
 import type { StudioUiLanguage } from '../legacy/shell';
 import { translateStudioUiText } from '../legacy/shell';
 
-export type AppSurface = 'studio' | 'search' | 'library' | 'saved' | 'settings';
+export type AppSurface = 'home' | 'studio' | 'search' | 'library' | 'saved' | 'settings';
 
 export const SHELL_BREAKPOINTS = Object.freeze({
   sidebarRail: 1150,
