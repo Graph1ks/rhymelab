@@ -399,6 +399,7 @@ export function rightEdgeQueryToken(input) {
 }
 
 function germanLexicalQuery(writerDb, input, fallback = null) {
+  if (fallback?.generatedPronunciation) return fallback;
   const token = rightEdgeQueryToken(input);
   if (!token) return fallback;
   const tokens = tokenizePhrase(String(input || '').normalize('NFKC').trim());
@@ -417,6 +418,7 @@ function germanLexicalQuery(writerDb, input, fallback = null) {
 }
 
 function englishLexicalQuery(englishDb, input, fallback = null) {
+  if (fallback?.generatedPronunciation) return fallback;
   const token = rightEdgeQueryToken(input);
   if (!token) return fallback;
   const tokens = tokenizePhrase(String(input || '').normalize('NFKC').trim());
