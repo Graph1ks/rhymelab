@@ -60,11 +60,11 @@
   --rl-duration-fast: 140ms;
   --rl-duration-normal: 220ms;
 
-  --rl-topbar-height: 64px;
+  --rl-topbar-height: 68px;
   --rl-sidebar-width: 184px;
   --rl-sidebar-rail-width: 72px;
   --rl-assist-width: clamp(320px, 31vw, 470px);
-  --rl-mobile-nav-height: 64px;
+  --rl-mobile-nav-height: 0px;
   --visual-viewport-height: 100dvh;
 
   --rl-focus-ring:
@@ -175,5 +175,13 @@ textarea {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+
+@media (max-width: 800px) {
+  :root {
+    --rl-topbar-height: 106px;
+    --rl-mobile-nav-height: 0px;
   }
 }
