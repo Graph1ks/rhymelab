@@ -1903,3 +1903,28 @@
     font-size: 11px;
   }
 }
+
+
+/* Analysis and Perform own the full Studio canvas; Sound Explorer is a writing assistant. */
+.studioFoundation[data-studio-mode="analysis"],
+.studioFoundation[data-studio-mode="perform"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.studioFoundation[data-studio-mode="analysis"] > .assistFoundation,
+.studioFoundation[data-studio-mode="perform"] > .assistFoundation {
+  display: none;
+}
+
+.contentViewport[data-surface="studio"] .primaryFoundation {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.contentViewport[data-surface="studio"] .assistFoundation {
+  border: 0;
+  border-left: 1px solid var(--rl-line);
+  border-radius: 0;
+  background: transparent;
+}
