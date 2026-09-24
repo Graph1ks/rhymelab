@@ -5,6 +5,10 @@ on:
     paths:
       - 'apps/studio-react/**'
       - 'scripts/check-react-studio-parity.mjs'
+      - 'scripts/check-react-studio-r7.mjs'
+      - 'src/react-studio-preview.mjs'
+      - 'src/server.mjs'
+      - 'tests/react-studio-preview.test.mjs'
       - 'src/studio/parity-manifest.mjs'
       - 'docs/REACT_STUDIO_REPLATFORM.md'
       - 'docs/REACT_STUDIO_PARITY_GATE.md'
@@ -46,3 +50,9 @@ jobs:
 
       - name: Build
         run: npm --prefix apps/studio-react run build
+
+      - name: R7 reversible preview contract
+        run: node --test tests/react-studio-preview.test.mjs
+
+      - name: R7 source parity gate
+        run: node scripts/check-react-studio-r7.mjs --code-only
