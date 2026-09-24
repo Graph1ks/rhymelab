@@ -512,7 +512,7 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
     const resolved = next || fallback;
     titleCancelRef.current = false;
     setTitleEditing(false);
-    if (resolved === (song.title || fallback)) return;
+    if (resolved === (song?.title || fallback)) return;
     await editor.mutateActiveSong((current) => {
       if ((current.title || fallback) === resolved) return false;
       current.title = resolved;
@@ -522,7 +522,7 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
 
   const cancelTitleEdit = () => {
     titleCancelRef.current = true;
-    setTitleDraft(song.title || '');
+    setTitleDraft(song?.title || '');
     setTitleEditing(false);
   };
 
