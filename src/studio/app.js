@@ -527,6 +527,133 @@ function unifiedEditorLineHeights(){
     return Math.max(fallback,Math.ceil(height));
   });
 }
+let editorBarDrag=null;
+let suppressBarGutterClickUntil=0;
+const BAR_DRAG_HOLD_MS=260;
+function barDropPlacement(clientY,sourceIndex){
+  const notepad=$('#lyricsNotepad');
+  const rows=queryAll('#lyricsMeasure .lyrics-measure-line');
+  if(!notepad||!rows.length)return {targetIndex:sourceIndex,top:0,slot:sourceIndex};
+  let slot=rows.length;
+  for(let index=0;index<rows.length;index++){
+    const rect=rows[index].getBoundingClientRect();
+    if(clientY<rect.top+rect.height/2){slot=index;break}
+  }
+  const targetIndex=Math.max(0,Math.min(rows.length-1,slot>sourceIndex?slot-1:slot));
+  const notepadRect=notepad.getBoundingClientRect();
+  const anchor=rows[Math.min(slot,rows.length-1)]?.getBoundingClientRect();
+  const top=slot>=rows.length
+    ?rows.at(-1).getBoundingClientRect().bottom-notepadRect.top
+    :anchor.top-notepadRect.top;
+  return {targetIndex,top,slot};
+}
+function clearEditorBarDrag(){
+  const drag=editorBarDrag;
+  if(!drag)return;
+  clearTimeout(drag.timer);
+  drag.ghost?.remove();
+  drag.preview?.remove();
+  drag.node?.classList.remove('is-bar-drag-source');
+  $('#lyricsNotepad')?.classList.remove('is-bar-dragging');
+  document.body.classList.remove('bar-reorder-active');
+  editorBarDrag=null;
+}
+function positionBarDragGhost(drag,event){
+  if(!drag?.ghost)return;
+  const width=drag.ghost.offsetWidth||320;
+  const height=drag.ghost.offsetHeight||56;
+  const left=Math.max(10,Math.min(window.innerWidth-width-10,event.clientX+18));
+  const top=Math.max(10,Math.min(window.innerHeight-height-10,event.clientY-height/2));
+  drag.ghost.style.transform='translate3d('+left+'px,'+top+'px,0)';
+}
+function updateEditorBarDropPreview(drag,event){
+  if(!drag?.active)return;
+  const placement=barDropPlacement(event.clientY,drag.sourceIndex);
+  drag.targetIndex=placement.targetIndex;
+  drag.preview.style.top=Math.max(0,placement.top)+'px';
+  drag.preview.dataset.same=String(placement.targetIndex===drag.sourceIndex);
+  const targetNumber=trackedEditorBarNumber(song(),placement.targetIndex);
+  const targetLabel=targetNumber==null?'Zwischenraum':'vor Bar '+String(targetNumber).padStart(2,'0');
+  drag.preview.querySelector('b').textContent=placement.targetIndex===drag.sourceIndex?'Originalposition':targetLabel;
+  positionBarDragGhost(drag,event);
+}
+function activateEditorBarDrag(drag,event){
+  if(editorBarDrag!==drag||drag.active)return;
+  drag.active=true;
+  suppressBarGutterClickUntil=performance.now()+700;
+  const current=song();
+  const barNumber=trackedEditorBarNumber(current,drag.sourceIndex);
+  const text=current.lines[drag.sourceIndex]||'';
+  const ghost=document.createElement('div');
+  ghost.className='bar-transport-ghost';
+  ghost.innerHTML='<span>BAR '+String(barNumber||'').padStart(2,'0')+'</span><b>'+esc(text||'Leere Bar')+'</b>';
+  document.body.append(ghost);
+  drag.ghost=ghost;
+  const preview=document.createElement('div');
+  preview.className='bar-drop-preview';
+  preview.style.height=Math.max(38,drag.node.getBoundingClientRect().height)+'px';
+  preview.innerHTML='<span>DROP</span><b>Originalposition</b><em>'+esc(text||'Leere Bar')+'</em>';
+  $('#lyricsNotepad')?.append(preview);
+  drag.preview=preview;
+  drag.node.classList.add('is-bar-drag-source');
+  $('#lyricsNotepad')?.classList.add('is-bar-dragging');
+  document.body.classList.add('bar-reorder-active');
+  updateEditorBarDropPreview(drag,event);
+}
+function bindEditorBarDrag(node){
+  node.addEventListener('pointerdown',(event)=>{
+    if(event.button!==0||editorBarDrag)return;
+    const sourceIndex=Number(node.dataset.line);
+    const drag={
+      node,
+      pointerId:event.pointerId,
+      sourceIndex,
+      targetIndex:sourceIndex,
+      startX:event.clientX,
+      startY:event.clientY,
+      lastEvent:event,
+      active:false,
+      timer:null,
+      ghost:null,
+      preview:null,
+    };
+    editorBarDrag=drag;
+    node.setPointerCapture?.(event.pointerId);
+    drag.timer=setTimeout(()=>activateEditorBarDrag(drag,drag.lastEvent),BAR_DRAG_HOLD_MS);
+  });
+  node.addEventListener('pointermove',(event)=>{
+    const drag=editorBarDrag;
+    if(!drag||drag.node!==node||drag.pointerId!==event.pointerId)return;
+    drag.lastEvent=event;
+    if(!drag.active&&Math.hypot(event.clientX-drag.startX,event.clientY-drag.startY)>8){
+      clearEditorBarDrag();
+      return;
+    }
+    if(drag.active){
+      event.preventDefault();
+      updateEditorBarDropPreview(drag,event);
+    }
+  });
+  const finish=(event,commit)=>{
+    const drag=editorBarDrag;
+    if(!drag||drag.node!==node||drag.pointerId!==event.pointerId)return;
+    clearTimeout(drag.timer);
+    if(drag.active){
+      event.preventDefault();
+      const from=drag.sourceIndex,to=drag.targetIndex;
+      suppressBarGutterClickUntil=performance.now()+700;
+      clearEditorBarDrag();
+      if(commit&&from!==to)moveStudioBar(from,to);
+    }else{
+      clearEditorBarDrag();
+    }
+  };
+  node.addEventListener('pointerup',(event)=>finish(event,true));
+  node.addEventListener('pointercancel',(event)=>finish(event,false));
+  node.addEventListener('lostpointercapture',(event)=>{
+    if(editorBarDrag?.node===node&&editorBarDrag.pointerId===event.pointerId)clearEditorBarDrag();
+  });
+}
 function renderUnifiedEditorGutters(){
   const current=song();
   const barGutter=$('#lyricsBarGutter'),syllableGutter=$('#lyricsSyllableGutter');
@@ -536,7 +663,7 @@ function renderUnifiedEditorGutters(){
     const kind=editorLineKind(line),barNumber=trackedEditorBarNumber(current,index);
     const height=heights[index];
     if(kind==='bar'){
-      return '<button type="button" class="lyrics-gutter-row line-no '+(index===activeLine?'active':'')+'" data-line="'+index+'" style="height:'+height+'px" aria-label="Bar '+barNumber+' auswählen">'+String(barNumber).padStart(2,'0')+'</button>';
+      return '<button type="button" class="lyrics-gutter-row line-no '+(index===activeLine?'active':'')+'" data-line="'+index+'" style="height:'+height+'px" aria-label="Bar '+barNumber+' auswählen und halten zum Verschieben" title="Klick: auswählen · halten: Bar verschieben">'+String(barNumber).padStart(2,'0')+'</button>';
     }
     const label=kind==='bracket'?'§':'';
     return '<span class="lyrics-gutter-row line-no is-untracked '+kind+' '+(index===activeLine?'active':'')+'" data-line="'+index+'" style="height:'+height+'px" aria-hidden="true">'+label+'</span>';
@@ -549,7 +676,13 @@ function renderUnifiedEditorGutters(){
     }
     return '<span class="lyrics-gutter-row syllable is-untracked '+kind+' '+(index===activeLine?'active':'')+'" style="height:'+height+'px" aria-hidden="true"></span>';
   }).join('');
-  queryAll('#lyricsBarGutter [data-line]').forEach((node)=>node.onclick=()=>selectEditorLine(+node.dataset.line));
+  queryAll('#lyricsBarGutter button[data-line]').forEach((node)=>{
+    node.onclick=()=>{
+      if(performance.now()<suppressBarGutterClickUntil)return;
+      selectEditorLine(+node.dataset.line);
+    };
+    bindEditorBarDrag(node);
+  });
   queryAll('#lyricsSyllableGutter [data-bar-inspect]').forEach((node)=>node.onclick=()=>{
     activeLine=+node.dataset.barInspect;
     activateLine(activeLine);
