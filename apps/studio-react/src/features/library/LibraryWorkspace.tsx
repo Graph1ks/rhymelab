@@ -113,7 +113,7 @@ function NameDialog({
   );
 }
 
-export function LibraryWorkspace() {
+export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
   const language = useUiStore((row) => row.uiLanguage);
   const navigate = useUiStore((row) => row.navigate);
   const workspace = useDocumentWorkspace();
@@ -159,6 +159,7 @@ export function LibraryWorkspace() {
     const result = openLibrarySong(workspace.state, id);
     if (!result.changed) return;
     await workspace.replaceState(result.state, { immediate: true });
+    onDone?.();
     navigate('studio');
   };
 
@@ -170,6 +171,7 @@ export function LibraryWorkspace() {
       if (result.changed) {
         await workspace.replaceState(result.state, { immediate: true });
         setNameDialog(null);
+        onDone?.();
         navigate('studio');
       }
       return;
