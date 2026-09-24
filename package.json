@@ -224,7 +224,8 @@
     "studio:react:parity": "node scripts/check-react-studio-parity.mjs",
     "studio:react:parity:cutover": "node scripts/check-react-studio-parity.mjs --cutover",
     "studio:react:verify": "npm run studio:react:parity && npm run studio:react:typecheck && npm run studio:react:test && npm run studio:react:build",
-    "studio:react:r1": "npm --prefix apps/studio-react run r1:verify"
+    "studio:react:r1": "npm --prefix apps/studio-react run r1:verify",
+    "studio:react:r2": "npm --prefix apps/studio-react run r2:verify"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"
