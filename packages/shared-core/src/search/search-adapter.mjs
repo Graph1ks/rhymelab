@@ -2,10 +2,6 @@ import {
   CLIENT_QUERY_PRONUNCIATION_POLICY,
   resolveUnknownClientPronunciation,
 } from './query-pronunciation-client.mjs';
-import {
-  readGeneratedPronunciationCache,
-  writeGeneratedPronunciationCache,
-} from './query-pronunciation-cache.mjs';
 import {createSearchState,searchStateToWriterParams} from './search-state.mjs';
 
 const PRIMARY_TYPES=Object.freeze([
@@ -276,6 +272,8 @@ async function resolveMissingPronunciations({
   queryPronunciationRevision,
   signal,
   runtimeDb='',
+  readPronunciationCache=async()=>null,
+  writePronunciationCache=async()=>false,
 }){
   const languages=basisLanguages(queryBasis).filter(
     (language)=>data?.capabilities?.languages?.[language]?.available!==false,
@@ -290,7 +288,7 @@ async function resolveMissingPronunciations({
         lookupSourceBackedWord(fetchImpl,surface,referenceLanguage,generated,signal,runtimeDb),
       lookupCachedPronunciation:(surface,referenceLanguage)=>{
         if(!queryPronunciationRevision)return null;
-        return readGeneratedPronunciationCache({
+        return readPronunciationCache({
           surface,
           language:referenceLanguage,
           policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
@@ -299,7 +297,7 @@ async function resolveMissingPronunciations({
       },
       storeCachedPronunciation:(resolved)=>{
         if(!queryPronunciationRevision)return false;
-        return writeGeneratedPronunciationCache(resolved,queryPronunciationRevision);
+        return writePronunciationCache(resolved,queryPronunciationRevision);
       },
     });
     if(!detail?.ipa)continue;
@@ -318,7 +316,11 @@ async function resolveMissingPronunciations({
   return changed;
 }
 
-export function createWriterSearchClient({fetchImpl=globalThis.fetch}={}){
+export function createWriterSearchClient({
+  fetchImpl=globalThis.fetch,
+  readPronunciationCache=async()=>null,
+  writePronunciationCache=async()=>false,
+}={}){
   if(typeof fetchImpl!=='function')throw new TypeError('fetch is unavailable');
   let activeController=null;
   let requestId=0;
@@ -375,6 +377,8 @@ export function createWriterSearchClient({fetchImpl=globalThis.fetch}={}){
         queryPronunciationRevision:options.queryPronunciationRevision||'',
         signal:controller.signal,
         runtimeDb:options.runtimeDb||'',
+        readPronunciationCache,
+        writePronunciationCache,
       });
       if(generatedPronunciation){
         ({response,data,clientTiming,serverTransport}=await request());

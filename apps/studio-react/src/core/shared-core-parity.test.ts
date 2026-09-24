@@ -87,7 +87,6 @@ describe('Shared Core boundary keeps authoritative implementations centralized',
       'writerRelationLabel',
       'mapWriterResult',
       'buildWriterParams',
-      'createWriterSearchClient',
     ]);
     expectIdentity(searchBridge, sharedCapabilityAdapter, [
       'normalizeStudioCapabilities',

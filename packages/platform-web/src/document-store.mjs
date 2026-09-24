@@ -3,7 +3,7 @@ import {
   STUDIO_DOCUMENT_VERSION,
   migrateLegacyStudioState,
   validateStudioDocumentSnapshot,
-} from './document-model.mjs';
+} from '../../shared-core/src/document/document-model.mjs';
 
 export const STUDIO_DOCUMENT_DB='rhymelab-studio';
 export const STUDIO_DOCUMENT_DB_VERSION=2;

@@ -89,7 +89,11 @@ type SearchAdapterApi = {
   writerRelationLabel(type: unknown): string;
   mapWriterResult(row: unknown, index?: number): WriterResultRow;
   buildWriterParams(options?: WriterSearchOptions): URLSearchParams;
-  createWriterSearchClient(options?: { fetchImpl?: typeof fetch }): WriterSearchClient;
+  createWriterSearchClient(options?: {
+    fetchImpl?: typeof fetch;
+    readPronunciationCache?: typeof cacheApi.readGeneratedPronunciationCache;
+    writePronunciationCache?: typeof cacheApi.writeGeneratedPronunciationCache;
+  }): WriterSearchClient;
 };
 
 type CapabilityApi = {
@@ -157,7 +161,15 @@ export const writerRelationGroup = adapterApi.writerRelationGroup;
 export const writerRelationLabel = adapterApi.writerRelationLabel;
 export const mapWriterResult = adapterApi.mapWriterResult;
 export const buildWriterParams = adapterApi.buildWriterParams;
-export const createWriterSearchClient = adapterApi.createWriterSearchClient;
+export function createWriterSearchClient(
+  options: { fetchImpl?: typeof fetch } = {},
+): WriterSearchClient {
+  return adapterApi.createWriterSearchClient({
+    ...options,
+    readPronunciationCache: cacheApi.readGeneratedPronunciationCache,
+    writePronunciationCache: cacheApi.writeGeneratedPronunciationCache,
+  });
+}
 
 export const CAPABILITY_ENDPOINTS = capabilityApi.CAPABILITY_ENDPOINTS;
 export const normalizeStudioCapabilities = capabilityApi.normalizeStudioCapabilities;
