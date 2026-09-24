@@ -251,6 +251,10 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/data-perform-step/u);
   assert.match(app,/performanceNeedsReview/u);
   assert.match(app,/function renderBarNavigatorDock\(/u);
+  assert.match(app,/function bindEditorBarDrag\(/u);
+  assert.match(app,/BAR_DRAG_HOLD_MS=260/u);
+  assert.match(app,/bar-transport-ghost/u);
+  assert.match(app,/bar-drop-preview/u);
   assert.match(app,/function addStudioBarAfter\(/u);
   assert.match(app,/function duplicateStudioBar\(/u);
   assert.match(app,/function deleteStudioBar\(/u);
@@ -274,6 +278,9 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/autoMapPerformanceBar/u);
   assert.match(app,/function ensureActiveBarVisible\(/u);
   assert.match(app,/function bindMobileViewport\(/u);
+  assert.match(app,/followSelection=true;[\s\S]*?if\(lastWord\)query=lastWord\[0\]/u);
+  assert.match(app,/function bindEditorDockWheelRouting\(/u);
+  assert.match(app,/queueInfiniteResultsFill/u);
   assert.match(app,/mobileScrollDeltaForRect/u);
   assert.match(app,/installMobileViewportController/u);
   assert.match(app,/Speichert in IndexedDB/u);
@@ -302,6 +309,21 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/rhyme-chain/u);
   assert.match(app,/analysis-stress-strip/u);
   assert.match(app,/function restoreStudioRevision\(/u);
+  assert.match(app,/function openRevisionComparison\(/u);
+  assert.match(app,/compareEditorRevisions/u);
+  assert.match(app,/data-compare-version/u);
+  assert.doesNotMatch(app,/data-restore-version/u);
+  assert.match(app,/SECTION_QUICK_HOLD_MS=1500/u);
+  for(const tag of ['Intro','Verse','Pre-Chorus','Chorus','Post-Chorus','Hook','Bridge','Outro']){
+    assert.match(app,new RegExp('\\['+tag+'\\]','u'));
+  }
+  assert.doesNotMatch(html,/id=["']addBar["']/u);
+  assert.doesNotMatch(html,/id=["']moreBtn["']/u);
+  assert.match(css,/\.bar-transport-ghost/u);
+  assert.match(css,/\.bar-drop-preview/u);
+  assert.match(css,/\.section-quick-menu/u);
+  assert.match(css,/dialog\[data-surface="revision-compare"\]/u);
+  assert.match(css,/\.bar-navigator-list\{[\s\S]*?max-height:none;[\s\S]*?overflow:visible/u);
   assert.match(app,/snapshot=editorSnapshot\(s\)/u);
   assert.match(app,/restoreEditorSnapshot\(current,entry\.snapshot\)/u);
   assert.match(app,/initializeDocumentStore/u);
@@ -439,8 +461,9 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/const studioUiDir = resolve\('src\/studio'\)/u);
   assert.match(server,/const studioHtml=readFileSync\(resolve\(studioUiDir,'index\.html'\)\)/u);
   assert.match(server,/internalDbSwitcherEnabled/u);
-  assert.match(server,/servingV1DbPath=internalDbPaths\.standard/u);
-  assert.match(server,/openDistributionRuntime\('standard',servingV1DbPath\)/u);
+  assert.match(server,/let servingV1DbPath=internalDbPaths\.standard/u);
+  assert.match(server,/servingV1DbId=\['standard','full','lite'\]\.find/u);
+  assert.match(server,/Cannot open any shipping distribution database/u);
   assert.doesNotMatch(server,/DEFAULT_SERVING_V1_PRODUCT_DB_PATH/u);
   assert.doesNotMatch(server,/internalDbEntries\.set\('master'/u);
   assert.match(server,/distribution_edition_mismatch/u);
