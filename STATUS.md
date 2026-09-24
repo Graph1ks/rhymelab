@@ -1,32 +1,26 @@
 # Public-facing status
 
-Last updated: 2026-09-22
+Last updated: 2026-09-24
 
-## Immediate continuation — Distribution DB Lab v2 benchmark evidence
+## Current continuation — Studio workflow UX v3
 
-Focused handover: `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md`.
+Focused handover: `docs/STUDIO_V2_HANDOVER.md`. Real-device matrix:
+`docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`.
 
-PR #197 is merged on `main` at
-`51853e523e55`; post-merge RhymeLab CI #924
-passed.
+The current Studio pass adds direct Bar hold-drag transport with live drop preview,
+review-first full-lyrics revision comparison, 1.5-second section-tag quick insert,
+Compact first-run density, reliable single-owner drawer wheel scrolling, continuous
+result loading, follow-selection as the default rhyme-search state, removal of the
+redundant explicit new-line action, and explicit active-database visibility.
 
-The next owner evidence for this track is the output of:
+Runtime database selection remains shipping-tier-only. Startup prefers STANDARD,
+then FULL, then LITE, and therefore supports installations containing only LITE.
+Settings enable only editions actually available locally; missing editions stay
+visible but disabled. Master/Developer remains build-only.
 
-```text
-Bench current
-Bench suite
-Copy all
-```
-
-from `npm run dev:distribution-lab`.
-
-The next engineering thread should analyze that evidence immediately for
-request-equivalence, determinism, p50/p95, response bytes, quality/coverage overlap
-and detailed hotpath stages, then optimize the measured bottleneck without
-rebuilding the already completed distributions or reopening accepted ranking gates.
-
-This benchmark continuation is active in parallel with the still-pending Studio V2
-real-device acceptance below.
+Automated source/test/Studio gates remain mandatory. Physical
+browser/touch/Web-Audio acceptance is still separate and must not be represented as
+complete until the seven real-device checks are performed.
 
 ## Current continuation — Studio V2 live acceptance
 
@@ -135,8 +129,9 @@ The application runtime is now restricted to the three shipping editions:
 LITE | STANDARD | FULL
 ```
 
-STANDARD is the default. Studio Settings exposes installed shipping editions and
-routes selection per request with `runtime_db=lite|standard|full`. The
+STANDARD is preferred at startup, followed by FULL and LITE when the higher tier
+is absent. Studio Settings exposes installed shipping editions and routes selection
+per request with `runtime_db=lite|standard|full`. Missing editions remain disabled. The
 Master/Developer database remains the read-only build/materialization source only
 and is rejected as an application edition. Controlled diagnostics remain available
 through `npm run dev:distribution-lab`; benchmark quality comparisons use FULL as
@@ -150,7 +145,10 @@ uses the compact `studio-writer-compact-v1` projection. Full contract:
 
 A report-grade steady-state benchmark is available as `npm run serving:v1:report:benchmark`. It measures the same persistent-worker unified-search path used by the Serving preview, discards worker startup plus warmup, then runs 20 fixed DE/EN/both cases over 7 deterministic measurement rounds by default (140 samples). It writes JSON and Markdown under `data/local/benchmark/`, records DB/runtime fingerprints and host metadata, and verifies that each query returns the same semantic result across repeats. A missed p50/p95/max target is report data rather than a process error; only an invalid/nondeterministic run fails the command.
 
-The normal `npm run dev` / `npm start` path targets `data/local/distribution/rhymelab-serving-v1-standard.sqlite` by default; LITE and FULL are request-scoped alternatives when installed. The 20-GB Master/Developer file is not opened as an app runtime. Expensive unified-search channels execute through five persistent `worker_threads` (DE Words, EN Words, DE Phrase/Mosaic, DE Entities, EN Entities), each with its own read-only connection. Worker creation/DB opening happens before measured requests; workers are reused across requests.
+The normal `npm run dev` / `npm start` path opens the first valid shipping DB in
+STANDARD → FULL → LITE preference order. Other installed editions are
+request-scoped alternatives. The 20-GB Master/Developer file is not opened as an
+app runtime. Expensive unified-search channels execute through five persistent `worker_threads` (DE Words, EN Words, DE Phrase/Mosaic, DE Entities, EN Entities), each with its own read-only connection. Worker creation/DB opening happens before measured requests; workers are reused across requests.
 
 The synchronous `searchUnifiedWriter()` implementation remains the semantic reference. CI fixture coverage requires the parallel Serving response to deep-equal the serial response for the same request. The Serving hotpath benchmark and Product Acceptance timing now measure the parallel path; the benchmark retains `--serial` as a diagnostic control.
 
@@ -173,7 +171,7 @@ Normal local UI/API startup uses Serving-v1:
 ```text
 package               v0.11.0
 product shell         Studio V2
-default DB            data/local/rhymelab-serving-v1.sqlite
+startup DB policy     STANDARD → FULL → LITE (first available shipping edition)
 schema family         rhymelab-serving-v1
 product adapter       rhymelab-serving-v1-product-adapter-v1
 runtime               serving-v1-single-db-product-candidate
