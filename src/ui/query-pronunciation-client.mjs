@@ -282,9 +282,20 @@ async function findSourceOnlySegmentation(normalized,language,lookupReference){
 async function findSourceBackedRightEdge(normalized,language,lookupReference){
   if(typeof lookupReference!=='function'||normalized.length<6)return null;
   const lookup=createReferenceLookup(lookupReference,language,96);
-  for(let start=2;start<=normalized.length-3;start+=1){
-    const reference=await lookup(normalized.slice(start));
-    if(reference)return{start,reference};
+  const starts=[];
+  for(let start=2;start<=normalized.length-3;start+=1)starts.push(start);
+
+  // Local DB probes are independent. Small batches avoid serial request latency
+  // without turning one OOV token into an unbounded fan-out.
+  for(let offset=0;offset<starts.length;offset+=8){
+    const batch=starts.slice(offset,offset+8);
+    const references=await Promise.all(
+      batch.map((start)=>lookup(normalized.slice(start))),
+    );
+    for(let index=0;index<batch.length;index+=1){
+      const reference=references[index];
+      if(reference)return{start:batch[index],reference};
+    }
   }
   return null;
 }
