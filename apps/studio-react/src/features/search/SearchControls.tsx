@@ -29,6 +29,22 @@ import styles from './Search.module.css';
 
 type Option = { value: string; label: string; disabled?: boolean };
 
+const FILTER_DISMISS_DELAY_MS = 420;
+
+function scheduleFilterDismiss(
+  close: () => void,
+  onDismiss?: () => void,
+) {
+  window.setTimeout(() => {
+    const hovering = document.querySelector(
+      '[data-rhymelab-filter-deck="true"]:hover, [data-search-filter-popup="true"]:hover',
+    );
+    if (hovering) return;
+    close();
+    onDismiss?.();
+  }, FILTER_DISMISS_DELAY_MS);
+}
+
 function useTransientPopup(
   open: boolean,
   setOpen: (open: boolean) => void,
@@ -107,8 +123,7 @@ function FilterSelect({
               data-search-filter-popup="true"
               onPointerLeave={(event) => {
                 if (event.pointerType === 'mouse') {
-                  setOpen(false);
-                  onDismiss?.();
+                  scheduleFilterDismiss(() => setOpen(false), onDismiss);
                 }
               }}
             >
@@ -192,8 +207,7 @@ function LanguageRoutePicker({ onDismiss }: { onDismiss?: () => void }) {
             data-search-filter-popup="true"
             onPointerLeave={(event) => {
               if (event.pointerType === 'mouse') {
-                setOpen(false);
-                onDismiss?.();
+                scheduleFilterDismiss(() => setOpen(false), onDismiss);
               }
             }}
           >
@@ -317,9 +331,7 @@ export function SearchControls({
       data-compact={compact ? 'true' : 'false'}
       onPointerLeave={(event) => {
         if (event.pointerType !== 'mouse') return;
-        window.setTimeout(() => {
-          if (!document.querySelector('[data-search-filter-popup]:hover')) onRequestClose?.();
-        }, 80);
+        scheduleFilterDismiss(() => onRequestClose?.());
       }}
       data-rhymelab-filter-deck="true"
       data-rhymelab-control="search.languages"
@@ -420,9 +432,8 @@ export function SearchControls({
                 data-search-filter-popup="true"
                 onPointerLeave={(event) => {
                   if (event.pointerType === 'mouse') {
-                  setEntitiesOpen(false);
-                  onRequestClose?.();
-                }
+                    scheduleFilterDismiss(() => setEntitiesOpen(false), onRequestClose);
+                  }
                 }}
               >
                 <Popover.Title className={styles.entityPopupTitle}>
