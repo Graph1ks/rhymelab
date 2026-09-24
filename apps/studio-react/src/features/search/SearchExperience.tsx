@@ -175,6 +175,7 @@ function ResultToolbar({
   filtersOpen,
   setFiltersOpen,
   onOpenSaved,
+  onOpenHelp,
   savedCount,
   resultCount,
   hiddenUsed,
@@ -188,6 +189,7 @@ function ResultToolbar({
   filtersOpen: boolean;
   setFiltersOpen: (value: boolean) => void;
   onOpenSaved: () => void;
+  onOpenHelp: () => void;
   savedCount: number;
   resultCount: number;
   hiddenUsed: number;
@@ -230,6 +232,14 @@ function ResultToolbar({
           onClick={() => setFiltersOpen(!filtersOpen)}
         >
           ⚙ {language === 'de' ? 'Filter' : 'Filters'}
+        </button>
+        <button
+          type="button"
+          className={styles.toggleButton}
+          onClick={onOpenHelp}
+          title={language === 'de' ? 'Suchbegriffe und Filter erklären' : 'Explain search terms and filters'}
+        >
+          ? {language === 'de' ? 'Hilfe' : 'Help'}
         </button>
         <button
           type="button"
@@ -292,6 +302,7 @@ export function SearchExperience({
   const trackedText = useActiveTrackedText();
   const [draftQuery, setDraftQuery] = useState(state.anchor);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const savedOpen = useUiStore((state) => state.savedOpen);
   const setSavedOpen = useUiStore((state) => state.setSavedOpen);
   const [visibleCount, setVisibleCount] = useState(
@@ -584,6 +595,7 @@ export function SearchExperience({
         filtersOpen={filtersOpen}
         setFiltersOpen={setFiltersOpen}
         onOpenSaved={() => setSavedOpen(true)}
+        onOpenHelp={() => setHelpOpen(true)}
         savedCount={preferences.saved.length}
         resultCount={processed.rows.length}
         hiddenUsed={processed.hiddenUsed}
@@ -664,6 +676,84 @@ export function SearchExperience({
           />
         ) : null}
       </div>
+
+      <Dialog.Root open={helpOpen} onOpenChange={setHelpOpen}>
+        <Dialog.Portal>
+          <Dialog.Backdrop className={styles.savedDialogBackdrop} />
+          <Dialog.Viewport className={styles.savedDialogViewport}>
+            <Dialog.Popup className={styles.searchHelpDialog}>
+              <div className={styles.savedDialogHead}>
+                <div>
+                  <p>SEARCH GUIDE</p>
+                  <h2>{language === 'de' ? 'Was sucht Rhyme Bureau hier eigentlich?' : 'What is Rhyme Bureau searching for?'}</h2>
+                </div>
+                <Dialog.Close aria-label={language === 'de' ? 'Schließen' : 'Close'}>×</Dialog.Close>
+              </div>
+
+              <div className={styles.searchHelpIntro}>
+                <p>
+                  {language === 'de'
+                    ? 'Die Reimsuche arbeitet phonetisch. Schreibweise ist nur die Oberfläche: entscheidend sind Aussprache, Reimdomäne, Sprache und der ausgewählte Ergebniskanal.'
+                    : 'Rhyme search is phonetic. Spelling is only the surface: pronunciation, rhyme domain, language and the selected result channel drive the search.'}
+                </p>
+              </div>
+
+              <div className={styles.searchHelpGrid}>
+                <section>
+                  <h3>{language === 'de' ? 'Reimtypen' : 'Rhyme types'}</h3>
+                  <dl>
+                    <div><dt>{language === 'de' ? 'Vollreim' : 'Perfect rhyme'}</dt><dd>{language === 'de' ? 'Gleicher Reimklang ab dem betonten Kern.' : 'Matching rhyme sound from the stressed nucleus.'}</dd></div>
+                    <div><dt>{language === 'de' ? 'Vollreim · 2+ Reimsilben' : 'Perfect · 2+ rhyme syllables'}</dt><dd>{language === 'de' ? 'Vollreim über mindestens zwei Silben der Reimdomäne.' : 'Perfect rhyme across at least two rhyme-domain syllables.'}</dd></div>
+                    <div><dt>{language === 'de' ? 'Slant-Reim' : 'Slant rhyme'}</dt><dd>{language === 'de' ? 'Phonetisch nah, aber nicht identisch; Vokale und Konsonanten dürfen kontrolliert abweichen.' : 'Phonetically close but not identical; vowels and consonants may differ within the scoring model.'}</dd></div>
+                    <div><dt>{language === 'de' ? 'Slant · 2+ Reimsilben' : 'Slant · 2+ rhyme syllables'}</dt><dd>{language === 'de' ? 'Mehrsilbige Variante des Slant-Reims.' : 'Multisyllabic slant-rhyme relation.'}</dd></div>
+                    <div><dt>{language === 'de' ? 'Reimfamilie' : 'Rhyme family'}</dt><dd>{language === 'de' ? 'Lockerere, aber noch strukturell verwandte Reimnähe.' : 'Looser but still structurally related rhyme similarity.'}</dd></div>
+                    <div><dt>{language === 'de' ? 'Assonanz' : 'Assonance'}</dt><dd>{language === 'de' ? 'Ähnlichkeit vor allem in den Vokalen der Reimdomäne.' : 'Similarity mainly in the vowel sequence of the rhyme domain.'}</dd></div>
+                    <div><dt>{language === 'de' ? 'Konsonanz' : 'Consonance'}</dt><dd>{language === 'de' ? 'Ähnlichkeit vor allem in den Konsonanten der Reimdomäne.' : 'Similarity mainly in the consonant sequence of the rhyme domain.'}</dd></div>
+                  </dl>
+                </section>
+
+                <section>
+                  <h3>{language === 'de' ? 'Was die Filter tun' : 'What the filters do'}</h3>
+                  <dl>
+                    <div><dt>{language === 'de' ? 'Wörter' : 'Words'}</dt><dd>{language === 'de' ? 'Nur lexikalische Worttreffer. Bei einer ganzen Zeile wird dafür der rechte lexikalische Rand als Reimanker verwendet.' : 'Lexical word results only. For a full line, the lexical right edge is used as the rhyme anchor.'}</dd></div>
+                    <div><dt>Phrase / Mosaic</dt><dd>{language === 'de' ? 'Mehrwort-Treffer gegen die komplette Phrase bzw. deren phonetische Struktur.' : 'Multiword matches against the full phrase and its phonetic structure.'}</dd></div>
+                    <div><dt>Entities</dt><dd>{language === 'de' ? 'Namen, Personen, Werke, Orte und andere benannte Einträge aus dem Entity-Korpus.' : 'Names, people, works, places and other named entries from the entity corpus.'}</dd></div>
+                    <div><dt>{language === 'de' ? 'Sprachroute' : 'Language route'}</dt><dd>{language === 'de' ? 'Links steht die Sprache der Eingabe, rechts die Sprache der gewünschten Ergebnisse – z. B. DE → DE oder DE → DE + EN.' : 'Left is the query language, right is the result language – e.g. DE → DE or DE → DE + EN.'}</dd></div>
+                    <div><dt>{language === 'de' ? 'Silben' : 'Syllables'}</dt><dd>{language === 'de' ? 'Begrenzt Kandidaten nach Silbenzahl bzw. Abstand zur Silbenzahl des Reimankers.' : 'Restricts candidates by syllable count or distance from the anchor syllable count.'}</dd></div>
+                    <div><dt>{language === 'de' ? 'Varianten' : 'Variants'}</dt><dd>{language === 'de' ? 'Bezieht zusätzliche Aussprachevarianten ein statt nur der bevorzugten Aussprache.' : 'Includes additional pronunciation variants instead of only the preferred pronunciation.'}</dd></div>
+                    <div><dt>{language === 'de' ? 'Historisch' : 'Historical'}</dt><dd>{language === 'de' ? 'Erlaubt historische Einträge, die im normalen aktuellen Korpus ausgeblendet bleiben.' : 'Allows historical entries normally excluded from the current corpus.'}</dd></div>
+                    <div><dt>Generated</dt><dd>{language === 'de' ? 'Bezieht – sofern die Runtime sie besitzt – zusätzlich generierte Aussprache-Daten ein. Sie ersetzen keine kanonischen Quellen.' : 'Includes generated pronunciation data when the runtime provides it. It does not replace canonical sources.'}</dd></div>
+                    <div><dt>Lite / Standard / Full</dt><dd>{language === 'de' ? 'Wählt die verfügbare lokale Runtime-Größe. Nicht installierte bzw. nicht freigegebene Editionen bleiben deaktiviert.' : 'Selects the available local runtime tier. Editions that are not installed or authorized remain disabled.'}</dd></div>
+                  </dl>
+                </section>
+
+                <section>
+                  <h3>{language === 'de' ? 'Reimanker & Resolver' : 'Rhyme anchor & resolver'}</h3>
+                  <p>
+                    {language === 'de'
+                      ? 'Bekannte Wörter werden zuerst normal aus den Datenbanken aufgelöst. Erst wenn für eine angeforderte Sprache keine Query-Aussprache vorhanden ist, versucht der Client-Resolver eine Aussprache zu bilden und startet denselben Writer-Pfad erneut.'
+                      : 'Known words are resolved from the databases first. Only when a requested language has no query pronunciation does the client resolver construct one and retry the same Writer path.'}
+                  </p>
+                  <p>
+                    {language === 'de'
+                      ? 'Bei langen aufgelösten Komposita kann der Wortkanal den source-backed rechten Bestandteil als lexikalischen Reimanker verwenden – etwa „Anker“ in „Altkassenverwaltungsanker“.'
+                      : 'For long resolved compounds, the word channel can use the source-backed rightmost component as the lexical rhyme anchor – e.g. “anchor” in a longer compound.'}
+                  </p>
+                </section>
+
+                <section>
+                  <h3>{language === 'de' ? 'Anfangsklang ist etwas anderes' : 'Initial sound is a different axis'}</h3>
+                  <p>
+                    {language === 'de'
+                      ? 'Resolve / Refrain / Recovery oder Alter / Altbau / Allgemein teilen vor allem den Wortanfang. Das ist eher Anlaut-/Anfangsklang bzw. Alliteration als ein normaler Endreim. Der aktuelle Reimtypen-Filter sucht rechts in der Reimdomäne und hat dafür noch keinen eigenen Modus.'
+                      : 'Resolve / Refrain / Recovery or similar examples mainly share the beginning of the word. That is closer to onset/initial-sound matching or alliteration than a normal end rhyme. The current rhyme-type filter works on the right-edge rhyme domain and does not yet expose a dedicated mode for this.'}
+                  </p>
+                </section>
+              </div>
+            </Dialog.Popup>
+          </Dialog.Viewport>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       <Dialog.Root open={savedOpen} onOpenChange={setSavedOpen}>
         <Dialog.Portal>
