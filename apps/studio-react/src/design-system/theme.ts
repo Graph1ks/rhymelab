@@ -1,5 +1,5 @@
 import { loadStudioPreferences, writeStudioPreferences } from '../legacy/documents';
-import type { JsonRecord, StudioPreferences } from '../legacy/contracts';
+import type { JsonRecord, StorageLike, StudioPreferences } from '../legacy/contracts';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -33,6 +33,32 @@ export interface ThemePreferences extends StudioPreferences {
     [key: string]: unknown;
   };
   customThemes?: ThemeDefinition[];
+}
+
+export const THEME_DEFAULT_MIGRATION_KEY = 'rhymelab-studio-theme-default-light-v1';
+
+export function initialThemeChoice(
+  preferences?: StudioPreferences,
+  storage: StorageLike | undefined = globalThis.localStorage,
+): string {
+  const source = preferences ?? loadStudioPreferences(storage);
+  const storedChoice = typeof source.theme === 'string' && source.theme
+    ? source.theme
+    : 'light';
+
+  try {
+    if (storage?.getItem?.(THEME_DEFAULT_MIGRATION_KEY) !== '1') {
+      storage?.setItem?.(THEME_DEFAULT_MIGRATION_KEY, '1');
+      if (storedChoice !== 'light') {
+        writeStudioPreferences({ ...source, theme: 'light' }, storage);
+      }
+      return 'light';
+    }
+  } catch {
+    return storedChoice;
+  }
+
+  return storedChoice;
 }
 
 export const BUILTIN_THEMES: Readonly<Record<ThemeMode, ThemeDefinition>> = Object.freeze({
