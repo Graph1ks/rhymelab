@@ -191,7 +191,7 @@ function LanguageRoutePicker({ onDismiss }: { onDismiss?: () => void }) {
     <Popover.Root open={open} onOpenChange={setOpen}>
       <div
         className={styles.filterField}
-        data-active={state.queryBasis !== 'de' || state.resultLanguage !== 'both' ? 'true' : 'false'}
+        data-active={state.queryBasis !== state.resultLanguage ? 'true' : 'false'}
       >
         <span className={styles.filterLabel}>{language === 'de' ? 'SPRACHEN' : 'LANGUAGES'}</span>
         <Popover.Trigger className={styles.filterTrigger}>
