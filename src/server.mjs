@@ -71,7 +71,6 @@ import {
 } from './generated-runtime-request-policy.mjs';
 import {createTokenBucketRateLimiter} from './request-rate-limit.mjs';
 import {
-  allowedRemoteHostsFromEnv,
   assertSafeServerBinding,
   createRequestId,
   isAllowedLocalMutationRequest,
@@ -86,7 +85,7 @@ import {
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
 const serverBinding=assertSafeServerBinding({host,env:process.env});
-const allowedRemoteHosts=allowedRemoteHostsFromEnv(process.env);
+const allowedRemoteHosts=serverBinding.allowedHosts||[];
 if(serverBinding.remote){
   console.warn('SECURITY: non-loopback binding explicitly enabled via RHYMELAB_ALLOW_REMOTE=1.');
 }
@@ -773,6 +772,7 @@ const server = createServer(async (req, res) => {
     if(!isAllowedRequestHost(req,{
       remote:serverBinding.remote,
       allowedRemoteHosts,
+      port,
     })){
       return json(res,{error:'Request host is not allowed.',code:'host_not_allowed'},421,false);
     }
