@@ -33,15 +33,19 @@ export function reactStudioPreviewMode({
   argv=process.argv.slice(2),
   env=process.env,
 }={}){
-  const preview=argv.includes('--react-studio-preview')
-    ||argv.includes('--react-studio-preview-default')
-    ||String(env.RHYMELAB_REACT_STUDIO_PREVIEW||'').trim()==='1'
+  const legacyDefault=argv.includes('--legacy-studio-default')
+    ||String(env.RHYMELAB_LEGACY_STUDIO_DEFAULT||'').trim()==='1';
+  const previewOnly=argv.includes('--react-studio-preview')
+    ||String(env.RHYMELAB_REACT_STUDIO_PREVIEW||'').trim()==='1';
+  const explicitReactDefault=argv.includes('--react-studio-preview-default')
     ||String(env.RHYMELAB_REACT_STUDIO_PREVIEW_DEFAULT||'').trim()==='1';
-  const defaultRoute=argv.includes('--react-studio-preview-default')
-    ||String(env.RHYMELAB_REACT_STUDIO_PREVIEW_DEFAULT||'').trim()==='1';
+
+  // R8 cutover: the React Studio is the normal product surface. The historical
+  // preview-only switch is retained as a reversible compatibility/diagnostic
+  // mode, and the legacy Studio can still be selected explicitly for rollback.
   return {
-    enabled:preview||defaultRoute,
-    defaultRoute,
+    enabled:true,
+    defaultRoute:explicitReactDefault||(!legacyDefault&&!previewOnly),
   };
 }
 
@@ -52,12 +56,12 @@ export function loadReactStudioPreviewAssets(distDir,{
 }={}){
   if(!exists(distDir)){
     throw new Error(
-      'React Studio preview build missing at '+distDir+'. Run: npm run studio:react:build'
+      'React Studio build missing at '+distDir+'. Run: npm run studio:react:build'
     );
   }
   const indexPath=join(distDir,'index.html');
   if(!exists(indexPath)){
-    throw new Error('React Studio preview index missing at '+indexPath);
+    throw new Error('React Studio index missing at '+indexPath);
   }
 
   const files=[];
