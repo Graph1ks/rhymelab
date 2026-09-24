@@ -108,6 +108,77 @@ function presetLabel(preset: SearchPreset, language: 'de' | 'en'): string {
   } as Record<string, string>)[preset] ?? String(preset);
 }
 
+function LanguageRoutePicker() {
+  const language = useUiStore((state) => state.uiLanguage);
+  const { state, patch } = useSharedSearchState();
+  const [open, setOpen] = useState(false);
+  const current = languageRouteValue(state.queryBasis, state.resultLanguage);
+  const queryRows = [
+    { value: 'de', label: 'DE' },
+    { value: 'en', label: 'EN' },
+    { value: 'both', label: 'DE + EN' },
+  ] as const;
+  const resultCols = [
+    { value: 'de', label: 'DE' },
+    { value: 'en', label: 'EN' },
+    { value: 'both', label: 'DE + EN' },
+  ] as const;
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <div
+        className={styles.filterField}
+        data-active={state.queryBasis !== 'de' || state.resultLanguage !== 'both' ? 'true' : 'false'}
+      >
+        <span className={styles.filterLabel}>{language === 'de' ? 'SPRACHEN' : 'LANGUAGES'}</span>
+        <Popover.Trigger className={styles.filterTrigger}>
+          <span>{current.replace(':', ' → ').replace('both', 'DE + EN').replace(/^de/u, 'DE').replace(/^en/u, 'EN')}</span>
+          <Icon name="chevron" />
+        </Popover.Trigger>
+      </div>
+      <Popover.Portal>
+        <Popover.Positioner sideOffset={6} align="start">
+          <Popover.Popup className={styles.languageRoutePopup}>
+            <Popover.Title className={styles.languageRouteTitle}>
+              {language === 'de' ? 'Sprache klar wählen' : 'Choose language route'}
+            </Popover.Title>
+            <p>
+              {language === 'de'
+                ? 'Zeile = Aussprachebasis · Spalte = Ergebnis-Sprache'
+                : 'Row = query pronunciation · column = result language'}
+            </p>
+            <div className={styles.languageRouteMatrix}>
+              <span />
+              {resultCols.map((result) => <b key={result.value}>{result.label}</b>)}
+              {queryRows.flatMap((query) => [
+                <strong key={query.value + '-label'}>{query.label}</strong>,
+                ...resultCols.map((result) => {
+                  const value = `${query.value}:${result.value}`;
+                  const active = current === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      data-active={active ? 'true' : 'false'}
+                      aria-pressed={active}
+                      onClick={() => {
+                        patch(parseLanguageRoute(value));
+                        setOpen(false);
+                      }}
+                    >
+                      {query.label} → {result.label}
+                    </button>
+                  );
+                }),
+              ])}
+            </div>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
 export function SearchControls({
   entityCategories,
   generatedAvailable,
@@ -120,18 +191,6 @@ export function SearchControls({
   const language = useUiStore((state) => state.uiLanguage);
   const { state, patch, resetFilters } = useSharedSearchState();
   const [entitiesOpen, setEntitiesOpen] = useState(false);
-
-  const languageOptions: Option[] = [
-    { value: 'de:both', label: 'DE → DE + EN' },
-    { value: 'de:de', label: 'DE → DE' },
-    { value: 'de:en', label: 'DE → EN' },
-    { value: 'en:both', label: 'EN → DE + EN' },
-    { value: 'en:en', label: 'EN → EN' },
-    { value: 'en:de', label: 'EN → DE' },
-    { value: 'both:both', label: 'DE + EN → DE + EN' },
-    { value: 'both:de', label: 'DE + EN → DE' },
-    { value: 'both:en', label: 'DE + EN → EN' },
-  ];
 
   const scopeOptions: Option[] = [
     { value: 'all', label: language === 'de' ? 'Alles' : 'All' },
@@ -212,13 +271,7 @@ export function SearchControls({
       </div>
 
       <div className={styles.filterGrid} data-rhymelab-control="search.scope">
-        <FilterSelect
-          label={language === 'de' ? 'SPRACHEN' : 'LANGUAGES'}
-          value={languageRouteValue(state.queryBasis, state.resultLanguage)}
-          options={languageOptions}
-          active={state.queryBasis !== 'de' || state.resultLanguage !== 'both'}
-          onChange={(value) => patch(parseLanguageRoute(value))}
-        />
+        <LanguageRoutePicker />
         <FilterSelect
           label={language === 'de' ? 'BEREICH' : 'SCOPE'}
           value={state.scope}
