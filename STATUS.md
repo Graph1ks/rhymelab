@@ -2,6 +2,37 @@
 
 Last updated: 2026-09-24
 
+
+## P0 continuation — React Studio behavior-preserving replatform
+
+New product feature development is **frozen**. The active priority is the frontend
+replatform defined in `docs/REACT_STUDIO_REPLATFORM.md`.
+
+Migration baseline:
+
+```text
+main commit             fbda43a9e4dd915f3bd5c1fa53045cbe2055e919
+migration branch        refactor/react-studio-replatform
+new frontend root       apps/studio-react/
+legacy parity IDs       82
+workflow-v3 additions   11
+mandatory cutover rows  93
+cutover rule            every row VERIFIED
+```
+
+The existing Studio V2 remains the shipping behavioral golden master and rollback
+surface. The React work must preserve every existing Search, editor, Library,
+Analysis, Perform, appearance, mobile, persistence, recovery, diagnostics and
+runtime-database behavior. No functional simplification is authorized.
+
+R0 has started: isolated React/TypeScript/Vite package, Base UI/Motion/TanStack
+Query/Zustand/TanStack Virtual dependencies, strict TypeScript, migration shell,
+machine-readable parity inventory, parity checker and dedicated CI are being
+established without replacing the root route.
+
+The existing seven physical browser/touch/Web Audio Studio acceptance gates remain
+required cutover evidence rather than being discarded by the framework migration.
+
 ## Current continuation — Studio workflow UX v3
 
 Focused handover: `docs/STUDIO_V2_HANDOVER.md`. Real-device matrix:
