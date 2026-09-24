@@ -678,3 +678,35 @@
     flex: 1 1 100%;
   }
 }
+
+/* Booth focus keeps rehearsal context + transport and removes editing telemetry. */
+.workspace[data-focus="true"] {
+  gap: clamp(18px, 3vh, 34px);
+  justify-content: center;
+  padding-block: clamp(18px, 4vh, 54px);
+}
+
+.workspace[data-focus="true"] .metrics,
+.workspace[data-focus="true"] .review,
+.workspace[data-focus="true"] .sequencer {
+  display: none;
+}
+
+.workspace[data-focus="true"] .header > div:first-child {
+  display: none;
+}
+
+.workspace[data-focus="true"] .header {
+  justify-content: flex-end;
+}
+
+.workspace[data-focus="true"] .booth {
+  min-height: min(58vh, 620px);
+  align-content: center;
+}
+
+.workspace[data-focus="true"] .boothContext article b {
+  font-size: clamp(2rem, 5vw, 5rem);
+  line-height: 1.04;
+}
+
