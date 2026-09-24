@@ -217,7 +217,8 @@ export function SearchExperience({
   const trackedText = useActiveTrackedText();
   const [draftQuery, setDraftQuery] = useState(state.anchor);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [savedOpen, setSavedOpen] = useState(false);
+  const savedOpen = useUiStore((state) => state.savedOpen);
+  const setSavedOpen = useUiStore((state) => state.setSavedOpen);
   const [visibleCount, setVisibleCount] = useState(
     preferences.density === 'compact' ? 24 : 12,
   );
