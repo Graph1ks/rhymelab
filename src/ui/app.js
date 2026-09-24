@@ -714,12 +714,9 @@ function renderEntityPanel(result,displayType=null){
   $('#wordPanel').innerHTML=`<div class="word-heading"><div><h2>${esc(result.surface||result.word)}</h2><div class="ipa">/${esc(result.ipa||'')}/</div></div><div class="layer-badges">${surfaceEntityCategoryLabels(result).map((label)=>`<span class="layer-badge modern">${esc(label)}</span>`).join('')}<span class="layer-badge">${String(result.language||'').toUpperCase()}</span></div></div><div class="meta-grid"><div class="meta-item"><span class="meta-label">${t('syllableCount')}</span><span class="meta-value">${esc(result.syllableCount??'—')}</span></div><div class="meta-item"><span class="meta-label">${t('category')}</span><span class="meta-value">${esc(displayCategory)}</span></div><div class="meta-item"><span class="meta-label">${t('popularity')}</span><span class="meta-value">${popularity==null?'—':`${popularity}% · ${esc(result.popularityTier||'—')}`}</span></div><div class="meta-item"><span class="meta-label">QID</span><span class="meta-value">${esc(qids.length?qids.join(', '):'—')}</span></div><div class="meta-item meta-wide"><span class="meta-label">${t('categories')}</span><span class="meta-value">${esc(categories.length?categories.map(entityCategoryLabel).join(', '):displayCategory)}</span></div></div>${rhymeAnalysisHtml(result,displayType)}`;
 }
 function resultRow(row,displayType){const isPhrase=row.resultKind==='phrase',isEntity=row.resultKind==='entity',entityCategory=isEntity?entityDisplayLabel(row):null,usage=isEntity?(row.popularityTier||'—'):isPhrase?(row.usageCount?number(row.usageCount):'—'):(row.usageRank?`#${number(row.usageRank)}`:'—'),usageSub=isEntity?entityCategory:isPhrase?'Leipzig':(row.usageCount!=null?number(row.usageCount):t('unranked')),score=displayScore(row,displayType),key=`${row.resultKind||'word'}:${row.resultId||row.windowId||row.normalized||row.word}`,kindChips=resultKindChips(row).map((chip)=>`<span class="kind-chip ${esc(chip.className)}">${esc(chip.label)}</span>`).join('');return`<div class="result-row ${isPhrase?'phrase-row':isEntity?'entity-row':''}" data-result-key="${esc(key)}" data-display-type="${esc(displayType)}" tabindex="0" aria-label="${esc(`${t('inspectWord')} ${row.word}`)}"><div class="result-word"><div class="result-title-line"><strong>${esc(row.word)}</strong>${kindChips}${row.generatedPronunciation?`<span class="kind-chip generated">${esc(t('generatedShort'))}</span>`:''}</div><div class="sub"><code>${isPhrase&&row.ipaKind==='matched_mosaic_span'?'span: ':''}/${esc(row.ipa||'')}/</code>${row.historical?`<span class="historical-text">${t('historicalEntity')}</span>`:''}</div></div><div class="type-col"><span class="badge ${esc(displayType)}">${esc(typeLabel(displayType))}</span></div><div class="syllable-col metric">${esc(row.syllableCount??'—')}<span class="muted">${t('syllableShort')}</span></div><div class="usage-col metric">${esc(usage)}<span class="muted">${esc(usageSub)}</span></div><div class="score">${Math.round(score*100)}%</div></div>`;}
-function section(type,rows,totalCount,kind,{progressive=false}={}){
+function section(type,rows,totalCount,kind){
   const key=`${kind}:${type}`;
-  const visibleLimit=progressive?rows.length:(state.sectionVisible.get(key)||state.sectionPageSize);
-  const shown=rows.slice(0,visibleLimit);
-  const hasMore=!progressive&&shown.length<rows.length;
-  return `<section class="result-section ${esc(type)}" data-section-key="${esc(key)}"><div class="result-section-header"><span class="type-dot"></span><h2>${esc(typeLabel(type))}</h2><span class="count">${number(totalCount)}</span></div><div class="result-items">${shown.map((row)=>resultRow(row,type)).join('')}</div>${hasMore?`<div class="section-more"><button type="button" class="more-button" data-more-section="${esc(key)}" data-more-total="${rows.length}">${t('more')} <span>+${number(Math.min(state.sectionPageSize,rows.length-shown.length))}</span></button></div>`:''}</section>`;
+  return `<section class="result-section ${esc(type)}" data-section-key="${esc(key)}"><div class="result-section-header"><span class="type-dot"></span><h2>${esc(typeLabel(type))}</h2><span class="count">${number(totalCount)}</span></div><div class="result-items">${rows.map((row)=>resultRow(row,type)).join('')}</div></section>`;
 }
 function setupInfiniteScroll(hasMore){
   state.scrollObserver?.disconnect();
@@ -749,16 +746,15 @@ function render(){
   const rows=filteredResults();
   const orderedAll=interleaveByType(rows);
   const selectedType=$('#typeFilter').value;
-  const progressive=selectedType!=='all';
-  const visible=progressive?orderedAll.slice(0,state.visibleCount):orderedAll;
-  const renderTypes=progressive?[selectedType]:RHYME_TYPES;
+  const visible=orderedAll.slice(0,state.visibleCount);
+  const renderTypes=selectedType==='all'?RHYME_TYPES:[selectedType];
   const wordsAll=orderedAll.filter((row)=>row.resultKind==='word');
   const phrasesAll=orderedAll.filter((row)=>row.resultKind==='phrase');
   const entitiesAll=orderedAll.filter((row)=>row.resultKind==='entity');
   const words=visible.filter((row)=>row.resultKind==='word');
   const phrases=visible.filter((row)=>row.resultKind==='phrase');
   const entities=visible.filter((row)=>row.resultKind==='entity');
-  const hasMore=progressive&&visible.length<orderedAll.length;
+  const hasMore=visible.length<orderedAll.length;
 
   const pool=state.data.counts?.searchPool||{};
   const poolTotal=Number(pool.germanWords||0)+Number(pool.englishWords||0)+Number(pool.phrases||0)+Number(pool.germanEntities||0)+Number(pool.englishEntities||0);
@@ -770,12 +766,12 @@ function render(){
   const block=(kind,label,items,totalItems)=>{
     if(!items.length)return'';
     const sections=renderTypes.map((type)=>{
-      const belongs=(row)=>progressive
-        ?matchesType(row,type)
-        :defaultDisplayType(row)===type;
+      const belongs=(row)=>selectedType==='all'
+        ?defaultDisplayType(row)===type
+        :matchesType(row,type);
       const typed=items.filter(belongs);
       const typedTotal=totalItems.filter(belongs).length;
-      return typed.length?section(type,typed,typedTotal,kind,{progressive}):'';
+      return typed.length?section(type,typed,typedTotal,kind):'';
     }).join('');
     return sections?`<div class="channel-block ${kind}"><div class="channel-header"><strong>${label}</strong><span>${number(totalItems.length)}</span></div>${sections}</div>`:'';
   };
@@ -783,7 +779,7 @@ function render(){
   const html=block('word',t('words'),words,wordsAll)+block('phrase',t('phrases'),phrases,phrasesAll)+block('entity',t('entities'),entities,entitiesAll);
   $('#results').innerHTML=html||`<div class="status">${t('noResults')}</div>`;
   syncViewControls();
-  setupInfiniteScroll(progressive&&hasMore);
+  setupInfiniteScroll(hasMore);
   renderCapabilityNotice(state.data.warnings||[]);
   updateStickyLayout();
   refreshSearchCompactThreshold();
@@ -1112,7 +1108,6 @@ function installInteractiveControls(){
   $('#sourcesButton').addEventListener('click',()=>{$('#sourcesDialog').showModal();});
   $('#sourcesClose').addEventListener('click',()=>{$('#sourcesDialog').close();});
   $('#sourcesDialog').addEventListener('click',(event)=>{if(event.target===$('#sourcesDialog'))$('#sourcesDialog').close();});
-  $('#results').addEventListener('click',(event)=>{const button=event.target.closest('[data-more-section]');if(!button)return;const key=button.dataset.moreSection,current=state.sectionVisible.get(key)||state.sectionPageSize;state.sectionVisible.set(key,current+state.sectionPageSize);render();});
   $('#results').addEventListener('pointerover',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;inspectResult(resultByKey(row.dataset.resultKey),row.dataset.displayType);});
   $('#results').addEventListener('pointerout',(event)=>{const row=event.target.closest('.result-row');if(!row||row.contains(event.relatedTarget))return;restoreQueryPanel();});
   $('#results').addEventListener('focusin',(event)=>{const row=event.target.closest('.result-row');if(row)inspectResult(resultByKey(row.dataset.resultKey),row.dataset.displayType);});
