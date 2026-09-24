@@ -2006,18 +2006,31 @@
   padding-inline: 18px;
 }
 
-/* Desktop Search reading lane: keep the page itself full-width, but keep the
-   query and result workflow on one centered visual axis. The hard cap matters
-   more than percentage sizing on ultrawide and 4K displays. */
+/* Desktop full Search stays a full-width page. Only the working lane is
+   centered so title/runtime, language route, filters, query and results share
+   one visual axis without forcing the eye across an ultrawide display. */
 @media (min-width: 1100px) {
   .searchExperience[data-variant="page"] {
     --search-reading-width: min(82%, 1440px);
   }
 
+  .searchExperience[data-variant="page"] .searchHeader,
   .searchExperience[data-variant="page"] .searchForm,
+  .searchExperience[data-variant="page"] .controls,
+  .searchExperience[data-variant="page"] .capabilityBar,
   .searchExperience[data-variant="page"] .resultToolbar,
   .searchExperience[data-variant="page"] .searchBody {
     width: var(--search-reading-width);
+    box-sizing: border-box;
+    margin-inline: auto;
+  }
+
+  .searchExperience[data-variant="page"] .languageRouteStatus {
+    margin-left: max(24px, calc((100% - var(--search-reading-width)) / 2));
+    margin-right: 0;
+  }
+
+  .searchExperience[data-variant="page"] .controls {
     margin-inline: auto;
   }
 }
@@ -2657,4 +2670,133 @@
 
 @media (max-width: 800px) {
   .searchExperience { border-radius: 0; }
+}
+
+
+/* Studio Sound Explorer popout: the same search/editor state in a resizable
+   second window, with compact rows grouped into 1–4 columns by live width. */
+.searchExperience[data-variant="popout"] {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: var(--rl-panel);
+}
+
+.searchExperience[data-variant="popout"] .searchHeader {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 18px 8px;
+}
+
+.searchExperience[data-variant="popout"] .searchTitle > p {
+  margin-bottom: 2px;
+}
+
+.searchExperience[data-variant="popout"] .searchTitle h1 {
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 650;
+}
+
+.searchExperience[data-variant="popout"] .searchTitle > span {
+  display: none;
+}
+
+.searchExperience[data-variant="popout"] .languageRouteStatus {
+  margin: 0 18px 8px;
+}
+
+.searchExperience[data-variant="popout"] .searchForm {
+  grid-template-columns: minmax(180px, .72fr) minmax(320px, 1.28fr);
+  gap: 12px;
+  padding: 0 18px 10px;
+}
+
+.searchExperience[data-variant="popout"] .anchorMeta {
+  min-width: 0;
+}
+
+.searchExperience[data-variant="popout"] .anchorMeta b {
+  max-width: none;
+  font-size: 18px;
+}
+
+.searchExperience[data-variant="popout"] .anchorMode {
+  margin-top: 4px;
+}
+
+.searchExperience[data-variant="popout"] .controls {
+  margin: 0 18px 8px;
+}
+
+.searchExperience[data-variant="popout"] .filterGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.searchExperience[data-variant="popout"] .resultToolbar {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 6px 12px;
+}
+
+.searchExperience[data-variant="popout"] .resultCount small {
+  display: none;
+}
+
+.searchExperience[data-variant="popout"] .resultTools {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.searchExperience[data-variant="popout"] .searchBody {
+  min-height: 0;
+}
+
+.searchExperience[data-variant="popout"] .detailPanel {
+  min-width: 300px;
+  border-left: 1px solid var(--rl-rule);
+  border-top: 0;
+}
+
+.resultsScroller[data-layout="adaptive-grid"] {
+  padding: 6px 8px 12px;
+}
+
+.virtualGridRow {
+  position: absolute;
+  inset: 0 0 auto 0;
+  display: grid;
+  grid-template-columns: repeat(var(--result-columns), minmax(0, 1fr));
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.resultsScroller[data-layout="adaptive-grid"] .resultRow {
+  min-height: 58px;
+  border-color: var(--rl-rule);
+  background: var(--rl-paper);
+}
+
+.resultsScroller[data-layout="adaptive-grid"] .resultMain {
+  padding: 6px 8px;
+}
+
+.resultsScroller[data-layout="adaptive-grid"] .resultTitleLine b {
+  font-size: 15px;
+}
+
+.resultsScroller[data-layout="adaptive-grid"] .resultMeta {
+  gap: 5px;
+}
+
+@media (max-width: 900px) {
+  .searchExperience[data-variant="popout"] .searchForm {
+    grid-template-columns: 1fr;
+  }
+
+  .searchExperience[data-variant="popout"] .filterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
