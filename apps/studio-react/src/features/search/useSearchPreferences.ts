@@ -34,8 +34,7 @@ function writePreferencePatch(patch: Record<string, unknown>) {
 }
 
 function supportedDensity(value: unknown): ResultDensity {
-  const normalized = normalizeDensity(value);
-  return normalized === 'tiles' ? 'compact' : normalized;
+  return normalizeDensity(value) === 'list' ? 'list' : 'compact';
 }
 
 export function useSearchPreferences() {
