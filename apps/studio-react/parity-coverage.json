@@ -276,10 +276,11 @@
       "id": "search.keyboard",
       "group": "Search / Writer",
       "capability": "Keyboard result navigation and actions",
-      "status": "in_progress",
+      "status": "ported",
       "evidence": [
         "apps/studio-react/src/features/search/ResultsList.tsx",
-        "apps/studio-react/r3-search-manifest.json"
+        "apps/studio-react/src/features/system/model.ts",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
       ]
     },
     {
@@ -419,7 +420,7 @@
       "id": "editor.theme",
       "group": "Writing / Editor",
       "capability": "Light / dark / custom semantic themes",
-      "status": "in_progress",
+      "status": "ported",
       "evidence": [
         "apps/studio-react/src/design-system/theme.ts",
         "apps/studio-react/src/shell/ThemeControls.tsx",
@@ -825,30 +826,34 @@
       "id": "mobile.keyboard",
       "group": "Mobile",
       "capability": "VisualViewport keyboard correction",
-      "status": "in_progress",
+      "status": "ported",
       "evidence": [
         "apps/studio-react/src/shell/Shell.tsx",
-        "apps/studio-react/src/legacy/shell.ts"
+        "apps/studio-react/src/legacy/shell.ts",
+        "apps/studio-react/src/shell/r2-shell.test.ts",
+        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx"
       ]
     },
     {
       "id": "mobile.touch",
       "group": "Mobile",
       "capability": "Primary touch targets >=44 CSS px",
-      "status": "in_progress",
+      "status": "ported",
       "evidence": [
         "apps/studio-react/src/shell/Shell.module.css",
-        "apps/studio-react/src/shell/Shell.tsx"
+        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
       ]
     },
     {
       "id": "mobile.no-hover",
       "group": "Mobile",
       "capability": "No hover-only primary action",
-      "status": "in_progress",
+      "status": "ported",
       "evidence": [
         "apps/studio-react/src/shell/ThemeControls.tsx",
-        "apps/studio-react/src/shell/Shell.tsx"
+        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
       ]
     },
     {
@@ -889,36 +894,56 @@
       "id": "system.diagnostics",
       "group": "System / Recovery",
       "capability": "Environment + DOM acceptance diagnostics",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/system/model.ts",
+        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
+      ]
     },
     {
       "id": "system.startup-bindings",
       "group": "System / Recovery",
       "capability": "Startup control binding guard",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/Shell.tsx",
+        "apps/studio-react/src/features/system/model.ts",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
+      ]
     },
     {
       "id": "system.device-acceptance",
       "group": "System / Recovery",
       "capability": "Seven-gate multi-device acceptance merge",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
+        "apps/studio-react/src/features/system/model.ts",
+        "apps/studio-react/src/features/system/r7-system.test.ts"
+      ]
     },
     {
       "id": "system.cutover-gate",
       "group": "System / Recovery",
       "capability": "Deterministic source + device cutover gate",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "scripts/check-react-studio-r7.mjs",
+        "apps/studio-react/src/features/system/r7-system.test.ts",
+        "tests/react-studio-preview.test.mjs"
+      ]
     },
     {
       "id": "system.reversible-route",
       "group": "System / Recovery",
       "capability": "Reversible Studio-default route preview with legacy aliases",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "src/react-studio-preview.mjs",
+        "src/server.mjs",
+        "tests/react-studio-preview.test.mjs"
+      ]
     }
   ],
   "additional_current_capabilities": [
@@ -999,8 +1024,12 @@
       "id": "workflow-v3.single-drawer-scroll",
       "group": "Workflow UX v3",
       "capability": "Bottom drawer has one explicit scroll owner with reliable wheel/touch scrolling",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/Shell.tsx",
+        "apps/studio-react/src/shell/Shell.module.css",
+        "scripts/check-react-studio-r7.mjs"
+      ]
     },
     {
       "id": "workflow-v3.active-db-visible",
