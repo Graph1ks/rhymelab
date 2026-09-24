@@ -209,12 +209,10 @@ describe('R2 shell actions are real Zustand state transitions', () => {
 });
 
 describe('R2 navigation and command foundations preserve product vocabulary', () => {
-  it('keeps the four canonical product destinations plus settings outside the primary nav', () => {
+  it('keeps Studio and Search as primary destinations while Library and Saved live in their owning workflows', () => {
     expect(NAVIGATION_ITEMS.map((item) => item.id)).toEqual([
       'studio',
       'search',
-      'library',
-      'saved',
     ]);
     expect(navigationLabel(NAVIGATION_ITEMS[1]!, 'de')).toBe('Reimsuche');
     expect(navigationLabel(NAVIGATION_ITEMS[1]!, 'en')).toBe('Rhyme search');
