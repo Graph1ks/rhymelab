@@ -57,7 +57,7 @@ model remains external/manual cutover evidence rather than product chrome. Studi
 continues at `/studio` and `/studio-legacy`.
 
 The original R7 source-parity checkpoint remains historical evidence. Current owner
-UX functional checkpoint `b2d16a4ed27e` passes strict TypeScript, 91/91 React tests,
+UX functional checkpoint `9812a674669c` passes strict TypeScript, 91/91 React tests,
 4/4 reversible-preview tests, production Vite build and the 93/93 source-port gate.
 React Studio Replatform #278, Studio V2 Gate #596 and Full RhymeLab CI #1461 all
 pass.
@@ -79,7 +79,7 @@ Contracts:
 `docs/REACT_STUDIO_R7_PARITY.md`.
 
 Owner UX correction round 2 is implemented at functional checkpoint
-`b2d16a4ed27e`. It keeps the earlier typography/Studio/Search cleanup and additionally
+`9812a674669c`. It keeps the earlier typography/Studio/Search cleanup and additionally
 moves the app to one sticky Topbar, makes Sound Explorer compact-only, removes the
 Search tile view, adds transient filter behavior, previews Bar moves between rows,
 replaces browser-permission Local Font Access with 50 curated on-demand Google Fonts
