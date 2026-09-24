@@ -57,6 +57,7 @@ function Sidebar() {
   const surface = useUiStore((state) => state.surface);
   const language = useUiStore((state) => state.uiLanguage);
   const navigate = useUiStore((state) => state.navigate);
+  const openCommands = useUiStore((state) => state.setCommandPaletteOpen);
 
   return (
     <aside className={styles.sidebar} aria-label={language === 'de' ? 'Hauptnavigation' : 'Main navigation'}>
@@ -82,6 +83,16 @@ function Sidebar() {
             onSelect={navigate}
           />
         ))}
+        <button
+          type="button"
+          className={styles.navButton}
+          onClick={() => openCommands(true)}
+          aria-label={shellText('Befehle öffnen', language)}
+        >
+          <Icon name="command" />
+          <span className={styles.navLabel}>{language === 'de' ? 'Befehle' : 'Commands'}</span>
+          <kbd className={styles.navKey}>⌘K</kbd>
+        </button>
       </nav>
 
       <section className={styles.sidebarContext} aria-label={language === 'de' ? 'Workspace-Status' : 'Workspace status'}>
@@ -165,6 +176,7 @@ function MobileNavigation() {
   const language = useUiStore((state) => state.uiLanguage);
   const navigate = useUiStore((state) => state.navigate);
   const openSettings = useUiStore((state) => state.setSettingsDrawerOpen);
+  const openCommands = useUiStore((state) => state.setCommandPaletteOpen);
   const moreRef = useRef<HTMLButtonElement>(null);
   const wasDrawerOpenRef = useRef(false);
   const drawerOpen = useUiStore((state) => state.settingsDrawerOpen);
@@ -194,6 +206,14 @@ function MobileNavigation() {
             <span>{navigationLabel(item, language, true)}</span>
           </button>
         ))}
+        <button
+          type="button"
+          className={styles.mobileNavButton}
+          onClick={() => openCommands(true)}
+        >
+          <Icon name="command" />
+          <span>{language === 'de' ? 'Befehle' : 'Commands'}</span>
+        </button>
         <button
           ref={moreRef}
           type="button"
