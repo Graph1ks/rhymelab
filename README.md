@@ -137,11 +137,11 @@ Repository state is authoritative. In a fresh development thread read:
 5. `docs/STUDIO_V2_HANDOVER.md`
 6. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`
 7. `docs/HANDOVER.md`
-6. `STATUS.md`
-7. `PROJECT_STATE.json`
-8. `ROADMAP.md`
-9. `DATA_SOURCES.md`
-10. the acceptance/domain documents relevant to the subsystem being changed
+8. `STATUS.md`
+9. `PROJECT_STATE.json`
+10. `ROADMAP.md`
+11. `DATA_SOURCES.md`
+12. the acceptance/domain documents relevant to the subsystem being changed
 
 `PROJECT.md` holds durable project intent, repository mode, architecture boundaries, cost/licensing/contribution policy, and QA expectations. `STATUS.md` plus the handover documents hold current continuation state. `CHANGELOG.md` is the curated meaningful history from 2026-09-19 onward.
 
