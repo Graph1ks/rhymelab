@@ -209,7 +209,8 @@ export function createLibrarySong(
   const normalizedTitle = String(title || '').trim().slice(0, 100);
   if (!normalizedTitle) return { state: source, changed: false, reason: 'empty_title' };
 
-  const target = ensureLibraryFolder(state, folder || 'Entwürfe');
+  const requestedFolder = String(folder ?? '').trim();
+  const target = requestedFolder ? ensureLibraryFolder(state, requestedFolder) : '';
   const created: LegacyStudioSong = {
     id: `s${now}`,
     title: normalizedTitle,
@@ -262,11 +263,94 @@ export function moveLibrarySong(
   const state = cloneWorkspaceState(source);
   const item = state.songs.find((row) => row.id === id && !row.deleted && !row.deletedAt);
   if (!item) return { state: source, changed: false, reason: 'song_not_found' };
-  const target = ensureLibraryFolder(state, folder);
-  if (item.folder === target) return { state: source, changed: false, reason: 'unchanged' };
+  const requestedFolder = String(folder ?? '').trim();
+  const target = requestedFolder ? ensureLibraryFolder(state, requestedFolder) : '';
+  if ((item.folder || '') === target) return { state: source, changed: false, reason: 'unchanged' };
   item.folder = target;
   touchSong(item, now);
   return { state, changed: true };
+}
+
+export function duplicateLibrarySong(
+  source: LegacyStudioState,
+  id: string,
+  folder: string,
+  now = Date.now(),
+): LibraryMutationResult & { id?: string } {
+  const original = source.songs.find((row) => row.id === id && !row.deleted && !row.deletedAt);
+  if (!original) return { state: source, changed: false, reason: 'song_not_found' };
+
+  const state = cloneWorkspaceState(source);
+  const requestedFolder = String(folder ?? '').trim();
+  const target = requestedFolder ? ensureLibraryFolder(state, requestedFolder) : '';
+
+  let nextId = `s${now}-copy`;
+  let suffix = 2;
+  while (state.songs.some((row) => row.id === nextId)) {
+    nextId = `s${now}-copy-${suffix++}`;
+  }
+
+  const copy: LegacyStudioSong = {
+    ...structuredClone(original),
+    id: nextId,
+    title: String(original.title || 'Untitled'),
+    folder: target,
+    revisions: [],
+    barIds: undefined,
+    barRevisions: undefined,
+    editorNextBarId: 1,
+    createdAt: now,
+    updatedAt: now,
+    deleted: false,
+    deletedAt: null,
+  };
+  state.songs.push(copy);
+  return { state, changed: true, id: nextId };
+}
+
+export function moveLibraryFolder(
+  source: LegacyStudioState,
+  folderName: string,
+  targetParent: string,
+  now = Date.now(),
+): LibraryMutationResult & { folder?: string } {
+  const folder = normalizeFolderName(folderName);
+  if (!folder || folder === 'Entwürfe') {
+    return { state: source, changed: false, reason: 'protected_folder' };
+  }
+
+  const parent = normalizeFolderName(targetParent);
+  if (parent && folderContains(folder, parent)) {
+    return { state: source, changed: false, reason: 'folder_cycle' };
+  }
+
+  const leaf = folderLeaf(folder);
+  const next = parent ? `${parent}/${leaf}` : leaf;
+  if (next === folder) return { state: source, changed: false, reason: 'unchanged' };
+
+  const state = cloneWorkspaceState(source);
+  const subtree = state.folders.filter((item) => folderContains(folder, item));
+  const outside = new Set(
+    state.folders
+      .filter((item) => !folderContains(folder, item))
+      .map((item) => item.toLocaleLowerCase('de-DE')),
+  );
+  const mapped = subtree.map((item) => next + item.slice(folder.length));
+  if (mapped.some((item) => outside.has(item.toLocaleLowerCase('de-DE')))) {
+    return { state: source, changed: false, reason: 'folder_collision' };
+  }
+
+  state.folders = state.folders.map((item) =>
+    folderContains(folder, item) ? next + item.slice(folder.length) : item
+  );
+  state.songs.forEach((item) => {
+    if (folderContains(folder, item.folder)) {
+      item.folder = next + normalizeFolderName(item.folder).slice(folder.length);
+      touchSong(item, now);
+    }
+  });
+  canonicalizeFolderOrder(state);
+  return { state, changed: true, folder: next };
 }
 
 export function trashLibrarySong(
@@ -305,7 +389,7 @@ export function restoreLibrarySong(
   item.deleted = false;
   item.deletedAt = null;
   touchSong(item, now);
-  ensureLibraryFolder(state, item.folder);
+  if (String(item.folder || '').trim()) ensureLibraryFolder(state, item.folder);
   return { state, changed: true };
 }
 
