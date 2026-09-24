@@ -6,6 +6,7 @@ import {
   completeThemeColors,
   deleteCustomTheme,
   randomOklchTheme,
+  randomWildTheme,
   readThemePreferences,
   saveCustomTheme,
   setThemeSlot,
@@ -49,6 +50,13 @@ function freshTheme(mode: ThemeMode): ThemeDefinition {
   return randomOklchTheme(mode, {
     id: idForStyle(),
     name: mode === 'dark' ? 'New Dark Style' : 'New Light Style',
+  });
+}
+
+function freshWildTheme(): ThemeDefinition {
+  return randomWildTheme({
+    id: idForStyle(),
+    name: 'Wild Card',
   });
 }
 
@@ -118,12 +126,23 @@ export function StyleDesigner() {
     setDraft(replacement ? cloneTheme(replacement) : freshTheme('dark'));
   };
 
-  const randomize = () => {
+  const surprise = () => {
     setDeleteArmed(false);
-    setDraft(randomOklchTheme(draft.mode, {
-      id: draft.id,
-      name: draft.name,
-    }));
+    const roll = Math.floor(Math.random() * 3);
+    if (roll === 2) {
+      setDraft(randomWildTheme({ id: draft.id, name: draft.name }));
+      return;
+    }
+    const mode: ThemeMode = roll === 0 ? 'light' : 'dark';
+    setDraft(randomOklchTheme(mode, { id: draft.id, name: draft.name }));
+  };
+
+  const resetDefault = (mode: ThemeMode) => {
+    setDeleteArmed(false);
+    const next = setThemeSlot(mode, null);
+    refresh(next);
+    setThemeChoice(mode);
+    applyThemeToDocument(mode);
   };
 
   const modeDefault = preferences.themeSlots?.[draft.mode] === draft.id;
@@ -132,8 +151,8 @@ export function StyleDesigner() {
     <section className={styles.styleDesigner}>
       <header className={styles.styleDesignerHead}>
         <div>
-          <p className={styles.kicker}>STYLE DESIGNER · OKLCH</p>
-          <h2>{language === 'de' ? 'Baue dein RhymeLab.' : 'Build your RhymeLab.'}</h2>
+          <p className={styles.kicker}>STYLE DESIGNER</p>
+          <h2>{language === 'de' ? 'Baue dein Rhyme Bureau.' : 'Build your Rhyme Bureau.'}</h2>
           <span>
             {language === 'de'
               ? 'Mehrere Styles speichern, live testen und als Light/Dark-Default festlegen.'
@@ -141,11 +160,12 @@ export function StyleDesigner() {
           </span>
         </div>
         <div className={styles.styleDesignerActions}>
-          <button type="button" onClick={() => setDraft(freshTheme('light'))}>+ Light</button>
-          <button type="button" onClick={() => setDraft(freshTheme('dark'))}>+ Dark</button>
-          <button type="button" className={styles.randomStyleButton} onClick={randomize}>
+          <button type="button" onClick={() => setDraft(freshTheme('light'))}>+ LIGHT</button>
+          <button type="button" onClick={() => setDraft(freshTheme('dark'))}>+ DARK</button>
+          <button type="button" onClick={() => setDraft(freshWildTheme())}>+ WILD</button>
+          <button type="button" className={styles.randomStyleButton} onClick={surprise}>
             <Icon name="spark" />
-            {language === 'de' ? 'OKLCH würfeln' : 'Random OKLCH'}
+            Surprise Me
           </button>
         </div>
       </header>
@@ -157,31 +177,36 @@ export function StyleDesigner() {
             <b>{customThemes.length}</b>
           </div>
 
-          {(['light', 'dark'] as ThemeMode[]).map((mode) => {
-            const builtin = BUILTIN_THEMES[mode];
-            return (
-              <button
-                key={builtin.id}
-                type="button"
-                className={styles.styleLibraryItem}
-                onClick={() => setDraft(cloneTheme({
-                  ...builtin,
-                  id: idForStyle(),
-                  name: builtin.name + ' Custom',
-                }))}
-              >
-                <span className={styles.styleMiniSwatches}>
-                  <i style={{ background: builtin.colors.bg }} />
-                  <i style={{ background: builtin.colors.panel }} />
-                  <i style={{ background: builtin.colors.accent }} />
-                </span>
-                <span>
-                  <b>{builtin.name}</b>
-                  <small>{language === 'de' ? 'Basisvorlage' : 'Base template'}</small>
-                </span>
-              </button>
-            );
-          })}
+          <div className={styles.styleResetGroup}>
+            {(['light', 'dark'] as ThemeMode[]).map((mode) => {
+              const builtin = BUILTIN_THEMES[mode];
+              const overridden = Boolean(preferences.themeSlots?.[mode]);
+              return (
+                <button
+                  key={builtin.id}
+                  type="button"
+                  className={styles.styleResetButton}
+                  data-active={!overridden ? 'true' : 'false'}
+                  disabled={!overridden}
+                  onClick={() => resetDefault(mode)}
+                >
+                  <span className={styles.styleMiniSwatches}>
+                    <i style={{ background: builtin.colors.bg }} />
+                    <i style={{ background: builtin.colors.panel }} />
+                    <i style={{ background: builtin.colors.accent }} />
+                  </span>
+                  <span>
+                    <b>{mode === 'light'
+                      ? (language === 'de' ? 'Light zurücksetzen' : 'Reset Light')
+                      : (language === 'de' ? 'Dark zurücksetzen' : 'Reset Dark')}</b>
+                    <small>{overridden
+                      ? (language === 'de' ? 'Custom-Default entfernen' : 'Remove custom default')
+                      : (language === 'de' ? 'Standard aktiv' : 'Built-in active')}</small>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
           <div className={styles.styleLibraryDivider} />
 
@@ -223,18 +248,9 @@ export function StyleDesigner() {
                 onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
               />
             </label>
-            <div className={styles.styleModeSwitch} role="group" aria-label="Theme mode">
-              {(['light', 'dark'] as ThemeMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  data-active={draft.mode === mode ? 'true' : 'false'}
-                  onClick={() => setDraft(randomOklchTheme(mode, { id: draft.id, name: draft.name }))}
-                >
-                  {mode === 'light' ? 'Light' : 'Dark'}
-                </button>
-              ))}
-            </div>
+            <span className={styles.styleModeBadge}>
+              {draft.mode === 'light' ? 'LIGHT' : 'DARK'}
+            </span>
           </div>
 
           <div
@@ -252,7 +268,7 @@ export function StyleDesigner() {
             } as CSSProperties}
           >
             <div className={styles.stylePreviewTop}>
-              <b>r.</b>
+              <b>rb.</b>
               <span>Studio</span>
               <span>Reimsuche</span>
               <i />
