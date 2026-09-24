@@ -21,42 +21,35 @@ do not delete old Studio, and do not reinterpret the port as permission to simpl
 editor, Search, Library, Analysis, Perform, mobile, persistence, recovery or runtime
 database behavior.
 
-R0 through R6 are complete. R1 is documented in
-`docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`; R2 in
-`docs/REACT_STUDIO_R2_SHELL.md`; R3 in
-`docs/REACT_STUDIO_R3_SEARCH_WRITER.md`; R4 in
-`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`; R5 in
-`docs/REACT_STUDIO_R5_EDITOR.md`; and R6 in
-`docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md`.
+R0 through R7 source parity are complete. R1–R6 contracts remain authoritative for
+their domain slices; R7 is documented in `docs/REACT_STUDIO_R7_PARITY.md`.
 
 R4 remains the persistence authority boundary: the existing IndexedDB DocumentStore
 is authoritative, React keeps only a working copy, and editor/Perform mutations
-serialize through the existing R1 document migration/shadow path.
+serialize through the existing R1 document path.
 
-R5 owns the React unified editor and reuses the existing R1 editor semantics:
-stable Bar IDs, tracked/free-line geometry, bracket metadata exclusion, Selection
-Proof, native replace/split/merge/multiline paste, IME transactions, typing-burst
-undo/redo, revision boundaries, safe clear, Bar actions/Navigator, hold-drag,
-section long-press, selection-follow/fixed anchor and the mobile Editor/Rhymes swap.
+The R7 source layer now closes all 93 mandatory implementation rows. Search keyboard
+actions use a tested key-action contract; startup controls are guarded fail-closed;
+Settings exposes diagnostics and the existing seven-gate physical acceptance model;
+the mobile Settings drawer has one explicit scroll owner; and an opt-in React preview
+route can temporarily serve the Vite client while `/studio` and `/studio-legacy`
+retain the Studio V2 golden master.
 
-R6 owns the React Analysis + Perform surfaces while reusing the existing R1 domain
-semantics. Canonical end/all-rhyme analysis, IPA/stress and relation data come from
-the existing Writer analysis adapter. Performance cues, grid/feel/tempo, stable-Bar
-cue anchors, text-revision review invalidation, Auto-Map and Web Audio step timing
-come from the existing performance session. Perform mutations enter the same R5
-undo/revision path before R4 persistence.
+Tested R7 functional checkpoint `c9725ed3312b`: strict TypeScript, 82/82 React
+tests, 4/4 reversible-preview tests and production build pass; React Replatform #182,
+Full CI #1365 and Studio V2 Gate #500 pass. The parity inventory is now **93 ported /
+0 in_progress / 0 pending / 0 verified**.
 
-The tested functional R6 checkpoint is
-`48600af0221c`: 71/71 tests, strict TypeScript and
-Vite build pass; React Replatform #152, Full CI #1335 and Studio V2 Gate #470 pass.
-The parity inventory is 82 ported / 5 in_progress / 6 pending / 0 verified.
+The active continuation remains **R7 real-browser / physical-device acceptance**,
+not R8. Use the R7 Settings acceptance panel and
+`docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` to capture the required IME, Web Audio,
+mobile navigation/swap, VisualViewport keyboard, touch and no-hover evidence.
+Promote only rows whose required interaction evidence is actually present. Run
+`npm run studio:react:r7:cutover` only as the full release gate; it is expected to
+fail until 7/7 physical gates and 93/93 verified rows exist.
 
-The next implementation action is **R7: automated + real-device parity**. Convert
-rows to `verified` only with the evidence required by the parity gate. Preserve the
-seven physical browser/touch/IME/Web Audio gates, finish the remaining system and
-single-drawer-scroll rows, and do not begin root cutover until all 93 mandatory rows
-are verified.
-
+Do not switch the normal root route, delete Studio V2 or end the feature freeze
+before that full gate passes.
 
 ---
 
