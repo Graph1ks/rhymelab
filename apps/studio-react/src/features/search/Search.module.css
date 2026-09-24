@@ -1641,3 +1641,38 @@
     animation: none;
   }
 }
+
+
+/* R5 editor integration: selection-follow is the default; fixed anchor is explicit opt-in. */
+.anchorMode {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.anchorMode button {
+  min-height: 30px;
+  border: 1px solid var(--rl-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--rl-muted);
+  padding: 0 9px;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.anchorMode button[data-active="true"] {
+  border-color: color-mix(in srgb, var(--rl-accent) 55%, var(--rl-line));
+  background: color-mix(in srgb, var(--rl-accent) 10%, transparent);
+  color: var(--rl-accent);
+}
+
+@media (max-width: 1180px) {
+  .anchorMode {
+    width: 100%;
+    margin: 6px 0 0;
+  }
+}
