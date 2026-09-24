@@ -60,9 +60,11 @@ function routeLanguageLabel(value: string): string {
 function RuntimeSelector({
   runtime,
   compact = false,
+  portalContainer,
 }: {
   runtime: ReturnType<typeof useRuntimeEnvironment>;
   compact?: boolean;
+  portalContainer?: HTMLElement | null;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const editions: RuntimeEdition[] = ['lite', 'standard', 'full'];
@@ -94,7 +96,7 @@ function RuntimeSelector({
             <Select.Value />
             <Select.Icon><Icon name="chevron" /></Select.Icon>
           </Select.Trigger>
-          <Select.Portal>
+          <Select.Portal container={portalContainer}>
             <Select.Positioner
               className={styles.runtimeSelectPositioner}
               sideOffset={6}
@@ -283,9 +285,11 @@ function ResultToolbar({
 export function SearchExperience({
   variant = 'page',
   enabled = true,
+  portalContainer,
 }: {
   variant?: 'page' | 'assistant' | 'popout';
   enabled?: boolean;
+  portalContainer?: HTMLElement | null;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const reduceMotion = useReducedMotion();
@@ -317,24 +321,28 @@ export function SearchExperience({
 
   useEffect(() => {
     if (!filtersOpen) return;
+    const ownerDocument = portalContainer?.ownerDocument ?? document;
+    const ownerWindow = ownerDocument.defaultView ?? window;
+    const OwnerElement = ownerWindow.Element;
+
     const closeOnExternalScroll = (event: Event) => {
       const target = event.target;
-      if (target instanceof Element && target.closest(
+      if (OwnerElement && target instanceof OwnerElement && target.closest(
         '[data-rhymelab-filter-deck="true"], [data-search-filter-popup="true"]',
       )) {
         return;
       }
       setFiltersOpen(false);
     };
-    window.addEventListener('wheel', closeOnExternalScroll, { capture: true, passive: true });
-    window.addEventListener('touchmove', closeOnExternalScroll, { capture: true, passive: true });
-    document.addEventListener('scroll', closeOnExternalScroll, true);
+    ownerWindow.addEventListener('wheel', closeOnExternalScroll, { capture: true, passive: true });
+    ownerWindow.addEventListener('touchmove', closeOnExternalScroll, { capture: true, passive: true });
+    ownerDocument.addEventListener('scroll', closeOnExternalScroll, true);
     return () => {
-      window.removeEventListener('wheel', closeOnExternalScroll, true);
-      window.removeEventListener('touchmove', closeOnExternalScroll, true);
-      document.removeEventListener('scroll', closeOnExternalScroll, true);
+      ownerWindow.removeEventListener('wheel', closeOnExternalScroll, true);
+      ownerWindow.removeEventListener('touchmove', closeOnExternalScroll, true);
+      ownerDocument.removeEventListener('scroll', closeOnExternalScroll, true);
     };
-  }, [filtersOpen]);
+  }, [filtersOpen, portalContainer]);
 
   useEffect(() => {
     if (!enabled || !embedded || !editor?.followSelection) return;
@@ -489,7 +497,7 @@ export function SearchExperience({
               : 'Words · Phrases / Mosaic · names'}
           </span>
         </div>
-        <RuntimeSelector runtime={runtime} compact={embedded} />
+        <RuntimeSelector runtime={runtime} compact={embedded} portalContainer={portalContainer} />
       </header>
 
       <button
@@ -575,6 +583,7 @@ export function SearchExperience({
           entityCategories={entityCategories}
           generatedAvailable={runtime.capabilities?.generated === true}
           onRequestClose={() => setFiltersOpen(false)}
+          portalContainer={portalContainer}
         />
       ) : null}
 
@@ -682,7 +691,7 @@ export function SearchExperience({
       </div>
 
       <Dialog.Root open={helpOpen} onOpenChange={setHelpOpen}>
-        <Dialog.Portal>
+        <Dialog.Portal container={portalContainer}>
           <Dialog.Backdrop className={styles.savedDialogBackdrop} />
           <Dialog.Viewport className={styles.savedDialogViewport}>
             <Dialog.Popup className={styles.searchHelpDialog}>
@@ -760,7 +769,7 @@ export function SearchExperience({
       </Dialog.Root>
 
       <Dialog.Root open={savedOpen} onOpenChange={setSavedOpen}>
-        <Dialog.Portal>
+        <Dialog.Portal container={portalContainer}>
           <Dialog.Backdrop className={styles.savedDialogBackdrop} />
           <Dialog.Viewport className={styles.savedDialogViewport}>
             <Dialog.Popup className={styles.savedDialog}>
