@@ -6,6 +6,7 @@ import {
   normalizeUnifiedLanguageBasis,
   normalizeUnifiedResultLanguage,
   normalizeUnifiedResultScope,
+  rightEdgeQueryToken,
   unifiedWriterCapabilities,
 } from '../src/unified-writer-search.mjs';
 
@@ -23,6 +24,12 @@ test('unified Writer normalizes result language independently from query languag
   assert.equal(normalizeUnifiedResultLanguage('both', 'de'), 'both');
   assert.equal(normalizeUnifiedResultLanguage('', 'en'), 'en');
   assert.equal(normalizeUnifiedResultLanguage('unsupported', 'de'), 'de');
+});
+
+test('unified Writer exposes the lexical right edge of multi-token queries', () => {
+  assert.equal(rightEdgeQueryToken('Eins Zwei Drei Vier Murmeltiere abends'), 'abends');
+  assert.equal(rightEdgeQueryToken('  holy   night  '), 'night');
+  assert.equal(rightEdgeQueryToken('Abends'), 'Abends');
 });
 
 test('unified Writer normalizes result scope deterministically', () => {
