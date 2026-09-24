@@ -21,15 +21,21 @@ do not delete old Studio, and do not reinterpret the port as permission to simpl
 editor, Search, Library, Analysis, Perform, mobile, persistence, recovery or runtime
 database behavior.
 
-R0, R1 and R2 are complete. R1 is documented in
+R0 through R3 are complete. R1 is documented in
 `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md` and provides strict typed bridges over 18
 existing domain/browser modules. R2 is documented in
 `docs/REACT_STUDIO_R2_SHELL.md` and establishes the React shell/design-system
-layer without taking ownership of feature semantics.
+layer. R3 is documented in `docs/REACT_STUDIO_R3_SEARCH_WRITER.md` and places the
+live existing Search/Writer pipeline in the React Search surface and Studio Sound
+Explorer.
 
-The next implementation action is **R3: Search / Writer**. Reuse the existing
-R1 SearchState, pronunciation, Writer, detail and capability bridges. Do not invent
-a parallel search state, ranking path, fake results or alternate runtime behavior.
+R3 intentionally leaves safe result insertion plus selection-follow/fixed-anchor
+for R5, because those actions require the real React editor Selection Proof,
+stable-Bar, IME and undo/redo semantics. Do not work around that boundary.
+
+The next implementation action is **R4: Library / persistence / recovery**. Reuse
+the existing R1 DocumentStore, document model/adapter and backup bridges. IndexedDB
+must remain authoritative; do not create a parallel React/Zustand document store.
 
 ---
 
