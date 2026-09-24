@@ -159,7 +159,7 @@ test('JSON body parsing enforces media type, syntax and size',async()=>{
 });
 
 test('unexpected server errors are not reflected to clients',()=>{
-  const safe=publicHttpError(new Error('/Users/alice/private.sqlite exploded'),{requestId:'req-1'});
+  const safe=publicHttpError(new Error('/private/rhymelab/private.sqlite exploded'),{requestId:'req-1'});
   assert.equal(safe.statusCode,500);
   assert.equal(safe.body.error,'Internal server error.');
   assert.equal(safe.body.code,'internal_error');
