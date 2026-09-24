@@ -17,7 +17,9 @@
     "test:r2": "vitest run src/shell/r2-shell.test.ts",
     "r2:verify": "npm run typecheck && npm run test:r1 && npm run test:r2 && npm run build",
     "test:r3": "vitest run src/features/search/r3-search.test.ts",
-    "r3:verify": "npm run typecheck && npm run test:r1 && npm run test:r2 && npm run test:r3 && npm run build"
+    "r3:verify": "npm run typecheck && npm run test:r1 && npm run test:r2 && npm run test:r3 && npm run build",
+    "test:r4": "vitest run src/features/library/r4-library.test.ts",
+    "r4:verify": "npm run typecheck && npm run test:r1 && npm run test:r2 && npm run test:r3 && npm run test:r4 && npm run build"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",
