@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 
 import { LibraryWorkspace } from '../features/library/LibraryWorkspace';
+import { AnalysisWorkspace } from '../features/analysis/AnalysisWorkspace';
 import { EditorSessionProvider } from '../features/editor/EditorSessionProvider';
 import { EditorWorkspace } from '../features/editor/EditorWorkspace';
+import { PerformanceWorkspace } from '../features/perform/PerformanceWorkspace';
 import { SavedWorkspace } from '../features/search/SavedWorkspace';
 import { SearchExperience } from '../features/search/SearchExperience';
 import { useUiStore } from '../state/uiStore';
@@ -16,6 +18,7 @@ export function SurfaceContent() {
   const language = useUiStore((state) => state.uiLanguage);
   const reduceMotion = useReducedMotion();
   const [mobileStudioPane, setMobileStudioPane] = useState<'editor' | 'results'>('editor');
+  const [studioMode, setStudioMode] = useState<'write' | 'analysis' | 'perform'>('write');
 
   if (surface === 'settings') {
     return (
@@ -96,7 +99,41 @@ export function SurfaceContent() {
             </button>
           </div>
           <section className={styles.primaryFoundation}>
-            <EditorWorkspace />
+            <div className={styles.studioModeBar} role="group" aria-label={language === 'de' ? 'Studio Modus' : 'Studio mode'}>
+              <button
+                type="button"
+                data-active={studioMode === 'write' ? 'true' : 'false'}
+                aria-pressed={studioMode === 'write'}
+                onClick={() => setStudioMode('write')}
+              >
+                {language === 'de' ? 'Schreiben' : 'Write'}
+              </button>
+              <button
+                type="button"
+                data-active={studioMode === 'analysis' ? 'true' : 'false'}
+                aria-pressed={studioMode === 'analysis'}
+                onClick={() => setStudioMode('analysis')}
+              >
+                {language === 'de' ? 'Analyse' : 'Analysis'}
+              </button>
+              <button
+                type="button"
+                data-active={studioMode === 'perform' ? 'true' : 'false'}
+                aria-pressed={studioMode === 'perform'}
+                onClick={() => setStudioMode('perform')}
+              >
+                Perform
+              </button>
+            </div>
+            <div className={styles.studioModeSurface} data-mode={studioMode}>
+              {studioMode === 'write' ? <EditorWorkspace /> : null}
+              {studioMode === 'analysis' ? (
+                <AnalysisWorkspace onOpenEditor={() => setStudioMode('write')} />
+              ) : null}
+              {studioMode === 'perform' ? (
+                <PerformanceWorkspace onOpenEditor={() => setStudioMode('write')} />
+              ) : null}
+            </div>
           </section>
 
           <aside className={styles.assistFoundation} data-r3="true">
