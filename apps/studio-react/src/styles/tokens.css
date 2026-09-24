@@ -1,47 +1,113 @@
 :root {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
   color: var(--rl-ink);
   background: var(--rl-bg);
   color-scheme: light dark;
 
-  --rl-bg: #EAE7DC;
-  --rl-panel: #F4F0E6;
-  --rl-ink: #272727;
-  --rl-muted: #6B6965;
-  --rl-line: #D8C3A5;
-  --rl-accent: #E85A4F;
-  --rl-accent-2: #E98074;
-  --rl-shadow: 0 18px 60px #5f4d3418;
+  /* Legacy-compatible semantic appearance tokens. JS may override these from
+     existing saved custom themes without changing component CSS. */
+  --rl-bg: #272727;
+  --rl-panel: #303030;
+  --rl-ink: #F5F4EC;
+  --rl-muted: #A3A3A3;
+  --rl-line: #474747;
+  --rl-accent: #FFE400;
+  --rl-accent-2: #FF652F;
+  --rl-signal: #14A76C;
+  --rl-nav: #232323;
+  --rl-tint: #3A3823;
+  --rl-on-accent: #272727;
+
+  --rl-surface-raised: color-mix(in srgb, var(--rl-panel) 94%, var(--rl-ink) 6%);
+  --rl-surface-soft: color-mix(in srgb, var(--rl-panel) 88%, var(--rl-bg) 12%);
+  --rl-line-strong: color-mix(in srgb, var(--rl-line) 72%, var(--rl-ink) 28%);
+  --rl-accent-soft: color-mix(in srgb, var(--rl-accent) 10%, transparent);
+  --rl-danger-soft: color-mix(in srgb, var(--rl-accent-2) 12%, transparent);
+
+  --rl-space-1: 4px;
+  --rl-space-2: 8px;
+  --rl-space-3: 12px;
+  --rl-space-4: 16px;
+  --rl-space-5: 20px;
+  --rl-space-6: 24px;
+  --rl-space-8: 32px;
+  --rl-space-10: 40px;
+
+  --rl-radius-xs: 6px;
+  --rl-radius-sm: 9px;
+  --rl-radius-md: 12px;
+  --rl-radius-lg: 16px;
+  --rl-radius-xl: 20px;
+  --rl-radius-pill: 999px;
+
+  --rl-shadow-panel:
+    0 2px 7px color-mix(in srgb, var(--rl-ink) 4%, transparent),
+    0 18px 48px color-mix(in srgb, var(--rl-ink) 7%, transparent);
+  --rl-shadow-popover:
+    0 16px 42px color-mix(in srgb, #000 24%, transparent),
+    0 2px 8px color-mix(in srgb, #000 12%, transparent);
+
+  --rl-ease: cubic-bezier(.22, 1, .36, 1);
+  --rl-duration-fast: 140ms;
+  --rl-duration-normal: 220ms;
+
+  --rl-topbar-height: 64px;
+  --rl-sidebar-width: 184px;
+  --rl-sidebar-rail-width: 72px;
+  --rl-assist-width: clamp(320px, 31vw, 470px);
+  --rl-mobile-nav-height: 64px;
+  --visual-viewport-height: 100dvh;
+
+  --rl-focus-ring:
+    0 0 0 3px color-mix(in srgb, var(--rl-accent) 28%, transparent);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --rl-bg: #272727;
-    --rl-panel: #303030;
-    --rl-ink: #F5F4EC;
-    --rl-muted: #A3A3A3;
-    --rl-line: #474747;
-    --rl-accent: #FFE400;
-    --rl-accent-2: #FF652F;
-    --rl-shadow: 0 18px 60px #00000030;
-  }
+[data-theme="light"] {
+  color-scheme: light;
 }
 
-* {
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html,
 body,
 #root {
+  width: 100%;
+  height: 100%;
+  min-width: 320px;
   min-height: 100%;
+}
+
+html {
+  background: var(--rl-bg);
+  transition:
+    background-color var(--rl-duration-normal) var(--rl-ease),
+    color var(--rl-duration-normal) var(--rl-ease);
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100dvh;
+  overflow: hidden;
   background: var(--rl-bg);
+  color: var(--rl-ink);
 }
 
 button,
@@ -49,6 +115,56 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+button,
+[role="button"],
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--rl-accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--rl-accent) 28%, transparent);
+  color: var(--rl-ink);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--rl-muted) 52%, var(--rl-line)) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  min-height: 34px;
+  border: 2px solid transparent;
+  border-radius: var(--rl-radius-pill);
+  background: color-mix(in srgb, var(--rl-muted) 52%, var(--rl-line));
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--rl-accent) 58%, var(--rl-muted));
+  background-clip: padding-box;
 }
 
 @media (prefers-reduced-motion: reduce) {
