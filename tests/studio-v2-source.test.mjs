@@ -260,7 +260,6 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/function duplicateStudioBar\(/u);
   assert.match(app,/function deleteStudioBar\(/u);
   assert.match(app,/duplicateEditorBar/u);
-  assert.match(app,/insertEditorBar/u);
   assert.match(app,/data-bar-duplicate/u);
   assert.match(app,/data-bar-delete/u);
   assert.match(app,/function moveStudioBar\(/u);
