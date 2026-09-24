@@ -21,6 +21,7 @@ import {
 type SearchStateContextValue = {
   state: SearchState;
   patch: (patch: SearchStateInput) => void;
+  replace: (next: SearchStateInput) => void;
   resetFilters: () => void;
   setSelectedResultId: (id: string) => void;
 };
@@ -64,6 +65,10 @@ export function SearchStateProvider({ children }: { children: ReactNode }) {
     setState((current) => persistSearchState(patchSearchState(current, input)));
   }, []);
 
+  const replace = useCallback((input: SearchStateInput) => {
+    setState(persistSearchState(createSearchState(input)));
+  }, []);
+
   const resetFilters = useCallback(() => {
     setState((current) => persistSearchState(createSearchState({
       anchor: current.anchor,
@@ -90,9 +95,10 @@ export function SearchStateProvider({ children }: { children: ReactNode }) {
   const value = useMemo<SearchStateContextValue>(() => ({
     state,
     patch,
+    replace,
     resetFilters,
     setSelectedResultId,
-  }), [patch, resetFilters, setSelectedResultId, state]);
+  }), [patch, replace, resetFilters, setSelectedResultId, state]);
 
   return (
     <SearchStateContext.Provider value={value}>
