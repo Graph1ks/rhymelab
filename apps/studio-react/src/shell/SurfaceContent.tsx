@@ -83,9 +83,6 @@ function prepareSoundExplorerPopout(popup: Window): HTMLElement {
   });
 
   copyPresentationToPopout(popup);
-
-  const root = doc.getElementById('sound-explorer-popout-root');
-  if (!root) throw new Error('Sound Explorer popout root is missing.');
   return root;
 }
 
