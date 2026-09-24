@@ -158,6 +158,8 @@ describe('R2 shell actions are real Zustand state transitions', () => {
       commandPaletteOpen: false,
       quickstylesOpen: false,
       settingsDrawerOpen: false,
+      libraryOpen: false,
+      savedOpen: false,
     });
   });
 
@@ -173,6 +175,22 @@ describe('R2 shell actions are real Zustand state transitions', () => {
 
     useUiStore.getState().navigate('settings');
     expect(useUiStore.getState().surface).toBe('settings');
+  });
+
+  it('keeps Library and Saved as workflow overlays and closes them on primary navigation', () => {
+    useUiStore.getState().setLibraryOpen(true);
+    useUiStore.getState().setSavedOpen(true);
+    expect(useUiStore.getState()).toMatchObject({
+      libraryOpen: true,
+      savedOpen: true,
+    });
+
+    useUiStore.getState().navigate('search');
+    expect(useUiStore.getState()).toMatchObject({
+      surface: 'search',
+      libraryOpen: false,
+      savedOpen: false,
+    });
   });
 
   it('toggles persistent appearance state through the same registered actions used by controls', () => {
