@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 
 import type { StudioOccurrenceRelation, StudioRhymePair } from '../../legacy/contracts';
 import {
@@ -36,6 +36,29 @@ import styles from './Analysis.module.css';
 
 type Scope = 'end' | 'all';
 type RelationMode = 'all' | 'primary' | 'soft';
+
+const RHYME_GROUP_COLORS = 8;
+
+function rhymeGroupStyle(label: string | undefined): CSSProperties {
+  const text = String(label || '?').toUpperCase();
+  const code = text.codePointAt(0) ?? 0;
+  const index = Math.abs(code - 65) % RHYME_GROUP_COLORS;
+  return { '--rhyme-color': `var(--rl-rhyme-group-${index})` } as CSSProperties;
+}
+
+function RhymeLegend() {
+  const language = useUiStore((state) => state.uiLanguage);
+  return (
+    <div className={styles.rhymeLegend}>
+      <span>{language === 'de' ? 'REIMTYPEN' : 'RHYME TYPES'}</span>
+      {ANALYSIS_RHYME_TYPE_ORDER.map((type) => (
+        <i key={type} data-rhyme-type={type}>{analysisRhymeTypeLabel(type, language)}</i>
+      ))}
+      <small>{language === 'de' ? 'Schemafarben markieren zusammengehörige Reimgruppen.' : 'Scheme colors identify matching rhyme groups.'}</small>
+    </div>
+  );
+}
+
 
 function percentage(value: unknown) {
   const number = Number(value);
@@ -162,6 +185,7 @@ function EndAnalysis({ data, onOpenEditor }: { data: CanonicalAnalysisPayload; o
             <button
               type="button"
               key={song.barIds?.[lineIndex] ?? String(lineIndex)}
+              style={rhymeGroupStyle(scheme[analysisIndex])}
               onClick={() => {
                 editor.jumpToBar(song.barIds?.[lineIndex] ?? '');
                 onOpenEditor();
@@ -177,7 +201,7 @@ function EndAnalysis({ data, onOpenEditor }: { data: CanonicalAnalysisPayload; o
         {chainVisible ? (
           <div className={styles.chain}>
             {chain.map((group) => (
-              <div key={group.label}>
+              <div key={group.label} style={rhymeGroupStyle(group.label)}>
                 <strong>{group.label}</strong>
                 <span>{group.items.map((item) => (
                   <button type="button" key={item.analysisIndex} onClick={() => chooseAnchor(item.word)}>
@@ -225,7 +249,7 @@ function EndAnalysis({ data, onOpenEditor }: { data: CanonicalAnalysisPayload; o
         </div>
         <div className={styles.pairs}>
           {filteredPairs.map((pair: StudioRhymePair, index) => (
-            <button type="button" key={pair.left + pair.right + String(index)} onClick={() => chooseAnchor(pair.left)}>
+            <button type="button" key={pair.left + pair.right + String(index)} data-rhyme-type={pair.type} onClick={() => chooseAnchor(pair.left)}>
               <span><b>{pair.left}</b><i>↔</i><b>{pair.right}</b></span>
               <em>{pair.label || pair.type}</em><strong>{percentage(pair.score)}</strong>
             </button>
@@ -374,6 +398,8 @@ export function AnalysisWorkspace({ onOpenEditor }: { onOpenEditor: () => void }
           <button type="button" onClick={() => void query.refetch()}>{language === 'de' ? 'Neu analysieren' : 'Refresh'}</button>
         </div>
       </header>
+
+      <RhymeLegend />
 
       {!hasBars ? <div className={styles.state}>{language === 'de' ? 'Noch keine getrackten Bars.' : 'No tracked bars yet.'}</div> : null}
       {hasBars && (query.isPending || query.isFetching) ? <div className={styles.state}>{language === 'de' ? 'Writer analysiert …' : 'Writer is analyzing …'}</div> : null}
