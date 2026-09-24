@@ -106,7 +106,7 @@ select,.checkbox-line{min-height:44px}
 .basis-option.partial,.result-language-option.partial,.scope-option.partial{box-shadow:none}
 .result-language-option:disabled,.result-language-option.unavailable{cursor:not-allowed;opacity:.38}
 .basis-option:focus-visible,.result-language-option:focus-visible,.scope-option:focus-visible,
-.search-button:focus-visible,.primary-nav-link:focus-visible,.topbar-button:focus-visible,.more-button:focus-visible{
+.search-button:focus-visible,.primary-nav-link:focus-visible,.topbar-button:focus-visible{
   outline:3px solid rgba(49,84,213,.22);outline-offset:2px
 }
 
@@ -175,16 +175,6 @@ select option,select optgroup{background:#fff;color:var(--ink)}
 .stats-table td{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .stats-table tfoot th,.stats-table tfoot td{border-bottom:0;border-top:2px solid var(--line-strong);background:#f7f5ef}
 .stats-table strong{color:var(--accent-ink)}
-
-.section-more{display:flex;justify-content:center;padding:12px 16px;border-top:1px solid var(--line);background:#f7f5ef}
-.more-button{
-  min-width:132px;min-height:36px;border:1px solid var(--line-strong);border-radius:999px;background:var(--surface-strong);
-  color:var(--accent-ink);font-family:var(--mono);font-size:10px;font-weight:650;letter-spacing:.05em
-}
-.more-button:hover{border-color:var(--accent);background:#eef1ff}
-.more-button span{margin-left:5px;color:var(--muted)}
-.results-compact .section-more{border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px}
-.results-compact .result-items:has(+ .section-more){border-radius:0}
 
 @media(max-width:1100px){
   .search-mode-grid{grid-template-columns:1fr 1fr}
