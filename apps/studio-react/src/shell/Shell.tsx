@@ -151,7 +151,7 @@ function Topbar() {
           {language === 'de' ? 'LOKAL' : 'LOCAL'}
         </span>
         <span className={styles.previewBadge}>{shellText('React Studio Vorschau', language)}</span>
-        <CommandPalette />
+        <CommandPalette showTrigger={false} />
         <Button
           className={styles.languageButton}
           onClick={toggleLanguage}
