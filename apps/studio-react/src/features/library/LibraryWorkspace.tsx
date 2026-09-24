@@ -228,13 +228,22 @@ export function LibraryWorkspace() {
     }
 
     try {
-      await workspace.createRecoveryPoint('before_permanent_song_delete');
+      const recoveryAvailable = workspace.authority === 'indexeddb';
+      if (recoveryAvailable) {
+        await workspace.createRecoveryPoint('before_permanent_song_delete');
+      }
       const result = permanentlyDeleteLibrarySong(workspace.state, confirm.id);
       if (result.changed) {
         await workspace.replaceState(result.state, { immediate: true });
-        setNotice(language === 'de'
-          ? 'Text endgültig gelöscht · Recovery-Punkt vorher gesichert.'
-          : 'Text permanently deleted · recovery point saved first.');
+        setNotice(
+          recoveryAvailable
+            ? (language === 'de'
+                ? 'Text endgültig gelöscht · Recovery-Punkt vorher gesichert.'
+                : 'Text permanently deleted · recovery point saved first.')
+            : (language === 'de'
+                ? 'Text endgültig gelöscht · IndexedDB-Recovery war nicht verfügbar.'
+                : 'Text permanently deleted · IndexedDB recovery was unavailable.'),
+        );
       }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : String(error));
