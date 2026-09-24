@@ -1,5 +1,8 @@
 .home {
+  width: min(100%, var(--rl-shell-max-width, 1680px));
   min-height: 100%;
+  margin-inline: auto;
+  box-sizing: border-box;
   display: grid;
   gap: clamp(52px, 7vw, 96px);
   padding: clamp(22px, 4vw, 64px);
