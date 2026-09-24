@@ -8,6 +8,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Added
 
+- Started the P0 behavior-preserving React Studio replatform with an isolated React 19.3 + TypeScript + Vite + Base UI + Motion + TanStack Query + Zustand + TanStack Virtual application, machine-readable parity inventory, hard cutover checker and dedicated CI. The existing Studio V2 remains unchanged as the shipping golden master and rollback surface.
+
 - Expanded the development-only Distribution DB Lab to a quality/speed v2: exact effective Writer requests, deterministic result fingerprints, per-query response bytes, Search/serialize/read/parse/map/render timing, live server-metric refresh on Copy-all, and controlled Master/Lite/Standard/Full benchmark modes with warmups, p50/p95 and repeatability/Top-50 overlap reporting.
 - Added the development-only Studio Distribution DB Lab for explicit Master/Lite/Standard/Full switching, strict request-scoped `runtime_db` routing and copyable SQLite/Writer/browser/server performance metrics. Normal startup strips the internal UI and disables its endpoint; the future user-facing database choice remains a separate Settings task.
 - Added Studio V2 as the production songwriting shell with live Writer/Search, IndexedDB document authority, recovery/portable backup, hierarchical Library, Perform sequencing, canonical song analysis, DE/EN UI, mobile viewport engineering, diagnostics and command-palette workflows.
@@ -42,6 +44,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 - Entity result cards and detail panels now display concrete taxonomy types such as Rapper, Actor, Music Group, Movie, Video Game, Character, Album or Song instead of the generic Entity label.
 
 ### Changed
+
+- Froze new product feature development while the React Studio replatform is active. Cutover is blocked until every existing Studio parity capability plus the captured Workflow UX v3 behaviors is verified; no functional simplification is authorized.
 
 - Studio Writer requests now use the compact `studio-writer-compact-v1` transport projection while preserving result order, IDs, scoring/relation metadata and detail-relevant fields; non-Studio `/api/writer` clients retain the full response. JSON API responses are serialized compactly and expose measured response-size/serialization headers.
 - Serving-v1 Master no longer advertises frozen Markov infrastructure as an active product/distribution capability.
