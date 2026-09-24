@@ -25,6 +25,15 @@ only and is not an application runtime.
 Markov / Constrained Lyric Decoder V2 is intentionally frozen. Its demo
 infrastructure may ship, but it is not part of RhymeLab product navigation.
 
+
+### Frontend replatform in progress
+
+New product feature development is temporarily frozen while Studio is migrated,
+behavior-for-behavior, to React + TypeScript + Vite + Base UI + Motion + TanStack
+Query + Zustand + TanStack Virtual. The existing Studio V2 remains the shipping
+golden master until the hard parity gate passes. See
+`docs/REACT_STUDIO_REPLATFORM.md` and `docs/REACT_STUDIO_PARITY_GATE.md`.
+
 ## Local run
 
 Requirements:
@@ -123,9 +132,11 @@ Repository state is authoritative. In a fresh development thread read:
 
 1. `AGENTS.md`
 2. `PROJECT.md`
-3. `docs/STUDIO_V2_HANDOVER.md`
-4. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`
-5. `docs/HANDOVER.md`
+3. `docs/REACT_STUDIO_REPLATFORM.md`
+4. `docs/REACT_STUDIO_PARITY_GATE.md`
+5. `docs/STUDIO_V2_HANDOVER.md`
+6. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`
+7. `docs/HANDOVER.md`
 6. `STATUS.md`
 7. `PROJECT_STATE.json`
 8. `ROADMAP.md`
@@ -177,7 +188,9 @@ The major accepted baselines are now:
 
 Current follow-up work is intentionally narrower:
 
-1. complete the seven real-device/browser/touch/Web Audio acceptance checks for live Studio V2;
+1. complete the P0 React Studio replatform with all mandatory parity rows verified before cutover;
+2. keep new product feature development frozen during the port;
+3. complete the seven real-device/browser/touch/Web Audio acceptance checks as migration/cutover evidence for the preserved Studio behaviors;
 2. fix only concrete Studio regressions found by that acceptance while keeping the Search-root rollback available;
 3. preserve Serving-v1 and the accepted Phrase/English/Entity/ranking semantics;
 4. keep Markov frozen and unlinked until the owner explicitly reopens that work;
