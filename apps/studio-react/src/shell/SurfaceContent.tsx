@@ -122,7 +122,7 @@ export function SurfaceContent() {
               </button>
               <button
                 type="button"
-                data-active={studioMode === 'perform' ? 'true' : 'false'
+                data-active={studioMode === 'perform' ? 'true' : 'false'}
                 aria-pressed={studioMode === 'perform'}
                 onClick={() => setStudioMode('perform')}
               >
