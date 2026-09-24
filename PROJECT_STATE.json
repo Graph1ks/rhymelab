@@ -4009,7 +4009,7 @@
     "branch": "refactor/react-studio-replatform",
     "handover": "docs/REACT_STUDIO_REPLATFORM.md",
     "parity_gate": "docs/REACT_STUDIO_PARITY_GATE.md",
-    "baseline_commit": "fbda43a9e4dd915f3bd5c1fa53045cbe2055e919",
+    "baseline_commit": "fbda43a9e4dd",
     "product_feature_freeze": true,
     "cutover_rule": "ALL_MANDATORY_PARITY_ROWS_VERIFIED",
     "mandatory_parity_rows": 93,
