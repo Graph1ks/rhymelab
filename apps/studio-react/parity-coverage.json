@@ -417,43 +417,69 @@
       "id": "library.documents",
       "group": "Library",
       "capability": "Create / open / search / sort / rename documents",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/model.ts",
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
     },
     {
       "id": "library.folders",
       "group": "Library",
       "capability": "Nested folder hierarchy",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/model.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
     },
     {
       "id": "library.folder-actions",
       "group": "Library",
       "capability": "Folder create / subfolder / rename / reorder / delete",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/model.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
     },
     {
       "id": "library.move",
       "group": "Library",
       "capability": "Move documents between folders",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/model.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
     },
     {
       "id": "library.trash",
       "group": "Library",
       "capability": "Trash / restore / permanent delete",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/model.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
     },
     {
       "id": "library.predelete-recovery",
       "group": "Library",
       "capability": "Automatic recovery checkpoint before permanent delete",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/LibraryWorkspace.tsx",
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx",
+        "apps/studio-react/src/features/library/persistence.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
     },
     {
       "id": "analysis.scheme",
@@ -674,22 +700,35 @@
       "id": "system.backup",
       "group": "System / Recovery",
       "capability": "Portable workspace backup import/export",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/DataSafetyPanel.tsx",
+        "apps/studio-react/src/features/library/persistence.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
     },
     {
       "id": "system.recovery",
       "group": "System / Recovery",
       "capability": "Manual recovery points and verified restore",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/DataSafetyPanel.tsx",
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx",
+        "apps/studio-react/src/features/library/persistence.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
     },
     {
       "id": "system.persistence",
       "group": "System / Recovery",
       "capability": "Serialized autosave queue and lifecycle flush",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx",
+        "apps/studio-react/src/features/library/persistence.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
     },
     {
       "id": "system.diagnostics",
