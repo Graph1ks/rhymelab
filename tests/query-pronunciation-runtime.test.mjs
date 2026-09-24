@@ -82,17 +82,17 @@ test('browser resolver may compose an unknown spelling from source-backed DB ref
   const lookupReference=async(surface,language)=>references[language].get(surface)||null;
 
   const de=await resolveUnknownClientPronunciation('Winterwolf','de',{lookupReference});
-  assert.equal(de.method,'client_source_reference_compound');
+  assert.equal(de.method,'client_source_reference_compound_right_edge');
   assert.deepEqual(de.components,['Winter','Wolf']);
   assert.equal(de.sourceBacked,true);
-  assert.equal(de.ipa,'ˈvɪntɐˌvɔlf');
+  assert.equal(de.ipa,'ˌvɪntɐˈvɔlf');
   assert.ok(getPhonologyProfile('de').analyzeIpa(de.ipa).exactTailKey);
 
   const en=await resolveUnknownClientPronunciation('Dragonspawn','en',{lookupReference});
-  assert.equal(en.method,'client_source_reference_compound');
+  assert.equal(en.method,'client_source_reference_compound_right_edge');
   assert.deepEqual(en.components,['dragon','spawn']);
   assert.equal(en.sourceBacked,true);
-  assert.equal(en.ipa,'ˈdɹægənˌspɔn');
+  assert.equal(en.ipa,'ˌdɹægənˈspɔn');
   assert.ok(getPhonologyProfile('en').analyzeIpa(en.ipa).exactTailKey);
 });
 
