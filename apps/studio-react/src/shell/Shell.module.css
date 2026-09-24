@@ -1,4 +1,7 @@
 .appShell {
+  --rl-reading-max-width: 1440px;
+  --rl-shell-max-width: 1680px;
+  --rl-reading-width: min(82%, var(--rl-reading-max-width));
   width: 100%;
   height: var(--visual-viewport-height, 100dvh);
   min-height: 0;
@@ -390,10 +393,17 @@
 }
 
 .studioFoundation {
+  --studio-reading-inset: max(0px, calc((100% - var(--rl-reading-width)) / 2));
   min-height: calc(var(--visual-viewport-height, 100dvh) - var(--rl-topbar-height) - 24px);
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--rl-assist-width);
   gap: 10px;
+  box-sizing: border-box;
+  transition:
+    grid-template-columns 420ms cubic-bezier(.22, 1, .36, 1),
+    gap 420ms cubic-bezier(.22, 1, .36, 1),
+    padding-inline 420ms cubic-bezier(.22, 1, .36, 1);
 }
 
 .primaryFoundation,
@@ -1382,10 +1392,34 @@
   scrollbar-gutter: auto;
 }
 
+/* Desktop Studio: Sound Explorer is a true right dock while the writing desk
+   keeps deliberate breathing room. Full Search stays full-width; its internal
+   reading lane is scoped in Search.module.css. */
 .searchSurface {
   width: 100%;
   height: 100%;
   min-height: 0;
+}
+
+@media (min-width: 801px) {
+  .contentViewport[data-surface="studio"] {
+    padding: 0;
+  }
+
+  .contentViewport[data-surface="studio"] .primaryFoundation {
+    margin: 8px 0 16px 8px;
+    transition:
+      margin 420ms cubic-bezier(.22, 1, .36, 1),
+      border-radius 260ms ease;
+  }
+
+  .contentViewport[data-surface="studio"] .assistFoundation[data-r3="true"] {
+    margin: 0;
+    border-top: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 0;
+  }
 }
 
 .contentViewport[data-surface="studio"] .studioFoundation {
@@ -1974,7 +2008,8 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 18px;
-  padding: 0 18px;
+  padding-block: 0;
+  padding-inline: max(18px, calc((100% - var(--rl-shell-max-width)) / 2));
   border-bottom: 1px solid color-mix(in srgb, var(--rl-line) 72%, transparent);
   background:
     linear-gradient(
@@ -2041,15 +2076,17 @@
     color var(--rl-duration-fast) ease;
 }
 
-.topNavButton::after {
-  content: "";
+.topNavUnderline {
   position: absolute;
   left: 13px;
   right: 13px;
   bottom: -8px;
-  height: 2px;
+  height: 3px;
   border-radius: 999px;
-  background: transparent;
+  background: var(--rl-accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--rl-accent) 28%, transparent);
+  transform-origin: center;
+  pointer-events: none;
 }
 
 .topNavButton:hover {
@@ -2060,11 +2097,6 @@
 .topNavButton[data-active="true"] {
   background: var(--rl-tint);
   color: var(--rl-accent);
-}
-
-.topNavButton[data-active="true"]::after {
-  background: var(--rl-accent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--rl-accent) 40%, transparent);
 }
 
 .topNavButton[data-command="true"] {
@@ -2104,6 +2136,16 @@
 .settingsWorkspace {
   display: grid;
   gap: 18px;
+}
+
+/* Settings is a focused workspace, not an ultrawide dashboard. Keep the outer
+   page/background full-width while the actual settings surface stops at the
+   same 1440px content ceiling used by focused writing/search layouts. */
+@media (min-width: 801px) {
+  .contentViewport[data-surface="settings"] .surfacePage {
+    width: min(100%, var(--rl-reading-max-width));
+    margin-inline: auto;
+  }
 }
 
 .settingsWorkspace[data-compact="true"] {
@@ -2751,10 +2793,6 @@
     font-size: 12px;
   }
 
-  .topNavButton::after {
-    bottom: -7px;
-  }
-
   .topNavButton[data-command="true"] {
     margin-left: 0;
     padding-left: 11px;
@@ -2947,6 +2985,7 @@
   min-height: var(--visual-viewport-height, 100dvh) !important;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
+  padding-inline: 0 !important;
 }
 
 .appShell[data-focus="true"] .studioFoundation > .assistFoundation,
@@ -2957,6 +2996,7 @@
 
 .appShell[data-focus="true"] .primaryFoundation {
   min-height: var(--visual-viewport-height, 100dvh) !important;
+  margin: 0 !important;
   padding: 0 !important;
 }
 
@@ -3003,12 +3043,35 @@
 
 
 /* Studio Sound Explorer controls: pause queries or collapse the assistant into a right rail. */
-.studioFoundation[data-assist-collapsed="true"] {
-  grid-template-columns: minmax(0, 1fr) 46px;
-}
+/* When Sound Explorer is unavailable inline, Studio adopts the exact same
+   centered desktop reading width as full Search. The grid track and symmetric
+   inset animate together, so the existing editor DOM simply glides into place. */
+@media (min-width: 801px) {
+  .studioFoundation[data-assist-collapsed="true"],
+  .studioFoundation[data-search-enabled="false"],
+  .studioFoundation[data-search-popout="true"] {
+    grid-template-columns: minmax(0, 1fr) 0;
+    gap: 0;
+    padding-inline: var(--studio-reading-inset);
+  }
 
-.studioFoundation[data-search-enabled="false"] {
-  grid-template-columns: minmax(0, 1fr);
+  .studioFoundation[data-assist-collapsed="true"] > .primaryFoundation,
+  .studioFoundation[data-search-enabled="false"] > .primaryFoundation,
+  .studioFoundation[data-search-popout="true"] > .primaryFoundation {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* Collapsed keeps a tiny reopen rail, but it floats over the far-right edge
+     instead of stealing width from the centered writing canvas. */
+  .studioFoundation[data-assist-collapsed="true"] > .assistFoundation {
+    position: absolute;
+    inset: 0 0 0 auto;
+    z-index: 48;
+    width: 46px;
+    min-width: 46px;
+    border-left: 1px solid var(--rl-rule);
+  }
 }
 
 .assistFoundation {
@@ -3047,8 +3110,32 @@
   transform: rotate(-90deg);
 }
 
+.assistPopout {
+  position: absolute;
+  top: 11px;
+  right: 9px;
+  z-index: 43;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--rl-line) 82%, var(--rl-accent) 18%);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--rl-panel) 94%, var(--rl-bg));
+  color: var(--rl-muted);
+  cursor: pointer;
+  font: 700 15px/1 var(--rl-font-mono);
+  transition:
+    border-color var(--rl-duration-fast) ease,
+    background var(--rl-duration-fast) ease,
+    color var(--rl-duration-fast) ease,
+    transform var(--rl-duration-fast) ease;
+}
+
 .assistCollapse:hover,
-.assistCollapse:focus-visible {
+.assistCollapse:focus-visible,
+.assistPopout:hover,
+.assistPopout:focus-visible {
   border-color: color-mix(in srgb, var(--rl-accent) 48%, var(--rl-line));
   outline: 0;
   background: var(--rl-tint);
@@ -3091,6 +3178,7 @@
 
 @media (max-width: 800px) {
   .assistCollapse,
+  .assistPopout,
   .assistRailLabel {
     display: none;
   }
@@ -3125,8 +3213,330 @@
   to { transform: rotate(360deg); }
 }
 
+/* Bureau art direction. Presentation only; viewport and focus ownership above
+   remain authoritative. Keep control families scoped independently. */
+.appShell {
+  background: var(--rl-bg);
+}
+
+.topbar {
+  background: var(--rl-panel);
+  border-bottom-color: var(--rl-rule);
+  box-shadow: none;
+}
+
+.brandMark {
+  height: 40px;
+  width: 40px;
+  flex-basis: 40px;
+  border: 1px solid var(--rl-ink);
+  border-radius: 50% 50% 7px 50%;
+  background: var(--rl-ink);
+  color: var(--rl-panel);
+  box-shadow: 3px 3px 0 var(--rl-accent);
+  font-family: var(--rl-font-editorial);
+  font-size: 29px;
+  font-weight: 700;
+  letter-spacing: -.09em;
+  padding-right: 3px;
+  transform-origin: 56% 58%;
+  transition:
+    transform 260ms cubic-bezier(.22, 1, .36, 1),
+    box-shadow 260ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.brand:hover .brandMark,
+.brand:focus-visible .brandMark {
+  transform: translate3d(0, -1px, 0) rotate(-2.5deg) scale(1.035);
+  box-shadow: 5px 5px 0 var(--rl-accent);
+}
+
+.brand:active .brandMark {
+  transform: translate3d(0, 1px, 0) rotate(1.5deg) scale(.97);
+  box-shadow: 2px 2px 0 var(--rl-accent);
+  transition-duration: 80ms;
+}
+
+.brandName {
+  line-height: 1;
+}
+
+.brandName b {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.055em;
+}
+
+.brandName small {
+  display: block;
+  margin-top: 6px;
+  font: 500 9px/1 var(--rl-font-mono);
+  letter-spacing: -.02em;
+  color: var(--rl-muted);
+}
+
+.topNavButton {
+  border-radius: 6px;
+  color: var(--rl-ink);
+  font-weight: 650;
+}
+
+.topNavButton[data-active="true"] {
+  color: var(--rl-ink);
+  background: var(--rl-tint);
+}
+
+.languageButton {
+  color: var(--rl-ink);
+  font-family: var(--rl-font-mono);
+}
+
+.studioModeBar {
+  flex-wrap: wrap;
+  gap: 6px;
+  border-bottom-color: var(--rl-rule);
+}
+
+.studioModeBar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 7px;
+  font-weight: 650;
+  transition: background-color var(--rl-duration-fast), border-color var(--rl-duration-fast);
+}
+
+.studioModeBar button > svg {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+}
+
+.studioModeBar button:nth-child(-n + 3) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--rl-muted);
+}
+
+.studioModeBar button:nth-child(-n + 3)[data-active="true"] {
+  border-color: var(--rl-ink);
+  background: var(--rl-ink);
+  color: var(--rl-panel);
+}
+
+.studioModeBar button:not(:disabled):hover {
+  border-color: var(--rl-ink);
+}
+
+.studioModeBar .focusTrigger,
+.studioModeBar .libraryTrigger {
+  color: var(--rl-ink) !important;
+}
+
+.contentViewport[data-surface="studio"] .primaryFoundation {
+  padding: clamp(16px, 1.5vw, 26px);
+}
+
+.contentViewport[data-surface="studio"] .assistFoundation {
+  border-left-color: var(--rl-rule);
+  background: var(--rl-panel);
+}
+
+.assistCollapse {
+  box-shadow: none;
+  border-radius: 6px;
+}
+
+.surfacePage {
+  background: var(--rl-panel);
+  border-color: var(--rl-rule);
+  border-radius: 8px;
+}
+
+.surfaceHeader h1,
+.styleDesignerHead h2,
+.libraryDialogHead h2 {
+  font-family: var(--rl-font-editorial);
+  font-weight: 500;
+  letter-spacing: -.045em;
+}
+
+.kicker,
+.phaseBadge,
+.libraryDialogHead p {
+  color: var(--rl-muted);
+  font-family: var(--rl-font-mono);
+  font-weight: 500;
+  letter-spacing: .1em;
+}
+
+.phaseBadge {
+  border-radius: 3px;
+  background: transparent;
+  transform: rotate(-2deg);
+}
+
+.styleDesigner {
+  background: var(--rl-panel);
+  border-radius: 10px;
+  border-color: var(--rl-rule);
+}
+
+.styleDesignerHead {
+  border-top: 3px solid var(--rl-accent);
+}
+
+.styleLibrary {
+  background: var(--rl-paper);
+}
+
+.styleLibraryItem,
+.styleResetButton,
+.colorControl,
+.contrastStrip > span,
+.contrastStrip > strong {
+  border-radius: 7px;
+}
+
+.styleLibraryItem b,
+.styleResetButton b,
+.colorControl b {
+  font-size: 12px;
+}
+
+.styleLibraryItem small,
+.styleResetButton small,
+.colorControl code {
+  font-size: 11px;
+}
+
+@media (min-width: 1600px) {
+  .contentViewport[data-surface="studio"] .primaryFoundation {
+    padding-inline: clamp(26px, 3vw, 96px);
+  }
+}
+
+@media (max-width: 1050px) and (min-width: 801px) {
+  .topbar { gap: 12px; }
+}
+
+@media (max-width: 800px) {
+  .brandName b { font-size: 18px; }
+  .brandName small { display: none; }
+  .contentViewport[data-surface="studio"] .primaryFoundation { padding: 12px; }
+  .studioModeBar { gap: 4px; }
+  .studioModeBar button { padding-inline: 8px; }
+  .studioModeBar button > svg { display: none; }
+  .topNavigation { justify-content: space-between; gap: 0; }
+  .topNavButton { padding-inline: 8px; }
+}
+
+@media (pointer: coarse) {
+  .topNavButton,
+  .languageButton,
+  .iconButton,
+  .themeMenuTrigger,
+  .studioModeBar button {
+    min-height: 44px;
+  }
+  .languageButton,
+  .iconButton,
+  .themeMenuTrigger { min-width: 44px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .surfaceLoading > span {
     animation: none;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studioFoundation,
+  .contentViewport[data-surface="studio"] .primaryFoundation {
+    transition: none;
+  }
+
+  .brandMark {
+    transition: none;
+  }
+
+  .brand:hover .brandMark,
+  .brand:focus-visible .brandMark,
+  .brand:active .brandMark {
+    transform: none;
+  }
+}
+
+
+/* Separate-window Sound Explorer chrome. The actual SearchExperience remains
+   the same React subtree/context and therefore shares Studio/editor state. */
+.soundExplorerPopoutShell {
+  width: 100vw;
+  height: 100dvh;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--rl-panel);
+  color: var(--rl-ink);
+}
+
+.soundExplorerPopoutBar {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 7px 10px 7px 14px;
+  border-bottom: 1px solid var(--rl-rule);
+  background: var(--rl-panel);
+}
+
+.soundExplorerPopoutBar > div {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.soundExplorerPopoutBar b {
+  font: 700 11px/1 var(--rl-font-mono);
+  letter-spacing: .12em;
+}
+
+.soundExplorerPopoutBar span {
+  overflow: hidden;
+  color: var(--rl-muted);
+  font: 500 9px/1 var(--rl-font-mono);
+  letter-spacing: .08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.soundExplorerPopoutBar button {
+  min-height: 30px;
+  flex: 0 0 auto;
+  padding: 0 10px;
+  border: 1px solid var(--rl-rule);
+  border-radius: 6px;
+  background: var(--rl-paper);
+  color: var(--rl-ink);
+  cursor: pointer;
+  font: 650 11px/1 var(--rl-font-mono);
+}
+
+.soundExplorerPopoutBar button:hover,
+.soundExplorerPopoutBar button:focus-visible {
+  border-color: var(--rl-accent);
+  color: var(--rl-accent);
+  outline: 0;
+}
+
+.soundExplorerPopoutContent {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }

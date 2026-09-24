@@ -2006,6 +2006,35 @@
   padding-inline: 18px;
 }
 
+/* Desktop full Search stays a full-width page. Only the working lane is
+   centered so title/runtime, language route, filters, query and results share
+   one visual axis without forcing the eye across an ultrawide display. */
+@media (min-width: 1100px) {
+  .searchExperience[data-variant="page"] {
+    --search-reading-width: var(--rl-reading-width, min(82%, 1440px));
+  }
+
+  .searchExperience[data-variant="page"] .searchHeader,
+  .searchExperience[data-variant="page"] .searchForm,
+  .searchExperience[data-variant="page"] .controls,
+  .searchExperience[data-variant="page"] .capabilityBar,
+  .searchExperience[data-variant="page"] .resultToolbar,
+  .searchExperience[data-variant="page"] .searchBody {
+    width: var(--search-reading-width);
+    box-sizing: border-box;
+    margin-inline: auto;
+  }
+
+  .searchExperience[data-variant="page"] .languageRouteStatus {
+    margin-left: max(24px, calc((100% - var(--search-reading-width)) / 2));
+    margin-right: 0;
+  }
+
+  .searchExperience[data-variant="page"] .controls {
+    margin-inline: auto;
+  }
+}
+
 .filterPopup,
 .entityPopup {
   max-height: min(420px, 70dvh);
@@ -2481,4 +2510,299 @@
   .searchHelpGrid dt {
     font-size: 15px;
   }
+}
+
+/* Bureau sound desk. Row dimensions and virtualizer geometry stay unchanged. */
+.searchExperience {
+  border-color: var(--rl-rule);
+  border-radius: 8px;
+  background: var(--rl-panel);
+  box-shadow: none;
+}
+
+.searchTitle > p,
+.detailEyebrow,
+.savedDialogHead p {
+  color: var(--rl-muted);
+  font-family: var(--rl-font-mono);
+  font-weight: 500;
+  letter-spacing: .1em;
+}
+
+.searchExperience[data-variant="page"] .searchTitle h1,
+.savedHeader h1 {
+  font-family: var(--rl-font-editorial);
+  font-weight: 500;
+  letter-spacing: -.045em;
+}
+
+.searchExperience[data-variant="assistant"] .searchHeader {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.searchExperience[data-variant="assistant"] .searchTitle h1 {
+  font-weight: 650;
+}
+
+.runtimeSelect {
+  min-width: 112px;
+  margin-left: auto;
+}
+
+.runtimeSelectTrigger,
+.runtimeStatus,
+.runtimeEditions {
+  border-radius: 6px;
+}
+
+.runtimeSelect > span,
+.inputDbBadge,
+.languageRouteStatus > span,
+.anchorMeta > span,
+.searchExperience[data-variant="assistant"] .anchorMeta > span {
+  font-family: var(--rl-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .08em;
+}
+
+.anchorMeta b,
+.searchExperience[data-variant="assistant"] .anchorMeta b {
+  font-family: var(--rl-font-editorial);
+  font-weight: 600;
+  letter-spacing: -.02em;
+}
+
+.searchInputWrap {
+  border-color: var(--rl-rule);
+  border-radius: 7px;
+  background: var(--rl-paper);
+  box-shadow: none;
+}
+
+.searchInputWrap:focus-within {
+  border-color: var(--rl-ink);
+  box-shadow: var(--rl-focus-ring);
+}
+
+.searchSubmit {
+  border-radius: 5px;
+  background: var(--rl-ink);
+  color: var(--rl-panel);
+}
+
+.resultToolbar {
+  border-color: var(--rl-rule);
+  background: var(--rl-paper);
+}
+
+.toggleButton,
+.densityButtons,
+.filterField {
+  border-radius: 6px;
+}
+
+.resultRow {
+  border-radius: 4px;
+  transition: background-color var(--rl-duration-fast), border-color var(--rl-duration-fast);
+}
+
+.resultRow:hover {
+  background: var(--rl-paper);
+}
+
+.resultRow[data-selected="true"],
+.resultRow[data-density="list"][data-selected="true"] {
+  border-color: var(--rl-rule);
+  background: var(--rl-tint);
+  box-shadow: inset 3px 0 0 var(--rl-accent);
+}
+
+.kindBadge {
+  border-radius: 3px;
+  background: var(--rl-paper);
+  color: var(--rl-ink);
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+.savedButton {
+  color: var(--rl-ink);
+}
+
+.resultMain:focus-visible,
+.resultAction:focus-visible,
+.savedButton:focus-visible {
+  outline: 2px solid var(--rl-ink);
+  outline-offset: -3px;
+}
+
+.detailPanel {
+  background: var(--rl-paper);
+  border-color: var(--rl-rule);
+}
+
+.detailHead h2,
+.savedDialogHead h2 {
+  font-family: var(--rl-font-editorial);
+  font-weight: 500;
+}
+
+.searchState {
+  border-radius: 8px;
+}
+
+.searchState > b {
+  color: var(--rl-ink);
+  font-family: var(--rl-font-editorial);
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+
+.keyboardHint {
+  font-family: var(--rl-font-mono);
+}
+
+.savedCard {
+  border-radius: 6px;
+}
+
+@media (max-width: 800px) {
+  .searchExperience { border-radius: 0; }
+}
+
+
+/* Studio Sound Explorer popout: the same search/editor state in a resizable
+   second window, with compact rows grouped into 1–4 columns by live width. */
+.searchExperience[data-variant="popout"] {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: var(--rl-panel);
+}
+
+.searchExperience[data-variant="popout"] .searchHeader {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 18px 8px;
+}
+
+.searchExperience[data-variant="popout"] .searchTitle > p {
+  margin-bottom: 2px;
+}
+
+.searchExperience[data-variant="popout"] .searchTitle h1 {
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 650;
+}
+
+.searchExperience[data-variant="popout"] .searchTitle > span {
+  display: none;
+}
+
+.searchExperience[data-variant="popout"] .languageRouteStatus {
+  margin: 0 18px 8px;
+}
+
+.searchExperience[data-variant="popout"] .searchForm {
+  grid-template-columns: minmax(180px, .72fr) minmax(320px, 1.28fr);
+  gap: 12px;
+  padding: 0 18px 10px;
+}
+
+.searchExperience[data-variant="popout"] .anchorMeta {
+  min-width: 0;
+}
+
+.searchExperience[data-variant="popout"] .anchorMeta b {
+  max-width: none;
+  font-size: 18px;
+}
+
+.searchExperience[data-variant="popout"] .anchorMode {
+  margin-top: 4px;
+}
+
+.searchExperience[data-variant="popout"] .controls {
+  margin: 0 18px 8px;
+}
+
+.searchExperience[data-variant="popout"] .filterGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.searchExperience[data-variant="popout"] .resultToolbar {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 6px 12px;
+}
+
+.searchExperience[data-variant="popout"] .resultCount small {
+  display: none;
+}
+
+.searchExperience[data-variant="popout"] .resultTools {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.searchExperience[data-variant="popout"] .searchBody {
+  min-height: 0;
+}
+
+.searchExperience[data-variant="popout"] .detailPanel {
+  min-width: 300px;
+  border-left: 1px solid var(--rl-rule);
+  border-top: 0;
+}
+
+.resultsScroller[data-layout="adaptive-grid"] {
+  padding: 6px 8px 12px;
+}
+
+.virtualGridRow {
+  position: absolute;
+  inset: 0 0 auto 0;
+  display: grid;
+  grid-template-columns: repeat(var(--result-columns), minmax(0, 1fr));
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.resultsScroller[data-layout="adaptive-grid"] .resultRow {
+  min-height: 58px;
+  border-color: var(--rl-rule);
+  background: var(--rl-paper);
+}
+
+.resultsScroller[data-layout="adaptive-grid"] .resultMain {
+  padding: 6px 8px;
+}
+
+.resultsScroller[data-layout="adaptive-grid"] .resultTitleLine b {
+  font-size: 15px;
+}
+
+.resultsScroller[data-layout="adaptive-grid"] .resultMeta {
+  gap: 5px;
+}
+
+@media (max-width: 900px) {
+  .searchExperience[data-variant="popout"] .searchForm {
+    grid-template-columns: 1fr;
+  }
+
+  .searchExperience[data-variant="popout"] .filterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* Leave a small control pocket for the Studio sidebar popout trigger. */
+.searchExperience[data-variant="assistant"] .searchHeader {
+  padding-right: 52px;
 }

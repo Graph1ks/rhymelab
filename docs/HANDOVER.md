@@ -1,3 +1,18 @@
+# PRESENTATION CONTINUATION — Rhyme Bureau design pass
+
+Branch: `design/rhyme-bureau-studio-pass` · baseline: React merge #205.
+Read `docs/RHYME_BUREAU_DESIGN_PASS.md` for the design plan, protected capabilities,
+implemented scope, automated evidence and outstanding viewport/interaction checks.
+
+This is an owner-authorized presentation pass over the merged React application.
+All working surfaces share the Bureau design language; source/domain behavior and
+all 93 parity statuses remain unchanged. The documented local preview command is
+ready for owner visual and browser interaction review. The supplied cloud browser
+could not reach localhost, so do not claim screenshot/device acceptance or merge the
+candidate on source-test evidence alone. R8 cutover remains blocked as before.
+
+---
+
 # CURRENT CONTINUATION — React Studio behavior-preserving replatform
 
 **Priority:** P0  

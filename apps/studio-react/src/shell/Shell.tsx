@@ -29,6 +29,8 @@ function TopNavButton({
   active: boolean;
   onSelect: (surface: AppSurface) => void;
 }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <button
       type="button"
@@ -37,7 +39,17 @@ function TopNavButton({
       aria-current={active ? 'page' : undefined}
       onClick={() => onSelect(surface)}
     >
-      {label}
+      <span>{label}</span>
+      {active ? (
+        <motion.span
+          layoutId="topbar-active-underline"
+          className={styles.topNavUnderline}
+          transition={reduceMotion
+            ? { duration: 0 }
+            : { type: 'spring', stiffness: 430, damping: 34, mass: 0.72 }}
+          aria-hidden="true"
+        />
+      ) : null}
     </button>
   );
 }
@@ -64,8 +76,11 @@ function Topbar() {
         onClick={() => navigate('home')}
         aria-label={language === 'de' ? 'Rhyme Bureau Intro' : 'Rhyme Bureau intro'}
       >
-        <span className={styles.brandMark}>rb.</span>
-        <span className={styles.brandName}>rhyme bureau</span>
+        <span className={styles.brandMark} aria-hidden="true">rb.</span>
+        <span className={styles.brandName}>
+          <b>rhyme bureau</b>
+          <small>Phonetic License to Slay.</small>
+        </span>
       </button>
 
       <nav className={styles.topNavigation} data-rhymelab-control="shell.navigation">

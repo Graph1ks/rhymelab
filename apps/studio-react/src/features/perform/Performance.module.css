@@ -710,3 +710,54 @@
   line-height: 1.04;
 }
 
+
+/* Bureau rehearsal room. Cue positions, timing and playback stay untouched. */
+.header h1 {
+  font-family: var(--rl-font-editorial);
+  font-weight: 500;
+}
+
+.header p,
+.sequencerHead p {
+  color: var(--rl-muted);
+  font-family: var(--rl-font-mono);
+  font-weight: 500;
+  letter-spacing: .1em;
+}
+
+.boothContext {
+  border-color: var(--rl-rule);
+  border-radius: 8px;
+  background: var(--rl-paper);
+}
+
+.boothContext > article {
+  border-top: 3px solid var(--rl-accent);
+  background: var(--rl-panel);
+}
+
+.boothContext > article b {
+  font-family: var(--rl-font-editorial);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.boothStatus,
+.sequencer,
+.metric { border-radius: 7px; border-color: var(--rl-rule); }
+.boothStatus strong { font-family: var(--rl-font-mono); }
+.boothContext > article small { color: var(--rl-muted); }
+.metric { background: var(--rl-paper); }
+.transport { border-color: var(--rl-rule); }
+.transport button,
+.tools button,
+.performSelect,
+.pauseSelect { border-radius: 6px; }
+
+@media (pointer: coarse) {
+  .barNav button,
+  .transport button,
+  .tools button,
+  .performSelect,
+  .pauseSelect { min-height: 44px; }
+}

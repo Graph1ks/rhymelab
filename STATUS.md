@@ -3,6 +3,20 @@
 Last updated: 2026-09-24
 
 
+## Current presentation pass — Rhyme Bureau
+
+The owner-requested design pass on `design/rhyme-bureau-studio-pass` builds on the
+React merge #205. Plan and verification: `docs/RHYME_BUREAU_DESIGN_PASS.md`.
+The Bureau identity now extends through the Topbar, writing desk, Sound Explorer,
+Library, Analysis, Perform, Settings and Intro. Semantic CSS aliases are complete;
+existing Light/Dark palettes, custom styles and document typography preferences
+remain intact. Domain logic, providers, handlers and cutover status are unchanged.
+
+Automated evidence: 103 React tests, 690 repository tests, strict TypeScript,
+production build, 93/93 source inventory, R7 gate and 4 preview tests pass. Browser
+geometry/interaction and owner visual acceptance remain pending: the supplied cloud
+browser cannot reach the local preview. Keep this candidate in draft for that review.
+
 ## P0 continuation — React Studio behavior-preserving replatform
 
 New product feature development is **frozen**. The active priority is the frontend

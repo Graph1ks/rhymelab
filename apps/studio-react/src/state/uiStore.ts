@@ -7,6 +7,7 @@ import {
   type StudioUiLanguage,
 } from '../legacy/shell';
 import {
+  initialThemeChoice,
   persistAppearancePreferences,
   toggleThemeChoice,
 } from '../design-system/theme';
@@ -40,14 +41,12 @@ const preferences = loadStudioPreferences();
 const initialLanguage = preferences.uiLanguage == null
   ? defaultStudioUiLanguage()
   : normalizeStudioUiLanguage(preferences.uiLanguage);
-const initialThemeChoice = typeof preferences.theme === 'string'
-  ? preferences.theme
-  : 'light';
+const startupThemeChoice = initialThemeChoice(preferences);
 
 export const useUiStore = create<UiState>((set, get) => ({
   surface: 'studio',
   uiLanguage: initialLanguage,
-  themeChoice: initialThemeChoice,
+  themeChoice: startupThemeChoice,
   commandPaletteOpen: false,
   quickstylesOpen: false,
   settingsDrawerOpen: false,

@@ -53,6 +53,13 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Changed
 
+- Refined the React Rhyme Bureau presentation with a paper-and-ink writing desk,
+  editorial document headings, a distinctive monogram, clearer mode navigation,
+  consistent Search/Library/Analysis/Perform/Settings surfaces and a typographic
+  intro specimen. Completed missing semantic CSS aliases for saved-theme
+  compatibility. Existing controls, handlers, domain state, palettes and editor
+  measurement semantics are preserved; browser/owner visual acceptance is pending.
+
 - Froze new product feature development while the React Studio replatform is active. Cutover is blocked until every existing Studio parity capability plus the captured Workflow UX v3 behaviors is verified; no functional simplification is authorized.
 
 - Studio Writer requests now use the compact `studio-writer-compact-v1` transport projection while preserving result order, IDs, scoring/relation metadata and detail-relevant fields; non-Studio `/api/writer` clients retain the full response. JSON API responses are serialized compactly and expose measured response-size/serialization headers.

@@ -20,6 +20,8 @@ import {
   BUILTIN_THEMES,
   applyThemeToDocument,
   completeThemeColors,
+  initialThemeChoice,
+  THEME_DEFAULT_MIGRATION_KEY,
   randomOklchTheme,
   randomWildTheme,
   resolveThemeChoice,
@@ -98,6 +100,19 @@ describe('R2 client-locale defaults', () => {
 describe('R2 appearance defaults', () => {
   it('starts new Studio workspaces in Light mode', () => {
     expect(createStudioState().theme).toBe('light');
+  });
+
+  it('migrates an old persisted Dark default to Light exactly once', () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    };
+
+    expect(initialThemeChoice({ theme: 'dark' }, storage)).toBe('light');
+    expect(values.get(THEME_DEFAULT_MIGRATION_KEY)).toBe('1');
+
+    expect(initialThemeChoice({ theme: 'dark' }, storage)).toBe('dark');
   });
 });
 

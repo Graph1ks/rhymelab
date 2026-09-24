@@ -2,6 +2,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type CSSProperties,
   type KeyboardEvent,
 } from 'react';
@@ -151,6 +152,7 @@ export function ResultsList({
   setVisibleCount,
   onScrollActivity,
   onInsert,
+  layout = 'list',
 }: {
   rows: WriterResultRow[];
   density: ResultDensity;
@@ -162,19 +164,50 @@ export function ResultsList({
   setVisibleCount: (updater: number | ((current: number) => number)) => void;
   onScrollActivity?: () => void;
   onInsert?: (row: WriterResultRow) => void;
+  layout?: 'list' | 'adaptive-grid';
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const [gridColumns, setGridColumns] = useState(1);
 
   const visibleRows = useMemo(
     () => rows.slice(0, Math.min(rows.length, visibleCount)),
     [rows, visibleCount],
   );
 
+  useEffect(() => {
+    const element = scrollerRef.current;
+    if (layout !== 'adaptive-grid' || !element) {
+      if (gridColumns !== 1 && layout !== 'adaptive-grid') setGridColumns(1);
+      return undefined;
+    }
+
+    const ResizeObserverCtor = element.ownerDocument.defaultView?.ResizeObserver
+      ?? globalThis.ResizeObserver;
+    if (!ResizeObserverCtor) return undefined;
+
+    const updateColumns = (width: number) => {
+      const next = width >= 1520 ? 4 : width >= 1080 ? 3 : width >= 680 ? 2 : 1;
+      setGridColumns((current) => current === next ? current : next);
+    };
+
+    updateColumns(element.clientWidth);
+    const observer = new ResizeObserverCtor((entries) => {
+      const entry = entries[0];
+      if (entry) updateColumns(entry.contentRect.width);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [gridColumns, layout]);
+
+  const virtualCount = layout === 'adaptive-grid'
+    ? Math.ceil(visibleRows.length / gridColumns)
+    : visibleRows.length;
+
   const virtualizer = useVirtualizer({
-    count: visibleRows.length,
+    count: virtualCount,
     getScrollElement: () => scrollerRef.current,
-    estimateSize: () => density === 'compact' ? 58 : 88,
+    estimateSize: () => layout === 'adaptive-grid' ? 66 : density === 'compact' ? 58 : 88,
     overscan: 8,
   });
 
@@ -222,7 +255,10 @@ export function ResultsList({
         setVisibleCount(Math.min(rows.length, action.index + 12));
       }
       onSelect(row);
-      requestAnimationFrame(() => virtualizer.scrollToIndex(action.index, { align: 'auto' }));
+      const virtualIndex = layout === 'adaptive-grid'
+        ? Math.floor(action.index / gridColumns)
+        : action.index;
+      requestAnimationFrame(() => virtualizer.scrollToIndex(virtualIndex, { align: 'auto' }));
       return;
     }
     if (action.type === 'insert') {
@@ -237,6 +273,8 @@ export function ResultsList({
       ref={scrollerRef}
       className={styles.resultsScroller}
       data-density={density}
+      data-layout={layout}
+      data-columns={layout === 'adaptive-grid' ? gridColumns : undefined}
       tabIndex={0}
       role="listbox"
       data-rhymelab-control="search.results-keyboard"
@@ -251,6 +289,35 @@ export function ResultsList({
         style={{ height: virtualizer.getTotalSize() }}
       >
         {virtualizer.getVirtualItems().map((item) => {
+          if (layout === 'adaptive-grid') {
+            const start = item.index * gridColumns;
+            const group = visibleRows.slice(start, start + gridColumns);
+            if (!group.length) return null;
+            return (
+              <div
+                key={`grid-${start}`}
+                className={styles.virtualGridRow}
+                style={{
+                  transform: `translateY(${item.start}px)`,
+                  '--result-columns': gridColumns,
+                } as CSSProperties}
+              >
+                {group.map((row) => (
+                  <ResultRow
+                    key={row.id}
+                    row={row}
+                    density="compact"
+                    selected={row.id === selectedId}
+                    saved={isSaved(row.word)}
+                    onSelect={onSelect}
+                    onToggleSaved={onToggleSaved}
+                    onInsert={onInsert}
+                  />
+                ))}
+              </div>
+            );
+          }
+
           const row = visibleRows[item.index];
           if (!row) return null;
           return (

@@ -34,9 +34,11 @@ const FILTER_DISMISS_DELAY_MS = 420;
 function scheduleFilterDismiss(
   close: () => void,
   onDismiss?: () => void,
+  ownerDocument: Document = document,
 ) {
-  window.setTimeout(() => {
-    const hovering = document.querySelector(
+  const ownerWindow = ownerDocument.defaultView ?? window;
+  ownerWindow.setTimeout(() => {
+    const hovering = ownerDocument.querySelector(
       '[data-rhymelab-filter-deck="true"]:hover, [data-search-filter-popup="true"]:hover',
     );
     if (hovering) return;
@@ -49,26 +51,29 @@ function useTransientPopup(
   open: boolean,
   setOpen: (open: boolean) => void,
   onDismiss?: () => void,
+  ownerDocument: Document = document,
 ) {
   const popupRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    const ownerWindow = ownerDocument.defaultView ?? window;
+    const OwnerNode = ownerWindow.Node;
     const closeOnViewportActivity = (event: Event) => {
       const target = event.target;
-      if (target instanceof Node && popupRef.current?.contains(target)) return;
+      if (OwnerNode && target instanceof OwnerNode && popupRef.current?.contains(target)) return;
       setOpen(false);
       onDismiss?.();
     };
-    window.addEventListener('wheel', closeOnViewportActivity, { capture: true, passive: true });
-    window.addEventListener('touchmove', closeOnViewportActivity, { capture: true, passive: true });
-    document.addEventListener('scroll', closeOnViewportActivity, true);
+    ownerWindow.addEventListener('wheel', closeOnViewportActivity, { capture: true, passive: true });
+    ownerWindow.addEventListener('touchmove', closeOnViewportActivity, { capture: true, passive: true });
+    ownerDocument.addEventListener('scroll', closeOnViewportActivity, true);
     return () => {
-      window.removeEventListener('wheel', closeOnViewportActivity, true);
-      window.removeEventListener('touchmove', closeOnViewportActivity, true);
-      document.removeEventListener('scroll', closeOnViewportActivity, true);
+      ownerWindow.removeEventListener('wheel', closeOnViewportActivity, true);
+      ownerWindow.removeEventListener('touchmove', closeOnViewportActivity, true);
+      ownerDocument.removeEventListener('scroll', closeOnViewportActivity, true);
     };
-  }, [onDismiss, open, setOpen]);
+  }, [onDismiss, open, ownerDocument, setOpen]);
 
   return popupRef;
 }
@@ -82,6 +87,7 @@ function FilterSelect({
   active = false,
   onChange,
   onDismiss,
+  portalContainer,
 }: {
   label: string;
   value: string;
@@ -90,9 +96,11 @@ function FilterSelect({
   active?: boolean;
   onChange: (value: string) => void;
   onDismiss?: () => void;
+  portalContainer?: HTMLElement | null;
 }) {
   const [open, setOpen] = useState(false);
-  const popupRef = useTransientPopup(open, setOpen, onDismiss);
+  const ownerDocument = portalContainer?.ownerDocument ?? document;
+  const popupRef = useTransientPopup(open, setOpen, onDismiss, ownerDocument);
 
   return (
     <div
@@ -115,7 +123,7 @@ function FilterSelect({
           <Select.Value />
           <Select.Icon><Icon name="chevron" /></Select.Icon>
         </Select.Trigger>
-        <Select.Portal>
+        <Select.Portal container={portalContainer}>
           <Select.Positioner className={styles.selectPositioner} sideOffset={5} alignItemWithTrigger={false}>
             <Select.Popup
               ref={popupRef}
@@ -123,7 +131,7 @@ function FilterSelect({
               data-search-filter-popup="true"
               onPointerLeave={(event) => {
                 if (event.pointerType === 'mouse') {
-                  scheduleFilterDismiss(() => setOpen(false), onDismiss);
+                  scheduleFilterDismiss(() => setOpen(false), onDismiss, ownerDocument);
                 }
               }}
             >
@@ -169,11 +177,18 @@ function presetLabel(preset: SearchPreset, language: 'de' | 'en'): string {
   } as Record<string, string>)[preset] ?? String(preset);
 }
 
-function LanguageRoutePicker({ onDismiss }: { onDismiss?: () => void }) {
+function LanguageRoutePicker({
+  onDismiss,
+  portalContainer,
+}: {
+  onDismiss?: () => void;
+  portalContainer?: HTMLElement | null;
+}) {
   const language = useUiStore((state) => state.uiLanguage);
   const { state, patch } = useSharedSearchState();
   const [open, setOpen] = useState(false);
-  const popupRef = useTransientPopup(open, setOpen, onDismiss);
+  const ownerDocument = portalContainer?.ownerDocument ?? document;
+  const popupRef = useTransientPopup(open, setOpen, onDismiss, ownerDocument);
   const current = languageRouteValue(state.queryBasis, state.resultLanguage);
   const routeLabel = (value: string) => value === 'both' ? 'DE + EN' : value.toUpperCase();
   const queryRows = [
@@ -199,7 +214,7 @@ function LanguageRoutePicker({ onDismiss }: { onDismiss?: () => void }) {
           <Icon name="chevron" />
         </Popover.Trigger>
       </div>
-      <Popover.Portal>
+      <Popover.Portal container={portalContainer}>
         <Popover.Positioner sideOffset={6} align="start">
           <Popover.Popup
             ref={popupRef}
@@ -207,7 +222,7 @@ function LanguageRoutePicker({ onDismiss }: { onDismiss?: () => void }) {
             data-search-filter-popup="true"
             onPointerLeave={(event) => {
               if (event.pointerType === 'mouse') {
-                scheduleFilterDismiss(() => setOpen(false), onDismiss);
+                scheduleFilterDismiss(() => setOpen(false), onDismiss, ownerDocument);
               }
             }}
           >
@@ -256,16 +271,19 @@ export function SearchControls({
   generatedAvailable,
   compact = false,
   onRequestClose,
+  portalContainer,
 }: {
   entityCategories: string[];
   generatedAvailable: boolean;
   compact?: boolean;
   onRequestClose?: () => void;
+  portalContainer?: HTMLElement | null;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const { state, patch, resetFilters } = useSharedSearchState();
   const [entitiesOpen, setEntitiesOpen] = useState(false);
-  const entityPopupRef = useTransientPopup(entitiesOpen, setEntitiesOpen, onRequestClose);
+  const ownerDocument = portalContainer?.ownerDocument ?? document;
+  const entityPopupRef = useTransientPopup(entitiesOpen, setEntitiesOpen, onRequestClose, ownerDocument);
 
   const scopeOptions: Option[] = [
     { value: 'all', label: language === 'de' ? 'Alles' : 'All' },
@@ -331,7 +349,7 @@ export function SearchControls({
       data-compact={compact ? 'true' : 'false'}
       onPointerLeave={(event) => {
         if (event.pointerType !== 'mouse') return;
-        scheduleFilterDismiss(() => onRequestClose?.());
+        scheduleFilterDismiss(() => onRequestClose?.(), undefined, ownerDocument);
       }}
       data-rhymelab-filter-deck="true"
       data-rhymelab-control="search.languages"
@@ -351,7 +369,7 @@ export function SearchControls({
       </div>
 
       <div className={styles.filterGrid} data-rhymelab-control="search.scope">
-        <LanguageRoutePicker onDismiss={onRequestClose} />
+        <LanguageRoutePicker onDismiss={onRequestClose} portalContainer={portalContainer} />
         <FilterSelect
           label={language === 'de' ? 'BEREICH' : 'SCOPE'}
           value={state.scope}
@@ -359,6 +377,7 @@ export function SearchControls({
           active={state.scope !== 'all'}
           onChange={(value) => patch({ scope: value as SearchScope })}
                   onDismiss={onRequestClose}
+          portalContainer={portalContainer}
         />
         <FilterSelect
           label={language === 'de' ? 'REIM / KLANG' : 'RHYME / SOUND'}
@@ -367,6 +386,7 @@ export function SearchControls({
           active={state.rhymeType !== 'all'}
           onChange={(value) => patch({ rhymeType: value as RhymeType })}
                   onDismiss={onRequestClose}
+          portalContainer={portalContainer}
         />
         <FilterSelect
           label={language === 'de' ? 'SILBEN' : 'SYLLABLES'}
@@ -375,6 +395,7 @@ export function SearchControls({
           active={state.syllableFilter !== 'all'}
           onChange={(value) => patch({ syllableFilter: value as SyllableFilter })}
                   onDismiss={onRequestClose}
+          portalContainer={portalContainer}
         />
         <FilterSelect
           label={language === 'de' ? 'SORTIERUNG' : 'SORT'}
@@ -383,6 +404,7 @@ export function SearchControls({
           active={state.sort !== 'recommended'}
           onChange={(value) => patch({ sort: value as SearchSort })}
                   onDismiss={onRequestClose}
+          portalContainer={portalContainer}
         />
         <FilterSelect
           label={language === 'de' ? 'AUSSPRACHE' : 'PRONUNCIATION'}
@@ -392,6 +414,7 @@ export function SearchControls({
           active={state.variantMode !== 'preferred'}
           onChange={(value) => patch({ variantMode: value as VariantMode })}
                   onDismiss={onRequestClose}
+          portalContainer={portalContainer}
         />
         <FilterSelect
           label={language === 'de' ? 'KORPUS' : 'CORPUS'}
@@ -400,6 +423,7 @@ export function SearchControls({
           active={state.historical || state.generated || state.generatedOnly}
           onChange={(value) => patch(corpusModePatch(value as CorpusMode))}
                   onDismiss={onRequestClose}
+          portalContainer={portalContainer}
         />
 
         <Popover.Root open={entitiesOpen} onOpenChange={setEntitiesOpen}>
@@ -424,7 +448,7 @@ export function SearchControls({
               <Icon name="chevron" />
             </Popover.Trigger>
           </div>
-          <Popover.Portal>
+          <Popover.Portal container={portalContainer}>
             <Popover.Positioner sideOffset={5} align="end">
               <Popover.Popup
                 ref={entityPopupRef}
@@ -432,7 +456,7 @@ export function SearchControls({
                 data-search-filter-popup="true"
                 onPointerLeave={(event) => {
                   if (event.pointerType === 'mouse') {
-                    scheduleFilterDismiss(() => setEntitiesOpen(false), onRequestClose);
+                    scheduleFilterDismiss(() => setEntitiesOpen(false), onRequestClose, ownerDocument);
                   }
                 }}
               >
