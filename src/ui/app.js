@@ -162,8 +162,8 @@ const state={
   resultFiltersExpanded:savedResultFiltersExpanded==null?defaultSearchSectionsExpanded:savedResultFiltersExpanded==='1',
   generatedOptIn:true,generatedOnly:false,generatedCapability:null,datasetStats:null,runtimeTiming:null,
   canonicalPronunciationRevision:null,generatedPronunciationRevision:null,
-  capabilities:null,pronunciationRevision:null,data:null,visibleCount:60,pageSize:60,sectionPageSize:24,
-  sectionVisible:new Map(),query:'',scrollObserver:null,wordCache:new Map(),pronunciationMisses:new Set(),
+  capabilities:null,pronunciationRevision:null,data:null,visibleCount:60,pageSize:60,
+  query:'',scrollObserver:null,wordCache:new Map(),pronunciationMisses:new Set(),
   detailRequest:0,inspectedWord:null,inspectedResult:null,inspectedType:null,searchAutoCompactThreshold:null,stickyPanelOverride:null,
 };
 let sharedSearchState=createSearchState({
@@ -300,7 +300,6 @@ function applyLanguageRoute(value,{rerun=true}={}){
   state.resultLanguage=result;
   localStorage.setItem('rhymelab.searchBasis',state.basis);
   localStorage.setItem('rhymelab.resultLanguage',state.resultLanguage);
-  state.sectionVisible.clear();
   syncCapabilityControls();
   captureSharedSearchState();
   applyLanguage();
@@ -337,7 +336,6 @@ function applyCorpusMode(value,{rerun=true}={}){
   syncCorpusModeControl();
   state.wordCache.clear();
   state.pronunciationMisses.clear();
-  state.sectionVisible.clear();
   captureSharedSearchState();
   if(rerun&&state.query)void search(state.query);
   else renderCapabilityNotice();
@@ -957,7 +955,6 @@ async function search(word){
   $('#error').classList.add('hidden');
   $('#results').innerHTML='';
   state.visibleCount=state.pageSize;
-  state.sectionVisible.clear();
   state.inspectedWord=null;
   state.inspectedResult=null;
   state.inspectedType=null;
@@ -1067,39 +1064,34 @@ function installInteractiveControls(){
   $('#scopeFilter').addEventListener('change',(event)=>{setScope(event.target.value,{rerun:true});renderCapabilityNotice();});
   $('#typeFilter').addEventListener('change',()=>{
     state.visibleCount=state.pageSize;
-    state.sectionVisible.clear();
-    captureSharedSearchState();
+      captureSharedSearchState();
     syncContextFilters();
     if(state.query)void search(state.query);
     else renderCapabilityNotice();
   });
   $('#variantMode').addEventListener('change',()=>{
     state.visibleCount=state.pageSize;
-    state.sectionVisible.clear();
-    captureSharedSearchState();
+      captureSharedSearchState();
     syncContextFilters();
     if(state.query)void search(state.query);
     else renderCapabilityNotice();
   });
   $('#syllableFilter').addEventListener('change',()=>{
     state.visibleCount=state.pageSize;
-    state.sectionVisible.clear();
-    captureSharedSearchState();
+      captureSharedSearchState();
     syncContextFilters();
     if(state.query)void search(state.query);
     else if(state.data)render();
   });
   $('#sortMode').addEventListener('change',()=>{
     state.visibleCount=state.pageSize;
-    state.sectionVisible.clear();
-    captureSharedSearchState();
+      captureSharedSearchState();
     syncContextFilters();
     if(state.data)render();
   });
   $('#corpusMode').addEventListener('change',(event)=>applyCorpusMode(event.target.value,{rerun:true}));
   $('#entityCategory').addEventListener('change',()=>{
-    state.sectionVisible.clear();
-    captureSharedSearchState();
+      captureSharedSearchState();
     if(state.query)void search(state.query);
   });
   $('#statsButton').addEventListener('click',()=>{$('#statsDialog').showModal();void loadDatasetStats();});
