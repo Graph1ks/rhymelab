@@ -2,6 +2,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  type CSSProperties,
   type KeyboardEvent,
 } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -98,7 +99,7 @@ function ResultRow({
 
       {density === 'list' && score != null ? (
         <span className={styles.scoreCell}>
-          <i style={{ '--score': `${score}%` } as React.CSSProperties} />
+          <i style={{ '--score': `${score}%` } as CSSProperties} />
           <small>{score}%</small>
         </span>
       ) : null}
