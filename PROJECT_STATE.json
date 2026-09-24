@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-24",
-  "phase": "REACT_STUDIO_REPLATFORM_R3_COMPLETE",
+  "phase": "REACT_STUDIO_REPLATFORM_R4_COMPLETE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -4005,7 +4005,7 @@
   "active_continuation": {
     "id": "REACT_STUDIO_REPLATFORM",
     "priority": "P0",
-    "status": "R3_SEARCH_WRITER_VERIFIED_R4_NEXT",
+    "status": "R4_LIBRARY_PERSISTENCE_RECOVERY_VERIFIED_R5_NEXT",
     "branch": "refactor/react-studio-replatform",
     "handover": "docs/REACT_STUDIO_REPLATFORM.md",
     "parity_gate": "docs/REACT_STUDIO_PARITY_GATE.md",
@@ -4040,9 +4040,10 @@
       ]
     },
     "r1_contract": "docs/REACT_STUDIO_R1_TYPED_BRIDGE.md",
-    "next_thread_action": "implement_R4_Library_persistence_recovery_on_existing_DocumentStore_without_parallel_React_or_Zustand_document_authority",
+    "next_thread_action": "implement_R5_editor_on_existing_R4_DocumentStore_persistence_path_without_parallel_document_authority",
     "r2_contract": "docs/REACT_STUDIO_R2_SHELL.md",
-    "r3_contract": "docs/REACT_STUDIO_R3_SEARCH_WRITER.md"
+    "r3_contract": "docs/REACT_STUDIO_R3_SEARCH_WRITER.md",
+    "r4_contract": "docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md"
   },
   "studio_v2": {
     "status": "LIVE_DEFAULT_PENDING_REAL_DEVICE_ACCEPTANCE",
@@ -4089,7 +4090,7 @@
     "real_device_acceptance": "pending_7_gates"
   },
   "react_studio_replatform": {
-    "status": "R3_COMPLETE_R4_NEXT",
+    "status": "R4_COMPLETE_R5_NEXT",
     "priority": "P0",
     "stack": [
       "React 19.3",
@@ -4176,6 +4177,44 @@
       "user_facing_cutover_rows_verified_by_r3": false,
       "focused_verification": "npm run studio:react:r3",
       "next_phase": "R4_LIBRARY_PERSISTENCE_RECOVERY"
+    },
+    "r4": {
+      "status": "AUTOMATED_VERIFIED_BROWSER_ACCEPTANCE_DEFERRED",
+      "contract": "docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md",
+      "manifest": "apps/studio-react/r4-library-manifest.json",
+      "source_root": "apps/studio-react/src/features/library",
+      "document_store_authority": "EXISTING_INDEXEDDB_DOCUMENTSTORE",
+      "react_working_copy_only": true,
+      "zustand_document_authority": false,
+      "legacy_migration_path_reused": true,
+      "localstorage_fallback_preserved": true,
+      "autosave_debounce_ms": 180,
+      "autosave_serialized": true,
+      "lifecycle_flush": [
+        "visibilitychange_hidden",
+        "pagehide"
+      ],
+      "library_document_crud": true,
+      "hierarchical_folders": true,
+      "document_move_and_drag_drop": true,
+      "trash_restore": true,
+      "predelete_recovery_when_indexeddb_available": true,
+      "permanent_delete_fallback_preserved": true,
+      "manual_recovery": true,
+      "portable_backup_import_export": true,
+      "portable_import_max_mib": 64,
+      "preimport_recovery": true,
+      "imported_preferences_rehydrated": true,
+      "imported_search_state_rehydrated": true,
+      "r1_bridges_modified": false,
+      "shipping_studio_modified": false,
+      "backend_modified": false,
+      "editor_autosave_status": "PENDING_R5_EDITOR_MUTATION_STREAM",
+      "browser_acceptance_pending": true,
+      "user_facing_cutover_rows_verified_by_r4": false,
+      "focused_verification": "npm run studio:react:r4",
+      "automated_tests": 50,
+      "next_phase": "R5_EDITOR"
     }
   }
 }
