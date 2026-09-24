@@ -21,21 +21,28 @@ do not delete old Studio, and do not reinterpret the port as permission to simpl
 editor, Search, Library, Analysis, Perform, mobile, persistence, recovery or runtime
 database behavior.
 
-R0 through R3 are complete. R1 is documented in
-`docs/REACT_STUDIO_R1_TYPED_BRIDGE.md` and provides strict typed bridges over 18
-existing domain/browser modules. R2 is documented in
-`docs/REACT_STUDIO_R2_SHELL.md` and establishes the React shell/design-system
-layer. R3 is documented in `docs/REACT_STUDIO_R3_SEARCH_WRITER.md` and places the
-live existing Search/Writer pipeline in the React Search surface and Studio Sound
-Explorer.
+R0 through R4 are complete. R1 is documented in
+`docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`; R2 in
+`docs/REACT_STUDIO_R2_SHELL.md`; R3 in
+`docs/REACT_STUDIO_R3_SEARCH_WRITER.md`; and R4 in
+`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`.
 
-R3 intentionally leaves safe result insertion plus selection-follow/fixed-anchor
-for R5, because those actions require the real React editor Selection Proof,
-stable-Bar, IME and undo/redo semantics. Do not work around that boundary.
+R4 uses the existing IndexedDB DocumentStore as the authoritative persistence layer.
+The React DocumentWorkspaceProvider is orchestration only: Library mutations,
+serialized autosave, lifecycle flush, Trash/Restore, Recovery and portable
+backup/import all run through the existing R1 document/backup bridges. Do not move
+documents into Zustand or introduce a second IndexedDB schema/backup format.
 
-The next implementation action is **R4: Library / persistence / recovery**. Reuse
-the existing R1 DocumentStore, document model/adapter and backup bridges. IndexedDB
-must remain authoritative; do not create a parallel React/Zustand document store.
+R3 still intentionally leaves safe result insertion plus selection-follow/fixed
+anchor for the editor phase.
+
+The next implementation action is **R5: editor**. Preserve the existing stable Bar
+IDs, unified tracked/free-line document geometry, bracket metadata handling,
+Selection Proof, native replace/split/merge/multiline-paste behavior, IME
+transactions, typing-burst undo/redo coalescing, revision semantics, Bar actions,
+Bar Navigator, hold-drag transport and section long-press behavior. R5 must write
+through the R4 DocumentStore persistence path rather than creating another document
+authority.
 
 ---
 
