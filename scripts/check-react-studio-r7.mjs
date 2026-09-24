@@ -92,17 +92,23 @@ add(
   'registered ResultsList key handler uses tested R7 action model',
 );
 add(
-  'settings.system-acceptance',
-  settings.includes('<SystemAcceptancePanel />'),
-  'R7 diagnostics/device acceptance visible in Settings',
+  'settings.owner-workspace',
+  settings.includes('<StyleDesigner />')
+    &&settings.includes('<DataSafetyPanel />')
+    &&!settings.includes('<SystemAcceptancePanel />')
+    &&!settings.includes('setCommandPaletteOpen')
+    &&!settings.includes('setUiLanguage'),
+  'Settings owns Style Designer + data safety without duplicate Commands/Language/diagnostics UI',
 );
 add(
-  'drawer.single-scroll-owner',
-  shell.includes('data-scroll-owner="settings-drawer"')
-    &&shell.includes('data-scroll-container="settings-drawer"')
-    &&/\.drawerPopup\s*\{[^}]*overflow:\s*hidden;/su.test(shellCss)
-    &&/\.drawerContent\s*\{[^}]*overflow-y:\s*auto;[^}]*touch-action:\s*pan-y;/su.test(shellCss),
-  'drawer shell clips; one content owner handles wheel/touch scroll',
+  'shell.single-top-navigation',
+  shell.includes('className={styles.topNavigation}')
+    &&shell.includes('data-rhymelab-control="shell.navigation"')
+    &&!shell.includes('<Sidebar')
+    &&!shell.includes('<MobileNavigation')
+    &&/\.appShell\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/su.test(shellCss)
+    &&/\.topbar\s*\{[^}]*grid-template-columns:/su.test(shellCss),
+  'single persistent Topbar owns desktop/mobile navigation; sidebar and bottom nav are retired',
 );
 add(
   'route.preview-opt-in',
@@ -136,7 +142,7 @@ if(!codeOnly){
     add(
       'device.seven-gate-report',
       false,
-      'missing '+missing.join(', ')+'; export the React Settings R7 report and pass --device-report <file>',
+      'missing '+missing.join(', ')+'; provide the external/manual R7 device report with --device-report <file>',
     );
   }else{
     try{
