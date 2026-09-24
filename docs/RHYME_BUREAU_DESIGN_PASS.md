@@ -41,13 +41,13 @@ Personality belongs around the writing, never over it.
 | Topbar | Sharper monogram, stacked wordmark, restrained navigation indicators, same compact height | Home, Studio, Search, Commands, Settings, DE/EN, quick Light/Dark and Quickstyles |
 | Studio frame | Clear mode strip and readable utility actions; paper writing plane against a quiet desk; responsive spacing | Write/Analyze/Perform, Library, Focus, search pause and assistant collapse |
 | Editor | Editorial document title, calmer toolbar, precise gutter borders and footer | Native textarea, font/size preferences, measured wrapping, Bar IDs, drag/drop, selection proofs, undo/redo, revisions and autosave |
-| Search | Strong query typography, disciplined anchor treatment, readable result selection and relation badges; keep the page full-width while centering the desktop query/result workflow in an ~82% reading lane capped at 1440px | All filters/routes/scopes, runtime editions, compact/list, continuous loading, detail, saved results, safe insertion and request cancellation |
+| Search | Strong query typography, disciplined anchor treatment, readable result selection and relation badges; keep the page full-width while aligning header/runtime, language route, filters, query, capability count, toolbar and results to one ~82% desktop reading lane capped at 1440px | All filters/routes/scopes, runtime editions, compact/list, continuous loading, detail, saved results, safe insertion and request cancellation |
 | Library | File-cabinet character through typography, rules and active-document treatment | Directory navigation, context menus, keyboard actions, sorting, moves/copies, Trash and recovery |
 | Analysis | Consistent editorial header, flatter metric surfaces, readable panels | Canonical relations, group/type color separation, linked topology, language and relation controls |
 | Perform | Strong rehearsal text hierarchy and coherent transport/tool surfaces | Timing, cues, BPM/grid/feel/count-in/loop, review invalidation, Web Audio and Focus |
 | Settings | Cohesive style workbench and data-safety surfaces; replace visible migration badge with product copy | Color generation/edit/save/apply/delete, defaults/reset, contrast report, backup/import/recovery |
 | Intro | Editorial poster composition and static sound specimen; retain existing copy and navigation actions | All entry points, language variants, reduced motion |
-| Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; on desktop dock Sound Explorer flush to the workspace top/right/bottom while the writing desk keeps its inset; wrap controls rather than clip them; coarse-pointer targets | No sidebar return, no new nested page scroll, no hover-only action |
+| Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; on desktop dock Sound Explorer flush to the workspace top/right/bottom and allow it to pop into a resizable second-window view with 1–4 adaptive result columns; closing/redocking restores the sidebar | No new nested page scroll, no duplicated search/editor state, no hover-only action |
 | Navigation motion | No full-page route transition. Use local micro-motion only: a shared active-nav underline and restrained interaction motion on the Bureau mark | Navigation remains immediate; reduced-motion removes non-essential logo motion and the active indicator changes without animated travel |
 
 ## No-capability-loss contract
@@ -67,6 +67,8 @@ Personality belongs around the writing, never over it.
    into the repository or runtime.
 
 ## Verification plan
+
+- Sound Explorer popout acceptance: opening uses the live Studio/editor/search context; inline sidebar yields its width; 680/1080/1520px result thresholds produce 2/3/4 columns; runtime/filter/dialog portals stay inside the popout document; closing by Dock or window X restores the sidebar.
 
 - `npm run studio:react:verify` (inventory, types, all React tests, production build).
 - `npm run studio:react:r7:gate` and reversible-preview tests.
