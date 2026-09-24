@@ -1,4 +1,5 @@
 import { Button, Select } from '../design-system/primitives';
+import { DataSafetyPanel } from '../features/library/DataSafetyPanel';
 import { themeChoices } from '../design-system/theme';
 import type { StudioUiLanguage } from '../legacy/shell';
 import { useUiStore } from '../state/uiStore';
@@ -127,6 +128,22 @@ export function SettingsPanel({ compact = false }: { compact?: boolean }) {
           {shellText('Befehle öffnen', language)}
           <kbd>Ctrl / ⌘ + K</kbd>
         </Button>
+      </section>
+
+      <section className={styles.settingsCard}>
+        <div className={styles.settingsCardHead}>
+          <span className={styles.settingsIcon}><Icon name="grid" /></span>
+          <div>
+            <p className={styles.kicker}>DATA SAFETY</p>
+            <h2>{language === 'de' ? 'Lokale Daten' : 'Local data'}</h2>
+          </div>
+        </div>
+        <p className={styles.settingsCopy}>
+          {language === 'de'
+            ? 'Recovery, portabler Import/Export und der autoritative IndexedDB-Status laufen über denselben bestehenden DocumentStore.'
+            : 'Recovery, portable import/export and authoritative IndexedDB status use the same existing DocumentStore.'}
+        </p>
+        <DataSafetyPanel />
       </section>
     </div>
   );
