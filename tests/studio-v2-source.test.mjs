@@ -454,7 +454,7 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(css,/\.topbar \.icon\{width:44px;height:44px;min-height:44px/u);
 });
 
-test('Studio live default route leaves legacy Search and RhymePad routes in place',async()=>{
+test('React Studio live default leaves Studio V2, Search and RhymePad rollback routes in place',async()=>{
   const [server,app]=await Promise.all([
     readFile('src/server.mjs','utf8'),
     readFile('src/studio/app.js','utf8'),
@@ -471,8 +471,10 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/distribution_edition_mismatch/u);
   assert.match(app,/\['lite','standard','full'\]/u);
   assert.doesNotMatch(app,/\['master','lite','standard','full'\]/u);
-  assert.match(server,/'\/studio': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
-  assert.match(server,/'\/studio\/': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
+  assert.match(server,/'\/studio': \{ type: 'text\/html; charset=utf-8', body: reactStudioHtml \}/u);
+  assert.match(server,/'\/studio\/': \{ type: 'text\/html; charset=utf-8', body: reactStudioHtml \}/u);
+  assert.match(server,/'\/studio-legacy': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
+  assert.match(server,/'\/studio-legacy\/': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
   assert.match(server,/'\/studio\/styles\.css': \{ type: 'text\/css; charset=utf-8'/u);
   assert.match(server,/'\/studio\/app\.js': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/studio-core\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
@@ -499,7 +501,7 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/'\/studio\/dom-acceptance\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/command-palette\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
   assert.match(server,/'\/studio\/device-acceptance\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
-  assert.match(server,/studioDefaultRoute\?studioHtml:writerHtml/u);
+  assert.match(server,/reactStudioPreview\.defaultRoute\?reactStudioHtml:studioHtml/u);
   assert.match(server,/'\/legacy': \{ type: 'text\/html; charset=utf-8', body: writerHtml \}/u);
   assert.match(server,/'\/pad-legacy': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/u);
   assert.match(server,/'\/api\/studio\/route-mode'/u);
@@ -511,9 +513,10 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/'\/ui\/query-pronunciation-cache\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
 
   assert.match(server,/'\/assets\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8'/u);
-  assert.match(server,/studioDefaultRoute\?studioHtml:writerHtml/u);
+  assert.match(server,/reactStudioPreview\.defaultRoute\?reactStudioHtml:studioHtml/u);
   assert.match(server,/'\/pad': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/u);
-  assert.match(server,/Studio V2:/u);
+  assert.match(server,/React Studio:/u);
+  assert.match(server,/Studio V2 rollback:/u);
   assert.match(server,/'\/api\/analysis\/rhyme-scheme'/u);
   assert.match(server,/entity_categories/u);
   assert.match(server,/entityCategories/u);
