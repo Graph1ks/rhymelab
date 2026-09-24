@@ -239,14 +239,15 @@ The existing Studio V2 source is not deleted during migration. Until the owner a
 
 ## Current implementation checkpoint
 
-R0 through R3 are complete on `refactor/react-studio-replatform`.
+R0 through R4 are complete on `refactor/react-studio-replatform`.
 
 ```text
 R0  scaffold / freeze / parity inventory        VERIFIED
 R1  typed legacy domain bridge                  VERIFIED
 R2  shell + design system                       AUTOMATED VERIFIED
 R3  Search / Writer                             AUTOMATED VERIFIED
-R4  Library / persistence / recovery            NEXT
+R4  Library / persistence / recovery            AUTOMATED VERIFIED
+R5  editor                                      NEXT
 ```
 
 R1 wraps 18 existing browser/domain modules behind strict TypeScript contracts
@@ -266,16 +267,23 @@ pronunciation, detail, capability and runtime-edition bridges:
 
 `docs/REACT_STUDIO_R3_SEARCH_WRITER.md`
 
+R4 places Library, the authoritative IndexedDB DocumentStore workflow, serialized
+autosave, Trash/Restore, Recovery and portable backup/import into the React shell
+without introducing a parallel React/Zustand document authority:
+
+`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`
+
 Focused verification:
 
 ```bash
 npm run studio:react:r1
 npm run studio:react:r2
 npm run studio:react:r3
+npm run studio:react:r4
 ```
 
 The application remains intentionally isolated from the shipping root route. Studio
 V2 is still the shipping behavioral golden master and rollback implementation.
-R3 rows are only `ported` / `in_progress` where browser evidence or the later
-R5 editor integration is still required; the 93/93 `verified` cutover rule is
+R4 rows are only `ported` where browser evidence is still required. Editor-driven
+autosave/revision semantics remain R5 work; the 93/93 `verified` cutover rule is
 unchanged.
