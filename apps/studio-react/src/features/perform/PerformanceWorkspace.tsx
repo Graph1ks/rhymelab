@@ -236,7 +236,7 @@ export function PerformanceWorkspace({
       await context.resume();
       setPlaying(true);
       selectedBarIdRef.current = bar.id;
-      tickRef.current = -(countInBars * current.config.grid);
+      tickRef.current = -(countInBars * performanceConfig(current).grid);
       setCountInRemaining(countInBars * 4);
 
       const pulse = () => {
