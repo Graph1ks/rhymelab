@@ -274,8 +274,13 @@
       "id": "editor.theme",
       "group": "Writing / Editor",
       "capability": "Light / dark / custom semantic themes",
-      "status": "pending",
-      "evidence": []
+      "status": "in_progress",
+      "evidence": [
+        "apps/studio-react/src/design-system/theme.ts",
+        "apps/studio-react/src/shell/ThemeControls.tsx",
+        "apps/studio-react/src/shell/SettingsPanel.tsx",
+        "apps/studio-react/src/shell/r2-shell.test.ts"
+      ]
     },
     {
       "id": "editor.clear",
@@ -470,43 +475,67 @@
       "id": "appearance.quick-switch",
       "group": "Appearance / UX",
       "capability": "One-click configured Light/Dark switch",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/ThemeControls.tsx",
+        "apps/studio-react/src/design-system/theme.ts",
+        "apps/studio-react/src/shell/r2-shell.test.ts"
+      ]
     },
     {
       "id": "appearance.quickstyles",
       "group": "Appearance / UX",
       "capability": "Hover + explicit touch Quickstyles menu",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/ThemeControls.tsx",
+        "apps/studio-react/src/design-system/theme.ts"
+      ]
     },
     {
       "id": "appearance.language",
       "group": "Appearance / UX",
       "capability": "Persistent DE / EN interface switch",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/state/uiStore.ts",
+        "apps/studio-react/src/shell/SettingsPanel.tsx",
+        "apps/studio-react/src/legacy/shell.ts",
+        "apps/studio-react/src/shell/r2-shell.test.ts"
+      ]
     },
     {
       "id": "appearance.command-palette",
       "group": "Appearance / UX",
       "capability": "Searchable ranked keyboard command palette",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/CommandPalette.tsx",
+        "apps/studio-react/src/legacy/shell.ts",
+        "apps/studio-react/src/shell/r2-shell.test.ts"
+      ]
     },
     {
       "id": "appearance.motion",
       "group": "Appearance / UX",
       "capability": "Restrained motion and reduced-motion support",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/styles/tokens.css",
+        "apps/studio-react/src/shell/Shell.module.css",
+        "apps/studio-react/src/shell/SurfaceContent.tsx"
+      ]
     },
     {
       "id": "mobile.navigation",
       "group": "Mobile",
       "capability": "Bottom navigation",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/Shell.tsx",
+        "apps/studio-react/src/shell/Shell.module.css",
+        "apps/studio-react/src/shell/r2-shell.test.ts"
+      ]
     },
     {
       "id": "mobile.swap",
@@ -519,22 +548,31 @@
       "id": "mobile.keyboard",
       "group": "Mobile",
       "capability": "VisualViewport keyboard correction",
-      "status": "pending",
-      "evidence": []
+      "status": "in_progress",
+      "evidence": [
+        "apps/studio-react/src/shell/Shell.tsx",
+        "apps/studio-react/src/legacy/shell.ts"
+      ]
     },
     {
       "id": "mobile.touch",
       "group": "Mobile",
       "capability": "Primary touch targets >=44 CSS px",
-      "status": "pending",
-      "evidence": []
+      "status": "in_progress",
+      "evidence": [
+        "apps/studio-react/src/shell/Shell.module.css",
+        "apps/studio-react/src/shell/Shell.tsx"
+      ]
     },
     {
       "id": "mobile.no-hover",
       "group": "Mobile",
       "capability": "No hover-only primary action",
-      "status": "pending",
-      "evidence": []
+      "status": "in_progress",
+      "evidence": [
+        "apps/studio-react/src/shell/ThemeControls.tsx",
+        "apps/studio-react/src/shell/Shell.tsx"
+      ]
     },
     {
       "id": "system.backup",
