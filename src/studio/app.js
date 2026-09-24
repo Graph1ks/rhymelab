@@ -412,6 +412,56 @@ function restoreStudioRevision(entry){
   changed();
   return true;
 }
+function revisionDiffDisplayLabel(row){
+  const key=revisionDiffLabel(row);
+  return ({
+    Added:'Nur aktuell',
+    Removed:'Nur alte Fassung',
+    Moved:'Verschoben',
+    Changed:'Geändert',
+    'Changed + moved':'Geändert + verschoben',
+    Unchanged:'Unverändert',
+  })[key]||key;
+}
+function revisionDiffCell(bar,lineNumber,side){
+  if(!bar)return '<div class="revision-diff-cell is-empty"><span class="revision-line-number">—</span><code>—</code></div>';
+  return '<div class="revision-diff-cell '+side+'"><span class="revision-line-number">'+String(lineNumber??'—')+'</span><code>'+esc(bar.text||'')+'</code></div>';
+}
+function openRevisionComparison(index){
+  const entry=song().revisions?.[Number(index)];
+  if(!entry)return;
+  const diff=compareEditorRevisions(editorSnapshot(song()),entry);
+  const changedCount=diff.changedRows.length;
+  const when=new Intl.DateTimeFormat(state.uiLanguage==='en'?'en-GB':'de-DE',{
+    day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',
+  }).format(Number(entry.at)||Date.now());
+  const rows=diff.rows.map((row)=>{
+    return '<article class="revision-diff-row is-'+esc(row.type)+'" data-diff-type="'+esc(row.type)+'">'
+      +'<div class="revision-diff-state"><span>'+esc(revisionDiffDisplayLabel(row))+'</span></div>'
+      +revisionDiffCell(row.current,row.currentLine,'current')
+      +revisionDiffCell(row.previous,row.previousLine,'previous')
+      +'</article>';
+  }).join('');
+  showDialog(
+    state.uiLanguage==='en'?'Compare revision':'Fassung vergleichen',
+    '<div class="revision-compare">'
+      +'<div class="revision-compare-summary"><div><span class="eyebrow">VERLAUF · '+esc(when)+'</span><h3>'+(changedCount?changedCount+' Unterschiede':'Keine Textunterschiede')+'</h3><p>Links steht dein aktueller Text, rechts die ausgewählte Fassung. Der komplette Text bleibt sichtbar; Unterschiede sind zeilenweise markiert.</p></div>'
+      +'<div class="revision-compare-counts"><span>'+diff.summary.changed+' geändert</span><span>'+diff.summary.added+' nur aktuell</span><span>'+diff.summary.removed+' nur alt</span><span>'+diff.summary.moved+' verschoben</span></div></div>'
+      +'<div class="revision-diff-head"><span>Status</span><b>Aktuell</b><b>Fassung '+esc(when)+'</b></div>'
+      +'<div class="revision-diff-scroll">'+rows+'</div>'
+      +'<div class="revision-compare-actions"><button type="button" id="revisionCompareCancel" class="outline">Aktuell behalten</button><button type="button" id="revisionCompareRestore" class="primary">Diese Fassung wiederherstellen</button></div>'
+      +'</div>'
+  );
+  $('#dialog').dataset.surface='revision-compare';
+  $('#revisionCompareCancel').onclick=closeDialog;
+  $('#revisionCompareRestore').onclick=()=>{
+    if(restoreStudioRevision(entry)){
+      closeDialog();
+      notify('Fassung wiederhergestellt · vorheriger Stand wurde gesichert.');
+      if(dockTab==='history')renderDock();
+    }
+  };
+}
 function changed(){const s=song();s.updatedAt=Date.now();$('#saveState').textContent='Speichert …';clearTimeout(saveTimer);saveTimer=setTimeout(()=>{revision('autosave');persist()},650);queueAnalysisWarm();updateStats() }
 function notify(t){$('#toast').textContent=t;$('#toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.add('hidden'),3300)}
 function trackedStudioLineIndexes(current=song()){
@@ -2078,8 +2128,8 @@ async function startPlay(){
     notify('Audio hier nicht verfügbar. Timing-Raster bleibt nutzbar.');
   }
 }
-function showDialog(title,html){$('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=html;if(!$('#dialog').open)$('#dialog').showModal()}
-function closeDialog(){$('#dialog').close()}
+function showDialog(title,html){const dialog=$('#dialog');delete dialog.dataset.surface;$('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=html;if(!dialog.open)dialog.showModal()}
+function closeDialog(){const dialog=$('#dialog');if(dialog.open)dialog.close();delete dialog.dataset.surface}
 function legacyFilters(){showDialog('Dein Klang. Deine Suche.',`<div class="formgrid"><label class="field">Aussprache der Suchanfrage<select id="basis"><option value="de">Deutsch</option><option value="en">Englisch</option><option value="both">DE + EN</option></select></label><label class="field">Sprache der Ergebnisse<select id="resultLanguage"><option value="both">DE + EN</option><option value="de">Deutsch</option><option value="en">Englisch</option></select></label><label class="field">Reimbeziehung<select id="relation"><option value="all">Alle Beispiele</option><option value="rein">Reiner Reim</option><option value="nah">Naher Klang</option></select></label><label class="field">Reihenfolge<select id="sort"><option value="recommended">Writer-Empfehlung</option><option value="alpha">A–Z</option><option value="syllables">Silben aufsteigend</option></select></label></div><p class="notice">Die Live-Suche nutzt die lokale Writer-Runtime. Die vollständige Filtermatrix, Varianten, historische Formen, Generated-Daten und Provenienz sind im Studio über direkte und erweiterte Filter verfügbar.</p><div class="dialogactions"><button id="resetFilters">Zurücksetzen</button><button id="applyFilters" class="primary">Anwenden</button></div>`);$('#basis').value=basis;$('#resultLanguage').value=resultLang;$('#relation').value=relation;$('#sort').value=sort;$('#applyFilters').onclick=()=>{basis=$('#basis').value;resultLang=$('#resultLanguage').value;relation=$('#relation').value;sort=$('#sort').value;pageSize=6;void refreshWriterResults();closeDialog()};$('#resetFilters').onclick=()=>{basis='de';resultLang='both';relation='all';sort='recommended';void refreshWriterResults();closeDialog()}}
 function legacySettings(){showDialog('Dein Studio einrichten',`<label class="field">Schriftgröße im Editor<input id="fontRange" type="range" min="16" max="28" value="${state.fontSize}"></label><p class="small" id="fontValue">${state.fontSize} px</p><div class="row wrap" style="margin-top:20px"><button id="settingTheme" class="outline">Hell / Dunkel wechseln</button><button id="settingHistory" class="outline">Versionsverlauf</button></div><p class="notice">Texte, Revisionen und Performance-Cues werden lokal im versionierten IndexedDB-DocumentStore gespeichert. UI-Präferenzen bleiben in LocalStorage; Recovery-Punkte sind in den Studio-Einstellungen verfügbar.</p><div class="row wrap"><button id="sourceInfo" class="outline">Über Studio 02</button><button id="commandsSettings" class="outline">Tastenkürzel</button></div>`);$('#fontRange').oninput=e=>{state.fontSize=+e.target.value;document.documentElement.style.setProperty('--editor',state.fontSize+'px');resizeArea($('#lyricsEditor'));$('#fontValue').textContent=state.fontSize+' px';persist()};$('#settingTheme').onclick=toggleTheme;$('#settingHistory').onclick=showHistory;$('#sourceInfo').onclick=showInfo;$('#commandsSettings').onclick=showCommands}
 function legacyToggleTheme(){toggleTheme()}
