@@ -1,8 +1,8 @@
 {
   "schema": "rhymelab-react-studio-r7-parity-v1",
   "phase": "R7",
-  "status": "R7_SOURCE_PARITY_COMPLETE_UX_CORRECTION_IMPLEMENTED_PHYSICAL_ACCEPTANCE_PENDING",
-  "tested_code_head": "e7e93846fa00",
+  "status": "R7_SOURCE_PARITY_COMPLETE_UX_CORRECTION_ROUND2_IMPLEMENTED_OWNER_ACCEPTANCE_PENDING",
+  "tested_code_head": "b2d16a4ed27e",
   "invariant": "93_of_93_mandatory_rows_are_source_ported_but_verified_requires_behavioral_and_device_evidence",
   "cutover_allowed": false,
   "parity": {
@@ -15,27 +15,30 @@
   "automated": {
     "strict_typescript": true,
     "vitest_files": 8,
-    "vitest_tests": 87,
-    "r7_contract_tests": 12,
+    "vitest_tests": 91,
+    "r7_contract_tests": 13,
     "reversible_preview_tests": 4,
     "production_build": true,
     "source_parity_gate": true,
     "source_rows_ported": "93/93",
-    "react_replatform_run": 237,
-    "studio_v2_gate_run": 555,
-    "full_ci_run": 1420
+    "react_replatform_run": 278,
+    "studio_v2_gate_run": 596,
+    "full_ci_run": 1461
   },
   "r7_system": {
     "startup_binding_guard": "fail_closed_visible_error",
     "diagnostics": "existing_R1_diagnostics_model_plus_React_startup_status",
-    "device_acceptance": "existing_seven_gate_model_manual_only",
+    "device_acceptance": "existing_seven_gate_model_external_manual_only",
     "device_report_storage_key": "rhymelab.studio.deviceAcceptance.v1",
     "report_merge": true,
     "diagnostics_export": true,
     "device_report_import_export": true,
     "search_keyboard_contract": true,
-    "single_drawer_scroll_owner": true,
-    "reversible_preview_route": true
+    "single_drawer_scroll_owner": false,
+    "reversible_preview_route": true,
+    "device_acceptance_visible_in_settings": false,
+    "single_top_navigation": true,
+    "settings_owner_workspace": "style_designer_plus_data_safety"
   },
   "preview": {
     "normal_default_route_changed": false,
@@ -73,7 +76,7 @@
     "touch-only no-hover primary workflows",
     "browser-level interaction acceptance required by the UI interaction contract before row promotion"
   ],
-  "next_action": "run React Studio real-browser/device acceptance, merge reports, then promote only evidenced rows to verified",
+  "next_action": "owner visual acceptance plus external real-browser/device acceptance; promote only evidenced rows to verified",
   "next_phase": "R8_REVERSIBLE_CUTOVER_ONLY_AFTER_93_OF_93_VERIFIED",
   "ux_correction_contract": "docs/REACT_STUDIO_UX_CORRECTION.md",
   "ux_correction": {
@@ -94,6 +97,27 @@
     "perform_booth_mode": true,
     "perform_count_in": true,
     "perform_loop_auto_advance": true,
-    "owner_visual_acceptance_pending": true
+    "owner_visual_acceptance_pending": true,
+    "round": 2,
+    "sticky_single_topbar": true,
+    "sidebar_retired": true,
+    "mobile_bottom_nav_retired": true,
+    "command_shortcut_reference": true,
+    "sound_explorer_compact_only": true,
+    "sound_explorer_detail_closes_on_scroll": true,
+    "transient_filter_deck": true,
+    "search_tile_view_removed": true,
+    "bar_drop_insertion_boundary": true,
+    "google_fonts_curated_count": 50,
+    "google_fonts_categories": 10,
+    "editor_font_default": "Oranienbaum",
+    "local_font_permission_removed": true,
+    "library_action_svg_icons": true,
+    "all_rhymes_topology": true,
+    "all_rhymes_four_bar_blocks": true,
+    "all_rhymes_linked_chain_focus": true,
+    "settings_style_designer": true,
+    "style_designer_oklch_randomizer": true,
+    "visible_device_acceptance_settings_ui": false
   }
 }
