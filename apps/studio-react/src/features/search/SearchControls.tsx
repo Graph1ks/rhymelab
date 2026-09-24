@@ -32,6 +32,7 @@ type Option = { value: string; label: string; disabled?: boolean };
 function useTransientPopup(
   open: boolean,
   setOpen: (open: boolean) => void,
+  onDismiss?: () => void,
 ) {
   const popupRef = useRef<HTMLDivElement | null>(null);
 
@@ -41,6 +42,7 @@ function useTransientPopup(
       const target = event.target;
       if (target instanceof Node && popupRef.current?.contains(target)) return;
       setOpen(false);
+      onDismiss?.();
     };
     window.addEventListener('wheel', closeOnViewportActivity, { capture: true, passive: true });
     window.addEventListener('touchmove', closeOnViewportActivity, { capture: true, passive: true });
@@ -50,7 +52,7 @@ function useTransientPopup(
       window.removeEventListener('touchmove', closeOnViewportActivity, true);
       document.removeEventListener('scroll', closeOnViewportActivity, true);
     };
-  }, [open, setOpen]);
+  }, [onDismiss, open, setOpen]);
 
   return popupRef;
 }
@@ -63,6 +65,7 @@ function FilterSelect({
   disabled = false,
   active = false,
   onChange,
+  onDismiss,
 }: {
   label: string;
   value: string;
@@ -70,9 +73,10 @@ function FilterSelect({
   disabled?: boolean;
   active?: boolean;
   onChange: (value: string) => void;
+  onDismiss?: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const popupRef = useTransientPopup(open, setOpen);
+  const popupRef = useTransientPopup(open, setOpen, onDismiss);
 
   return (
     <div
@@ -102,7 +106,10 @@ function FilterSelect({
               className={styles.filterPopup}
               data-search-filter-popup="true"
               onPointerLeave={(event) => {
-                if (event.pointerType === 'mouse') setOpen(false);
+                if (event.pointerType === 'mouse') {
+                  setOpen(false);
+                  onDismiss?.();
+                }
               }}
             >
               {options.map((option) => (
@@ -147,11 +154,11 @@ function presetLabel(preset: SearchPreset, language: 'de' | 'en'): string {
   } as Record<string, string>)[preset] ?? String(preset);
 }
 
-function LanguageRoutePicker() {
+function LanguageRoutePicker({ onDismiss }: { onDismiss?: () => void }) {
   const language = useUiStore((state) => state.uiLanguage);
   const { state, patch } = useSharedSearchState();
   const [open, setOpen] = useState(false);
-  const popupRef = useTransientPopup(open, setOpen);
+  const popupRef = useTransientPopup(open, setOpen, onDismiss);
   const current = languageRouteValue(state.queryBasis, state.resultLanguage);
   const routeLabel = (value: string) => value === 'both' ? 'DE + EN' : value.toUpperCase();
   const queryRows = [
@@ -184,7 +191,10 @@ function LanguageRoutePicker() {
             className={styles.languageRoutePopup}
             data-search-filter-popup="true"
             onPointerLeave={(event) => {
-              if (event.pointerType === 'mouse') setOpen(false);
+              if (event.pointerType === 'mouse') {
+                setOpen(false);
+                onDismiss?.();
+              }
             }}
           >
             <Popover.Title className={styles.languageRouteTitle}>
@@ -241,7 +251,7 @@ export function SearchControls({
   const language = useUiStore((state) => state.uiLanguage);
   const { state, patch, resetFilters } = useSharedSearchState();
   const [entitiesOpen, setEntitiesOpen] = useState(false);
-  const entityPopupRef = useTransientPopup(entitiesOpen, setEntitiesOpen);
+  const entityPopupRef = useTransientPopup(entitiesOpen, setEntitiesOpen, onRequestClose);
 
   const scopeOptions: Option[] = [
     { value: 'all', label: language === 'de' ? 'Alles' : 'All' },
@@ -329,13 +339,14 @@ export function SearchControls({
       </div>
 
       <div className={styles.filterGrid} data-rhymelab-control="search.scope">
-        <LanguageRoutePicker />
+        <LanguageRoutePicker onDismiss={onRequestClose} />
         <FilterSelect
           label={language === 'de' ? 'BEREICH' : 'SCOPE'}
           value={state.scope}
           options={scopeOptions}
           active={state.scope !== 'all'}
           onChange={(value) => patch({ scope: value as SearchScope })}
+                  onDismiss={onRequestClose}
         />
         <FilterSelect
           label={language === 'de' ? 'REIM / KLANG' : 'RHYME / SOUND'}
@@ -343,6 +354,7 @@ export function SearchControls({
           options={rhymeOptions}
           active={state.rhymeType !== 'all'}
           onChange={(value) => patch({ rhymeType: value as RhymeType })}
+                  onDismiss={onRequestClose}
         />
         <FilterSelect
           label={language === 'de' ? 'SILBEN' : 'SYLLABLES'}
@@ -350,6 +362,7 @@ export function SearchControls({
           options={syllableOptions}
           active={state.syllableFilter !== 'all'}
           onChange={(value) => patch({ syllableFilter: value as SyllableFilter })}
+                  onDismiss={onRequestClose}
         />
         <FilterSelect
           label={language === 'de' ? 'SORTIERUNG' : 'SORT'}
@@ -357,6 +370,7 @@ export function SearchControls({
           options={sortOptions}
           active={state.sort !== 'recommended'}
           onChange={(value) => patch({ sort: value as SearchSort })}
+                  onDismiss={onRequestClose}
         />
         <FilterSelect
           label={language === 'de' ? 'AUSSPRACHE' : 'PRONUNCIATION'}
@@ -365,6 +379,7 @@ export function SearchControls({
           disabled={state.scope === 'phrases' || state.scope === 'entities'}
           active={state.variantMode !== 'preferred'}
           onChange={(value) => patch({ variantMode: value as VariantMode })}
+                  onDismiss={onRequestClose}
         />
         <FilterSelect
           label={language === 'de' ? 'KORPUS' : 'CORPUS'}
@@ -372,6 +387,7 @@ export function SearchControls({
           options={corpusOptions}
           active={state.historical || state.generated || state.generatedOnly}
           onChange={(value) => patch(corpusModePatch(value as CorpusMode))}
+                  onDismiss={onRequestClose}
         />
 
         <Popover.Root open={entitiesOpen} onOpenChange={setEntitiesOpen}>
@@ -403,7 +419,10 @@ export function SearchControls({
                 className={styles.entityPopup}
                 data-search-filter-popup="true"
                 onPointerLeave={(event) => {
-                  if (event.pointerType === 'mouse') setEntitiesOpen(false);
+                  if (event.pointerType === 'mouse') {
+                  setEntitiesOpen(false);
+                  onRequestClose?.();
+                }
                 }}
               >
                 <Popover.Title className={styles.entityPopupTitle}>
