@@ -48,7 +48,7 @@ const SECTION_TAGS = [
   '[Outro]',
 ] as const;
 const BAR_HOLD_MS = 220;
-const SECTION_HOLD_MS = 1500;
+const SECTION_HOLD_MS = 500;
 
 interface DragState {
   sourceIndex: number;
@@ -164,6 +164,7 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
     y: number;
     timer: ReturnType<typeof setTimeout>;
   } | null>(null);
+  const titleCancelRef = useRef(false);
 
   const [lineMetrics, setLineMetrics] = useState<EditorLineMetric[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -174,6 +175,8 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
   const [clearArmed, setClearArmed] = useState(false);
   const [dragVisual, setDragVisual] = useState<DragState | null>(null);
   const [sectionMenu, setSectionMenu] = useState<SectionMenuState | null>(null);
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
 
   const song = editor.activeSong;
   const lines = song?.lines ?? [''];
@@ -182,6 +185,10 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
   const fontFamily = editorFontFamily(editorFont);
   const fontStyle = editorFontStyle(editorFont);
   const fontWeight = editorFontWeight(editorFont);
+
+  useEffect(() => {
+    if (!titleEditing) setTitleDraft(song?.title || '');
+  }, [song?.id, song?.title, titleEditing]);
 
   const trackedIndexes = useMemo(
     () => song ? trackedEditorLineIndexes(asEditorSong(song)) : [],
@@ -499,6 +506,26 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
     if (diff) setComparison({ revision, diff });
   };
 
+  const commitTitle = async () => {
+    const next = titleDraft.trim();
+    const fallback = language === 'de' ? 'Unbenannter Text' : 'Untitled';
+    const resolved = next || fallback;
+    titleCancelRef.current = false;
+    setTitleEditing(false);
+    if (resolved === (song.title || fallback)) return;
+    await editor.mutateActiveSong((current) => {
+      if ((current.title || fallback) === resolved) return false;
+      current.title = resolved;
+      return true;
+    }, { checkpoint: false, revision: false });
+  };
+
+  const cancelTitleEdit = () => {
+    titleCancelRef.current = true;
+    setTitleDraft(song.title || '');
+    setTitleEditing(false);
+  };
+
   const clearText = async () => {
     if (!clearArmed) {
       setClearArmed(true);
@@ -527,7 +554,49 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
         <div className={styles.titleBlock}>
           <p>R5 · UNIFIED DOCUMENT EDITOR</p>
           <div className={styles.titleLine}>
-            <h1>{song.title || (language === 'de' ? 'Unbenannter Text' : 'Untitled')}</h1>
+            {titleEditing ? (
+              <form
+                className={styles.titleEditForm}
+                onSubmit={(event: FormEvent<HTMLFormElement>) => {
+                  event.preventDefault();
+                  void commitTitle();
+                }}
+              >
+                <input
+                  autoFocus
+                  value={titleDraft}
+                  maxLength={100}
+                  aria-label={language === 'de' ? 'Texttitel bearbeiten' : 'Edit document title'}
+                  onChange={(event) => setTitleDraft(event.target.value)}
+                  onBlur={() => {
+                    if (titleCancelRef.current) {
+                      titleCancelRef.current = false;
+                      return;
+                    }
+                    void commitTitle();
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      event.preventDefault();
+                      cancelTitleEdit();
+                    }
+                  }}
+                />
+              </form>
+            ) : (
+              <button
+                type="button"
+                className={styles.titleButton}
+                onClick={() => {
+                  titleCancelRef.current = false;
+                  setTitleDraft(song.title || '');
+                  setTitleEditing(true);
+                }}
+                title={language === 'de' ? 'Titel anklicken zum Umbenennen' : 'Click title to rename'}
+              >
+                {song.title || (language === 'de' ? 'Unbenannter Text' : 'Untitled')}
+              </button>
+            )}
             <span
               data-state={documents.status}
               title={documents.status === 'error'
@@ -642,6 +711,16 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
             </div>
 
             <div className={styles.editorColumn}>
+              {editorLineKind(lines[activeIndex] ?? '') === 'bar' ? (
+                <div
+                  className={styles.activeBarHighlight}
+                  style={{
+                    top: rowTop(activeIndex),
+                    height: rowHeight(activeIndex),
+                  }}
+                  aria-hidden="true"
+                />
+              ) : null}
               <textarea
                 ref={textareaRef}
                 className={styles.textarea}
@@ -682,6 +761,7 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
                     key={song.barIds?.[index] ?? `syll-${index}`}
                     className={styles.syllableRow}
                     data-kind={kind}
+                    data-active={kind === 'bar' && index === activeIndex ? 'true' : 'false'}
                     style={{ top: rowTop(index), height: rowHeight(index) }}
                   >
                     {kind === 'bar' ? (
@@ -703,8 +783,8 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
 
       <footer className={styles.footer}>
         <span>{language === 'de'
-          ? 'Bar-Nr. klicken = Auswahl · kurz halten und ziehen = Bar verschieben · 1.5 s im Text halten = Abschnitt'
-          : 'Click bar number = select · hold briefly and drag = move bar · hold 1.5 s in text = section'}</span>
+          ? 'Bar-Nr. klicken = Auswahl · kurz halten und ziehen = Bar verschieben · 0,5 s im Text halten = Abschnitt'
+          : 'Click bar number = select · hold briefly and drag = move bar · hold 0.5 s in text = section'}</span>
         <span>{editor.followSelection
           ? (language === 'de' ? 'Reimsuche folgt Auswahl' : 'Rhyme search follows selection')
           : (language === 'de' ? 'Fester Reimanker aktiv' : 'Fixed rhyme anchor active')}</span>
