@@ -2,7 +2,7 @@
   "schema": "rhymelab-react-studio-r2-shell-v1",
   "phase": "R2",
   "baseline": "main@fbda43a9e4dd",
-  "status": "implemented_automated_verification_pending_ci",
+  "status": "automated_verified_real_device_acceptance_deferred",
   "invariant": "presentation_shell_only_no_domain_semantics_reimplemented",
   "breakpoints": {
     "sidebarRail": 1150,
@@ -108,5 +108,15 @@
     "apps/studio-react/src/shell/r2-shell.test.ts",
     "apps/studio-react/src/legacy/legacy-parity.test.ts",
     "React Studio Replatform CI"
-  ]
+  ],
+  "automated_verification": {
+    "parity_inventory": true,
+    "locked_install": true,
+    "strict_typescript": true,
+    "r1_regression": true,
+    "r2_contract_tests": true,
+    "production_vite_build": true
+  },
+  "cutover_verified": false,
+  "next_phase": "R3_SEARCH_WRITER"
 }
