@@ -10,7 +10,7 @@ import type {
   RuntimeEdition,
   WriterResultRow,
 } from '../../legacy/contracts';
-import { Dialog } from '../../design-system/primitives';
+import { Dialog, Select } from '../../design-system/primitives';
 import { useUiStore } from '../../state/uiStore';
 import { useOptionalEditorSession } from '../editor/EditorSessionProvider';
 import { Icon } from '../../shell/icons';
@@ -66,30 +66,58 @@ function RuntimeSelector({
     ?? String(runtime.capabilities?.runtime || 'Writer').replace(/^serving-v1\/?/u, '').toUpperCase();
 
   if (compact && runtime.payload) {
+    const options = editions.map((edition) => ({
+      value: edition,
+      label: edition === 'lite' ? 'Lite' : edition === 'standard' ? 'Standard' : 'Full',
+      disabled: runtime.summaryMap[edition]?.available !== true,
+    }));
     return (
-      <label className={styles.runtimeSelect}>
+      <div className={styles.runtimeSelect}>
         <span>RUNTIME</span>
-        <select
-          value={runtime.selected ?? ''}
-          onChange={(event) => {
-            const value = event.target.value;
+        <Select.Root
+          items={options}
+          value={runtime.selected ?? undefined}
+          onValueChange={(value) => {
             if (value === 'lite' || value === 'standard' || value === 'full') {
               runtime.setRuntimeEdition(value);
             }
           }}
-          aria-label={language === 'de' ? 'Runtime wählen' : 'Choose runtime'}
         >
-          {editions.map((edition) => {
-            const available = runtime.summaryMap[edition]?.available === true;
-            return (
-              <option key={edition} value={edition} disabled={!available}>
-                {edition === 'lite' ? 'Lite' : edition === 'standard' ? 'Standard' : 'Full'}
-                {available ? '' : (language === 'de' ? ' · nicht verfügbar' : ' · unavailable')}
-              </option>
-            );
-          })}
-        </select>
-      </label>
+          <Select.Trigger
+            className={styles.runtimeSelectTrigger}
+            aria-label={language === 'de' ? 'Runtime wählen' : 'Choose runtime'}
+          >
+            <Select.Value />
+            <Select.Icon><Icon name="chevron" /></Select.Icon>
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner
+              className={styles.runtimeSelectPositioner}
+              sideOffset={6}
+              alignItemWithTrigger={false}
+            >
+              <Select.Popup className={styles.runtimeSelectPopup}>
+                {options.map((option) => (
+                  <Select.Item
+                    key={option.value}
+                    value={option.value}
+                    disabled={option.disabled}
+                    className={styles.runtimeSelectOption}
+                  >
+                    <Select.ItemIndicator className={styles.runtimeSelectCheck}>
+                      <Icon name="check" />
+                    </Select.ItemIndicator>
+                    <Select.ItemText>{option.label}</Select.ItemText>
+                    {option.disabled ? (
+                      <small>{language === 'de' ? 'NICHT VERFÜGBAR' : 'UNAVAILABLE'}</small>
+                    ) : null}
+                  </Select.Item>
+                ))}
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
+      </div>
     );
   }
 
@@ -395,6 +423,9 @@ export function SearchExperience({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!enabled) return;
+    if (variant === 'assistant' && editor?.followSelection) {
+      editor.setFollowSelection(false);
+    }
     const next = draftQuery.trim();
     if (!next) return;
     if (next === state.anchor) {
@@ -484,7 +515,12 @@ export function SearchExperience({
           <input
             type="search"
             value={draftQuery}
-            onChange={(event) => setDraftQuery(event.target.value)}
+            onChange={(event) => {
+              setDraftQuery(event.target.value);
+              if (variant === 'assistant' && editor?.followSelection) {
+                editor.setFollowSelection(false);
+              }
+            }}
             placeholder={language === 'de'
               ? 'Wort oder Phrase suchen …'
               : 'Search a word or phrase …'}
