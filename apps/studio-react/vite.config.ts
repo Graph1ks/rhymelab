@@ -15,5 +15,8 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     emptyOutDir: true,
+    license: {
+      fileName: 'third-party-licenses.md',
+    },
   },
 });
