@@ -257,8 +257,9 @@ describe('R4 serialized autosave queue', () => {
 
     const firstFlush = queue.flush(first);
     const secondFlush = queue.flush(second);
-    await Promise.resolve();
-    expect(order).toEqual(['start:s1']);
+    await vi.waitFor(() => {
+      expect(order).toEqual(['start:s1']);
+    });
     releaseFirst();
     await Promise.all([firstFlush, secondFlush]);
 
