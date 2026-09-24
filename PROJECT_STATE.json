@@ -4005,7 +4005,7 @@
   "active_continuation": {
     "id": "REACT_STUDIO_REPLATFORM",
     "priority": "P0",
-    "status": "R5_EDITOR_AUTOMATED_VERIFIED_R6_NEXT",
+    "status": "R6_ANALYSIS_PERFORM_AUTOMATED_VERIFIED_R7_NEXT",
     "branch": "refactor/react-studio-replatform",
     "handover": "docs/REACT_STUDIO_REPLATFORM.md",
     "parity_gate": "docs/REACT_STUDIO_PARITY_GATE.md",
@@ -4040,11 +4040,12 @@
       ]
     },
     "r1_contract": "docs/REACT_STUDIO_R1_TYPED_BRIDGE.md",
-    "next_thread_action": "implement_R6_analysis_and_perform_using_existing_R1_analysis_performance_web_audio_contracts",
+    "next_thread_action": "execute_R7_automated_browser_and_real_device_parity_and_verify_only_evidenced_rows",
     "r2_contract": "docs/REACT_STUDIO_R2_SHELL.md",
     "r3_contract": "docs/REACT_STUDIO_R3_SEARCH_WRITER.md",
     "r4_contract": "docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md",
-    "r5_contract": "docs/REACT_STUDIO_R5_EDITOR.md"
+    "r5_contract": "docs/REACT_STUDIO_R5_EDITOR.md",
+    "r6_contract": "docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md"
   },
   "studio_v2": {
     "status": "LIVE_DEFAULT_PENDING_REAL_DEVICE_ACCEPTANCE",
@@ -4091,7 +4092,7 @@
     "real_device_acceptance": "pending_7_gates"
   },
   "react_studio_replatform": {
-    "status": "R5_COMPLETE_R6_NEXT",
+    "status": "R6_COMPLETE_R7_NEXT",
     "priority": "P0",
     "stack": [
       "React 19.3",
@@ -4261,6 +4262,75 @@
       "full_ci_run": 1315,
       "studio_v2_gate_run": 450,
       "next_phase": "R6_ANALYSIS_PERFORM"
+    },
+    "r6": {
+      "status": "AUTOMATED_VERIFIED_BROWSER_AUDIO_ACCEPTANCE_DEFERRED",
+      "contract": "docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md",
+      "manifest": "apps/studio-react/r6-analysis-perform-manifest.json",
+      "source_roots": [
+        "apps/studio-react/src/features/analysis",
+        "apps/studio-react/src/features/perform"
+      ],
+      "tested_code_head": "48600af0221c5d9429813e697b381af3a794383e",
+      "canonical_analysis_bridge_reused": true,
+      "performance_session_bridge_reused": true,
+      "tanstack_query_analysis_state": true,
+      "end_rhyme_analysis": true,
+      "all_word_rhyme_analysis": true,
+      "word_laboratory": true,
+      "stress_fingerprint": true,
+      "rhyme_chain": true,
+      "de_en_cross_analysis": true,
+      "bar_inspector": true,
+      "verse_totals": true,
+      "stable_bar_cue_anchors": true,
+      "cue_types": [
+        "hit",
+        "accent",
+        "pause",
+        "breath",
+        "hold",
+        "erase"
+      ],
+      "accessible_cue_move": true,
+      "desktop_cue_drag_drop": true,
+      "performance_grid": [
+        8,
+        16
+      ],
+      "performance_feel": [
+        "straight",
+        "triplet"
+      ],
+      "performance_tempo_scale": [
+        0.5,
+        1,
+        2
+      ],
+      "performance_auto_map": true,
+      "performance_revision_review_invalidation": true,
+      "web_audio_metronome_ported": true,
+      "web_audio_physical_acceptance_pending": true,
+      "perform_mutations_reuse_r5_history_revision_boundary": true,
+      "r1_bridges_modified": false,
+      "shipping_studio_modified": false,
+      "backend_modified": false,
+      "parity": {
+        "ported": 82,
+        "in_progress": 5,
+        "pending": 6,
+        "verified": 0,
+        "total": 93
+      },
+      "browser_acceptance_pending": true,
+      "user_facing_cutover_rows_verified_by_r6": false,
+      "focused_verification": "npm run studio:react:r6",
+      "automated_tests": 71,
+      "r6_contract_tests": 11,
+      "react_replatform_run": 152,
+      "full_ci_run": 1335,
+      "studio_v2_gate_run": 470,
+      "next_phase": "R7_AUTOMATED_AND_REAL_DEVICE_PARITY"
     }
   }
 }
