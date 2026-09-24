@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { isIP } from 'node:net';
 
 const LOOPBACK_HOSTS=new Set(['127.0.0.1','localhost','::1']);
 
@@ -77,6 +78,32 @@ export function assertSafeServerBinding({host,env=process.env}={}){
     'Refusing non-loopback bind without RHYMELAB_ALLOW_REMOTE=1. '
     +'RhymeLab is local-only by default.'
   );
+}
+
+export function allowedRemoteHostsFromEnv(env=process.env){
+  return String(env.RHYMELAB_ALLOWED_HOSTS||'')
+    .split(',')
+    .map((value)=>value.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isAllowedRequestHost(req,{remote=false,allowedRemoteHosts=[]}={}){
+  const raw=String(req?.headers?.host||'').trim();
+  if(!raw)return false;
+  try{
+    const parsed=new URL(`http://${raw}`);
+    const hostname=String(parsed.hostname||'').replace(/^\[|\]$/g,'').toLowerCase();
+    if(isLoopbackHost(hostname))return true;
+    if(!remote)return false;
+    if(isIP(hostname)>0)return true;
+    return allowedRemoteHosts.map((value)=>String(value).toLowerCase()).includes(hostname);
+  }catch{
+    return false;
+  }
+}
+
+export function isCrossSiteBrowserRequest(req){
+  return String(req?.headers?.['sec-fetch-site']||'').trim().toLowerCase()==='cross-site';
 }
 
 export function securityHeaders({contentType='',isHtml=false,requestId=null}={}){
