@@ -91,6 +91,7 @@ export function currentDeviceEnvironment(
   windowObj: Window | Record<string, unknown> = typeof window === 'undefined' ? {} : window,
 ): DeviceEnvironment {
   const value = (windowObj ?? {}) as Partial<Window> & {
+    AudioContext?: typeof AudioContext;
     webkitAudioContext?: typeof AudioContext;
     navigator?: Navigator & { userAgentData?: { platform?: string } };
   };
