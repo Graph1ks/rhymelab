@@ -7,8 +7,10 @@ export const RHYMELAB_CSP=[
   "base-uri 'none'",
   "object-src 'none'",
   "frame-ancestors 'none'",
+  "frame-src 'none'",
   "form-action 'self'",
   "script-src 'self'",
+  "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob:",
@@ -44,6 +46,28 @@ export function isLoopbackAddress(address){
     ||normalized==='::ffff:127.0.0.1';
 }
 
+export function isAllowedLocalMutationRequest(req,{port=3030}={}){
+  const fetchSite=String(req?.headers?.['sec-fetch-site']||'').trim().toLowerCase();
+  if(fetchSite==='cross-site')return false;
+
+  const origin=String(req?.headers?.origin||'').trim();
+  if(!origin)return isLoopbackAddress(req?.socket?.remoteAddress);
+  if(origin==='null')return false;
+
+  try{
+    const parsed=new URL(origin);
+    const originPort=parsed.port||(
+      parsed.protocol==='http:'?'80':
+        parsed.protocol==='https:'?'443':''
+    );
+    return parsed.protocol==='http:'
+      &&isLoopbackHost(parsed.hostname)
+      &&originPort===String(port);
+  }catch{
+    return false;
+  }
+}
+
 export function assertSafeServerBinding({host,env=process.env}={}){
   if(isLoopbackHost(host))return {remote:false};
   if(String(env.RHYMELAB_ALLOW_REMOTE||'').trim()==='1'){
@@ -58,6 +82,7 @@ export function assertSafeServerBinding({host,env=process.env}={}){
 export function securityHeaders({contentType='',isHtml=false,requestId=null}={}){
   const headers={
     'x-content-type-options':'nosniff',
+    'x-xss-protection':'0',
     'referrer-policy':'no-referrer',
     'x-frame-options':'DENY',
     'cross-origin-opener-policy':'same-origin',
