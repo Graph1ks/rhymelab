@@ -80,6 +80,7 @@ export function SurfaceContent() {
           key="studio"
           className={styles.studioFoundation}
           data-mobile-pane={mobileStudioPane}
+          data-studio-mode={studioMode}
           initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.18 }}
