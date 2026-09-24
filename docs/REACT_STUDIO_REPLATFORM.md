@@ -239,7 +239,7 @@ The existing Studio V2 source is not deleted during migration. Until the owner a
 
 ## Current implementation checkpoint
 
-R0 through R5 are complete on `refactor/react-studio-replatform`.
+R0 through R6 are complete on `refactor/react-studio-replatform`.
 
 ```text
 R0  scaffold / freeze / parity inventory        VERIFIED
@@ -248,7 +248,8 @@ R2  shell + design system                       AUTOMATED VERIFIED
 R3  Search / Writer                             AUTOMATED VERIFIED
 R4  Library / persistence / recovery            AUTOMATED VERIFIED
 R5  editor                                      AUTOMATED VERIFIED
-R6  Analysis + Perform                          NEXT
+R6  Analysis + Perform                          AUTOMATED VERIFIED
+R7  automated + real-device parity              NEXT
 ```
 
 R1 wraps 18 existing browser/domain modules behind strict TypeScript contracts
@@ -281,6 +282,13 @@ path:
 
 `docs/REACT_STUDIO_R5_EDITOR.md`
 
+R6 places canonical end/all-rhyme Analysis, Word Laboratory/Stress/Chain/Bar
+Inspector projections and stable-Bar-ID Perform sequencing onto the existing R1
+analysis/performance contracts. Perform writes reuse the R5 history/revision boundary
+and R4 persistence path; Web Audio browser acceptance remains deferred:
+
+`docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md`
+
 Focused verification:
 
 ```bash
@@ -289,11 +297,12 @@ npm run studio:react:r2
 npm run studio:react:r3
 npm run studio:react:r4
 npm run studio:react:r5
+npm run studio:react:r6
 ```
 
 The application remains intentionally isolated from the shipping root route. Studio
 V2 is still the shipping behavioral golden master and rollback implementation.
-R5 rows remain `ported` where browser/device interaction evidence is still
-required. The current matrix is 66 `ported`, 5 `in_progress`, 22 `pending` and
-0 `verified`; the 93/93 `verified` cutover rule is unchanged. R6 is Analysis +
-Perform.
+R6 rows remain `ported` where browser/device interaction evidence is still
+required. The current matrix is 82 `ported`, 5 `in_progress`, 6 `pending` and
+0 `verified`; the 93/93 `verified` cutover rule is unchanged. R7 now owns
+automated/browser/real-device parity evidence and the remaining system/cutover rows.
