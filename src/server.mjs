@@ -750,6 +750,9 @@ function clientQueryPronunciation(url, language) {
     method: String(url.searchParams.get(`query_method_${language}`) || 'client_unknown').slice(0, 80),
     sourceBacked: url.searchParams.get(`query_source_backed_${language}`) === '1',
     components,
+    rightEdgeComponent: String(
+      url.searchParams.get(`query_right_edge_${language}`) || '',
+    ).trim().slice(0, 160) || null,
   };
 }
 
