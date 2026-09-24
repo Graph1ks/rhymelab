@@ -1,4 +1,5 @@
 .appShell {
+  --rl-reading-width: min(82%, 1440px);
   width: 100%;
   height: var(--visual-viewport-height, 100dvh);
   min-height: 0;
@@ -390,7 +391,7 @@
 }
 
 .studioFoundation {
-  --studio-reading-inset: max(0px, calc((100% - min(82%, 1440px)) / 2));
+  --studio-reading-inset: max(0px, calc((100% - var(--rl-reading-width)) / 2));
   min-height: calc(var(--visual-viewport-height, 100dvh) - var(--rl-topbar-height) - 24px);
   position: relative;
   display: grid;
