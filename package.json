@@ -229,7 +229,11 @@
     "studio:react:r3": "npm --prefix apps/studio-react run r3:verify",
     "studio:react:r4": "npm --prefix apps/studio-react run r4:verify",
     "studio:react:r5": "npm --prefix apps/studio-react run r5:verify",
-    "studio:react:r6": "npm --prefix apps/studio-react run r6:verify"
+    "studio:react:r6": "npm --prefix apps/studio-react run r6:verify",
+    "studio:react:r7": "npm --prefix apps/studio-react run r7:verify && node --test tests/react-studio-preview.test.mjs && node scripts/check-react-studio-r7.mjs --code-only",
+    "studio:react:r7:gate": "node scripts/check-react-studio-r7.mjs --code-only",
+    "studio:react:r7:cutover": "node scripts/check-react-studio-r7.mjs",
+    "studio:react:r7:preview": "npm run studio:react:build && node src/server.mjs --react-studio-preview-default"
   },
   "dependencies": {
     "seek-bzip": "2.0.0"
