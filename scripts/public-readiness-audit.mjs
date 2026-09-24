@@ -73,7 +73,7 @@ const textPatterns = [
         const lineEndRaw = context.text.indexOf('\n', context.index);
         const lineEnd = lineEndRaw === -1 ? context.text.length : lineEndRaw;
         const line = context.text.slice(lineStart, lineEnd);
-        if (/^\s*uses:\s*[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+@[a-f0-9]{40}(?:\s*#.*)?\s*$/i.test(line)) {
+        if (/^\s*uses:\s*[A-Za-z0-9_.-]+\/[A-Za-z0-9_./-]+@[a-f0-9]{40}(?:\s*#.*)?\s*$/i.test(line)) {
           return true;
         }
       }
