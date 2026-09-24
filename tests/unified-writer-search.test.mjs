@@ -27,6 +27,16 @@ test('unified Writer normalizes result language independently from query languag
   assert.equal(normalizeUnifiedResultLanguage('unsupported', 'de'), 'de');
 });
 
+test('unified Writer accepts an explicitly transported nested compound right edge', () => {
+  assert.equal(compoundRightEdgeComponent({
+    queryPronunciation: {
+      method: 'client_token_chain',
+      rightEdgeComponent: 'Abende',
+      components: ['Eins', 'Zwei', 'Drei', 'Vier', 'Murmeltierabende'],
+    },
+  }), 'Abende');
+});
+
 test('unified Writer extracts source-backed compound right-edge components only for compound resolver methods', () => {
   assert.equal(compoundRightEdgeComponent({
     queryPronunciation: {
