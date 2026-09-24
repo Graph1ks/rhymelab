@@ -232,6 +232,27 @@ export function SearchExperience({
   }, [state.anchor]);
 
   useEffect(() => {
+    if (!filtersOpen) return;
+    const closeOnExternalScroll = (event: Event) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(
+        '[data-rhymelab-filter-deck="true"], [data-search-filter-popup="true"]',
+      )) {
+        return;
+      }
+      setFiltersOpen(false);
+    };
+    window.addEventListener('wheel', closeOnExternalScroll, { capture: true, passive: true });
+    window.addEventListener('touchmove', closeOnExternalScroll, { capture: true, passive: true });
+    document.addEventListener('scroll', closeOnExternalScroll, true);
+    return () => {
+      window.removeEventListener('wheel', closeOnExternalScroll, true);
+      window.removeEventListener('touchmove', closeOnExternalScroll, true);
+      document.removeEventListener('scroll', closeOnExternalScroll, true);
+    };
+  }, [filtersOpen]);
+
+  useEffect(() => {
     if (variant !== 'assistant' || !editor?.followSelection) return;
     const anchor = editor.selection?.anchor?.trim();
     if (!anchor || anchor === state.anchor) return;
