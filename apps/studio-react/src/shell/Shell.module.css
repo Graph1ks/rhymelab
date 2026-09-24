@@ -1332,3 +1332,44 @@
     transition: none;
   }
 }
+
+
+/* R3 Search/Writer owns its bounded result scroller. Avoid a second page
+   scrollbar around that surface. */
+.contentViewport[data-surface="search"],
+.contentViewport[data-surface="studio"] {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+
+.searchSurface {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.contentViewport[data-surface="studio"] .studioFoundation {
+  height: 100%;
+  min-height: 0;
+}
+
+.assistFoundation[data-r3="true"] {
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 800px) {
+  .contentViewport[data-surface="search"] {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .searchSurface {
+    min-height: 0;
+  }
+
+  .contentViewport[data-surface="studio"] {
+    overflow-y: auto;
+  }
+}
