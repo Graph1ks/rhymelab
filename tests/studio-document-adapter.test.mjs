@@ -3,12 +3,17 @@ import assert from 'node:assert/strict';
 
 import {
   STUDIO_PREFERENCES_KEY,
+  createStudioState,
   loadStudioPreferences,
   studioPreferencesFromState,
   studioStateFromDocumentSnapshot,
   writeStudioPreferences,
 } from '../src/studio/document-adapter.mjs';
 import {migrateLegacyStudioState} from '../src/studio/document-model.mjs';
+
+test('new Studio workspaces start in compact result density',()=>{
+  assert.equal(createStudioState().density,'compact');
+});
 
 test('Studio preferences exclude document authority fields',()=>{
   const state={
