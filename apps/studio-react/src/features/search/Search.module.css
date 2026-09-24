@@ -2011,7 +2011,7 @@
    one visual axis without forcing the eye across an ultrawide display. */
 @media (min-width: 1100px) {
   .searchExperience[data-variant="page"] {
-    --search-reading-width: min(82%, 1440px);
+    --search-reading-width: var(--rl-reading-width, min(82%, 1440px));
   }
 
   .searchExperience[data-variant="page"] .searchHeader,
