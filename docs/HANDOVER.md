@@ -23,7 +23,7 @@ database behavior.
 
 ---
 
-# CURRENT CONTINUATION — Distribution DB Lab v2 benchmark evidence
+# PAUSED CONTINUATION — Distribution DB Lab v2 benchmark evidence
 
 The immediate active continuation is the owner-side quality/speed comparison of the
 completed Master/Lite/Standard/Full Serving-v1 databases.
@@ -55,7 +55,7 @@ project.
 
 ---
 
-# CURRENT CONTINUATION — Studio V2 live acceptance
+# GOLDEN-MASTER CONTINUATION — Studio V2 live acceptance
 
 The active product continuation is Studio V2 release acceptance.
 
