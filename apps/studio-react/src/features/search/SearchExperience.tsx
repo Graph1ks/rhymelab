@@ -157,6 +157,7 @@ function ResultToolbar({
         <button
           type="button"
           className={styles.toggleButton}
+          data-rhymelab-control="search.filters"
           data-active={filtersOpen ? 'true' : 'false'}
           aria-pressed={filtersOpen}
           onClick={() => setFiltersOpen(!filtersOpen)}
