@@ -110,6 +110,11 @@ describe('R2 semantic theme layer preserves existing theme slots', () => {
     expect(BUILTIN_THEMES.dark.colors.signal).toBe('#62C37E');
   });
 
+  it('falls back to built-in Light for an unset or invalid theme choice', () => {
+    expect(resolveThemeChoice(undefined, { themeSlots: {}, customThemes: [] }).id).toBe('light');
+    expect(resolveThemeChoice('missing-theme', { themeSlots: {}, customThemes: [] }).id).toBe('light');
+  });
+
   it('resolves configured custom slots before built-ins', () => {
     const resolved = resolveThemeChoice('light', preferences);
     expect(resolved.id).toBe('custom-light');
