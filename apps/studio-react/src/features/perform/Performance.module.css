@@ -600,3 +600,81 @@
     grid-template-columns: auto auto minmax(0, 1fr);
   }
 }
+
+
+.performSelect,
+.pauseSelect {
+  min-width: 0;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--rl-line);
+  border-radius: 10px;
+  padding: 0 11px;
+  background: var(--rl-panel);
+  color: var(--rl-ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.performSelect {
+  width: min(360px, 40vw);
+}
+
+.pauseSelect {
+  min-width: 110px;
+}
+
+.performSelectPopup,
+.pauseSelectPopup {
+  z-index: 180;
+  max-height: min(420px, 70dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--rl-line);
+  border-radius: 12px;
+  padding: 4px;
+  background: var(--rl-panel);
+  box-shadow: var(--rl-shadow-popover);
+}
+
+.performSelectPopup {
+  min-width: min(var(--anchor-width), calc(100vw - 24px));
+  width: min(520px, calc(100vw - 24px));
+}
+
+.pauseSelectPopup {
+  min-width: var(--anchor-width);
+}
+
+.performSelectItem {
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.performSelectItem[data-highlighted] {
+  background: var(--rl-tint);
+  color: var(--rl-accent);
+}
+
+.performSelectCheck {
+  color: var(--rl-accent);
+}
+
+@media (max-width: 800px) {
+  .performSelect {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+}
