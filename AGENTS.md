@@ -16,6 +16,7 @@ Before changing the project in a fresh thread/session, read:
 8. `docs/REACT_STUDIO_R5_EDITOR.md` — completed unified React editor port on the R4 persistence path
 9. `docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md` — completed Analysis/Perform port
 10. `docs/REACT_STUDIO_R7_PARITY.md` — R7 source parity complete; physical/browser acceptance remains the active cutover blocker
+11. `docs/REACT_STUDIO_UX_CORRECTION.md` — owner-requested R7 UX correction checkpoint; visual acceptance remains pending
 11. `docs/STUDIO_V2_HANDOVER.md` — shipping Studio V2 behavioral golden master and implementation checkpoint
 12. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — physical browser/touch/Web Audio acceptance matrix carried into migration acceptance
 13. `STATUS.md` — current operational state
