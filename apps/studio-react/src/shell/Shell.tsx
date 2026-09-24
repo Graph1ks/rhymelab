@@ -216,9 +216,9 @@ function MobileNavigation() {
         <Drawer.Portal>
           <Drawer.Backdrop className={styles.drawerBackdrop} />
           <Drawer.Viewport className={styles.drawerViewport}>
-            <Drawer.Popup className={styles.drawerPopup}>
+            <Drawer.Popup className={styles.drawerPopup} data-scroll-container="settings-drawer">
               <div className={styles.drawerHandle} aria-hidden="true" />
-              <Drawer.Content className={styles.drawerContent}>
+              <Drawer.Content className={styles.drawerContent} data-scroll-owner="settings-drawer">
                 <div className={styles.drawerHeader}>
                   <div>
                     <p className={styles.kicker}>RHYME LAB</p>
