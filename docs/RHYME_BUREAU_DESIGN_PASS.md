@@ -1,0 +1,94 @@
+# Rhyme Bureau — Studio design pass
+
+Status: planned before implementation · 2026-09-24
+Branch: `design/rhyme-bureau-studio-pass`
+Baseline: `main@0e29e21f8a23629a697fcdc3a7f397c129be2fea` (React merge #205)
+
+## Intent
+
+Restore the character of a carefully art-directed writing application while
+preserving every capability in the merged React implementation. The owner has
+explicitly authorized this presentation pass. The feature freeze, domain contracts,
+93-row parity gate and physical-device acceptance requirements remain in force.
+
+Direction: **a contemporary phonetic bureau**. Warm paper, Bordeaux night mode,
+editorial type, precise rules, compact instrument controls and occasional stamped
+details. The existing RHYME BUREAU / Phonetic License to Slay identity leads.
+Personality belongs around the writing, never over it.
+
+## Audit findings
+
+- React has the correct domain boundaries and controls; keep those components and
+  their handlers rather than rebuilding functionality in a visual prototype.
+- The CSS contains multiple historical presentation passes. Scope edits by feature;
+  do not globally restyle unrelated active controls.
+- Components reference `--rl-surface`, `--rl-text`, `--rl-accent-contrast` and
+  `--rl-font` without a shared definition. Complete those semantic aliases so
+  foregrounds and surfaces behave consistently with every saved palette.
+- Primary tools currently share too much visual weight. Separate workspace modes,
+  document actions and search utilities through type, rules and surface treatment.
+- Intro decoration uses a generic orbit. Replace it with an original typographic
+  sound specimen that belongs to the Bureau identity, without pretending to be
+  live search data or adding an interactive control.
+- Several small accent labels lack comfortable contrast in the warm Light palette.
+  Use ink for reading and accent for markers/fills; preserve exact built-in palettes.
+
+## Planned changes, in implementation order
+
+| Area | Intended treatment | Protected behavior |
+| --- | --- | --- |
+| Tokens | Complete semantic aliases; shared editorial/mono/UI type roles; quieter elevation, consistent radii and focus | Built-in and custom colors, theme slots, saved preferences |
+| Topbar | Sharper monogram, stacked wordmark, restrained navigation indicators, same compact height | Home, Studio, Search, Commands, Settings, DE/EN, quick Light/Dark and Quickstyles |
+| Studio frame | Clear mode strip and readable utility actions; paper writing plane against a quiet desk; responsive spacing | Write/Analyze/Perform, Library, Focus, search pause and assistant collapse |
+| Editor | Editorial document title, calmer toolbar, precise gutter borders and footer | Native textarea, font/size preferences, measured wrapping, Bar IDs, drag/drop, selection proofs, undo/redo, revisions and autosave |
+| Search | Strong query typography, disciplined anchor treatment, readable result selection and relation badges | All filters/routes/scopes, runtime editions, compact/list, continuous loading, detail, saved results, safe insertion and request cancellation |
+| Library | File-cabinet character through typography, rules and active-document treatment | Directory navigation, context menus, keyboard actions, sorting, moves/copies, Trash and recovery |
+| Analysis | Consistent editorial header, flatter metric surfaces, readable panels | Canonical relations, group/type color separation, linked topology, language and relation controls |
+| Perform | Strong rehearsal text hierarchy and coherent transport/tool surfaces | Timing, cues, BPM/grid/feel/count-in/loop, review invalidation, Web Audio and Focus |
+| Settings | Cohesive style workbench and data-safety surfaces; replace visible migration badge with product copy | Color generation/edit/save/apply/delete, defaults/reset, contrast report, backup/import/recovery |
+| Intro | Editorial poster composition and static sound specimen; retain existing copy and navigation actions | All entry points, language variants, reduced motion |
+| Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; wrap controls rather than clip them; coarse-pointer targets | No sidebar return, no new nested page scroll, no hover-only action |
+
+## No-capability-loss contract
+
+1. No changes to backend, Serving-v1, ranking, pronunciation, analysis algorithms,
+   persistence providers, editor-session logic, search state or R1 legacy bridges.
+2. No removal/reparenting of stable controls, handlers, shortcuts, labels, disabled
+   states, confirmation steps or accessible names to make screenshots cleaner.
+3. Preserve the existing textarea/measurement geometry together. Do not independently
+   change line height, padding, font or gutter offsets in the design pass.
+4. Preserve result virtualizer sizing and scroll containers. Do not animate result
+   row geometry or add decorative overlays that intercept pointer input.
+5. Keep DE/EN, Light/Dark, custom themes, reduced motion and visible keyboard focus.
+6. Legacy Studio and the default-route/cutover contract remain intact. No parity row
+   is promoted to verified merely because the design or automated checks pass.
+7. The attached music prompt data is unrelated to this UI pass and is not imported
+   into the repository or runtime.
+
+## Verification plan
+
+- `npm run studio:react:verify` (inventory, types, all React tests, production build).
+- `npm run studio:react:r7:gate` and reversible-preview tests.
+- `npm run check`, `npm test`, `node scripts/public-readiness-audit.mjs`.
+- Review the final diff for unchanged handlers/providers/legacy/backend and compare
+  JSX interaction attributes against the baseline.
+- Browser acceptance: 1920×1080, 3840×2160, 1366×768, 800px, 390px and 320px;
+  Light/Dark/custom; Studio/Search/Library/Analysis/Perform/Settings/Intro; keyboard
+  focus, transient popovers, continuous results, wrapping/gutters and mobile swap.
+- Physical IME, touch/software keyboard and audible metronome remain separate gates.
+
+The provided cloud browser rejected the local development URL with
+`net::ERR_BLOCKED_BY_CLIENT`. Visual/browser acceptance is therefore pending unless
+a supported preview becomes available. Do not present source checks as screenshot
+or real-device evidence. Full-data local Writer acceptance also requires the owner's
+shipping SQLite distributions, which are not checked into this repository.
+
+## Deliberately excluded
+
+No new search features, onboarding steps, navigation hierarchy, remote fonts/assets,
+paid services, dependencies, storage formats, runtime deployment or route cutover.
+No change to the owner's selected editor font or saved color palettes.
+
+## Implementation evidence
+
+To be filled after implementation and verification; this plan is committed first.
