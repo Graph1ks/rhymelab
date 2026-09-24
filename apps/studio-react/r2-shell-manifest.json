@@ -1,0 +1,112 @@
+{
+  "schema": "rhymelab-react-studio-r2-shell-v1",
+  "phase": "R2",
+  "baseline": "main@fbda43a9e4dd",
+  "status": "implemented_automated_verification_pending_ci",
+  "invariant": "presentation_shell_only_no_domain_semantics_reimplemented",
+  "breakpoints": {
+    "sidebarRail": 1150,
+    "mobile": 800,
+    "compactMobile": 560
+  },
+  "scroll_ownership": "fixed_app_shell_one_active_content_scroll_owner",
+  "foundations": [
+    {
+      "id": "shell.sidebar",
+      "status": "implemented",
+      "source": "apps/studio-react/src/shell/Shell.tsx"
+    },
+    {
+      "id": "shell.topbar",
+      "status": "implemented",
+      "source": "apps/studio-react/src/shell/Shell.tsx"
+    },
+    {
+      "id": "shell.mobile-nav",
+      "status": "implemented_device_acceptance_pending",
+      "source": "apps/studio-react/src/shell/Shell.tsx"
+    },
+    {
+      "id": "shell.settings-drawer",
+      "status": "implemented",
+      "primitive": "Base UI Drawer"
+    },
+    {
+      "id": "appearance.semantic-tokens",
+      "status": "implemented",
+      "source": "apps/studio-react/src/styles/tokens.css"
+    },
+    {
+      "id": "appearance.light-dark",
+      "status": "implemented",
+      "source": "apps/studio-react/src/design-system/theme.ts"
+    },
+    {
+      "id": "appearance.custom-slots",
+      "status": "implemented_existing_saved_themes",
+      "source": "apps/studio-react/src/design-system/theme.ts"
+    },
+    {
+      "id": "appearance.quickstyles",
+      "status": "implemented",
+      "primitive": "Base UI Popover"
+    },
+    {
+      "id": "appearance.language",
+      "status": "implemented",
+      "primitive": "Base UI Select + one-click topbar switch"
+    },
+    {
+      "id": "appearance.command-palette",
+      "status": "implemented",
+      "primitive": "Base UI Dialog",
+      "legacy": "src/studio/command-palette.mjs"
+    },
+    {
+      "id": "appearance.reduced-motion",
+      "status": "implemented",
+      "source": "apps/studio-react/src/styles/tokens.css"
+    },
+    {
+      "id": "mobile.visual-viewport",
+      "status": "wired_device_acceptance_pending",
+      "legacy": "src/studio/mobile-viewport.mjs"
+    },
+    {
+      "id": "design-system.base-ui",
+      "status": "established",
+      "primitives": [
+        "button",
+        "dialog",
+        "drawer",
+        "menu",
+        "popover",
+        "select",
+        "tooltip"
+      ]
+    },
+    {
+      "id": "layout.studio-two-pane",
+      "status": "foundation_only",
+      "domain_phase": "R3/R5"
+    },
+    {
+      "id": "layout.full-page-surfaces",
+      "status": "foundation_only",
+      "domain_phase": "R3/R4"
+    }
+  ],
+  "forbidden_in_r2": [
+    "Writer/Search reimplementation",
+    "DocumentStore replacement",
+    "Editor semantic rewrite",
+    "fake search results",
+    "fake document persistence",
+    "cutover to root route"
+  ],
+  "evidence": [
+    "apps/studio-react/src/shell/r2-shell.test.ts",
+    "apps/studio-react/src/legacy/legacy-parity.test.ts",
+    "React Studio Replatform CI"
+  ]
+}
