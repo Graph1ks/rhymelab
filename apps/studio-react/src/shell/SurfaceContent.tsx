@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 
 import { Dialog } from '../design-system/primitives';
 
-import { HomePage } from '../features/home/HomePage';
+import { HomePage } from '../features/intro/HomePage';
 import { LibraryWorkspace } from '../features/library/LibraryWorkspace';
 import { AnalysisWorkspace } from '../features/analysis/AnalysisWorkspace';
 import { EditorSessionProvider } from '../features/editor/EditorSessionProvider';
