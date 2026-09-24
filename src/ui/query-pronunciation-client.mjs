@@ -241,42 +241,49 @@ function createReferenceLookup(lookupReference,language,maxLookups=128){
   };
 }
 
-async function findSourceOnlySegmentation(normalized,language,lookupReference){
-  if(typeof lookupReference!=='function'||normalized.length<5)return null;
-  const lookup=createReferenceLookup(lookupReference,language,48);
-  const memo=new Map();
+async function resolvePrefixComponents(normalized,language,lookupReference){
+  if(!normalized)return[];
+  if(typeof lookupReference!=='function'){
+    return[generateClientIpa(normalized,language)];
+  }
 
-  const search=async(start,partsLeft)=>{
-    const key=start+':'+partsLeft;
-    if(memo.has(key))return memo.get(key);
-    if(start===normalized.length)return[];
-    if(partsLeft<=0)return null;
-    for(let end=normalized.length;end>=start+2;end-=1){
-      if(end<normalized.length&&normalized.length-end<2)continue;
-      const segment=normalized.slice(start,end);
-      const reference=await lookup(segment);
-      if(!reference)continue;
-      if(end===normalized.length){
-        const result=[reference];
-        memo.set(key,result);
-        return result;
-      }
-      const tail=await search(end,partsLeft-1);
-      if(tail?.length){
-        const result=[reference,...tail];
-        memo.set(key,result);
-        return result;
-      }
-    }
-    memo.set(key,null);
-    return null;
+  const lookup=createReferenceLookup(lookupReference,language,48);
+  const parts=[];
+  let generated='';
+  let cursor=0;
+
+  const flushGenerated=()=>{
+    if(!generated)return;
+    parts.push(generateClientIpa(generated,language));
+    generated='';
   };
 
-  for(const maxParts of [2,3,4,5,6]){
-    const parts=await search(0,maxParts);
-    if(parts?.length>=2)return parts;
+  while(cursor<normalized.length){
+    let match=null;
+    // Prefer long source-backed words at the current boundary. Three letters
+    // is the lower bound: enough for useful short lexemes without probing
+    // every two-letter coincidence in a long art word.
+    for(let end=normalized.length;end>=cursor+3;end-=1){
+      const reference=await lookup(normalized.slice(cursor,end));
+      if(reference){
+        match={end,reference};
+        break;
+      }
+    }
+
+    if(match){
+      flushGenerated();
+      parts.push(match.reference);
+      cursor=match.end;
+      continue;
+    }
+
+    generated+=normalized[cursor];
+    cursor+=1;
   }
-  return null;
+
+  flushGenerated();
+  return parts;
 }
 
 async function findSourceBackedRightEdge(normalized,language,lookupReference){
@@ -305,51 +312,33 @@ async function resolveReferenceCompound(normalized,language,lookupReference){
   if(!suffix)return null;
 
   const prefixSurface=normalized.slice(0,suffix.start);
-  const prefixExact=await lookupReference(prefixSurface,language);
-  const prefixExactIpa=referenceIpa(prefixExact);
-  let prefixParts=prefixExactIpa?[prefixExact]:null;
+  const prefixParts=await resolvePrefixComponents(
+    prefixSurface,
+    language,
+    lookupReference,
+  );
+  const parts=[...prefixParts,suffix.reference];
+  const generatedParts=prefixParts.filter(
+    (part)=>part?.clientOnly===true&&part?.sourceBacked===false,
+  );
+  const sourceParts=parts.filter((part)=>!generatedParts.includes(part));
+  const sourceBacked=generatedParts.length===0;
 
-  if(!prefixParts&&prefixSurface.length>=5){
-    prefixParts=await findSourceOnlySegmentation(
-      prefixSurface,
-      language,
-      lookupReference,
-    );
-  }
-
-  if(prefixParts?.length){
-    const sourceParts=[...prefixParts,suffix.reference];
-    return {
-      language,
-      surface:normalized,
-      normalized,
-      ipa:composeRightEdgePronunciations(sourceParts),
-      method:'client_source_reference_compound_right_edge',
-      policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
-      sourceBacked:true,
-      generatedReference:false,
-      clientOnly:true,
-      components:sourceParts.map((reference)=>reference.surface).filter(Boolean),
-    };
-  }
-
-  const prefix=generateClientIpa(prefixSurface,language);
   return {
     language,
     surface:normalized,
     normalized,
-    ipa:composeRightEdgePronunciations([prefix,suffix.reference]),
-    method:'client_mixed_reference_compound_right_edge',
+    ipa:composeRightEdgePronunciations(parts),
+    method:sourceBacked
+      ?'client_source_reference_compound_right_edge'
+      :'client_mixed_reference_compound_right_edge',
     policy:CLIENT_QUERY_PRONUNCIATION_POLICY,
-    sourceBacked:false,
-    generatedReference:true,
+    sourceBacked,
+    generatedReference:!sourceBacked,
     clientOnly:true,
-    components:[
-      prefix.surface||prefixSurface,
-      suffix.reference.surface||normalized.slice(suffix.start),
-    ],
-    generatedComponents:[prefix.surface||prefixSurface],
-    sourceBackedComponents:[suffix.reference.surface||normalized.slice(suffix.start)],
+    components:parts.map((part)=>part?.surface).filter(Boolean),
+    generatedComponents:generatedParts.map((part)=>part.surface).filter(Boolean),
+    sourceBackedComponents:sourceParts.map((part)=>part?.surface).filter(Boolean),
   };
 }
 
