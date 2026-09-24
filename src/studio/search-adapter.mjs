@@ -259,6 +259,9 @@ export function resolvedRightEdgeComponent(detail){
       const components=Array.isArray(last?.components)?last.components:[];
       return String(components.at(-1)||'').trim();
     }
+    if(last?.sourceBacked===true){
+      return String(last?.surface||'').trim();
+    }
   }
   return'';
 }
