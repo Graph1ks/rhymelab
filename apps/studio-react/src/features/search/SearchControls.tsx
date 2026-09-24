@@ -192,7 +192,11 @@ export function SearchControls({
     && (state.scope === 'all' || state.scope === 'entities');
 
   return (
-    <div className={styles.controls} data-compact={compact ? 'true' : 'false'}>
+    <div
+      className={styles.controls}
+      data-compact={compact ? 'true' : 'false'}
+      data-rhymelab-control="search.languages"
+    >
       <div className={styles.presetRow} aria-label={language === 'de' ? 'Presets' : 'Presets'}>
         {SEARCH_PRESETS.map((preset) => (
           <button
@@ -207,7 +211,7 @@ export function SearchControls({
         ))}
       </div>
 
-      <div className={styles.filterGrid}>
+      <div className={styles.filterGrid} data-rhymelab-control="search.scope">
         <FilterSelect
           label={language === 'de' ? 'SPRACHEN' : 'LANGUAGES'}
           value={languageRouteValue(state.queryBasis, state.resultLanguage)}
