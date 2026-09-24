@@ -197,6 +197,26 @@ owned by the Topbar and it does not expose engineering acceptance tooling.
 - [x] `GROWTHHORMONPRODUCER` is covered in both DE and EN regression tests.
 - [x] Resolver-policy bump invalidates stale generated-pronunciation cache entries.
 
+## Deferred search axis — Klangposition Anfang / Ende
+
+This is intentionally documented for a later search-runtime phase rather than being
+folded into the current rhyme-type filters.
+
+- [ ] Add a first-class **Klangposition** control: **Ende** / **Anfang**.
+- [ ] **Ende** remains the current canonical rhyme-domain search.
+- [ ] **Anfang** targets onset / initial-sound similarity for cases such as
+      `Resolve / Refrain / Recovery` or `Alter / Altbau / Allgemein`.
+- [ ] Do not overload Perfect / Slant / Assonance / Consonance with initial-sound
+      semantics; this is an orthogonal search axis.
+- [ ] Reuse existing pronunciation/source data; no new lexical source corpus is
+      required.
+- [ ] Extend Serving/Runtime materialization with dedicated left-edge keys
+      (for example onset prefix / initial syllable families) and rebuild
+      Lite / Standard / Full runtime artifacts.
+- [ ] Keep retrieval indexed. Do not implement the production feature as a broad
+      per-query scan over all pronunciations.
+- [ ] Document the new axis in the in-product Search Guide when it ships.
+
 ## Automated checkpoint
 
 On `9812a674669c`:
