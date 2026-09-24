@@ -100,6 +100,66 @@ describe('R5 editor orchestration model', () => {
     expect(current.barIds?.[4]).not.toBe(before[3]);
   });
 
+
+  it('treats native Enter as a unified-document split while retaining the original left Bar ID', () => {
+    const current = song();
+    ensureLegacyEditorSong(current);
+    const originalId = current.barIds?.[1];
+    const text = editorDocumentText(asEditorSong(current));
+    const splitAt = text.indexOf(' bleibt');
+    const next = text.slice(0, splitAt) + '\n' + text.slice(splitAt);
+    reconcileEditorDocumentText(asEditorSong(current), next);
+
+    expect(current.lines[1]).toBe('Die Stadt');
+    expect(current.lines[2]).toBe(' bleibt wach');
+    expect(current.barIds?.[1]).toBe(originalId);
+    expect(current.barIds?.[2]).toBeTruthy();
+    expect(current.barIds?.[2]).not.toBe(originalId);
+  });
+
+  it('treats native boundary deletion as a line merge without recycling removed Bar identity', () => {
+    const current = song();
+    ensureLegacyEditorSong(current);
+    reconcileEditorDocumentText(
+      asEditorSong(current),
+      '[Verse]\nDie Stadt\n bleibt wach\n\nNacht',
+    );
+    const leftId = current.barIds?.[1];
+    const removedId = current.barIds?.[2];
+
+    reconcileEditorDocumentText(
+      asEditorSong(current),
+      '[Verse]\nDie Stadt bleibt wach\n\nNacht',
+    );
+
+    expect(current.lines[1]).toBe('Die Stadt bleibt wach');
+    expect(current.barIds?.[1]).toBe(leftId);
+    expect(current.barIds).not.toContain(removedId);
+  });
+
+  it('treats native multiline paste as one unified-document mutation with stable surrounding IDs', () => {
+    const current = song();
+    ensureLegacyEditorSong(current);
+    const before = [...(current.barIds ?? [])];
+    const text = editorDocumentText(asEditorSong(current));
+    const start = text.indexOf('Stadt');
+    const end = start + 'Stadt'.length;
+    const pasted = text.slice(0, start) + 'City\nNeon' + text.slice(end);
+
+    reconcileEditorDocumentText(asEditorSong(current), pasted);
+
+    expect(current.lines).toEqual([
+      '[Verse]',
+      'Die City',
+      'Neon bleibt wach',
+      '',
+      'Nacht',
+    ]);
+    expect(current.barIds?.[0]).toBe(before[0]);
+    expect(current.barIds?.at(-1)).toBe(before.at(-1));
+    expect(new Set(current.barIds).size).toBe(current.lines.length);
+  });
+
   it('deduplicates revisions, retains stable snapshots and restores a previous revision', () => {
     const current = song();
     ensureLegacyEditorSong(current);
