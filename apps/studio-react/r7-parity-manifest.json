@@ -118,6 +118,10 @@
     "all_rhymes_linked_chain_focus": true,
     "settings_style_designer": true,
     "style_designer_oklch_randomizer": true,
-    "visible_device_acceptance_settings_ui": false
+    "visible_device_acceptance_settings_ui": false,
+    "search_tiles_renderer_removed": true,
+    "sound_explorer_toolbar_horizontal_scroll": false,
+    "oklch_hue_sweep_step_degrees": 15,
+    "external_filter_scroll_dismissal": true
   }
 }
