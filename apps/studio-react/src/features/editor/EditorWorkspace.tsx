@@ -26,9 +26,12 @@ import { useDocumentWorkspace } from '../library/DocumentWorkspaceProvider';
 import { useEditorSession } from './EditorSessionProvider';
 import { asEditorSong } from './model';
 import {
+  DEFAULT_EDITOR_FONT,
   editorFontFamily,
   editorFontStyle,
   editorFontWeight,
+  ensureEditorFontLoaded,
+  normalizeEditorFontValue,
   SystemFontPicker,
 } from './SystemFontPicker';
 import styles from './Editor.module.css';
@@ -90,7 +93,18 @@ function FontControls() {
   const documents = useDocumentWorkspace();
   const language = useUiStore((state) => state.uiLanguage);
   const size = Math.max(16, Math.min(32, Number(documents.state.fontSize) || 21));
-  const font = String(documents.state.editorFont || 'sans');
+  const rawFont = String(documents.state.editorFont || DEFAULT_EDITOR_FONT);
+  const font = normalizeEditorFontValue(rawFont);
+
+  useEffect(() => {
+    ensureEditorFontLoaded(font);
+    if (rawFont !== font) {
+      void documents.mutate((state) => {
+        state.editorFont = font;
+        return state;
+      });
+    }
+  }, [documents, font, rawFont]);
 
   const setSize = (next: number) => {
     void documents.mutate((state) => {
@@ -149,7 +163,7 @@ export function EditorWorkspace() {
   const song = editor.activeSong;
   const lines = song?.lines ?? [''];
   const fontSize = Math.max(16, Math.min(32, Number(documents.state.fontSize) || 21));
-  const editorFont = String(documents.state.editorFont || 'sans');
+  const editorFont = normalizeEditorFontValue(documents.state.editorFont || DEFAULT_EDITOR_FONT);
   const fontFamily = editorFontFamily(editorFont);
   const fontStyle = editorFontStyle(editorFont);
   const fontWeight = editorFontWeight(editorFont);
