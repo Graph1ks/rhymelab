@@ -2,7 +2,7 @@
 
 Status: **implemented for single words and multi-word user queries**  
 Umbrella policy: `total-query-pronunciation-v1`  
-Client policy: `client-total-query-pronunciation-v3`
+Client policy: `client-total-query-pronunciation-v4`
 
 ## Product invariant
 
@@ -35,7 +35,7 @@ Only missing query pronunciation is generated in the end-user client.
 Implementation:
 
 - `src/ui/query-pronunciation-client.mjs`
-- policy `client-total-query-pronunciation-v3`
+- policy `client-total-query-pronunciation-v4`
 - maximum 64 pronunciation tokens per query
 
 The generator must remain browser-compatible and portable to Android/WebView-style packaging and Electron-style packaging.
@@ -51,9 +51,9 @@ It must not depend on:
 
 The surrounding product may use the existing RhymeLab DB/API to obtain source-backed token pronunciations and to perform the normal rhyme search.
 
-### German OOV rhyme-domain correction
+### OOV rhyme-domain correction
 
-Client policy v3 keeps the existing deterministic browser-only resolver architecture but corrects German generated anchors for final devoicing and the common `-ag` rhyme domain. This is query-anchor logic only; it does not alter canonical candidate pronunciations or rankings. `TRAG` and `WARG` are regression sentinels for this behavior.
+Client policy v4 keeps the existing deterministic browser-only resolver architecture but corrects German generated anchors for final devoicing and the common `-ag` rhyme domain. This is query-anchor logic only; it does not alter canonical candidate pronunciations or rankings. `TRAG` and `WARG` are regression sentinels for this behavior.
 
 ## Resolution order
 
@@ -66,9 +66,12 @@ For the whole query:
 For every client token:
 
 1. exact source-backed word pronunciation;
-2. two-part source-backed compound composition when available;
-3. deterministic language-specific client rules;
-4. deterministic grapheme fallback.
+2. preserve the longest source-backed right-edge component when the complete token is unknown;
+3. decompose the remaining prefix into source-backed components when possible;
+4. generate only the still-unresolved prefix locally;
+5. deterministic language-specific client rules / grapheme fallback when no source-backed right edge exists.
+
+Compound query pronunciation is deliberately **right-edge anchored**: earlier components are demoted and the final lexical component carries the primary query stress. This is an ephemeral search-anchor policy, not a claim about canonical compound stress. It prevents long invented compounds such as `GROWTHHORMONPRODUCER` from turning the entire token into one unusably large rhyme domain. Long fully generated OOV spellings use the same bounded right-edge principle.
 
 The resulting word/phrase IPA is ephemeral query state only.
 
