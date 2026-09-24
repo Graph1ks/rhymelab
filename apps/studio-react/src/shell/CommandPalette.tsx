@@ -7,7 +7,11 @@ import {
   type StudioCommand,
 } from '../legacy/shell';
 import { useUiStore } from '../state/uiStore';
-import { shellText } from './navigation';
+import {
+  commandPaletteShortcutLabel,
+  isTextEditingTarget,
+  shellText,
+} from './navigation';
 import { Icon } from './icons';
 import styles from './Shell.module.css';
 
@@ -19,7 +23,6 @@ function buildCommands(): StudioCommand[] {
       group: 'Navigation',
       label: 'Studio öffnen',
       keywords: ['studio', 'write', 'schreiben'],
-      shortcut: 'Alt+1',
       run: () => state.navigate('studio'),
     },
     {
@@ -27,7 +30,6 @@ function buildCommands(): StudioCommand[] {
       group: 'Navigation',
       label: 'Reimsuche öffnen',
       keywords: ['search', 'rhyme', 'reim', 'writer'],
-      shortcut: 'Alt+2',
       run: () => state.navigate('search'),
     },
     {
@@ -76,7 +78,7 @@ function buildCommands(): StudioCommand[] {
   ];
 }
 
-export function CommandPalette() {
+export function CommandPalette({ showTrigger = true }: { showTrigger?: boolean }) {
   const open = useUiStore((state) => state.commandPaletteOpen);
   const setOpen = useUiStore((state) => state.setCommandPaletteOpen);
   const language = useUiStore((state) => state.uiLanguage);
@@ -109,18 +111,15 @@ export function CommandPalette() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      if (isTextEditingTarget(event.target)) return;
+      if (
+        (event.ctrlKey || event.metaKey)
+        && event.shiftKey
+        && event.key.toLowerCase() === 'k'
+      ) {
         event.preventDefault();
         if (open) closePalette();
         else openPalette();
-      }
-      if (event.altKey && event.key === '1') {
-        event.preventDefault();
-        useUiStore.getState().navigate('studio');
-      }
-      if (event.altKey && event.key === '2') {
-        event.preventDefault();
-        useUiStore.getState().navigate('search');
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -137,17 +136,23 @@ export function CommandPalette() {
     closePalette();
   };
 
+  const platform = typeof navigator === 'undefined'
+    ? ''
+    : (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent);
+
   return (
     <>
-      <button
-        type="button"
-        className={styles.commandTrigger}
-        onClick={openPalette}
-        aria-label={shellText('Befehle öffnen', language)}
-      >
-        <Icon name="command" />
-        <span>⌘ K</span>
-      </button>
+      {showTrigger ? (
+        <button
+          type="button"
+          className={styles.commandTrigger}
+          onClick={openPalette}
+          aria-label={shellText('Befehle öffnen', language)}
+        >
+          <Icon name="command" />
+          <span>{commandPaletteShortcutLabel(platform)}</span>
+        </button>
+      ) : null}
 
       <Dialog.Root
         open={open}
@@ -215,7 +220,9 @@ export function CommandPalette() {
               </div>
 
               <p className={styles.commandHint}>
-                {shellText('Strg / ⌘ + K öffnet die Palette · ↑↓ wählen · Enter ausführen · Escape schließen.', language)}
+                {language === 'de'
+                  ? 'Ctrl / ⌘ + Shift + K öffnet die Palette · ↑↓ wählen · Enter ausführen · Escape schließen.'
+                  : 'Ctrl / ⌘ + Shift + K opens commands · ↑↓ select · Enter runs · Escape closes.'}
               </p>
             </Dialog.Popup>
           </Dialog.Viewport>
