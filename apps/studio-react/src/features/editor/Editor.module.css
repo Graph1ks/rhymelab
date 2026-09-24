@@ -280,7 +280,7 @@
   justify-content: center;
   min-height: 34px;
   border-bottom: 1px solid color-mix(in srgb, var(--rl-line) 55%, transparent);
-  font-size: max(10px, calc(var(--editor-font-size) * .48));
+  font-size: max(11px, calc(var(--editor-font-size) * .48));
   font-variant-numeric: tabular-nums;
 }
 
