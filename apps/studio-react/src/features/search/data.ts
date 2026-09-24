@@ -35,6 +35,30 @@ const writerClient = createWriterSearchClient();
 const detailClient = createStudioDetailClient();
 const documentStore = createStudioDocumentStore();
 
+export function runtimeEditionFromHealth(payload: unknown): RuntimeEdition | null {
+  const health = payload && typeof payload === 'object'
+    ? payload as Record<string, unknown>
+    : {};
+  const serving = health.serving_v1 && typeof health.serving_v1 === 'object'
+    ? health.serving_v1 as Record<string, unknown>
+    : {};
+  const edition = String(serving.internal_db ?? '').toLowerCase();
+  return edition === 'lite' || edition === 'standard' || edition === 'full'
+    ? edition
+    : null;
+}
+
+async function fetchRuntimeIdentity(
+  fetchImpl: typeof fetch = globalThis.fetch,
+): Promise<RuntimeEdition | null> {
+  if (typeof fetchImpl !== 'function') return null;
+  const response = await fetchImpl('/api/health', {
+    headers: { accept: 'application/json' },
+  });
+  if (!response.ok) return null;
+  return runtimeEditionFromHealth(await response.json());
+}
+
 async function fetchRuntimeEditions(
   fetchImpl: typeof fetch = globalThis.fetch,
 ): Promise<RuntimeEditionPayload | null> {
@@ -54,6 +78,13 @@ async function fetchRuntimeEditions(
 }
 
 export function useRuntimeEnvironment() {
+  const identityQuery = useQuery({
+    queryKey: ['runtime-identity'],
+    queryFn: () => fetchRuntimeIdentity(),
+    staleTime: 15_000,
+    retry: false,
+  });
+
   const editionsQuery = useQuery({
     queryKey: ['runtime-editions'],
     queryFn: () => fetchRuntimeEditions(),
@@ -90,6 +121,7 @@ export function useRuntimeEnvironment() {
     return true;
   };
 
+  const activeEdition = selected ?? identityQuery.data ?? null;
   const runtimeDb = editionsQuery.data && selected ? selected : '';
 
   const capabilitiesQuery = useQuery({
@@ -114,6 +146,7 @@ export function useRuntimeEnvironment() {
     payloadError: editionsQuery.error,
     preferred,
     selected,
+    activeEdition,
     runtimeDb,
     summaryMap,
     setRuntimeEdition,
