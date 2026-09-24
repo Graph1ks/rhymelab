@@ -76,7 +76,19 @@ Contracts:
 `docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md`, and
 `docs/REACT_STUDIO_R7_PARITY.md`.
 
-Active continuation: **R7 real-browser / physical-device acceptance**. R8 may begin
+Owner UX correction checkpoint `e7e93846fa00` is now implemented on top of R7.
+It removes the micro-typography/box-heavy Search/Studio presentation, moves Library
+and Saved into their owning workflows, restores direct Bar drag behavior, adds the
+virtualized local-system-font picker, collapses Search filters, gives Analysis and
+Perform the full canvas, introduces distinct rhyme group/type colors, and promotes
+Perform into a count-in/loop/auto-advance booth workflow. The durable checklist is
+`docs/REACT_STUDIO_UX_CORRECTION.md`.
+
+Current automated evidence on that checkpoint: 87/87 React tests, production build,
+React Studio Replatform #237, Studio V2 Gate #555 and RhymeLab CI #1420 including
+public-readiness all pass.
+
+Active continuation: **owner visual acceptance + R7 real-browser / physical-device acceptance**. R8 may begin
 only after the parity matrix reaches 93/93 `verified` and the full R7 cutover gate
 passes.
 
