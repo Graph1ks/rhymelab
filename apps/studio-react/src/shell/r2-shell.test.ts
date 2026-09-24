@@ -130,17 +130,22 @@ describe('R2 semantic theme layer preserves existing theme slots', () => {
     expect(choices[0]?.id).toBe('custom-light');
   });
 
-  it('generates deterministic-hue OKLCH styles with readable semantic contrast', () => {
-    const dark = randomOklchTheme('dark', { hue: 42, id: 'generated-dark', name: 'Generated Dark' });
-    const light = randomOklchTheme('light', { hue: 210, id: 'generated-light', name: 'Generated Light' });
-    for (const theme of [dark, light]) {
-      const colors = completeThemeColors(theme.colors);
-      Object.values(colors).forEach((value) => expect(value).toMatch(/^#[0-9A-F]{6}$/));
-      const report = themeContrastReport(colors);
-      expect(report.inkOnBg).toBeGreaterThanOrEqual(4.5);
-      expect(report.inkOnPanel).toBeGreaterThanOrEqual(4.5);
-      expect(report.onAccent).toBeGreaterThanOrEqual(4.5);
-      expect(report.readable).toBe(true);
+  it('keeps OKLCH random styles readable across the full hue wheel', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      for (let hue = 0; hue < 360; hue += 15) {
+        const theme = randomOklchTheme(mode, {
+          hue,
+          id: `generated-${mode}-${hue}`,
+          name: `Generated ${mode} ${hue}`,
+        });
+        const colors = completeThemeColors(theme.colors);
+        Object.values(colors).forEach((value) => expect(value).toMatch(/^#[0-9A-F]{6}$/));
+        const report = themeContrastReport(colors);
+        expect(report.inkOnBg, `${mode} H${hue} ink/bg`).toBeGreaterThanOrEqual(4.5);
+        expect(report.inkOnPanel, `${mode} H${hue} ink/panel`).toBeGreaterThanOrEqual(4.5);
+        expect(report.onAccent, `${mode} H${hue} accent text`).toBeGreaterThanOrEqual(4.5);
+        expect(report.readable, `${mode} H${hue}`).toBe(true);
+      }
     }
   });
 
