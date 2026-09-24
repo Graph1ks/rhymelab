@@ -594,18 +594,14 @@ const studioHtml=readFileSync(resolve(studioUiDir,'index.html'));
 const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
 const queryPronunciationTestHtml = readFileSync(resolve(queryPronunciationTestDir, 'index.html'));
 const markovTestHtml = readFileSync(resolve(markovTestDir, 'index.html'));
-const reactStudioAssets=reactStudioPreview.enabled
-  ?loadReactStudioPreviewAssets(reactStudioDistDir)
-  :{};
-const reactStudioHtml=reactStudioPreview.enabled
-  ?reactStudioAssets['/studio-react/']?.body
-  :null;
+const reactStudioAssets=loadReactStudioPreviewAssets(reactStudioDistDir);
+const reactStudioHtml=reactStudioAssets['/studio-react/']?.body;
 const assets = {
   '/': {
     type: 'text/html; charset=utf-8',
-    body: reactStudioPreview.defaultRoute
-      ?reactStudioHtml
-      :(studioDefaultRoute?studioHtml:writerHtml),
+    body: searchDefaultRoute
+      ?writerHtml
+      :(reactStudioPreview.defaultRoute?reactStudioHtml:studioHtml),
   },
   '/search': { type: 'text/html; charset=utf-8', body: writerHtml },
   '/search/': { type: 'text/html; charset=utf-8', body: writerHtml },
@@ -615,8 +611,8 @@ const assets = {
   '/pad-legacy': { type: 'text/html; charset=utf-8', body: padHtml },
   '/pad-legacy/': { type: 'text/html; charset=utf-8', body: padHtml },
   '/pad/': { type: 'text/html; charset=utf-8', body: padHtml },
-  '/studio': { type: 'text/html; charset=utf-8', body: studioHtml },
-  '/studio/': { type: 'text/html; charset=utf-8', body: studioHtml },
+  '/studio': { type: 'text/html; charset=utf-8', body: reactStudioHtml },
+  '/studio/': { type: 'text/html; charset=utf-8', body: reactStudioHtml },
   '/studio-legacy': { type: 'text/html; charset=utf-8', body: studioHtml },
   '/studio-legacy/': { type: 'text/html; charset=utf-8', body: studioHtml },
   '/studio/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'styles.css')) },
@@ -685,10 +681,11 @@ function studioRouteModePayload(){
     studioDefaultRoute,
     reactStudioPreview:reactStudioPreview.enabled,
     reactStudioPreviewDefault:reactStudioPreview.defaultRoute,
-    defaultRoute:reactStudioPreview.defaultRoute
-      ?'react-studio'
-      :(studioDefaultRoute?'studio':'search'),
-    reactStudio:'/studio-react',
+    defaultRoute:searchDefaultRoute
+      ?'search'
+      :(reactStudioPreview.defaultRoute?'react-studio':'studio-legacy'),
+    reactStudio:'/studio',
+    reactStudioAlias:'/studio-react',
     studio:'/studio',
     legacyStudio:'/studio-legacy',
     search:'/search',
@@ -1201,8 +1198,9 @@ server.maxRequestsPerSocket=100;
 server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymePad workspace: http://${host}:${port}/pad`);
-  console.log(`Studio V2: http://${host}:${port}${studioDefaultRoute?' / (default)':'/studio'}`);
-  console.log(`Legacy Search: http://${host}:${port}/search${studioDefaultRoute?'':' (default)'}`);
+  console.log(`React Studio: http://${host}:${port}${searchDefaultRoute?'/studio':' / (default)'}`);
+  console.log(`Studio V2 rollback: http://${host}:${port}/studio-legacy${reactStudioPreview.defaultRoute?'':' / (default)'}`);
+  console.log(`Legacy Search: http://${host}:${port}/search${searchDefaultRoute?' (default)':''}`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
   console.log(`Markov DE database: ${markovRuntime.available ? markovModelPath : 'unavailable — npm run markov:model:build'}`);
   console.log(`Markov EN database: ${markovEnglishRuntime.available ? markovEnglishModelPath : 'unavailable — npm run markov:model:build:en'}`);

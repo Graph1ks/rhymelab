@@ -111,12 +111,13 @@ add(
   'single persistent Topbar owns desktop/mobile navigation; sidebar and bottom nav are retired',
 );
 add(
-  'route.preview-opt-in',
+  'route.reversible-r8-cutover',
   server.includes('reactStudioPreviewMode(')
-    &&server.includes("'/studio-legacy'")
-    &&server.includes("reactStudio:'/studio-react'")
-    &&preview.includes("'--react-studio-preview-default'"),
-  'opt-in React root preview + explicit Studio V2 rollback aliases',
+    &&server.includes("'/studio': { type: 'text/html; charset=utf-8', body: reactStudioHtml }")
+    &&server.includes("legacyStudio:'/studio-legacy'")
+    &&server.includes("reactStudioAlias:'/studio-react'")
+    &&preview.includes("'--legacy-studio-default'"),
+  'React is the normal Studio route with explicit Studio V2 rollback and /studio-react alias',
 );
 
 const verified=rows.filter((row)=>row.status==='verified');

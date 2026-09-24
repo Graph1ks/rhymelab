@@ -23,15 +23,14 @@ test('Studio cutover code gate resolves all source evidence',()=>{
   }
 });
 
-test('Studio V2 live default stays reversible',()=>{
+test('React Studio live default keeps Studio V2 and Search rollback routes reversible',()=>{
   const server=readFileSync('src/server.mjs','utf8');
-  assert.match(server,/studioDefaultRoute/u);
+  assert.match(server,/reactStudioPreviewMode/u);
   assert.match(server,/searchDefaultRoute/u);
-  assert.match(server,/--studio-default/u);
-  assert.match(server,/RHYMELAB_STUDIO_DEFAULT/u);
   assert.match(server,/--search-default/u);
   assert.match(server,/RHYMELAB_SEARCH_DEFAULT/u);
-  assert.match(server,/studioDefaultRoute\?studioHtml:writerHtml/u);
+  assert.match(server,/'\/studio': \{ type: 'text\/html; charset=utf-8', body: reactStudioHtml \}/u);
+  assert.match(server,/'\/studio-legacy': \{ type: 'text\/html; charset=utf-8', body: studioHtml \}/u);
   assert.match(server,/'\/search': \{ type: 'text\/html; charset=utf-8', body: writerHtml \}/u);
   assert.match(server,/'\/legacy': \{ type: 'text\/html; charset=utf-8', body: writerHtml \}/u);
   assert.match(server,/'\/pad-legacy': \{ type: 'text\/html; charset=utf-8', body: padHtml \}/u);
@@ -39,13 +38,14 @@ test('Studio V2 live default stays reversible',()=>{
 
 test('package exposes Studio live, rollback and release gates',()=>{
   const pkg=JSON.parse(readFileSync('package.json','utf8'));
-  assert.equal(pkg.scripts['dev:studio-default'],'node src/server.mjs --studio-default');
-  assert.equal(pkg.scripts['dev:search-default'],'node src/server.mjs --search-default');
-  assert.equal(pkg.scripts['studio:v2:live'],'npm run studio:v2:verify && node src/server.mjs');
+  assert.equal(pkg.scripts['dev:studio-default'],'npm run studio:react:build && node src/server.mjs');
+  assert.equal(pkg.scripts['dev:search-default'],'npm run studio:react:build && node src/server.mjs --search-default');
+  assert.equal(pkg.scripts['dev:legacy-studio-default'],'npm run studio:react:build && node src/server.mjs --legacy-studio-default');
+  assert.equal(pkg.scripts['studio:v2:live'],'npm run studio:v2:verify && npm run studio:react:build && node src/server.mjs --legacy-studio-default');
   assert.match(pkg.scripts['studio:v2:cutover:code'],/--code-only/u);
   assert.equal(pkg.scripts['studio:v2:cutover:check'],'node --no-warnings scripts/check-studio-v2-cutover.mjs');
   assert.equal(pkg.scripts['studio:v2:cutover:json'],'node --no-warnings scripts/check-studio-v2-cutover.mjs --json');
   assert.match(pkg.scripts['studio:v2:accepted-preview'],/studio:v2:cutover:check/u);
-  assert.match(pkg.scripts['studio:v2:accepted-preview'],/--studio-default/u);
+  assert.match(pkg.scripts['studio:v2:accepted-preview'],/--legacy-studio-default/u);
   assert.equal(pkg.scripts['studio:v2:acceptance:merge'],'node --no-warnings scripts/merge-studio-device-acceptance.mjs');
 });

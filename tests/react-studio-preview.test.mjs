@@ -9,10 +9,10 @@ import {
   reactStudioPreviewMode,
 } from '../src/react-studio-preview.mjs';
 
-test('React Studio preview is opt-in and default-route mode is explicit',()=>{
+test('React Studio is the default runtime surface after R8 cutover',()=>{
   assert.deepEqual(
     reactStudioPreviewMode({argv:[],env:{}}),
-    {enabled:false,defaultRoute:false},
+    {enabled:true,defaultRoute:true},
   );
   assert.deepEqual(
     reactStudioPreviewMode({argv:['--react-studio-preview'],env:{}}),
@@ -22,9 +22,13 @@ test('React Studio preview is opt-in and default-route mode is explicit',()=>{
     reactStudioPreviewMode({argv:['--react-studio-preview-default'],env:{}}),
     {enabled:true,defaultRoute:true},
   );
+  assert.deepEqual(
+    reactStudioPreviewMode({argv:['--legacy-studio-default'],env:{}}),
+    {enabled:true,defaultRoute:false},
+  );
 });
 
-test('React Studio preview mode supports explicit environment flags',()=>{
+test('React Studio runtime keeps explicit preview and legacy rollback flags',()=>{
   assert.deepEqual(
     reactStudioPreviewMode({argv:[],env:{RHYMELAB_REACT_STUDIO_PREVIEW:'1'}}),
     {enabled:true,defaultRoute:false},
@@ -33,9 +37,13 @@ test('React Studio preview mode supports explicit environment flags',()=>{
     reactStudioPreviewMode({argv:[],env:{RHYMELAB_REACT_STUDIO_PREVIEW_DEFAULT:'1'}}),
     {enabled:true,defaultRoute:true},
   );
+  assert.deepEqual(
+    reactStudioPreviewMode({argv:[],env:{RHYMELAB_LEGACY_STUDIO_DEFAULT:'1'}}),
+    {enabled:true,defaultRoute:false},
+  );
 });
 
-test('React Studio preview asset loader maps the Vite build under /studio-react and keeps an index alias',()=>{
+test('React Studio asset loader maps the Vite build under /studio-react and keeps an index alias',()=>{
   const root=mkdtempSync(join(tmpdir(),'rhymelab-react-preview-'));
   try{
     mkdirSync(join(root,'assets'),{recursive:true});
@@ -56,7 +64,7 @@ test('React Studio preview asset loader maps the Vite build under /studio-react 
   }
 });
 
-test('React Studio preview asset loader fails closed when the build is missing',()=>{
+test('React Studio asset loader fails closed when the build is missing',()=>{
   assert.throws(
     ()=>loadReactStudioPreviewAssets(join(tmpdir(),'definitely-missing-rhymelab-react-preview')),
     /npm run studio:react:build/u,

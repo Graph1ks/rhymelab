@@ -97,7 +97,7 @@ export const STUDIO_PARITY_MANIFEST=Object.freeze([
   item('system.startup-bindings','System / Recovery','Startup control binding guard','Studio extension','Startup',['src/studio/app.js::bindClick']),
   item('system.device-acceptance','System / Recovery','Seven-gate multi-device acceptance merge','Studio extension','Settings',['src/studio/device-acceptance.mjs::mergeStudioDeviceAcceptanceReports']),
   item('system.cutover-gate','System / Recovery','Deterministic source + device cutover gate','Studio extension','Release tooling',['scripts/check-studio-v2-cutover.mjs::parity.source-evidence']),
-  item('system.reversible-route','System / Recovery','Reversible Studio-default route preview with legacy aliases','Studio extension','Server routes',['src/server.mjs::studioDefaultRoute?studioHtml:writerHtml']),
+  item('system.reversible-route','System / Recovery','Reversible React-default route with Studio V2 rollback alias','Studio extension','Server routes',["src/server.mjs::legacyStudio:'/studio-legacy'"]),
 ]);
 
 export function studioParitySummary(manifest=STUDIO_PARITY_MANIFEST){

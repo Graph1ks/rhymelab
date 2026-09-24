@@ -1,3 +1,11 @@
+# CURRENT CONTINUATION — React Studio R8 reversible cutover
+
+**Runtime:** React Studio is default at `/` and `/studio`; `/studio-react` remains an alias.  
+**Rollback:** Studio V2 remains at `/studio-legacy`; use `npm run dev:legacy-studio-default` for a temporary legacy root.  
+**Acceptance:** seven physical browser/touch/IME/Web Audio gates remain pending. The owner-authorized route cutover does not mark those gates verified and does not authorize deletion of the legacy Studio.
+
+Older routing statements below are historical context and are superseded by this section.
+
 # PRESENTATION CONTINUATION — Rhyme Bureau design pass
 
 Branch: `design/rhyme-bureau-studio-pass` · baseline: React merge #205.

@@ -26,7 +26,7 @@ Not allowed during the freeze without an explicit owner instruction:
 
 ## Non-negotiable invariant
 
-**The React Studio is not allowed to replace Studio V2 until it preserves every existing user-facing capability and interaction contract.**
+**The React Studio must preserve the existing user-facing capability and interaction contract. Runtime cutover is reversible and owner-controlled; final migration completion and removal of Studio V2 still require the full acceptance evidence.**
 
 The existing Studio V2 implementation on the baseline commit is the behavioral golden master. The new application may improve internal structure, accessibility implementation, component boundaries and rendering architecture, but it may not silently change product semantics.
 
@@ -251,7 +251,7 @@ R5  editor                                      AUTOMATED VERIFIED
 R6  Analysis + Perform                          AUTOMATED VERIFIED
 R7  source parity + acceptance infrastructure   AUTOMATED SOURCE COMPLETE
     real-browser / physical-device evidence     ACTIVE
-R8  reversible cutover                          BLOCKED
+R8  reversible cutover                          ACTIVE (owner-authorized; device acceptance pending)
 ```
 
 R1 wraps 18 existing browser/domain modules behind strict TypeScript contracts
@@ -309,9 +309,14 @@ npm run studio:react:r6
 npm run studio:react:r7
 ```
 
-The application remains intentionally isolated from the shipping root route. Studio
-V2 is still the shipping behavioral golden master and rollback implementation.
-R7 source parity is now 93 `ported`, 0 `in_progress`, 0 `pending` and
-0 `verified`. This is not cutover readiness. Real-browser interaction evidence and
-the seven physical device gates remain active R7 work. R8 stays blocked until every
-mandatory row is `verified` and `npm run studio:react:r7:cutover` passes.
+The owner explicitly authorized a reversible R8 runtime cutover on 2026-09-24.
+React Studio is now the normal product surface at `/` and `/studio`, with
+`/studio-react` retained as an alias. Studio V2 remains intact at
+`/studio-legacy` as the rollback/reference implementation.
+
+R7 source parity remains 93 `ported`, 0 `in_progress`, 0 `pending` and
+0 `verified`. The runtime cutover does not convert those external acceptance rows
+into verified evidence. Real-browser interaction evidence and the seven physical
+device gates remain active and are required before declaring the migration complete
+or deleting the legacy Studio. `npm run studio:react:r7:cutover` remains the full
+acceptance gate rather than the route-selection switch.

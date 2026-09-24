@@ -1,3 +1,9 @@
+# CURRENT RUNTIME — React Studio R8 reversible cutover
+
+As of 2026-09-24, React Studio is the normal product shell at `/` and `/studio`. The historical `/studio-react` route remains an alias. Studio V2 is retained intact at `/studio-legacy` as the rollback/reference surface.
+
+This is an explicit owner-authorized reversible runtime cutover. The seven physical browser/touch/IME/Web Audio acceptance gates remain pending and still govern migration completion and any future removal of the legacy Studio. Older sections below that describe Studio V2 as the default route are historical and superseded for routing by this section.
+
 # Public-facing status
 
 Last updated: 2026-09-24

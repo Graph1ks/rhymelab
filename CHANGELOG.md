@@ -40,6 +40,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 
 ### Fixed
 
+- Fixed the post-merge product routing mismatch that left the merged React Studio/Rhyme Bureau UI behind preview-only flags. React Studio is now the normal `/` and `/studio` surface, `/studio-react` remains an alias, and Studio V2 remains available at `/studio-legacy` for rollback.
 - Fixed Full Entity distribution selection so Standard Top-1k/category memberships are reserved inside the Full 5k/category ceiling before remaining Full-eligible slots are filled; nesting can no longer inflate a category beyond its shipping quota.
 - Removed stale distribution-census/test metadata that still described the rejected 400k Core + 200k Generated + Markov Full model after the total-budget contract had changed.
 - Fixed systematic Entity pronunciation-language leakage: Wikidata label locale is no longer treated as sufficient pronunciation-language evidence. If the same Entity has the same normalized searchable name as both DE and EN labels, derived German/English pronunciation sources are suppressed while direct/source-backed pronunciation evidence remains eligible. This covers people, films, games, groups and other Entity categories without name-specific exceptions.
@@ -52,6 +53,8 @@ Git remains the complete technical history. This changelog is intentionally cura
 - Entity result cards and detail panels now display concrete taxonomy types such as Rapper, Actor, Music Group, Movie, Video Game, Character, Album or Song instead of the generic Entity label.
 
 ### Changed
+
+- Began the owner-authorized reversible R8 React runtime cutover. Normal runtime entrypoints build the React Studio before starting the local server; the seven physical browser/touch/IME/Web Audio acceptance gates remain open and still block declaring the migration complete or deleting the legacy Studio.
 
 - Refined the React Rhyme Bureau presentation with a paper-and-ink writing desk,
   editorial document headings, a distinctive monogram, clearer mode navigation,
