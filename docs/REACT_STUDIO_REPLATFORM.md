@@ -89,10 +89,10 @@ Versions are deliberately pinned in the new isolated frontend package so depende
 - Motion 13.4.0;
 - TanStack React Query 5.103.1;
 - Zustand 5.0.15;
-- TanStack React Virtual 3.14.9;
+- TanStack React Virtual 3.14.13;
 - Vite 8.3.0;
 - @vitejs/plugin-react 6.1.1;
-- TypeScript 5.9.x;
+- TypeScript 5.9.3;
 - Vitest 5.0.x.
 
 The Vite-based frontend build/development toolchain requires Node.js 22.12+; this does **not** raise the existing RhymeLab shipping/runtime minimum by itself. Built frontend assets remain served by the existing local runtime.
