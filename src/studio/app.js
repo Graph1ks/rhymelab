@@ -4344,7 +4344,7 @@ function renderBarNavigatorDock(body){
     <div class="bar-navigator">
       <div class="bar-navigator-head">
         <div><span class="eyebrow">BAR NAVIGATOR</span><b>${trackedIndexes.length} Bars</b><small>Leerzeilen und [Section]-Zeilen werden nicht getrackt.</small></div>
-        <div class="bar-navigator-head-actions"><label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label><div class="row"><button id="navigatorAddBar" class="outline">＋ Zeile</button><button id="navigatorDuplicateBar" class="outline">⧉ Duplizieren</button></div></div>
+        <div class="bar-navigator-head-actions"><label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label><div class="row"><button id="navigatorDuplicateBar" class="outline">⧉ Aktive Bar duplizieren</button></div></div>
       </div>
       <div class="bar-navigator-list">
         ${rows.map((row)=>{
@@ -4369,7 +4369,6 @@ function renderBarNavigatorDock(body){
         }).join('')||'<div class="bar-navigator-empty">Keine Bars für diesen Filter.</div>'}
       </div>
     </div>`;
-  $('#navigatorAddBar').onclick=()=>addStudioBarAfter(activeLine);
   $('#navigatorDuplicateBar').onclick=()=>duplicateStudioBar(activeLine);
   const search=$('#barNavigatorSearch');
   search.oninput=(event)=>{
