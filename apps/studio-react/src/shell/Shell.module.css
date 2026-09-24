@@ -1407,15 +1407,6 @@
     border-bottom: 0;
     border-radius: 0;
   }
-
-  .contentViewport[data-surface="search"] {
-    padding-inline: 0;
-  }
-
-  .contentViewport[data-surface="search"] .searchSurface {
-    width: min(80%, 1680px);
-    margin-inline: auto;
-  }
 }
 
 .contentViewport[data-surface="studio"] .studioFoundation {
@@ -2071,15 +2062,17 @@
     color var(--rl-duration-fast) ease;
 }
 
-.topNavButton::after {
-  content: "";
+.topNavUnderline {
   position: absolute;
   left: 13px;
   right: 13px;
   bottom: -8px;
-  height: 2px;
+  height: 3px;
   border-radius: 999px;
-  background: transparent;
+  background: var(--rl-accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--rl-accent) 28%, transparent);
+  transform-origin: center;
+  pointer-events: none;
 }
 
 .topNavButton:hover {
@@ -2090,11 +2083,6 @@
 .topNavButton[data-active="true"] {
   background: var(--rl-tint);
   color: var(--rl-accent);
-}
-
-.topNavButton[data-active="true"]::after {
-  background: var(--rl-accent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--rl-accent) 40%, transparent);
 }
 
 .topNavButton[data-command="true"] {
@@ -2781,10 +2769,6 @@
     font-size: 12px;
   }
 
-  .topNavButton::after {
-    bottom: -7px;
-  }
-
   .topNavButton[data-command="true"] {
     margin-left: 0;
     padding-left: 11px;
@@ -3181,6 +3165,22 @@
   font-weight: 700;
   letter-spacing: -.09em;
   padding-right: 3px;
+  transform-origin: 56% 58%;
+  transition:
+    transform 260ms cubic-bezier(.22, 1, .36, 1),
+    box-shadow 260ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.brand:hover .brandMark,
+.brand:focus-visible .brandMark {
+  transform: translate3d(0, -1px, 0) rotate(-2.5deg) scale(1.035);
+  box-shadow: 5px 5px 0 var(--rl-accent);
+}
+
+.brand:active .brandMark {
+  transform: translate3d(0, 1px, 0) rotate(1.5deg) scale(.97);
+  box-shadow: 2px 2px 0 var(--rl-accent);
+  transition-duration: 80ms;
 }
 
 .brandName {
@@ -3211,12 +3211,6 @@
 .topNavButton[data-active="true"] {
   color: var(--rl-ink);
   background: var(--rl-tint);
-}
-
-.topNavButton[data-active="true"]::after {
-  height: 3px;
-  box-shadow: none;
-  border-radius: 0;
 }
 
 .languageButton {
@@ -3384,329 +3378,14 @@
   }
 }
 
-
-/* Bureau page transitions: calm, destination-led wayfinding below the
-   persistent topbar. The page itself does not travel; a short Bureau routing
-   plate names the destination while a restrained veil dissolves away. */
-.surfaceTransition {
-  position: relative;
-  width: 100%;
-  min-height: 100%;
-}
-
-.surfaceTransitionBody {
-  width: 100%;
-  min-height: 100%;
-}
-
-.contentViewport[data-surface="studio"] > .surfaceTransition,
-.contentViewport[data-surface="search"] > .surfaceTransition,
-.contentViewport[data-surface="library"] > .surfaceTransition,
-.contentViewport[data-surface="studio"] > .surfaceTransition > .surfaceTransitionBody,
-.contentViewport[data-surface="search"] > .surfaceTransition > .surfaceTransitionBody,
-.contentViewport[data-surface="library"] > .surfaceTransition > .surfaceTransitionBody {
-  height: 100%;
-  min-height: 0;
-}
-
-.pageTransition {
-  position: fixed;
-  inset: var(--rl-topbar-height) 0 0;
-  z-index: 80;
-  overflow: hidden;
-  pointer-events: none;
-  isolation: isolate;
-}
-
-.transitionVeil {
-  position: absolute;
-  inset: 0;
-  background: var(--rl-panel);
-  animation: bureauVeilRelease .82s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.transitionVeil::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: .22;
-  will-change: transform, opacity;
-  animation: bureauBlueprintDrift .82s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.transitionDestination {
-  position: absolute;
-  z-index: 3;
-  left: clamp(22px, 5vw, 88px);
-  top: 50%;
-  width: min(760px, calc(100vw - 44px));
-  transform: translateY(-50%);
-  color: var(--rl-ink);
-  animation: bureauDestination .78s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.transitionDestination::before {
-  content: "";
-  display: block;
-  width: 38px;
-  height: 3px;
-  margin-bottom: 18px;
-  background: var(--rl-accent);
-  transform-origin: left center;
-  animation: bureauDestinationRule .78s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.transitionEyebrow {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: fit-content;
-  margin-bottom: 12px;
-  color: var(--rl-muted);
-  font: 650 10px/1 var(--rl-font-mono);
-  letter-spacing: .15em;
-}
-
-.transitionEyebrow > span {
-  color: var(--rl-accent);
-}
-
-.transitionEyebrow > b {
-  font: inherit;
-  letter-spacing: .08em;
-}
-
-.transitionDestination > strong {
-  display: block;
-  max-width: 12ch;
-  font-family: var(--rl-font-editorial);
-  font-size: clamp(44px, 8.6vw, 112px);
-  font-weight: 500;
-  line-height: .88;
-  letter-spacing: -.055em;
-  text-wrap: balance;
-}
-
-.transitionDescriptor {
-  display: block;
-  margin-top: 20px;
-  color: var(--rl-muted);
-  font: 500 clamp(11px, 1.05vw, 14px)/1.35 var(--rl-font-mono);
-  letter-spacing: .025em;
-}
-
-.transitionRouteLine {
-  position: absolute;
-  z-index: 2;
-  background: color-mix(in srgb, var(--rl-accent) 78%, var(--rl-rule));
-  opacity: .7;
-  will-change: transform, opacity;
-}
-
-/* Each workspace keeps one quiet directional signature. The destination plate
-   stays in the same place so navigation remains predictable. */
-.pageTransition[data-transition="home"] .transitionVeil::after {
-  background:
-    repeating-linear-gradient(
-      0deg,
-      transparent 0 31px,
-      color-mix(in srgb, var(--rl-rule) 54%, transparent) 31px 32px
-    );
-}
-
-.pageTransition[data-transition="home"] .transitionRouteLine {
-  left: 0;
-  right: 0;
-  top: 28%;
-  height: 1px;
-  transform-origin: left center;
-  animation: bureauRouteHorizontal .78s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.pageTransition[data-transition="studio"] .transitionVeil::after {
-  background:
-    linear-gradient(90deg, transparent calc(50% - .5px), var(--rl-rule) 50%, transparent calc(50% + .5px)),
-    linear-gradient(0deg, transparent calc(50% - .5px), var(--rl-rule) 50%, transparent calc(50% + .5px));
-}
-
-.pageTransition[data-transition="studio"] .transitionRouteLine {
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 1px;
-  transform-origin: center top;
-  animation: bureauRouteVertical .78s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.pageTransition[data-transition="search"] .transitionVeil::after {
-  background:
-    repeating-linear-gradient(
-      0deg,
-      transparent 0 8px,
-      color-mix(in srgb, var(--rl-accent) 18%, transparent) 8px 9px
-    );
-}
-
-.pageTransition[data-transition="search"] .transitionRouteLine {
-  top: 0;
-  bottom: 0;
-  left: 24%;
-  width: 1px;
-  transform-origin: center top;
-  animation: bureauRouteVertical .78s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.pageTransition[data-transition="library"] .transitionVeil::after {
-  background:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0 92px,
-      color-mix(in srgb, var(--rl-rule) 48%, transparent) 92px 93px
-    );
-}
-
-.pageTransition[data-transition="library"] .transitionRouteLine {
-  left: 0;
-  right: 0;
-  bottom: 26%;
-  height: 1px;
-  transform-origin: right center;
-  animation: bureauRouteHorizontalReverse .78s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.pageTransition[data-transition="saved"] .transitionVeil::after {
-  inset: 13% 9%;
-  border: 1px solid color-mix(in srgb, var(--rl-rule) 65%, transparent);
-  box-shadow:
-    14px 14px 0 color-mix(in srgb, var(--rl-rule) 18%, transparent),
-    -9px 9px 0 color-mix(in srgb, var(--rl-accent) 7%, transparent);
-  transform: rotate(-1deg);
-}
-
-.pageTransition[data-transition="saved"] .transitionRouteLine {
-  left: -4%;
-  right: -4%;
-  top: 64%;
-  height: 1px;
-  transform: rotate(-1.5deg);
-  transform-origin: left center;
-  animation: bureauRouteSaved .78s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.pageTransition[data-transition="settings"] .transitionVeil::after {
-  background:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0 47px,
-      color-mix(in srgb, var(--rl-rule) 40%, transparent) 47px 48px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      transparent 0 47px,
-      color-mix(in srgb, var(--rl-rule) 24%, transparent) 47px 48px
-    );
-}
-
-.pageTransition[data-transition="settings"] .transitionRouteLine {
-  top: 0;
-  bottom: 0;
-  right: 19%;
-  width: 1px;
-  transform-origin: center bottom;
-  animation: bureauRouteVerticalReverse .78s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-@keyframes bureauVeilRelease {
-  0%, 58% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-@keyframes bureauBlueprintDrift {
-  0%, 52% { opacity: .22; transform: translate3d(0, 0, 0); }
-  100% { opacity: 0; transform: translate3d(0, -8px, 0); }
-}
-
-@keyframes bureauDestination {
-  0% { opacity: 0; transform: translate3d(0, calc(-50% + 8px), 0); }
-  18% { opacity: 1; transform: translate3d(0, -50%, 0); }
-  66% { opacity: 1; transform: translate3d(0, -50%, 0); }
-  100% { opacity: 0; transform: translate3d(0, calc(-50% - 7px), 0); }
-}
-
-@keyframes bureauDestinationRule {
-  0% { opacity: 0; transform: scaleX(.15); }
-  20%, 68% { opacity: 1; transform: scaleX(1); }
-  100% { opacity: 0; transform: scaleX(.72); }
-}
-
-@keyframes bureauRouteHorizontal {
-  0% { opacity: 0; transform: scaleX(0); }
-  20%, 64% { opacity: .7; transform: scaleX(1); }
-  100% { opacity: 0; transform: scaleX(1); }
-}
-
-@keyframes bureauRouteHorizontalReverse {
-  0% { opacity: 0; transform: scaleX(0); }
-  20%, 64% { opacity: .7; transform: scaleX(1); }
-  100% { opacity: 0; transform: scaleX(1); }
-}
-
-@keyframes bureauRouteVertical {
-  0% { opacity: 0; transform: scaleY(0); }
-  20%, 64% { opacity: .7; transform: scaleY(1); }
-  100% { opacity: 0; transform: scaleY(1); }
-}
-
-@keyframes bureauRouteVerticalReverse {
-  0% { opacity: 0; transform: scaleY(0); }
-  20%, 64% { opacity: .7; transform: scaleY(1); }
-  100% { opacity: 0; transform: scaleY(1); }
-}
-
-@keyframes bureauRouteSaved {
-  0% { opacity: 0; transform: rotate(-1.5deg) scaleX(0); }
-  20%, 64% { opacity: .7; transform: rotate(-1.5deg) scaleX(1); }
-  100% { opacity: 0; transform: rotate(-1.5deg) scaleX(1); }
-}
-
-@media (max-width: 800px) {
-  .pageTransition {
-    top: 56px;
-  }
-
-  .transitionDestination {
-    left: 18px;
-    width: calc(100vw - 36px);
-  }
-
-  .transitionDestination::before {
-    width: 30px;
-    margin-bottom: 14px;
-  }
-
-  .transitionDestination > strong {
-    max-width: 11ch;
-    font-size: clamp(38px, 13.2vw, 64px);
-    line-height: .92;
-  }
-
-  .transitionDescriptor {
-    margin-top: 16px;
-    max-width: 30ch;
-  }
-
-  .pageTransition[data-transition="search"] .transitionRouteLine {
-    left: 14%;
-  }
-
-  .pageTransition[data-transition="settings"] .transitionRouteLine {
-    right: 12%;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .pageTransition {
-    display: none;
+  .brandMark {
+    transition: none;
+  }
+
+  .brand:hover .brandMark,
+  .brand:focus-visible .brandMark,
+  .brand:active .brandMark {
+    transform: none;
   }
 }
-
