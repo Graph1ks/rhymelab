@@ -71,9 +71,12 @@ import {
 } from './generated-runtime-request-policy.mjs';
 import {createTokenBucketRateLimiter} from './request-rate-limit.mjs';
 import {
+  allowedRemoteHostsFromEnv,
   assertSafeServerBinding,
   createRequestId,
   isAllowedLocalMutationRequest,
+  isAllowedRequestHost,
+  isCrossSiteBrowserRequest,
   publicHttpError,
   readJsonRequestBody,
   requestUrlFromTrustedBase,
@@ -83,6 +86,7 @@ import {
 const host = process.env.RHYMELAB_HOST || '127.0.0.1';
 const port = Number.parseInt(process.env.RHYMELAB_PORT || '3030', 10);
 const serverBinding=assertSafeServerBinding({host,env:process.env});
+const allowedRemoteHosts=allowedRemoteHostsFromEnv(process.env);
 if(serverBinding.remote){
   console.warn('SECURITY: non-loopback binding explicitly enabled via RHYMELAB_ALLOW_REMOTE=1.');
 }
@@ -766,6 +770,15 @@ const server = createServer(async (req, res) => {
   res.setHeader('x-request-id',requestId);
   try {
     const url=requestUrlFromTrustedBase(req.url,{host,port});
+    if(!isAllowedRequestHost(req,{
+      remote:serverBinding.remote,
+      allowedRemoteHosts,
+    })){
+      return json(res,{error:'Request host is not allowed.',code:'host_not_allowed'},421,false);
+    }
+    if(url.pathname.startsWith('/api/')&&isCrossSiteBrowserRequest(req)){
+      return json(res,{error:'Cross-site browser requests are not allowed.',code:'cross_site_request'},403,false);
+    }
 
     if (req.method === 'GET' && assets[url.pathname]) return asset(res, assets[url.pathname]);
 
