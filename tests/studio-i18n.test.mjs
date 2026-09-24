@@ -22,6 +22,11 @@ test('Studio UI translator covers static navigation, settings and analysis surfa
   assert.equal(translateStudioUiText('Schriftgröße','en'),'Font size');
   assert.equal(translateStudioUiText('Kanonisches Reimschema','en'),'Canonical rhyme scheme');
   assert.equal(translateStudioUiText('Word Laboratory','en'),'Word Laboratory');
+  assert.equal(translateStudioUiText('Vergleichen','en'),'Compare');
+  assert.equal(translateStudioUiText('Fassung vergleichen','en'),'Compare revision');
+  assert.equal(translateStudioUiText('Aktuell behalten','en'),'Keep current');
+  assert.equal(translateStudioUiText('Diese Fassung wiederherstellen','en'),'Restore this revision');
+  assert.equal(translateStudioUiText('Direkt am Cursor einfügen','en'),'Insert at cursor');
   assert.equal(translateStudioUiText('Reimsuche','de'),'Reimsuche');
 });
 
