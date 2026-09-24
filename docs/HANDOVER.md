@@ -21,28 +21,33 @@ do not delete old Studio, and do not reinterpret the port as permission to simpl
 editor, Search, Library, Analysis, Perform, mobile, persistence, recovery or runtime
 database behavior.
 
-R0 through R4 are complete. R1 is documented in
+R0 through R5 are complete. R1 is documented in
 `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`; R2 in
 `docs/REACT_STUDIO_R2_SHELL.md`; R3 in
-`docs/REACT_STUDIO_R3_SEARCH_WRITER.md`; and R4 in
-`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`.
+`docs/REACT_STUDIO_R3_SEARCH_WRITER.md`; R4 in
+`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`; and R5 in
+`docs/REACT_STUDIO_R5_EDITOR.md`.
 
-R4 uses the existing IndexedDB DocumentStore as the authoritative persistence layer.
-The React DocumentWorkspaceProvider is orchestration only: Library mutations,
-serialized autosave, lifecycle flush, Trash/Restore, Recovery and portable
-backup/import all run through the existing R1 document/backup bridges. Do not move
-documents into Zustand or introduce a second IndexedDB schema/backup format.
+R4 remains the persistence authority boundary: the existing IndexedDB DocumentStore
+is authoritative, React keeps only a working copy, and editor mutations serialize
+through the existing R1 document migration/shadow path.
 
-R3 still intentionally leaves safe result insertion plus selection-follow/fixed
-anchor for the editor phase.
+R5 now owns the React unified editor and reuses the existing R1 editor semantics:
+stable Bar IDs, tracked/free-line geometry, bracket metadata exclusion, Selection
+Proof, native replace/split/merge/multiline paste, IME transactions, typing-burst
+undo/redo, revision boundaries, safe clear, Bar actions/Navigator, hold-drag,
+section long-press, selection-follow/fixed anchor and the mobile Editor/Rhymes swap.
 
-The next implementation action is **R5: editor**. Preserve the existing stable Bar
-IDs, unified tracked/free-line document geometry, bracket metadata handling,
-Selection Proof, native replace/split/merge/multiline-paste behavior, IME
-transactions, typing-burst undo/redo coalescing, revision semantics, Bar actions,
-Bar Navigator, hold-drag transport and section long-press behavior. R5 must write
-through the R4 DocumentStore persistence path rather than creating another document
-authority.
+The tested functional R5 checkpoint is
+`85dbd349ac65984049ad7d079987756914816580`: 60/60 tests, strict TypeScript and
+Vite build pass; React Replatform #132, Full CI #1315 and Studio V2 Gate #450 pass.
+The parity inventory is 66 ported / 5 in_progress / 22 pending / 0 verified.
+
+The next implementation action is **R6: Analysis + Perform**. Reuse the existing R1
+analysis, performance, Web Audio and cue-state contracts. Do not create parallel
+analysis/performance semantics, do not alter the shipping Studio V2 golden master,
+and do not begin root cutover.
+
 
 ---
 

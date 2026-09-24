@@ -13,11 +13,12 @@ Before changing the project in a fresh thread/session, read:
 5. `docs/REACT_STUDIO_R2_SHELL.md` — completed React shell/design-system boundary; extend it instead of building parallel chrome
 6. `docs/REACT_STUDIO_R3_SEARCH_WRITER.md` — completed Search/Writer port; reuse its shared SearchState and R1 data path
 7. `docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md` — completed Library/persistence/recovery port; IndexedDB DocumentStore remains authoritative
-8. `docs/STUDIO_V2_HANDOVER.md` — shipping Studio V2 behavioral golden master and implementation checkpoint
-9. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — physical browser/touch/Web Audio acceptance matrix carried into migration acceptance
-10. `STATUS.md` — current operational state
-11. `PROJECT_STATE.json` — machine-readable current state
-12. `docs/HANDOVER.md` — current continuation pointer plus historical chronology
+8. `docs/REACT_STUDIO_R5_EDITOR.md` — completed unified React editor port on the R4 persistence path; R6 Analysis + Perform is next
+9. `docs/STUDIO_V2_HANDOVER.md` — shipping Studio V2 behavioral golden master and implementation checkpoint
+10. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — physical browser/touch/Web Audio acceptance matrix carried into migration acceptance
+11. `STATUS.md` — current operational state
+12. `PROJECT_STATE.json` — machine-readable current state
+13. `docs/HANDOVER.md` — current continuation pointer plus historical chronology
 13. `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md` — preserved database benchmark continuation, subordinate during the feature freeze
 14. `docs/MARKOV_GENERATOR_HANDOVER.md` — frozen Markov demo boundary; do not reopen without explicit owner direction
 15. `docs/SERVING_V1.md` and `docs/SERVING_V1_PRODUCT_ADAPTER.md` — canonical Serving-v1 runtime/data contracts

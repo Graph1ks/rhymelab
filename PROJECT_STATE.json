@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-24",
-  "phase": "REACT_STUDIO_REPLATFORM_R4_COMPLETE",
+  "phase": "REACT_STUDIO_REPLATFORM_R5_COMPLETE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -4005,7 +4005,7 @@
   "active_continuation": {
     "id": "REACT_STUDIO_REPLATFORM",
     "priority": "P0",
-    "status": "R4_LIBRARY_PERSISTENCE_RECOVERY_VERIFIED_R5_NEXT",
+    "status": "R5_EDITOR_AUTOMATED_VERIFIED_R6_NEXT",
     "branch": "refactor/react-studio-replatform",
     "handover": "docs/REACT_STUDIO_REPLATFORM.md",
     "parity_gate": "docs/REACT_STUDIO_PARITY_GATE.md",
@@ -4040,10 +4040,11 @@
       ]
     },
     "r1_contract": "docs/REACT_STUDIO_R1_TYPED_BRIDGE.md",
-    "next_thread_action": "implement_R5_editor_on_existing_R4_DocumentStore_persistence_path_without_parallel_document_authority",
+    "next_thread_action": "implement_R6_analysis_and_perform_using_existing_R1_analysis_performance_web_audio_contracts",
     "r2_contract": "docs/REACT_STUDIO_R2_SHELL.md",
     "r3_contract": "docs/REACT_STUDIO_R3_SEARCH_WRITER.md",
-    "r4_contract": "docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md"
+    "r4_contract": "docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md",
+    "r5_contract": "docs/REACT_STUDIO_R5_EDITOR.md"
   },
   "studio_v2": {
     "status": "LIVE_DEFAULT_PENDING_REAL_DEVICE_ACCEPTANCE",
@@ -4090,7 +4091,7 @@
     "real_device_acceptance": "pending_7_gates"
   },
   "react_studio_replatform": {
-    "status": "R4_COMPLETE_R5_NEXT",
+    "status": "R5_COMPLETE_R6_NEXT",
     "priority": "P0",
     "stack": [
       "React 19.3",
@@ -4170,9 +4171,9 @@
       "active_runtime_visible": true,
       "domain_search_semantics_reimplemented": false,
       "r1_bridges_modified": false,
-      "insert_requires_r5_editor": true,
-      "search_keyboard_status": "IN_PROGRESS_UNTIL_R5_ENTER_INSERT",
-      "selection_follow_status": "PENDING_R5_EDITOR",
+      "insert_requires_r5_editor": false,
+      "search_keyboard_status": "PORTED_WITH_R5_ENTER_INSERT",
+      "selection_follow_status": "PORTED_WITH_R5_EDITOR",
       "real_browser_acceptance_pending": true,
       "user_facing_cutover_rows_verified_by_r3": false,
       "focused_verification": "npm run studio:react:r3",
@@ -4209,12 +4210,57 @@
       "r1_bridges_modified": false,
       "shipping_studio_modified": false,
       "backend_modified": false,
-      "editor_autosave_status": "PENDING_R5_EDITOR_MUTATION_STREAM",
+      "editor_autosave_status": "PORTED_WITH_R5_EDITOR_MUTATION_STREAM",
       "browser_acceptance_pending": true,
       "user_facing_cutover_rows_verified_by_r4": false,
       "focused_verification": "npm run studio:react:r4",
       "automated_tests": 50,
       "next_phase": "R5_EDITOR"
+    },
+    "r5": {
+      "status": "AUTOMATED_VERIFIED_BROWSER_ACCEPTANCE_DEFERRED",
+      "contract": "docs/REACT_STUDIO_R5_EDITOR.md",
+      "manifest": "apps/studio-react/r5-editor-manifest.json",
+      "source_root": "apps/studio-react/src/features/editor",
+      "tested_code_head": "85dbd349ac65984049ad7d079987756914816580",
+      "unified_document": true,
+      "stable_bar_ids": true,
+      "tracked_free_lines": true,
+      "bracket_metadata_excluded": true,
+      "selection_follow_default": true,
+      "fixed_anchor_explicit_opt_in": true,
+      "selection_proof_writer_insert": true,
+      "native_replace_split_merge_multiline_paste": true,
+      "ime_transaction_boundary": true,
+      "undo_redo_typing_coalescing_ms": 1100,
+      "r4_autosave_debounce_ms": 180,
+      "revision_debounce_ms": 650,
+      "safe_clear_recovery": true,
+      "revision_compare_restore": true,
+      "bar_actions_navigator": true,
+      "bar_hold_drag_ms": 260,
+      "section_long_press_ms": 1500,
+      "mobile_editor_results_swap": true,
+      "rich_text_framework_added": false,
+      "r1_bridges_modified": false,
+      "shipping_studio_modified": false,
+      "backend_modified": false,
+      "parity": {
+        "ported": 66,
+        "in_progress": 5,
+        "pending": 22,
+        "verified": 0,
+        "total": 93
+      },
+      "browser_acceptance_pending": true,
+      "user_facing_cutover_rows_verified_by_r5": false,
+      "focused_verification": "npm run studio:react:r5",
+      "automated_tests": 60,
+      "r5_contract_tests": 10,
+      "react_replatform_run": 132,
+      "full_ci_run": 1315,
+      "studio_v2_gate_run": 450,
+      "next_phase": "R6_ANALYSIS_PERFORM"
     }
   }
 }
