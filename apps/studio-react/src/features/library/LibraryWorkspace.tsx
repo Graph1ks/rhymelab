@@ -8,6 +8,7 @@ import {
   createLibraryFolder,
   createLibrarySong,
   deleteLibraryFolder,
+  duplicateLibraryFolder,
   duplicateLibrarySong,
   folderChildren,
   folderContains,
@@ -46,10 +47,10 @@ type ContextMenuState =
   | { kind: 'background'; x: number; y: number }
   | null;
 
-type ClipboardState = {
-  mode: 'copy' | 'cut';
-  songId: string;
-} | null;
+type ClipboardState =
+  | { mode: 'copy' | 'cut'; kind: 'song'; songId: string }
+  | { mode: 'copy' | 'cut'; kind: 'folder'; folder: string }
+  | null;
 
 type MoveState =
   | { kind: 'song'; id: string }
@@ -301,6 +302,36 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
 
   const pasteClipboard = async (targetFolder = currentFolder) => {
     if (!clipboard || trash) return;
+
+    if (clipboard.kind === 'folder') {
+      if (clipboard.mode === 'cut') {
+        const result = moveLibraryFolder(workspace.state, clipboard.folder, targetFolder);
+        if (result.changed) {
+          await workspace.replaceState(result.state);
+          setSelectedFolder(result.folder || null);
+          setClipboard(null);
+        } else if (result.reason === 'folder_collision') {
+          setNotice(language === 'de' ? 'Am Ziel existiert bereits ein gleichnamiger Ordner.' : 'A folder with that name already exists at the destination.');
+        } else if (result.reason === 'folder_cycle') {
+          setNotice(language === 'de' ? 'Ein Ordner kann nicht in seinen eigenen Unterordner verschoben werden.' : 'A folder cannot be moved into its own subtree.');
+        }
+        return;
+      }
+
+      const result = duplicateLibraryFolder(
+        workspace.state,
+        clipboard.folder,
+        targetFolder,
+        Date.now(),
+        language === 'de' ? 'Kopie' : 'Copy',
+      );
+      if (result.changed) {
+        await workspace.replaceState(result.state);
+        setSelectedFolder(result.folder || null);
+      }
+      return;
+    }
+
     const source = workspace.state.songs.find((item) => item.id === clipboard.songId);
     if (!source || source.deleted || source.deletedAt) {
       setClipboard(null);
@@ -390,28 +421,49 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
       if (nameDialog || confirm || moveState || safetyOpen) return;
 
       const modifier = event.ctrlKey || event.metaKey;
-      if (modifier && event.key.toLowerCase() === 'c' && selectedSongId && !trash) {
-        event.preventDefault();
-        setClipboard({ mode: 'copy', songId: selectedSongId });
-        return;
+      if (modifier && event.key.toLowerCase() === 'c' && !trash) {
+        if (selectedSongId) {
+          event.preventDefault();
+          setClipboard({ mode: 'copy', kind: 'song', songId: selectedSongId });
+          return;
+        }
+        if (selectedFolder) {
+          event.preventDefault();
+          setClipboard({ mode: 'copy', kind: 'folder', folder: selectedFolder });
+          return;
+        }
       }
-      if (modifier && event.key.toLowerCase() === 'x' && selectedSongId && !trash) {
-        event.preventDefault();
-        setClipboard({ mode: 'cut', songId: selectedSongId });
-        return;
+      if (modifier && event.key.toLowerCase() === 'x' && !trash) {
+        if (selectedSongId) {
+          event.preventDefault();
+          setClipboard({ mode: 'cut', kind: 'song', songId: selectedSongId });
+          return;
+        }
+        if (selectedFolder && selectedFolder !== 'Entwürfe') {
+          event.preventDefault();
+          setClipboard({ mode: 'cut', kind: 'folder', folder: selectedFolder });
+          return;
+        }
       }
       if (modifier && event.key.toLowerCase() === 'v' && clipboard && !trash) {
         event.preventDefault();
         void pasteClipboard();
         return;
       }
-      if (event.key === 'F2' && selectedSongId && !trash) {
-        const song = workspace.state.songs.find((item) => item.id === selectedSongId);
-        if (song) {
-          event.preventDefault();
-          setNameDialog({ type: 'rename-song', id: song.id, value: song.title || '' });
+      if (event.key === 'F2' && !trash) {
+        if (selectedSongId) {
+          const song = workspace.state.songs.find((item) => item.id === selectedSongId);
+          if (song) {
+            event.preventDefault();
+            setNameDialog({ type: 'rename-song', id: song.id, value: song.title || '' });
+          }
+          return;
         }
-        return;
+        if (selectedFolder && selectedFolder !== 'Entwürfe') {
+          event.preventDefault();
+          setNameDialog({ type: 'rename-folder', folder: selectedFolder, value: folderLeaf(selectedFolder) });
+          return;
+        }
       }
       if (event.key === 'Enter' && selectedSongId && !trash) {
         event.preventDefault();
@@ -683,7 +735,7 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                 className={styles.explorerSongRow}
                 data-active={active ? 'true' : 'false'}
                 data-selected={selected ? 'true' : 'false'}
-                data-cut={clipboard?.mode === 'cut' && clipboard.songId === item.id ? 'true' : 'false'}
+                data-cut={clipboard?.mode === 'cut' && clipboard.kind === 'song' && clipboard.songId === item.id ? 'true' : 'false'}
                 draggable={!trash}
                 role="button"
                 tabIndex={0}
@@ -764,7 +816,7 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
               {!trash ? <hr /> : null}
               {!trash ? (
                 <button type="button" role="menuitem" onClick={() => {
-                  setClipboard({ mode: 'cut', songId: contextSong.id });
+                  setClipboard({ mode: 'cut', kind: 'song', songId: contextSong.id });
                   setContextMenu(null);
                 }}>
                   <span>✂</span><span>{language === 'de' ? 'Ausschneiden' : 'Cut'}</span><kbd>Ctrl+X</kbd>
@@ -772,7 +824,7 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
               ) : null}
               {!trash ? (
                 <button type="button" role="menuitem" onClick={() => {
-                  setClipboard({ mode: 'copy', songId: contextSong.id });
+                  setClipboard({ mode: 'copy', kind: 'song', songId: contextSong.id });
                   setContextMenu(null);
                 }}>
                   <span>⧉</span><span>{language === 'de' ? 'Kopieren' : 'Copy'}</span><kbd>Ctrl+C</kbd>
@@ -825,6 +877,22 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                   setContextMenu(null);
                 }}>
                   <span>✎</span><span>{language === 'de' ? 'Umbenennen' : 'Rename'}</span>
+                </button>
+              ) : null}
+              {!trash && contextMenu.folder !== 'Entwürfe' ? (
+                <button type="button" role="menuitem" onClick={() => {
+                  setClipboard({ mode: 'cut', kind: 'folder', folder: contextMenu.folder });
+                  setContextMenu(null);
+                }}>
+                  <span>✂</span><span>{language === 'de' ? 'Ausschneiden' : 'Cut'}</span><kbd>Ctrl+X</kbd>
+                </button>
+              ) : null}
+              {!trash ? (
+                <button type="button" role="menuitem" onClick={() => {
+                  setClipboard({ mode: 'copy', kind: 'folder', folder: contextMenu.folder });
+                  setContextMenu(null);
+                }}>
+                  <span>⧉</span><span>{language === 'de' ? 'Kopieren' : 'Copy'}</span><kbd>Ctrl+C</kbd>
                 </button>
               ) : null}
               {!trash && contextMenu.folder !== 'Entwürfe' ? (
