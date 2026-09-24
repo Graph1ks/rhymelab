@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 
 import { Dialog } from '../design-system/primitives';
@@ -22,8 +22,36 @@ export function SurfaceContent() {
   const reduceMotion = useReducedMotion();
   const libraryOpen = useUiStore((state) => state.libraryOpen);
   const setLibraryOpen = useUiStore((state) => state.setLibraryOpen);
+  const focusMode = useUiStore((state) => state.focusMode);
+  const setFocusMode = useUiStore((state) => state.setFocusMode);
+  const toggleFocusMode = useUiStore((state) => state.toggleFocusMode);
   const [mobileStudioPane, setMobileStudioPane] = useState<'editor' | 'results'>('editor');
   const [studioMode, setStudioMode] = useState<'write' | 'analysis' | 'perform'>('write');
+
+  useEffect(() => {
+    if (surface !== 'studio' || (studioMode !== 'write' && studioMode !== 'perform')) {
+      if (focusMode) setFocusMode(false);
+      return undefined;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.isComposing) return;
+      if (event.key === 'Escape' && focusMode) {
+        event.preventDefault();
+        setFocusMode(false);
+        return;
+      }
+      if (
+        (event.ctrlKey || event.metaKey)
+        && event.shiftKey
+        && event.key.toLocaleLowerCase() === 'f'
+      ) {
+        event.preventDefault();
+        toggleFocusMode();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [focusMode, setFocusMode, studioMode, surface, toggleFocusMode]);
 
   if (surface === 'home') {
     return <HomePage />;
@@ -86,6 +114,7 @@ export function SurfaceContent() {
           className={styles.studioFoundation}
           data-mobile-pane={mobileStudioPane}
           data-studio-mode={studioMode}
+          data-focus={focusMode ? 'true' : 'false'}
           initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.18 }}
@@ -114,7 +143,10 @@ export function SurfaceContent() {
                 type="button"
                 data-active={studioMode === 'write' ? 'true' : 'false'}
                 aria-pressed={studioMode === 'write'}
-                onClick={() => setStudioMode('write')}
+                onClick={() => {
+                  setFocusMode(false);
+                  setStudioMode('write');
+                }}
               >
                 {language === 'de' ? 'Schreiben' : 'Write'}
               </button>
@@ -122,7 +154,10 @@ export function SurfaceContent() {
                 type="button"
                 data-active={studioMode === 'analysis' ? 'true' : 'false'}
                 aria-pressed={studioMode === 'analysis'}
-                onClick={() => setStudioMode('analysis')}
+                onClick={() => {
+                  setFocusMode(false);
+                  setStudioMode('analysis');
+                }}
               >
                 {language === 'de' ? 'Analyse' : 'Analysis'}
               </button>
@@ -130,10 +165,30 @@ export function SurfaceContent() {
                 type="button"
                 data-active={studioMode === 'perform' ? 'true' : 'false'}
                 aria-pressed={studioMode === 'perform'}
-                onClick={() => setStudioMode('perform')}
+                onClick={() => {
+                  setFocusMode(false);
+                  setStudioMode('perform');
+                }}
               >
                 Perform
               </button>
+              {(studioMode === 'write' || studioMode === 'perform') ? (
+                <button
+                  type="button"
+                  className={styles.focusTrigger}
+                  data-active={focusMode ? 'true' : 'false'}
+                  aria-pressed={focusMode}
+                  title={language === 'de'
+                    ? 'Fokusmodus · Ctrl/⌘ + Shift + F · Esc beendet'
+                    : 'Focus mode · Ctrl/⌘ + Shift + F · Esc exits'}
+                  onClick={toggleFocusMode}
+                >
+                  {focusMode
+                    ? (language === 'de' ? 'Fokus beenden' : 'Exit focus')
+                    : (language === 'de' ? 'Fokus' : 'Focus')}
+                  <kbd>⇧F</kbd>
+                </button>
+              ) : null}
               <button
                 type="button"
                 className={styles.libraryTrigger}
@@ -143,12 +198,12 @@ export function SurfaceContent() {
               </button>
             </div>
             <div className={styles.studioModeSurface} data-mode={studioMode}>
-              {studioMode === 'write' ? <EditorWorkspace /> : null}
+              {studioMode === 'write' ? <EditorWorkspace focusMode={focusMode} /> : null}
               {studioMode === 'analysis' ? (
                 <AnalysisWorkspace onOpenEditor={() => setStudioMode('write')} />
               ) : null}
               {studioMode === 'perform' ? (
-                <PerformanceWorkspace onOpenEditor={() => setStudioMode('write')} />
+                <PerformanceWorkspace focusMode={focusMode} onOpenEditor={() => { setFocusMode(false); setStudioMode('write'); }} />
               ) : null}
             </div>
           </section>
