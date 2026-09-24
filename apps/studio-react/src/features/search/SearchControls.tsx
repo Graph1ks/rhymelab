@@ -231,10 +231,12 @@ export function SearchControls({
   entityCategories,
   generatedAvailable,
   compact = false,
+  onRequestClose,
 }: {
   entityCategories: string[];
   generatedAvailable: boolean;
   compact?: boolean;
+  onRequestClose?: () => void;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const { state, patch, resetFilters } = useSharedSearchState();
@@ -303,6 +305,12 @@ export function SearchControls({
     <div
       className={styles.controls}
       data-compact={compact ? 'true' : 'false'}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== 'mouse') return;
+        window.setTimeout(() => {
+          if (!document.querySelector('[data-search-filter-popup]:hover')) onRequestClose?.();
+        }, 80);
+      }}
       data-rhymelab-filter-deck="true"
       data-rhymelab-control="search.languages"
     >
