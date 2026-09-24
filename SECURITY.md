@@ -16,7 +16,7 @@ For non-sensitive security hardening, ordinary GitHub issues are fine.
 
 ## Runtime security boundary
 
-RhymeLab binds to loopback by default. Non-loopback/LAN binding requires the explicit owner opt-in `RHYMELAB_ALLOW_REMOTE=1`.
+RhymeLab binds to loopback by default. Non-loopback/LAN binding requires the explicit owner opt-in `RHYMELAB_ALLOW_REMOTE=1`; wildcard binds (`0.0.0.0` / `::`) additionally require an explicit `RHYMELAB_ALLOWED_HOSTS` allowlist.
 
 Browser/API security is fail-closed by default:
 
