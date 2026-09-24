@@ -464,7 +464,7 @@ test('Studio live default route leaves legacy Search and RhymePad routes in plac
   assert.match(server,/const studioHtml=readFileSync\(resolve\(studioUiDir,'index\.html'\)\)/u);
   assert.match(server,/internalDbSwitcherEnabled/u);
   assert.match(server,/let servingV1DbPath=internalDbPaths\.standard/u);
-  assert.match(server,/servingV1DbId=\['standard','full','lite'\]\.find/u);
+  assert.match(server,/preferredAvailableDistributionDbId\(internalDbEntries\)/u);
   assert.match(server,/Cannot open any shipping distribution database/u);
   assert.doesNotMatch(server,/DEFAULT_SERVING_V1_PRODUCT_DB_PATH/u);
   assert.doesNotMatch(server,/internalDbEntries\.set\('master'/u);
