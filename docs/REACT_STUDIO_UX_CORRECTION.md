@@ -1,12 +1,13 @@
 # React Studio UX correction checkpoint
 
-Status: **ROUND 2 IMPLEMENTED / OWNER VISUAL ACCEPTANCE REQUIRED**
+Status: **OWNER UX ROUND 7 IMPLEMENTED / VISUAL ACCEPTANCE REQUIRED**
 
 This contract records the owner-driven UX correction passes on top of the completed
 R7 source port. It does not waive browser/device acceptance and it does not promote
 any parity row to `verified`.
 
 Functional Round-2 checkpoint: `9812a674669c`.
+Latest owner-UX checkpoint before this documentation update: `4fbd745be258`.
 
 ## Shell and navigation
 
@@ -43,7 +44,7 @@ Functional Round-2 checkpoint: `9812a674669c`.
 - [x] Bar-number and syllable gutters follow measured editor line heights.
 - [x] Replace Local Font Access with a permission-free curated Google Fonts browser.
 - [x] Curate exactly 50 families across 10 useful style groups.
-- [x] RhymeLab editor default is **Oranienbaum**.
+- [x] Rhyme Bureau editor default is **Oranienbaum**.
 - [x] Search/category browsing is virtualized.
 - [x] Fonts are loaded on demand; the app does not request all 50 families at startup.
 - [x] Existing legacy/system font preferences migrate safely to the curated default.
@@ -54,6 +55,11 @@ Functional Round-2 checkpoint: `9812a674669c`.
 
 ## Sound Explorer
 
+- [x] Studio can explicitly pause rhyme search; pausing cancels Writer activity instead of merely hiding results.
+- [x] Collapsing Sound Explorer to the right rail unmounts/cancels its search workload.
+- [x] Focus mode mounts **no** Studio search experience and therefore issues no Writer requests.
+- [x] Studio runtime choice is a compact **Lite / Standard / Full** dropdown; unavailable editions stay disabled.
+- [x] Selection-follow search changes are paced before Writer execution to avoid request storms.
 - [x] Compact is the only result density; no density picker is shown.
 - [x] Remove horizontal toolbar scrolling.
 - [x] Filters are collapsed by default.
@@ -81,10 +87,30 @@ Functional Round-2 checkpoint: `9812a674669c`.
 
 ## Library
 
+- [x] Remove the permanent folder-tree pane; Library now browses one directory at a time.
+- [x] Explorer bar provides root breadcrumbs plus one-level-up navigation.
+- [x] Root-level texts survive DocumentStore migration/reload rather than being coerced into Entwürfe.
+- [x] Right-click menus support open, rename, move, cut, copy, paste, trash/delete and folder creation where applicable.
+- [x] Keyboard Explorer semantics include Enter, F2, Ctrl/Cmd+C, Ctrl/Cmd+X, Ctrl/Cmd+V and Alt+Up.
+- [x] Folder copy/paste recursively duplicates the folder subtree and its live documents with collision-safe names.
+- [x] Folder cut/paste moves the subtree while rejecting cycles/collisions.
+- [x] Sorting uses a native, deterministic selector backed by tested title/created/bars/updated order.
+- [x] Backup & Recovery moved out of the permanent folder chrome into an explicit dialog.
+- [x] User-facing Library persistence status says Auto-Save / saved / error instead of exposing IndexedDB authority jargon.
 - [x] Library remains a Studio-owned workspace dialog rather than a primary route.
 - [x] Folder add/rename/move/delete controls use explicit SVG icons instead of micro glyphs.
 - [x] Folder action hit targets are at least 38 px in the React Library UI.
 - [ ] Owner visual acceptance for deep/nested folder structures.
+
+## Writer request pacing
+
+- [x] Browser search state is paced (Studio assistant: 220 ms; full Search: 160 ms) and stale/inactive Writer requests are cancelled.
+- [x] Window-focus/reconnect does not silently refire Writer searches.
+- [x] Server `/api/writer` uses a bounded token bucket per direct socket address.
+- [x] Default server envelope is burst **16**, refill **8 requests/s**, configurable by internal environment variables.
+- [x] Rate exhaustion returns HTTP 429 with `Retry-After` and rate-limit headers.
+- [x] Token-bucket burst, recovery delay and independent-client behavior are covered by regression tests.
+- [ ] Reverse-proxy identity/trust policy belongs to the dedicated security pass; forwarded client headers are intentionally not trusted here.
 
 ## Analysis
 
