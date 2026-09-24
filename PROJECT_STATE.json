@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-24",
-  "phase": "REACT_STUDIO_REPLATFORM_R2_COMPLETE",
+  "phase": "REACT_STUDIO_REPLATFORM_R3_COMPLETE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -4005,7 +4005,7 @@
   "active_continuation": {
     "id": "REACT_STUDIO_REPLATFORM",
     "priority": "P0",
-    "status": "R2_SHELL_DESIGN_SYSTEM_VERIFIED_R3_NEXT",
+    "status": "R3_SEARCH_WRITER_VERIFIED_R4_NEXT",
     "branch": "refactor/react-studio-replatform",
     "handover": "docs/REACT_STUDIO_REPLATFORM.md",
     "parity_gate": "docs/REACT_STUDIO_PARITY_GATE.md",
@@ -4040,8 +4040,9 @@
       ]
     },
     "r1_contract": "docs/REACT_STUDIO_R1_TYPED_BRIDGE.md",
-    "next_thread_action": "implement_R3_Search_Writer_through_R1_bridges_without_parallel_search_state_ranking_or_runtime_semantics",
-    "r2_contract": "docs/REACT_STUDIO_R2_SHELL.md"
+    "next_thread_action": "implement_R4_Library_persistence_recovery_on_existing_DocumentStore_without_parallel_React_or_Zustand_document_authority",
+    "r2_contract": "docs/REACT_STUDIO_R2_SHELL.md",
+    "r3_contract": "docs/REACT_STUDIO_R3_SEARCH_WRITER.md"
   },
   "studio_v2": {
     "status": "LIVE_DEFAULT_PENDING_REAL_DEVICE_ACCEPTANCE",
@@ -4088,7 +4089,7 @@
     "real_device_acceptance": "pending_7_gates"
   },
   "react_studio_replatform": {
-    "status": "R2_COMPLETE_R3_NEXT",
+    "status": "R3_COMPLETE_R4_NEXT",
     "priority": "P0",
     "stack": [
       "React 19.3",
@@ -4144,6 +4145,37 @@
       "real_device_acceptance_pending": true,
       "focused_verification": "npm run studio:react:r2",
       "next_phase": "R3_SEARCH_WRITER"
+    },
+    "r3": {
+      "status": "AUTOMATED_VERIFIED_BROWSER_ACCEPTANCE_DEFERRED",
+      "contract": "docs/REACT_STUDIO_R3_SEARCH_WRITER.md",
+      "manifest": "apps/studio-react/r3-search-manifest.json",
+      "source_root": "apps/studio-react/src/features/search",
+      "shared_search_state": true,
+      "writer_client_reused": true,
+      "query_pronunciation_path_reused": true,
+      "detail_client_reused": true,
+      "runtime_edition_contract_reused": true,
+      "tanstack_query_server_state": true,
+      "document_store_read_only_hide_used_context": true,
+      "result_densities": [
+        "list",
+        "compact",
+        "tiles"
+      ],
+      "continuous_results": true,
+      "auto_scroll": true,
+      "saved_preferences_compatible": true,
+      "active_runtime_visible": true,
+      "domain_search_semantics_reimplemented": false,
+      "r1_bridges_modified": false,
+      "insert_requires_r5_editor": true,
+      "search_keyboard_status": "IN_PROGRESS_UNTIL_R5_ENTER_INSERT",
+      "selection_follow_status": "PENDING_R5_EDITOR",
+      "real_browser_acceptance_pending": true,
+      "user_facing_cutover_rows_verified_by_r3": false,
+      "focused_verification": "npm run studio:react:r3",
+      "next_phase": "R4_LIBRARY_PERSISTENCE_RECOVERY"
     }
   }
 }
