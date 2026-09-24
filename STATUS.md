@@ -25,10 +25,16 @@ surface. The React work must preserve every existing Search, editor, Library,
 Analysis, Perform, appearance, mobile, persistence, recovery, diagnostics and
 runtime-database behavior. No functional simplification is authorized.
 
-R0 has started: isolated React/TypeScript/Vite package, Base UI/Motion/TanStack
-Query/Zustand/TanStack Virtual dependencies, strict TypeScript, migration shell,
-machine-readable parity inventory, parity checker and dedicated CI are being
-established without replacing the root route.
+R0 and R1 are complete. The isolated React package, hard parity inventory and
+dedicated CI are established. R1 adds strict TypeScript contracts over 18 existing
+browser/domain modules covering SearchState, client query pronunciation/cache,
+Writer/capabilities/runtime editions, document model/IndexedDB/backup, editor,
+undo, Perform, revision diff, analysis/detail, diagnostics and device acceptance.
+
+The bridge deliberately re-exports the existing implementation functions by
+identity; it does not fork their semantics. Focused contract:
+`docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`. Next implementation phase: **R2 shell +
+design system**.
 
 The existing seven physical browser/touch/Web Audio Studio acceptance gates remain
 required cutover evidence rather than being discarded by the framework migration.
