@@ -2,7 +2,7 @@
   "schema": "rhymelab-react-studio-parity-v1",
   "baseline": {
     "branch": "main",
-    "commit": "fbda43a9e4dd915f3bd5c1fa53045cbe2055e919",
+    "commit": "fbda43a9e4dd",
     "legacy_manifest": "src/studio/parity-manifest.mjs",
     "captured_at": "2026-09-24",
     "policy": "no capability may be deleted, deferred, silently changed, or replaced without explicit owner approval"
