@@ -10,7 +10,7 @@ The active engineering task is to port the current browser frontend to React +
 TypeScript + Vite + Base UI + Motion + TanStack Query + Zustand + TanStack Virtual
 without losing a single existing user-facing capability.
 
-The baseline is `main@fbda43a9e4dd915f3bd5c1fa53045cbe2055e919`.
+The baseline is `main@fbda43a9e4dd`.
 The initial machine-readable inventory contains 82 existing Studio parity IDs plus
 11 Workflow UX v3 behaviors. All 93 rows must be `verified` before React may become
 the default product route.
