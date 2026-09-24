@@ -1391,3 +1391,66 @@
     overflow-y: auto;
   }
 }
+
+
+/* R5 mobile Studio remains one bounded surface: editor and Writer results swap in place. */
+.mobileStudioSwap {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .mobileStudioSwap {
+    position: sticky;
+    top: 0;
+    z-index: 45;
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--rl-line);
+    background: color-mix(in srgb, var(--rl-panel) 96%, transparent);
+    backdrop-filter: blur(10px);
+  }
+
+  .mobileStudioSwap button {
+    flex: 1 1 0;
+    min-height: 40px;
+    border: 1px solid var(--rl-line);
+    border-radius: 10px;
+    background: var(--rl-surface);
+    color: var(--rl-muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 750;
+  }
+
+  .mobileStudioSwap button[data-active="true"] {
+    border-color: color-mix(in srgb, var(--rl-accent) 58%, var(--rl-line));
+    background: color-mix(in srgb, var(--rl-accent) 11%, var(--rl-surface));
+    color: var(--rl-accent);
+  }
+
+  .studioFoundation[data-mobile-pane="results"] .primaryFoundation {
+    display: none;
+  }
+
+  .studioFoundation[data-mobile-pane="editor"] .assistFoundation[data-r3="true"] {
+    display: none;
+  }
+
+  .studioFoundation[data-mobile-pane="results"] .assistFoundation[data-r3="true"] {
+    display: block;
+    min-height: 0;
+    height: calc(
+      var(--visual-viewport-height, 100dvh)
+      - 56px
+      - var(--rl-mobile-nav-height)
+      - 57px
+    );
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    overflow: hidden;
+  }
+}
