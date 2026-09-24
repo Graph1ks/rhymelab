@@ -177,10 +177,14 @@ export function ResultsList({
 
   useEffect(() => {
     const element = scrollerRef.current;
-    if (layout !== 'adaptive-grid' || !element || typeof ResizeObserver === 'undefined') {
+    if (layout !== 'adaptive-grid' || !element) {
       if (gridColumns !== 1 && layout !== 'adaptive-grid') setGridColumns(1);
       return undefined;
     }
+
+    const ResizeObserverCtor = element.ownerDocument.defaultView?.ResizeObserver
+      ?? globalThis.ResizeObserver;
+    if (!ResizeObserverCtor) return undefined;
 
     const updateColumns = (width: number) => {
       const next = width >= 1520 ? 4 : width >= 1080 ? 3 : width >= 680 ? 2 : 1;
@@ -188,7 +192,7 @@ export function ResultsList({
     };
 
     updateColumns(element.clientWidth);
-    const observer = new ResizeObserver((entries) => {
+    const observer = new ResizeObserverCtor((entries) => {
       const entry = entries[0];
       if (entry) updateColumns(entry.contentRect.width);
     });
