@@ -111,12 +111,18 @@ function SoundExplorerPopout({
     });
 
     const handleClosed = () => onClosed();
+    const closedPoll = window.setInterval(() => {
+      if (popup.closed) onClosed();
+    }, 350);
     popup.addEventListener('beforeunload', handleClosed);
+    popup.addEventListener('pagehide', handleClosed);
     popup.focus();
 
     return () => {
       observer.disconnect();
+      window.clearInterval(closedPoll);
       popup.removeEventListener('beforeunload', handleClosed);
+      popup.removeEventListener('pagehide', handleClosed);
     };
   }, [popup]);
 
