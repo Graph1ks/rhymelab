@@ -41,7 +41,6 @@ function ResultRow({
   onSelect,
   onToggleSaved,
   onInsert,
-  layout = 'list',
 }: {
   row: WriterResultRow;
   density: ResultDensity;
@@ -153,6 +152,7 @@ export function ResultsList({
   setVisibleCount,
   onScrollActivity,
   onInsert,
+  layout = 'list',
 }: {
   rows: WriterResultRow[];
   density: ResultDensity;
