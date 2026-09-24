@@ -78,8 +78,10 @@ function Metric({ label, value, copy }: { label: string; value: string | number;
 }
 
 export function PerformanceWorkspace({
+  focusMode = false,
   onOpenEditor,
 }: {
+  focusMode?: boolean;
   onOpenEditor: () => void;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
