@@ -229,6 +229,8 @@ export function CommandPalette({ showTrigger = true }: { showTrigger?: boolean }
                 </header>
                 {[
                   [language === 'de' ? 'Befehle öffnen' : 'Open commands', 'Ctrl + Shift + K', '⌘ + ⇧ + K'],
+                  [language === 'de' ? 'Fokusmodus · Schreiben / Perform' : 'Focus mode · Write / Perform', 'Ctrl + Shift + F', '⌘ + ⇧ + F'],
+                  [language === 'de' ? 'Fokusmodus beenden' : 'Exit focus mode', 'Esc', 'Esc'],
                   [language === 'de' ? 'Editor: Rückgängig' : 'Editor: Undo', 'Ctrl + Z', '⌘ + Z'],
                   [language === 'de' ? 'Editor: Wiederholen' : 'Editor: Redo', 'Ctrl + Y / Ctrl + Shift + Z', '⌘ + ⇧ + Z'],
                   [language === 'de' ? 'Reimtreffer wählen' : 'Select rhyme result', '↑ / ↓', '↑ / ↓'],
@@ -246,8 +248,8 @@ export function CommandPalette({ showTrigger = true }: { showTrigger?: boolean }
 
               <p className={styles.commandHint}>
                 {language === 'de'
-                  ? 'Globale App-Shortcuts greifen absichtlich nicht während du in Textfeldern schreibst.'
-                  : 'Global app shortcuts intentionally do not intercept while you are typing in text fields.'}
+                  ? 'Globale App-Shortcuts greifen beim Schreiben nicht in Textfelder ein. Ausnahme: Fokusmodus und Esc zum Beenden.'
+                  : 'Global app shortcuts do not intercept text fields while typing. Focus mode and Escape are the deliberate exception.'}
               </p>
             </Dialog.Popup>
           </Dialog.Viewport>
