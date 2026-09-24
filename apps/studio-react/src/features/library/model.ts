@@ -308,6 +308,79 @@ export function duplicateLibrarySong(
   return { state, changed: true, id: nextId };
 }
 
+export function duplicateLibraryFolder(
+  source: LegacyStudioState,
+  folderName: string,
+  targetParent: string,
+  now = Date.now(),
+  copyLabel = 'Copy',
+): LibraryMutationResult & { folder?: string } {
+  const folder = normalizeFolderName(folderName);
+  if (!folder || !source.folders.some((item) => item === folder)) {
+    return { state: source, changed: false, reason: 'folder_not_found' };
+  }
+
+  const parent = normalizeFolderName(targetParent);
+  if (parent && folderContains(folder, parent)) {
+    return { state: source, changed: false, reason: 'folder_cycle' };
+  }
+
+  const state = cloneWorkspaceState(source);
+  if (parent) ensureLibraryFolder(state, parent);
+
+  const baseLeaf = folderLeaf(folder);
+  const suffix = normalizeFolderSegment(copyLabel) || 'Copy';
+  const occupied = new Set(state.folders.map((item) => item.toLocaleLowerCase('de-DE')));
+  let leaf = baseLeaf;
+  let root = parent ? `${parent}/${leaf}` : leaf;
+  if (occupied.has(root.toLocaleLowerCase('de-DE'))) {
+    leaf = `${baseLeaf} – ${suffix}`;
+    root = parent ? `${parent}/${leaf}` : leaf;
+    let counter = 2;
+    while (occupied.has(root.toLocaleLowerCase('de-DE'))) {
+      leaf = `${baseLeaf} – ${suffix} ${counter++}`;
+      root = parent ? `${parent}/${leaf}` : leaf;
+    }
+  }
+
+  const subtree = source.folders
+    .filter((item) => folderContains(folder, item))
+    .sort((a, b) => folderDepth(a) - folderDepth(b));
+  for (const item of subtree) {
+    ensureLibraryFolder(state, root + item.slice(folder.length));
+  }
+
+  const copiedSongs = source.songs.filter((item) =>
+    !item.deleted
+    && !item.deletedAt
+    && folderContains(folder, item.folder),
+  );
+  copiedSongs.forEach((item, index) => {
+    const target = root + normalizeFolderName(item.folder).slice(folder.length);
+    let nextId = `s${now + index}-copy`;
+    let idSuffix = 2;
+    while (state.songs.some((row) => row.id === nextId)) {
+      nextId = `s${now + index}-copy-${idSuffix++}`;
+    }
+    state.songs.push({
+      ...structuredClone(item),
+      id: nextId,
+      folder: target,
+      revisions: [],
+      barIds: undefined,
+      barRevisions: undefined,
+      editorNextBarId: 1,
+      createdAt: now + index,
+      updatedAt: now + index,
+      deleted: false,
+      deletedAt: null,
+    });
+  });
+
+  canonicalizeFolderOrder(state);
+  return { state, changed: true, folder: root };
+}
+
 export function moveLibraryFolder(
   source: LegacyStudioState,
   folderName: string,
