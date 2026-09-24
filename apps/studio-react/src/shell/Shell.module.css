@@ -2779,3 +2779,72 @@
     font-size: 1.7rem;
   }
 }
+
+
+.shortcutGuide {
+  display: grid;
+  gap: 1px;
+  margin: 6px 12px 0;
+  overflow: hidden;
+  border: 1px solid var(--rl-line);
+  border-radius: 11px;
+  background: var(--rl-surface-soft);
+}
+
+.shortcutGuide > header,
+.shortcutGuide > div {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(150px, .75fr) minmax(130px, .65fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.shortcutGuide > header {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--rl-line);
+  color: var(--rl-muted);
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+.shortcutGuide > div {
+  min-height: 38px;
+  padding: 6px 10px;
+  border-top: 1px solid color-mix(in srgb, var(--rl-line) 55%, transparent);
+  font-size: 11px;
+}
+
+.shortcutGuide > div:first-of-type {
+  border-top: 0;
+}
+
+.shortcutGuide > div > span {
+  color: var(--rl-ink);
+  font-weight: 650;
+}
+
+.shortcutGuide kbd {
+  justify-self: start;
+  padding: 4px 6px;
+  border: 1px solid var(--rl-line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--rl-bg) 54%, var(--rl-panel));
+  color: var(--rl-muted);
+  font: 700 10px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+@media (max-width: 560px) {
+  .shortcutGuide > header,
+  .shortcutGuide > div {
+    grid-template-columns: minmax(110px, 1fr) 1fr 1fr;
+  }
+
+  .shortcutGuide > header,
+  .shortcutGuide > div {
+    padding-inline: 8px;
+  }
+
+  .shortcutGuide kbd {
+    white-space: normal;
+  }
+}
