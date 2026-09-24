@@ -106,11 +106,59 @@ test('browser resolver restores recursive source-backed compound decomposition f
     lookupReference:async(surface)=>references.get(surface)||null,
   });
 
-  assert.equal(detail.method,'client_source_reference_compound');
+  assert.equal(detail.method,'client_source_reference_compound_right_edge');
   assert.equal(detail.sourceBacked,true);
   assert.deepEqual(detail.components,['Arsch','Geweih','Anbeter']);
   assert.ok(detail.ipa);
-  assert.ok(getPhonologyProfile('de').analyzeIpa(detail.ipa).exactTailKey);
+  const analysis=getPhonologyProfile('de').analyzeIpa(detail.ipa);
+  assert.ok(analysis.exactTailKey);
+  assert.ok(analysis.primaryStressSyllable>1);
+});
+
+test('GROWTHHORMONPRODUCER keeps a usable right-edge rhyme anchor in EN and DE',async()=>{
+  const references={
+    en:new Map([
+      ['growth',{surface:'growth',preferredIpa:'ˈgɹaʊθ'}],
+      ['producer',{surface:'producer',preferredIpa:'pɹəˈdusɚ'}],
+    ]),
+    de:new Map([
+      ['growth',{surface:'Growth',preferredIpa:'ˈgRoːt'}],
+      ['hormon',{surface:'Hormon',preferredIpa:'hɔRˈmoːn'}],
+      ['producer',{surface:'Producer',preferredIpa:'pRoˈduːtsɐ'}],
+    ]),
+  };
+
+  for(const language of ['en','de']){
+    const detail=await resolveUnknownClientPronunciation(
+      'GROWTHHORMONPRODUCER',
+      language,
+      {lookupReference:async(surface,code)=>references[code].get(surface)||null},
+    );
+    assert.ok(detail?.ipa,language+' compound must resolve');
+    assert.match(detail.method,/compound_right_edge$/u);
+    assert.equal(detail.components.at(-1)?.toLocaleLowerCase('en-US'),'producer');
+
+    const profile=getPhonologyProfile(language);
+    const analysis=profile.analyzeIpa(detail.ipa);
+    const producer=profile.analyzeIpa(references[language].get('producer').preferredIpa);
+    assert.ok(analysis.primaryStressSyllable>1,language+' must not anchor at syllable 1');
+    assert.equal(
+      analysis.finalTail.replaceAll(' ',''),
+      producer.finalTail.replaceAll(' ',''),
+      language+' must preserve the source-backed right edge',
+    );
+    assert.ok(analysis.exactTailKey);
+  }
+});
+
+test('long fully generated OOV tokens use a bounded right-edge query anchor',()=>{
+  for(const language of ['de','en']){
+    const detail=generateClientIpa('growthhormonproducer',language);
+    const analysis=getPhonologyProfile(language).analyzeIpa(detail.ipa);
+    assert.ok(analysis.primaryStressSyllable>1);
+    assert.ok(analysis.stressedSyllableCount<=2);
+    assert.ok(analysis.exactTailKey);
+  }
 });
 
 test('browser pronunciation module contains no host executable, Node runtime, network, or search implementation',async()=>{
