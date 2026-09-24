@@ -130,7 +130,7 @@ function FontControls() {
   );
 }
 
-export function EditorWorkspace() {
+export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } = {}) {
   const editor = useEditorSession();
   const documents = useDocumentWorkspace();
   const language = useUiStore((state) => state.uiLanguage);
@@ -443,7 +443,7 @@ export function EditorWorkspace() {
   const revisions = song.revisions ?? [];
 
   return (
-    <section className={styles.workspace} data-r5-editor="true">
+    <section className={styles.workspace} data-r5-editor="true" data-focus={focusMode ? 'true' : 'false'}>
       <header className={styles.header}>
         <div className={styles.titleBlock}>
           <p>R5 · UNIFIED DOCUMENT EDITOR</p>
