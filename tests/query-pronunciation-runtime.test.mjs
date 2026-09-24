@@ -115,6 +115,31 @@ test('browser resolver restores recursive source-backed compound decomposition f
   assert.ok(analysis.primaryStressSyllable>1);
 });
 
+test('Altkassenverwaltungsanker preserves source-backed Anker as the compound right edge',async()=>{
+  const detail=await resolveUnknownClientPronunciation(
+    'Altkassenverwaltungsanker',
+    'de',
+    {
+      lookupReference:async(surface)=>surface==='anker'
+        ?{surface:'Anker',preferredIpa:'ˈaŋkɐ'}
+        :null,
+    },
+  );
+
+  assert.ok(detail?.ipa);
+  assert.match(detail.method,/compound_right_edge$/u);
+  assert.equal(detail.components.at(-1),'Anker');
+  assert.equal(detail.sourceBackedComponents.at(-1),'Anker');
+
+  const profile=getPhonologyProfile('de');
+  const analysis=profile.analyzeIpa(detail.ipa);
+  const anker=profile.analyzeIpa('ˈaŋkɐ');
+  assert.equal(
+    analysis.finalTail.replaceAll(' ',''),
+    anker.finalTail.replaceAll(' ',''),
+  );
+});
+
 test('GROWTHHORMONPRODUCER keeps a usable right-edge rhyme anchor in EN and DE',async()=>{
   const references={
     en:new Map([
