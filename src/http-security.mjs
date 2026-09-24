@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { isIP } from 'node:net';
 
 const LOOPBACK_HOSTS=new Set(['127.0.0.1','localhost','::1']);
 
@@ -35,9 +34,12 @@ export function createHttpError(statusCode,message,code){
   return new HttpError(statusCode,message,code);
 }
 
+function normalizeHost(host){
+  return String(host||'').trim().replace(/^\[|\]$/g,'').toLowerCase();
+}
+
 export function isLoopbackHost(host){
-  const normalized=String(host||'').trim().replace(/^\[|\]$/g,'').toLowerCase();
-  return LOOPBACK_HOSTS.has(normalized);
+  return LOOPBACK_HOSTS.has(normalizeHost(host));
 }
 
 export function isLoopbackAddress(address){
@@ -69,34 +71,52 @@ export function isAllowedLocalMutationRequest(req,{port=3030}={}){
   }
 }
 
-export function assertSafeServerBinding({host,env=process.env}={}){
-  if(isLoopbackHost(host))return {remote:false};
-  if(String(env.RHYMELAB_ALLOW_REMOTE||'').trim()==='1'){
-    return {remote:true};
-  }
-  throw new Error(
-    'Refusing non-loopback bind without RHYMELAB_ALLOW_REMOTE=1. '
-    +'RhymeLab is local-only by default.'
-  );
-}
-
 export function allowedRemoteHostsFromEnv(env=process.env){
-  return String(env.RHYMELAB_ALLOWED_HOSTS||'')
-    .split(',')
-    .map((value)=>value.trim().toLowerCase())
-    .filter(Boolean);
+  return [...new Set(
+    String(env.RHYMELAB_ALLOWED_HOSTS||'')
+      .split(',')
+      .map(normalizeHost)
+      .filter(Boolean)
+  )];
 }
 
-export function isAllowedRequestHost(req,{remote=false,allowedRemoteHosts=[]}={}){
+export function assertSafeServerBinding({host,env=process.env}={}){
+  const normalizedHost=normalizeHost(host);
+  if(isLoopbackHost(normalizedHost))return {remote:false,allowedHosts:[]};
+  if(String(env.RHYMELAB_ALLOW_REMOTE||'').trim()!=='1'){
+    throw new Error(
+      'Refusing non-loopback bind without RHYMELAB_ALLOW_REMOTE=1. '
+      +'RhymeLab is local-only by default.'
+    );
+  }
+
+  const wildcard=normalizedHost==='0.0.0.0'||normalizedHost==='::';
+  const allowedHosts=allowedRemoteHostsFromEnv(env);
+  if(!wildcard&&normalizedHost&&!allowedHosts.includes(normalizedHost)){
+    allowedHosts.push(normalizedHost);
+  }
+  if(wildcard&&allowedHosts.length===0){
+    throw new Error(
+      'Wildcard remote binding requires RHYMELAB_ALLOWED_HOSTS with explicit hostnames or IP addresses.'
+    );
+  }
+  return {remote:true,allowedHosts};
+}
+
+export function isAllowedRequestHost(req,{remote=false,allowedRemoteHosts=[],port=null}={}){
   const raw=String(req?.headers?.host||'').trim();
   if(!raw)return false;
   try{
     const parsed=new URL(`http://${raw}`);
-    const hostname=String(parsed.hostname||'').replace(/^\[|\]$/g,'').toLowerCase();
+    const hostname=normalizeHost(parsed.hostname);
+    if(port!=null){
+      const requestPort=parsed.port||'80';
+      if(requestPort!==String(port))return false;
+    }
     if(isLoopbackHost(hostname))return true;
     if(!remote)return false;
-    if(isIP(hostname)>0)return true;
-    return allowedRemoteHosts.map((value)=>String(value).toLowerCase()).includes(hostname);
+    const allowed=new Set(allowedRemoteHosts.map(normalizeHost).filter(Boolean));
+    return allowed.has(hostname);
   }catch{
     return false;
   }
@@ -116,7 +136,7 @@ export function securityHeaders({contentType='',isHtml=false,requestId=null}={})
     'cross-origin-resource-policy':'same-origin',
     'origin-agent-cluster':'?1',
     'x-permitted-cross-domain-policies':'none',
-    'permissions-policy':'camera=(), geolocation=(), payment=(), usb=()',
+    'permissions-policy':'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), hid=(), midi=()',
   };
   if(contentType)headers['content-type']=contentType;
   if(isHtml)headers['content-security-policy']=RHYMELAB_CSP;
