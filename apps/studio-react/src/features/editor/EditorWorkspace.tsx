@@ -25,6 +25,7 @@ import { useUiStore } from '../../state/uiStore';
 import { useDocumentWorkspace } from '../library/DocumentWorkspaceProvider';
 import { useEditorSession } from './EditorSessionProvider';
 import { asEditorSong } from './model';
+import { editorFontFamily, SystemFontPicker } from './SystemFontPicker';
 import styles from './Editor.module.css';
 
 const SECTION_TAGS = [
@@ -37,10 +38,10 @@ const SECTION_TAGS = [
   '[Bridge]',
   '[Outro]',
 ] as const;
-const BAR_HOLD_MS = 260;
+const BAR_HOLD_MS = 220;
 const SECTION_HOLD_MS = 1500;
 
-type DockTab = 'navigator' | 'history';
+type DockTab = 'history';
 
 interface DragState {
   sourceIndex: number;
@@ -81,12 +82,12 @@ function revisionPreview(revision: LegacyStudioRevision) {
 function FontControls() {
   const documents = useDocumentWorkspace();
   const language = useUiStore((state) => state.uiLanguage);
-  const size = Math.max(16, Math.min(28, Number(documents.state.fontSize) || 21));
+  const size = Math.max(16, Math.min(32, Number(documents.state.fontSize) || 21));
   const font = String(documents.state.editorFont || 'sans');
 
   const setSize = (next: number) => {
     void documents.mutate((state) => {
-      state.fontSize = Math.max(16, Math.min(28, next));
+      state.fontSize = Math.max(16, Math.min(32, next));
       return state;
     });
   };
@@ -100,23 +101,7 @@ function FontControls() {
 
   return (
     <div className={styles.fontControls}>
-      <div className={styles.segmented} role="group" aria-label={language === 'de' ? 'Editor-Schrift' : 'Editor font'}>
-        {([
-          ['sans', 'Sans'],
-          ['serif', 'Editorial'],
-          ['mono', 'Mono'],
-        ] as const).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            data-active={font === value ? 'true' : 'false'}
-            aria-pressed={font === value}
-            onClick={() => setFont(value)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <SystemFontPicker value={font} onChange={setFont} />
       <div className={styles.sizeControl}>
         <button type="button" onClick={() => setSize(size - 1)} aria-label={language === 'de' ? 'Schrift kleiner' : 'Decrease font size'}>−</button>
         <output>{size}px</output>
@@ -146,7 +131,6 @@ export function EditorWorkspace() {
 
   const [lineHeights, setLineHeights] = useState<number[]>([]);
   const [dockTab, setDockTab] = useState<DockTab | null>(null);
-  const [navigatorQuery, setNavigatorQuery] = useState('');
   const [comparison, setComparison] = useState<{
     revision: LegacyStudioRevision;
     diff: RevisionDiff;
@@ -157,30 +141,14 @@ export function EditorWorkspace() {
 
   const song = editor.activeSong;
   const lines = song?.lines ?? [''];
-  const fontSize = Math.max(16, Math.min(28, Number(documents.state.fontSize) || 21));
+  const fontSize = Math.max(16, Math.min(32, Number(documents.state.fontSize) || 21));
   const editorFont = String(documents.state.editorFont || 'sans');
-  const fontFamily = ({
-    sans: 'var(--rl-font, Inter, system-ui, sans-serif)',
-    serif: 'Georgia, Cambria, serif',
-    mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-  } as Record<string, string>)[editorFont] ?? 'var(--rl-font, Inter, system-ui, sans-serif)';
+  const fontFamily = editorFontFamily(editorFont);
 
   const trackedIndexes = useMemo(
     () => song ? trackedEditorLineIndexes(asEditorSong(song)) : [],
     [song],
   );
-  const navigatorRows = useMemo(() => {
-    const needle = navigatorQuery.trim().toLocaleLowerCase(language === 'de' ? 'de-DE' : 'en-US');
-    return trackedIndexes
-      .map((index) => ({
-        index,
-        id: song?.barIds?.[index] ?? '',
-        number: song ? trackedEditorBarNumber(asEditorSong(song), index) : null,
-        text: editorTrackableText(song?.lines[index] ?? ''),
-      }))
-      .filter((row) => !needle || row.text.toLocaleLowerCase(language === 'de' ? 'de-DE' : 'en-US').includes(needle));
-  }, [language, navigatorQuery, song, trackedIndexes]);
-
   useEffect(() => {
     const request = editor.focusRequest;
     const node = textareaRef.current;
@@ -333,7 +301,7 @@ export function EditorWorkspace() {
     if (!drag || drag.pointerId !== event.pointerId) return;
     drag.x = event.clientX;
     drag.y = event.clientY;
-    if (!drag.active && Math.hypot(drag.x - drag.startX, drag.y - drag.startY) > 8) {
+    if (!drag.active && Math.hypot(drag.x - drag.startX, drag.y - drag.startY) > 18) {
       clearDrag();
       return;
     }
@@ -457,13 +425,6 @@ export function EditorWorkspace() {
         <div className={styles.headerActions}>
           <button type="button" onClick={() => void editor.undo()} disabled={!editor.canUndo} aria-label={language === 'de' ? 'Rückgängig' : 'Undo'}>↶</button>
           <button type="button" onClick={() => void editor.redo()} disabled={!editor.canRedo} aria-label={language === 'de' ? 'Wiederholen' : 'Redo'}>↷</button>
-          <button
-            type="button"
-            data-active={dockTab === 'navigator' ? 'true' : 'false'}
-            onClick={() => setDockTab((current) => current === 'navigator' ? null : 'navigator')}
-          >
-            {language === 'de' ? 'Bars' : 'Bars'}
-          </button>
           <button
             type="button"
             data-active={dockTab === 'history' ? 'true' : 'false'}
@@ -607,64 +568,35 @@ export function EditorWorkspace() {
           <aside className={styles.dock} data-tab={dockTab}>
             <header>
               <div>
-                <p>{dockTab === 'navigator' ? 'BAR NAVIGATOR' : 'REVISION HISTORY'}</p>
-                <h2>{dockTab === 'navigator'
-                  ? (language === 'de' ? 'Springen & strukturieren' : 'Jump & structure')
-                  : (language === 'de' ? 'Fassungen vergleichen' : 'Compare revisions')}</h2>
+                <p>REVISION HISTORY</p>
+                <h2>{language === 'de' ? 'Fassungen vergleichen' : 'Compare revisions'}</h2>
               </div>
               <button type="button" onClick={() => setDockTab(null)} aria-label={language === 'de' ? 'Dock schließen' : 'Close dock'}>×</button>
             </header>
-
-            {dockTab === 'navigator' ? (
-              <>
-                <input
-                  type="search"
-                  value={navigatorQuery}
-                  onChange={(event) => setNavigatorQuery(event.target.value)}
-                  placeholder={language === 'de' ? 'Bars durchsuchen …' : 'Search bars …'}
-                  aria-label={language === 'de' ? 'Bars durchsuchen' : 'Search bars'}
-                />
-                <div className={styles.navigatorList}>
-                  {navigatorRows.map((row) => (
-                    <article key={row.id} data-active={row.index === activeIndex ? 'true' : 'false'}>
-                      <button type="button" className={styles.navigatorMain} onClick={() => editor.jumpToBar(row.id)}>
-                        <span>{String(row.number ?? '').padStart(2, '0')}</span>
-                        <b>{row.text || (language === 'de' ? 'Leere Bar' : 'Empty bar')}</b>
-                      </button>
-                      <div>
-                        <button type="button" onClick={() => void editor.duplicateBar(row.index)} aria-label={language === 'de' ? 'Bar duplizieren' : 'Duplicate bar'}>⧉</button>
-                        <button type="button" onClick={() => void editor.deleteBar(row.index)} aria-label={language === 'de' ? 'Bar löschen' : 'Delete bar'}>×</button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className={styles.historyList}>
-                {revisions.length ? revisions.slice().reverse().map((revision, reverseIndex) => (
-                  <article key={String(revision.at ?? reverseIndex)}>
-                    <div>
-                      <b>{revisionTime(revision.at, language)}</b>
-                      <small>{revision.reason || 'revision'}</small>
-                      <p>{revisionPreview(revision) || (language === 'de' ? 'Leere Fassung' : 'Empty revision')}</p>
-                    </div>
-                    <button type="button" onClick={() => compareRevision(revision)}>
-                      {language === 'de' ? 'Vergleichen' : 'Compare'}
-                    </button>
-                  </article>
-                )) : (
-                  <p className={styles.emptyDock}>{language === 'de' ? 'Noch keine Fassungen.' : 'No revisions yet.'}</p>
-                )}
-              </div>
-            )}
+            <div className={styles.historyList}>
+              {revisions.length ? revisions.slice().reverse().map((revision, reverseIndex) => (
+                <article key={String(revision.at ?? reverseIndex)}>
+                  <div>
+                    <b>{revisionTime(revision.at, language)}</b>
+                    <small>{revision.reason || 'revision'}</small>
+                    <p>{revisionPreview(revision) || (language === 'de' ? 'Leere Fassung' : 'Empty revision')}</p>
+                  </div>
+                  <button type="button" onClick={() => compareRevision(revision)}>
+                    {language === 'de' ? 'Vergleichen' : 'Compare'}
+                  </button>
+                </article>
+              )) : (
+                <p className={styles.emptyDock}>{language === 'de' ? 'Noch keine Fassungen.' : 'No revisions yet.'}</p>
+              )}
+            </div>
           </aside>
         ) : null}
       </div>
 
       <footer className={styles.footer}>
         <span>{language === 'de'
-          ? 'Klick Bar-Nr. = Auswahl · 260 ms halten = verschieben · 1.5 s im Text halten = Abschnitt'
-          : 'Click bar number = select · hold 260 ms = move · hold 1.5 s in text = section'}</span>
+          ? 'Bar-Nr. klicken = Auswahl · kurz halten und ziehen = Bar verschieben · 1.5 s im Text halten = Abschnitt'
+          : 'Click bar number = select · hold briefly and drag = move bar · hold 1.5 s in text = section'}</span>
         <span>{editor.followSelection
           ? (language === 'de' ? 'Reimsuche folgt Auswahl' : 'Rhyme search follows selection')
           : (language === 'de' ? 'Fester Reimanker aktiv' : 'Fixed rhyme anchor active')}</span>
