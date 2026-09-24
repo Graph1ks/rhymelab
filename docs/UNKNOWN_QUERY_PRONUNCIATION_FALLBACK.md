@@ -16,7 +16,8 @@ existing source-backed query pronunciation
         +-- incomplete / missing
                -> browser tokenizes user text
                -> known token? use DB pronunciation
-               -> unknown token? generate IPA locally
+               -> unknown compound? preserve/decompose a known DB right edge
+               -> still unknown? generate IPA locally with bounded right-edge stress
                -> compose full query IPA
                -> existing search pipeline
 ```
