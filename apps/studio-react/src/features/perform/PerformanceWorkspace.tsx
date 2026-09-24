@@ -316,7 +316,7 @@ export function PerformanceWorkspace({
   const steps = config.grid;
 
   return (
-    <section className={styles.workspace} data-r6-perform="true">
+    <section className={styles.workspace} data-r6-perform="true" data-focus={focusMode ? 'true' : 'false'}>
       <header className={styles.header}>
         <div>
           <p>R6 · PERFORM / BAR {String(selectedBar.number).padStart(2, '0')}</p>
