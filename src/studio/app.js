@@ -10,7 +10,7 @@ import {loadStudioCapabilities} from './capability-adapter.mjs';
 import {buildStudioDetailModel,createStudioDetailClient,studioDetailKey} from './detail-adapter.mjs';
 import {createStudioAnalysisClient,studioAnalysisWords,studioRhymeTypeCounts} from './analysis-adapter.mjs';
 import {readStudioAnalysisCache,writeStudioAnalysisCache} from './analysis-cache.mjs';
-import {barIdentity,createSelectionProof,duplicateEditorBar,editorBracketSegments,editorDocumentText,editorLineKind,editorLineStartOffset,editorPositionFromOffset,editorSnapshot,editorTrackableText,ensureEditorSong,insertEditorBar,isTrackedEditorLine,moveEditorBar,reconcileEditorDocumentText,removeEditorBar,replaceEditorDocumentRange,restoreEditorSnapshot,trackedEditorBarNumber,trackedEditorLineIndexes,validateSelectionProof} from './editor-session.mjs';
+import {barIdentity,createSelectionProof,duplicateEditorBar,editorBracketSegments,editorDocumentText,editorLineKind,editorLineStartOffset,editorPositionFromOffset,editorSnapshot,editorTrackableText,ensureEditorSong,isTrackedEditorLine,moveEditorBar,reconcileEditorDocumentText,removeEditorBar,replaceEditorDocumentRange,restoreEditorSnapshot,trackedEditorBarNumber,trackedEditorLineIndexes,validateSelectionProof} from './editor-session.mjs';
 import {autoMapPerformanceBar,clearPerformanceBar,ensurePerformanceSong,getPerformanceCue,markPerformanceReviewed,movePerformanceCue,performanceBarDurationMs,performanceBarMetrics,performanceConfig,performanceCueSymbol,performanceFlowFingerprint,performanceNeedsReview,performancePocketMetrics,performancePreviousBarPlacements,performanceStepDurationMs,performanceSyllablesPerSecond,setPerformanceConfig,setPerformanceCue} from './performance-session.mjs';
 import {installMobileViewportController,mobileScrollDeltaForRect,mobileViewportMetrics} from './mobile-viewport.mjs';
 import {createPortableStudioBackup,parsePortableStudioBackup,portableBackupFilename} from './backup-portability.mjs';
@@ -34,6 +34,7 @@ import {STUDIO_DEVICE_GATES,createStudioDeviceAcceptance,mergeStudioDeviceAccept
 import {createTypingUndoCoalescer} from './edit-history.mjs';
 import {studioParityGroups,studioParitySummary} from './parity-manifest.mjs';
 import {runStudioDomAcceptance} from './dom-acceptance.mjs';
+import {compareEditorRevisions,revisionDiffLabel} from './revision-diff.mjs';
 import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacyStudioStateToStore} from './document-store.mjs';
 
 'use strict';
@@ -411,6 +412,56 @@ function restoreStudioRevision(entry){
   changed();
   return true;
 }
+function revisionDiffDisplayLabel(row){
+  const key=revisionDiffLabel(row);
+  return ({
+    Added:'Nur aktuell',
+    Removed:'Nur alte Fassung',
+    Moved:'Verschoben',
+    Changed:'Geändert',
+    'Changed + moved':'Geändert + verschoben',
+    Unchanged:'Unverändert',
+  })[key]||key;
+}
+function revisionDiffCell(bar,lineNumber,side){
+  if(!bar)return '<div class="revision-diff-cell is-empty"><span class="revision-line-number">—</span><code>—</code></div>';
+  return '<div class="revision-diff-cell '+side+'"><span class="revision-line-number">'+String(lineNumber??'—')+'</span><code>'+esc(bar.text||'')+'</code></div>';
+}
+function openRevisionComparison(index){
+  const entry=song().revisions?.[Number(index)];
+  if(!entry)return;
+  const diff=compareEditorRevisions(editorSnapshot(song()),entry);
+  const changedCount=diff.changedRows.length;
+  const when=new Intl.DateTimeFormat(state.uiLanguage==='en'?'en-GB':'de-DE',{
+    day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',
+  }).format(Number(entry.at)||Date.now());
+  const rows=diff.rows.map((row)=>{
+    return '<article class="revision-diff-row is-'+esc(row.type)+'" data-diff-type="'+esc(row.type)+'">'
+      +'<div class="revision-diff-state"><span>'+esc(revisionDiffDisplayLabel(row))+'</span></div>'
+      +revisionDiffCell(row.current,row.currentLine,'current')
+      +revisionDiffCell(row.previous,row.previousLine,'previous')
+      +'</article>';
+  }).join('');
+  showDialog(
+    state.uiLanguage==='en'?'Compare revision':'Fassung vergleichen',
+    '<div class="revision-compare">'
+      +'<div class="revision-compare-summary"><div><span class="eyebrow">VERLAUF · '+esc(when)+'</span><h3>'+(changedCount?changedCount+' Unterschiede':'Keine Textunterschiede')+'</h3><p>Links steht dein aktueller Text, rechts die ausgewählte Fassung. Der komplette Text bleibt sichtbar; Unterschiede sind zeilenweise markiert.</p></div>'
+      +'<div class="revision-compare-counts"><span>'+diff.summary.changed+' geändert</span><span>'+diff.summary.added+' nur aktuell</span><span>'+diff.summary.removed+' nur alt</span><span>'+diff.summary.moved+' verschoben</span></div></div>'
+      +'<div class="revision-diff-head"><span>Status</span><b>Aktuell</b><b>Fassung '+esc(when)+'</b></div>'
+      +'<div class="revision-diff-scroll">'+rows+'</div>'
+      +'<div class="revision-compare-actions"><button type="button" id="revisionCompareCancel" class="outline">Aktuell behalten</button><button type="button" id="revisionCompareRestore" class="primary">Diese Fassung wiederherstellen</button></div>'
+      +'</div>'
+  );
+  $('#dialog').dataset.surface='revision-compare';
+  $('#revisionCompareCancel').onclick=closeDialog;
+  $('#revisionCompareRestore').onclick=()=>{
+    if(restoreStudioRevision(entry)){
+      closeDialog();
+      notify('Fassung wiederhergestellt · vorheriger Stand wurde gesichert.');
+      if(dockTab==='history')renderDock();
+    }
+  };
+}
 function changed(){const s=song();s.updatedAt=Date.now();$('#saveState').textContent='Speichert …';clearTimeout(saveTimer);saveTimer=setTimeout(()=>{revision('autosave');persist()},650);queueAnalysisWarm();updateStats() }
 function notify(t){$('#toast').textContent=t;$('#toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.add('hidden'),3300)}
 function trackedStudioLineIndexes(current=song()){
@@ -526,6 +577,159 @@ function unifiedEditorLineHeights(){
     return Math.max(fallback,Math.ceil(height));
   });
 }
+let editorBarDrag=null;
+let barDragAutoScrollFrame=0;
+let suppressBarGutterClickUntil=0;
+const BAR_DRAG_HOLD_MS=260;
+function barDropPlacement(clientY,sourceIndex){
+  const notepad=$('#lyricsNotepad');
+  const rows=queryAll('#lyricsMeasure .lyrics-measure-line');
+  if(!notepad||!rows.length)return {targetIndex:sourceIndex,top:0,slot:sourceIndex};
+  let slot=rows.length;
+  for(let index=0;index<rows.length;index++){
+    const rect=rows[index].getBoundingClientRect();
+    if(clientY<rect.top+rect.height/2){slot=index;break}
+  }
+  const targetIndex=Math.max(0,Math.min(rows.length-1,slot>sourceIndex?slot-1:slot));
+  const notepadRect=notepad.getBoundingClientRect();
+  const anchor=rows[Math.min(slot,rows.length-1)]?.getBoundingClientRect();
+  const top=slot>=rows.length
+    ?rows.at(-1).getBoundingClientRect().bottom-notepadRect.top
+    :anchor.top-notepadRect.top;
+  return {targetIndex,top,slot};
+}
+function clearEditorBarDrag(){
+  const drag=editorBarDrag;
+  if(!drag)return;
+  clearTimeout(drag.timer);
+  drag.ghost?.remove();
+  drag.preview?.remove();
+  drag.node?.classList.remove('is-bar-drag-source');
+  $('#lyricsNotepad')?.classList.remove('is-bar-dragging');
+  document.body.classList.remove('bar-reorder-active');
+  cancelAnimationFrame(barDragAutoScrollFrame);
+  barDragAutoScrollFrame=0;
+  editorBarDrag=null;
+}
+function positionBarDragGhost(drag,event){
+  if(!drag?.ghost)return;
+  const width=drag.ghost.offsetWidth||320;
+  const height=drag.ghost.offsetHeight||56;
+  const left=Math.max(10,Math.min(window.innerWidth-width-10,event.clientX+18));
+  const top=Math.max(10,Math.min(window.innerHeight-height-10,event.clientY-height/2));
+  drag.ghost.style.transform='translate3d('+left+'px,'+top+'px,0)';
+}
+function updateEditorBarDropPreview(drag,event){
+  if(!drag?.active)return;
+  const placement=barDropPlacement(event.clientY,drag.sourceIndex);
+  drag.targetIndex=placement.targetIndex;
+  drag.preview.style.top=Math.max(0,placement.top)+'px';
+  drag.preview.dataset.same=String(placement.targetIndex===drag.sourceIndex);
+  const targetNumber=trackedEditorBarNumber(song(),placement.targetIndex);
+  const targetLabel=targetNumber==null?'Zwischenraum':'vor Bar '+String(targetNumber).padStart(2,'0');
+  drag.preview.querySelector('b').textContent=placement.targetIndex===drag.sourceIndex?'Originalposition':targetLabel;
+  positionBarDragGhost(drag,event);
+}
+function runEditorBarDragAutoScroll(){
+  const drag=editorBarDrag;
+  if(!drag?.active){barDragAutoScrollFrame=0;return}
+  const scroller=$('#editorScroll'),event=drag.lastEvent;
+  if(scroller&&event){
+    const rect=scroller.getBoundingClientRect();
+    const edge=Math.min(86,Math.max(48,rect.height*.14));
+    let speed=0;
+    if(event.clientY<rect.top+edge){
+      speed=-Math.ceil((rect.top+edge-event.clientY)/edge*18);
+    }else if(event.clientY>rect.bottom-edge){
+      speed=Math.ceil((event.clientY-(rect.bottom-edge))/edge*18);
+    }
+    if(speed){
+      const before=scroller.scrollTop;
+      scroller.scrollTop+=speed;
+      if(scroller.scrollTop!==before)updateEditorBarDropPreview(drag,event);
+    }
+  }
+  barDragAutoScrollFrame=requestAnimationFrame(runEditorBarDragAutoScroll);
+}
+function activateEditorBarDrag(drag,event){
+  if(editorBarDrag!==drag||drag.active)return;
+  drag.active=true;
+  suppressBarGutterClickUntil=performance.now()+700;
+  const current=song();
+  const barNumber=trackedEditorBarNumber(current,drag.sourceIndex);
+  const text=current.lines[drag.sourceIndex]||'';
+  const ghost=document.createElement('div');
+  ghost.className='bar-transport-ghost';
+  ghost.innerHTML='<span>BAR '+String(barNumber||'').padStart(2,'0')+'</span><b>'+esc(text||'Leere Bar')+'</b>';
+  document.body.append(ghost);
+  drag.ghost=ghost;
+  const preview=document.createElement('div');
+  preview.className='bar-drop-preview';
+  preview.style.height=Math.max(38,drag.node.getBoundingClientRect().height)+'px';
+  preview.innerHTML='<span>DROP</span><b>Originalposition</b><em>'+esc(text||'Leere Bar')+'</em>';
+  $('#lyricsNotepad')?.append(preview);
+  drag.preview=preview;
+  drag.node.classList.add('is-bar-drag-source');
+  $('#lyricsNotepad')?.classList.add('is-bar-dragging');
+  document.body.classList.add('bar-reorder-active');
+  updateEditorBarDropPreview(drag,event);
+  cancelAnimationFrame(barDragAutoScrollFrame);
+  barDragAutoScrollFrame=requestAnimationFrame(runEditorBarDragAutoScroll);
+}
+function bindEditorBarDrag(node){
+  node.addEventListener('pointerdown',(event)=>{
+    if(event.button!==0||editorBarDrag)return;
+    const sourceIndex=Number(node.dataset.line);
+    const drag={
+      node,
+      pointerId:event.pointerId,
+      sourceIndex,
+      targetIndex:sourceIndex,
+      startX:event.clientX,
+      startY:event.clientY,
+      lastEvent:event,
+      active:false,
+      timer:null,
+      ghost:null,
+      preview:null,
+    };
+    editorBarDrag=drag;
+    node.setPointerCapture?.(event.pointerId);
+    drag.timer=setTimeout(()=>activateEditorBarDrag(drag,drag.lastEvent),BAR_DRAG_HOLD_MS);
+  });
+  node.addEventListener('pointermove',(event)=>{
+    const drag=editorBarDrag;
+    if(!drag||drag.node!==node||drag.pointerId!==event.pointerId)return;
+    drag.lastEvent=event;
+    if(!drag.active&&Math.hypot(event.clientX-drag.startX,event.clientY-drag.startY)>8){
+      clearEditorBarDrag();
+      return;
+    }
+    if(drag.active){
+      event.preventDefault();
+      updateEditorBarDropPreview(drag,event);
+    }
+  });
+  const finish=(event,commit)=>{
+    const drag=editorBarDrag;
+    if(!drag||drag.node!==node||drag.pointerId!==event.pointerId)return;
+    clearTimeout(drag.timer);
+    if(drag.active){
+      event.preventDefault();
+      const from=drag.sourceIndex,to=drag.targetIndex;
+      suppressBarGutterClickUntil=performance.now()+700;
+      clearEditorBarDrag();
+      if(commit&&from!==to)moveStudioBar(from,to);
+    }else{
+      clearEditorBarDrag();
+    }
+  };
+  node.addEventListener('pointerup',(event)=>finish(event,true));
+  node.addEventListener('pointercancel',(event)=>finish(event,false));
+  node.addEventListener('lostpointercapture',(event)=>{
+    if(editorBarDrag?.node===node&&editorBarDrag.pointerId===event.pointerId)clearEditorBarDrag();
+  });
+}
 function renderUnifiedEditorGutters(){
   const current=song();
   const barGutter=$('#lyricsBarGutter'),syllableGutter=$('#lyricsSyllableGutter');
@@ -535,7 +739,7 @@ function renderUnifiedEditorGutters(){
     const kind=editorLineKind(line),barNumber=trackedEditorBarNumber(current,index);
     const height=heights[index];
     if(kind==='bar'){
-      return '<button type="button" class="lyrics-gutter-row line-no '+(index===activeLine?'active':'')+'" data-line="'+index+'" style="height:'+height+'px" aria-label="Bar '+barNumber+' auswählen">'+String(barNumber).padStart(2,'0')+'</button>';
+      return '<button type="button" class="lyrics-gutter-row line-no '+(index===activeLine?'active':'')+'" data-line="'+index+'" style="height:'+height+'px" aria-label="Bar '+barNumber+' auswählen und halten zum Verschieben" title="Klick: auswählen · halten: Bar verschieben">'+String(barNumber).padStart(2,'0')+'</button>';
     }
     const label=kind==='bracket'?'§':'';
     return '<span class="lyrics-gutter-row line-no is-untracked '+kind+' '+(index===activeLine?'active':'')+'" data-line="'+index+'" style="height:'+height+'px" aria-hidden="true">'+label+'</span>';
@@ -548,7 +752,13 @@ function renderUnifiedEditorGutters(){
     }
     return '<span class="lyrics-gutter-row syllable is-untracked '+kind+' '+(index===activeLine?'active':'')+'" style="height:'+height+'px" aria-hidden="true"></span>';
   }).join('');
-  queryAll('#lyricsBarGutter [data-line]').forEach((node)=>node.onclick=()=>selectEditorLine(+node.dataset.line));
+  queryAll('#lyricsBarGutter button[data-line]').forEach((node)=>{
+    node.onclick=()=>{
+      if(performance.now()<suppressBarGutterClickUntil)return;
+      selectEditorLine(+node.dataset.line);
+    };
+    bindEditorBarDrag(node);
+  });
   queryAll('#lyricsSyllableGutter [data-bar-inspect]').forEach((node)=>node.onclick=()=>{
     activeLine=+node.dataset.barInspect;
     activateLine(activeLine);
@@ -573,6 +783,103 @@ function syncUnifiedEditorLayout(){
 function resizeArea(el){
   if(!el||el.id==='lyricsEditor')syncUnifiedEditorLayout();
 }
+
+const SECTION_QUICK_TAGS=Object.freeze([
+  '[Intro]','[Verse]','[Pre-Chorus]','[Chorus]',
+  '[Post-Chorus]','[Hook]','[Bridge]','[Outro]',
+]);
+const SECTION_QUICK_HOLD_MS=1500;
+let sectionQuickMenu=null;
+let sectionQuickPress=null;
+function closeSectionQuickMenu(){
+  sectionQuickMenu?.remove();
+  sectionQuickMenu=null;
+  document.body.classList.remove('section-quick-open');
+}
+function insertSectionQuickTag(tag,start,end){
+  closeSectionQuickMenu();
+  pushUndo();
+  const result=replaceEditorDocumentRange(song(),start,end,tag);
+  activeLine=result.position.index;
+  selection={
+    line:result.position.index,
+    barId:song().barIds[result.position.index],
+    barRevision:song().barRevisions[result.position.index],
+    start:result.position.offset,
+    end:result.position.offset,
+  };
+  selectionProof=createSelectionProof(song(),{
+    index:selection.line,start:selection.start,end:selection.end,
+  });
+  analysisSignature='';
+  renderEditor();
+  changed();
+  focusLine(result.position.index,result.position.offset);
+  notify(tag+' eingefügt.');
+}
+function openSectionQuickMenu(editor,event){
+  closeSectionQuickMenu();
+  const start=editor.selectionStart,end=editor.selectionEnd;
+  const menu=document.createElement('div');
+  menu.className='section-quick-menu';
+  menu.setAttribute('role','menu');
+  menu.setAttribute('aria-label','Song-Abschnitt einfügen');
+  menu.innerHTML='<div class="section-quick-head"><span>ABSCHNITT</span><small>Direkt am Cursor einfügen</small></div><div class="section-quick-grid">'
+    +SECTION_QUICK_TAGS.map((tag)=>'<button type="button" role="menuitem" data-section-quick="'+esc(tag)+'">'+esc(tag)+'</button>').join('')
+    +'</div>';
+  document.body.append(menu);
+  sectionQuickMenu=menu;
+  document.body.classList.add('section-quick-open');
+  const rect=menu.getBoundingClientRect();
+  const left=Math.max(10,Math.min(window.innerWidth-rect.width-10,event.clientX-rect.width/2));
+  const preferredTop=event.clientY+18;
+  const top=preferredTop+rect.height<window.innerHeight-10
+    ?preferredTop
+    :Math.max(10,event.clientY-rect.height-18);
+  menu.style.left=left+'px';
+  menu.style.top=top+'px';
+  queryAll('.section-quick-menu [data-section-quick]').forEach((button)=>{
+    button.onclick=()=>insertSectionQuickTag(button.dataset.sectionQuick,start,end);
+  });
+  requestAnimationFrame(()=>menu.querySelector('button')?.focus({preventScroll:true}));
+}
+function bindSectionQuickPress(editor){
+  editor.addEventListener('pointerdown',(event)=>{
+    if(event.button!==0||mode!=='write'||sectionQuickPress)return;
+    closeSectionQuickMenu();
+    const press={
+      pointerId:event.pointerId,
+      startX:event.clientX,
+      startY:event.clientY,
+      lastEvent:event,
+      timer:null,
+      opened:false,
+    };
+    sectionQuickPress=press;
+    press.timer=setTimeout(()=>{
+      if(sectionQuickPress!==press)return;
+      press.opened=true;
+      openSectionQuickMenu(editor,press.lastEvent);
+    },SECTION_QUICK_HOLD_MS);
+  });
+  editor.addEventListener('pointermove',(event)=>{
+    const press=sectionQuickPress;
+    if(!press||press.pointerId!==event.pointerId)return;
+    press.lastEvent=event;
+    if(!press.opened&&Math.hypot(event.clientX-press.startX,event.clientY-press.startY)>9){
+      clearTimeout(press.timer);
+      sectionQuickPress=null;
+    }
+  });
+  const finish=(event)=>{
+    const press=sectionQuickPress;
+    if(!press||press.pointerId!==event.pointerId)return;
+    clearTimeout(press.timer);
+    sectionQuickPress=null;
+  };
+  editor.addEventListener('pointerup',finish);
+  editor.addEventListener('pointercancel',finish);
+}
 function documentRangeForLine(index,start=0,end=start,current=song()){
   const line=current.lines[index]||'';
   const lineStart=editorLineStartOffset(current.lines,index);
@@ -593,6 +900,7 @@ function renderEditor(){
     requestAnimationFrame(()=>ensureActiveBarVisible());
   });
   editor.addEventListener('pointerdown',()=>typingUndo.noteBoundary(),{passive:true});
+  bindSectionQuickPress(editor);
   editor.addEventListener('beforeinput',(event)=>{
     if(event.isComposing)return;
     const position=editorPositionFromOffset(song().lines,editor.selectionStart);
@@ -798,7 +1106,6 @@ function renderResults(){
       ?rows.slice(0,pageSize).map(resultHTML).join('')
       :'<div class="empty">Keine passenden Writer-Treffer für „'+esc(query)+'“ und diese Filter.</div>';
   }
-  $('#moreBtn').classList.toggle('hidden',writerStatus!=='ready'||rows.length<=pageSize);
   $('#announcer').textContent=writerStatus==='ready'
     ?rows.length+' Writer-Treffer für '+query
     :writerStatus==='loading'
@@ -1847,12 +2154,12 @@ async function startPlay(){
     notify('Audio hier nicht verfügbar. Timing-Raster bleibt nutzbar.');
   }
 }
-function showDialog(title,html){$('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=html;if(!$('#dialog').open)$('#dialog').showModal()}
-function closeDialog(){$('#dialog').close()}
+function showDialog(title,html){const dialog=$('#dialog');delete dialog.dataset.surface;$('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=html;if(!dialog.open)dialog.showModal()}
+function closeDialog(){const dialog=$('#dialog');if(dialog.open)dialog.close();delete dialog.dataset.surface}
 function legacyFilters(){showDialog('Dein Klang. Deine Suche.',`<div class="formgrid"><label class="field">Aussprache der Suchanfrage<select id="basis"><option value="de">Deutsch</option><option value="en">Englisch</option><option value="both">DE + EN</option></select></label><label class="field">Sprache der Ergebnisse<select id="resultLanguage"><option value="both">DE + EN</option><option value="de">Deutsch</option><option value="en">Englisch</option></select></label><label class="field">Reimbeziehung<select id="relation"><option value="all">Alle Beispiele</option><option value="rein">Reiner Reim</option><option value="nah">Naher Klang</option></select></label><label class="field">Reihenfolge<select id="sort"><option value="recommended">Writer-Empfehlung</option><option value="alpha">A–Z</option><option value="syllables">Silben aufsteigend</option></select></label></div><p class="notice">Die Live-Suche nutzt die lokale Writer-Runtime. Die vollständige Filtermatrix, Varianten, historische Formen, Generated-Daten und Provenienz sind im Studio über direkte und erweiterte Filter verfügbar.</p><div class="dialogactions"><button id="resetFilters">Zurücksetzen</button><button id="applyFilters" class="primary">Anwenden</button></div>`);$('#basis').value=basis;$('#resultLanguage').value=resultLang;$('#relation').value=relation;$('#sort').value=sort;$('#applyFilters').onclick=()=>{basis=$('#basis').value;resultLang=$('#resultLanguage').value;relation=$('#relation').value;sort=$('#sort').value;pageSize=6;void refreshWriterResults();closeDialog()};$('#resetFilters').onclick=()=>{basis='de';resultLang='both';relation='all';sort='recommended';void refreshWriterResults();closeDialog()}}
 function legacySettings(){showDialog('Dein Studio einrichten',`<label class="field">Schriftgröße im Editor<input id="fontRange" type="range" min="16" max="28" value="${state.fontSize}"></label><p class="small" id="fontValue">${state.fontSize} px</p><div class="row wrap" style="margin-top:20px"><button id="settingTheme" class="outline">Hell / Dunkel wechseln</button><button id="settingHistory" class="outline">Versionsverlauf</button></div><p class="notice">Texte, Revisionen und Performance-Cues werden lokal im versionierten IndexedDB-DocumentStore gespeichert. UI-Präferenzen bleiben in LocalStorage; Recovery-Punkte sind in den Studio-Einstellungen verfügbar.</p><div class="row wrap"><button id="sourceInfo" class="outline">Über Studio 02</button><button id="commandsSettings" class="outline">Tastenkürzel</button></div>`);$('#fontRange').oninput=e=>{state.fontSize=+e.target.value;document.documentElement.style.setProperty('--editor',state.fontSize+'px');resizeArea($('#lyricsEditor'));$('#fontValue').textContent=state.fontSize+' px';persist()};$('#settingTheme').onclick=toggleTheme;$('#settingHistory').onclick=showHistory;$('#sourceInfo').onclick=showInfo;$('#commandsSettings').onclick=showCommands}
 function legacyToggleTheme(){toggleTheme()}
-function legacyHistory(){revision('history_open');showDialog('Deine letzten Fassungen',`<p class="notice">Wiederherstellen erzeugt zuvor eine Sicherung der aktuellen Fassung.</p>${(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,65))}…</p></div><button class="outline" data-revision="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p>Noch keine ältere Fassung vorhanden.</p>'}`);queryAll('[data-revision]').forEach(b=>b.onclick=()=>{if(restoreStudioRevision(song().revisions[+b.dataset.revision])){closeDialog();notify('Fassung wiederhergestellt · Bar-IDs und Cues erhalten.')}})}
+function legacyHistory(){showHistory()}
 function showInfo(){showDialog('RhymeLab Studio 02',`<p>Ein gemeinsamer Schreibraum für Browser, Mobile und den späteren Electron-Adapter.</p><p class="notice">Reimsuche, Detail-/Provenienzflächen und Song-Reimschema laufen über die lokale Writer-Runtime. Dokumente, Revisionen und Performance-Cues liegen im versionierten IndexedDB-DocumentStore mit Recovery-Punkten.</p><p class="notice">UI-Silbenzählung und Perform Auto-Map bleiben bewusst als lokale Hilfen gekennzeichnet.</p>`)}
 function studioCommandRegistry(){
   return [
@@ -1865,7 +2172,6 @@ function studioCommandRegistry(){
     {id:'perform-mode',group:'Modus',label:'Perform-Modus',keywords:['perform','timing','flow','cues'],shortcut:'Alt+3',run:()=>{navigate('studio');setMode('perform')}},
     {id:'bar-inspector',group:'Modus',label:'Bar Inspector öffnen',keywords:['bar','metrics','stress','pocket'],run:()=>openEditorDock('bar')},
     {id:'bar-navigator',group:'Modus',label:'Bar Navigator öffnen',keywords:['bars','outline','navigator','reorder'],shortcut:'Alt+B',run:()=>openEditorDock('navigator')},
-    {id:'bar-new-after',group:'Dokument',label:'Neue Bar nach aktiver Bar',keywords:['bar','new','insert','zeile'],run:()=>addStudioBarAfter(activeLine)},
     {id:'bar-duplicate',group:'Dokument',label:'Aktive Bar duplizieren',keywords:['bar','duplicate','copy','duplizieren'],run:()=>duplicateStudioBar(activeLine)},
     {id:'bar-delete',group:'Dokument',label:'Aktive Bar löschen',keywords:['bar','delete','remove','löschen'],run:()=>deleteStudioBar(activeLine)},
     {id:'new-song',group:'Dokument',label:'Neuen Text anlegen',keywords:['new','song','document','text'],run:newSong},
@@ -2085,7 +2391,7 @@ function exportText(){
 }
 function runAuto(t){if(!auto)return;const el=$('#resultsScroll');if(t>pauseUntil&&!document.hidden&&!$('#dialog').open&&el.clientHeight>0){el.scrollTop+=(t-(lastFrame||t))*.018;if(el.scrollTop+el.clientHeight>=el.scrollHeight-2){if(pageSize<data().length){pageSize+=6;renderResults()}else{el.scrollTop=0;pauseUntil=t+1200}}}lastFrame=t;scrollFrame=requestAnimationFrame(runAuto)}
 function toggleAuto(){auto=!auto;$('#autoBtn').textContent=state.uiLanguage==='en'?'↕ Auto-scroll: '+(auto?'On':'Off'):'↕ Auto-Scroll: '+(auto?'An':'Aus');$('#autoBtn').classList.toggle('active',auto);$('#autoBtn').setAttribute('aria-pressed',auto);cancelAnimationFrame(scrollFrame);lastFrame=0;if(auto){pauseUntil=performance.now()+1000;scrollFrame=requestAnimationFrame(runAuto)}}
-function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','autoBtn','moreBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
+function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','autoBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
 const bindClick=(id,handler,{optional=false}={})=>{
   const element=document.getElementById(id);
   if(!element){
@@ -2112,17 +2418,6 @@ bindClick('infoBtn',showInfo);
 bindClick('focusBtn',toggleFocus);
 bindClick('newSongSidebar',newSong);
 bindClick('renameBtn',()=>nameDialog('Titel ändern',song().title,t=>{song().title=t;persist();renderEditor()}));
-bindClick('addBar',()=>{
-  const current=song();
-  pushUndo();
-  const inserted=insertEditorBar(current,Math.min(current.lines.length,activeLine+1),'');
-  if(!inserted)return;
-  activeLine=inserted.index;
-  analysisSignature='';
-  renderEditor();
-  focusLine(activeLine,0);
-  changed();
-});
 bindClick('undoBtn',performUndo);
 bindClick('redoBtn',performRedo);
 const searchForm=$('#searchForm');
@@ -2135,12 +2430,11 @@ searchForm.onsubmit=e=>{
   $('#resultsScroll').scrollTop=0;
 };
 bindClick('autoBtn',toggleAuto);
-bindClick('moreBtn',()=>{pageSize+=6;renderResults()});
 const resultsScroll=$('#resultsScroll');
 resultsScroll.addEventListener('scroll',()=>{
   syncSearchPageCompact(resultsScroll.scrollTop);
-  if(resultsScroll.scrollTop>0&&resultsScroll.scrollHeight-resultsScroll.scrollTop-resultsScroll.clientHeight<90&&pageSize<data().length){
-    pageSize+=6;renderResults();
+  if(resultsScroll.scrollHeight-resultsScroll.scrollTop-resultsScroll.clientHeight<120&&pageSize<data().length){
+    pageSize=Math.min(data().length,pageSize+(density==='compact'?24:12));renderResults();
   }
 },{passive:true});
 ['wheel','touchstart','pointerdown','focusin'].forEach((eventName)=>
@@ -2216,12 +2510,12 @@ function resultBadgeMarkup(row){
     :'';
 }
 function writerTimingText(){
-  if(writerStatus==='loading')return 'Runtime …';
-  if(writerStatus!=='ready'||!writerRuntimeTiming)return '';
+  const parts=['DB '+activeRuntimeDbLabel()];
+  if(writerStatus==='loading'){parts.push('Runtime …');return parts.join(' · ')}
+  if(writerStatus!=='ready'||!writerRuntimeTiming)return parts.join(' · ');
   const current=writerRuntimeTiming.searchMs==null?null:Number(writerRuntimeTiming.searchMs);
   const average=writerRuntimeTiming.averageLast100Ms==null?null:Number(writerRuntimeTiming.averageLast100Ms);
   const count=Number(writerRuntimeTiming.sampleCount||0);
-  const parts=[];
   if(current!=null&&Number.isFinite(current))parts.push(current.toFixed(current<10?1:0)+' ms');
   if(average!=null&&Number.isFinite(average))parts.push('Ø100 '+average.toFixed(average<10?1:0)+' ms');
   if(count)parts.push('n='+count);
@@ -2231,8 +2525,7 @@ data=function(){return filterUnusedWriterRows(filterStudioWriterRows(baseData(),
 resultHTML=function(r){const saved=state.saved.some(s=>s.word===r.word),kind=r.kind==='phrase'?'PHRASE':r.kind==='entity'?'NAME':'',active=selectedResultId?selectedResultId===r.id:selectedResult===r.word,shortRelation=({multisyllabic_perfect:'Multi-Voll',perfect:'Voll',multisyllabic_slant:'Multi-Slant',family:'Familie',slant:'Slant',assonance:'Asson.',consonance:'Konson.'})[r.relationType]||'Klang';return `<div class="result ${active?'is-selected':''}" data-result-word="${esc(r.word)}" data-result-id="${esc(r.id)}"><div class="grow"><button class="result-word" data-detail="${esc(r.word)}" data-detail-id="${esc(r.id)}" aria-label="Details zu ${esc(r.word)}" aria-pressed="${active}">${esc(r.word)}${kind?`<span class="result-kind">${kind}</span>`:''}</button><div class="result-meta"><b>${esc(r.relationLabel||'Klangtreffer')}</b><span>${r.syll||'—'} Silb.</span><span>${r.kind==='word'?'Wort':r.kind==='phrase'?'Phrase':'Name'} · ${r.lang.toUpperCase()}</span></div>${resultBadgeMarkup(r)}</div><span class="result-relation">${esc(shortRelation)}</span><span class="result-syll">${r.syll||'—'}</span><div class="result-actions"><button data-save="${esc(r.word)}" class="${saved?'saved':''}" aria-pressed="${saved}" aria-label="${esc(r.word)} ${saved?'entmerken':'merken'}">${icon('book')}</button><button data-insert="${esc(r.word)}" aria-label="${esc(r.word)} einsetzen">${icon('plus')}</button></div></div>`};
 renderResults=function(){
   const renderStarted=performance.now();
-  const effectiveDensity=page==='studio'?'compact':density;
-  if(page==='studio'&&pageSize<24)pageSize=24;
+  const effectiveDensity=density;
   baseRenderResults();
   const runtimeInline=$('#runtimeInline');if(runtimeInline)runtimeInline.textContent=writerTimingText();
   const panel=$('.inspector');['list','compact','tiles'].forEach(v=>panel.classList.toggle('density-'+v,v===effectiveDensity));
@@ -2246,7 +2539,21 @@ renderResults=function(){
   $('#resultCount').textContent=writerStatus==='loading'?'Suche …':writerStatus==='error'?'Nicht verfügbar':data().length+' Treffer'+(hiddenUsedCount?' · '+hiddenUsedCount+' verwendet ausgeblendet':'');
   lastResultRenderMs=Number((performance.now()-renderStarted).toFixed(1));
   if(internalDbLabEnabled)renderInternalDbLab();
+  queueInfiniteResultsFill();
 };
+let infiniteFillFrame=0;
+function queueInfiniteResultsFill(){
+  cancelAnimationFrame(infiniteFillFrame);
+  infiniteFillFrame=requestAnimationFrame(()=>{
+    const scroller=$('#resultsScroll');
+    const total=data().length;
+    if(!scroller||writerStatus!=='ready'||pageSize>=total)return;
+    if(scroller.scrollHeight<=scroller.clientHeight+100){
+      pageSize=Math.min(total,pageSize+(density==='compact'?24:12));
+      renderResults();
+    }
+  });
+}
 function currentSelectionProof(){
   if(selection.multiline||!selection.tracked||!isTrackedEditorLine(song().lines[selection.line]||''))return null;
   return createSelectionProof(song(),{index:selection.line,start:selection.start,end:selection.end});
@@ -2443,7 +2750,8 @@ function activeRuntimeDbLabel(){
   if(internalDbLabEnabled&&internalDbLabActive)return String(internalDbLabActive).toUpperCase();
   const runtime=String(studioCapabilities?.runtime||'');
   const match=runtime.match(/serving-v1\/([^/\s]+)/u);
-  return String(match?.[1]||'DEFAULT').toUpperCase();
+  const fallback=internalDbLabPayload?.defaultDatabase||internalDbLabActive||'…';
+  return String(match?.[1]||fallback).toUpperCase();
 }
 function updateSearchPageChrome(){
   const badge=$('#activeDbBadge');
@@ -2981,7 +3289,10 @@ async function refreshInternalDbLabPayload({silent=false}={}){
   internalDbLabPayload=payload;
   const map=internalDbSummaryMap(payload);
   if(!['lite','standard','full'].includes(internalDbLabActive)||!map[internalDbLabActive]?.available){
-    internalDbLabActive=['standard','full','lite'].find((id)=>map[id]?.available)||'standard';
+    internalDbLabActive=[
+      String(payload.defaultDatabase||''),
+      'standard','full','lite',
+    ].find((id,index,list)=>id&&list.indexOf(id)===index&&map[id]?.available)||'lite';
     saveInternalDbLabSelection(internalDbLabActive);
   }
   studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
@@ -3046,7 +3357,10 @@ async function initializeInternalDbLab(){
     internalDbLabPayload=payload;
     const map=internalDbSummaryMap(payload);
     if(!['lite','standard','full'].includes(internalDbLabActive)||!map[internalDbLabActive]?.available){
-      internalDbLabActive=['standard','full','lite'].find((id)=>map[id]?.available)||'standard';
+      internalDbLabActive=[
+      String(payload.defaultDatabase||''),
+      'standard','full','lite',
+    ].find((id,index,list)=>id&&list.indexOf(id)===index&&map[id]?.available)||'lite';
     }
     saveInternalDbLabSelection(internalDbLabActive);
     studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
@@ -3090,7 +3404,7 @@ function updateCapabilitySurface(){
     status.textContent=studioCapabilities.status==='loading'
       ?'Runtime prüfen …'
       :ready
-        ?(studioCapabilities.servingV1?'Serving v1 · bereit':'Writer · bereit')
+        ?(studioCapabilities.servingV1?'DB '+activeRuntimeDbLabel()+' · bereit':'Writer · bereit')
         :'Runtime eingeschränkt';
     status.title=studioCapabilities.status==='error'
       ?String(studioCapabilities.error||'Backend nicht erreichbar')
@@ -3948,20 +4262,6 @@ function renderBarInspectorDock(body){
   };
 }
 
-function addStudioBarAfter(index=activeLine){
-  const current=song(),target=Math.max(-1,Math.min(current.lines.length-1,Number(index)));
-  pushUndo();
-  const inserted=insertEditorBar(current,target+1,'');
-  if(!inserted)return false;
-  activeLine=inserted.index;
-  selection={line:inserted.index,barId:inserted.id,barRevision:inserted.revision,start:0,end:0};
-  selectionProof=createSelectionProof(current,{index:inserted.index,start:0,end:0});
-  analysisSignature='';
-  renderEditor();changed();
-  if(dockTab==='navigator')renderDock();
-  focusLine(inserted.index,0);
-  return true;
-}
 function duplicateStudioBar(index=activeLine){
   const current=song(),source=barIdentity(current,index);
   if(!source)return false;
@@ -4076,7 +4376,7 @@ function renderBarNavigatorDock(body){
     <div class="bar-navigator">
       <div class="bar-navigator-head">
         <div><span class="eyebrow">BAR NAVIGATOR</span><b>${trackedIndexes.length} Bars</b><small>Leerzeilen und [Section]-Zeilen werden nicht getrackt.</small></div>
-        <div class="bar-navigator-head-actions"><label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label><div class="row"><button id="navigatorAddBar" class="outline">＋ Zeile</button><button id="navigatorDuplicateBar" class="outline">⧉ Duplizieren</button></div></div>
+        <div class="bar-navigator-head-actions"><label class="bar-navigator-search"><span class="screenreader">Bars durchsuchen</span><input id="barNavigatorSearch" type="search" value="${esc(barNavigatorQuery)}" placeholder="Bar-Text durchsuchen …" autocomplete="off"></label><div class="row"><button id="navigatorDuplicateBar" class="outline">⧉ Aktive Bar duplizieren</button></div></div>
       </div>
       <div class="bar-navigator-list">
         ${rows.map((row)=>{
@@ -4101,7 +4401,6 @@ function renderBarNavigatorDock(body){
         }).join('')||'<div class="bar-navigator-empty">Keine Bars für diesen Filter.</div>'}
       </div>
     </div>`;
-  $('#navigatorAddBar').onclick=()=>addStudioBarAfter(activeLine);
   $('#navigatorDuplicateBar').onclick=()=>duplicateStudioBar(activeLine);
   const search=$('#barNavigatorSearch');
   search.oninput=(event)=>{
@@ -4171,10 +4470,44 @@ function showSettings(){
   if(dockTab)closeEditorDock();
   navigate('settings');
 }
-function showHistory(){revision();openEditorDock('history')}
+function showHistory(){openEditorDock('history')}
 function openEditorDock(tab){if(page!=='studio')navigate('studio');document.body.classList.remove('mobile-results');document.body.classList.add('editor-dock-open');setMobileActive('studio');dockTab=tab;$('#editorDock').dataset.tab=tab;$('#editorDock').classList.remove('hidden');renderDock();animateSurface($('#editorDock'))}
 function closeEditorDock(){if(themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}document.body.classList.remove('editor-dock-open');$('#editorDock').classList.add('hidden');delete $('#editorDock').dataset.tab;dockTab='';}
-function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='navigator'){renderBarNavigatorDock(body)}else if(dockTab==='bar'){renderBarInspectorDock(body)}else if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else{body.innerHTML=`<div class="studio-note"><b>RhymeLab Studio</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details, Versionen und Werkzeuge bleiben in Reichweite.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste und Versionen direkt öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + B</kbd> Bars · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln.</p><p style="margin-top:9px"><b>Lokal zuerst</b> · Texte, Präferenzen, Backups und Writer-Daten bleiben lokal in deinem Workspace.</p></div>`}}
+function renderHistoryDock(body){
+  const revisions=song().revisions||[];
+  body.innerHTML=revisions.length
+    ?'<div class="revision-list">'+revisions.slice().reverse().map((entry,reverseIndex)=>{
+        const index=revisions.length-1-reverseIndex;
+        const preview=String(entry.text||entry.snapshot?.lines?.join('\n')||'').split('\n').filter(Boolean).slice(0,2).join(' · ');
+        const when=new Intl.DateTimeFormat(state.uiLanguage==='en'?'en-GB':'de-DE',{
+          day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',
+        }).format(Number(entry.at)||Date.now());
+        return '<article class="revision"><div class="grow"><b>'+esc(when)+'</b><p>'+esc(preview||'Leere Fassung')+'</p></div><button class="outline" data-compare-version="'+index+'">Vergleichen</button></article>';
+      }).join('')+'</div>'
+    :'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>';
+  queryAll('#editorDockBody [data-compare-version]').forEach((button)=>{
+    button.onclick=()=>openRevisionComparison(button.dataset.compareVersion);
+  });
+}
+function renderDock(){
+  queryAll('#dockTabs [data-dock]').forEach((button)=>{
+    const active=button.dataset.dock===dockTab;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',String(active));
+  });
+  const body=$('#editorDockBody');
+  if(dockTab==='navigator'){
+    renderBarNavigatorDock(body);
+  }else if(dockTab==='bar'){
+    renderBarInspectorDock(body);
+  }else if(dockTab==='saved'){
+    body.innerHTML='<div class="saved-chips">'+state.saved.map((row)=>'<div class="saved-chip"><button data-insert="'+esc(row.word)+'" title="Am markierten Wort einsetzen">'+esc(row.word)+' ＋</button><button data-save="'+esc(row.word)+'" aria-label="'+esc(row.word)+' entmerken">×</button></div>').join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p></div>';
+  }else if(dockTab==='history'){
+    renderHistoryDock(body);
+  }else{
+    body.innerHTML='<div class="studio-note"><b>RhymeLab Studio</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details, Versionen und Werkzeuge bleiben in Reichweite.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Bar-Nummer halten und ziehen · Anker bei Bedarf fixieren · Wortdetails anklicken · Merkliste und Versionen direkt öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + B</kbd> Bars · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln.</p><p style="margin-top:9px"><b>Lokal zuerst</b> · Texte, Präferenzen, Backups und Writer-Daten bleiben lokal in deinem Workspace.</p></div>';
+  }
+}
 function setFontSize(n){state.fontSize=clamp(n,16,28);document.documentElement.style.setProperty('--editor',state.fontSize+'px');$('#fontSizeLive').textContent=state.fontSize;resizeArea($('#lyricsEditor'));persist()}
 function applyEditorFont(){const value=({sans:'var(--font)',serif:'Georgia, serif',mono:'ui-monospace, monospace'})[state.editorFont||'sans'];document.documentElement.style.setProperty('--lyric-font',value);resizeArea($('#lyricsEditor'))}
 function humanizeDetail(value){
@@ -4257,6 +4590,21 @@ function renderDetail(){
 function closeDetail(){detailClient.cancel();detailRequest++;selectedResult='';selectedResultId='';selectedDetail=null;selectedDetailStatus='idle';selectedDetailError='';saveStudioSearchState({selectedResultId:''});$('#detailDock').classList.add('hidden');$('#resultsScroll').focus()}
 function moveResult(delta){const rows=sortedData();if(!rows.length)return;let index=rows.findIndex(r=>selectedResultId?r.id===selectedResultId:r.word===selectedResult);index=index<0?(delta>0?0:rows.length-1):Math.max(0,Math.min(rows.length-1,index+delta));if(index>=pageSize){pageSize=index+12;renderResults()}openDetail(rows[index].word,rows[index].id);const row=queryAll('#results .result').find(r=>r.dataset.resultId===selectedResultId);row?.scrollIntoView?.({block:'nearest',behavior:'smooth'})}
 function setAssistWidth(value){const max=clamp(window.innerWidth-660,350,640);const width=clamp(value,350,max);document.documentElement.style.setProperty('--assist-width',width+'px');$('#splitter').setAttribute('aria-valuenow',width);$('#splitter').setAttribute('aria-valuemax',max);state.assistWidth=width;resizeArea($('#lyricsEditor'));}
+function bindEditorDockWheelRouting(){
+  const body=$('#editorDockBody');
+  if(!body||body.dataset.wheelRouting==='1')return;
+  body.dataset.wheelRouting='1';
+  body.addEventListener('wheel',(event)=>{
+    if(!dockTab||event.ctrlKey)return;
+    const max=Math.max(0,body.scrollHeight-body.clientHeight);
+    if(max<=0)return;
+    const scale=event.deltaMode===1?22:event.deltaMode===2?body.clientHeight:1;
+    const delta=event.deltaY*scale;
+    const before=body.scrollTop;
+    event.preventDefault();
+    body.scrollTop=Math.max(0,Math.min(max,before+delta));
+  },{passive:false});
+}
 function bindTransientOutsideDismissals(){
   if(typeof document.addEventListener!=='function')return;
   document.addEventListener('pointerdown',(event)=>{
@@ -4267,6 +4615,10 @@ function bindTransientOutsideDismissals(){
     if(dialog?.open&&target===dialog){
       closeDialog();
       return;
+    }
+
+    if(sectionQuickMenu&&!target.closest('.section-quick-menu')){
+      closeSectionQuickMenu();
     }
 
     // Custom-select popovers are portalled to <body>; treat them as part of
@@ -4316,7 +4668,7 @@ function bindTransientOutsideDismissals(){
     }
   },{capture:true});
 }
-function bindV2(){bindTransientOutsideDismissals();for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategories','directHideUsed','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();bindMobileViewport();installFilterSelectControls();updateSearchPageChrome();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');
+function bindV2(){bindTransientOutsideDismissals();bindEditorDockWheelRouting();for(const id of ['directLanguageRoute','directScope','directRhymeType','directSyllables','directSort','directVariants','directCorpus','directEntityCategories','directHideUsed','detailDock','editorDock','splitter','pinAnchor','followBtn','resetInline'])if(!$('#'+id))throw Error('Studio 02 Control fehlt: '+id);document.documentElement.dataset.motion=state.motion;pageSize=density==='compact'?24:12;applyEditorFont();bindThemeQuickMenu();bindMobileViewport();installFilterSelectControls();updateSearchPageChrome();$('#fontDown').onclick=()=>setFontSize(state.fontSize-1);$('#fontUp').onclick=()=>setFontSize(state.fontSize+1);$('#followBtn').onclick=toggleFollow;$('#pinAnchor').onclick=toggleFollow;$('#closeDetail').onclick=closeDetail;$('#closeEditorDock').onclick=closeEditorDock;$('#resetInline').onclick=resetInline;$('#infoBtn').onclick=()=>openEditorDock('notes');
 $('#directLanguageRoute').onchange=e=>applyLanguageRoute(e.target.value);
 $('#directScope').onchange=e=>{scope=e.target.value;relation='all';pageSize=density==='compact'?24:12;saveStudioSearchState();syncScopeButtons();syncFilterDeckControls();void refreshWriterResults()};
 $('#directRhymeType').onchange=e=>{rhymeType=e.target.value;relation='all';pageSize=density==='compact'?24:12;saveStudioSearchState();syncFilterDeckControls();void refreshWriterResults()};
@@ -4326,7 +4678,7 @@ $('#directVariants').onchange=e=>{variantMode=e.target.value;saveStudioSearchSta
 $('#directCorpus').onchange=e=>applyCorpusMode(e.target.value);
 $('#directEntityCategories').onchange=e=>setEntityCategories(Array.from(e.target.options||[]).filter((option)=>option.selected).map((option)=>option.value));
 $('#directHideUsed').onclick=()=>{hideUsed=!hideUsed;state.hideUsed=hideUsed;persist();syncFilterDeckControls();renderResults()};
-queryAll('[data-density]').forEach(b=>b.onclick=()=>setDensity(b.dataset.density));queryAll('[data-dock]').forEach(b=>b.onclick=()=>{if(dockTab===b.dataset.dock)closeEditorDock();else{if(b.dataset.dock==='history')revision();openEditorDock(b.dataset.dock)}});$('#resultsScroll').addEventListener('keydown',e=>{if(e.target.closest('input')||e.target.closest('select')||e.target.closest('.view-choices'))return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();moveResult(e.key==='ArrowDown'?1:-1)}else if(e.key==='Enter'&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();insertWord(selectedResult)}else if(e.key===' '&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();toggleSave(selectedResult)}else if(e.key==='Escape')closeDetail()});
+queryAll('[data-density]').forEach(b=>b.onclick=()=>setDensity(b.dataset.density));queryAll('[data-dock]').forEach(b=>b.onclick=()=>{if(dockTab===b.dataset.dock)closeEditorDock();else openEditorDock(b.dataset.dock)});$('#resultsScroll').addEventListener('keydown',e=>{if(e.target.closest('input')||e.target.closest('select')||e.target.closest('.view-choices'))return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();moveResult(e.key==='ArrowDown'?1:-1)}else if(e.key==='Enter'&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();insertWord(selectedResult)}else if(e.key===' '&&selectedResult&&!e.target.closest('[data-save]')&&!e.target.closest('[data-insert]')){e.preventDefault();toggleSave(selectedResult)}else if(e.key==='Escape')closeDetail()});
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.clearFilter){
   const f=b.dataset.clearFilter;
   if(f==='scope'){scope='all';syncScopeButtons()}
@@ -4345,8 +4697,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
   if(f==='historical'||f==='generated'||f==='generatedOnly'||f==='corpus'){includeHistorical=false;generated=false;generatedOnly=false}
   syncFilterDeckControls();
   if(['scope','rhymeType','syllables','lang','basis','languageRoute','variants','entityCategory','historical','generated','generatedOnly','corpus'].includes(f)||f.startsWith('entityCategory:'))void refreshWriterResults();else renderResults();
-}if(b.dataset.restoreVersion){if(restoreStudioRevision(song().revisions[+b.dataset.restoreVersion])){renderDock();notify('Fassung wiederhergestellt · aktuelle Fassung gesichert')}}});
-document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key.toLowerCase()==='b'){e.preventDefault();openEditorDock('navigator')}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(page==='settings'){e.preventDefault();leaveSettings()}else if(page==='search'&&searchPageFiltersOpen){e.preventDefault();setSearchPageFiltersOpen(false)}else if(page==='studio'&&studioSearchFiltersOpen){e.preventDefault();setStudioSearchFiltersOpen(false)}else if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
+}});
+document.addEventListener('keydown',e=>{if($('#dialog').open)return;if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();if(page==='library'||page==='saved')navigate('studio');if(window.innerWidth<=800){document.body.classList.add('mobile-results');setMobileActive('results')}$('#searchInput').focus();$('#searchInput').select()}if(e.altKey&&e.key.toLowerCase()==='e'){e.preventDefault();navigate('studio');setMode('write');focusLine(activeLine)}if(e.altKey&&e.key.toLowerCase()==='b'){e.preventDefault();openEditorDock('navigator')}if(e.altKey&&e.key==='3'){e.preventDefault();navigate('studio');setMode('perform')}if(e.altKey&&e.key.toLowerCase()==='l'){e.preventDefault();setDensity(nextDensity(density))}if(e.key==='Escape'){if(sectionQuickMenu){e.preventDefault();closeSectionQuickMenu()}else if(page==='settings'){e.preventDefault();leaveSettings()}else if(page==='search'&&searchPageFiltersOpen){e.preventDefault();setSearchPageFiltersOpen(false)}else if(page==='studio'&&studioSearchFiltersOpen){e.preventDefault();setStudioSearchFiltersOpen(false)}else if(!$('#detailDock').classList.contains('hidden'))closeDetail();else if(dockTab)closeEditorDock();else if(document.body.classList.contains('focus'))toggleFocus()}});
 const handle=$('#splitter');let drag=null;handle.addEventListener('pointerdown',e=>{if(window.innerWidth<=800)return;drag={x:e.clientX,width:+handle.getAttribute('aria-valuenow')};handle.setPointerCapture?.(e.pointerId);document.body.classList.add('resizing');e.preventDefault()});handle.addEventListener('pointermove',e=>{if(drag)setAssistWidth(drag.width+drag.x-e.clientX)});for(const event of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(event,()=>{if(!drag)return;drag=null;document.body.classList.remove('resizing');persist()});handle.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setAssistWidth(+handle.getAttribute('aria-valuenow')+(e.key==='ArrowLeft'?20:-20));persist()}if(e.key==='Home'){e.preventDefault();setAssistWidth(470);persist()}});if(window.innerWidth>800)setAssistWidth(state.assistWidth||470);window.addEventListener('resize',()=>{if(window.innerWidth>800)setAssistWidth(state.assistWidth||470)});document.body.dataset.studioVersion='2';}
 
 async function startStudio(){
@@ -4367,10 +4719,9 @@ async function startStudio(){
   const initialText=song().lines[activeLine]||'';
   const lastWord=initialText.match(/[\p{L}\p{N}'’-]+$/u);
   selection={line:activeLine,start:lastWord?initialText.length-lastWord[0].length:initialText.length,end:initialText.length};
-  if(sharedSearchState.anchor){
-    query=sharedSearchState.anchor;
-    followSelection=!lastWord||lastWord[0]===sharedSearchState.anchor;
-  }else if(lastWord)query=lastWord[0];
+  followSelection=true;
+  if(lastWord)query=lastWord[0];
+  else if(sharedSearchState.anchor)query=sharedSearchState.anchor;
   syncFollowControls();
   renderEditor();
   renderResults();

@@ -11,7 +11,7 @@ RhymeLab `v0.11.0` uses Studio V2 plus the Serving-v1 shipping distributions:
 ~~~text
 product shell          Studio V2 (default / route)
 runtime editions       LITE | STANDARD | FULL
-default database       data/local/distribution/rhymelab-serving-v1-standard.sqlite
+preferred database     STANDARD → FULL → LITE (first locally available edition)
 search channels        edition-dependent DE/EN Words + Phrase/Mosaic + Entities
 generated policy       FULL capability only
 legacy Search UI       /search and /legacy
@@ -30,9 +30,13 @@ infrastructure may ship, but it is not part of RhymeLab product navigation.
 Requirements:
 
 - Node.js 22.5+
-- STANDARD distribution at
-  `data/local/distribution/rhymelab-serving-v1-standard.sqlite`
-- optional LITE/FULL distribution files for edition switching
+- at least one valid local shipping database:
+  - `data/local/distribution/rhymelab-serving-v1-lite.sqlite`
+  - `data/local/distribution/rhymelab-serving-v1-standard.sqlite`
+  - `data/local/distribution/rhymelab-serving-v1-full.sqlite`
+
+STANDARD is preferred when present; FULL and then LITE are supported startup
+fallbacks. A LITE-only installation is valid.
 
 Run:
 
@@ -75,7 +79,7 @@ gitignored.
 RHYMELAB_DISTRIBUTION_LITE_DB      LITE path
 RHYMELAB_DISTRIBUTION_STANDARD_DB  STANDARD path
 RHYMELAB_DISTRIBUTION_FULL_DB      FULL path
-RHYMELAB_DISTRIBUTION_SWITCHER     set to 0 for fixed STANDARD-only runtime
+RHYMELAB_DISTRIBUTION_SWITCHER     set to 0 to disable edition switching
 RHYMELAB_SEARCH_DEFAULT            set to 1 to use Search at /
 RHYMELAB_HOST                      bind host, default 127.0.0.1
 RHYMELAB_PORT                      port, default 3030
@@ -86,8 +90,10 @@ Master and archived split databases cannot be selected as app runtimes.
 
 ### LITE / STANDARD / FULL selection and diagnostics
 
-Normal startup exposes the installed shipping editions in Studio Settings. The
-selection is request-scoped, so concurrent requests cannot cross database
+Normal startup exposes the installed shipping editions in Studio Settings. Missing
+edition files stay visible but disabled. The active database is shown in Studio and
+Search; a stored choice that is no longer installed is replaced with an available
+edition. Selection is request-scoped, so concurrent requests cannot cross database
 boundaries.
 
 For controlled cross-edition diagnostics:

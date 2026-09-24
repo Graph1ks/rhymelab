@@ -5,6 +5,11 @@ export const INTERNAL_DISTRIBUTION_DB_IDS=Object.freeze([
   'lite','standard','full',
 ]);
 export const DEFAULT_DISTRIBUTION_DB_ID='standard';
+export const DISTRIBUTION_DB_STARTUP_PREFERENCE=Object.freeze(['standard','full','lite']);
+
+export function preferredAvailableDistributionDbId(entries){
+  return DISTRIBUTION_DB_STARTUP_PREFERENCE.find((id)=>entries?.get?.(id)?.runtime)||null;
+}
 
 export function internalDistributionSwitcherEnabled({
   argv=process.argv.slice(2),

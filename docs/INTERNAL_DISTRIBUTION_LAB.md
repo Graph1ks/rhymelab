@@ -27,7 +27,9 @@ Standard  data/local/distribution/rhymelab-serving-v1-standard.sqlite
 Full      data/local/distribution/rhymelab-serving-v1-full.sqlite
 ```
 
-STANDARD is the default application database.
+STANDARD is the preferred application database. If it is absent, startup falls
+back to FULL and then LITE. At least one shipping edition is required; LITE-only
+installations are supported.
 
 Per-edition development/package overrides:
 
@@ -63,7 +65,8 @@ standard
 full
 ```
 
-Old `master` values normalize to `standard`.
+Old `master` values are not valid runtime choices. Any stored edition that is not
+currently available is replaced with the server-selected available edition.
 
 The request selector is:
 
@@ -76,16 +79,15 @@ source-backed query-pronunciation requests.
 
 No request may select `master`.
 
-## Standard execution path
+## Canonical execution path
 
-STANDARD is the canonical default runtime and continues to use the normal
-persistent Serving-v1 parallel Writer execution path.
+The startup-selected shipping edition uses the normal persistent Serving-v1
+parallel Writer execution path. STANDARD is preferred, but FULL or LITE becomes
+canonical when STANDARD is not installed.
 
-LITE and FULL may be routed through the direct selected-edition runtime path when
-explicitly selected.
-
-This avoids changing normal STANDARD performance merely because the user-facing
-database selector is enabled.
+Other explicitly selected available editions use the direct request-scoped
+selected-edition path. This keeps the canonical installation path fast without
+requiring a particular edition to exist.
 
 ## Settings UI
 
@@ -97,7 +99,9 @@ STANDARD
 FULL
 ```
 
-Unavailable local files remain visible but disabled.
+Unavailable local files remain visible but disabled/greyed. If only LITE is
+installed, LITE is the only selectable card and all Writer/search requests identify
+LITE as the active database.
 
 No Master/Developer card, 20-GB source label or hidden Master fallback may appear.
 
@@ -147,7 +151,8 @@ availability.
 
 ## Fixed-package mode
 
-A package that intentionally ships only STANDARD can disable edition switching:
+A package that intentionally exposes only its startup-selected local edition can
+disable edition switching:
 
 ```text
 RHYMELAB_DISTRIBUTION_SWITCHER=0
@@ -159,8 +164,8 @@ or:
 --no-distribution-switcher
 ```
 
-That mode remains STANDARD-only. It does not enable Master or archived split
-runtimes.
+That mode remains on the best available shipping edition chosen at startup. It does
+not enable Master or archived split runtimes.
 
 ## Regression coverage
 

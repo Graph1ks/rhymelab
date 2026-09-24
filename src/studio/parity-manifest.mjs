@@ -26,7 +26,7 @@ export const STUDIO_PARITY_MANIFEST=Object.freeze([
   item('search.presets','Search / Writer','Best / words / phrases / entities / rhyme presets','Pad','Direct scope + rhyme composition',['src/studio/index.html::id="directScope"','src/studio/index.html::id="directRhymeType"'],ADAPTED),
   item('search.autoscroll','Search / Writer','Opt-in auto-scroll with manual pause','Pad','Inspector',['src/studio/app.js::toggleAuto']),
   item('search.density','Search / Writer','List / compact / tile density','Search prototype','Result toolbar',['src/studio/app.js::setDensity']),
-  item('search.paging','Search / Writer','Stable loaded set with explicit More reveal','Search + Pad','Result footer',['src/studio/app.js::moreBtn'],ADAPTED),
+  item('search.paging','Search / Writer','Continuous result loading without manual paging controls','Search + Pad','Result scroller',['src/studio/app.js::queueInfiniteResultsFill','src/ui/app.js::setupInfiniteScroll'],ADAPTED),
   item('search.metadata','Search / Writer','Legacy metadata tags and badges','Search + Pad','Result rows',['src/studio/app.js::resultBadges']),
   item('search.detail','Search / Writer','Word / phrase / entity detail and provenance','Search','Detail dock',['src/studio/detail-adapter.mjs::buildStudioDetailModel']),
   item('search.ipa','Search / Writer','IPA and pronunciation variants','Search','Detail dock',['src/studio/app.js::detail-pronunciation']),

@@ -11,6 +11,7 @@ import {
   internalDistributionRuntimeSummary,
   internalDistributionSwitcherEnabled,
   normalizeInternalDistributionDbId,
+  preferredAvailableDistributionDbId,
   requestedInternalDistributionDbId,
 } from '../src/internal-distribution-switcher.mjs';
 
@@ -53,6 +54,20 @@ test('distribution runtime IDs are closed to LITE STANDARD FULL only',()=>{
     ),
     null,
   );
+});
+
+test('runtime starts with the best available shipping edition without requiring STANDARD',()=>{
+  const entries=new Map([
+    ['lite',{runtime:{id:'lite'}}],
+    ['standard',{runtime:null}],
+    ['full',{runtime:null}],
+  ]);
+  assert.equal(preferredAvailableDistributionDbId(entries),'lite');
+  entries.set('full',{runtime:{id:'full'}});
+  assert.equal(preferredAvailableDistributionDbId(entries),'full');
+  entries.set('standard',{runtime:{id:'standard'}});
+  assert.equal(preferredAvailableDistributionDbId(entries),'standard');
+  assert.equal(preferredAvailableDistributionDbId(new Map()),null);
 });
 
 test('distribution DB paths have explicit env overrides and stable local defaults',()=>{
