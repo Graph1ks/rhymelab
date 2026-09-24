@@ -104,6 +104,7 @@ function RuntimeSelector({
 }
 
 function ResultToolbar({
+  variant,
   density,
   setDensity,
   hideUsed,
@@ -116,6 +117,7 @@ function ResultToolbar({
   hiddenUsed,
   timing,
 }: {
+  variant: 'page' | 'assistant';
   density: ResultDensity;
   setDensity: (density: ResultDensity) => void;
   hideUsed: boolean;
@@ -143,17 +145,19 @@ function ResultToolbar({
       </div>
 
       <div className={styles.resultTools}>
-        <button
-          type="button"
-          className={styles.toggleButton}
-          data-active={hideUsed ? 'true' : 'false'}
-          aria-pressed={hideUsed}
-          onClick={() => setHideUsed(!hideUsed)}
-        >
-          {hideUsed
-            ? (language === 'de' ? '✓ Verwendete aus' : '✓ Hide used')
-            : (language === 'de' ? '○ Verwendete zeigen' : '○ Show used')}
-        </button>
+        {variant === 'page' ? (
+          <button
+            type="button"
+            className={styles.toggleButton}
+            data-active={hideUsed ? 'true' : 'false'}
+            aria-pressed={hideUsed}
+            onClick={() => setHideUsed(!hideUsed)}
+          >
+            {hideUsed
+              ? (language === 'de' ? '✓ Verwendete aus' : '✓ Hide used')
+              : (language === 'de' ? '○ Verwendete zeigen' : '○ Show used')}
+          </button>
+        ) : null}
         <button
           type="button"
           className={styles.toggleButton}
@@ -172,32 +176,32 @@ function ResultToolbar({
           ☆ {language === 'de' ? 'Merkliste' : 'Saved'}{savedCount ? ` · ${savedCount}` : ''}
         </button>
 
-        <div
-          className={styles.densityButtons}
-          role="group"
-          data-rhymelab-control="search.layout"
-          aria-label={language === 'de' ? 'Ergebnisdarstellung' : 'Result layout'}
-        >
-          {(['list', 'compact', 'tiles'] as ResultDensity[]).map((value) => (
-            <button
-              key={value}
-              type="button"
-              data-active={density === value ? 'true' : 'false'}
-              aria-pressed={density === value}
-              onClick={() => setDensity(value)}
-              title={value}
-            >
-              {value === 'list' ? '☷' : value === 'compact' ? '≡' : '▦'}
-              <span>
-                {value === 'list'
-                  ? (language === 'de' ? 'Liste' : 'List')
-                  : value === 'compact'
-                    ? (language === 'de' ? 'Kompakt' : 'Compact')
-                    : (language === 'de' ? 'Feld' : 'Tiles')}
-              </span>
-            </button>
-          ))}
-        </div>
+        {variant === 'page' ? (
+          <div
+            className={styles.densityButtons}
+            role="group"
+            data-rhymelab-control="search.layout"
+            aria-label={language === 'de' ? 'Ergebnisdarstellung' : 'Result layout'}
+          >
+            {(['list', 'compact'] as ResultDensity[]).map((value) => (
+              <button
+                key={value}
+                type="button"
+                data-active={density === value ? 'true' : 'false'}
+                aria-pressed={density === value}
+                onClick={() => setDensity(value)}
+                title={value}
+              >
+                {value === 'list' ? '☷' : '≡'}
+                <span>
+                  {value === 'list'
+                    ? (language === 'de' ? 'Liste' : 'List')
+                    : (language === 'de' ? 'Kompakt' : 'Compact')}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -440,7 +444,8 @@ export function SearchExperience({
       </div>
 
       <ResultToolbar
-        density={preferences.density}
+        variant={variant}
+        density={variant === 'assistant' ? 'compact' : preferences.density}
         setDensity={preferences.setDensity}
         hideUsed={preferences.hideUsed}
         setHideUsed={preferences.setHideUsed}
@@ -485,13 +490,16 @@ export function SearchExperience({
           ) : (
             <ResultsList
               rows={processed.rows}
-              density={preferences.density}
+              density={variant === 'assistant' ? 'compact' : preferences.density}
               selectedId={state.selectedResultId}
               onSelect={selectRow}
               onToggleSaved={toggleSaved}
               isSaved={preferences.isSaved}
               visibleCount={visibleCount}
               setVisibleCount={setVisibleCount}
+              onScrollActivity={variant === 'assistant' && state.selectedResultId
+                ? () => setSelectedResultId('')
+                : undefined}
               onInsert={editor?.selection?.proof ? insertRow : undefined}
             />
           )}
