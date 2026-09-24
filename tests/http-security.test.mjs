@@ -5,6 +5,8 @@ import {
   RHYMELAB_CSP,
   assertSafeServerBinding,
   isAllowedLocalMutationRequest,
+  isAllowedRequestHost,
+  isCrossSiteBrowserRequest,
   publicHttpError,
   readJsonRequestBody,
   requestUrlFromTrustedBase,
@@ -48,6 +50,31 @@ test('remote server binding requires an explicit owner opt-in',()=>{
     assertSafeServerBinding({host:'0.0.0.0',env:{RHYMELAB_ALLOW_REMOTE:'1'}}),
     {remote:true},
   );
+});
+
+test('request Host validation rejects DNS-rebinding hostnames',()=>{
+  const request=(host)=>({headers:{host}});
+  assert.equal(isAllowedRequestHost(request('127.0.0.1:3030')),true);
+  assert.equal(isAllowedRequestHost(request('localhost:3030')),true);
+  assert.equal(isAllowedRequestHost(request('[::1]:3030')),true);
+  assert.equal(isAllowedRequestHost(request('evil.example:3030')),false);
+  assert.equal(
+    isAllowedRequestHost(request('192.168.1.20:3030'),{remote:true}),
+    true,
+  );
+  assert.equal(
+    isAllowedRequestHost(request('rhymelab.lan:3030'),{
+      remote:true,
+      allowedRemoteHosts:['rhymelab.lan'],
+    }),
+    true,
+  );
+});
+
+test('cross-site browser requests are identifiable before API routing',()=>{
+  assert.equal(isCrossSiteBrowserRequest({headers:{'sec-fetch-site':'cross-site'}}),true);
+  assert.equal(isCrossSiteBrowserRequest({headers:{'sec-fetch-site':'same-origin'}}),false);
+  assert.equal(isCrossSiteBrowserRequest({headers:{}}),false);
 });
 
 test('local mutation requests require exact localhost origin or loopback CLI peer',()=>{
