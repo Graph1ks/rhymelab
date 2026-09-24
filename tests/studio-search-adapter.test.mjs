@@ -32,6 +32,16 @@ test('Studio preserves explicit Writer scope filters instead of collapsing them 
   assert.equal(buildWriterParams({query:'abends',scope:'entities'}).get('scope'),'entities');
 });
 
+test('Studio reuses a source-backed final token from a mixed multi-token resolver chain',()=>{
+  assert.equal(resolvedRightEdgeComponent({
+    method:'client_token_chain',
+    tokens:[
+      {surface:'Blabla',method:'client_rules',sourceBacked:false},
+      {surface:'Abends',method:'client_source_reference',sourceBacked:true},
+    ],
+  }),'Abends');
+});
+
 test('Studio extracts a nested right-edge compound from a multi-token resolver chain',()=>{
   assert.equal(resolvedRightEdgeComponent({
     method:'client_token_chain',
