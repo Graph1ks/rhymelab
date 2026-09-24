@@ -70,14 +70,14 @@ export function HomePage() {
     ? {
         kicker: 'RHYME ENGINE · WRITING STUDIO',
         title: 'Schreib den Song. Wir kümmern uns um den Klang dahinter.',
-        copy: 'RhymeLab verbindet einen lokalen Songwriting-Workspace mit einer phonologischen Reimsuche, Analyse und Performance-Werkzeugen. Kein magischer KI-Nebel. Nur sehr viele Laute, Indizes und Entscheidungen, die du nicht von Hand treffen willst.',
+        copy: 'Rhyme Bureau verbindet einen lokalen Songwriting-Workspace mit phonologischer Reimsuche, Analyse und Performance-Werkzeugen. Kein magischer KI-Nebel. Nur sehr viele Laute, Indizes und Entscheidungen, die du nicht von Hand treffen willst.',
         primary: 'Studio öffnen',
         secondary: 'Reimsuche öffnen',
       }
     : {
         kicker: 'RHYME ENGINE · WRITING STUDIO',
         title: 'Write the song. We handle the sound underneath.',
-        copy: 'RhymeLab combines a local songwriting workspace with phonological rhyme search, analysis and performance tools. No mystical AI fog. Just a lot of sounds, indexes and decisions you should not have to make by hand.',
+        copy: 'Rhyme Bureau combines a local songwriting workspace with phonological rhyme search, analysis and performance tools. No mystical AI fog. Just a lot of sounds, indexes and decisions you should not have to make by hand.',
         primary: 'Open Studio',
         secondary: 'Open rhyme search',
       };
@@ -97,7 +97,15 @@ export function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.28 }}
           >
-            {hero.kicker}
+            RHYME BUREAU · {hero.kicker}
+          </motion.p>
+          <motion.p
+            className={styles.brandLine}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.02 }}
+          >
+            Phonetic License to Slay.
           </motion.p>
           <motion.h1
             initial={reduceMotion ? false : { opacity: 0, y: 12 }}
@@ -148,7 +156,7 @@ export function HomePage() {
             transition={reduceMotion ? undefined : { duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
           >
             <small>RHYME DOMAIN</small>
-            <b>r.</b>
+            <b>rb.</b>
             <span>phonology → writer</span>
           </motion.div>
           <div className={styles.wave}>
@@ -201,8 +209,8 @@ export function HomePage() {
           <p className={styles.kicker}>{language === 'de' ? 'KEIN ZAUBERTRICK' : 'NO MAGIC TRICK'}</p>
           <h2>
             {language === 'de'
-              ? 'RhymeLab soll dir keine Zeile abnehmen. Es soll verhindern, dass die Suche nach einer Zeile deinen Abend frisst.'
-              : 'RhymeLab is not here to write the line for you. It is here to stop the search for that line from eating your evening.'}
+              ? 'Rhyme Bureau soll dir keine Zeile abnehmen. Es soll verhindern, dass die Suche nach einer Zeile deinen Abend frisst.'
+              : 'Rhyme Bureau is not here to write the line for you. It is here to stop the search for that line from eating your evening.'}
           </h2>
         </div>
         <div className={styles.pitchNotes}>
@@ -221,7 +229,7 @@ export function HomePage() {
 
       <section className={styles.closing}>
         <div>
-          <p>RHYME LABORATORY · NO LAB COAT REQUIRED</p>
+          <p>RHYME BUREAU · PHONETIC LICENSE TO SLAY.</p>
           <h2>{language === 'de' ? 'Genug Intro. Der Text schreibt sich leider immer noch nicht selbst.' : 'Enough intro. The text still refuses to write itself.'}</h2>
         </div>
         <button type="button" onClick={() => navigate('studio')}>
