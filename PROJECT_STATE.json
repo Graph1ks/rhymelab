@@ -4003,18 +4003,42 @@
     "lite_only_runtime_supported": true
   },
   "active_continuation": {
-    "id": "STUDIO_V2_REAL_DEVICE_ACCEPTANCE",
-    "status": "WORKFLOW_UX_V3_IMPLEMENTED_REAL_DEVICE_GATES_PENDING",
-    "handover": "docs/STUDIO_V2_HANDOVER.md",
-    "device_acceptance": "docs/STUDIO_V2_DEVICE_ACCEPTANCE.md",
-    "next_thread_action": "run_or_review_real_device_acceptance_and_fix_only_observed_interaction_regressions",
+    "id": "REACT_STUDIO_REPLATFORM",
+    "priority": "P0",
+    "status": "R0_SCAFFOLD_AND_PARITY_INVENTORY_STARTED",
+    "branch": "refactor/react-studio-replatform",
+    "handover": "docs/REACT_STUDIO_REPLATFORM.md",
+    "parity_gate": "docs/REACT_STUDIO_PARITY_GATE.md",
+    "baseline_commit": "fbda43a9e4dd915f3bd5c1fa53045cbe2055e919",
+    "product_feature_freeze": true,
+    "cutover_rule": "ALL_MANDATORY_PARITY_ROWS_VERIFIED",
+    "mandatory_parity_rows": 93,
+    "legacy_parity_rows": 82,
+    "workflow_v3_rows": 11,
     "preserve": [
+      "all current Studio/Search/RhymePad user-visible functionality",
       "accepted Writer/ranking semantics",
+      "IndexedDB DocumentStore authority",
+      "stable Bar identity and selection-proof semantics",
       "LITE_STANDARD_FULL runtime boundary",
       "Master build-only boundary",
       "Markov frozen/unlinked",
-      "Search/RhymePad fallback routes"
-    ]
+      "old Studio/Search/RhymePad rollback surfaces until post-cutover owner approval"
+    ],
+    "previous_continuation": {
+      "id": "STUDIO_V2_REAL_DEVICE_ACCEPTANCE",
+      "status": "WORKFLOW_UX_V3_IMPLEMENTED_REAL_DEVICE_GATES_PENDING",
+      "handover": "docs/STUDIO_V2_HANDOVER.md",
+      "device_acceptance": "docs/STUDIO_V2_DEVICE_ACCEPTANCE.md",
+      "next_thread_action": "run_or_review_real_device_acceptance_and_fix_only_observed_interaction_regressions",
+      "preserve": [
+        "accepted Writer/ranking semantics",
+        "LITE_STANDARD_FULL runtime boundary",
+        "Master build-only boundary",
+        "Markov frozen/unlinked",
+        "Search/RhymePad fallback routes"
+      ]
+    }
   },
   "studio_v2": {
     "status": "LIVE_DEFAULT_PENDING_REAL_DEVICE_ACCEPTANCE",
@@ -4059,5 +4083,24 @@
       "database_cards": "only_available_editions_enabled_missing_editions_disabled"
     },
     "real_device_acceptance": "pending_7_gates"
+  },
+  "react_studio_replatform": {
+    "status": "ACTIVE",
+    "priority": "P0",
+    "stack": [
+      "React 19.3",
+      "TypeScript 5.9",
+      "Vite 8.3",
+      "Base UI 1.8",
+      "Motion 13.4",
+      "TanStack Query 5.103",
+      "Zustand 5.0",
+      "TanStack Virtual 3.14"
+    ],
+    "source_root": "apps/studio-react",
+    "parity_inventory": "apps/studio-react/parity-coverage.json",
+    "old_studio_deleted": false,
+    "root_cutover_started": false,
+    "feature_freeze": true
   }
 }
