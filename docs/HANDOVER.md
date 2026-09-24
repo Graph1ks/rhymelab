@@ -21,32 +21,41 @@ do not delete old Studio, and do not reinterpret the port as permission to simpl
 editor, Search, Library, Analysis, Perform, mobile, persistence, recovery or runtime
 database behavior.
 
-R0 through R5 are complete. R1 is documented in
+R0 through R6 are complete. R1 is documented in
 `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`; R2 in
 `docs/REACT_STUDIO_R2_SHELL.md`; R3 in
 `docs/REACT_STUDIO_R3_SEARCH_WRITER.md`; R4 in
-`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`; and R5 in
-`docs/REACT_STUDIO_R5_EDITOR.md`.
+`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`; R5 in
+`docs/REACT_STUDIO_R5_EDITOR.md`; and R6 in
+`docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md`.
 
 R4 remains the persistence authority boundary: the existing IndexedDB DocumentStore
-is authoritative, React keeps only a working copy, and editor mutations serialize
-through the existing R1 document migration/shadow path.
+is authoritative, React keeps only a working copy, and editor/Perform mutations
+serialize through the existing R1 document migration/shadow path.
 
-R5 now owns the React unified editor and reuses the existing R1 editor semantics:
+R5 owns the React unified editor and reuses the existing R1 editor semantics:
 stable Bar IDs, tracked/free-line geometry, bracket metadata exclusion, Selection
 Proof, native replace/split/merge/multiline paste, IME transactions, typing-burst
 undo/redo, revision boundaries, safe clear, Bar actions/Navigator, hold-drag,
 section long-press, selection-follow/fixed anchor and the mobile Editor/Rhymes swap.
 
-The tested functional R5 checkpoint is
-`85dbd349ac65`: 60/60 tests, strict TypeScript and
-Vite build pass; React Replatform #132, Full CI #1315 and Studio V2 Gate #450 pass.
-The parity inventory is 66 ported / 5 in_progress / 22 pending / 0 verified.
+R6 owns the React Analysis + Perform surfaces while reusing the existing R1 domain
+semantics. Canonical end/all-rhyme analysis, IPA/stress and relation data come from
+the existing Writer analysis adapter. Performance cues, grid/feel/tempo, stable-Bar
+cue anchors, text-revision review invalidation, Auto-Map and Web Audio step timing
+come from the existing performance session. Perform mutations enter the same R5
+undo/revision path before R4 persistence.
 
-The next implementation action is **R6: Analysis + Perform**. Reuse the existing R1
-analysis, performance, Web Audio and cue-state contracts. Do not create parallel
-analysis/performance semantics, do not alter the shipping Studio V2 golden master,
-and do not begin root cutover.
+The tested functional R6 checkpoint is
+`48600af0221c5d9429813e697b381af3a794383e`: 71/71 tests, strict TypeScript and
+Vite build pass; React Replatform #152, Full CI #1335 and Studio V2 Gate #470 pass.
+The parity inventory is 82 ported / 5 in_progress / 6 pending / 0 verified.
+
+The next implementation action is **R7: automated + real-device parity**. Convert
+rows to `verified` only with the evidence required by the parity gate. Preserve the
+seven physical browser/touch/IME/Web Audio gates, finish the remaining system and
+single-drawer-scroll rows, and do not begin root cutover until all 93 mandatory rows
+are verified.
 
 
 ---
