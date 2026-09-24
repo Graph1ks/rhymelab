@@ -149,7 +149,6 @@ export function ResultsList({
   isSaved,
   visibleCount,
   setVisibleCount,
-  autoScroll,
   onInsert,
 }: {
   rows: WriterResultRow[];
@@ -160,13 +159,10 @@ export function ResultsList({
   isSaved: (word: string) => boolean;
   visibleCount: number;
   setVisibleCount: (updater: number | ((current: number) => number)) => void;
-  autoScroll: boolean;
   onInsert?: (row: WriterResultRow) => void;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const pauseUntilRef = useRef(0);
-  const lastFrameRef = useRef(0);
 
   const visibleRows = useMemo(
     () => rows.slice(0, Math.min(rows.length, visibleCount)),
@@ -185,43 +181,6 @@ export function ResultsList({
   const grow = (amount = density === 'compact' ? 24 : 12) => {
     setVisibleCount((current) => Math.min(rows.length, current + amount));
   };
-
-  const pauseAutoScroll = () => {
-    pauseUntilRef.current = performance.now() + 5000;
-  };
-
-  useEffect(() => {
-    if (!autoScroll) return;
-    const element = scrollerRef.current;
-    if (!element) return;
-
-    pauseUntilRef.current = performance.now() + 1000;
-    lastFrameRef.current = 0;
-    let frame = 0;
-
-    const tick = (time: number) => {
-      if (
-        time > pauseUntilRef.current
-        && !document.hidden
-        && element.clientHeight > 0
-      ) {
-        element.scrollTop += (time - (lastFrameRef.current || time)) * 0.018;
-        if (element.scrollTop + element.clientHeight >= element.scrollHeight - 2) {
-          if (visibleCount < rows.length) {
-            grow(6);
-          } else {
-            element.scrollTop = 0;
-            pauseUntilRef.current = time + 1200;
-          }
-        }
-      }
-      lastFrameRef.current = time;
-      frame = requestAnimationFrame(tick);
-    };
-
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [autoScroll, density, rows.length, visibleCount]);
 
   useEffect(() => {
     const element = scrollerRef.current;
@@ -284,10 +243,6 @@ export function ResultsList({
         ? 'Reimtreffer; Pfeiltasten wählen, Enter setzt ein, Leertaste merkt'
         : 'Rhyme results; arrows select, Enter inserts, Space saves'}
       onScroll={handleScroll}
-      onWheel={pauseAutoScroll}
-      onTouchStart={pauseAutoScroll}
-      onPointerDown={pauseAutoScroll}
-      onFocus={pauseAutoScroll}
       onKeyDown={handleKeyDown}
     >
       {density === 'tiles' ? (
