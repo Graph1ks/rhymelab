@@ -12,6 +12,7 @@
     "start": "node src/server.mjs",
     "check": "node scripts/check-source.mjs",
     "test": "node --test tests/*.test.mjs",
+    "security:audit": "node --no-warnings scripts/security-baseline-audit.mjs",
     "public:audit": "node scripts/public-readiness-audit.mjs",
     "qa": "node --no-warnings scripts/qa-report-v3.mjs",
     "report": "node --no-warnings scripts/final-report.mjs",
