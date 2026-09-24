@@ -73,7 +73,7 @@ External models and online sources may be used during research, source acquisiti
 
 **Runtime/language:** Node.js ESM, Node.js 22.5+  
 **Storage:** local SQLite plus versioned source/manifests and generated local artifacts  
-**Product surfaces:** local browser UI, unified Writer API, integrated RhymePad  
+**Product surfaces:** local browser UI, unified Writer API, integrated RhymePad; React Studio replatform is in progress under `apps/studio-react/` while current Studio V2 remains shipping/golden-master  
 **Canonical runtime posture:** local-only, deterministic, no required runtime network  
 **Canonical runtime database:** `data/local/rhymelab-serving-v1.sqlite` for RhymeLab Writer, RhymePad, DE/EN Words, Phrase/Mosaic, Entities, Generated/Core selection, and Markov source materialization  
 **Archived runtime predecessors:** documented in `docs/DATABASE_RUNTIME.md`; they are not normal product fallbacks  
@@ -94,6 +94,30 @@ Long-running local materialization, migration, enrichment, benchmark-generation,
 - Deterministic non-neural pronunciation generation may be used for unresolved **user query anchors, including multi-word chains**. Generation runs in the end-user client (browser-compatible JavaScript), resolves each token from source-backed pronunciation when available, generates only missing token pronunciations locally, and composes one ephemeral query IPA. It must not require Node.js, a local executable, eSpeak-NG, LLM inference, or paid/operator pronunciation compute. Generated query anchors are ephemeral and may not be silently promoted into canonical lexical/Entity/Phrase data. Generated token pronunciations may persist only in a bounded, revision-/policy-gated non-canonical client cache; current DB state must invalidate stale cache entries. The existing database/retrieval/scoring/ranking stack remains authoritative after the client supplies IPA.
 - Prefer focused changes over broad rewrites of accepted product surfaces.
 - Keep architecture proportional to a solo-developed local product.
+
+## Active P0 — behavior-preserving frontend replatform
+
+New product feature development is frozen while the browser frontend is replatformed.
+
+Target frontend stack:
+
+```text
+React 19.3
+TypeScript 5.9
+Vite 8.3
+Base UI 1.8
+Motion 13.4
+TanStack Query 5.103
+Zustand 5.0
+TanStack Virtual 3.14
+```
+
+Authoritative migration contract: `docs/REACT_STUDIO_REPLATFORM.md`.  
+Hard cutover gate: `docs/REACT_STUDIO_PARITY_GATE.md`.
+
+This is a **replatform, not a functional redesign**. The current Studio V2 behavior on the frozen migration baseline remains the golden master. No existing function, workflow, safeguard, accessibility behavior, persistence rule, runtime database behavior, editor semantic, analysis capability, Perform capability, Search capability or recovery behavior may disappear or be silently simplified.
+
+The migration inventory is machine-readable at `apps/studio-react/parity-coverage.json`. Cutover requires every mandatory row to be verified. The existing Studio remains intact as a rollback implementation through migration and burn-in.
 
 ## Cost policy
 
@@ -204,8 +228,10 @@ Persist decisions and engineering facts, not raw conversations. No continuation-
 
 ## Current priorities
 
-1. Complete Studio V2 real-device/browser/touch/Web Audio acceptance while Studio remains the reversible default product shell.
-2. Fix concrete Studio V2 regressions without changing canonical Serving-v1 retrieval, scoring or ranking semantics.
-3. Preserve the accepted Phase 11, Phase 12B, source-backed Phase 12C and Serving-v1 baselines.
-4. Keep Markov / Constrained Lyric Decoder V2 frozen, demo-only and unlinked until the owner explicitly reopens it.
-5. Continue pronunciation/data/performance work only under the existing explicit owner gates; do not let it silently redefine product truth.
+1. **P0: complete the behavior-preserving React Studio replatform without losing any existing functionality.**
+2. Keep new product feature development frozen until React cutover parity is verified.
+3. Preserve the current Studio V2 implementation as golden master and rollback surface; complete its real-device/browser/touch/Web Audio evidence as part of migration acceptance.
+4. Keep canonical Serving-v1 retrieval, scoring, ranking, query-pronunciation, IndexedDB document authority, editor semantics, analysis and Perform semantics unchanged unless a concrete parity bug requires a focused fix.
+5. Preserve the accepted Phase 11, Phase 12B, source-backed Phase 12C and Serving-v1 baselines.
+6. Keep Markov / Constrained Lyric Decoder V2 frozen, demo-only and unlinked until the owner explicitly reopens it.
+7. Defer unrelated pronunciation/data/performance expansion during the feature freeze unless the owner explicitly prioritizes it or a correctness blocker requires it.
