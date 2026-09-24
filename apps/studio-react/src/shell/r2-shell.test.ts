@@ -115,6 +115,7 @@ describe('R2 semantic theme layer preserves existing theme slots', () => {
     expect(BUILTIN_THEMES.dark.colors.ink).toBe('#E0D3D1');
     expect(BUILTIN_THEMES.dark.colors.accent).toBe('#E85A4F');
     expect(BUILTIN_THEMES.dark.colors.signal).toBe('#62C37E');
+    expect(themeContrastReport(BUILTIN_THEMES.dark.colors).readable).toBe(true);
   });
 
   it('falls back to built-in Light for an unset or invalid theme choice', () => {
