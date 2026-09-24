@@ -7,6 +7,7 @@ import {
   type DragEvent,
 } from 'react';
 
+import { Select } from '../../design-system/primitives';
 import type { PerformanceConfig, PerformanceCue } from '../../legacy/contracts';
 import {
   autoMapPerformanceBar,
@@ -331,9 +332,33 @@ export function PerformanceWorkspace({
           >
             ←
           </button>
-          <select value={selectedBar.id} onChange={(event) => setSelectedBarId(event.target.value)} aria-label={language === 'de' ? 'Bar auswählen' : 'Select bar'}>
-            {bars.map((bar) => <option key={bar.id} value={bar.id}>Bar {String(bar.number).padStart(2, '0')} · {bar.text.slice(0, 36)}</option>)}
-          </select>
+          <Select.Root
+            items={bars.map((bar) => ({
+              value: bar.id,
+              label: `Bar ${String(bar.number).padStart(2, '0')} · ${bar.text.slice(0, 48)}`,
+            }))}
+            value={selectedBar.id}
+            onValueChange={(value) => {
+              if (typeof value === 'string') setSelectedBarId(value);
+            }}
+          >
+            <Select.Trigger className={styles.performSelect} aria-label={language === 'de' ? 'Bar auswählen' : 'Select bar'}>
+              <Select.Value />
+              <Select.Icon>⌄</Select.Icon>
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner sideOffset={6} alignItemWithTrigger={false}>
+                <Select.Popup className={styles.performSelectPopup}>
+                  {bars.map((bar) => (
+                    <Select.Item key={bar.id} value={bar.id} className={styles.performSelectItem}>
+                      <Select.ItemIndicator className={styles.performSelectCheck}>✓</Select.ItemIndicator>
+                      <Select.ItemText>Bar {String(bar.number).padStart(2, '0')} · {bar.text.slice(0, 48)}</Select.ItemText>
+                    </Select.Item>
+                  ))}
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>
           <button
             type="button"
             disabled={currentBarIndex >= bars.length - 1}
@@ -476,9 +501,34 @@ export function PerformanceWorkspace({
           {tool === 'pause' ? (
             <label className={styles.pauseLength}>
               <span>{language === 'de' ? 'Pausenlänge' : 'Pause length'}</span>
-              <select value={config.pauseLength} onChange={(event) => void patchConfig({ pauseLength: Number(event.target.value) as 1 | 2 | 3 | 4 })}>
-                {[1, 2, 3, 4].map((value) => <option key={value} value={value}>{value} {value === 1 ? 'step' : 'steps'}</option>)}
-              </select>
+              <Select.Root
+                items={[1, 2, 3, 4].map((value) => ({
+                  value: String(value),
+                  label: `${value} ${value === 1 ? 'step' : 'steps'}`,
+                }))}
+                value={String(config.pauseLength)}
+                onValueChange={(value) => {
+                  const next = Number(value);
+                  if (next >= 1 && next <= 4) void patchConfig({ pauseLength: next as 1 | 2 | 3 | 4 });
+                }}
+              >
+                <Select.Trigger className={styles.pauseSelect}>
+                  <Select.Value />
+                  <Select.Icon>⌄</Select.Icon>
+                </Select.Trigger>
+                <Select.Portal>
+                  <Select.Positioner sideOffset={5}>
+                    <Select.Popup className={styles.pauseSelectPopup}>
+                      {[1, 2, 3, 4].map((value) => (
+                        <Select.Item key={value} value={String(value)} className={styles.performSelectItem}>
+                          <Select.ItemIndicator className={styles.performSelectCheck}>✓</Select.ItemIndicator>
+                          <Select.ItemText>{value} {value === 1 ? 'step' : 'steps'}</Select.ItemText>
+                        </Select.Item>
+                      ))}
+                    </Select.Popup>
+                  </Select.Positioner>
+                </Select.Portal>
+              </Select.Root>
             </label>
           ) : null}
         </div>
