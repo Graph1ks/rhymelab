@@ -87,12 +87,25 @@ describe('R7 startup binding guard', () => {
     expect(status.missing).toContain('shell.quickstyles');
   });
 
-  it('requires the Search filter toggle and layout controls while the filter deck may stay collapsed', () => {
+  it('allows compact Sound Explorer without a layout selector', () => {
     const status = collectReactStartupBindingStatus(fakeDocument([
       '[data-rhymelab-control="shell.language"]',
       '[data-rhymelab-control="shell.quickstyles"]',
       '[data-rhymelab-control="shell.navigation"]',
       '[data-rhymelab-surface="search"]',
+      '[data-rhymelab-control="search.filters"]',
+    ]));
+    expect(status.ok).toBe(true);
+    expect(status.missing).toEqual([]);
+  });
+
+  it('still requires a layout selector on the full Search page', () => {
+    const status = collectReactStartupBindingStatus(fakeDocument([
+      '[data-rhymelab-control="shell.language"]',
+      '[data-rhymelab-control="shell.quickstyles"]',
+      '[data-rhymelab-control="shell.navigation"]',
+      '[data-rhymelab-surface="search"]',
+      '[data-rhymelab-surface="search"][data-variant="page"]',
       '[data-rhymelab-control="search.filters"]',
     ]));
     expect(status.ok).toBe(false);
