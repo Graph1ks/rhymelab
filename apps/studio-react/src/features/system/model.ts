@@ -63,6 +63,7 @@ export const REACT_STUDIO_STARTUP_CONTROLS = Object.freeze([
   ['shell.language', '[data-rhymelab-control="shell.language"]', true],
   ['shell.quickstyles', '[data-rhymelab-control="shell.quickstyles"]', true],
   ['shell.navigation', '[data-rhymelab-control="shell.navigation"]', true],
+  ['search.filters', '[data-rhymelab-control="search.filters"]', false],
   ['search.languages', '[data-rhymelab-control="search.languages"]', false],
   ['search.scope', '[data-rhymelab-control="search.scope"]', false],
   ['search.layout', '[data-rhymelab-control="search.layout"]', false],
@@ -76,10 +77,17 @@ export function collectReactStartupBindingStatus(
     const searchMounted = Boolean(
       documentObj?.querySelector?.('[data-rhymelab-surface="search"]'),
     );
+    const filterDeckMounted = Boolean(
+      documentObj?.querySelector?.('[data-rhymelab-filter-deck="true"]'),
+    );
+    const searchAlwaysRequired = id === 'search.filters' || id === 'search.layout';
+    const filterDeckRequired = id === 'search.languages' || id === 'search.scope';
     return {
       id,
       selector,
-      required: globallyRequired || searchMounted,
+      required: globallyRequired
+        || (searchMounted && searchAlwaysRequired)
+        || (filterDeckMounted && filterDeckRequired),
       present,
     };
   });
