@@ -22,169 +22,265 @@
       "id": "search.shared-state",
       "group": "Search / Writer",
       "capability": "Shared SearchState across Search and Studio",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchStateProvider.tsx",
+        "apps/studio-react/src/app/App.tsx",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.query-basis",
       "group": "Search / Writer",
       "capability": "DE / EN / DE+EN query pronunciation basis",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.result-language",
       "group": "Search / Writer",
       "capability": "DE / EN / DE+EN result language",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.scope",
       "group": "Search / Writer",
       "capability": "All / Words / Phrases / Entities scope",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.rhyme-types",
       "group": "Search / Writer",
       "capability": "Exact rhyme + sound-relation matrix",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.syllables",
       "group": "Search / Writer",
       "capability": "Same / ±1 / ±2 / ±3 / exact syllable filters",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.sorts",
       "group": "Search / Writer",
       "capability": "Recommended / proximity / syllables / common / A-Z",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/presentation.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.variants",
       "group": "Search / Writer",
       "capability": "Preferred and all pronunciation variants",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.historical",
       "group": "Search / Writer",
       "capability": "Historical / obsolete forms",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.generated",
       "group": "Search / Writer",
       "capability": "Generated pronunciation opt-in",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.generated-only",
       "group": "Search / Writer",
       "capability": "Generated-only result mode",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.entity-taxonomy",
       "group": "Search / Writer",
       "capability": "Entity taxonomy from runtime capabilities",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/presentation.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.entity-multi",
       "group": "Search / Writer",
       "capability": "Entity multi-select OR retrieval",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.hide-used",
       "group": "Search / Writer",
       "capability": "Hide already used lyric candidates",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/presentation.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.presets",
       "group": "Search / Writer",
       "capability": "Best / words / phrases / entities / rhyme presets",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchControls.tsx",
+        "apps/studio-react/src/features/search/presentation.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.autoscroll",
       "group": "Search / Writer",
       "capability": "Opt-in auto-scroll with manual pause",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx"
+      ]
     },
     {
       "id": "search.density",
       "group": "Search / Writer",
       "capability": "List / compact / tile density",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx",
+        "apps/studio-react/src/features/search/useSearchPreferences.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.paging",
       "group": "Search / Writer",
       "capability": "Continuous result loading without manual paging controls",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx"
+      ]
     },
     {
       "id": "search.metadata",
       "group": "Search / Writer",
       "capability": "Legacy metadata tags and badges",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx",
+        "apps/studio-react/src/features/search/presentation.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.detail",
       "group": "Search / Writer",
       "capability": "Word / phrase / entity detail and provenance",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultDetail.tsx",
+        "apps/studio-react/src/features/search/data.ts"
+      ]
     },
     {
       "id": "search.ipa",
       "group": "Search / Writer",
       "capability": "IPA and pronunciation variants",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultDetail.tsx",
+        "apps/studio-react/src/features/search/data.ts"
+      ]
     },
     {
       "id": "search.runtime",
       "group": "Search / Writer",
       "capability": "Query runtime and rolling AVG100 telemetry",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "search.states",
       "group": "Search / Writer",
       "capability": "Loading / empty / unavailable / error states",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx"
+      ]
     },
     {
       "id": "search.keyboard",
       "group": "Search / Writer",
       "capability": "Keyboard result navigation and actions",
-      "status": "pending",
-      "evidence": []
+      "status": "in_progress",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx",
+        "apps/studio-react/r3-search-manifest.json"
+      ]
     },
     {
       "id": "editor.bars",
@@ -636,8 +732,11 @@
       "id": "workflow-v3.compact-default",
       "group": "Workflow UX v3",
       "capability": "Compact is the first-run result density while preserving an existing density preference",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/useSearchPreferences.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "workflow-v3.bar-hold-drag",
@@ -678,8 +777,10 @@
       "id": "workflow-v3.continuous-results",
       "group": "Workflow UX v3",
       "capability": "Continuous result loading with no manual load-more paging control",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/ResultsList.tsx"
+      ]
     },
     {
       "id": "workflow-v3.single-drawer-scroll",
@@ -692,22 +793,33 @@
       "id": "workflow-v3.active-db-visible",
       "group": "Workflow UX v3",
       "capability": "Active LITE/STANDARD/FULL runtime database remains visibly identified in Studio and Search",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     },
     {
       "id": "workflow-v3.runtime-db-availability",
       "group": "Workflow UX v3",
       "capability": "Only installed LITE/STANDARD/FULL editions are selectable; missing editions remain visible disabled",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/data.ts"
+      ]
     },
     {
       "id": "workflow-v3.runtime-db-fallback",
       "group": "Workflow UX v3",
       "capability": "Startup preference remains STANDARD then FULL then LITE and LITE-only installation remains valid",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/legacy/search.ts",
+        "apps/studio-react/src/features/search/data.ts",
+        "apps/studio-react/src/features/search/r3-search.test.ts"
+      ]
     }
   ]
 }
