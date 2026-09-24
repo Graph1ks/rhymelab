@@ -77,16 +77,21 @@ export function collectReactStartupBindingStatus(
     const searchMounted = Boolean(
       documentObj?.querySelector?.('[data-rhymelab-surface="search"]'),
     );
+    const fullSearchMounted = Boolean(
+      documentObj?.querySelector?.('[data-rhymelab-surface="search"][data-variant="page"]'),
+    );
     const filterDeckMounted = Boolean(
       documentObj?.querySelector?.('[data-rhymelab-filter-deck="true"]'),
     );
-    const searchAlwaysRequired = id === 'search.filters' || id === 'search.layout';
+    const searchAlwaysRequired = id === 'search.filters';
+    const fullSearchRequired = id === 'search.layout';
     const filterDeckRequired = id === 'search.languages' || id === 'search.scope';
     return {
       id,
       selector,
       required: globallyRequired
         || (searchMounted && searchAlwaysRequired)
+        || (fullSearchMounted && fullSearchRequired)
         || (filterDeckMounted && filterDeckRequired),
       present,
     };
