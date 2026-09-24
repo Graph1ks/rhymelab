@@ -52,6 +52,8 @@ export const useUiStore = create<UiState>((set, get) => ({
     set({
       surface,
       settingsDrawerOpen: false,
+      libraryOpen: false,
+      savedOpen: false,
     });
   },
 
