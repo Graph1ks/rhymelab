@@ -219,7 +219,11 @@ export function themeChoices(preferences?: StudioPreferences): Array<ThemeDefini
 }> {
   const prefs = themePreferences(preferences);
   const slots: ThemeMode[] = ['light', 'dark'];
-  const output = slots.map((slot) => ({
+  const output: Array<ThemeDefinition & {
+    choice: string;
+    slot?: ThemeMode;
+    colors: ThemeColors;
+  }> = slots.map((slot) => ({
     ...resolveThemeChoice(slot, prefs),
     choice: slot,
   }));
