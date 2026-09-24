@@ -97,7 +97,7 @@ Versions are deliberately pinned in the new isolated frontend package so depende
 
 The Vite-based frontend build/development toolchain requires Node.js 22.12+; this does **not** raise the existing RhymeLab shipping/runtime minimum by itself. Built frontend assets remain served by the existing local runtime.
 
-Before a later dependency bump, run the full parity gate. Dependency upgrades are not bundled casually into functional port work. Vite is configured to emit a bundled dependency license inventory with production builds.
+Before a later dependency bump, run the full parity gate. Dependency upgrades are not bundled casually into functional port work. Vite is configured to emit a bundled dependency license inventory with production builds. The resolved frontend dependency tree is committed in `apps/studio-react/package-lock.json`; CI and the root install helper use `npm ci`.
 
 ## Migration phases
 
