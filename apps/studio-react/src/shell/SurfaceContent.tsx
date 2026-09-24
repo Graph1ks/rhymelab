@@ -47,6 +47,9 @@ function copyPresentationToPopout(popup: Window) {
   }
 
   popup.document.body.className = document.body.className;
+  popup.document.body.style.margin = '0';
+  popup.document.body.style.overflow = 'hidden';
+  popup.document.body.style.background = 'var(--rl-panel)';
 }
 
 function prepareSoundExplorerPopout(popup: Window): HTMLElement {
@@ -58,6 +61,11 @@ function prepareSoundExplorerPopout(popup: Window): HTMLElement {
   const base = doc.createElement('base');
   base.href = document.baseURI;
   doc.head.appendChild(base);
+
+  const viewport = doc.createElement('meta');
+  viewport.name = 'viewport';
+  viewport.content = 'width=device-width, initial-scale=1';
+  doc.head.appendChild(viewport);
 
   const title = doc.createElement('title');
   title.textContent = 'Rhyme Bureau · Sound Explorer';
