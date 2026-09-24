@@ -25,6 +25,7 @@ import {
   moveEditorBar,
   reconcileEditorDocumentText,
   removeEditorBar,
+  replaceEditorDocumentRange,
   restoreEditorSnapshot,
 } from '../../legacy/editor';
 import { useDocumentWorkspace } from '../library/DocumentWorkspaceProvider';
