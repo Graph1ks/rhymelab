@@ -221,10 +221,33 @@ export function CommandPalette({ showTrigger = true }: { showTrigger?: boolean }
                 )}
               </div>
 
+              <section className={styles.shortcutGuide} aria-label={language === 'de' ? 'Tastenkürzel' : 'Keyboard shortcuts'}>
+                <header>
+                  <span>{language === 'de' ? 'TASTENKÜRZEL' : 'KEYBOARD SHORTCUTS'}</span>
+                  <b>Windows</b>
+                  <b>macOS</b>
+                </header>
+                {[
+                  [language === 'de' ? 'Befehle öffnen' : 'Open commands', 'Ctrl + Shift + K', '⌘ + ⇧ + K'],
+                  [language === 'de' ? 'Editor: Rückgängig' : 'Editor: Undo', 'Ctrl + Z', '⌘ + Z'],
+                  [language === 'de' ? 'Editor: Wiederholen' : 'Editor: Redo', 'Ctrl + Y / Ctrl + Shift + Z', '⌘ + ⇧ + Z'],
+                  [language === 'de' ? 'Reimtreffer wählen' : 'Select rhyme result', '↑ / ↓', '↑ / ↓'],
+                  [language === 'de' ? 'Treffer merken' : 'Save result', 'Space', 'Space'],
+                  [language === 'de' ? 'Sicher einsetzen' : 'Safe insert', 'Enter', 'Enter'],
+                  [language === 'de' ? 'Dialog / Befehle schließen' : 'Close dialog / commands', 'Esc', 'Esc'],
+                ].map(([label, windows, mac]) => (
+                  <div key={label}>
+                    <span>{label}</span>
+                    <kbd>{windows}</kbd>
+                    <kbd>{mac}</kbd>
+                  </div>
+                ))}
+              </section>
+
               <p className={styles.commandHint}>
                 {language === 'de'
-                  ? 'Ctrl / ⌘ + Shift + K öffnet die Palette · ↑↓ wählen · Enter ausführen · Escape schließen.'
-                  : 'Ctrl / ⌘ + Shift + K opens commands · ↑↓ select · Enter runs · Escape closes.'}
+                  ? 'Globale App-Shortcuts greifen absichtlich nicht während du in Textfeldern schreibst.'
+                  : 'Global app shortcuts intentionally do not intercept while you are typing in text fields.'}
               </p>
             </Dialog.Popup>
           </Dialog.Viewport>
