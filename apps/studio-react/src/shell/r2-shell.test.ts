@@ -18,8 +18,10 @@ import {
   BUILTIN_THEMES,
   applyThemeToDocument,
   completeThemeColors,
+  randomOklchTheme,
   resolveThemeChoice,
   themeChoices,
+  themeContrastReport,
   toggleThemeChoice,
   type ThemePreferences,
 } from '../design-system/theme';
@@ -128,6 +130,20 @@ describe('R2 semantic theme layer preserves existing theme slots', () => {
     expect(choices[0]?.id).toBe('custom-light');
   });
 
+  it('generates deterministic-hue OKLCH styles with readable semantic contrast', () => {
+    const dark = randomOklchTheme('dark', { hue: 42, id: 'generated-dark', name: 'Generated Dark' });
+    const light = randomOklchTheme('light', { hue: 210, id: 'generated-light', name: 'Generated Light' });
+    for (const theme of [dark, light]) {
+      const colors = completeThemeColors(theme.colors);
+      Object.values(colors).forEach((value) => expect(value).toMatch(/^#[0-9A-F]{6}$/));
+      const report = themeContrastReport(colors);
+      expect(report.inkOnBg).toBeGreaterThanOrEqual(4.5);
+      expect(report.inkOnPanel).toBeGreaterThanOrEqual(4.5);
+      expect(report.onAccent).toBeGreaterThanOrEqual(4.5);
+      expect(report.readable).toBe(true);
+    }
+  });
+
   it('applies only semantic CSS variables to the shell document root', () => {
     const variables = new Map<string, string>();
     const fakeRoot = {
@@ -205,7 +221,7 @@ describe('R2 shell actions are real Zustand state transitions', () => {
     expect(useUiStore.getState().themeChoice).toBe('dark');
   });
 
-  it('opens and closes command, quickstyle and mobile settings surfaces explicitly', () => {
+  it('keeps command and quickstyle overlays explicit while legacy drawer state remains inert', () => {
     useUiStore.getState().setCommandPaletteOpen(true);
     useUiStore.getState().setQuickstylesOpen(true);
     useUiStore.getState().setSettingsDrawerOpen(true);
