@@ -149,6 +149,7 @@ export function ResultsList({
   isSaved,
   visibleCount,
   setVisibleCount,
+  onScrollActivity,
   onInsert,
 }: {
   rows: WriterResultRow[];
@@ -159,6 +160,7 @@ export function ResultsList({
   isSaved: (word: string) => boolean;
   visibleCount: number;
   setVisibleCount: (updater: number | ((current: number) => number)) => void;
+  onScrollActivity?: () => void;
   onInsert?: (row: WriterResultRow) => void;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
@@ -191,6 +193,7 @@ export function ResultsList({
   const handleScroll = () => {
     const element = scrollerRef.current;
     if (!element) return;
+    if (element.scrollTop > 0) onScrollActivity?.();
     if (
       element.scrollHeight
       - element.scrollTop
