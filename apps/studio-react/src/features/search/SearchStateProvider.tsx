@@ -19,9 +19,9 @@ import {
 
 type SearchStateContextValue = {
   state: SearchState;
-  patch: (patch: SearchStateInput) => SearchState;
-  resetFilters: () => SearchState;
-  setSelectedResultId: (id: string) => SearchState;
+  patch: (patch: SearchStateInput) => void;
+  resetFilters: () => void;
+  setSelectedResultId: (id: string) => void;
 };
 
 const SearchStateContext = createContext<SearchStateContextValue | null>(null);
@@ -52,41 +52,31 @@ export function SearchStateProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SearchState>(initialSearchState);
 
   const patch = useCallback((input: SearchStateInput) => {
-    let next = state;
-    setState((current) => {
-      next = persistSearchState(patchSearchState(current, input));
-      return next;
-    });
-    return next;
-  }, [state]);
+    setState((current) => persistSearchState(patchSearchState(current, input)));
+  }, []);
 
   const resetFilters = useCallback(() => {
-    let next = state;
-    setState((current) => {
-      next = persistSearchState(createSearchState({
-        anchor: current.anchor,
-        selectedResultId: '',
-        queryBasis: 'de',
-        resultLanguage: 'both',
-        scope: 'all',
-        rhymeType: 'all',
-        syllableFilter: 'all',
-        sort: 'recommended',
-        variantMode: 'preferred',
-        historical: false,
-        generated: false,
-        generatedOnly: false,
-        entityCategory: 'all',
-        entityCategories: [],
-      }));
-      return next;
-    });
-    return next;
-  }, [state]);
+    setState((current) => persistSearchState(createSearchState({
+      anchor: current.anchor,
+      selectedResultId: '',
+      queryBasis: 'de',
+      resultLanguage: 'both',
+      scope: 'all',
+      rhymeType: 'all',
+      syllableFilter: 'all',
+      sort: 'recommended',
+      variantMode: 'preferred',
+      historical: false,
+      generated: false,
+      generatedOnly: false,
+      entityCategory: 'all',
+      entityCategories: [],
+    })));
+  }, []);
 
-  const setSelectedResultId = useCallback((id: string) => (
-    patch({ selectedResultId: String(id || '') })
-  ), [patch]);
+  const setSelectedResultId = useCallback((id: string) => {
+    patch({ selectedResultId: String(id || '') });
+  }, [patch]);
 
   const value = useMemo<SearchStateContextValue>(() => ({
     state,
