@@ -37,6 +37,13 @@ export function isLoopbackHost(host){
   return LOOPBACK_HOSTS.has(normalized);
 }
 
+export function isLoopbackAddress(address){
+  const normalized=String(address||'').trim().toLowerCase();
+  return normalized==='127.0.0.1'
+    ||normalized==='::1'
+    ||normalized==='::ffff:127.0.0.1';
+}
+
 export function assertSafeServerBinding({host,env=process.env}={}){
   if(isLoopbackHost(host))return {remote:false};
   if(String(env.RHYMELAB_ALLOW_REMOTE||'').trim()==='1'){
