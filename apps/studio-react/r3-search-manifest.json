@@ -1,7 +1,7 @@
 {
   "schema": "rhymelab-react-studio-r3-search-writer-v1",
   "phase": "R3",
-  "status": "implemented_automated_verification_pending_ci",
+  "status": "automated_verified_browser_acceptance_deferred",
   "invariant": "reuse_R1_SearchState_pronunciation_Writer_capability_detail_runtime_bridges",
   "shared_state": "one SearchStateProvider shared by Search and Studio assistant",
   "server_state_owner": "TanStack Query",
@@ -69,5 +69,15 @@
     "apps/studio-react/src/features/search/r3-search.test.ts",
     "apps/studio-react/src/legacy/legacy-parity.test.ts",
     "React Studio Replatform CI"
-  ]
+  ],
+  "automated_verification": {
+    "parity_inventory": true,
+    "strict_typescript": true,
+    "r1_regression": true,
+    "r2_regression": true,
+    "r3_contract_tests": true,
+    "production_vite_build": true
+  },
+  "cutover_verified": false,
+  "next_phase": "R4_LIBRARY_PERSISTENCE_RECOVERY"
 }
