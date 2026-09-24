@@ -22,7 +22,7 @@
 .revisionDialog header p {
   margin: 0 0 5px;
   color: var(--rl-accent);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: .14em;
 }
@@ -51,7 +51,7 @@
   border-radius: 999px;
   padding: 5px 8px;
   color: var(--rl-muted);
-  font-size: 9px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 800;
   letter-spacing: .08em;
@@ -249,7 +249,7 @@
   background: var(--rl-accent);
   color: var(--rl-accent-contrast, #101010);
   padding: 2px 6px;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: .1em;
 }
@@ -378,7 +378,7 @@
   justify-content: space-between;
   gap: 18px;
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .footer span:last-child {
@@ -465,7 +465,7 @@
 
 .navigatorMain span {
   color: var(--rl-accent);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
@@ -510,14 +510,14 @@
 .historyList small {
   margin-top: 2px;
   color: var(--rl-accent);
-  font-size: 9px;
+  font-size: 11px;
   text-transform: uppercase;
 }
 
 .historyList p {
   margin: 5px 0 0;
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.4;
 }
 
@@ -525,7 +525,7 @@
   min-height: 34px;
   flex: 0 0 auto;
   padding: 0 8px;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .emptyDock {
@@ -550,7 +550,7 @@
   display: block;
   margin-bottom: 3px;
   color: var(--rl-accent);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: .1em;
 }
@@ -583,7 +583,7 @@
 
 .sectionMenu > div b {
   color: var(--rl-accent);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: .12em;
 }
 
@@ -596,7 +596,7 @@
   display: block;
   margin: 2px 0 10px;
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .sectionMenu nav {
@@ -655,7 +655,7 @@
 
 .revisionDialog header span {
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .revisionDialog header button {
@@ -675,7 +675,7 @@
   padding: 9px 18px;
   border-bottom: 1px solid var(--rl-line);
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .diffRows {
@@ -695,7 +695,7 @@
 
 .diffRows span {
   color: var(--rl-accent);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -734,7 +734,7 @@
 .emptyState p {
   margin: 0;
   color: var(--rl-accent);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: .12em;
 }
