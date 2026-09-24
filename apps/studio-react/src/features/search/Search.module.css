@@ -45,7 +45,7 @@
 .searchTitle > p {
   margin: 0 0 5px;
   color: var(--rl-accent);
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 850;
   letter-spacing: .16em;
 }
@@ -64,9 +64,9 @@
 
 .searchTitle > span {
   display: block;
-  margin-top: 8px;
+  margin-top: 7px;
   color: var(--rl-muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .runtimeStrip {
@@ -113,13 +113,13 @@
 .runtimeStatus small,
 .runtimeEditions small {
   color: var(--rl-muted);
-  font-size: 6px;
+  font-size: 9px;
   font-weight: 780;
   letter-spacing: .08em;
 }
 
 .runtimeStatus b {
-  font-size: 9px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -144,7 +144,7 @@
   background: transparent;
   color: var(--rl-muted);
   cursor: pointer;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 820;
 }
 
@@ -160,7 +160,7 @@
 
 .runtimeDefault {
   color: var(--rl-muted);
-  font-size: 8px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -187,7 +187,7 @@
 
 .anchorMeta span {
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 820;
   letter-spacing: .12em;
 }
@@ -308,7 +308,7 @@
 }
 
 .presetButton {
-  min-height: 30px;
+  min-height: 34px;
   flex: 0 0 auto;
   padding: 4px 8px;
   border: 1px solid var(--rl-line);
@@ -316,7 +316,7 @@
   background: color-mix(in srgb, var(--rl-bg) 70%, var(--rl-panel));
   color: var(--rl-muted);
   cursor: pointer;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -358,7 +358,7 @@
 
 .filterLabel {
   color: var(--rl-muted);
-  font-size: 6px;
+  font-size: 9px;
   font-weight: 840;
   letter-spacing: .09em;
 }
@@ -377,7 +377,7 @@
   color: var(--rl-ink);
   cursor: pointer;
   text-align: left;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 670;
 }
 
@@ -521,7 +521,7 @@
 
 .controlHint {
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 10px;
 }
 
 /* Capability + result toolbar */
@@ -563,7 +563,7 @@
 .capabilityBar > small {
   margin-left: auto;
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 10px;
   white-space: nowrap;
 }
 
@@ -595,12 +595,12 @@
 }
 
 .resultCount b {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .resultCount small {
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .resultTools {
@@ -622,7 +622,7 @@
   background: transparent;
   color: var(--rl-muted);
   cursor: pointer;
-  font-size: 8px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -655,7 +655,7 @@
 }
 
 .densityButtons button span {
-  font-size: 7px;
+  font-size: 10px;
 }
 
 /* Search body and result scrolling */
@@ -663,8 +663,12 @@
   min-height: 0;
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
+}
+
+.searchBody[data-detail="true"] {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
 }
 
 .searchExperience[data-variant="assistant"] .searchBody {
@@ -754,14 +758,14 @@
 .resultTitleLine b {
   min-width: 0;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 16px;
   letter-spacing: -.02em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .resultRow[data-density="list"] .resultTitleLine b {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .kindBadge {
@@ -771,7 +775,7 @@
   border-radius: 999px;
   background: var(--rl-accent-soft);
   color: var(--rl-accent);
-  font-size: 6px;
+  font-size: 9px;
   font-weight: 780;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -795,7 +799,7 @@
 
 .resultMeta strong {
   color: var(--rl-ink);
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .badgeRow {
@@ -828,7 +832,7 @@
   display: grid;
   place-items: center;
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .relationCell {
@@ -1674,5 +1678,276 @@
   .anchorMode {
     width: 100%;
     margin: 6px 0 0;
+  }
+}
+
+
+/* R7 UX correction: results first, filters on demand. */
+.capabilityBar[data-hidden="true"] {
+  display: none;
+}
+
+.searchExperience[data-variant="page"] .searchHeader {
+  padding-top: 17px;
+  padding-bottom: 10px;
+}
+
+.searchExperience[data-variant="page"] .searchTitle h1 {
+  font-size: clamp(1.7rem, 2.5vw, 2.7rem);
+}
+
+.searchExperience[data-variant="assistant"] .searchHeader {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px 6px;
+}
+
+.searchExperience[data-variant="assistant"] .searchTitle > p {
+  margin-bottom: 2px;
+  font-size: 9px;
+}
+
+.searchExperience[data-variant="assistant"] .searchTitle h1 {
+  font-size: 1.05rem;
+}
+
+.searchExperience[data-variant="assistant"] .searchTitle > span {
+  display: none;
+}
+
+.searchExperience[data-variant="assistant"] .runtimeStatus {
+  min-height: 30px;
+}
+
+.searchExperience[data-variant="assistant"] .runtimeEditions {
+  display: none;
+}
+
+.searchExperience[data-variant="assistant"] .searchForm {
+  gap: 6px;
+  padding: 0 12px 8px;
+}
+
+.searchExperience[data-variant="assistant"] .anchorMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.searchExperience[data-variant="assistant"] .anchorMeta > span {
+  display: none;
+}
+
+.searchExperience[data-variant="assistant"] .anchorMeta b {
+  max-width: 130px;
+  font-size: 13px;
+}
+
+.searchExperience[data-variant="assistant"] .anchorMode {
+  margin-left: auto;
+}
+
+.searchExperience[data-variant="assistant"] .searchInputWrap {
+  min-height: 42px;
+}
+
+.searchExperience[data-variant="assistant"] .resultToolbar {
+  min-height: 44px;
+  align-items: center;
+  flex-direction: row;
+  padding: 5px 10px;
+}
+
+.searchExperience[data-variant="assistant"] .resultCount {
+  flex: 0 0 auto;
+}
+
+.searchExperience[data-variant="assistant"] .resultTools {
+  margin-left: auto;
+}
+
+.searchExperience[data-variant="assistant"] .keyboardHint {
+  display: none;
+}
+
+.searchExperience[data-variant="assistant"] .resultsScroller {
+  padding-top: 2px;
+}
+
+.searchExperience[data-variant="assistant"] .resultRow {
+  min-height: 60px;
+}
+
+.searchExperience[data-variant="assistant"] .resultMeta {
+  gap: 5px;
+}
+
+.languageRoutePopup {
+  width: min(520px, calc(100vw - 24px));
+  padding: 14px;
+  border: 1px solid var(--rl-line);
+  border-radius: 14px;
+  background: var(--rl-panel);
+  color: var(--rl-ink);
+  box-shadow: var(--rl-shadow-popover);
+}
+
+.languageRouteTitle {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.languageRoutePopup > p {
+  margin: 5px 0 12px;
+  color: var(--rl-muted);
+  font-size: 11px;
+}
+
+.languageRouteMatrix {
+  display: grid;
+  grid-template-columns: 72px repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  align-items: center;
+}
+
+.languageRouteMatrix > b,
+.languageRouteMatrix > strong {
+  color: var(--rl-muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+.languageRouteMatrix > strong {
+  text-align: left;
+}
+
+.languageRouteMatrix button {
+  min-height: 42px;
+  border: 1px solid var(--rl-line);
+  border-radius: 9px;
+  background: var(--rl-surface);
+  color: var(--rl-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.languageRouteMatrix button:hover,
+.languageRouteMatrix button[data-active="true"] {
+  border-color: color-mix(in srgb, var(--rl-accent) 58%, var(--rl-line));
+  background: var(--rl-tint);
+  color: var(--rl-accent);
+}
+
+.savedDialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  background: rgb(0 0 0 / .56);
+  backdrop-filter: blur(6px);
+}
+
+.savedDialogViewport {
+  position: fixed;
+  inset: 0;
+  z-index: 211;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.savedDialog {
+  width: min(900px, calc(100vw - 32px));
+  max-height: min(780px, calc(100dvh - 48px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--rl-line);
+  border-radius: 18px;
+  background: var(--rl-panel);
+  box-shadow: 0 30px 90px rgb(0 0 0 / .42);
+}
+
+.savedDialogHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--rl-line);
+}
+
+.savedDialogHead p {
+  margin: 0 0 2px;
+  color: var(--rl-accent);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.savedDialogHead h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.savedDialogHead button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--rl-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--rl-ink);
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.savedWorkspace[data-embedded="true"] {
+  min-height: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.savedWorkspace[data-embedded="true"] .savedHeader {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .searchExperience[data-variant="assistant"] .resultToolbar {
+    overflow-x: auto;
+  }
+
+  .searchBody[data-detail="true"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detailPanel {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    border-left: 0;
+    background: var(--rl-panel);
+  }
+
+  .languageRouteMatrix {
+    grid-template-columns: 58px repeat(3, minmax(0, 1fr));
+  }
+
+  .languageRouteMatrix button {
+    min-height: 48px;
+    padding: 4px;
+    font-size: 10px;
+  }
+
+  .savedDialogViewport {
+    padding: 8px;
+  }
+
+  .savedDialog {
+    width: 100%;
+    max-height: calc(100dvh - 16px);
   }
 }
