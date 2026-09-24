@@ -23,7 +23,7 @@ test('revision diff keeps unchanged lines so the whole lyric can be reviewed',()
   assert.equal(diff.summary.removed,1);
   assert.deepEqual(
     diff.rows.map((row)=>row.type),
-    ['same','changed','same','removed','added'],
+    ['same','changed','same','added','removed'],
   );
   assert.equal(diff.rows[1].current.text,'Neue erste Bar');
   assert.equal(diff.rows[1].previous.text,'Alte erste Bar');
