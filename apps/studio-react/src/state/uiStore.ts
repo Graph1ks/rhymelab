@@ -39,7 +39,7 @@ const preferences = loadStudioPreferences();
 const initialLanguage = normalizeStudioUiLanguage(preferences.uiLanguage);
 const initialThemeChoice = typeof preferences.theme === 'string'
   ? preferences.theme
-  : 'dark';
+  : 'light';
 
 export const useUiStore = create<UiState>((set, get) => ({
   surface: 'studio',
@@ -73,7 +73,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   },
 
   setThemeChoice(choice) {
-    const themeChoice = String(choice || 'dark');
+    const themeChoice = String(choice || 'light');
     persistAppearancePreferences({ theme: themeChoice });
     set({
       themeChoice,
