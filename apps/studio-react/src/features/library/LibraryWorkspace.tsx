@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 
 import { Dialog, Select } from '../../design-system/primitives';
 import { useUiStore } from '../../state/uiStore';
@@ -419,7 +419,7 @@ export function LibraryWorkspace() {
                 <div
                   key={folderName}
                   className={styles.folderRow}
-                  style={{ '--depth': depth } as React.CSSProperties}
+                  style={{ '--depth': depth } as CSSProperties}
                   onDragOver={(event) => {
                     if (!trash) event.preventDefault();
                   }}
@@ -428,7 +428,6 @@ export function LibraryWorkspace() {
                     event.preventDefault();
                     const id = event.dataTransfer.getData('application/x-rhymelab-song')
                       || event.dataTransfer.getData('text/plain');
-                    if (id) void moveSong(id === moveSongId ? folderName : folderName);
                     if (id) {
                       const result = moveLibrarySong(workspace.state, id, folderName);
                       if (result.changed) void workspace.replaceState(result.state);
