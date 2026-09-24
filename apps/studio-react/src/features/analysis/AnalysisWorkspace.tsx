@@ -1,0 +1,385 @@
+import { useMemo, useState } from 'react';
+
+import type { StudioOccurrenceRelation, StudioRhymePair } from '../../legacy/contracts';
+import {
+  ensurePerformanceSong,
+  performanceBarDurationMs,
+  performanceFlowFingerprint,
+  performancePocketMetrics,
+  performancePreviousBarPlacements,
+  performanceSyllablesPerSecond,
+  trackedEditorLineIndexes,
+} from '../../legacy/editor';
+import { estimateSyllables } from '../../legacy/search';
+import { useUiStore } from '../../state/uiStore';
+import { useEditorSession } from '../editor/EditorSessionProvider';
+import { asEditorSong } from '../editor/model';
+import { useRuntimeEnvironment } from '../search/data';
+import { useSharedSearchState } from '../search/SearchStateProvider';
+import { useCanonicalAnalysis } from './data';
+import {
+  ANALYSIS_RHYME_TYPE_ORDER,
+  allRhymeBars,
+  analysisRhymeTypeLabel,
+  analysisSections,
+  analysisTotals,
+  relationCounts,
+  rhymeChainGroups,
+  sectionRelations,
+  strongestRhymeType,
+  trackedAnalysisDocument,
+  trackedBarAt,
+  type CanonicalAnalysisPayload,
+  type CanonicalWordDetail,
+} from './model';
+import styles from './Analysis.module.css';
+
+type Scope = 'end' | 'all';
+type RelationMode = 'all' | 'primary' | 'soft';
+
+function percentage(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? String(Math.round(number * 100)) + '%' : '—';
+}
+
+function stress(detail: CanonicalWordDetail | null | undefined) {
+  if (!detail) return '—';
+  if (detail.stressPattern) return String(detail.stressPattern);
+  if (detail.primaryStressSyllable != null) return 'P' + String(detail.primaryStressSyllable);
+  if (detail.primaryStressSyllables?.length) return 'P ' + detail.primaryStressSyllables.join(', ');
+  return '—';
+}
+
+function relationText(entry: Record<string, unknown> | null | undefined) {
+  const relation = entry?.relation && typeof entry.relation === 'object'
+    ? entry.relation as Record<string, unknown>
+    : null;
+  if (!relation) return '—';
+  const label = String(relation.label || relation.type || '—');
+  return Number(relation.score) ? label + ' · ' + percentage(relation.score) : label;
+}
+
+function Metric({ label, value, copy }: { label: string; value: string | number; copy?: string }) {
+  return (
+    <article className={styles.metric}>
+      <small>{label}</small>
+      <b>{value}</b>
+      {copy ? <span>{copy}</span> : null}
+    </article>
+  );
+}
+
+function BarInspector({ data }: { data?: CanonicalAnalysisPayload | null }) {
+  const language = useUiStore((state) => state.uiLanguage);
+  const editor = useEditorSession();
+  const song = editor.activeSong;
+  if (!song) return null;
+  const bar = trackedBarAt(song, editor.selection?.barId);
+  if (!bar) return null;
+
+  const copy = structuredClone(song);
+  const performanceSong = asEditorSong(copy);
+  ensurePerformanceSong(performanceSong);
+  const tracked = trackedEditorLineIndexes(performanceSong);
+  const analysisIndex = tracked.indexOf(bar.index);
+  const detail = analysisIndex >= 0 ? data?.wordDetails?.[analysisIndex] : null;
+  const relation = analysisIndex >= 0
+    ? data?.lineRelations?.[analysisIndex] as Record<string, unknown> | undefined
+    : undefined;
+  const syllables = estimateSyllables(bar.text);
+  const duration = performanceBarDurationMs(performanceSong);
+  const pocket = performancePocketMetrics(performanceSong, bar.barId);
+  const previous = performancePreviousBarPlacements(performanceSong, bar.barId);
+  const fingerprint = performanceFlowFingerprint(performanceSong, bar.barId);
+  const syllablesPerSecond = performanceSyllablesPerSecond(performanceSong, syllables);
+  const words = bar.text.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)?.length ?? 0;
+
+  return (
+    <section className={styles.card}>
+      <div className={styles.cardHeader}>
+        <div><p>BAR INSPECTOR · {String(bar.barNumber).padStart(2, '0')}</p><h2>{bar.text || '—'}</h2></div>
+        <span className={styles.canonical}>WRITER + PERFORM</span>
+      </div>
+      <div className={styles.metrics}>
+        <Metric label={language === 'de' ? 'WÖRTER' : 'WORDS'} value={words} />
+        <Metric label={language === 'de' ? 'SILBEN ≈' : 'SYLLABLES ≈'} value={syllables} />
+        <Metric label="BAR TIME" value={(duration / 1000).toFixed(2) + ' s'} />
+        <Metric label="SYLL./SEC ≈" value={syllablesPerSecond.toFixed(2)} />
+        <Metric label="CUES" value={pocket.cues} copy={String(pocket.hits) + ' hit · ' + String(pocket.accents) + ' accent'} />
+        <Metric label="POCKET" value={String(Math.round(pocket.offBeatShare * 100)) + '% off'} />
+        <Metric label="BREATH LOAD" value={pocket.breathLoad} />
+        <Metric label="PREVIOUS" value={previous.previousBarId ? previous.sharedCount : '—'} />
+      </div>
+      <div className={styles.inspector}>
+        <span><small>IPA</small><code>{detail?.ipa ? '/' + detail.ipa + '/' : '—'}</code></span>
+        <span><small>STRESS</small><b>{stress(detail)}</b></span>
+        <span><small>{language === 'de' ? 'REIM IM VERSE' : 'RHYME IN VERSE'}</small><b>{relationText(relation)}</b></span>
+        <span><small>FLOW</small><code>{fingerprint || '·'}</code></span>
+      </div>
+    </section>
+  );
+}
+
+function EndAnalysis({ data, onOpenEditor }: { data: CanonicalAnalysisPayload; onOpenEditor: () => void }) {
+  const language = useUiStore((state) => state.uiLanguage);
+  const editor = useEditorSession();
+  const { patch } = useSharedSearchState();
+  const [relationMode, setRelationMode] = useState<RelationMode>('all');
+  const [chainVisible, setChainVisible] = useState(false);
+  const song = editor.activeSong;
+  if (!song) return null;
+
+  const document = useMemo(() => trackedAnalysisDocument(structuredClone(song)), [song]);
+  const totals = useMemo(() => analysisTotals(structuredClone(song)), [song]);
+  const scheme = Array.isArray(data.scheme) ? data.scheme : document.lines.map(() => '?');
+  const pairs = Array.isArray(data.pairs) ? data.pairs : [];
+  const filteredPairs = pairs.filter((pair) => (
+    relationMode === 'all'
+      || (relationMode === 'primary' && pair.primary === true)
+      || (relationMode === 'soft' && pair.primary !== true)
+  ));
+  const chain = rhymeChainGroups(scheme, document);
+  const timingSong = asEditorSong(structuredClone(song));
+  ensurePerformanceSong(timingSong);
+  const totalSeconds = performanceBarDurationMs(timingSong) * totals.bars / 1000;
+
+  const chooseAnchor = (value: string) => {
+    const anchor = String(value || '').trim();
+    if (!anchor) return;
+    editor.setFollowSelection(false);
+    patch({ anchor, selectedResultId: '' });
+  };
+
+  return (
+    <div className={styles.grid}>
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <div><p>{language === 'de' ? 'KANONISCHES REIMSCHEMA' : 'CANONICAL RHYME SCHEME'}</p><h2>{scheme.join(' ') || '—'}</h2></div>
+          <button type="button" onClick={() => setChainVisible((value) => !value)} aria-pressed={chainVisible}>Rhyme Chain</button>
+        </div>
+        <div className={styles.scheme}>
+          {document.indexes.map((lineIndex, analysisIndex) => (
+            <button
+              type="button"
+              key={song.barIds?.[lineIndex] ?? String(lineIndex)}
+              onClick={() => {
+                editor.jumpToBar(song.barIds?.[lineIndex] ?? '');
+                onOpenEditor();
+              }}
+            >
+              <span>{String(analysisIndex + 1).padStart(2, '0')}</span>
+              <strong>{scheme[analysisIndex] || '—'}</strong>
+              <b>{document.endWords[analysisIndex] || '—'}<small>{stress(data.wordDetails?.[analysisIndex])}</small></b>
+              <em>{analysisIndex === 0 ? 'Start' : relationText(data.lineRelations?.[analysisIndex] as Record<string, unknown> | undefined)}</em>
+            </button>
+          ))}
+        </div>
+        {chainVisible ? (
+          <div className={styles.chain}>
+            {chain.map((group) => (
+              <div key={group.label}>
+                <strong>{group.label}</strong>
+                <span>{group.items.map((item) => (
+                  <button type="button" key={item.analysisIndex} onClick={() => chooseAnchor(item.word)}>
+                    {String(item.barNumber).padStart(2, '0')} · {item.word}
+                  </button>
+                ))}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.cardHeader}><div><p>VERSE TOTALS</p><h2>{totals.bars} Bars</h2></div><span className={styles.approx}>LOCAL ≈</span></div>
+        <div className={styles.metrics}>
+          <Metric label={language === 'de' ? 'WÖRTER' : 'WORDS'} value={totals.words} />
+          <Metric label={language === 'de' ? 'SILBEN ≈' : 'SYLLABLES ≈'} value={totals.syllables} />
+          <Metric label={language === 'de' ? 'ZEICHEN' : 'CHARACTERS'} value={totals.characters} />
+          <Metric label={language === 'de' ? 'DAUER ≈' : 'DURATION ≈'} value={totalSeconds.toFixed(1) + ' s'} />
+        </div>
+        <div className={styles.density}>
+          {document.lines.map((line, index) => {
+            const count = estimateSyllables(line);
+            return (
+              <div key={song.barIds?.[document.indexes[index] ?? 0] ?? String(index)}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <i><b style={{ width: String(Math.min(100, Math.max(2, count * 4))) + '%' }} /></i>
+                <strong>{count}</strong>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <div><p>RELATIONS INSIDE VERSE</p><h2>{pairs.length}</h2></div>
+          <div className={styles.segmented}>
+            {(['all', 'primary', 'soft'] as RelationMode[]).map((value) => (
+              <button type="button" key={value} data-active={relationMode === value} onClick={() => setRelationMode(value)}>
+                {value === 'all' ? (language === 'de' ? 'Alle' : 'All') : value === 'primary' ? (language === 'de' ? 'Primär' : 'Primary') : 'Soft'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className={styles.pairs}>
+          {filteredPairs.map((pair: StudioRhymePair, index) => (
+            <button type="button" key={pair.left + pair.right + String(index)} onClick={() => chooseAnchor(pair.left)}>
+              <span><b>{pair.left}</b><i>↔</i><b>{pair.right}</b></span>
+              <em>{pair.label || pair.type}</em><strong>{percentage(pair.score)}</strong>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.cardHeader}><div><p>WORD LABORATORY</p><h2>IPA / Stress</h2></div><span className={styles.canonical}>CANONICAL</span></div>
+        <div className={styles.fingerprint}>
+          {(data.wordDetails ?? []).map((detail, index) => (
+            <button type="button" key={String(index)} onClick={() => chooseAnchor(document.endWords[index] || '')}>
+              <small>{String(index + 1).padStart(2, '0')}</small><b>{stress(detail)}</b>
+            </button>
+          ))}
+        </div>
+        <div className={styles.wordGrid}>
+          {(data.uniqueWordDetails ?? []).map((detail, index) => (
+            <article key={String(detail.normalized || detail.surface || index)} data-unresolved={detail.unresolved ? 'true' : 'false'}>
+              <header><button type="button" onClick={() => chooseAnchor(String(detail.surface || detail.normalized || ''))}>{String(detail.surface || detail.normalized || '—')}</button><span>{String(detail.language || '').toUpperCase()}</span></header>
+              <code>{detail.ipa ? '/' + detail.ipa + '/' : 'IPA —'}</code>
+              <div><span><small>{language === 'de' ? 'SILBEN' : 'SYLLABLES'}</small><b>{detail.syllableCount ?? '—'}</b></span><span><small>STRESS</small><b>{stress(detail)}</b></span></div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <BarInspector data={data} />
+    </div>
+  );
+}
+
+function AllAnalysis({ data, onOpenEditor }: { data: CanonicalAnalysisPayload; onOpenEditor: () => void }) {
+  const language = useUiStore((state) => state.uiLanguage);
+  const editor = useEditorSession();
+  const { patch } = useSharedSearchState();
+  const song = editor.activeSong;
+  if (!song) return null;
+
+  const document = useMemo(() => trackedAnalysisDocument(structuredClone(song)), [song]);
+  const rows = useMemo(() => allRhymeBars(document, data), [data, document]);
+  const relations = Array.isArray(data.occurrenceRelations) ? data.occurrenceRelations : [];
+  const occurrences = Array.isArray(data.occurrences) ? data.occurrences : [];
+  const sections = analysisSections(structuredClone(song));
+  const counts = relationCounts(relations);
+  const primary = relations.filter((relation) => relation.primary).length;
+  const rhymingBars = new Set<number>();
+  relations.forEach((relation) => {
+    if (relation.left?.lineIndex != null) rhymingBars.add(relation.left.lineIndex);
+    if (relation.right?.lineIndex != null) rhymingBars.add(relation.right.lineIndex);
+  });
+
+  const chooseAnchor = (value: string) => {
+    const anchor = value.trim();
+    if (!anchor) return;
+    editor.setFollowSelection(false);
+    patch({ anchor, selectedResultId: '' });
+  };
+
+  return (
+    <div className={styles.all}>
+      <section className={styles.overview}>
+        <Metric label={language === 'de' ? 'GESAMTER TEXT' : 'WHOLE TEXT'} value={relations.length} />
+        <Metric label={language === 'de' ? 'PRIMÄR' : 'PRIMARY'} value={primary} />
+        <Metric label="SOFT" value={relations.length - primary} />
+        <Metric label={language === 'de' ? 'BARS MIT REIM' : 'BARS WITH RHYME'} value={String(rhymingBars.size) + '/' + String(document.indexes.length)} copy={String(occurrences.length) + ' words'} />
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.cardHeader}><div><p>{language === 'de' ? 'NACH REIMTYP' : 'BY RHYME TYPE'}</p><h2>{relations.length}</h2></div><span className={styles.canonical}>CANONICAL</span></div>
+        <div className={styles.types}>
+          {ANALYSIS_RHYME_TYPE_ORDER.filter((type) => counts[type]).map((type) => (
+            <article key={type} data-rhyme-type={type}><small>{analysisRhymeTypeLabel(type, language)}</small><b>{counts[type]}</b></article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.cardHeader}><div><p>VERSE / SECTION</p><h2>{sections.length}</h2></div></div>
+        <div className={styles.sections}>
+          {sections.map((section) => {
+            const internal = sectionRelations(section, relations);
+            const sectionCounts = relationCounts(internal);
+            return (
+              <article key={section.id}>
+                <header><b>{section.label}</b><span>{section.barNumbers.length ? 'Bars ' + String(section.barNumbers[0]) + '–' + String(section.barNumbers.at(-1)) : ''}</span></header>
+                <strong>{internal.length} relations</strong>
+                <div>{ANALYSIS_RHYME_TYPE_ORDER.filter((type) => sectionCounts[type]).map((type) => <span key={type}>{sectionCounts[type]} {analysisRhymeTypeLabel(type, language)}</span>)}</div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.cardHeader}><div><p>{language === 'de' ? 'PRO BAR' : 'BY BAR'}</p><h2>{rows.length} Bars</h2></div></div>
+        <div className={styles.bars}>
+          {rows.map((row) => {
+            const occurrenceTypes = new Map<number, Set<string>>();
+            row.relations.forEach((relation: StudioOccurrenceRelation) => {
+              [relation.left, relation.right].forEach((occurrence) => {
+                const types = occurrenceTypes.get(occurrence.index) ?? new Set<string>();
+                types.add(relation.type);
+                occurrenceTypes.set(occurrence.index, types);
+              });
+            });
+            return (
+              <article key={song.barIds?.[row.documentLineIndex] ?? String(row.documentLineIndex)}>
+                <header>
+                  <button type="button" onClick={() => { editor.jumpToBar(song.barIds?.[row.documentLineIndex] ?? ''); onOpenEditor(); }}>BAR {String(row.barNumber).padStart(2, '0')}</button>
+                  <span>{row.relations.length} relations</span>
+                </header>
+                <div className={styles.tokens}>
+                  {row.occurrences.length ? row.occurrences.map((entry) => {
+                    const types = occurrenceTypes.get(entry.index) ?? new Set<string>();
+                    const strongest = strongestRhymeType(types);
+                    return <button type="button" key={String(entry.index)} data-rhyme-type={strongest || undefined} onClick={() => chooseAnchor(entry.surface)}>{entry.surface}</button>;
+                  }) : <span>{row.text || '—'}</span>}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export function AnalysisWorkspace({ onOpenEditor }: { onOpenEditor: () => void }) {
+  const language = useUiStore((state) => state.uiLanguage);
+  const editor = useEditorSession();
+  const { state, patch } = useSharedSearchState();
+  const runtime = useRuntimeEnvironment();
+  const [scope, setScope] = useState<Scope>('end');
+  const query = useCanonicalAnalysis(editor.activeSong, state, runtime.capabilities, runtime.runtimeDb, scope);
+  const hasBars = Boolean(query.document?.lines.length);
+
+  return (
+    <section className={styles.workspace} data-r6-analysis="true">
+      <header className={styles.header}>
+        <div><p>R6 · CANONICAL SONG ANALYSIS</p><h1>{language === 'de' ? 'Klang, Struktur, Spannung.' : 'Sound, structure, tension.'}</h1><span>{language === 'de' ? 'Writer-kanonische Phonetik und lokale Flow-Metriken bleiben sauber getrennt.' : 'Writer-canonical phonetics and local flow metrics stay explicitly separated.'}</span></div>
+        <div className={styles.headerControls}>
+          <div className={styles.segmented}><button type="button" data-active={scope === 'end'} onClick={() => setScope('end')}>{language === 'de' ? 'Endreime' : 'End rhymes'}</button><button type="button" data-active={scope === 'all'} onClick={() => setScope('all')}>{language === 'de' ? 'Alle Reime' : 'All rhymes'}</button></div>
+          <div className={styles.segmented}>{(['de', 'en', 'both'] as const).map((value) => <button type="button" key={value} data-active={state.queryBasis === value} onClick={() => patch({ queryBasis: value, selectedResultId: '' })}>{value === 'both' ? 'DE+EN' : value.toUpperCase()}</button>)}</div>
+          <span className={styles.runtime}>DB {String(runtime.activeEdition ?? 'default').toUpperCase()}</span>
+          <button type="button" onClick={() => void query.refetch()}>{language === 'de' ? 'Neu analysieren' : 'Refresh'}</button>
+        </div>
+      </header>
+
+      {!hasBars ? <div className={styles.state}>{language === 'de' ? 'Noch keine getrackten Bars.' : 'No tracked bars yet.'}</div> : null}
+      {hasBars && (query.isPending || query.isFetching) ? <div className={styles.state}>{language === 'de' ? 'Writer analysiert …' : 'Writer is analyzing …'}</div> : null}
+      {query.isError ? <div className={styles.state} data-error="true">{query.error instanceof Error ? query.error.message : String(query.error)}</div> : null}
+      {query.data && scope === 'end' ? <EndAnalysis data={query.data} onOpenEditor={onOpenEditor} /> : null}
+      {query.data && scope === 'all' ? <AllAnalysis data={query.data} onOpenEditor={onOpenEditor} /> : null}
+    </section>
+  );
+}
