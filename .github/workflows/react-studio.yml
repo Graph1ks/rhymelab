@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: react-studio-${{ github.workflow }}-${{ github.ref }}
@@ -26,8 +26,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -37,22 +35,8 @@ jobs:
       - name: Validate parity inventory
         run: node scripts/check-react-studio-parity.mjs
 
-      - name: Install React Studio dependencies
-        run: npm install --prefix apps/studio-react --ignore-scripts --no-audit --no-fund
-
-      - name: Bootstrap committed React Studio lockfile
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-        run: |
-          if git ls-files --error-unmatch apps/studio-react/package-lock.json >/dev/null 2>&1; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apps/studio-react/package-lock.json
-          git commit -m "chore: lock React Studio dependencies"
-          git push origin HEAD:"$HEAD_REF"
+      - name: Install locked React Studio dependencies
+        run: npm ci --prefix apps/studio-react --ignore-scripts --no-audit --no-fund
 
       - name: Typecheck
         run: npm --prefix apps/studio-react run typecheck
