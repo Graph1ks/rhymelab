@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { loadStudioPreferences, writeStudioPreferences } from '../../legacy/documents';
 import { normalizeDensity, type ResultDensity } from './presentation';
@@ -40,6 +40,17 @@ export function useSearchPreferences() {
   );
   const [hideUsed, setHideUsedState] = useState(initial.hideUsed !== false);
   const [saved, setSaved] = useState<SavedResult[]>(readSaved(initial.saved));
+
+  useEffect(() => {
+    const reload = () => {
+      const current = loadStudioPreferences();
+      setDensityState(normalizeDensity(current.density));
+      setHideUsedState(current.hideUsed !== false);
+      setSaved(readSaved(current.saved));
+    };
+    globalThis.addEventListener?.('rhymelab:preferences-imported', reload);
+    return () => globalThis.removeEventListener?.('rhymelab:preferences-imported', reload);
+  }, []);
 
   const setDensity = useCallback((next: ResultDensity) => {
     const normalized = normalizeDensity(next);
