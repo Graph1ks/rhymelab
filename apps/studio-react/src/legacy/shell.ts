@@ -25,6 +25,8 @@ export interface MobileViewportMetrics {
 
 type I18nApi = {
   STUDIO_UI_LANGUAGES: readonly StudioUiLanguage[];
+  clientLocaleUiLanguage(locales?: unknown): StudioUiLanguage;
+  defaultStudioUiLanguage(navigatorLike?: unknown): StudioUiLanguage;
   normalizeStudioUiLanguage(value: unknown): StudioUiLanguage;
   translateStudioUiText(source: unknown, language: StudioUiLanguage): string;
 };
@@ -64,6 +66,8 @@ const commandApi = legacyCommands as unknown as CommandApi;
 const mobileApi = legacyMobileViewport as unknown as MobileViewportApi;
 
 export const STUDIO_UI_LANGUAGES = i18nApi.STUDIO_UI_LANGUAGES;
+export const clientLocaleUiLanguage = i18nApi.clientLocaleUiLanguage;
+export const defaultStudioUiLanguage = i18nApi.defaultStudioUiLanguage;
 export const normalizeStudioUiLanguage = i18nApi.normalizeStudioUiLanguage;
 export const translateStudioUiText = i18nApi.translateStudioUiText;
 
