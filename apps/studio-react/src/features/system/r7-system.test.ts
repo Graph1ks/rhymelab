@@ -87,17 +87,31 @@ describe('R7 startup binding guard', () => {
     expect(status.missing).toContain('shell.quickstyles');
   });
 
-  it('requires Search language, scope and layout controls when Search is mounted', () => {
+  it('requires the Search filter toggle and layout controls while the filter deck may stay collapsed', () => {
     const status = collectReactStartupBindingStatus(fakeDocument([
       '[data-rhymelab-control="shell.language"]',
       '[data-rhymelab-control="shell.quickstyles"]',
       '[data-rhymelab-control="shell.navigation"]',
       '[data-rhymelab-surface="search"]',
-      '[data-rhymelab-control="search.languages"]',
-      '[data-rhymelab-control="search.scope"]',
+      '[data-rhymelab-control="search.filters"]',
     ]));
     expect(status.ok).toBe(false);
     expect(status.missing).toEqual(['search.layout']);
+  });
+
+  it('requires language and scope controls only while the filter deck is mounted', () => {
+    const status = collectReactStartupBindingStatus(fakeDocument([
+      '[data-rhymelab-control="shell.language"]',
+      '[data-rhymelab-control="shell.quickstyles"]',
+      '[data-rhymelab-control="shell.navigation"]',
+      '[data-rhymelab-surface="search"]',
+      '[data-rhymelab-control="search.filters"]',
+      '[data-rhymelab-control="search.layout"]',
+      '[data-rhymelab-filter-deck="true"]',
+      '[data-rhymelab-control="search.languages"]',
+    ]));
+    expect(status.ok).toBe(false);
+    expect(status.missing).toEqual(['search.scope']);
   });
 });
 
