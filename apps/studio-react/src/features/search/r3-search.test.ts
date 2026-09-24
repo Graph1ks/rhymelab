@@ -5,7 +5,7 @@ import * as legacyControls from '../../../../../src/studio/studio-controls.mjs';
 
 import type { RuntimeEditionPayload, WriterResultRow } from '../../legacy/contracts';
 import { chooseAvailableRuntimeEdition, createSearchState } from '../../legacy/search';
-import { writerSearchOptions } from './data';
+import { trackedSearchText, writerSearchOptions } from './data';
 import {
   corpusModePatch,
   corpusModeValue,
@@ -167,6 +167,15 @@ describe('R3 preserves Writer request semantics through R1', () => {
 });
 
 describe('R3 hide-used and Entity presentation match existing product semantics', () => {
+  it('uses only tracked lyric text and strips inline bracket metadata for hide-used context', () => {
+    expect(trackedSearchText([
+      '[Hook]',
+      'Berlin [ad-lib: Nacht] bleibt wach',
+      '',
+      'Wir gehen durch diese Stadt',
+    ])).toBe('Berlin bleibt wach\nWir gehen durch diese Stadt');
+  });
+
   it('hides words by token and phrases/entities by normalized surface containment', () => {
     const rows = [
       row('Nacht'),
