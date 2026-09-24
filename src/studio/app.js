@@ -707,6 +707,103 @@ function syncUnifiedEditorLayout(){
 function resizeArea(el){
   if(!el||el.id==='lyricsEditor')syncUnifiedEditorLayout();
 }
+
+const SECTION_QUICK_TAGS=Object.freeze([
+  '[Intro]','[Verse]','[Pre-Chorus]','[Chorus]',
+  '[Post-Chorus]','[Hook]','[Bridge]','[Outro]',
+]);
+const SECTION_QUICK_HOLD_MS=1500;
+let sectionQuickMenu=null;
+let sectionQuickPress=null;
+function closeSectionQuickMenu(){
+  sectionQuickMenu?.remove();
+  sectionQuickMenu=null;
+  document.body.classList.remove('section-quick-open');
+}
+function insertSectionQuickTag(tag,start,end){
+  closeSectionQuickMenu();
+  pushUndo();
+  const result=replaceEditorDocumentRange(song(),start,end,tag);
+  activeLine=result.position.index;
+  selection={
+    line:result.position.index,
+    barId:song().barIds[result.position.index],
+    barRevision:song().barRevisions[result.position.index],
+    start:result.position.offset,
+    end:result.position.offset,
+  };
+  selectionProof=createSelectionProof(song(),{
+    index:selection.line,start:selection.start,end:selection.end,
+  });
+  analysisSignature='';
+  renderEditor();
+  changed();
+  focusLine(result.position.index,result.position.offset);
+  notify(tag+' eingefügt.');
+}
+function openSectionQuickMenu(editor,event){
+  closeSectionQuickMenu();
+  const start=editor.selectionStart,end=editor.selectionEnd;
+  const menu=document.createElement('div');
+  menu.className='section-quick-menu';
+  menu.setAttribute('role','menu');
+  menu.setAttribute('aria-label','Song-Abschnitt einfügen');
+  menu.innerHTML='<div class="section-quick-head"><span>ABSCHNITT</span><small>Direkt am Cursor einfügen</small></div><div class="section-quick-grid">'
+    +SECTION_QUICK_TAGS.map((tag)=>'<button type="button" role="menuitem" data-section-quick="'+esc(tag)+'">'+esc(tag)+'</button>').join('')
+    +'</div>';
+  document.body.append(menu);
+  sectionQuickMenu=menu;
+  document.body.classList.add('section-quick-open');
+  const rect=menu.getBoundingClientRect();
+  const left=Math.max(10,Math.min(window.innerWidth-rect.width-10,event.clientX-rect.width/2));
+  const preferredTop=event.clientY+18;
+  const top=preferredTop+rect.height<window.innerHeight-10
+    ?preferredTop
+    :Math.max(10,event.clientY-rect.height-18);
+  menu.style.left=left+'px';
+  menu.style.top=top+'px';
+  queryAll('.section-quick-menu [data-section-quick]').forEach((button)=>{
+    button.onclick=()=>insertSectionQuickTag(button.dataset.sectionQuick,start,end);
+  });
+  requestAnimationFrame(()=>menu.querySelector('button')?.focus({preventScroll:true}));
+}
+function bindSectionQuickPress(editor){
+  editor.addEventListener('pointerdown',(event)=>{
+    if(event.button!==0||mode!=='write'||sectionQuickPress)return;
+    closeSectionQuickMenu();
+    const press={
+      pointerId:event.pointerId,
+      startX:event.clientX,
+      startY:event.clientY,
+      lastEvent:event,
+      timer:null,
+      opened:false,
+    };
+    sectionQuickPress=press;
+    press.timer=setTimeout(()=>{
+      if(sectionQuickPress!==press)return;
+      press.opened=true;
+      openSectionQuickMenu(editor,press.lastEvent);
+    },SECTION_QUICK_HOLD_MS);
+  });
+  editor.addEventListener('pointermove',(event)=>{
+    const press=sectionQuickPress;
+    if(!press||press.pointerId!==event.pointerId)return;
+    press.lastEvent=event;
+    if(!press.opened&&Math.hypot(event.clientX-press.startX,event.clientY-press.startY)>9){
+      clearTimeout(press.timer);
+      sectionQuickPress=null;
+    }
+  });
+  const finish=(event)=>{
+    const press=sectionQuickPress;
+    if(!press||press.pointerId!==event.pointerId)return;
+    clearTimeout(press.timer);
+    sectionQuickPress=null;
+  };
+  editor.addEventListener('pointerup',finish);
+  editor.addEventListener('pointercancel',finish);
+}
 function documentRangeForLine(index,start=0,end=start,current=song()){
   const line=current.lines[index]||'';
   const lineStart=editorLineStartOffset(current.lines,index);
@@ -727,6 +824,7 @@ function renderEditor(){
     requestAnimationFrame(()=>ensureActiveBarVisible());
   });
   editor.addEventListener('pointerdown',()=>typingUndo.noteBoundary(),{passive:true});
+  bindSectionQuickPress(editor);
   editor.addEventListener('beforeinput',(event)=>{
     if(event.isComposing)return;
     const position=editorPositionFromOffset(song().lines,editor.selectionStart);
