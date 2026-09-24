@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createPortableStudioBackup,
   migrateLegacyStudioState,
+  studioStateFromDocumentSnapshot,
 } from '../../legacy/documents';
 import type {
   LegacyStudioState,
@@ -157,7 +158,7 @@ describe('R4 Library behavior', () => {
     expect(result.state.songs.find((song) => song.id === 's2')?.folder).toBe('Songs');
   });
 
-  it('supports root-level documents for Explorer-style navigation', () => {
+  it('supports root-level documents for Explorer-style navigation and persistence round-trips', () => {
     const created = createLibrarySong(state(), 'Root note', '', 1050);
     expect(created.changed).toBe(true);
     expect(created.state.songs.at(-1)?.folder).toBe('');
@@ -165,6 +166,11 @@ describe('R4 Library behavior', () => {
     const moved = moveLibrarySong(created.state, 's3', '', 1060);
     expect(moved.changed).toBe(true);
     expect(moved.state.songs.find((song) => song.id === 's3')?.folder).toBe('');
+
+    const snapshot = migrateLegacyStudioState(moved.state).snapshot;
+    const hydrated = studioStateFromDocumentSnapshot(snapshot, moved.state);
+    expect(hydrated.songs.find((song) => song.id === 's3')?.folder).toBe('');
+    expect(hydrated.songs.find((song) => song.title === 'Root note')?.folder).toBe('');
   });
 
   it('copies a text without carrying deletion state or revision identity', () => {
