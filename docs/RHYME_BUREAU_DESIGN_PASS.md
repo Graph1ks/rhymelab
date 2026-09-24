@@ -68,6 +68,8 @@ Personality belongs around the writing, never over it.
 
 ## Verification plan
 
+- Theme-default acceptance: the canonical startup style is Light. Existing profiles from the previous Dark-default behavior migrate to Light once; after that, an explicitly selected Dark or custom theme remains persistent across reloads.
+
 - Sound Explorer popout acceptance: opening uses the live Studio/editor/search context; inline sidebar yields its width; Studio animates into the same centered reading-width token as Search; 680/1080/1520px result thresholds produce 2/3/4 columns; runtime/filter/dialog portals stay inside the popout document; closing by Dock or window X restores the sidebar and left-anchored Studio.
 - Studio inactive-assistant acceptance: collapsed and disabled states do not mount the inline SearchExperience; both center the Studio canvas using the shared reading-width token. Re-expanding/re-enabling returns to the original docked geometry with reduced-motion falling back to an immediate layout switch. Focus mode always remains full-bleed.
 
