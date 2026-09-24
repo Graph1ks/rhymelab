@@ -113,7 +113,7 @@
 .runtimeStatus small,
 .runtimeEditions small {
   color: var(--rl-muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 780;
   letter-spacing: .08em;
 }
@@ -187,7 +187,7 @@
 
 .anchorMeta span {
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 820;
   letter-spacing: .12em;
 }
@@ -266,7 +266,7 @@
   background: var(--rl-accent);
   color: var(--rl-on-accent);
   cursor: pointer;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 820;
 }
 
@@ -358,7 +358,7 @@
 
 .filterLabel {
   color: var(--rl-muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 840;
   letter-spacing: .09em;
 }
@@ -421,7 +421,7 @@
   padding: 7px 9px;
   outline: 0;
   cursor: pointer;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .filterOption[data-highlighted] {
@@ -453,7 +453,7 @@
 
 .entityPopupTitle {
   margin-bottom: 8px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -472,7 +472,7 @@
   padding: 5px 6px;
   border-radius: 7px;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .entityCheck:hover {
@@ -494,7 +494,7 @@
   background: transparent;
   color: var(--rl-muted);
   cursor: pointer;
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .entityClear {
@@ -521,7 +521,7 @@
 
 .controlHint {
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 /* Capability + result toolbar */
@@ -548,7 +548,7 @@
   border: 1px solid var(--rl-line);
   border-radius: 999px;
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 11px;
 }
 
 .capabilityBar > span[data-state="on"] {
@@ -563,7 +563,7 @@
 .capabilityBar > small {
   margin-left: auto;
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -600,7 +600,7 @@
 
 .resultCount small {
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .resultTools {
@@ -655,7 +655,7 @@
 }
 
 .densityButtons button span {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 /* Search body and result scrolling */
@@ -775,7 +775,7 @@
   border-radius: 999px;
   background: var(--rl-accent-soft);
   color: var(--rl-accent);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 780;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -787,7 +787,7 @@
   gap: 7px;
   align-items: center;
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -799,7 +799,7 @@
 
 .resultMeta strong {
   color: var(--rl-ink);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .badgeRow {
@@ -814,7 +814,7 @@
   border: 1px solid var(--rl-line);
   border-radius: 999px;
   color: var(--rl-muted);
-  font-size: 6px;
+  font-size: 11px;
   font-style: normal;
 }
 
@@ -832,7 +832,7 @@
   display: grid;
   place-items: center;
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .relationCell {
@@ -859,7 +859,7 @@
 }
 
 .scoreCell small {
-  font-size: 6px;
+  font-size: 11px;
 }
 
 .resultActions {
@@ -948,7 +948,7 @@
   display: grid;
   place-items: center;
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 11px;
 }
 
 /* Async/empty/error states */
@@ -972,7 +972,7 @@
 .searchState p {
   max-width: 380px;
   margin: 0;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.6;
 }
 
@@ -1020,7 +1020,7 @@
   border: 1px solid color-mix(in srgb, var(--rl-accent-2) 32%, var(--rl-line));
   border-radius: 999px;
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 11px;
 }
 
 .keyboardHint {
@@ -1029,7 +1029,7 @@
   padding: 7px 10px;
   border-top: 1px solid var(--rl-line);
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 11px;
 }
 
 /* Detail */
@@ -1060,13 +1060,13 @@
 
 .detailPanel[data-empty="true"] b {
   color: var(--rl-ink);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .detailPanel[data-empty="true"] p {
   max-width: 220px;
   margin: 0;
-  font-size: 8px;
+  font-size: 11px;
   line-height: 1.5;
 }
 
@@ -1095,7 +1095,7 @@
 .detailEyebrow {
   margin: 0 0 4px;
   color: var(--rl-accent);
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 820;
   letter-spacing: .12em;
 }
@@ -1138,13 +1138,13 @@
   border: 1px solid var(--rl-line);
   border-radius: 999px;
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 11px;
 }
 
 .detailState {
   margin: 10px 0 0;
   color: var(--rl-muted);
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .detailState[data-error="true"] {
@@ -1178,14 +1178,14 @@
 }
 
 .variantList code {
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .variantList small {
   min-width: 0;
   overflow: hidden;
   color: var(--rl-muted);
-  font-size: 7px;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1200,7 +1200,7 @@
   display: block;
   margin-bottom: 5px;
   color: var(--rl-muted);
-  font-size: 6px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: .08em;
 }
@@ -1232,7 +1232,7 @@
 
 .detailFact dt {
   color: var(--rl-muted);
-  font-size: 6px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -1242,7 +1242,7 @@
   min-width: 0;
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .detailActions {
@@ -1261,7 +1261,7 @@
   justify-content: center;
   gap: 6px;
   border-radius: 8px;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 760;
 }
 
@@ -1294,7 +1294,7 @@
 .detailSource {
   margin: 9px 0 0;
   color: var(--rl-muted);
-  font-size: 6px;
+  font-size: 11px;
 }
 
 /* Saved */
@@ -1318,7 +1318,7 @@
 .savedHeader p {
   margin: 0 0 5px;
   color: var(--rl-accent);
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 840;
   letter-spacing: .16em;
 }
@@ -1334,7 +1334,7 @@
   max-width: 620px;
   margin-top: 8px;
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .savedHeader > strong {
@@ -1395,7 +1395,7 @@
 
 .savedCard small {
   color: var(--rl-muted);
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .savedCard button {
@@ -1406,7 +1406,7 @@
   background: transparent;
   color: var(--rl-ink);
   cursor: pointer;
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .savedCard .savedRemove {
@@ -1439,7 +1439,7 @@
 .savedEmpty p {
   max-width: 360px;
   margin: 0;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 /* Responsive feature geometry */
@@ -1663,7 +1663,7 @@
   color: var(--rl-muted);
   padding: 0 9px;
   font: inherit;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1704,7 +1704,7 @@
 
 .searchExperience[data-variant="assistant"] .searchTitle > p {
   margin-bottom: 2px;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .searchExperience[data-variant="assistant"] .searchTitle h1 {
@@ -1813,7 +1813,7 @@
 .languageRouteMatrix > b,
 .languageRouteMatrix > strong {
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
   text-align: center;
 }
 
@@ -1881,7 +1881,7 @@
 .savedDialogHead p {
   margin: 0 0 2px;
   color: var(--rl-accent);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 850;
   letter-spacing: .12em;
 }
@@ -1939,7 +1939,7 @@
   .languageRouteMatrix button {
     min-height: 48px;
     padding: 4px;
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .savedDialogViewport {
