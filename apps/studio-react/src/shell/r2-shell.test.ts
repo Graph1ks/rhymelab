@@ -103,8 +103,11 @@ describe('R2 semantic theme layer preserves existing theme slots', () => {
   it('keeps the exact built-in Light/Dark baseline palettes', () => {
     expect(BUILTIN_THEMES.light.colors.bg).toBe('#EAE7DC');
     expect(BUILTIN_THEMES.light.colors.accent).toBe('#E85A4F');
-    expect(BUILTIN_THEMES.dark.colors.bg).toBe('#272727');
-    expect(BUILTIN_THEMES.dark.colors.accent).toBe('#FFE400');
+    expect(BUILTIN_THEMES.dark.colors.bg).toBe('#1B0D0F');
+    expect(BUILTIN_THEMES.dark.colors.panel).toBe('#2B181B');
+    expect(BUILTIN_THEMES.dark.colors.ink).toBe('#E0D3D1');
+    expect(BUILTIN_THEMES.dark.colors.accent).toBe('#E85A4F');
+    expect(BUILTIN_THEMES.dark.colors.signal).toBe('#62C37E');
   });
 
   it('resolves configured custom slots before built-ins', () => {
