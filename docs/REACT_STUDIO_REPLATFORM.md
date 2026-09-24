@@ -239,13 +239,14 @@ The existing Studio V2 source is not deleted during migration. Until the owner a
 
 ## Current implementation checkpoint
 
-R0, R1 and R2 are complete on `refactor/react-studio-replatform`.
+R0 through R3 are complete on `refactor/react-studio-replatform`.
 
 ```text
 R0  scaffold / freeze / parity inventory        VERIFIED
 R1  typed legacy domain bridge                  VERIFIED
 R2  shell + design system                       AUTOMATED VERIFIED
-R3  Search / Writer                             NEXT
+R3  Search / Writer                             AUTOMATED VERIFIED
+R4  Library / persistence / recovery            NEXT
 ```
 
 R1 wraps 18 existing browser/domain modules behind strict TypeScript contracts
@@ -255,18 +256,26 @@ without replacing their implementation:
 
 R2 establishes the real React application shell, semantic design system, responsive
 geometry, navigation, appearance controls, command palette and VisualViewport
-wiring without implementing Search, Library or editor domain behavior:
+wiring:
 
 `docs/REACT_STUDIO_R2_SHELL.md`
+
+R3 places the live existing Search/Writer path into both the React Search surface
+and Studio Sound Explorer using one shared SearchState and the R1 Writer,
+pronunciation, detail, capability and runtime-edition bridges:
+
+`docs/REACT_STUDIO_R3_SEARCH_WRITER.md`
 
 Focused verification:
 
 ```bash
 npm run studio:react:r1
 npm run studio:react:r2
+npm run studio:react:r3
 ```
 
 The application remains intentionally isolated from the shipping root route. Studio
 V2 is still the shipping behavioral golden master and rollback implementation.
-R2 rows are only `ported` / `in_progress` where real-browser or device evidence
-is still required; the 93/93 `verified` cutover rule is unchanged.
+R3 rows are only `ported` / `in_progress` where browser evidence or the later
+R5 editor integration is still required; the 93/93 `verified` cutover rule is
+unchanged.
