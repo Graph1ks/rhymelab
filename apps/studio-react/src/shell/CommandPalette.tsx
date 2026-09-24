@@ -35,14 +35,20 @@ function buildCommands(): StudioCommand[] {
       group: 'Navigation',
       label: 'Meine Texte öffnen',
       keywords: ['library', 'texts', 'songs', 'bibliothek'],
-      run: () => state.navigate('library'),
+      run: () => {
+        state.navigate('studio');
+        state.setLibraryOpen(true);
+      },
     },
     {
       id: 'saved',
       group: 'Navigation',
       label: 'Merkliste öffnen',
       keywords: ['saved', 'bookmarks', 'merkliste'],
-      run: () => state.navigate('saved'),
+      run: () => {
+        state.navigate('search');
+        state.setSavedOpen(true);
+      },
     },
     {
       id: 'settings',
