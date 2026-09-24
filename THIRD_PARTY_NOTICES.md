@@ -155,6 +155,41 @@ Existing eSpeak reports remain external reference evidence only and do not defin
 
 Any future decision to bundle or redistribute eSpeak-NG requires a separate explicit licensing/distribution decision.
 
+## React Studio frontend toolchain
+
+The P0 React Studio replatform introduces a separately version-pinned frontend
+toolchain under `apps/studio-react/package.json`. These packages retain their
+upstream licenses and are not relicensed by RhymeLab's root license.
+
+Primary runtime/frontend dependencies:
+
+| Package | Role | Upstream license |
+| --- | --- | --- |
+| React / React DOM | UI rendering | MIT |
+| Base UI | unstyled accessible UI primitives | MIT |
+| Motion | animation / layout / gesture layer | MIT |
+| TanStack Query | async API/server-state management | MIT |
+| Zustand | transient client UI/session state | MIT |
+| TanStack Virtual | large-list virtualization | MIT |
+
+Primary development/build dependencies:
+
+| Package | Role | Upstream license |
+| --- | --- | --- |
+| Vite | frontend development/build system | MIT |
+| @vitejs/plugin-react | React integration for Vite | MIT |
+| TypeScript | static type checker/compiler | Apache-2.0 |
+| Vitest | frontend unit/component test runner | MIT |
+| @types/react / @types/react-dom | TypeScript declarations from DefinitelyTyped | MIT |
+
+This table records the direct dependency boundary only. Production Vite builds are
+configured to emit `third-party-licenses.md` from the actual bundled dependency
+graph so shipped transitive notices can be inspected from the built artifact.
+
+The frontend migration must not introduce a hosted runtime, telemetry, paid service,
+or a third-party license that overrides RhymeLab's existing local-only and
+source-available boundaries.
+
 ## Trademarks and named entities
 
 `data/supplemental/modern-entities.json` contains names of third-party brands, platforms, companies, products, and services for linguistic/pronunciation purposes. Their inclusion does not claim ownership of those names or marks and does not imply affiliation, sponsorship, or endorsement.
