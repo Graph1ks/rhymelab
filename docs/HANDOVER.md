@@ -33,7 +33,7 @@ fail-closed startup/search/preview/cutover infrastructure. The owner UX passes a
 now allowed to reshape the React presentation without rewriting legacy domain/runtime
 semantics.
 
-Owner UX **round 2** is implemented at functional checkpoint `b2d16a4ed27e`.
+Owner UX **round 2** is implemented at functional checkpoint `9812a674669c`.
 Read `docs/REACT_STUDIO_UX_CORRECTION.md` before changing the React shell/editor/
 Search/Analysis/Perform/Settings presentation. Current behavior includes one sticky
 desktop/mobile Topbar, transient Search filters, compact-only Sound Explorer,
