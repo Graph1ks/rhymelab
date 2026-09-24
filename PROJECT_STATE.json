@@ -4271,7 +4271,7 @@
         "apps/studio-react/src/features/analysis",
         "apps/studio-react/src/features/perform"
       ],
-      "tested_code_head": "48600af0221c5d9429813e697b381af3a794383e",
+      "tested_code_head": "48600af0221c",
       "canonical_analysis_bridge_reused": true,
       "performance_session_bridge_reused": true,
       "tanstack_query_analysis_state": true,
