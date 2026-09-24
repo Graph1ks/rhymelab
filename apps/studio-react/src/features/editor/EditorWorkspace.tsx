@@ -87,6 +87,16 @@ function revisionPreview(revision: LegacyStudioRevision) {
     .join(' · ');
 }
 
+function autosaveLabel(
+  status: 'loading' | 'saving' | 'ready' | 'fallback' | 'error',
+  language: 'de' | 'en',
+) {
+  if (status === 'saving') return language === 'de' ? 'Auto-Save · speichert …' : 'Auto-save · saving …';
+  if (status === 'loading') return language === 'de' ? 'Auto-Save · lädt …' : 'Auto-save · loading …';
+  if (status === 'error') return language === 'de' ? 'Auto-Save · Fehler' : 'Auto-save · error';
+  return language === 'de' ? 'Auto-Save · gespeichert' : 'Auto-save · saved';
+}
+
 function FontControls() {
   const documents = useDocumentWorkspace();
   const language = useUiStore((state) => state.uiLanguage);
@@ -486,11 +496,16 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
           <p>R5 · UNIFIED DOCUMENT EDITOR</p>
           <div className={styles.titleLine}>
             <h1>{song.title || (language === 'de' ? 'Unbenannter Text' : 'Untitled')}</h1>
-            <span data-state={documents.status}>{documents.status === 'saving'
-              ? (language === 'de' ? 'Speichert …' : 'Saving …')
-              : documents.authority === 'indexeddb'
-                ? 'INDEXEDDB'
-                : 'LOCAL FALLBACK'}</span>
+            <span
+              data-state={documents.status}
+              title={documents.status === 'error'
+                ? documents.error
+                : (language === 'de'
+                    ? 'Änderungen werden automatisch lokal gespeichert.'
+                    : 'Changes are saved locally automatically.')}
+            >
+              {autosaveLabel(documents.status, language)}
+            </span>
             {editor.composing ? <i>IME</i> : null}
           </div>
           <small>
