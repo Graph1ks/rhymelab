@@ -1382,9 +1382,9 @@
   scrollbar-gutter: auto;
 }
 
-/* Desktop workspaces: Sound Explorer is a true right dock, while the writing
-   desk keeps deliberate breathing room. Full Search is centered and capped so
-   ultra-wide displays do not turn result rows into long reading lines. */
+/* Desktop Studio: Sound Explorer is a true right dock while the writing desk
+   keeps deliberate breathing room. Full Search stays full-width; its internal
+   reading lane is scoped in Search.module.css. */
 .searchSurface {
   width: 100%;
   height: 100%;
@@ -3021,7 +3021,8 @@
   grid-template-columns: minmax(0, 1fr) 46px;
 }
 
-.studioFoundation[data-search-enabled="false"] {
+.studioFoundation[data-search-enabled="false"],
+.studioFoundation[data-search-popout="true"] {
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -3061,8 +3062,32 @@
   transform: rotate(-90deg);
 }
 
+.assistPopout {
+  position: absolute;
+  top: 11px;
+  right: 9px;
+  z-index: 43;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--rl-line) 82%, var(--rl-accent) 18%);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--rl-panel) 94%, var(--rl-bg));
+  color: var(--rl-muted);
+  cursor: pointer;
+  font: 700 15px/1 var(--rl-font-mono);
+  transition:
+    border-color var(--rl-duration-fast) ease,
+    background var(--rl-duration-fast) ease,
+    color var(--rl-duration-fast) ease,
+    transform var(--rl-duration-fast) ease;
+}
+
 .assistCollapse:hover,
-.assistCollapse:focus-visible {
+.assistCollapse:focus-visible,
+.assistPopout:hover,
+.assistPopout:focus-visible {
   border-color: color-mix(in srgb, var(--rl-accent) 48%, var(--rl-line));
   outline: 0;
   background: var(--rl-tint);
@@ -3105,6 +3130,7 @@
 
 @media (max-width: 800px) {
   .assistCollapse,
+  .assistPopout,
   .assistRailLabel {
     display: none;
   }
@@ -3388,4 +3414,76 @@
   .brand:active .brandMark {
     transform: none;
   }
+}
+
+
+/* Separate-window Sound Explorer chrome. The actual SearchExperience remains
+   the same React subtree/context and therefore shares Studio/editor state. */
+.soundExplorerPopoutShell {
+  width: 100vw;
+  height: 100dvh;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--rl-panel);
+  color: var(--rl-ink);
+}
+
+.soundExplorerPopoutBar {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 7px 10px 7px 14px;
+  border-bottom: 1px solid var(--rl-rule);
+  background: var(--rl-panel);
+}
+
+.soundExplorerPopoutBar > div {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.soundExplorerPopoutBar b {
+  font: 700 11px/1 var(--rl-font-mono);
+  letter-spacing: .12em;
+}
+
+.soundExplorerPopoutBar span {
+  overflow: hidden;
+  color: var(--rl-muted);
+  font: 500 9px/1 var(--rl-font-mono);
+  letter-spacing: .08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.soundExplorerPopoutBar button {
+  min-height: 30px;
+  flex: 0 0 auto;
+  padding: 0 10px;
+  border: 1px solid var(--rl-rule);
+  border-radius: 6px;
+  background: var(--rl-paper);
+  color: var(--rl-ink);
+  cursor: pointer;
+  font: 650 11px/1 var(--rl-font-mono);
+}
+
+.soundExplorerPopoutBar button:hover,
+.soundExplorerPopoutBar button:focus-visible {
+  border-color: var(--rl-accent);
+  color: var(--rl-accent);
+  outline: 0;
+}
+
+.soundExplorerPopoutContent {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
