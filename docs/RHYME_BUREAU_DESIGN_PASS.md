@@ -41,14 +41,14 @@ Personality belongs around the writing, never over it.
 | Topbar | Sharper monogram, stacked wordmark, restrained navigation indicators, same compact height | Home, Studio, Search, Commands, Settings, DE/EN, quick Light/Dark and Quickstyles |
 | Studio frame | Clear mode strip and readable utility actions; paper writing plane against a quiet desk; responsive spacing | Write/Analyze/Perform, Library, Focus, search pause and assistant collapse |
 | Editor | Editorial document title, calmer toolbar, precise gutter borders and footer | Native textarea, font/size preferences, measured wrapping, Bar IDs, drag/drop, selection proofs, undo/redo, revisions and autosave |
-| Search | Strong query typography, disciplined anchor treatment, readable result selection and relation badges; desktop page centered at 80% width with a 1680px cap | All filters/routes/scopes, runtime editions, compact/list, continuous loading, detail, saved results, safe insertion and request cancellation |
+| Search | Strong query typography, disciplined anchor treatment, readable result selection and relation badges; keep the page full-width while centering the desktop query/result workflow in an ~82% reading lane capped at 1440px | All filters/routes/scopes, runtime editions, compact/list, continuous loading, detail, saved results, safe insertion and request cancellation |
 | Library | File-cabinet character through typography, rules and active-document treatment | Directory navigation, context menus, keyboard actions, sorting, moves/copies, Trash and recovery |
 | Analysis | Consistent editorial header, flatter metric surfaces, readable panels | Canonical relations, group/type color separation, linked topology, language and relation controls |
 | Perform | Strong rehearsal text hierarchy and coherent transport/tool surfaces | Timing, cues, BPM/grid/feel/count-in/loop, review invalidation, Web Audio and Focus |
 | Settings | Cohesive style workbench and data-safety surfaces; replace visible migration badge with product copy | Color generation/edit/save/apply/delete, defaults/reset, contrast report, backup/import/recovery |
 | Intro | Editorial poster composition and static sound specimen; retain existing copy and navigation actions | All entry points, language variants, reduced motion |
 | Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; on desktop dock Sound Explorer flush to the workspace top/right/bottom while the writing desk keeps its inset; wrap controls rather than clip them; coarse-pointer targets | No sidebar return, no new nested page scroll, no hover-only action |
-| Page transitions | Destination-led Bureau routing plate below the persistent topbar: every surface names the destination prominently, holds on a fully opaque high-contrast plate, then reveals it through one calm ~0.8s choreography with a quiet page-specific line/grid signature | Surface state, providers, scroll ownership, pointer input, dialogs/popovers and `prefers-reduced-motion`; no full-page content translation |
+| Navigation motion | No full-page route transition. Use local micro-motion only: a shared active-nav underline and restrained interaction motion on the Bureau mark | Navigation remains immediate; reduced-motion removes non-essential logo motion and the active indicator changes without animated travel |
 
 ## No-capability-loss contract
 
@@ -60,7 +60,7 @@ Personality belongs around the writing, never over it.
    change line height, padding, font or gutter offsets in the design pass.
 4. Preserve result virtualizer sizing and scroll containers. Do not animate result
    row geometry or add decorative overlays that intercept pointer input.
-5. Keep DE/EN, Light/Dark, custom themes, reduced motion and visible keyboard focus. Page-transition overlays must be decorative (`aria-hidden`), `pointer-events: none`, remain below the topbar, and disappear entirely for reduced-motion users.
+5. Keep DE/EN, Light/Dark, custom themes, reduced motion and visible keyboard focus. Navigation motion stays local to controls; no full-page transition overlay is mounted.
 6. Legacy Studio and the default-route/cutover contract remain intact. No parity row
    is promoted to verified merely because the design or automated checks pass.
 7. The attached music prompt data is unrelated to this UI pass and is not imported
@@ -76,7 +76,7 @@ Personality belongs around the writing, never over it.
 - Browser acceptance: 1920×1080, 3840×2160, 1366×768, 800px, 390px and 320px;
   Light/Dark/custom; Studio/Search/Library/Analysis/Perform/Settings/Intro; keyboard
   focus, transient popovers, continuous results, wrapping/gutters and mobile swap.
-- Transition acceptance: topbar remains stationary; every shell surface clearly names the destination during the transition; the shared choreography feels consistent while line/grid signatures remain distinguishable; the destination plate is readable without delaying interaction; rapid navigation cannot strand a curtain; overlays never intercept pointer input; Studio mode/search-assistant state survives leaving and returning to Studio; reduced-motion shows no routing overlay.
+- Navigation-motion acceptance: route changes remain immediate; the active underline travels cleanly between primary destinations; logo interaction is subtle and does not shift surrounding layout; reduced-motion removes logo transform motion and makes underline travel immediate.
 - Physical IME, touch/software keyboard and audible metronome remain separate gates.
 
 The provided cloud browser rejected the local development URL with
@@ -96,9 +96,9 @@ No change to the owner's selected editor font or saved color palettes.
 The plan was committed before implementation. All planned presentation areas have
 received the first pass. No new controls, feature dependencies or shipped assets were
 introduced. TSX edits remain presentation-scoped: decorative branding/icons, the intro
-specimen, Settings product copy and the shell transition wrapper. The transition
-wrapper does not key or remount `SurfaceContentBody`; local Studio UI state therefore
-survives navigation exactly as before.
+specimen and Settings product copy. The rejected full-page transition wrapper was removed;
+`SurfaceContentBody` is rendered directly again, so navigation adds no decorative route layer
+and local Studio UI state continues to survive through the existing shell state contracts.
 
 | Check | Result |
 | --- | --- |
@@ -118,7 +118,7 @@ survives navigation exactly as before.
 | Visual/browser and real-device acceptance | PENDING; local preview inaccessible to supplied cloud browser |
 | Full-data Writer exercise | PENDING; owner-local SQLite distributions required |
 
-The page-transition layer was added after the first design pass as a presentation-only shell layer. It does not alter navigation state, editor/search providers or domain code; only the keyed decorative routing overlay remounts beneath the persistent topbar. The workspace subtree stays mounted and is no longer translated or animated as part of route changes. The overlay uses a short dissolve plus small text/line motion so the destination is explicit without turning navigation into a full-screen motion event.
+The experimental full-page transition layer was removed after visual review. Navigation motion is now limited to the active topbar underline and Bureau-mark microinteraction; no route overlay remains in the shell.
 
 The AST comparison is a source-preservation check, not runtime interaction evidence.
 The existing runtime/domain tests remain intact; no gate or test was weakened.
