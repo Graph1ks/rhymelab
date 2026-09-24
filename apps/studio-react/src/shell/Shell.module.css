@@ -413,7 +413,45 @@
 
 .primaryFoundation {
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding: clamp(22px, 3vw, 44px);
+}
+
+.studioModeBar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: -8px 0 12px;
+  border-bottom: 1px solid var(--rl-line);
+  padding-bottom: 10px;
+}
+
+.studioModeBar button {
+  min-height: 36px;
+  border: 1px solid var(--rl-line);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: var(--rl-surface);
+  color: var(--rl-muted);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.studioModeBar button[data-active="true"] {
+  border-color: color-mix(in srgb, var(--rl-accent) 58%, var(--rl-line));
+  background: color-mix(in srgb, var(--rl-accent) 10%, var(--rl-surface));
+  color: var(--rl-accent);
+}
+
+.studioModeSurface {
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .assistFoundation {
@@ -1452,5 +1490,26 @@
     box-shadow: none;
     padding: 0;
     overflow: hidden;
+  }
+}
+
+@media (max-width: 800px) {
+  .studioModeBar {
+    position: sticky;
+    top: 57px;
+    z-index: 42;
+    margin: 0 0 10px;
+    padding: 7px 0;
+    background: color-mix(in srgb, var(--rl-panel) 96%, transparent);
+    backdrop-filter: blur(10px);
+  }
+
+  .studioModeBar button {
+    flex: 1 1 0;
+    min-height: 40px;
+  }
+
+  .studioModeSurface {
+    min-height: 0;
   }
 }
