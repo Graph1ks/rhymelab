@@ -34,6 +34,7 @@ import {STUDIO_DEVICE_GATES,createStudioDeviceAcceptance,mergeStudioDeviceAccept
 import {createTypingUndoCoalescer} from './edit-history.mjs';
 import {studioParityGroups,studioParitySummary} from './parity-manifest.mjs';
 import {runStudioDomAcceptance} from './dom-acceptance.mjs';
+import {compareEditorRevisions,revisionDiffLabel} from './revision-diff.mjs';
 import {createStudioDocumentStore,migrateLegacyStudioStateToStore,shadowLegacyStudioStateToStore} from './document-store.mjs';
 
 'use strict';
@@ -798,7 +799,6 @@ function renderResults(){
       ?rows.slice(0,pageSize).map(resultHTML).join('')
       :'<div class="empty">Keine passenden Writer-Treffer für „'+esc(query)+'“ und diese Filter.</div>';
   }
-  $('#moreBtn').classList.toggle('hidden',writerStatus!=='ready'||rows.length<=pageSize);
   $('#announcer').textContent=writerStatus==='ready'
     ?rows.length+' Writer-Treffer für '+query
     :writerStatus==='loading'
@@ -1865,7 +1865,6 @@ function studioCommandRegistry(){
     {id:'perform-mode',group:'Modus',label:'Perform-Modus',keywords:['perform','timing','flow','cues'],shortcut:'Alt+3',run:()=>{navigate('studio');setMode('perform')}},
     {id:'bar-inspector',group:'Modus',label:'Bar Inspector öffnen',keywords:['bar','metrics','stress','pocket'],run:()=>openEditorDock('bar')},
     {id:'bar-navigator',group:'Modus',label:'Bar Navigator öffnen',keywords:['bars','outline','navigator','reorder'],shortcut:'Alt+B',run:()=>openEditorDock('navigator')},
-    {id:'bar-new-after',group:'Dokument',label:'Neue Bar nach aktiver Bar',keywords:['bar','new','insert','zeile'],run:()=>addStudioBarAfter(activeLine)},
     {id:'bar-duplicate',group:'Dokument',label:'Aktive Bar duplizieren',keywords:['bar','duplicate','copy','duplizieren'],run:()=>duplicateStudioBar(activeLine)},
     {id:'bar-delete',group:'Dokument',label:'Aktive Bar löschen',keywords:['bar','delete','remove','löschen'],run:()=>deleteStudioBar(activeLine)},
     {id:'new-song',group:'Dokument',label:'Neuen Text anlegen',keywords:['new','song','document','text'],run:newSong},
@@ -2085,7 +2084,7 @@ function exportText(){
 }
 function runAuto(t){if(!auto)return;const el=$('#resultsScroll');if(t>pauseUntil&&!document.hidden&&!$('#dialog').open&&el.clientHeight>0){el.scrollTop+=(t-(lastFrame||t))*.018;if(el.scrollTop+el.clientHeight>=el.scrollHeight-2){if(pageSize<data().length){pageSize+=6;renderResults()}else{el.scrollTop=0;pauseUntil=t+1200}}}lastFrame=t;scrollFrame=requestAnimationFrame(runAuto)}
 function toggleAuto(){auto=!auto;$('#autoBtn').textContent=state.uiLanguage==='en'?'↕ Auto-scroll: '+(auto?'On':'Off'):'↕ Auto-Scroll: '+(auto?'An':'Aus');$('#autoBtn').classList.toggle('active',auto);$('#autoBtn').setAttribute('aria-pressed',auto);cancelAnimationFrame(scrollFrame);lastFrame=0;if(auto){pauseUntil=performance.now()+1000;scrollFrame=requestAnimationFrame(runAuto)}}
-function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','autoBtn','moreBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
+function bind(){const required=['lyrics','searchForm','dialog','results','workspace','largeView','performView','rhymeView','writeView','themeBtn','exportBtn','autoBtn','focusBtn'];for(const id of required)if(!document.getElementById(id))throw Error('Fehlendes Element: '+id);
 const bindClick=(id,handler,{optional=false}={})=>{
   const element=document.getElementById(id);
   if(!element){
@@ -2112,17 +2111,6 @@ bindClick('infoBtn',showInfo);
 bindClick('focusBtn',toggleFocus);
 bindClick('newSongSidebar',newSong);
 bindClick('renameBtn',()=>nameDialog('Titel ändern',song().title,t=>{song().title=t;persist();renderEditor()}));
-bindClick('addBar',()=>{
-  const current=song();
-  pushUndo();
-  const inserted=insertEditorBar(current,Math.min(current.lines.length,activeLine+1),'');
-  if(!inserted)return;
-  activeLine=inserted.index;
-  analysisSignature='';
-  renderEditor();
-  focusLine(activeLine,0);
-  changed();
-});
 bindClick('undoBtn',performUndo);
 bindClick('redoBtn',performRedo);
 const searchForm=$('#searchForm');
@@ -2135,7 +2123,6 @@ searchForm.onsubmit=e=>{
   $('#resultsScroll').scrollTop=0;
 };
 bindClick('autoBtn',toggleAuto);
-bindClick('moreBtn',()=>{pageSize+=6;renderResults()});
 const resultsScroll=$('#resultsScroll');
 resultsScroll.addEventListener('scroll',()=>{
   syncSearchPageCompact(resultsScroll.scrollTop);
