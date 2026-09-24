@@ -39,7 +39,7 @@ undo/redo, revision boundaries, safe clear, Bar actions/Navigator, hold-drag,
 section long-press, selection-follow/fixed anchor and the mobile Editor/Rhymes swap.
 
 The tested functional R5 checkpoint is
-`85dbd349ac65984049ad7d079987756914816580`: 60/60 tests, strict TypeScript and
+`85dbd349ac65`: 60/60 tests, strict TypeScript and
 Vite build pass; React Replatform #132, Full CI #1315 and Studio V2 Gate #450 pass.
 The parity inventory is 66 ported / 5 in_progress / 22 pending / 0 verified.
 
