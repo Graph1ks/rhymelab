@@ -4,14 +4,20 @@ import { useSharedSearchState } from './SearchStateProvider';
 import { useSearchPreferences } from './useSearchPreferences';
 import styles from './Search.module.css';
 
-export function SavedWorkspace() {
+export function SavedWorkspace({
+  embedded = false,
+  onClose,
+}: {
+  embedded?: boolean;
+  onClose?: () => void;
+} = {}) {
   const language = useUiStore((state) => state.uiLanguage);
   const navigate = useUiStore((state) => state.navigate);
   const { patch } = useSharedSearchState();
   const preferences = useSearchPreferences();
 
   return (
-    <section className={styles.savedWorkspace}>
+    <section className={styles.savedWorkspace} data-embedded={embedded ? 'true' : 'false'}>
       <header className={styles.savedHeader}>
         <div>
           <p>SAVED</p>
@@ -42,7 +48,8 @@ export function SavedWorkspace() {
                 type="button"
                 onClick={() => {
                   patch({ anchor: item.anchor || item.word, selectedResultId: '' });
-                  navigate('search');
+                  if (!embedded) navigate('search');
+                  onClose?.();
                 }}
               >
                 {language === 'de' ? 'Suchen ↗' : 'Search ↗'}
