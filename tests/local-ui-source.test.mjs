@@ -153,9 +153,9 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(server, /'\/assets\/search-state\.mjs'/);
   assert.match(server, /resultLanguage: url\.searchParams\.get\('result_language'\)/);
   assert.match(app, /\/api\/phrases\/detail/);
-  assert.match(app, /const progressive=selectedType!=='all'/);
-  assert.match(app, /progressive\?orderedAll\.slice\(0,state\.visibleCount\):orderedAll/);
-  assert.match(app, /setupInfiniteScroll\(progressive&&hasMore\)/);
+  assert.match(app, /const visible=orderedAll\.slice\(0,state\.visibleCount\)/);
+  assert.match(app, /setupInfiniteScroll\(hasMore\)/);
+  assert.doesNotMatch(app, /const progressive=selectedType!=='all'/);
   assert.match(app, /data-more-section/);
   assert.match(app, /state\.sectionVisible/);
   assert.match(app, /counts\?\.searchPool/);
