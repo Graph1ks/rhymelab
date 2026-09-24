@@ -545,16 +545,22 @@ test('Studio shared SearchState re-export resolves to a served browser URL',asyn
   );
 });
 
-test('Studio query-pronunciation wrappers resolve to the served shared client modules',async()=>{
-  const [clientWrapper,cacheWrapper,sharedClient,server]=await Promise.all([
+test('Studio query-pronunciation compatibility routes delegate to Shared Core and Web Platform authority',async()=>{
+  const [clientWrapper,cacheWrapper,uiClient,uiCache,sharedClient,webCache,server]=await Promise.all([
     readFile('src/studio/query-pronunciation-client.mjs','utf8'),
     readFile('src/studio/query-pronunciation-cache.mjs','utf8'),
     readFile('src/ui/query-pronunciation-client.mjs','utf8'),
+    readFile('src/ui/query-pronunciation-cache.mjs','utf8'),
+    readFile('packages/shared-core/src/search/query-pronunciation-client.mjs','utf8'),
+    readFile('packages/platform-web/src/query-pronunciation-cache.mjs','utf8'),
     readFile('src/server.mjs','utf8'),
   ]);
   assert.match(clientWrapper,/export \* from '\.\.\/ui\/query-pronunciation-client\.mjs';/u);
   assert.match(cacheWrapper,/export \* from '\.\.\/ui\/query-pronunciation-cache\.mjs';/u);
+  assert.match(uiClient,/packages\/shared-core\/src\/search\/query-pronunciation-client\.mjs/u);
+  assert.match(uiCache,/packages\/platform-web\/src\/query-pronunciation-cache\.mjs/u);
   assert.match(sharedClient,/client-total-query-pronunciation-v4/u);
+  assert.match(webCache,/QUERY_PRONUNCIATION_CACHE_SCHEMA/u);
   assert.equal(
     new URL('../ui/query-pronunciation-client.mjs','http://127.0.0.1:3030/studio/query-pronunciation-client.mjs').pathname,
     '/ui/query-pronunciation-client.mjs',
@@ -601,20 +607,20 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   const [app,core,controls,search,filters,sharedSearchState,documents,documentModel,documentStore,editorSession,performanceSession,analysisAdapter,capabilities,details,pronunciationClient,pronunciationCache]=await Promise.all([
     readFile('src/studio/app.js','utf8'),
     readFile('src/studio/studio-core.mjs','utf8'),
-    readFile('src/studio/studio-controls.mjs','utf8'),
-    readFile('src/studio/search-adapter.mjs','utf8'),
-    readFile('src/studio/search-filters.mjs','utf8'),
-    readFile('src/ui/search-state.mjs','utf8'),
-    readFile('src/studio/document-adapter.mjs','utf8'),
-    readFile('src/studio/document-model.mjs','utf8'),
-    readFile('src/studio/document-store.mjs','utf8'),
-    readFile('src/studio/editor-session.mjs','utf8'),
-    readFile('src/studio/performance-session.mjs','utf8'),
-    readFile('src/studio/analysis-adapter.mjs','utf8'),
-    readFile('src/studio/capability-adapter.mjs','utf8'),
-    readFile('src/studio/detail-adapter.mjs','utf8'),
-    readFile('src/studio/query-pronunciation-client.mjs','utf8'),
-    readFile('src/studio/query-pronunciation-cache.mjs','utf8'),
+    readFile('packages/shared-core/src/search/result-density.mjs','utf8'),
+    readFile('packages/shared-core/src/search/search-adapter.mjs','utf8'),
+    readFile('packages/shared-core/src/search/search-filters.mjs','utf8'),
+    readFile('packages/shared-core/src/search/search-state.mjs','utf8'),
+    readFile('packages/platform-web/src/document-adapter.mjs','utf8'),
+    readFile('packages/shared-core/src/document/document-model.mjs','utf8'),
+    readFile('packages/platform-web/src/document-store.mjs','utf8'),
+    readFile('packages/shared-core/src/editor/editor-session.mjs','utf8'),
+    readFile('packages/shared-core/src/editor/performance-session.mjs','utf8'),
+    readFile('packages/shared-core/src/services/analysis-adapter.mjs','utf8'),
+    readFile('packages/shared-core/src/search/capability-adapter.mjs','utf8'),
+    readFile('packages/shared-core/src/services/detail-adapter.mjs','utf8'),
+    readFile('packages/shared-core/src/search/query-pronunciation-client.mjs','utf8'),
+    readFile('packages/platform-web/src/query-pronunciation-cache.mjs','utf8'),
   ]);
 
   assert.match(app,/from '\.\/studio-core\.mjs'/u);
@@ -708,8 +714,8 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
   assert.match(capabilities,/export async function loadStudioCapabilities/u);
   assert.match(details,/export function createStudioDetailClient/u);
   assert.match(details,/export function buildStudioDetailModel/u);
-  assert.match(pronunciationClient,/export \* from '\.\.\/ui\/query-pronunciation-client\.mjs';/u);
-  assert.match(pronunciationCache,/export \* from '\.\.\/ui\/query-pronunciation-cache\.mjs';/u);
+  assert.match(pronunciationClient,/CLIENT_QUERY_PRONUNCIATION_POLICY='client-total-query-pronunciation-v4'/u);
+  assert.match(pronunciationCache,/QUERY_PRONUNCIATION_CACHE_SCHEMA/u);
 });
 
 
@@ -902,7 +908,7 @@ test('Studio two-row filter deck preserves the full Writer filter matrix',async(
   const [html,app,filters]=await Promise.all([
     readFile('src/studio/index.html','utf8'),
     readFile('src/studio/app.js','utf8'),
-    readFile('src/studio/search-filters.mjs','utf8'),
+    readFile('packages/shared-core/src/search/search-filters.mjs','utf8'),
   ]);
 
   for(const id of [

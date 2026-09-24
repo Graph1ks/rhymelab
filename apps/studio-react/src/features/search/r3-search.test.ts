@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import * as legacyFilters from '../../../../../src/studio/search-filters.mjs';
-import * as legacyControls from '../../../../../src/studio/studio-controls.mjs';
+import * as legacyFilters from '../../../../../packages/shared-core/src/search/search-filters.mjs';
+import * as legacyControls from '../../../../../packages/shared-core/src/search/result-density.mjs';
 
-import type { RuntimeEditionPayload, WriterResultRow } from '../../legacy/contracts';
-import { chooseAvailableRuntimeEdition, createSearchState } from '../../legacy/search';
+import type { RuntimeEditionPayload, WriterResultRow } from '../../core/contracts';
+import { chooseAvailableRuntimeEdition, createSearchState } from '../../core/search';
 import { runtimeEditionFromHealth, trackedSearchText, writerSearchOptions } from './data';
 import {
   corpusModePatch,

@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-24",
-  "phase": "REACT_STUDIO_R8_REVERSIBLE_CUTOVER",
+  "phase": "R9_SHARED_CORE_EXTRACTION",
   "package_version": "0.11.0",
   "rhyme_bureau_design_pass": {
     "status": "IMPLEMENTED_AUTOMATED_PASS_BROWSER_OWNER_ACCEPTANCE_PENDING",
@@ -4020,8 +4020,8 @@
   "active_continuation": {
     "id": "REACT_STUDIO_REPLATFORM",
     "priority": "P0",
-    "status": "R8_OWNER_AUTHORIZED_REVERSIBLE_CUTOVER_ACTIVE_DEVICE_ACCEPTANCE_PENDING",
-    "branch": "fix/react-studio-r8-cutover",
+    "status": "R9_SHARED_CORE_EXTRACTION_ACTIVE",
+    "branch": "architecture/shared-core-r9",
     "handover": "docs/REACT_STUDIO_REPLATFORM.md",
     "parity_gate": "docs/REACT_STUDIO_PARITY_GATE.md",
     "baseline_commit": "fbda43a9e4dd",
@@ -4055,7 +4055,7 @@
       ]
     },
     "r1_contract": "docs/REACT_STUDIO_R1_TYPED_BRIDGE.md",
-    "next_thread_action": "verify React default-route burn-in and complete the seven real-browser/device gates; keep /studio-legacy as rollback",
+    "next_thread_action": "finish Shared Core extraction, keep React free of legacy/direct old-UI imports, then complete physical acceptance before deleting rollback surfaces",
     "r2_contract": "docs/REACT_STUDIO_R2_SHELL.md",
     "r3_contract": "docs/REACT_STUDIO_R3_SEARCH_WRITER.md",
     "r4_contract": "docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md",
@@ -4441,6 +4441,59 @@
       ],
       "full_acceptance_complete": false,
       "note": "Runtime cutover is owner-authorized and reversible; pending physical acceptance remains required before declaring migration complete or removing legacy Studio."
+    },
+    "r9": {
+      "status": "SHARED_CORE_EXTRACTION_ACTIVE",
+      "contract": "docs/SHARED_CORE_ARCHITECTURE.md",
+      "react_legacy_bridge_removed": true,
+      "shared_core": "packages/shared-core",
+      "web_platform": "packages/platform-web",
+      "typed_react_boundary": "apps/studio-react/src/core",
+      "physical_device_gates_pending": [
+        "editor.ime",
+        "perform.metronome",
+        "mobile.navigation",
+        "mobile.swap",
+        "mobile.keyboard",
+        "mobile.touch",
+        "mobile.no-hover"
+      ],
+      "legacy_surface_deletion_blocked_until_physical_acceptance": true
     }
+  },
+  "shared_core": {
+    "status": "IMPLEMENTATION_ACTIVE",
+    "branch": "architecture/shared-core-r9",
+    "pull_request": 213,
+    "contract": "docs/SHARED_CORE_ARCHITECTURE.md",
+    "shared_package": "packages/shared-core",
+    "web_platform_package": "packages/platform-web",
+    "react_boundary": "apps/studio-react/src/core",
+    "react_legacy_bridge_removed": true,
+    "react_direct_legacy_ui_imports_allowed": false,
+    "forbidden_react_import_roots": [
+      "apps/studio-react/src/legacy",
+      "src/studio",
+      "src/ui"
+    ],
+    "preservation_policy": [
+      "authoritative_domain_behavior",
+      "data_format_migration_compatibility",
+      "replaceable_platform_adapters",
+      "parity_proven_semantics"
+    ],
+    "excluded_from_shared_core": [
+      "legacy_dom_orchestration",
+      "debug_only_browser_metrics",
+      "obsolete_ui_helpers",
+      "duplicate_implementations"
+    ],
+    "boundary_gate": "npm run studio:react:core-boundary",
+    "legacy_surfaces_role": "temporary_rollback_only_until_physical_acceptance",
+    "cross_platform_target": [
+      "web",
+      "electron",
+      "mobile"
+    ]
   }
 }

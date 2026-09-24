@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import * as legacyI18n from '../../../../src/studio/i18n.mjs';
-import * as legacyCommands from '../../../../src/studio/command-palette.mjs';
-import * as legacyMobile from '../../../../src/studio/mobile-viewport.mjs';
+import * as legacyI18n from '../../../../packages/shared-core/src/i18n/i18n.mjs';
+import * as legacyCommands from '../../../../packages/shared-core/src/commands/command-palette.mjs';
+import * as legacyMobile from '../../../../packages/platform-web/src/mobile-viewport.mjs';
 
 import {
   MOBILE_BREAKPOINT,
@@ -15,7 +15,7 @@ import {
   rankStudioCommands,
   studioCommandGroups,
   translateStudioUiText,
-} from '../legacy/shell';
+} from '../core/shell';
 import {
   BUILTIN_THEMES,
   applyThemeToDocument,
@@ -39,7 +39,7 @@ import {
   Select,
   Tooltip,
 } from '../design-system/primitives';
-import { createStudioState } from '../legacy/documents';
+import { createStudioState } from '../core/documents';
 import { useUiStore } from '../state/uiStore';
 import {
   NAVIGATION_ITEMS,

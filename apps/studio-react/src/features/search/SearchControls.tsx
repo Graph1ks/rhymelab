@@ -8,7 +8,7 @@ import type {
   SearchSort,
   SyllableFilter,
   VariantMode,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 import { useUiStore } from '../../state/uiStore';
 import { Icon } from '../../shell/icons';
 import {

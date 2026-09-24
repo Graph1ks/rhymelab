@@ -1,5 +1,5 @@
-import { loadStudioPreferences, writeStudioPreferences } from '../legacy/documents';
-import type { JsonRecord, StorageLike, StudioPreferences } from '../legacy/contracts';
+import { loadStudioPreferences, writeStudioPreferences } from '../core/documents';
+import type { JsonRecord, StorageLike, StudioPreferences } from '../core/contracts';
 
 export type ThemeMode = 'light' | 'dark';
 

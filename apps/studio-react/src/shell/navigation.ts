@@ -1,5 +1,5 @@
-import type { StudioUiLanguage } from '../legacy/shell';
-import { translateStudioUiText } from '../legacy/shell';
+import type { StudioUiLanguage } from '../core/shell';
+import { translateStudioUiText } from '../core/shell';
 
 export type AppSurface = 'home' | 'studio' | 'search' | 'library' | 'saved' | 'settings';
 

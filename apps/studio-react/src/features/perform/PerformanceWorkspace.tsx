@@ -8,7 +8,7 @@ import {
 } from 'react';
 
 import { Select } from '../../design-system/primitives';
-import type { PerformanceConfig, PerformanceCue } from '../../legacy/contracts';
+import type { PerformanceConfig, PerformanceCue } from '../../core/contracts';
 import {
   autoMapPerformanceBar,
   clearPerformanceBar,
@@ -29,8 +29,8 @@ import {
   setPerformanceCue,
   trackedEditorBarNumber,
   trackedEditorLineIndexes,
-} from '../../legacy/editor';
-import { estimateSyllables } from '../../legacy/search';
+} from '../../core/editor';
+import { estimateSyllables } from '../../core/search';
 import { useUiStore } from '../../state/uiStore';
 import { useEditorSession } from '../editor/EditorSessionProvider';
 import { asEditorSong } from '../editor/model';

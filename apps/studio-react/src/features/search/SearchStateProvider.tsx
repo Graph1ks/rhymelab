@@ -7,8 +7,8 @@ import {
   type ReactNode,
 } from 'react';
 
-import type { SearchState, SearchStateInput } from '../../legacy/contracts';
-import { defaultStudioUiLanguage } from '../../legacy/shell';
+import type { SearchState, SearchStateInput } from '../../core/contracts';
+import { defaultStudioUiLanguage } from '../../core/shell';
 import { useUiStore } from '../../state/uiStore';
 import {
   SEARCH_STATE_STORAGE_KEY,
@@ -18,7 +18,7 @@ import {
   saveSearchState,
   searchStateFromUrl,
   writeSearchStateToUrl,
-} from '../../legacy/search';
+} from '../../core/search';
 
 type SearchStateContextValue = {
   state: SearchState;

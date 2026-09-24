@@ -4,19 +4,19 @@ import type {
   StudioAnalysisOccurrence,
   StudioAnalysisPayload,
   StudioOccurrenceRelation,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 import {
   editorBracketSegments,
   editorLineKind,
   editorTrackableText,
   trackedEditorBarNumber,
   trackedEditorLineIndexes,
-} from '../../legacy/editor';
+} from '../../core/editor';
 import {
   extractStudioEndWord,
   studioRhymeTypeCounts,
-} from '../../legacy/services';
-import { estimateSyllables } from '../../legacy/search';
+} from '../../core/services';
+import { estimateSyllables } from '../../core/search';
 import { asEditorSong, ensureLegacyEditorSong } from '../editor/model';
 
 export const ANALYSIS_RHYME_TYPE_ORDER = [

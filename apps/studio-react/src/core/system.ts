@@ -1,5 +1,5 @@
-import * as legacyDiagnostics from '../../../../src/studio/diagnostics.mjs';
-import * as legacyDeviceAcceptance from '../../../../src/studio/device-acceptance.mjs';
+import * as webDiagnostics from '../../../../packages/platform-web/src/diagnostics.mjs';
+import * as webDeviceAcceptance from '../../../../packages/platform-web/src/device-acceptance.mjs';
 
 import type {
   DeviceEnvironment,
@@ -60,8 +60,8 @@ type DeviceApi = {
   studioDeviceAcceptanceFilename(date?: Date): string;
 };
 
-const diagnosticsApi = legacyDiagnostics as unknown as DiagnosticsApi;
-const deviceApi = legacyDeviceAcceptance as unknown as DeviceApi;
+const diagnosticsApi = webDiagnostics as unknown as DiagnosticsApi;
+const deviceApi = webDeviceAcceptance as unknown as DeviceApi;
 
 export const STUDIO_DIAGNOSTICS_SCHEMA = diagnosticsApi.STUDIO_DIAGNOSTICS_SCHEMA;
 export const collectStudioEnvironmentDiagnostics = diagnosticsApi.collectStudioEnvironmentDiagnostics;

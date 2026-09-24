@@ -1,6 +1,6 @@
-import * as legacyI18n from '../../../../src/studio/i18n.mjs';
-import * as legacyCommands from '../../../../src/studio/command-palette.mjs';
-import * as legacyMobileViewport from '../../../../src/studio/mobile-viewport.mjs';
+import * as sharedI18n from '../../../../packages/shared-core/src/i18n/i18n.mjs';
+import * as sharedCommands from '../../../../packages/shared-core/src/commands/command-palette.mjs';
+import * as webMobileViewport from '../../../../packages/platform-web/src/mobile-viewport.mjs';
 
 export type StudioUiLanguage = 'de' | 'en';
 
@@ -61,9 +61,9 @@ type MobileViewportApi = {
   }): () => void;
 };
 
-const i18nApi = legacyI18n as unknown as I18nApi;
-const commandApi = legacyCommands as unknown as CommandApi;
-const mobileApi = legacyMobileViewport as unknown as MobileViewportApi;
+const i18nApi = sharedI18n as unknown as I18nApi;
+const commandApi = sharedCommands as unknown as CommandApi;
+const mobileApi = webMobileViewport as unknown as MobileViewportApi;
 
 export const STUDIO_UI_LANGUAGES = i18nApi.STUDIO_UI_LANGUAGES;
 export const clientLocaleUiLanguage = i18nApi.clientLocaleUiLanguage;

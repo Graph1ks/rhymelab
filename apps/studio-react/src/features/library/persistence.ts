@@ -3,23 +3,23 @@ import {
   createStudioDocumentStore,
   loadStudioPreferences,
   loadStudioState,
-  migrateLegacyStudioStateToStore,
+  migrateWorkspaceStateToStore,
   parsePortableStudioBackup,
-  shadowLegacyStudioStateToStore,
+  shadowWorkspaceStateToStore,
   studioPreferencesFromState,
   studioStateFromDocumentSnapshot,
   writeStudioPreferences,
   writeStudioState,
-} from '../../legacy/documents';
+} from '../../core/documents';
 import type {
   JsonRecord,
-  LegacyStudioState,
+  WorkspaceState,
   PortableStudioBackup,
   SearchState,
   StudioDocumentSnapshot,
   StudioDocumentStore,
   StudioPreferences,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 import { cloneWorkspaceState } from './model';
 
 export type WorkspacePersistenceStatus =
@@ -30,7 +30,7 @@ export type WorkspacePersistenceStatus =
   | 'error';
 
 export interface WorkspaceInitialization {
-  state: LegacyStudioState;
+  state: WorkspaceState;
   snapshot: StudioDocumentSnapshot | null;
   storeAvailable: boolean;
   authority: 'indexeddb' | 'localstorage';
@@ -61,7 +61,7 @@ export async function initializeDocumentWorkspace(
 ): Promise<WorkspaceInitialization> {
   const legacy = loadStudioState();
   const preferences = loadStudioPreferences();
-  const base = { ...legacy, ...preferences } as LegacyStudioState;
+  const base = { ...legacy, ...preferences } as WorkspaceState;
 
   if (!(await store.available())) {
     return {
@@ -80,7 +80,7 @@ export async function initializeDocumentWorkspace(
   }
 
   if (!snapshot) {
-    const migrated = await migrateLegacyStudioStateToStore(legacy, store);
+    const migrated = await migrateWorkspaceStateToStore(legacy, store);
     snapshot = migrated.migration.snapshot;
   }
 
@@ -96,7 +96,7 @@ export async function initializeDocumentWorkspace(
 
 export async function saveWorkspaceState(
   store: StudioDocumentStore,
-  state: LegacyStudioState,
+  state: WorkspaceState,
   storeAvailable: boolean,
 ): Promise<boolean> {
   writeStudioPreferences(state);
@@ -104,7 +104,7 @@ export async function saveWorkspaceState(
     writeStudioState(state);
     return true;
   }
-  const result = await shadowLegacyStudioStateToStore(
+  const result = await shadowWorkspaceStateToStore(
     cloneWorkspaceState(state),
     store,
   );
@@ -131,7 +131,7 @@ export async function restoreWorkspaceRecoveryPoint(
   id: string,
   currentPreferences: StudioPreferences = loadStudioPreferences(),
 ): Promise<{
-  state: LegacyStudioState;
+  state: WorkspaceState;
   snapshot: StudioDocumentSnapshot;
 }> {
   const row = await store.getBackup(id) as RecoveryRow | null;
@@ -154,8 +154,8 @@ export async function restoreWorkspaceRecoveryPoint(
     if (!payload || typeof payload !== 'object') {
       throw new Error('Legacy-Backup ist ungültig.');
     }
-    const migrated = await migrateLegacyStudioStateToStore(
-      payload as Partial<LegacyStudioState>,
+    const migrated = await migrateWorkspaceStateToStore(
+      payload as Partial<WorkspaceState>,
       store,
     );
     snapshot = migrated.migration.snapshot;
@@ -165,7 +165,7 @@ export async function restoreWorkspaceRecoveryPoint(
 
   const state = studioStateFromDocumentSnapshot(
     snapshot,
-    { ...loadStudioState(), ...currentPreferences } as LegacyStudioState,
+    { ...loadStudioState(), ...currentPreferences } as WorkspaceState,
   );
   writeStudioPreferences(state);
   return { state, snapshot };
@@ -173,7 +173,7 @@ export async function restoreWorkspaceRecoveryPoint(
 
 export async function createWorkspacePortableBackup(
   store: StudioDocumentStore,
-  state: LegacyStudioState,
+  state: WorkspaceState,
   searchState: SearchState,
 ): Promise<PortableStudioBackup> {
   const snapshot = await store.loadSnapshot();
@@ -190,7 +190,7 @@ export async function applyWorkspacePortableBackup(
   input: string | unknown,
 ): Promise<{
   backup: PortableStudioBackup;
-  state: LegacyStudioState;
+  state: WorkspaceState;
   snapshot: StudioDocumentSnapshot;
 }> {
   const parsed = parsePortableStudioBackup(input);
@@ -209,7 +209,7 @@ export async function applyWorkspacePortableBackup(
       ...loadStudioState(),
       ...loadStudioPreferences(),
       ...parsed.preferences,
-    } as LegacyStudioState,
+    } as WorkspaceState,
   );
   writeStudioPreferences(state);
 
@@ -221,8 +221,8 @@ export async function applyWorkspacePortableBackup(
 }
 
 export interface SerializedSaveQueue {
-  schedule(state: LegacyStudioState, delay?: number): number;
-  flush(state?: LegacyStudioState): Promise<boolean>;
+  schedule(state: WorkspaceState, delay?: number): number;
+  flush(state?: WorkspaceState): Promise<boolean>;
   close(): void;
   generation(): number;
 }
@@ -231,16 +231,16 @@ export function createSerializedSaveQueue({
   save,
   delay = 180,
 }: {
-  save: (state: LegacyStudioState, generation: number) => Promise<boolean>;
+  save: (state: WorkspaceState, generation: number) => Promise<boolean>;
   delay?: number;
 }): SerializedSaveQueue {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let generation = 0;
-  let latest: LegacyStudioState | null = null;
+  let latest: WorkspaceState | null = null;
   let chain: Promise<boolean> = Promise.resolve(true);
   let closed = false;
 
-  const run = (state: LegacyStudioState, currentGeneration: number) => {
+  const run = (state: WorkspaceState, currentGeneration: number) => {
     const snapshot = cloneWorkspaceState(state);
     chain = chain.catch(() => false).then(() => save(snapshot, currentGeneration));
     return chain;

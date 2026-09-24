@@ -712,3 +712,9 @@ export interface RevisionDiff {
   current: RevisionDiffBar[];
   previous: RevisionDiffBar[];
 }
+
+// Neutral runtime names. The LegacyStudio* interfaces remain exported only for
+// import/migration compatibility with pre-React workspace payloads.
+export type WorkspaceState = LegacyStudioState;
+export type WorkspaceSong = LegacyStudioSong;
+export type WorkspaceRevision = LegacyStudioRevision;

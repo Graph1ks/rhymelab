@@ -1,7 +1,7 @@
-import * as legacyEditor from '../../../../src/studio/editor-session.mjs';
-import * as legacyHistory from '../../../../src/studio/edit-history.mjs';
-import * as legacyPerformance from '../../../../src/studio/performance-session.mjs';
-import * as legacyRevisionDiff from '../../../../src/studio/revision-diff.mjs';
+import * as sharedEditor from '../../../../packages/shared-core/src/editor/editor-session.mjs';
+import * as sharedHistory from '../../../../packages/shared-core/src/editor/edit-history.mjs';
+import * as sharedPerformance from '../../../../packages/shared-core/src/editor/performance-session.mjs';
+import * as sharedRevisionDiff from '../../../../packages/shared-core/src/editor/revision-diff.mjs';
 
 import type {
   EditorBarIdentity,
@@ -125,10 +125,10 @@ type RevisionDiffApi = {
   revisionDiffLabel(row: RevisionDiffRow): string;
 };
 
-const editorApi = legacyEditor as unknown as EditorApi;
-const historyApi = legacyHistory as unknown as HistoryApi;
-const performanceApi = legacyPerformance as unknown as PerformanceApi;
-const revisionApi = legacyRevisionDiff as unknown as RevisionDiffApi;
+const editorApi = sharedEditor as unknown as EditorApi;
+const historyApi = sharedHistory as unknown as HistoryApi;
+const performanceApi = sharedPerformance as unknown as PerformanceApi;
+const revisionApi = sharedRevisionDiff as unknown as RevisionDiffApi;
 
 export const ensureEditorSong = editorApi.ensureEditorSong;
 export const barIdentity = editorApi.barIdentity;

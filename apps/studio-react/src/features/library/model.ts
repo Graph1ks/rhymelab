@@ -1,7 +1,7 @@
 import type {
-  LegacyStudioSong,
-  LegacyStudioState,
-} from '../../legacy/contracts';
+  WorkspaceSong,
+  WorkspaceState,
+} from '../../core/contracts';
 
 export type LibrarySort = 'updated' | 'title' | 'created' | 'bars';
 
@@ -13,16 +13,16 @@ export interface LibraryViewState {
 }
 
 export interface LibraryMutationResult {
-  state: LegacyStudioState;
+  state: WorkspaceState;
   changed: boolean;
   reason?: string;
 }
 
-export function cloneWorkspaceState(state: LegacyStudioState): LegacyStudioState {
+export function cloneWorkspaceState(state: WorkspaceState): WorkspaceState {
   try {
     return structuredClone(state);
   } catch {
-    return JSON.parse(JSON.stringify(state)) as LegacyStudioState;
+    return JSON.parse(JSON.stringify(state)) as WorkspaceState;
   }
 }
 
@@ -93,7 +93,7 @@ export function expandFolderPaths(values: unknown[]): string[] {
 }
 
 export function folderChildren(
-  state: LegacyStudioState,
+  state: WorkspaceState,
   parent: unknown,
   folders = state.folders,
 ): string[] {
@@ -102,7 +102,7 @@ export function folderChildren(
 }
 
 export function flattenFolderHierarchy(
-  state: LegacyStudioState,
+  state: WorkspaceState,
   overrides = new Map<string, string[]>(),
 ): string[] {
   const ordered: string[] = [];
@@ -131,15 +131,15 @@ export function flattenFolderHierarchy(
 }
 
 export function canonicalizeFolderOrder(
-  state: LegacyStudioState,
+  state: WorkspaceState,
   overrides = new Map<string, string[]>(),
-): LegacyStudioState {
+): WorkspaceState {
   state.folders = flattenFolderHierarchy(state, overrides);
   return state;
 }
 
 export function ensureLibraryFolder(
-  state: LegacyStudioState,
+  state: WorkspaceState,
   name: unknown,
 ): string {
   const normalized = normalizeFolderName(name) || 'Entwürfe';
@@ -151,19 +151,19 @@ export function ensureLibraryFolder(
   return normalized;
 }
 
-export function libraryTimestamp(item: LegacyStudioSong): number {
+export function libraryTimestamp(item: WorkspaceSong): number {
   return Math.max(Number(item?.updatedAt) || 0, Number(item?.createdAt) || 0);
 }
 
-export function touchSong(item: LegacyStudioSong | undefined, at = Date.now()): void {
+export function touchSong(item: WorkspaceSong | undefined, at = Date.now()): void {
   if (!item) return;
   item.updatedAt = Math.max(Number(item.updatedAt) || 0, Number(at) || 0);
 }
 
 export function libraryRows(
-  state: LegacyStudioState,
+  state: WorkspaceState,
   view: LibraryViewState,
-): LegacyStudioSong[] {
+): WorkspaceSong[] {
   const needle = view.query.trim().toLocaleLowerCase('de-DE');
   const rows = state.songs.filter((item) => {
     const deleted = Boolean(item.deleted || item.deletedAt);
@@ -200,7 +200,7 @@ export function libraryRows(
 }
 
 export function createLibrarySong(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   title: string,
   folder: string,
   now = Date.now(),
@@ -211,7 +211,7 @@ export function createLibrarySong(
 
   const requestedFolder = String(folder ?? '').trim();
   const target = requestedFolder ? ensureLibraryFolder(state, requestedFolder) : '';
-  const created: LegacyStudioSong = {
+  const created: WorkspaceSong = {
     id: `s${now}`,
     title: normalizedTitle,
     lines: [''],
@@ -227,7 +227,7 @@ export function createLibrarySong(
 }
 
 export function openLibrarySong(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   id: string,
 ): LibraryMutationResult {
   const target = source.songs.find((item) => item.id === id && !item.deleted);
@@ -238,7 +238,7 @@ export function openLibrarySong(
 }
 
 export function renameLibrarySong(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   id: string,
   title: string,
   now = Date.now(),
@@ -255,7 +255,7 @@ export function renameLibrarySong(
 }
 
 export function moveLibrarySong(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   id: string,
   folder: string,
   now = Date.now(),
@@ -272,7 +272,7 @@ export function moveLibrarySong(
 }
 
 export function duplicateLibrarySong(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   id: string,
   folder: string,
   now = Date.now(),
@@ -290,7 +290,7 @@ export function duplicateLibrarySong(
     nextId = `s${now}-copy-${suffix++}`;
   }
 
-  const copy: LegacyStudioSong = {
+  const copy: WorkspaceSong = {
     ...structuredClone(original),
     id: nextId,
     title: String(original.title || 'Untitled'),
@@ -309,7 +309,7 @@ export function duplicateLibrarySong(
 }
 
 export function duplicateLibraryFolder(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   folderName: string,
   targetParent: string,
   now = Date.now(),
@@ -382,7 +382,7 @@ export function duplicateLibraryFolder(
 }
 
 export function moveLibraryFolder(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   folderName: string,
   targetParent: string,
   now = Date.now(),
@@ -428,7 +428,7 @@ export function moveLibraryFolder(
 }
 
 export function trashLibrarySong(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   id: string,
   now = Date.now(),
 ): LibraryMutationResult {
@@ -453,7 +453,7 @@ export function trashLibrarySong(
 }
 
 export function restoreLibrarySong(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   id: string,
   now = Date.now(),
 ): LibraryMutationResult {
@@ -468,7 +468,7 @@ export function restoreLibrarySong(
 }
 
 export function permanentlyDeleteLibrarySong(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   id: string,
 ): LibraryMutationResult {
   const state = cloneWorkspaceState(source);
@@ -484,7 +484,7 @@ export function permanentlyDeleteLibrarySong(
 }
 
 export function createLibraryFolder(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   value: string,
   parent = '',
 ): LibraryMutationResult & { folder?: string } {
@@ -503,7 +503,7 @@ export function createLibraryFolder(
 }
 
 export function renameLibraryFolder(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   folderName: string,
   value: string,
   now = Date.now(),
@@ -545,7 +545,7 @@ export function renameLibraryFolder(
 }
 
 export function reorderLibraryFolder(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   folderName: string,
   direction: -1 | 1,
 ): LibraryMutationResult {
@@ -564,7 +564,7 @@ export function reorderLibraryFolder(
 }
 
 export function deleteLibraryFolder(
-  source: LegacyStudioState,
+  source: WorkspaceState,
   folderName: string,
   now = Date.now(),
 ): LibraryMutationResult & {

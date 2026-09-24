@@ -6,9 +6,9 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   const [html, app, searchState, clientPronunciation, pronunciationCache, queryTest, css, mobileCss, server] = await Promise.all([
     readFile('src/ui/index.html', 'utf8'),
     readFile('src/ui/app.js', 'utf8'),
-    readFile('src/ui/search-state.mjs', 'utf8'),
-    readFile('src/ui/query-pronunciation-client.mjs', 'utf8'),
-    readFile('src/ui/query-pronunciation-cache.mjs', 'utf8'),
+    readFile('packages/shared-core/src/search/search-state.mjs', 'utf8'),
+    readFile('packages/shared-core/src/search/query-pronunciation-client.mjs', 'utf8'),
+    readFile('packages/platform-web/src/query-pronunciation-cache.mjs', 'utf8'),
     readFile('src/query-pronunciation-test/app.js', 'utf8'),
     readFile('src/ui/styles.css', 'utf8'),
     readFile('src/ui/mobile.css', 'utf8'),

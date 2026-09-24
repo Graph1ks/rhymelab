@@ -11,9 +11,9 @@ import {
 
 import type {
   EditorSnapshot,
-  LegacyStudioRevision,
-  LegacyStudioSong,
-} from '../../legacy/contracts';
+  WorkspaceRevision,
+  WorkspaceSong,
+} from '../../core/contracts';
 import {
   barIdentity,
   compareEditorRevisions,
@@ -28,7 +28,7 @@ import {
   replaceEditorDocumentRange,
   restoreEditorSnapshot,
   validateSelectionProof,
-} from '../../legacy/editor';
+} from '../../core/editor';
 import { useDocumentWorkspace } from '../library/DocumentWorkspaceProvider';
 import { touchSong } from '../library/model';
 import {
@@ -68,10 +68,10 @@ export interface ActiveSongMutationOptions {
   revision?: boolean;
 }
 
-export type ActiveSongMutator = (song: LegacyStudioSong) => boolean | void;
+export type ActiveSongMutator = (song: WorkspaceSong) => boolean | void;
 
 interface EditorSessionContextValue {
-  activeSong: LegacyStudioSong | null;
+  activeSong: WorkspaceSong | null;
   documentText: string;
   selection: EditorSelectionState | null;
   followSelection: boolean;
@@ -100,20 +100,20 @@ interface EditorSessionContextValue {
   moveBar: (fromIndex: number, toIndex: number) => Promise<boolean>;
   jumpToBar: (barId: string) => void;
   clearDocument: () => Promise<boolean>;
-  restoreRevision: (revision: LegacyStudioRevision) => Promise<boolean>;
-  revisionDiff: (revision: LegacyStudioRevision) => ReturnType<typeof compareEditorRevisions> | null;
+  restoreRevision: (revision: WorkspaceRevision) => Promise<boolean>;
+  revisionDiff: (revision: WorkspaceRevision) => ReturnType<typeof compareEditorRevisions> | null;
 }
 
 const EditorSessionContext = createContext<EditorSessionContextValue | null>(null);
 const HISTORY_LIMIT = 80;
 const REVISION_DELAY_MS = 650;
 
-function cloneSong(song: LegacyStudioSong | null): LegacyStudioSong | null {
+function cloneSong(song: WorkspaceSong | null): WorkspaceSong | null {
   if (!song) return null;
   try {
     return structuredClone(song);
   } catch {
-    return JSON.parse(JSON.stringify(song)) as LegacyStudioSong;
+    return JSON.parse(JSON.stringify(song)) as WorkspaceSong;
   }
 }
 
@@ -656,7 +656,7 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
     scheduleRevision,
   ]);
 
-  const restoreRevision = useCallback(async (revision: LegacyStudioRevision) => {
+  const restoreRevision = useCallback(async (revision: WorkspaceRevision) => {
     const current = currentSongCopy();
     if (!current) return false;
     checkpoint();
@@ -705,7 +705,7 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
     return changed;
   }, [checkpoint, currentSongCopy, documents, scheduleRevision]);
 
-  const revisionDiff = useCallback((revision: LegacyStudioRevision) => {
+  const revisionDiff = useCallback((revision: WorkspaceRevision) => {
     const current = currentSongCopy();
     if (!current) return null;
     return compareEditorRevisions(snapshotForUndo(current), revision);

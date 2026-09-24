@@ -3,14 +3,14 @@ import type {
   StudioCapabilities,
   StudioDeviceAcceptance,
   StudioDiagnostics,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 import {
   STUDIO_DEVICE_GATES,
   collectStudioEnvironmentDiagnostics,
   createStudioDeviceAcceptance,
   parseStudioDeviceAcceptance,
   studioDeviceAcceptanceSummary,
-} from '../../legacy/system';
+} from '../../core/system';
 
 export const DEVICE_ACCEPTANCE_STORAGE_KEY = 'rhymelab.studio.deviceAcceptance.v1';
 

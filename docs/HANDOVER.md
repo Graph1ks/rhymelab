@@ -1,3 +1,15 @@
+# CURRENT CONTINUATION — R9 Shared Core extraction
+
+**Branch:** `architecture/shared-core-r9`  
+**PR:** #213  
+**Contract:** `docs/SHARED_CORE_ARCHITECTURE.md`
+
+React must no longer depend on the historical browser UI source trees. Proven behavior is being promoted into `packages/shared-core`; browser-only persistence/environment code goes to `packages/platform-web`; React consumes both through `apps/studio-react/src/core`.
+
+Hard rule: production React source may not import `apps/studio-react/src/legacy`, `src/studio`, or `src/ui`. The static boundary gate enforces this. Do not reintroduce wrappers around old UI files to make tests pass.
+
+Legacy Studio/Search/RhymePad remain only as temporary rollback surfaces until the seven physical acceptance gates are completed. Their eventual deletion must not remove any Shared Core behavior or migration compatibility.
+
 # CURRENT CONTINUATION — React Studio R8 reversible cutover
 
 **Runtime:** React Studio is default at `/` and `/studio`; `/studio-react` remains an alias.  

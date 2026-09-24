@@ -197,7 +197,7 @@ test('long fully generated OOV tokens use a bounded right-edge query anchor',()=
 });
 
 test('browser pronunciation module contains no host executable, Node runtime, network, or search implementation',async()=>{
-  const source=await readFile('src/ui/query-pronunciation-client.mjs','utf8');
+  const source=await readFile('packages/shared-core/src/search/query-pronunciation-client.mjs','utf8');
   assert.doesNotMatch(source,/node:child_process|spawnSync|execFile|process\.|RHYMELAB_ESPEAK|espeak/iu);
   assert.doesNotMatch(source,/\bfetch\s*\(|XMLHttpRequest|WebSocket/);
   assert.doesNotMatch(source,/findWriterRhymes|searchEnglishWriter|searchEntityRhymes|rankClientRhymeCandidates/);

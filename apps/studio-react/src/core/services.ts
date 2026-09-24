@@ -1,5 +1,5 @@
-import * as legacyAnalysis from '../../../../src/studio/analysis-adapter.mjs';
-import * as legacyDetail from '../../../../src/studio/detail-adapter.mjs';
+import * as sharedAnalysis from '../../../../packages/shared-core/src/services/analysis-adapter.mjs';
+import * as sharedDetail from '../../../../packages/shared-core/src/services/detail-adapter.mjs';
 
 import type {
   StudioAnalysisClient,
@@ -33,8 +33,8 @@ type DetailApi = {
   ): StudioDetailModel;
 };
 
-const analysisApi = legacyAnalysis as unknown as AnalysisApi;
-const detailApi = legacyDetail as unknown as DetailApi;
+const analysisApi = sharedAnalysis as unknown as AnalysisApi;
+const detailApi = sharedDetail as unknown as DetailApi;
 
 export const studioAnalysisOccurrences = analysisApi.studioAnalysisOccurrences;
 export const expandStudioRhymeRelations = analysisApi.expandStudioRhymeRelations;

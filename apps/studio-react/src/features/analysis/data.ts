@@ -5,8 +5,8 @@ import type {
   LegacyStudioSong,
   SearchState,
   StudioCapabilities,
-} from '../../legacy/contracts';
-import { createStudioAnalysisClient } from '../../legacy/services';
+} from '../../core/contracts';
+import { createStudioAnalysisClient } from '../../core/services';
 import {
   analysisDocumentSignature,
   trackedAnalysisDocument,

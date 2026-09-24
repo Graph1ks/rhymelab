@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { loadStudioPreferences, writeStudioPreferences } from '../../legacy/documents';
+import { loadStudioPreferences, writeStudioPreferences } from '../../core/documents';
 import { normalizeDensity, type ResultDensity } from './presentation';
 
 export interface SavedResult {

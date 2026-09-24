@@ -1,9 +1,9 @@
-import * as legacySearchState from '../../../../src/ui/search-state.mjs';
-import * as legacyPronunciation from '../../../../src/ui/query-pronunciation-client.mjs';
-import * as legacyPronunciationCache from '../../../../src/ui/query-pronunciation-cache.mjs';
-import * as legacySearchAdapter from '../../../../src/studio/search-adapter.mjs';
-import * as legacyCapabilityAdapter from '../../../../src/studio/capability-adapter.mjs';
-import * as legacyRuntimeEditions from '../../../../src/studio/internal-db-lab.mjs';
+import * as sharedSearchState from '../../../../packages/shared-core/src/search/search-state.mjs';
+import * as sharedPronunciation from '../../../../packages/shared-core/src/search/query-pronunciation-client.mjs';
+import * as webPronunciationCache from '../../../../packages/platform-web/src/query-pronunciation-cache.mjs';
+import * as sharedSearchAdapter from '../../../../packages/shared-core/src/search/search-adapter.mjs';
+import * as sharedCapabilityAdapter from '../../../../packages/shared-core/src/search/capability-adapter.mjs';
+import * as sharedRuntimeEditions from '../../../../packages/shared-core/src/search/runtime-editions.mjs';
 
 import type {
   PronunciationLanguage,
@@ -89,7 +89,11 @@ type SearchAdapterApi = {
   writerRelationLabel(type: unknown): string;
   mapWriterResult(row: unknown, index?: number): WriterResultRow;
   buildWriterParams(options?: WriterSearchOptions): URLSearchParams;
-  createWriterSearchClient(options?: { fetchImpl?: typeof fetch }): WriterSearchClient;
+  createWriterSearchClient(options?: {
+    fetchImpl?: typeof fetch;
+    readPronunciationCache?: typeof cacheApi.readGeneratedPronunciationCache;
+    writePronunciationCache?: typeof cacheApi.writeGeneratedPronunciationCache;
+  }): WriterSearchClient;
 };
 
 type CapabilityApi = {
@@ -103,24 +107,24 @@ type CapabilityApi = {
 };
 
 type RuntimeEditionApi = {
-  INTERNAL_DB_LAB_STORAGE_KEY: string;
-  INTERNAL_DB_LAB_IDS: readonly RuntimeEdition[];
-  normalizeInternalDbLabId(value: unknown): RuntimeEdition;
-  loadInternalDbLabSelection(storage?: StorageLike): RuntimeEdition;
-  saveInternalDbLabSelection(id: RuntimeEdition | string, storage?: StorageLike): RuntimeEdition;
-  internalDbSummaryMap(payload: RuntimeEditionPayload | null): Record<string, RuntimeEditionSummary>;
-  studioCapabilitiesFromInternalDb(
+  RUNTIME_EDITION_STORAGE_KEY: string;
+  RUNTIME_EDITIONS: readonly RuntimeEdition[];
+  normalizeRuntimeEdition(value: unknown): RuntimeEdition;
+  loadRuntimeEditionSelection(storage?: StorageLike): RuntimeEdition;
+  saveRuntimeEditionSelection(id: RuntimeEdition | string, storage?: StorageLike): RuntimeEdition;
+  runtimeEditionSummaryMap(payload: RuntimeEditionPayload | null): Record<string, RuntimeEditionSummary>;
+  capabilitiesForRuntimeEdition(
     summary: RuntimeEditionSummary | null | undefined,
     fallback?: StudioCapabilities | Record<string, unknown>,
   ): StudioCapabilities;
 };
 
-const stateApi = legacySearchState as unknown as SearchStateApi;
-const pronunciationApi = legacyPronunciation as unknown as PronunciationApi;
-const cacheApi = legacyPronunciationCache as unknown as PronunciationCacheApi;
-const adapterApi = legacySearchAdapter as unknown as SearchAdapterApi;
-const capabilityApi = legacyCapabilityAdapter as unknown as CapabilityApi;
-const runtimeApi = legacyRuntimeEditions as unknown as RuntimeEditionApi;
+const stateApi = sharedSearchState as unknown as SearchStateApi;
+const pronunciationApi = sharedPronunciation as unknown as PronunciationApi;
+const cacheApi = webPronunciationCache as unknown as PronunciationCacheApi;
+const adapterApi = sharedSearchAdapter as unknown as SearchAdapterApi;
+const capabilityApi = sharedCapabilityAdapter as unknown as CapabilityApi;
+const runtimeApi = sharedRuntimeEditions as unknown as RuntimeEditionApi;
 
 export const SEARCH_STATE_SCHEMA = stateApi.SEARCH_STATE_SCHEMA;
 export const SEARCH_STATE_STORAGE_KEY = stateApi.SEARCH_STATE_STORAGE_KEY;
@@ -157,19 +161,27 @@ export const writerRelationGroup = adapterApi.writerRelationGroup;
 export const writerRelationLabel = adapterApi.writerRelationLabel;
 export const mapWriterResult = adapterApi.mapWriterResult;
 export const buildWriterParams = adapterApi.buildWriterParams;
-export const createWriterSearchClient = adapterApi.createWriterSearchClient;
+export function createWriterSearchClient(
+  options: { fetchImpl?: typeof fetch } = {},
+): WriterSearchClient {
+  return adapterApi.createWriterSearchClient({
+    ...options,
+    readPronunciationCache: cacheApi.readGeneratedPronunciationCache,
+    writePronunciationCache: cacheApi.writeGeneratedPronunciationCache,
+  });
+}
 
 export const CAPABILITY_ENDPOINTS = capabilityApi.CAPABILITY_ENDPOINTS;
 export const normalizeStudioCapabilities = capabilityApi.normalizeStudioCapabilities;
 export const loadStudioCapabilities = capabilityApi.loadStudioCapabilities;
 
-export const RUNTIME_EDITION_STORAGE_KEY = runtimeApi.INTERNAL_DB_LAB_STORAGE_KEY;
-export const RUNTIME_EDITIONS = runtimeApi.INTERNAL_DB_LAB_IDS;
-export const normalizeRuntimeEdition = runtimeApi.normalizeInternalDbLabId;
-export const loadRuntimeEditionSelection = runtimeApi.loadInternalDbLabSelection;
-export const saveRuntimeEditionSelection = runtimeApi.saveInternalDbLabSelection;
-export const runtimeEditionSummaryMap = runtimeApi.internalDbSummaryMap;
-export const capabilitiesForRuntimeEdition = runtimeApi.studioCapabilitiesFromInternalDb;
+export const RUNTIME_EDITION_STORAGE_KEY = runtimeApi.RUNTIME_EDITION_STORAGE_KEY;
+export const RUNTIME_EDITIONS = runtimeApi.RUNTIME_EDITIONS;
+export const normalizeRuntimeEdition = runtimeApi.normalizeRuntimeEdition;
+export const loadRuntimeEditionSelection = runtimeApi.loadRuntimeEditionSelection;
+export const saveRuntimeEditionSelection = runtimeApi.saveRuntimeEditionSelection;
+export const runtimeEditionSummaryMap = runtimeApi.runtimeEditionSummaryMap;
+export const capabilitiesForRuntimeEdition = runtimeApi.capabilitiesForRuntimeEdition;
 
 export function chooseAvailableRuntimeEdition(
   payload: RuntimeEditionPayload | null,
