@@ -11,7 +11,15 @@ STANDARD
 FULL
 ```
 
-The default edition is **STANDARD**.
+**STANDARD is preferred when installed**, but it is not required. Startup chooses the
+first valid locally available shipping edition in this order:
+
+```text
+STANDARD → FULL → LITE
+```
+
+At least one shipping edition must be available. A LITE-only installation is a
+supported runtime.
 
 Default files:
 
@@ -28,8 +36,8 @@ npm run dev
 npm start
 ```
 
-opens STANDARD as the canonical runtime and exposes request-scoped selection among
-installed LITE / STANDARD / FULL editions.
+opens the preferred available shipping edition as the canonical runtime and exposes
+request-scoped selection among the installed LITE / STANDARD / FULL editions only.
 
 ## Hard runtime boundary
 
@@ -64,9 +72,10 @@ runtime_db=lite|standard|full
 
 There is no process-global mutable database switch.
 
-STANDARD is the canonical default when no explicit selector is supplied. Studio
-and standalone Search persist the user's local edition preference and send it with
-Writer/detail/analysis/capability requests.
+When no explicit selector is supplied, the startup-selected edition is canonical.
+Studio and standalone Search persist the user's local edition preference only while
+that edition is actually available. If the stored edition is missing, the UI moves
+to the server's available default instead of issuing requests to an inaccessible DB.
 
 Changing edition therefore cannot make concurrent requests cross database
 boundaries.
@@ -118,7 +127,7 @@ RHYMELAB_DISTRIBUTION_FULL_DB
 The edition metadata check still applies. Pointing
 `RHYMELAB_DISTRIBUTION_STANDARD_DB` at a Master or FULL file is rejected.
 
-The selector can be disabled for a fixed STANDARD-only package with:
+The selector can be disabled for a fixed single-runtime package with:
 
 ```text
 RHYMELAB_DISTRIBUTION_SWITCHER=0
@@ -130,8 +139,9 @@ or:
 --no-distribution-switcher
 ```
 
-Disabling selection does not re-enable Master or legacy runtimes; STANDARD remains
-the only application database in that mode.
+Disabling user selection does not re-enable Master or legacy runtimes. The server
+still opens the best available shipping edition using the same
+STANDARD → FULL → LITE preference and keeps that one runtime active.
 
 ## Build-only Master workflow
 
@@ -192,7 +202,8 @@ RhymeLab / Studio / Search / RhymePad
       LITE | STANDARD | FULL
                 ^
                 |
-          STANDARD default
+     STANDARD preferred
+     FULL/LITE fallback
 ```
 
 Master/Developer storage is build-only. Product runtime is shipping-tier-only.
