@@ -318,6 +318,13 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
     const proof = selectionProof.current;
     if (!proof) return { ok: false, reason: 'selection_missing' };
 
+    const current = currentSongCopy();
+    if (!current) return { ok: false, reason: 'song_missing' };
+    const validation = validateSelectionProof(asEditorSong(current), proof);
+    if (!validation.valid) {
+      return { ok: false, reason: validation.reason ?? 'selection_invalid' };
+    }
+
     checkpoint();
     let outcome: EditorInsertOutcome = { ok: false, reason: 'selection_missing' };
     let focus: { start: number; end: number } | null = null;
@@ -349,6 +356,7 @@ export function EditorSessionProvider({ children }: { children: ReactNode }) {
   }, [
     captureSelectionFromDocument,
     checkpoint,
+    currentSongCopy,
     documents,
     requestFocus,
     scheduleRevision,
