@@ -69,8 +69,8 @@ export function HomePage() {
   const hero = language === 'de'
     ? {
         kicker: 'RHYME ENGINE · WRITING STUDIO',
-        title: 'Das Bureau hört alles. Zum Glück nur deine Reime. Für den Rest fehlt der Durchsuchungsbeschluss.',
-        copy: 'Rhyme Bureau ist Schreibstudio, Reimermittlung, Klanglabor und Performance-Werkzeug in einer Oberfläche. Aussprache, Betonung und Reimdomänen werden so lange auseinandergenommen, bis selbst dein besoffen klingendes Kunstwort einen Sachbearbeiter und eine Fallnummer hat. Mittelmäßige Endreime sind legal. Wir behandeln sie trotzdem wie Beweismittel. Kein KI-Séance-Zelt. Keine Cloud-Beichte. Kein Algorithmus, der „authentisch“ sagt und dabei deine Kreditkarte meint.',
+        title: 'Das Bureau hört alles. Zum Glück nur deine Reime.',
+        copy: 'Für den Rest fehlt der Durchsuchungsbeschluss. Rhyme Bureau ist Schreibstudio, Reimermittlung, Klanglabor und Performance-Werkzeug in einer Oberfläche. Aussprache, Betonung und Reimdomänen werden so lange auseinandergenommen, bis selbst dein besoffen klingendes Kunstwort einen Sachbearbeiter und eine Fallnummer hat. Mittelmäßige Endreime sind legal. Wir behandeln sie trotzdem wie Beweismittel.',
         primary: 'Studio öffnen',
         secondary: 'Reimsuche öffnen',
       }
@@ -85,6 +85,7 @@ export function HomePage() {
   return (
     <motion.section
       className={styles.home}
+      data-language={language}
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.28 }}
