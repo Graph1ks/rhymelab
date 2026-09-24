@@ -2085,3 +2085,117 @@
     justify-content: flex-start;
   }
 }
+
+
+/* Active rhyme anchor — centered, long-word safe and visually tied to the search action. */
+.searchForm,
+.searchExperience[data-variant="assistant"] .searchForm {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.anchorMeta,
+.searchExperience[data-variant="assistant"] .anchorMeta {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 7px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.anchorMeta > span,
+.searchExperience[data-variant="assistant"] .anchorMeta > span {
+  display: block;
+  color: var(--rl-muted);
+  font-size: 10px;
+  font-weight: 860;
+  letter-spacing: .16em;
+}
+
+.anchorMeta b,
+.searchExperience[data-variant="assistant"] .anchorMeta b {
+  width: 100%;
+  max-width: none;
+  overflow: visible;
+  color: var(--rl-ink);
+  font-size: clamp(1.05rem, 2.25vw, 1.65rem);
+  font-weight: 850;
+  line-height: 1.08;
+  letter-spacing: -.035em;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.searchExperience[data-variant="assistant"] .anchorMeta b {
+  font-size: clamp(.98rem, 1.8vw, 1.25rem);
+}
+
+.anchorScan {
+  width: min(280px, 76%);
+  height: 2px;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rl-line) 76%, transparent);
+}
+
+.anchorScan::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--rl-accent) 88%, white 12%) 45%,
+    var(--rl-accent) 52%,
+    transparent 100%
+  );
+  transform: translateX(-110%);
+  opacity: 0;
+}
+
+.anchorMeta[data-searching="true"] .anchorScan::after {
+  opacity: 1;
+  animation: rhymeAnchorScan .9s ease-in-out infinite;
+}
+
+.anchorMode,
+.searchExperience[data-variant="assistant"] .anchorMode {
+  margin: 2px 0 0;
+  justify-self: center;
+}
+
+@keyframes rhymeAnchorScan {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(110%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anchorMeta[data-searching="true"] .anchorScan::after {
+    animation: none;
+    transform: none;
+    opacity: .72;
+  }
+}
+
+@media (max-width: 700px) {
+  .anchorMeta,
+  .searchExperience[data-variant="assistant"] .anchorMeta {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .anchorMeta b,
+  .searchExperience[data-variant="assistant"] .anchorMeta b {
+    font-size: clamp(1rem, 5.2vw, 1.35rem);
+  }
+}
