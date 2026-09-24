@@ -160,7 +160,12 @@ function ResultToolbar({
             : (language === 'de' ? 'Aus' : 'Off')}
         </button>
 
-        <div className={styles.densityButtons} role="group" aria-label={language === 'de' ? 'Ergebnisdarstellung' : 'Result layout'}>
+        <div
+          className={styles.densityButtons}
+          role="group"
+          data-rhymelab-control="search.layout"
+          aria-label={language === 'de' ? 'Ergebnisdarstellung' : 'Result layout'}
+        >
           {(['list', 'compact', 'tiles'] as ResultDensity[]).map((value) => (
             <button
               key={value}
@@ -334,6 +339,7 @@ export function SearchExperience({
     <section
       className={styles.searchExperience}
       data-variant={variant}
+      data-rhymelab-surface="search"
       aria-label={language === 'de' ? 'RhymeLab Reimsuche' : 'RhymeLab rhyme search'}
     >
       <header className={styles.searchHeader}>
