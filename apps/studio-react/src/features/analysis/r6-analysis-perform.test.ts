@@ -21,9 +21,11 @@ import { analysisQueryIdentity } from './data';
 import {
   allRhymeBars,
   analysisDocumentSignature,
+  analysisLineTokens,
   analysisSections,
   relationCounts,
   rhymeChainGroups,
+  rhymeTopologyGroups,
   sectionRelations,
   trackedAnalysisDocument,
   type CanonicalAnalysisPayload,
@@ -158,6 +160,67 @@ describe('R6 analysis projections', () => {
     const internal = sectionRelations(verse, data.occurrenceRelations!);
     expect(internal).toHaveLength(2);
     expect(relationCounts(internal)).toEqual({ perfect: 1, assonance: 1 });
+  });
+
+  it('tokenizes the complete lyric line while preserving punctuation and canonical word indexes', () => {
+    const tokens = analysisLineTokens("Side-eye, don't stop!");
+    expect(tokens.map((token) => token.text).join('')).toBe("Side-eye, don't stop!");
+    expect(tokens.filter((token) => token.wordIndex != null).map((token) => [token.wordIndex, token.text])).toEqual([
+      [0, 'Side-eye'],
+      [1, "don't"],
+      [2, 'stop'],
+    ]);
+  });
+
+  it('builds connected primary rhyme chains without letting soft cross-links merge them', () => {
+    const occurrences = [
+      { index: 0, lineIndex: 0, wordIndex: 0, surface: 'night', normalized: 'night' },
+      { index: 1, lineIndex: 1, wordIndex: 0, surface: 'light', normalized: 'light' },
+      { index: 2, lineIndex: 2, wordIndex: 0, surface: 'bright', normalized: 'bright' },
+      { index: 3, lineIndex: 2, wordIndex: 1, surface: 'motion', normalized: 'motion' },
+      { index: 4, lineIndex: 3, wordIndex: 0, surface: 'ocean', normalized: 'ocean' },
+    ];
+    const relation = (
+      index: number,
+      left: number,
+      right: number,
+      type: string,
+      primary: boolean,
+      score: number,
+    ) => ({
+      index,
+      left: occurrences[left]!,
+      right: occurrences[right]!,
+      type,
+      label: type,
+      score,
+      primary,
+      language: 'en',
+      sameBar: occurrences[left]!.lineIndex === occurrences[right]!.lineIndex,
+    });
+    const relations = [
+      relation(0, 0, 1, 'perfect', true, 0.98),
+      relation(1, 1, 2, 'perfect', true, 0.96),
+      relation(2, 3, 4, 'assonance', true, 0.89),
+      relation(3, 2, 3, 'consonance', false, 0.55),
+    ];
+
+    const topology = rhymeTopologyGroups(occurrences, relations);
+    expect(topology.groups).toHaveLength(2);
+    expect(topology.groups[0]).toMatchObject({
+      id: 'A',
+      occurrenceIndexes: [0, 1, 2],
+      words: ['night', 'light', 'bright'],
+      barNumbers: [1, 2, 3],
+      primaryRelationCount: 2,
+    });
+    expect(topology.groups[1]).toMatchObject({
+      id: 'B',
+      occurrenceIndexes: [3, 4],
+      primaryRelationCount: 1,
+    });
+    expect(topology.occurrenceGroup.get(2)).toBe(0);
+    expect(topology.occurrenceGroup.get(3)).toBe(1);
   });
 
   it('keys canonical queries by stable Bar revisions, language, pronunciation revision and runtime DB', () => {
