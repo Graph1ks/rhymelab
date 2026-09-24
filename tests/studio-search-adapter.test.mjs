@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import {createWriterSearchClient} from '../src/studio/search-adapter.mjs';
+import {
+  buildWriterParams,
+  createWriterSearchClient,
+  writerScope,
+} from '../src/studio/search-adapter.mjs';
 
 function jsonResponse(status,payload){
   const raw=JSON.stringify(payload);
@@ -13,6 +17,19 @@ function jsonResponse(status,payload){
     async text(){return raw},
   };
 }
+
+test('Studio preserves explicit Writer scope filters instead of collapsing them to all',()=>{
+  assert.equal(writerScope('words'),'words');
+  assert.equal(writerScope('phrases'),'phrases');
+  assert.equal(writerScope('entities'),'entities');
+  assert.equal(writerScope('word'),'words');
+  assert.equal(writerScope('phrase'),'phrases');
+  assert.equal(writerScope('entity'),'entities');
+
+  assert.equal(buildWriterParams({query:'abends',scope:'words'}).get('scope'),'words');
+  assert.equal(buildWriterParams({query:'abends',scope:'phrases'}).get('scope'),'phrases');
+  assert.equal(buildWriterParams({query:'abends',scope:'entities'}).get('scope'),'entities');
+});
 
 test('Studio resolves an unknown German query in the client and retries the same Writer pipeline',async()=>{
   const calls=[];
