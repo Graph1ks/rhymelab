@@ -9,6 +9,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 
 import type { WriterResultRow } from '../../legacy/contracts';
 import { useUiStore } from '../../state/uiStore';
+import { resultKeyboardAction } from '../system/model';
 import { Icon } from '../../shell/icons';
 import {
   resultBadges,
@@ -243,32 +244,32 @@ export function ResultsList({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!rows.length) return;
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      const delta = event.key === 'ArrowDown' ? 1 : -1;
-      const current = selectedIndex < 0
-        ? (delta > 0 ? -1 : rows.length)
-        : selectedIndex;
-      const nextIndex = Math.max(0, Math.min(rows.length - 1, current + delta));
-      const next = rows[nextIndex];
-      if (!next) return;
-      if (nextIndex >= visibleCount) {
-        setVisibleCount(Math.min(rows.length, nextIndex + 12));
+    const action = resultKeyboardAction(
+      event.key,
+      selectedIndex,
+      rows.length,
+      Boolean(onInsert),
+    );
+    if (action.type === 'none') return;
+    event.preventDefault();
+    const row = rows[action.index];
+    if (!row) return;
+
+    if (action.type === 'select') {
+      if (action.index >= visibleCount) {
+        setVisibleCount(Math.min(rows.length, action.index + 12));
       }
-      onSelect(next);
+      onSelect(row);
       if (density !== 'tiles') {
-        requestAnimationFrame(() => virtualizer.scrollToIndex(nextIndex, { align: 'auto' }));
+        requestAnimationFrame(() => virtualizer.scrollToIndex(action.index, { align: 'auto' }));
       }
-    } else if (event.key === 'Enter' && selectedIndex >= 0 && onInsert) {
-      event.preventDefault();
-      const selected = rows[selectedIndex];
-      if (selected) onInsert(selected);
-    } else if (event.key === ' ' && selectedIndex >= 0) {
-      event.preventDefault();
-      const selected = rows[selectedIndex];
-      if (selected) onToggleSaved(selected);
+      return;
     }
+    if (action.type === 'insert') {
+      onInsert?.(row);
+      return;
+    }
+    onToggleSaved(row);
   };
 
   return (
@@ -278,6 +279,7 @@ export function ResultsList({
       data-density={density}
       tabIndex={0}
       role="listbox"
+      data-rhymelab-control="search.results-keyboard"
       aria-label={language === 'de'
         ? 'Reimtreffer; Pfeiltasten wählen, Enter setzt ein, Leertaste merkt'
         : 'Rhyme results; arrows select, Enter inserts, Space saves'}
