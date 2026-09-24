@@ -1724,7 +1724,7 @@
 .searchExperience[data-variant="assistant"] .searchHeader {
   display: flex;
   align-items: center;
-  padding: 12px 14px 6px;
+  padding: 12px 14px 6px 50px;
 }
 
 .searchExperience[data-variant="assistant"] .searchTitle > p {
