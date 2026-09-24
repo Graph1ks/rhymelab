@@ -143,7 +143,7 @@ export function studioStateFromDocumentSnapshot(snapshot,baseState=createStudioS
     return {
       id:row.id,
       title:String(row.title||'Untitled'),
-      folder:String(folderById.get(row.folderId)||'Entwürfe'),
+      folder:row.folderId==null?'':String(folderById.get(row.folderId)||'Entwürfe'),
       lines:bars.length?bars.map((bar)=>String(bar.text??'')):[''],
       barIds:bars.length?bars.map((bar)=>String(bar.id)):[`bar:${row.id}:empty`],
       barRevisions:bars.length?bars.map((bar)=>Number(bar.revision)||0):[0],
