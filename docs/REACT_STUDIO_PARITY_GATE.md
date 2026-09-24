@@ -12,7 +12,7 @@ The migration inventory is the union of:
 2. `docs/UI_REDESIGN_PARITY.md` — detailed Search/RhymePad/Studio behavior;
 3. `docs/UI_INTERACTION_CONTRACT.md` — interaction regression rules;
 4. `docs/STUDIO_V2_HANDOVER.md` — implemented production-direction features;
-5. baseline commit `fbda43a9e4dd915f3bd5c1fa53045cbe2055e919` — Workflow UX v3 additions;
+5. baseline commit `fbda43a9e4dd` — Workflow UX v3 additions;
 6. `apps/studio-react/parity-coverage.json` — migration execution state.
 
 ## Status semantics
