@@ -36,6 +36,8 @@ import { useUiStore } from '../state/uiStore';
 import {
   NAVIGATION_ITEMS,
   SHELL_BREAKPOINTS,
+  commandPaletteShortcutLabel,
+  isTextEditingTarget,
   navigationLabel,
   shellText,
 } from './navigation';
@@ -217,6 +219,14 @@ describe('R2 navigation and command foundations preserve product vocabulary', ()
     expect(navigationLabel(NAVIGATION_ITEMS[1]!, 'de')).toBe('Reimsuche');
     expect(navigationLabel(NAVIGATION_ITEMS[1]!, 'en')).toBe('Rhyme search');
     expect(shellText('Einstellungen öffnen', 'en')).toBe('Open settings');
+  });
+
+  it('keeps global command shortcuts out of text-editing targets and labels the platform modifier', () => {
+    expect(isTextEditingTarget({ tagName: 'TEXTAREA' } as unknown as EventTarget)).toBe(true);
+    expect(isTextEditingTarget({ tagName: 'INPUT' } as unknown as EventTarget)).toBe(true);
+    expect(isTextEditingTarget({ tagName: 'BUTTON' } as unknown as EventTarget)).toBe(false);
+    expect(commandPaletteShortcutLabel('MacIntel')).toBe('⌘ ⇧ K');
+    expect(commandPaletteShortcutLabel('Win32')).toBe('Ctrl ⇧ K');
   });
 
   it('uses the accepted ranked command matcher for shell commands', () => {
