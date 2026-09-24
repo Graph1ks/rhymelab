@@ -1,0 +1,78 @@
+{
+  "schema": "rhymelab-react-studio-r7-parity-v1",
+  "phase": "R7",
+  "status": "AUTOMATED_SOURCE_PARITY_COMPLETE_PHYSICAL_ACCEPTANCE_PENDING",
+  "tested_code_head": "c9725ed3312b",
+  "invariant": "93_of_93_mandatory_rows_are_source_ported_but_verified_requires_behavioral_and_device_evidence",
+  "cutover_allowed": false,
+  "parity": {
+    "total": 93,
+    "ported": 93,
+    "in_progress": 0,
+    "pending": 0,
+    "verified": 0
+  },
+  "automated": {
+    "strict_typescript": true,
+    "vitest_files": 8,
+    "vitest_tests": 82,
+    "r7_contract_tests": 11,
+    "reversible_preview_tests": 4,
+    "production_build": true,
+    "source_parity_gate": true,
+    "source_rows_ported": "93/93",
+    "react_replatform_run": 182,
+    "studio_v2_gate_run": 500,
+    "full_ci_run": 1365
+  },
+  "r7_system": {
+    "startup_binding_guard": "fail_closed_visible_error",
+    "diagnostics": "existing_R1_diagnostics_model_plus_React_startup_status",
+    "device_acceptance": "existing_seven_gate_model_manual_only",
+    "device_report_storage_key": "rhymelab.studio.deviceAcceptance.v1",
+    "report_merge": true,
+    "diagnostics_export": true,
+    "device_report_import_export": true,
+    "search_keyboard_contract": true,
+    "single_drawer_scroll_owner": true,
+    "reversible_preview_route": true
+  },
+  "preview": {
+    "normal_default_route_changed": false,
+    "route": "/studio-react",
+    "preview_flag": "--react-studio-preview",
+    "preview_default_flag": "--react-studio-preview-default",
+    "golden_master_routes": [
+      "/studio",
+      "/studio-legacy"
+    ],
+    "command": "npm run studio:react:r7:preview"
+  },
+  "commands": {
+    "automated": "npm run studio:react:r7",
+    "source_gate": "npm run studio:react:r7:gate",
+    "full_cutover_gate": "npm run studio:react:r7:cutover"
+  },
+  "physical_device_gates": [
+    "editor.ime",
+    "perform.metronome",
+    "mobile.navigation",
+    "mobile.swap",
+    "mobile.keyboard",
+    "mobile.touch",
+    "mobile.no-hover"
+  ],
+  "verified_promotion_policy": "never_promote_from_source_presence_or_simulation_when_browser_or_physical_evidence_is_required",
+  "deferred_evidence": [
+    "physical IME composition transaction",
+    "physical Web Audio audible timing",
+    "mobile navigation state retention",
+    "mobile editor/results selection return",
+    "software keyboard VisualViewport reachability",
+    "physical primary touch-target usability",
+    "touch-only no-hover primary workflows",
+    "browser-level interaction acceptance required by the UI interaction contract before row promotion"
+  ],
+  "next_action": "run React Studio real-browser/device acceptance, merge reports, then promote only evidenced rows to verified",
+  "next_phase": "R8_REVERSIBLE_CUTOVER_ONLY_AFTER_93_OF_93_VERIFIED"
+}
