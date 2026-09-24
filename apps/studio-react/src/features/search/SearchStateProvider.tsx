@@ -8,6 +8,8 @@ import {
 } from 'react';
 
 import type { SearchState, SearchStateInput } from '../../legacy/contracts';
+import { defaultStudioUiLanguage } from '../../legacy/shell';
+import { useUiStore } from '../../state/uiStore';
 import {
   SEARCH_STATE_STORAGE_KEY,
   createSearchState,
@@ -36,12 +38,13 @@ function initialSearchState(): SearchState {
     hasStoredState = false;
   }
 
+  const localeLanguage = defaultStudioUiLanguage();
   const base = hasStoredState
     ? loadSearchState()
     : createSearchState({
-        anchor: 'Nacht',
-        queryBasis: 'de',
-        resultLanguage: 'both',
+        anchor: localeLanguage === 'de' ? 'Nacht' : 'night',
+        queryBasis: localeLanguage,
+        resultLanguage: localeLanguage,
       });
 
   return typeof window !== 'undefined'
@@ -59,11 +62,12 @@ function persistSearchState(next: SearchState): SearchState {
 }
 
 export function SearchStateProvider({ children }: { children: ReactNode }) {
+  const uiLanguage = useUiStore((row) => row.uiLanguage);
   const [state, setState] = useState<SearchState>(initialSearchState);
 
   const patch = useCallback((input: SearchStateInput) => {
     setState((current) => persistSearchState(patchSearchState(current, input)));
-  }, []);
+  }, [uiLanguage]);
 
   const replace = useCallback((input: SearchStateInput) => {
     setState(persistSearchState(createSearchState(input)));
@@ -73,8 +77,8 @@ export function SearchStateProvider({ children }: { children: ReactNode }) {
     setState((current) => persistSearchState(createSearchState({
       anchor: current.anchor,
       selectedResultId: '',
-      queryBasis: 'de',
-      resultLanguage: 'both',
+      queryBasis: uiLanguage,
+      resultLanguage: uiLanguage,
       scope: 'all',
       rhymeType: 'all',
       syllableFilter: 'all',
