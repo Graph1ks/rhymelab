@@ -244,13 +244,23 @@ async function loadActiveTrackedText(): Promise<string> {
 }
 
 export function useActiveTrackedText() {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['active-tracked-document-text'],
     queryFn: loadActiveTrackedText,
     staleTime: 1_000,
     retry: false,
     refetchOnWindowFocus: true,
   });
+
+  useEffect(() => {
+    const refresh = () => {
+      void query.refetch();
+    };
+    globalThis.addEventListener?.('rhymelab:document-changed', refresh);
+    return () => globalThis.removeEventListener?.('rhymelab:document-changed', refresh);
+  }, [query.refetch]);
+
+  return query;
 }
 
 export function useResultDetail(
