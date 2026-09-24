@@ -76,16 +76,14 @@
 .headerActions,
 .barActions,
 .fontControls,
-.segmented,
 .sizeControl {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
 }
 
 .headerActions button,
 .barActions button,
-.segmented button,
 .sizeControl button,
 .dock button,
 .sectionMenu button,
@@ -104,8 +102,7 @@
   padding: 0 11px;
 }
 
-.headerActions button[data-active="true"],
-.segmented button[data-active="true"] {
+.headerActions button[data-active="true"] {
   border-color: color-mix(in srgb, var(--rl-accent) 60%, var(--rl-line));
   background: color-mix(in srgb, var(--rl-accent) 12%, var(--rl-surface));
   color: var(--rl-accent);
@@ -126,10 +123,38 @@
   padding: 9px 0;
 }
 
-.segmented button {
-  min-height: 34px;
-  padding: 0 10px;
+.fontPickerTrigger {
+  min-width: 190px;
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 5px 11px;
+  border: 1px solid var(--rl-line);
+  border-radius: 10px;
+  background: var(--rl-surface);
+  color: var(--rl-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.fontPickerTrigger > span {
+  color: var(--rl-muted);
   font-size: 11px;
+  font-weight: 750;
+}
+
+.fontPickerTrigger > b {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fontPickerTrigger:hover {
+  border-color: color-mix(in srgb, var(--rl-accent) 52%, var(--rl-line));
 }
 
 .sizeControl {
@@ -213,8 +238,8 @@
   display: flex;
   align-items: flex-start;
   pointer-events: none;
-  border-block: 2px solid var(--rl-accent);
-  background: color-mix(in srgb, var(--rl-accent) 7%, transparent);
+  border-block: 3px solid var(--rl-accent);
+  background: color-mix(in srgb, var(--rl-accent) 14%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rl-accent) 22%, transparent);
 }
 
@@ -251,7 +276,7 @@
 .gutterRow,
 .syllableRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   min-height: 34px;
   border-bottom: 1px solid color-mix(in srgb, var(--rl-line) 55%, transparent);
@@ -268,6 +293,10 @@
   width: 100%;
   height: 100%;
   min-height: 34px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: calc(var(--editor-font-size) * .31) 0 0;
   border: 0;
   background: transparent;
   color: var(--rl-muted);
@@ -288,8 +317,9 @@
 }
 
 .syllableRow {
+  padding-top: calc(var(--editor-font-size) * .31);
   color: var(--rl-muted);
-  font-size: max(9px, calc(var(--editor-font-size) * .42));
+  font-size: max(11px, calc(var(--editor-font-size) * .44));
 }
 
 .editorColumn {
@@ -505,7 +535,7 @@
 
 .dragGhost {
   position: fixed;
-  z-index: 150;
+  z-index: 260;
   width: min(360px, calc(100vw - 28px));
   transform: translateY(-50%);
   pointer-events: none;
@@ -821,5 +851,191 @@
 @media (prefers-reduced-motion: reduce) {
   .dragGhost {
     transition: none;
+  }
+}
+
+
+/* R7 UX correction: virtualized local-system-font picker. */
+.fontDialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 230;
+  background: rgb(0 0 0 / .58);
+  backdrop-filter: blur(7px);
+}
+
+.fontDialogViewport {
+  position: fixed;
+  inset: 0;
+  z-index: 231;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.fontDialog {
+  width: min(720px, calc(100vw - 32px));
+  height: min(760px, calc(100dvh - 48px));
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--rl-line);
+  border-radius: 18px;
+  background: var(--rl-panel);
+  box-shadow: 0 30px 90px rgb(0 0 0 / .45);
+}
+
+.fontDialog > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 22px 14px;
+}
+
+.fontDialog > header p {
+  margin: 0 0 5px;
+  color: var(--rl-accent);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.fontDialog > header h2 {
+  margin: 0;
+  font-size: 1.55rem;
+}
+
+.fontDialog > header span {
+  display: block;
+  margin-top: 6px;
+  color: var(--rl-muted);
+  font-size: 12px;
+}
+
+.fontDialog > header button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--rl-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--rl-text);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.fontSearch {
+  margin: 0 22px 12px;
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid var(--rl-line);
+  border-radius: 11px;
+  background: var(--rl-surface);
+}
+
+.fontSearch input {
+  min-width: 0;
+  height: 42px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--rl-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.fontSearch b {
+  color: var(--rl-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fontList {
+  min-height: 0;
+  overflow: auto;
+  border-block: 1px solid var(--rl-line);
+  overscroll-behavior: contain;
+}
+
+.fontVirtualSpace {
+  position: relative;
+  width: 100%;
+}
+
+.fontRow {
+  position: absolute;
+  inset: 0 0 auto 0;
+  width: 100%;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 22px;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--rl-line) 66%, transparent);
+  background: transparent;
+  color: var(--rl-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.fontRow:hover,
+.fontRow[data-selected="true"] {
+  background: color-mix(in srgb, var(--rl-accent) 9%, var(--rl-panel));
+}
+
+.fontRow span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.fontRow b {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fontRow small {
+  overflow: hidden;
+  color: var(--rl-muted);
+  font-family: var(--rl-font, system-ui, sans-serif);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fontRow strong {
+  color: var(--rl-accent);
+  font-family: var(--rl-font, system-ui, sans-serif);
+}
+
+.fontDialog > footer {
+  padding: 10px 22px 13px;
+  color: var(--rl-muted);
+  font-size: 11px;
+}
+
+@media (max-width: 800px) {
+  .fontPickerTrigger {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .fontDialogViewport {
+    padding: 8px;
+  }
+
+  .fontDialog {
+    width: 100%;
+    height: min(82dvh, 760px);
   }
 }
