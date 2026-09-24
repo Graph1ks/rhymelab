@@ -27,6 +27,8 @@ export function SurfaceContent() {
   const toggleFocusMode = useUiStore((state) => state.toggleFocusMode);
   const [mobileStudioPane, setMobileStudioPane] = useState<'editor' | 'results'>('editor');
   const [studioMode, setStudioMode] = useState<'write' | 'analysis' | 'perform'>('write');
+  const [studioSearchEnabled, setStudioSearchEnabled] = useState(true);
+  const [assistCollapsed, setAssistCollapsed] = useState(false);
 
   useEffect(() => {
     if (surface !== 'studio' || (studioMode !== 'write' && studioMode !== 'perform')) {
@@ -115,6 +117,8 @@ export function SurfaceContent() {
           data-mobile-pane={mobileStudioPane}
           data-studio-mode={studioMode}
           data-focus={focusMode ? 'true' : 'false'}
+          data-assist-collapsed={assistCollapsed ? 'true' : 'false'}
+          data-search-enabled={studioSearchEnabled ? 'true' : 'false'}
           initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.18 }}
@@ -200,6 +204,22 @@ export function SurfaceContent() {
                   <kbd>⇧F</kbd>
                 </button>
               ) : null}
+              {studioMode === 'write' ? (
+                <button
+                  type="button"
+                  className={styles.searchToggle}
+                  data-active={studioSearchEnabled ? 'true' : 'false'}
+                  aria-pressed={studioSearchEnabled}
+                  onClick={() => setStudioSearchEnabled((value) => !value)}
+                  title={language === 'de'
+                    ? 'Studio-Reimsuche ein-/ausschalten'
+                    : 'Enable or disable Studio rhyme search'}
+                >
+                  {studioSearchEnabled
+                    ? (language === 'de' ? 'Reimsuche an' : 'Rhymes on')
+                    : (language === 'de' ? 'Reimsuche aus' : 'Rhymes off')}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className={styles.libraryTrigger}
@@ -219,8 +239,41 @@ export function SurfaceContent() {
             </div>
           </section>
 
-          <aside className={styles.assistFoundation} data-r3="true">
-            <SearchExperience variant="assistant" />
+          <aside
+            className={styles.assistFoundation}
+            data-r3="true"
+            data-collapsed={assistCollapsed ? 'true' : 'false'}
+            data-enabled={studioSearchEnabled ? 'true' : 'false'}
+          >
+            <button
+              type="button"
+              className={styles.assistCollapse}
+              onClick={() => setAssistCollapsed((value) => !value)}
+              aria-label={assistCollapsed
+                ? (language === 'de' ? 'Sound Explorer ausklappen' : 'Expand Sound Explorer')
+                : (language === 'de' ? 'Sound Explorer minimieren' : 'Collapse Sound Explorer')}
+              title={assistCollapsed
+                ? (language === 'de' ? 'Sound Explorer ausklappen' : 'Expand Sound Explorer')
+                : (language === 'de' ? 'Nach rechts minimieren' : 'Collapse to the right')}
+            >
+              {assistCollapsed ? '‹' : '›'}
+            </button>
+            {assistCollapsed ? (
+              <span className={styles.assistRailLabel}>SOUND EXPLORER</span>
+            ) : studioSearchEnabled && !focusMode ? (
+              <SearchExperience variant="assistant" enabled />
+            ) : (
+              <div className={styles.searchPaused}>
+                <p>SOUND EXPLORER</p>
+                <b>{language === 'de' ? 'Reimsuche pausiert.' : 'Rhyme search paused.'}</b>
+                <span>{language === 'de'
+                  ? 'Keine Writer-Anfragen, bis du sie wieder einschaltest.'
+                  : 'No Writer requests until you enable it again.'}</span>
+                <button type="button" onClick={() => setStudioSearchEnabled(true)}>
+                  {language === 'de' ? 'Reimsuche aktivieren' : 'Enable rhyme search'}
+                </button>
+              </div>
+            )}
           </aside>
 
           <Dialog.Root open={libraryOpen} onOpenChange={setLibraryOpen}>
