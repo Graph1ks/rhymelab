@@ -204,10 +204,15 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
       if (target instanceof Node && contextMenuRef.current?.contains(target)) return;
       setContextMenu(null);
     };
+    const closePassive = () => setContextMenu(null);
     window.addEventListener('pointerdown', close);
-    window.addEventListener('wheel', () => setContextMenu(null), { passive: true, once: true });
-    window.addEventListener('resize', () => setContextMenu(null), { once: true });
-    return () => window.removeEventListener('pointerdown', close);
+    window.addEventListener('wheel', closePassive, { passive: true });
+    window.addEventListener('resize', closePassive);
+    return () => {
+      window.removeEventListener('pointerdown', close);
+      window.removeEventListener('wheel', closePassive);
+      window.removeEventListener('resize', closePassive);
+    };
   }, [contextMenu]);
 
   const openSongMenu = (event: MouseEvent, id: string) => {
