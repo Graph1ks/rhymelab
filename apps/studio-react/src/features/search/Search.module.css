@@ -2199,3 +2199,38 @@
     font-size: clamp(1rem, 5.2vw, 1.35rem);
   }
 }
+
+
+/* Compact Studio runtime chooser. Full Search keeps the richer edition strip. */
+.runtimeSelect {
+  min-width: 150px;
+  display: grid;
+  gap: 3px;
+}
+
+.runtimeSelect > span {
+  color: var(--rl-muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.runtimeSelect select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--rl-line);
+  border-radius: 9px;
+  padding: 0 28px 0 10px;
+  background: color-mix(in srgb, var(--rl-bg) 46%, var(--rl-panel));
+  color: var(--rl-ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 780;
+  cursor: pointer;
+}
+
+.runtimeSelect select:focus-visible {
+  border-color: color-mix(in srgb, var(--rl-accent) 52%, var(--rl-line));
+  outline: 0;
+  box-shadow: var(--rl-focus-ring);
+}
