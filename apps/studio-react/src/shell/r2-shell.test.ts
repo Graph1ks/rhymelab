@@ -1,0 +1,242 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import * as legacyI18n from '../../../../src/studio/i18n.mjs';
+import * as legacyCommands from '../../../../src/studio/command-palette.mjs';
+import * as legacyMobile from '../../../../src/studio/mobile-viewport.mjs';
+
+import {
+  MOBILE_BREAKPOINT,
+  commandShortcutText,
+  mobileViewportMetrics,
+  normalizeCommandQuery,
+  normalizeStudioUiLanguage,
+  rankStudioCommands,
+  studioCommandGroups,
+  translateStudioUiText,
+} from '../legacy/shell';
+import {
+  BUILTIN_THEMES,
+  applyThemeToDocument,
+  completeThemeColors,
+  resolveThemeChoice,
+  themeChoices,
+  toggleThemeChoice,
+  type ThemePreferences,
+} from '../design-system/theme';
+import {
+  Button,
+  Dialog,
+  Drawer,
+  Menu,
+  Popover,
+  Select,
+  Tooltip,
+} from '../design-system/primitives';
+import { useUiStore } from '../state/uiStore';
+import {
+  NAVIGATION_ITEMS,
+  SHELL_BREAKPOINTS,
+  navigationLabel,
+  shellText,
+} from './navigation';
+
+describe('R2 shell reuses accepted legacy interaction helpers', () => {
+  it('keeps i18n, command ranking and viewport functions identical', () => {
+    expect(normalizeStudioUiLanguage).toBe(legacyI18n.normalizeStudioUiLanguage);
+    expect(translateStudioUiText).toBe(legacyI18n.translateStudioUiText);
+    expect(normalizeCommandQuery).toBe(legacyCommands.normalizeCommandQuery);
+    expect(rankStudioCommands).toBe(legacyCommands.rankStudioCommands);
+    expect(studioCommandGroups).toBe(legacyCommands.studioCommandGroups);
+    expect(commandShortcutText).toBe(legacyCommands.commandShortcutText);
+    expect(mobileViewportMetrics).toBe(legacyMobile.mobileViewportMetrics);
+  });
+
+  it('keeps the canonical 800px mobile breakpoint', () => {
+    expect(MOBILE_BREAKPOINT).toBe(800);
+    expect(SHELL_BREAKPOINTS.mobile).toBe(MOBILE_BREAKPOINT);
+    expect(SHELL_BREAKPOINTS.sidebarRail).toBe(1150);
+    expect(SHELL_BREAKPOINTS.compactMobile).toBe(560);
+
+    expect(mobileViewportMetrics({
+      innerWidth: 800,
+      innerHeight: 900,
+    })).toMatchObject({
+      width: 800,
+      height: 900,
+      isMobile: true,
+      keyboardOpen: false,
+    });
+  });
+});
+
+describe('R2 semantic theme layer preserves existing theme slots', () => {
+  const customLight = {
+    id: 'custom-light',
+    name: 'Paper',
+    subtitle: 'Saved custom light',
+    mode: 'light' as const,
+    colors: {
+      bg: '#FAFAF6',
+      panel: '#FFFFFF',
+      ink: '#202020',
+      muted: '#707070',
+      accent: '#A23B72',
+      accent2: '#F18F01',
+      signal: '#2E8B57',
+    },
+  };
+
+  const preferences: ThemePreferences = {
+    theme: 'light',
+    themeSlots: {
+      light: customLight.id,
+      dark: null,
+    },
+    customThemes: [customLight],
+  };
+
+  it('keeps the exact built-in Light/Dark baseline palettes', () => {
+    expect(BUILTIN_THEMES.light.colors.bg).toBe('#EAE7DC');
+    expect(BUILTIN_THEMES.light.colors.accent).toBe('#E85A4F');
+    expect(BUILTIN_THEMES.dark.colors.bg).toBe('#272727');
+    expect(BUILTIN_THEMES.dark.colors.accent).toBe('#FFE400');
+  });
+
+  it('resolves configured custom slots before built-ins', () => {
+    const resolved = resolveThemeChoice('light', preferences);
+    expect(resolved.id).toBe('custom-light');
+    expect(resolved.slot).toBe('light');
+    expect(resolved.mode).toBe('light');
+    expect(resolved.colors.bg).toBe('#FAFAF6');
+
+    expect(resolveThemeChoice('dark', preferences).id).toBe('dark');
+    expect(toggleThemeChoice('dark', preferences)).toBe('light');
+    expect(toggleThemeChoice('light', preferences)).toBe('dark');
+  });
+
+  it('derives the complete semantic color contract for saved custom themes', () => {
+    const colors = completeThemeColors(customLight.colors);
+    expect(colors.line).toMatch(/^#[0-9A-F]{6}$/);
+    expect(colors.nav).toMatch(/^#[0-9A-F]{6}$/);
+    expect(colors.tint).toMatch(/^#[0-9A-F]{6}$/);
+    expect(colors.onAccent).toMatch(/^#[0-9A-F]{6}$/);
+
+    const choices = themeChoices(preferences);
+    expect(choices.map((choice) => choice.choice)).toEqual(['light', 'dark']);
+    expect(choices[0]?.id).toBe('custom-light');
+  });
+
+  it('applies only semantic CSS variables to the shell document root', () => {
+    const variables = new Map<string, string>();
+    const fakeRoot = {
+      dataset: {} as Record<string, string>,
+      style: {
+        setProperty(key: string, value: string) {
+          variables.set(key, value);
+        },
+      },
+    } as unknown as HTMLElement;
+
+    const resolved = applyThemeToDocument('light', fakeRoot, preferences);
+    expect(resolved.mode).toBe('light');
+    expect(fakeRoot.dataset.theme).toBe('light');
+    expect(fakeRoot.dataset.themeChoice).toBe('light');
+    expect(variables.get('--rl-bg')).toBe('#FAFAF6');
+    expect(variables.get('--rl-accent')).toBe('#A23B72');
+    expect(variables.has('--editor')).toBe(false);
+  });
+});
+
+describe('R2 shell actions are real Zustand state transitions', () => {
+  beforeEach(() => {
+    useUiStore.setState({
+      surface: 'studio',
+      uiLanguage: 'de',
+      themeChoice: 'dark',
+      commandPaletteOpen: false,
+      quickstylesOpen: false,
+      settingsDrawerOpen: false,
+    });
+  });
+
+  it('navigates between shell surfaces without creating domain state', () => {
+    useUiStore.getState().navigate('search');
+    expect(useUiStore.getState().surface).toBe('search');
+
+    useUiStore.getState().navigate('library');
+    expect(useUiStore.getState().surface).toBe('library');
+
+    useUiStore.getState().navigate('saved');
+    expect(useUiStore.getState().surface).toBe('saved');
+
+    useUiStore.getState().navigate('settings');
+    expect(useUiStore.getState().surface).toBe('settings');
+  });
+
+  it('toggles persistent appearance state through the same registered actions used by controls', () => {
+    useUiStore.getState().toggleUiLanguage();
+    expect(useUiStore.getState().uiLanguage).toBe('en');
+    useUiStore.getState().toggleUiLanguage();
+    expect(useUiStore.getState().uiLanguage).toBe('de');
+
+    useUiStore.getState().toggleTheme();
+    expect(useUiStore.getState().themeChoice).toBe('light');
+    useUiStore.getState().toggleTheme();
+    expect(useUiStore.getState().themeChoice).toBe('dark');
+  });
+
+  it('opens and closes command, quickstyle and mobile settings surfaces explicitly', () => {
+    useUiStore.getState().setCommandPaletteOpen(true);
+    useUiStore.getState().setQuickstylesOpen(true);
+    useUiStore.getState().setSettingsDrawerOpen(true);
+
+    expect(useUiStore.getState()).toMatchObject({
+      commandPaletteOpen: true,
+      quickstylesOpen: true,
+      settingsDrawerOpen: true,
+    });
+
+    useUiStore.getState().setCommandPaletteOpen(false);
+    useUiStore.getState().setQuickstylesOpen(false);
+    useUiStore.getState().setSettingsDrawerOpen(false);
+
+    expect(useUiStore.getState()).toMatchObject({
+      commandPaletteOpen: false,
+      quickstylesOpen: false,
+      settingsDrawerOpen: false,
+    });
+  });
+});
+
+describe('R2 navigation and command foundations preserve product vocabulary', () => {
+  it('keeps the four canonical product destinations plus settings outside the primary nav', () => {
+    expect(NAVIGATION_ITEMS.map((item) => item.id)).toEqual([
+      'studio',
+      'search',
+      'library',
+      'saved',
+    ]);
+    expect(navigationLabel(NAVIGATION_ITEMS[1]!, 'de')).toBe('Reimsuche');
+    expect(navigationLabel(NAVIGATION_ITEMS[1]!, 'en')).toBe('Rhyme search');
+    expect(shellText('Einstellungen öffnen', 'en')).toBe('Open settings');
+  });
+
+  it('uses the accepted ranked command matcher for shell commands', () => {
+    const commands = [
+      { id: 'studio', group: 'Navigation', label: 'Studio öffnen', keywords: ['write'] },
+      { id: 'search', group: 'Navigation', label: 'Reimsuche öffnen', keywords: ['rhyme'] },
+    ];
+    expect(rankStudioCommands(commands, 'rhyme').map((command) => command.id)).toEqual(['search']);
+    expect(normalizeCommandQuery('  REIM—Suche ')).toBe('reim suche');
+  });
+
+  it('exposes every Base UI primitive family required by the R2 design-system boundary', () => {
+    expect(Button).toBeTruthy();
+    expect(Dialog).toBeTruthy();
+    expect(Drawer).toBeTruthy();
+    expect(Menu).toBeTruthy();
+    expect(Popover).toBeTruthy();
+    expect(Select).toBeTruthy();
+    expect(Tooltip).toBeTruthy();
+  });
+});
