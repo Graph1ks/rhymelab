@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 
 import { Dialog } from '../design-system/primitives';
@@ -94,10 +94,15 @@ function SurfaceTransition({
   const reduceMotion = useReducedMotion();
   const language = useUiStore((state) => state.uiLanguage);
   const transitionCopy = SURFACE_TRANSITION_COPY[surface];
+  const hasMounted = useRef(false);
+
+  useEffect(() => {
+    hasMounted.current = true;
+  }, []);
 
   return (
     <div className={styles.surfaceTransition} data-transition={surface}>
-      {!reduceMotion ? (
+      {!reduceMotion && hasMounted.current ? (
         <div
           key={`transition-${surface}`}
           className={styles.pageTransition}
