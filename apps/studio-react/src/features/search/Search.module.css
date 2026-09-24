@@ -1951,3 +1951,48 @@
     max-height: calc(100dvh - 16px);
   }
 }
+
+
+.searchExperience[data-variant="page"] {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background:
+    radial-gradient(ellipse at 76% -16%, color-mix(in srgb, var(--rl-accent) 5%, transparent), transparent 34rem),
+    transparent;
+}
+
+.searchExperience[data-variant="page"] .controls {
+  border-inline: 0;
+  border-radius: 0;
+  margin-inline: 18px;
+  background: color-mix(in srgb, var(--rl-panel) 82%, transparent);
+}
+
+.searchExperience[data-variant="page"] .resultToolbar {
+  padding-inline: 18px;
+  background: transparent;
+}
+
+.searchExperience[data-variant="page"] .resultsScroller {
+  padding-inline: 18px;
+}
+
+.filterPopup,
+.entityPopup {
+  max-height: min(420px, 70dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.filterOption,
+.entityCheck {
+  min-height: 42px;
+  font-size: 12px;
+}
+
+@media (min-width: 1200px) {
+  .searchExperience[data-variant="page"] .resultRow[data-density="compact"] {
+    min-height: 62px;
+  }
+}
