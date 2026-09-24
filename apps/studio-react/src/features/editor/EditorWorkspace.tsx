@@ -70,6 +70,12 @@ interface SectionMenuState {
   end: number;
 }
 
+interface EditorLineMetric {
+  top: number;
+  height: number;
+  firstLineCenter: number;
+}
+
 function revisionTime(value: unknown, language: 'de' | 'en') {
   return new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-GB', {
     day: '2-digit',
@@ -158,8 +164,7 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
     timer: ReturnType<typeof setTimeout>;
   } | null>(null);
 
-  const [lineHeights, setLineHeights] = useState<number[]>([]);
-  const [lineCenters, setLineCenters] = useState<number[]>([]);
+  const [lineMetrics, setLineMetrics] = useState<EditorLineMetric[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [comparison, setComparison] = useState<{
     revision: LegacyStudioRevision;
@@ -198,54 +203,74 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
     if (!textarea || !measure) return;
 
     let cancelled = false;
+    let frame = 0;
+
     const update = () => {
       if (cancelled) return;
-      const children = Array.from(measure.children) as HTMLElement[];
-      const fallback = Math.max(34, Math.ceil(fontSize * 1.62));
-      const nextHeights: number[] = [];
-      const nextCenters: number[] = [];
 
-      for (const node of children) {
+      const children = Array.from(measure.children) as HTMLElement[];
+      const measureRect = measure.getBoundingClientRect();
+      const measureStyle = getComputedStyle(measure);
+      const fallback = Math.max(
+        34,
+        Number.parseFloat(measureStyle.lineHeight) || fontSize * 1.62,
+      );
+      const paddingBottom = Number.parseFloat(measureStyle.paddingBottom) || 0;
+
+      const nextMetrics = children.map((node): EditorLineMetric => {
         const nodeRect = node.getBoundingClientRect();
-        nextHeights.push(Math.max(fallback, Math.ceil(nodeRect.height)));
+        const height = Math.max(fallback, nodeRect.height);
+        const top = nodeRect.top - measureRect.top;
 
         const textNode = node.firstChild;
-        let center = fallback / 2;
+        let firstLineCenter = fallback / 2;
         if (textNode?.nodeType === Node.TEXT_NODE && textNode.textContent?.length) {
           const range = document.createRange();
           range.setStart(textNode, 0);
           range.setEnd(textNode, Math.min(1, textNode.textContent.length));
           const firstRect = range.getClientRects()[0];
           if (firstRect) {
-            center = (firstRect.top - nodeRect.top) + firstRect.height / 2;
+            firstLineCenter = (firstRect.top - nodeRect.top) + firstRect.height / 2;
           }
         }
-        nextCenters.push(Math.max(0, Math.min(fallback, center)));
-      }
 
-      setLineHeights(nextHeights);
-      setLineCenters(nextCenters);
-      textarea.style.height = `${Math.max(
-        fallback * 12 + 36,
-        nextHeights.reduce((sum, value) => sum + value, 0) + 36,
-      )}px`;
+        return {
+          top,
+          height,
+          firstLineCenter: Math.max(0, Math.min(height, firstLineCenter)),
+        };
+      });
+
+      setLineMetrics(nextMetrics);
+
+      const last = nextMetrics.at(-1);
+      const measuredBottom = last ? last.top + last.height + paddingBottom : 0;
+      const minimumHeight = fallback * 12
+        + (Number.parseFloat(measureStyle.paddingTop) || 0)
+        + paddingBottom;
+      textarea.style.height = `${Math.max(minimumHeight, measuredBottom)}px`;
+    };
+
+    const scheduleUpdate = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
     };
 
     update();
 
-    const observer = new ResizeObserver(() => requestAnimationFrame(update));
+    const observer = new ResizeObserver(scheduleUpdate);
     observer.observe(textarea);
     observer.observe(measure);
 
     const fonts = document.fonts;
-    const onFontsDone = () => requestAnimationFrame(update);
-    fonts?.addEventListener?.('loadingdone', onFontsDone);
-    void fonts?.ready?.then(() => requestAnimationFrame(update));
+    fonts?.addEventListener?.('loadingdone', scheduleUpdate);
+    void fonts?.ready?.then(scheduleUpdate);
 
     return () => {
       cancelled = true;
+      if (frame) cancelAnimationFrame(frame);
       observer.disconnect();
-      fonts?.removeEventListener?.('loadingdone', onFontsDone);
+      fonts?.removeEventListener?.('loadingdone', scheduleUpdate);
     };
   }, [editor.documentText, fontFamily, fontSize, fontStyle, fontWeight, lines.length]);
 
@@ -285,11 +310,17 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
     }
   };
 
-  const rowHeight = (index: number) => lineHeights[index] ?? Math.max(34, Math.ceil(fontSize * 1.62));
-  const rowCenter = (index: number) => lineCenters[index] ?? rowHeight(index) / 2;
+  const fallbackLineHeight = Math.max(34, fontSize * 1.62);
+  const rowTop = (index: number) => lineMetrics[index]?.top ?? 18 + index * fallbackLineHeight;
+  const rowHeight = (index: number) => lineMetrics[index]?.height ?? fallbackLineHeight;
+  const rowCenter = (index: number) => lineMetrics[index]?.firstLineCenter ?? fallbackLineHeight / 2;
+  const boundaryTop = (index: number) => {
+    if (index < lines.length) return rowTop(index);
+    const lastIndex = Math.max(0, lines.length - 1);
+    return rowTop(lastIndex) + rowHeight(lastIndex);
+  };
   const dropPreviewTop = dragVisual?.active
-    ? 18 + Array.from({ length: dragVisual.boundaryIndex }, (_, index) => rowHeight(index))
-      .reduce((sum, value) => sum + value, 0)
+    ? boundaryTop(dragVisual.boundaryIndex)
     : 0;
 
   const calculateDropPlacement = (clientY: number, sourceIndex: number) => {
@@ -571,7 +602,6 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
               </div>
             ) : null}
             <div className={styles.gutter} aria-label={language === 'de' ? 'Bar-Markierungen' : 'Bar markers'}>
-              <div className={styles.gutterSpacer} />
               {lines.map((line, index) => {
                 const kind = editorLineKind(line);
                 const number = kind === 'bar' ? trackedEditorBarNumber(asEditorSong(song), index) : null;
@@ -581,7 +611,7 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
                     className={styles.gutterRow}
                     data-editor-row={index}
                     data-kind={kind}
-                    style={{ height: rowHeight(index) }}
+                    style={{ top: rowTop(index), height: rowHeight(index) }}
                   >
                     {kind === 'bar' ? (
                       <button
@@ -644,7 +674,6 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
             </div>
 
             <div className={styles.syllableGutter} aria-label={language === 'de' ? 'Silbenschätzung' : 'Syllable estimate'}>
-              <div className={styles.gutterSpacer} />
               {lines.map((line, index) => {
                 const kind = editorLineKind(line);
                 return (
@@ -652,7 +681,7 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
                     key={song.barIds?.[index] ?? `syll-${index}`}
                     className={styles.syllableRow}
                     data-kind={kind}
-                    style={{ height: rowHeight(index) }}
+                    style={{ top: rowTop(index), height: rowHeight(index) }}
                   >
                     {kind === 'bar' ? (
                       <span
