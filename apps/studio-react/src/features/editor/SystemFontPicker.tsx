@@ -168,6 +168,15 @@ export function SystemFontPicker({
 
   const currentFamily = editorFontLabel(value);
 
+  const changeOpen = (next: boolean) => {
+    setOpen(next);
+    if (!next) {
+      setQuery('');
+      setFaces(FALLBACK_FONTS);
+      setStatus('idle');
+    }
+  };
+
   return (
     <>
       <button
@@ -188,7 +197,7 @@ export function SystemFontPicker({
         </b>
       </button>
 
-      <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Root open={open} onOpenChange={changeOpen}>
         <Dialog.Portal>
           <Dialog.Backdrop className={styles.fontDialogBackdrop} />
           <Dialog.Viewport className={styles.fontDialogViewport}>
@@ -248,7 +257,7 @@ export function SystemFontPicker({
                         }}
                         onClick={() => {
                           onChange(faceValue);
-                          setOpen(false);
+                          changeOpen(false);
                         }}
                       >
                         <span>
