@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  STUDIO_PORTABLE_BACKUP_LIMITS,
   STUDIO_PORTABLE_BACKUP_SCHEMA,
   createPortableStudioBackup,
   parsePortableStudioBackup,
@@ -52,6 +53,29 @@ test('portable backup parser rejects unknown or malformed payloads',()=>{
     }),
     /gültigen Dokument-Snapshot/u,
   );
+});
+
+
+test('portable backup parser rejects structurally inconsistent snapshots',()=>{
+  const broken=structuredClone(snapshot);
+  broken.bars[0].songId='missing-song';
+  assert.throws(
+    ()=>parsePortableStudioBackup(broken),
+    /inkonsistenten Dokument-Snapshot/u,
+  );
+});
+
+test('portable backup parser enforces collection and text budgets',()=>{
+  const tooManySongs=structuredClone(snapshot);
+  tooManySongs.songs=Array.from(
+    {length:STUDIO_PORTABLE_BACKUP_LIMITS.maxSongs+1},
+    (_,index)=>({id:`song-${index}`}),
+  );
+  assert.throws(()=>parsePortableStudioBackup(tooManySongs),/Limit für Songs/u);
+
+  const hugeText=structuredClone(snapshot);
+  hugeText.bars[0].text='x'.repeat(STUDIO_PORTABLE_BACKUP_LIMITS.maxTextChars+1);
+  assert.throws(()=>parsePortableStudioBackup(hugeText),/zu großen Text/u);
 });
 
 test('portable backup filename is deterministic and filesystem-safe',()=>{

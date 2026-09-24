@@ -1,0 +1,48 @@
+name: Security Gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '41 3 * * 3'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-gates-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.x'
+
+      - name: Deterministic security baseline
+        run: npm run security:audit
+
+      - name: Verify locked React dependency graph
+        run: npm ci --prefix apps/studio-react --ignore-scripts --no-audit --no-fund
+
+      - name: Audit React dependency graph
+        run: npm audit --prefix apps/studio-react --audit-level=high
+
+      - name: Verify locked root dependency graph
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Audit root runtime dependency graph
+        run: npm audit --omit=dev --audit-level=high

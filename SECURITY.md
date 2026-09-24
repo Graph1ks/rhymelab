@@ -2,7 +2,9 @@
 
 ## Supported scope
 
-RhymeLab is currently a local-only development project. Security fixes target the current `main` branch and the current local runtime/data pipeline.
+RhymeLab is a local-first application. Security fixes target the current `main` branch and the current local runtime/data pipeline.
+
+The application security design and future BYOK AI trust boundary are defined in `docs/SECURITY_ARCHITECTURE.md`.
 
 ## Reporting a vulnerability
 
@@ -12,18 +14,39 @@ Prefer GitHub's private vulnerability-reporting / Security Advisory flow for thi
 
 For non-sensitive security hardening, ordinary GitHub issues are fine.
 
-## Security boundaries
+## Runtime security boundary
 
-RhymeLab is intended to bind to loopback by default and operate on local data. Changes that introduce remote services, telemetry, automatic uploads, authentication material, hosted databases, or public network exposure require explicit security review.
+RhymeLab binds to loopback by default. Non-loopback/LAN binding requires the explicit owner opt-in `RHYMELAB_ALLOW_REMOTE=1`; wildcard binds (`0.0.0.0` / `::`) additionally require an explicit `RHYMELAB_ALLOWED_HOSTS` allowlist.
+
+Browser/API security is fail-closed by default:
+
+- no wildcard CORS on the localhost API;
+- restrictive CSP on served HTML;
+- anti-framing, no-sniff, referrer and cross-origin isolation headers;
+- bounded request targets and JSON request bodies;
+- localhost-only write-origin checks for current mutating development endpoints;
+- unexpected internal exceptions are not reflected verbatim to clients;
+- remote services, telemetry, automatic uploads, authentication material, hosted databases, or normal public network exposure require explicit security review.
 
 Generated local databases, downloaded corpora, benchmark reviews/reference labels, and reports are not intended for source control.
 
-## Secrets and privacy
+## Secrets and future AI provider keys
 
-The repository must not contain personal credentials, private keys, tokens, cookies, personal email addresses, or local user/profile paths. Public-readiness validation is available through:
+The repository must not contain personal credentials, private keys, tokens, cookies, personal email addresses, or local user/profile paths.
+
+Future user-supplied AI provider keys must follow `docs/SECURITY_ARCHITECTURE.md`: no URL/log/prompt/diagnostic exposure, no plaintext localStorage/IndexedDB persistence, memory-only by default, renderer-minimized access, and a narrow local provider adapter rather than arbitrary browser egress.
+
+If a credential is ever committed or exposed, removing it from Git or UI state is not sufficient: revoke or rotate it as well.
+
+## Validation
+
+Run before security-sensitive or public-facing changes:
 
 ```bash
+npm run check
+npm test
+npm run security:audit
 node scripts/public-readiness-audit.mjs
 ```
 
-If a credential is ever committed, removing it from Git is not sufficient: revoke or rotate the credential as well.
+GitHub CI also runs dependency auditing and CodeQL scanning.
