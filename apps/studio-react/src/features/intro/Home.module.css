@@ -51,6 +51,11 @@
   text-wrap: balance;
 }
 
+.home[data-language="de"] .hero h1 {
+  font-size: clamp(3rem, 5.8vw, 6.9rem);
+  line-height: .9;
+}
+
 .heroLead {
   max-width: 720px;
   margin: 28px 0 0;
