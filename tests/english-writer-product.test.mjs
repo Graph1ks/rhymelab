@@ -329,28 +329,41 @@ test('Arbeitsweise and Weise bridge to the same English right-edge rhyme neighbo
 test('generated compound queries recover the source-backed producer rhyme neighborhood',()=>{
   const db=fixtureEnglishDb();
   try{
-    const result=searchEnglishWriterFromExternalQuery(db,{
-      kind:'word',
-      language:'en',
-      surface:'GROWTHHORMONPRODUCER',
-      normalized:'growthhormonproducer',
-      preferredIpa:'ˌgɹaʊθˌhɔɹmənpɹəˈdusɚ',
-      ipa:'ˌgɹaʊθˌhɔɹmənpɹəˈdusɚ',
-      syllableCount:6,
-      generatedPronunciation:true,
-      queryPronunciation:{
-        policy:'client-total-query-pronunciation-v4',
-        method:'client_mixed_reference_compound_right_edge',
+    for(const query of [
+      {
+        language:'en',
+        preferredIpa:'ˌgɹaʊθˌhɔɹmənpɹəˈdusɚ',
         components:['growthhormon','producer'],
       },
-    },{limit:20});
+      {
+        language:'de',
+        preferredIpa:'ˌgRoːtˌhɔRmoːnpRoˈduːtsɐ',
+        components:['growth','hormon','Producer'],
+      },
+    ]){
+      const result=searchEnglishWriterFromExternalQuery(db,{
+        kind:'word',
+        language:query.language,
+        surface:'GROWTHHORMONPRODUCER',
+        normalized:'growthhormonproducer',
+        preferredIpa:query.preferredIpa,
+        ipa:query.preferredIpa,
+        syllableCount:6,
+        generatedPronunciation:true,
+        queryPronunciation:{
+          policy:'client-total-query-pronunciation-v4',
+          method:'client_mixed_reference_compound_right_edge',
+          components:query.components,
+        },
+      },{limit:20});
 
-    assert.ok(result);
-    assert.equal(result.crossLanguageQuery.policy,'source-backed-right-edge-component-v1');
-    assert.equal(result.crossLanguageQuery.rightEdgeComponent,'producer');
-    assert.equal(result.writerRetrieval.rightEdgeComponentAnchor,'producer');
-    assert.ok(result.results.some((row)=>row.normalized==='reducer'));
-    assert.ok(result.results.some((row)=>row.normalized==='seducer'));
+      assert.ok(result);
+      assert.equal(result.crossLanguageQuery.policy,'source-backed-right-edge-component-v1');
+      assert.equal(result.crossLanguageQuery.rightEdgeComponent.toLocaleLowerCase('en-US'),'producer');
+      assert.equal(result.writerRetrieval.rightEdgeComponentAnchor,'producer');
+      assert.ok(result.results.some((row)=>row.normalized==='reducer'));
+      assert.ok(result.results.some((row)=>row.normalized==='seducer'));
+    }
   }finally{
     db.close();
   }
