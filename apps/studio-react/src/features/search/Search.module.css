@@ -601,8 +601,10 @@
 }
 
 .searchExperience[data-variant="assistant"] .resultToolbar {
-  align-items: stretch;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
   padding: 7px 14px;
 }
 
@@ -631,7 +633,10 @@
 }
 
 .searchExperience[data-variant="assistant"] .resultTools {
-  overflow-x: auto;
+  min-width: 0;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  overflow: visible;
 }
 
 .toggleButton,
@@ -2067,5 +2072,16 @@
   .entityPopup {
     min-width: min(290px, calc(100vw - 20px));
     max-width: calc(100vw - 20px);
+  }
+}
+
+
+@media (max-width: 1180px) {
+  .searchExperience[data-variant="assistant"] .resultToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .searchExperience[data-variant="assistant"] .resultTools {
+    justify-content: flex-start;
   }
 }
