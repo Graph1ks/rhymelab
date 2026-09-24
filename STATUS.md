@@ -53,7 +53,7 @@ Straight/Triplet, half/normal/double time, Auto-Map, cue-review invalidation and
 Audio metronome timing. Perform mutations go through the R5 undo/revision boundary
 and then the R4 persistence path.
 
-The functional R6 checkpoint `48600af0221c5d9429813e697b381af3a794383e`
+The functional R6 checkpoint `48600af0221c`
 passes strict TypeScript, production Vite build and 71/71 automated tests, including
 11 focused R6 contract tests. React Studio Replatform #152, Full RhymeLab CI #1335
 and Studio V2 Gate #470 all pass.
