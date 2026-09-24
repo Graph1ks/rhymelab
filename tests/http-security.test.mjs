@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   RHYMELAB_CSP,
   assertSafeServerBinding,
+  isAllowedLocalMutationRequest,
   publicHttpError,
   readJsonRequestBody,
   requestUrlFromTrustedBase,
@@ -28,6 +29,8 @@ test('browser security headers deny framing, objects and remote script execution
   assert.match(headers['content-security-policy'],/script-src 'self'/);
   assert.match(headers['content-security-policy'],/object-src 'none'/);
   assert.match(headers['content-security-policy'],/frame-ancestors 'none'/);
+  assert.match(headers['content-security-policy'],/frame-src 'none'/);
+  assert.match(headers['content-security-policy'],/script-src-attr 'none'/);
   assert.match(headers['content-security-policy'],/connect-src 'self'/);
   assert.doesNotMatch(headers['content-security-policy'],/unsafe-eval/);
   assert.doesNotMatch(headers['content-security-policy'],/script-src[^;]*\*/);
@@ -44,6 +47,49 @@ test('remote server binding requires an explicit owner opt-in',()=>{
   assert.deepEqual(
     assertSafeServerBinding({host:'0.0.0.0',env:{RHYMELAB_ALLOW_REMOTE:'1'}}),
     {remote:true},
+  );
+});
+
+test('local mutation requests require exact localhost origin or loopback CLI peer',()=>{
+  const request=(origin,remoteAddress='127.0.0.1',fetchSite='same-origin')=>({
+    headers:{
+      ...(origin==null?{}:{origin}),
+      ...(fetchSite?{'sec-fetch-site':fetchSite}:{}),
+    },
+    socket:{remoteAddress},
+  });
+
+  assert.equal(
+    isAllowedLocalMutationRequest(request('http://127.0.0.1:3030'),{port:3030}),
+    true,
+  );
+  assert.equal(
+    isAllowedLocalMutationRequest(request('http://localhost:3030'),{port:3030}),
+    true,
+  );
+  assert.equal(
+    isAllowedLocalMutationRequest(request('http://localhost'),{port:3030}),
+    false,
+  );
+  assert.equal(
+    isAllowedLocalMutationRequest(request('https://localhost:3030'),{port:3030}),
+    false,
+  );
+  assert.equal(
+    isAllowedLocalMutationRequest(request('http://evil.example:3030'),{port:3030}),
+    false,
+  );
+  assert.equal(
+    isAllowedLocalMutationRequest(request('http://127.0.0.1:3030','127.0.0.1','cross-site'),{port:3030}),
+    false,
+  );
+  assert.equal(
+    isAllowedLocalMutationRequest(request(null,'127.0.0.1','none'),{port:3030}),
+    true,
+  );
+  assert.equal(
+    isAllowedLocalMutationRequest(request(null,'192.168.1.50','none'),{port:3030}),
+    false,
   );
 });
 
