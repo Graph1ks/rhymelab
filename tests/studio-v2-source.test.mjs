@@ -10,7 +10,7 @@ test('Studio V2 production surface is present with its core visual/interaction c
     readFile('src/server.mjs','utf8'),
   ]);
 
-  assert.match(html,/RhymeLab Studio V2/u);
+  assert.match(html,/Rhyme Bureau Studio/u);
   assert.match(html,/href=["']\/studio\/styles\.css["']/u);
   assert.match(html,/src=["']\/studio\/app\.js["']/u);
   assert.match(html,/id=["']runtimeStatus["']/u);
