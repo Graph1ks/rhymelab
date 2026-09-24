@@ -67,7 +67,7 @@ export function StyleDesigner() {
   const [preferences, setPreferences] = useState<ThemePreferences>(() => readThemePreferences());
   const firstCustom = preferences.customThemes?.[0] ?? null;
   const [draft, setDraft] = useState<ThemeDefinition>(() => (
-    firstCustom ? cloneTheme(firstCustom) : freshTheme('dark')
+    firstCustom ? cloneTheme(firstCustom) : freshTheme('light')
   ));
   const [deleteArmed, setDeleteArmed] = useState(false);
 
@@ -121,9 +121,9 @@ export function StyleDesigner() {
     setDeleteArmed(false);
     const next = deleteCustomTheme(draft.id);
     refresh(next);
-    if (themeChoice === draft.id) setThemeChoice('dark');
+    if (themeChoice === draft.id) setThemeChoice('light');
     const replacement = next.customThemes?.[0];
-    setDraft(replacement ? cloneTheme(replacement) : freshTheme('dark'));
+    setDraft(replacement ? cloneTheme(replacement) : freshTheme('light'));
   };
 
   const surprise = () => {
