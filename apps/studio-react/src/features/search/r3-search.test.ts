@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import * as legacyFilters from '../../../../../src/studio/search-filters.mjs';
 import * as legacyControls from '../../../../../src/studio/studio-controls.mjs';
 
-import type { WriterResultRow } from '../../legacy/contracts';
+import type { RuntimeEditionPayload, WriterResultRow } from '../../legacy/contracts';
 import { chooseAvailableRuntimeEdition, createSearchState } from '../../legacy/search';
 import { writerSearchOptions } from './data';
 import {
@@ -151,7 +151,7 @@ describe('R3 preserves Writer request semantics through R1', () => {
   });
 
   it('keeps STANDARD -> FULL -> LITE fallback when the requested edition is unavailable', () => {
-    const payload = {
+    const payload: RuntimeEditionPayload = {
       enabled: true,
       defaultDatabase: 'standard',
       databases: [
@@ -159,7 +159,7 @@ describe('R3 preserves Writer request semantics through R1', () => {
         { id: 'standard', available: false },
         { id: 'full', available: true },
       ],
-    } as const;
+    };
 
     expect(chooseAvailableRuntimeEdition(payload, 'standard')).toBe('full');
     expect(chooseAvailableRuntimeEdition(payload, 'lite')).toBe('lite');
