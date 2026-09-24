@@ -181,7 +181,7 @@ function ResultToolbar({
   hiddenUsed,
   timing,
 }: {
-  variant: 'page' | 'assistant';
+  variant: 'page' | 'assistant' | 'popout';
   density: ResultDensity;
   setDensity: (density: ResultDensity) => void;
   hideUsed: boolean;
@@ -284,11 +284,13 @@ export function SearchExperience({
   variant = 'page',
   enabled = true,
 }: {
-  variant?: 'page' | 'assistant';
+  variant?: 'page' | 'assistant' | 'popout';
   enabled?: boolean;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const reduceMotion = useReducedMotion();
+  const embedded = variant !== 'page';
+  const popout = variant === 'popout';
   const editor = useOptionalEditorSession();
   const { state, patch, setSelectedResultId } = useSharedSearchState();
   const preferences = useSearchPreferences();
@@ -297,7 +299,7 @@ export function SearchExperience({
     state,
     runtime.capabilities,
     runtime.runtimeDb,
-    { enabled, paceMs: variant === 'assistant' ? 220 : 160 },
+    { enabled, paceMs: embedded ? 220 : 160 },
   );
   const trackedText = useActiveTrackedText();
   const [draftQuery, setDraftQuery] = useState(state.anchor);
@@ -335,7 +337,7 @@ export function SearchExperience({
   }, [filtersOpen]);
 
   useEffect(() => {
-    if (!enabled || variant !== 'assistant' || !editor?.followSelection) return;
+    if (!enabled || !embedded || !editor?.followSelection) return;
     const anchor = editor.selection?.anchor?.trim();
     if (!anchor || anchor === state.anchor) return;
     patch({ anchor, selectedResultId: '' });
@@ -439,7 +441,7 @@ export function SearchExperience({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!enabled) return;
-    if (variant === 'assistant' && editor?.followSelection) {
+    if (embedded && editor?.followSelection) {
       editor.setFollowSelection(false);
     }
     const next = draftQuery.trim();
@@ -470,13 +472,14 @@ export function SearchExperience({
       data-variant={variant}
       data-rhymelab-surface="search"
       data-enabled={enabled ? 'true' : 'false'}
+      data-popout={popout ? 'true' : 'false'}
       aria-label={language === 'de' ? 'Rhyme Bureau Reimsuche' : 'Rhyme Bureau rhyme search'}
     >
       <header className={styles.searchHeader}>
         <div className={styles.searchTitle}>
-          <p>{variant === 'assistant' ? 'SOUND EXPLORER' : 'UNIFIED RHYME WRITER'}</p>
+          <p>{embedded ? 'SOUND EXPLORER' : 'UNIFIED RHYME WRITER'}</p>
           <h1>
-            {variant === 'assistant'
+            {embedded
               ? (language === 'de' ? 'Dein nächster Treffer.' : 'Your next match.')
               : (language === 'de' ? 'Reime finden.' : 'Find rhymes.')}
           </h1>
@@ -486,7 +489,7 @@ export function SearchExperience({
               : 'Words · Phrases / Mosaic · names'}
           </span>
         </div>
-        <RuntimeSelector runtime={runtime} compact={variant === 'assistant'} />
+        <RuntimeSelector runtime={runtime} compact={embedded} />
       </header>
 
       <button
@@ -518,7 +521,7 @@ export function SearchExperience({
             {state.anchor || '—'}
           </motion.b>
           <i className={styles.anchorScan} aria-hidden="true" />
-          {variant === 'assistant' && editor ? (
+          {embedded && editor ? (
             <div className={styles.anchorMode} role="group" aria-label={language === 'de' ? 'Reimanker-Modus' : 'Rhyme anchor mode'}>
               <button
                 type="button"
@@ -546,7 +549,7 @@ export function SearchExperience({
             value={draftQuery}
             onChange={(event) => {
               setDraftQuery(event.target.value);
-              if (variant === 'assistant' && editor?.followSelection) {
+              if (embedded && editor?.followSelection) {
                 editor.setFollowSelection(false);
               }
             }}
@@ -575,7 +578,7 @@ export function SearchExperience({
         />
       ) : null}
 
-      <div className={styles.capabilityBar} data-hidden={variant === 'assistant' ? 'true' : 'false'}>
+      <div className={styles.capabilityBar} data-hidden={embedded ? 'true' : 'false'}>
         <span data-state={runtime.capabilities?.deWriter ? 'on' : 'off'}>DE</span>
         <span data-state={runtime.capabilities?.enWriter ? 'on' : 'off'}>EN</span>
         <span data-state={runtime.capabilities?.phrases ? 'on' : 'off'}>Phrase / Mosaic</span>
@@ -588,7 +591,7 @@ export function SearchExperience({
 
       <ResultToolbar
         variant={variant}
-        density={variant === 'assistant' ? 'compact' : preferences.density}
+        density={embedded ? 'compact' : preferences.density}
         setDensity={preferences.setDensity}
         hideUsed={preferences.hideUsed}
         setHideUsed={preferences.setHideUsed}
@@ -638,7 +641,7 @@ export function SearchExperience({
           ) : (
             <ResultsList
               rows={processed.rows}
-              density={variant === 'assistant' ? 'compact' : preferences.density}
+              density={embedded ? 'compact' : preferences.density}
               selectedId={state.selectedResultId}
               onSelect={selectRow}
               onToggleSaved={toggleSaved}
@@ -650,6 +653,7 @@ export function SearchExperience({
                 if (variant === 'assistant' && state.selectedResultId) setSelectedResultId('');
               }}
               onInsert={editor?.selection?.proof ? insertRow : undefined}
+              layout={popout ? 'adaptive-grid' : 'list'}
             />
           )}
 
