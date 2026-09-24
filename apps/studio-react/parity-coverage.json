@@ -286,85 +286,134 @@
       "id": "editor.bars",
       "group": "Writing / Editor",
       "capability": "Stable Bar-ID editor model",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
     },
     {
       "id": "editor.geometry",
       "group": "Writing / Editor",
       "capability": "Continuous document with tracked and free lines",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
     },
     {
       "id": "editor.bracket-metadata",
       "group": "Writing / Editor",
       "capability": "Inline [bracket] metadata is excluded from lyric tracking",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
     },
     {
       "id": "editor.anchor",
       "group": "Writing / Editor",
       "capability": "Selection-follow and pinned rhyme anchor",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
     },
     {
       "id": "editor.selection-proof",
       "group": "Writing / Editor",
       "capability": "Stale-selection protection by Bar revision",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
     },
     {
       "id": "editor.replace",
       "group": "Writing / Editor",
       "capability": "Replace selected word or range",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/search/ResultsList.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
     },
     {
       "id": "editor.split",
       "group": "Writing / Editor",
       "capability": "Native Enter creates editable document lines",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
     },
     {
       "id": "editor.merge",
       "group": "Writing / Editor",
       "capability": "Native Backspace/Delete edit across line boundaries",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
     },
     {
       "id": "editor.paste",
       "group": "Writing / Editor",
       "capability": "Native multiline paste updates the unified document",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
     },
     {
       "id": "editor.ime",
       "group": "Writing / Editor",
       "capability": "IME transaction safety",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts"
+      ]
     },
     {
       "id": "editor.undo",
       "group": "Writing / Editor",
       "capability": "Undo / redo with typing-burst coalescing",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/legacy/editor.ts"
+      ]
     },
     {
       "id": "editor.font",
       "group": "Writing / Editor",
       "capability": "Font family and size controls",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/Editor.module.css",
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx"
+      ]
     },
     {
       "id": "editor.theme",
@@ -382,36 +431,58 @@
       "id": "editor.clear",
       "group": "Writing / Editor",
       "capability": "Safe clear with revision and recovery point",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
     },
     {
       "id": "editor.autosave",
       "group": "Writing / Editor",
       "capability": "IndexedDB authoritative autosave",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/library/DocumentWorkspaceProvider.tsx",
+        "apps/studio-react/src/features/library/persistence.ts",
+        "apps/studio-react/src/features/library/r4-library.test.ts"
+      ]
     },
     {
       "id": "editor.revisions",
       "group": "Writing / Editor",
       "capability": "Revision history and stable restore",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/model.ts",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/r5-editor.test.ts"
+      ]
     },
     {
       "id": "editor.navigator",
       "group": "Writing / Editor",
       "capability": "Searchable Bar Navigator with stable reorder",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx"
+      ]
     },
     {
       "id": "editor.bar-actions",
       "group": "Writing / Editor",
       "capability": "Create / duplicate / delete Bar actions",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts"
+      ]
     },
     {
       "id": "library.documents",
@@ -663,8 +734,12 @@
       "id": "mobile.swap",
       "group": "Mobile",
       "capability": "Single-surface editor/results swap",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/shell/SurfaceContent.tsx",
+        "apps/studio-react/src/shell/Shell.module.css",
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx"
+      ]
     },
     {
       "id": "mobile.keyboard",
@@ -781,36 +856,55 @@
       "id": "workflow-v3.bar-hold-drag",
       "group": "Workflow UX v3",
       "capability": "Hold bar number then drag with live transport ghost, drop-space preview and edge auto-scroll",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/Editor.module.css",
+        "apps/studio-react/src/legacy/editor.ts"
+      ]
     },
     {
       "id": "workflow-v3.revision-diff",
       "group": "Workflow UX v3",
       "capability": "Full-lyrics line-by-line revision comparison before restore with pre-restore backup",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/legacy/editor.ts"
+      ]
     },
     {
       "id": "workflow-v3.section-long-press",
       "group": "Workflow UX v3",
       "capability": "1.5s long-press section-tag insertion at caret or selection with current section tag set",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx"
+      ]
     },
     {
       "id": "workflow-v3.follow-selection-default",
       "group": "Workflow UX v3",
       "capability": "Rhyme search follows the current editor selection by default",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/editor/model.ts"
+      ]
     },
     {
       "id": "workflow-v3.fixed-anchor-optin",
       "group": "Workflow UX v3",
       "capability": "Fixed rhyme anchor is explicit opt-in only",
-      "status": "pending",
-      "evidence": []
+      "status": "ported",
+      "evidence": [
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
+        "apps/studio-react/src/features/search/SearchExperience.tsx",
+        "apps/studio-react/src/features/search/Search.module.css"
+      ]
     },
     {
       "id": "workflow-v3.continuous-results",
