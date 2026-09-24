@@ -398,7 +398,34 @@ export function rightEdgeQueryToken(input) {
   return String(tokens.at(-1)?.surface || '').trim();
 }
 
+function compoundRightEdgeComponent(fallback) {
+  const method=String(fallback?.queryPronunciation?.method||'');
+  if(![
+    'client_source_reference_compound_right_edge',
+    'client_mixed_reference_compound_right_edge',
+  ].includes(method))return'';
+  const components=Array.isArray(fallback?.queryPronunciation?.components)
+    ?fallback.queryPronunciation.components
+    :[];
+  return String(components.at(-1)||'').trim();
+}
+
 function germanLexicalQuery(writerDb, input, fallback = null) {
+  const compoundToken=compoundRightEdgeComponent(fallback);
+  if (compoundToken) {
+    const detail=getWord(writerDb,compoundToken);
+    if(detail?.preferredIpa){
+      return {
+        ...detail,
+        kind:'word',
+        language:'de',
+        ipa:detail.preferredIpa,
+        resolvable:true,
+        pronunciationProvenance:'writer_v5_compound_right_edge_lexical_anchor',
+        sourceQuerySurface:String(input||'').trim(),
+      };
+    }
+  }
   if (fallback?.generatedPronunciation) return fallback;
   const token = rightEdgeQueryToken(input);
   if (!token) return fallback;
@@ -418,6 +445,21 @@ function germanLexicalQuery(writerDb, input, fallback = null) {
 }
 
 function englishLexicalQuery(englishDb, input, fallback = null) {
+  const compoundToken=compoundRightEdgeComponent(fallback);
+  if (compoundToken) {
+    const detail=getEnglishWord(englishDb,compoundToken);
+    if(detail?.preferredIpa){
+      return {
+        ...detail,
+        kind:'word',
+        language:'en',
+        ipa:detail.preferredIpa,
+        resolvable:true,
+        pronunciationProvenance:'english_writer_compound_right_edge_lexical_anchor',
+        sourceQuerySurface:String(input||'').trim(),
+      };
+    }
+  }
   if (fallback?.generatedPronunciation) return fallback;
   const token = rightEdgeQueryToken(input);
   if (!token) return fallback;
