@@ -1,54 +1,13 @@
 import { motion, useReducedMotion } from 'motion/react';
 
+import { SavedWorkspace } from '../features/search/SavedWorkspace';
+import { SearchExperience } from '../features/search/SearchExperience';
 import { R1_BRIDGE_RUNTIME_EXPORT_COUNT } from '../legacy/runtime-smoke';
 import { useUiStore } from '../state/uiStore';
-import type { AppSurface } from './navigation';
 import { shellText } from './navigation';
 import { Icon } from './icons';
 import { SettingsPanel } from './SettingsPanel';
 import styles from './Shell.module.css';
-
-const CONTENT: Record<Exclude<AppSurface, 'settings'>, {
-  kicker: string;
-  titleDe: string;
-  titleEn: string;
-  descriptionDe: string;
-  descriptionEn: string;
-  phase: string;
-}> = {
-  studio: {
-    kicker: 'RHYMEPAD / WRITING SESSION',
-    titleDe: 'Dein Schreibraum.',
-    titleEn: 'Your writing space.',
-    descriptionDe: 'Die Shell-Geometrie steht. Editor- und Reimassistent-Semantik bleiben bis R3/R5 im Golden Master.',
-    descriptionEn: 'The shell geometry is ready. Editor and rhyme-assistant semantics remain in the golden master until R3/R5.',
-    phase: 'R5 EDITOR',
-  },
-  search: {
-    kicker: 'SOUND EXPLORER',
-    titleDe: 'Reimsuche.',
-    titleEn: 'Rhyme search.',
-    descriptionDe: 'Navigation und Layout sind portiert. Writer/Search-Funktionalität wird in R3 über die R1-Bridge angeschlossen.',
-    descriptionEn: 'Navigation and layout are ported. Writer/Search functionality is connected through the R1 bridge in R3.',
-    phase: 'R3 SEARCH / WRITER',
-  },
-  library: {
-    kicker: 'LOCAL LIBRARY',
-    titleDe: 'Meine Texte.',
-    titleEn: 'My texts.',
-    descriptionDe: 'Die Zieloberfläche ist angelegt; DocumentStore, Ordner, Trash und Recovery bleiben bis R4 unverändert im bestehenden Studio.',
-    descriptionEn: 'The target surface is laid out; DocumentStore, folders, trash and recovery stay unchanged in the existing Studio until R4.',
-    phase: 'R4 LIBRARY',
-  },
-  saved: {
-    kicker: 'SAVED',
-    titleDe: 'Merkliste.',
-    titleEn: 'Saved.',
-    descriptionDe: 'Der Navigationspfad steht. Gespeicherte Treffer werden erst mit der Search-/Writer-Parität angeschlossen.',
-    descriptionEn: 'The navigation path is ready. Saved results connect only with Search/Writer parity.',
-    phase: 'R3 SEARCH / WRITER',
-  },
-};
 
 function FoundationCard({
   label,
@@ -99,14 +58,38 @@ export function SurfaceContent() {
     );
   }
 
-  const content = CONTENT[surface];
-  const title = language === 'de' ? content.titleDe : content.titleEn;
-  const description = language === 'de' ? content.descriptionDe : content.descriptionEn;
+  if (surface === 'search') {
+    return (
+      <motion.div
+        key="search"
+        className={styles.searchSurface}
+        initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.16 }}
+      >
+        <SearchExperience variant="page" />
+      </motion.div>
+    );
+  }
+
+  if (surface === 'saved') {
+    return (
+      <motion.div
+        key="saved"
+        className={styles.searchSurface}
+        initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.16 }}
+      >
+        <SavedWorkspace />
+      </motion.div>
+    );
+  }
 
   if (surface === 'studio') {
     return (
       <motion.div
-        key={surface}
+        key="studio"
         className={styles.studioFoundation}
         initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -115,48 +98,46 @@ export function SurfaceContent() {
         <section className={styles.primaryFoundation}>
           <header className={styles.surfaceHeader}>
             <div>
-              <p className={styles.kicker}>{content.kicker}</p>
-              <h1>{title}</h1>
-              <p>{description}</p>
+              <p className={styles.kicker}>RHYMEPAD / WRITING SESSION</p>
+              <h1>{language === 'de' ? 'Dein Schreibraum.' : 'Your writing space.'}</h1>
+              <p>
+                {language === 'de'
+                  ? 'Search/Writer ist live in React. Der Editor selbst bleibt bis R5 im Golden Master, damit keine Selection-/IME-/Bar-Semantik vorgezogen wird.'
+                  : 'Search/Writer is live in React. The editor itself stays in the golden master until R5 so selection, IME and Bar semantics are not pulled forward.'}
+              </p>
             </div>
-            <span className={styles.phaseBadge}>{content.phase}</span>
+            <span className={styles.phaseBadge}>R5 EDITOR</span>
           </header>
           <div className={styles.foundationStack}>
             <FoundationCard
               label="R1 DOMAIN BRIDGE"
               title={language === 'de' ? 'Semantik bleibt am Original.' : 'Semantics stay at the original.'}
               copy={language === 'de'
-                ? `${R1_BRIDGE_RUNTIME_EXPORT_COUNT} repräsentative Runtime-Exports laufen bereits durch die typisierte Legacy-Bridge.`
-                : `${R1_BRIDGE_RUNTIME_EXPORT_COUNT} representative runtime exports already resolve through the typed legacy bridge.`}
+                ? `${R1_BRIDGE_RUNTIME_EXPORT_COUNT} repräsentative Runtime-Exports laufen durch die typisierte Legacy-Bridge.`
+                : `${R1_BRIDGE_RUNTIME_EXPORT_COUNT} representative runtime exports resolve through the typed legacy bridge.`}
               icon="spark"
             />
             <FoundationCard
-              label="LAYOUT FOUNDATION"
-              title={language === 'de' ? 'Ein Scroll-Owner pro Oberfläche.' : 'One scroll owner per surface.'}
+              label="R3 SEARCH / WRITER"
+              title={language === 'de' ? 'Der Reimassistent ist bereits live.' : 'The rhyme assistant is already live.'}
               copy={language === 'de'
-                ? 'App-Shell und Viewport bleiben fest; nur die aktive Inhaltsfläche scrollt.'
-                : 'The app shell and viewport stay fixed; only the active content surface scrolls.'}
+                ? 'Dieselbe SearchState-/Writer-Pipeline wird rechts und auf der Search-Seite verwendet.'
+                : 'The same SearchState/Writer pipeline is used here and on the Search surface.'}
+              icon="search"
+            />
+            <FoundationCard
+              label="R5 EDITOR"
+              title={language === 'de' ? 'Einsetzen bleibt korrekt blockiert.' : 'Insert stays correctly blocked.'}
+              copy={language === 'de'
+                ? 'Erst der Editor-Port liefert Selection Proof, stabile Bar-IDs, IME und Undo/Redo für sichere Insert-Aktionen.'
+                : 'Only the editor port provides Selection Proof, stable Bar IDs, IME and undo/redo for safe insert actions.'}
               icon="pen"
             />
           </div>
         </section>
 
-        <aside className={styles.assistFoundation}>
-          <div className={styles.assistHeader}>
-            <span><Icon name="search" /></span>
-            <div>
-              <p className={styles.kicker}>SOUND EXPLORER</p>
-              <h2>{language === 'de' ? 'Assistenzfläche reserviert.' : 'Assistant surface reserved.'}</h2>
-            </div>
-          </div>
-          <p>
-            {language === 'de'
-              ? 'R3 schließt hier Search/Writer an. Keine Fake-Treffer und keine neue Suchlogik in R2.'
-              : 'R3 connects Search/Writer here. No fake results and no new search logic in R2.'}
-          </p>
-          <div className={styles.assistSkeleton} aria-hidden="true">
-            <i /><i /><i /><i />
-          </div>
+        <aside className={styles.assistFoundation} data-r3="true">
+          <SearchExperience variant="assistant" />
         </aside>
       </motion.div>
     );
@@ -164,7 +145,7 @@ export function SurfaceContent() {
 
   return (
     <motion.div
-      key={surface}
+      key="library"
       className={styles.surfacePage}
       initial={reduceMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
@@ -172,11 +153,15 @@ export function SurfaceContent() {
     >
       <header className={styles.surfaceHeader}>
         <div>
-          <p className={styles.kicker}>{content.kicker}</p>
-          <h1>{title}</h1>
-          <p>{description}</p>
+          <p className={styles.kicker}>LOCAL LIBRARY</p>
+          <h1>{language === 'de' ? 'Meine Texte.' : 'My texts.'}</h1>
+          <p>
+            {language === 'de'
+              ? 'DocumentStore, Ordner, Trash und Recovery bleiben bis R4 unverändert im bestehenden Studio.'
+              : 'DocumentStore, folders, trash and recovery remain unchanged in the existing Studio until R4.'}
+          </p>
         </div>
-        <span className={styles.phaseBadge}>{content.phase}</span>
+        <span className={styles.phaseBadge}>R4 LIBRARY</span>
       </header>
       <div className={styles.foundationGrid}>
         <FoundationCard
@@ -189,10 +174,10 @@ export function SurfaceContent() {
         />
         <FoundationCard
           label="GOLDEN MASTER"
-          title={language === 'de' ? 'Funktion bleibt unverändert' : 'Function stays unchanged'}
+          title={language === 'de' ? 'DocumentStore bleibt autoritativ' : 'DocumentStore stays authoritative'}
           copy={language === 'de'
-            ? 'Die aktive Produktfunktion bleibt bis zur jeweiligen Port-Phase im bestehenden Studio.'
-            : 'The active product function remains in the existing Studio until its port phase.'}
+            ? 'R4 portiert die Library auf denselben bestehenden IndexedDB-Store.'
+            : 'R4 ports the Library onto the same existing IndexedDB store.'}
           icon="spark"
         />
       </div>
