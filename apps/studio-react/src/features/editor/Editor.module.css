@@ -339,7 +339,8 @@
   color: var(--rl-text);
   font-family: var(--editor-font-family);
   font-size: var(--editor-font-size);
-  font-weight: 500;
+  font-style: var(--editor-font-style, normal);
+  font-weight: var(--editor-font-weight, 400);
   line-height: 1.62;
   letter-spacing: -.012em;
   white-space: pre-wrap;
