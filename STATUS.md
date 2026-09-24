@@ -25,31 +25,37 @@ surface. The React work must preserve every existing Search, editor, Library,
 Analysis, Perform, appearance, mobile, persistence, recovery, diagnostics and
 runtime-database behavior. No functional simplification is authorized.
 
-R0 through R3 are complete. The isolated React package, hard parity inventory
-and dedicated CI are established. R1 preserves 18 existing browser/domain modules
-behind strict TypeScript contracts; R2 establishes the responsive React shell and
-design system.
+R0 through R4 are complete. The isolated React package, hard parity inventory
+and dedicated CI remain the migration gate.
 
-R3 now runs the existing live Search/Writer path inside React on both the dedicated
-Search surface and the Studio Sound Explorer. One shared SearchState drives query
-and result language, scope, rhyme relation, syllables, sorts, pronunciation
-variants, historical/generated modes, Entity taxonomy multi-select and selected
-result. The existing Writer client still owns query pronunciation, retrieval,
-mapping and timing; the existing detail client owns IPA/provenance; runtime edition
-selection/fallback remains the R1 contract.
+R3 runs the existing live Search/Writer path inside React with one shared
+SearchState and the existing Writer/pronunciation/detail/runtime contracts.
 
-R3 also ports Compact/List/Tiles, continuous results, opt-in auto-scroll with manual
-pause, Hide-used against the existing read-only DocumentStore context, Saved
-results, runtime DB visibility/availability and loading/empty/error states.
+R4 now ports Library and local data safety into the React shell while preserving the
+existing persistence authority. The current IndexedDB DocumentStore remains
+authoritative; React only holds a render/mutation working copy and every change is
+serialized back through the existing R1 document migration/shadow path. LocalStorage
+remains the existing fallback when IndexedDB is unavailable.
 
-Editor-dependent insert, Enter-to-insert and selection-follow/fixed-anchor remain
-explicitly `in_progress` until R5 can supply the real Selection Proof, stable Bar,
-IME and undo/redo contracts. Browser/device-dependent rows also remain below
-`verified`. Contracts:
+R4 includes document create/open/search/sort/rename, nested folder
+create/subfolder/rename/reorder/delete, explicit and drag/drop moves, Trash/Restore,
+permanent delete with conditional pre-delete Recovery, manual Recovery points,
+verified restore, portable backup export/import, a 64 MiB import guard,
+pre-import Recovery, imported preference/SearchState rehydration, a serialized
+180-ms autosave queue and visibility/pagehide flush.
+
+The React R4 checkpoint passes strict TypeScript, production Vite build and 50/50
+automated R1-R4/parity tests; Full RhymeLab CI and the existing Studio V2 Gate also
+pass. Browser/device-dependent rows remain below `verified`.
+
+Editor-dependent Insert/selection-follow and the actual React editor mutation stream
+remain R5 work. In particular, `editor.autosave` is not claimed complete merely
+because R4 provides the persistence infrastructure. Contracts:
 `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`,
-`docs/REACT_STUDIO_R2_SHELL.md`, and
-`docs/REACT_STUDIO_R3_SEARCH_WRITER.md`. Next implementation phase:
-**R4 Library / persistence / recovery**.
+`docs/REACT_STUDIO_R2_SHELL.md`,
+`docs/REACT_STUDIO_R3_SEARCH_WRITER.md`, and
+`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`. Next implementation phase:
+**R5 editor**.
 
 The existing seven physical browser/touch/Web Audio Studio acceptance gates remain
 required cutover evidence rather than being discarded by the framework migration.
