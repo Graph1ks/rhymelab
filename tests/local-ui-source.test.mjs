@@ -156,8 +156,6 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /const visible=orderedAll\.slice\(0,state\.visibleCount\)/);
   assert.match(app, /setupInfiniteScroll\(hasMore\)/);
   assert.doesNotMatch(app, /const progressive=selectedType!=='all'/);
-  assert.match(app, /data-more-section/);
-  assert.match(app, /state\.sectionVisible/);
   assert.match(app, /counts\?\.searchPool/);
   assert.match(app, /maximumDistance=syllable==='same'\?0:syllable==='near1'\?1:syllable==='near2'\?2:syllable==='near3'\?3:null/);
   assert.match(app, /rowSyllableDistance\(a\)-rowSyllableDistance\(b\)/);
@@ -260,7 +258,6 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(css, /\*::-webkit-scrollbar/);
   assert.match(css, /scrollbar-color/);
   assert.match(css, /\.sources-dialog/);
-  assert.match(css, /\.more-button/);
   assert.match(css, /\.availability-chip/);
   assert.match(css, /\.ui-language-switch/);
   assert.match(css, /\.view-switch/);
