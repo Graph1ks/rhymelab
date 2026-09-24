@@ -28,27 +28,29 @@ R4 remains the persistence authority boundary: the existing IndexedDB DocumentSt
 is authoritative, React keeps only a working copy, and editor/Perform mutations
 serialize through the existing R1 document path.
 
-The R7 source layer now closes all 93 mandatory implementation rows. Search keyboard
-actions use a tested key-action contract; startup controls are guarded fail-closed;
-Settings exposes diagnostics and the existing seven-gate physical acceptance model;
-the mobile Settings drawer has one explicit scroll owner; and an opt-in React preview
-route can temporarily serve the Vite client while `/studio` and `/studio-legacy`
-retain the Studio V2 golden master.
+The R7 source layer closes all 93 mandatory implementation rows and keeps the
+fail-closed startup/search/preview/cutover infrastructure. The owner UX passes are
+now allowed to reshape the React presentation without rewriting legacy domain/runtime
+semantics.
 
-Tested R7 functional checkpoint `c9725ed3312b`: strict TypeScript, 82/82 React
-tests, 4/4 reversible-preview tests and production build pass; React Replatform #182,
-Full CI #1365 and Studio V2 Gate #500 pass. The parity inventory is now **93 ported /
-0 in_progress / 0 pending / 0 verified**.
-
-The owner-requested UX correction pass is now implemented at `e7e93846fa00`.
+Owner UX **round 2** is implemented at functional checkpoint `b2d16a4ed27e`.
 Read `docs/REACT_STUDIO_UX_CORRECTION.md` before changing the React shell/editor/
-Search/Analysis/Perform presentation. Automated evidence on this checkpoint is
-87/87 React tests plus React Replatform #237, Studio V2 Gate #555 and Full CI #1420.
+Search/Analysis/Perform/Settings presentation. Current behavior includes one sticky
+desktop/mobile Topbar, transient Search filters, compact-only Sound Explorer,
+permission-free curated Google Fonts with Oranienbaum default, insertion-boundary
+Bar drag preview, readable Library SVG actions, linked four-Bar All-Rhymes topology,
+and a persistent OKLCH Style Designer.
 
-The active continuation remains **owner visual acceptance + R7 real-browser / physical-device acceptance**,
-not R8. Use the R7 Settings acceptance panel and
-`docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` to capture the required IME, Web Audio,
-mobile navigation/swap, VisualViewport keyboard, touch and no-hover evidence.
+Automated evidence on that functional checkpoint is 91/91 React tests, strict
+TypeScript, production build, reversible preview and the R7 source gate; React
+Replatform #278, Studio V2 Gate #596 and Full CI #1461 all pass. The parity inventory
+remains **93 ported / 0 in_progress / 0 pending / 0 verified**.
+
+The active continuation remains **owner visual acceptance + R7 real-browser /
+physical-device acceptance**, not R8. Diagnostics/device-acceptance tooling is no
+longer end-user Settings chrome; required IME, Web Audio, mobile navigation/swap,
+VisualViewport keyboard, touch and no-hover evidence is captured through the
+external/manual seven-gate report path and `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`.
 Promote only rows whose required interaction evidence is actually present. Run
 `npm run studio:react:r7:cutover` only as the full release gate; it is expected to
 fail until 7/7 physical gates and 93/93 verified rows exist.
