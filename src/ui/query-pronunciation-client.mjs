@@ -243,7 +243,7 @@ function createReferenceLookup(lookupReference,language,maxLookups=128){
 
 async function findSourceOnlySegmentation(normalized,language,lookupReference){
   if(typeof lookupReference!=='function'||normalized.length<5)return null;
-  const lookup=createReferenceLookup(lookupReference,language,128);
+  const lookup=createReferenceLookup(lookupReference,language,48);
   const memo=new Map();
 
   const search=async(start,partsLeft)=>{
@@ -290,8 +290,24 @@ async function findSourceBackedRightEdge(normalized,language,lookupReference){
 }
 
 async function resolveReferenceCompound(normalized,language,lookupReference){
-  const sourceParts=await findSourceOnlySegmentation(normalized,language,lookupReference);
-  if(sourceParts?.length){
+  const suffix=await findSourceBackedRightEdge(normalized,language,lookupReference);
+  if(!suffix)return null;
+
+  const prefixSurface=normalized.slice(0,suffix.start);
+  const prefixExact=await lookupReference(prefixSurface,language);
+  const prefixExactIpa=referenceIpa(prefixExact);
+  let prefixParts=prefixExactIpa?[prefixExact]:null;
+
+  if(!prefixParts&&prefixSurface.length>=5){
+    prefixParts=await findSourceOnlySegmentation(
+      prefixSurface,
+      language,
+      lookupReference,
+    );
+  }
+
+  if(prefixParts?.length){
+    const sourceParts=[...prefixParts,suffix.reference];
     return {
       language,
       surface:normalized,
@@ -306,9 +322,6 @@ async function resolveReferenceCompound(normalized,language,lookupReference){
     };
   }
 
-  const suffix=await findSourceBackedRightEdge(normalized,language,lookupReference);
-  if(!suffix)return null;
-  const prefixSurface=normalized.slice(0,suffix.start);
   const prefix=generateClientIpa(prefixSurface,language);
   return {
     language,
