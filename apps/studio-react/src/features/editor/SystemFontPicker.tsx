@@ -178,7 +178,17 @@ export function SystemFontPicker({
       virtualizer.measure();
     });
     return () => cancelAnimationFrame(frame);
-  }, [category, filtered.length, open, query, virtualizer]);
+  }, [category, filtered.length, open, query]);
+
+  const virtualItems = virtualizer.getVirtualItems();
+
+  useEffect(() => {
+    if (!open) return;
+    for (const item of virtualItems) {
+      const font = filtered[item.index];
+      if (font) ensureEditorFontLoaded(googleFontValue(font.family));
+    }
+  }, [filtered, open, virtualItems]);
 
   const currentFamily = editorFontLabel(normalizedValue);
 
@@ -253,12 +263,11 @@ export function SystemFontPicker({
                   className={styles.fontVirtualSpace}
                   style={{ height: virtualizer.getTotalSize() }}
                 >
-                  {virtualizer.getVirtualItems().map((item) => {
+                  {virtualItems.map((item) => {
                     const font = filtered[item.index];
                     if (!font) return null;
                     const fontValue = googleFontValue(font.family);
                     const selected = normalizedValue === fontValue;
-                    ensureEditorFontLoaded(fontValue);
                     return (
                       <button
                         key={font.family}
