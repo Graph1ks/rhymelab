@@ -4602,8 +4602,8 @@ function bindEditorDockWheelRouting(){
     const scale=event.deltaMode===1?22:event.deltaMode===2?body.clientHeight:1;
     const delta=event.deltaY*scale;
     const before=body.scrollTop;
+    event.preventDefault();
     body.scrollTop=Math.max(0,Math.min(max,before+delta));
-    if(body.scrollTop!==before)event.preventDefault();
   },{passive:false});
 }
 function bindTransientOutsideDismissals(){
