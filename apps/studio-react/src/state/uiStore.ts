@@ -20,6 +20,7 @@ type UiState = {
   settingsDrawerOpen: boolean;
   libraryOpen: boolean;
   savedOpen: boolean;
+  focusMode: boolean;
   navigate: (surface: AppSurface) => void;
   setUiLanguage: (language: StudioUiLanguage | string) => void;
   toggleUiLanguage: () => void;
@@ -30,6 +31,8 @@ type UiState = {
   setSettingsDrawerOpen: (open: boolean) => void;
   setLibraryOpen: (open: boolean) => void;
   setSavedOpen: (open: boolean) => void;
+  setFocusMode: (open: boolean) => void;
+  toggleFocusMode: () => void;
 };
 
 const preferences = loadStudioPreferences();
@@ -47,6 +50,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   settingsDrawerOpen: false,
   libraryOpen: false,
   savedOpen: false,
+  focusMode: false,
 
   navigate(surface) {
     set({
@@ -54,6 +58,7 @@ export const useUiStore = create<UiState>((set, get) => ({
       settingsDrawerOpen: false,
       libraryOpen: false,
       savedOpen: false,
+      focusMode: false,
     });
   },
 
@@ -103,5 +108,13 @@ export const useUiStore = create<UiState>((set, get) => ({
 
   setSavedOpen(savedOpen) {
     set({ savedOpen });
+  },
+
+  setFocusMode(focusMode) {
+    set({ focusMode });
+  },
+
+  toggleFocusMode() {
+    set((state) => ({ focusMode: !state.focusMode }));
   },
 }));
