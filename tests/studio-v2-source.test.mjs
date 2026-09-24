@@ -547,8 +547,8 @@ test('Studio shared SearchState re-export resolves to a served browser URL',asyn
 
 test('Studio query-pronunciation compatibility routes delegate to Shared Core and Web Platform authority',async()=>{
   const [clientWrapper,cacheWrapper,uiClient,uiCache,sharedClient,webCache,server]=await Promise.all([
-    readFile('packages/shared-core/src/search/query-pronunciation-client.mjs','utf8'),
-    readFile('packages/platform-web/src/query-pronunciation-cache.mjs','utf8'),
+    readFile('src/studio/query-pronunciation-client.mjs','utf8'),
+    readFile('src/studio/query-pronunciation-cache.mjs','utf8'),
     readFile('src/ui/query-pronunciation-client.mjs','utf8'),
     readFile('src/ui/query-pronunciation-cache.mjs','utf8'),
     readFile('packages/shared-core/src/search/query-pronunciation-client.mjs','utf8'),
@@ -608,7 +608,7 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
     readFile('src/studio/app.js','utf8'),
     readFile('src/studio/studio-core.mjs','utf8'),
     readFile('packages/shared-core/src/search/result-density.mjs','utf8'),
-    readFile('src/studio/search-adapter.mjs','utf8'),
+    readFile('packages/shared-core/src/search/search-adapter.mjs','utf8'),
     readFile('packages/shared-core/src/search/search-filters.mjs','utf8'),
     readFile('packages/shared-core/src/search/search-state.mjs','utf8'),
     readFile('packages/platform-web/src/document-adapter.mjs','utf8'),
