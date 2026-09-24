@@ -31,6 +31,12 @@ export function SurfaceContent() {
   const [assistCollapsed, setAssistCollapsed] = useState(false);
 
   useEffect(() => {
+    if (!studioSearchEnabled && mobileStudioPane === 'results') {
+      setMobileStudioPane('editor');
+    }
+  }, [mobileStudioPane, studioSearchEnabled]);
+
+  useEffect(() => {
     if (surface !== 'studio' || (studioMode !== 'write' && studioMode !== 'perform')) {
       if (focusMode) setFocusMode(false);
       return undefined;
@@ -143,14 +149,16 @@ export function SurfaceContent() {
             >
               {language === 'de' ? 'Editor' : 'Editor'}
             </button>
-            <button
-              type="button"
-              data-active={mobileStudioPane === 'results' ? 'true' : 'false'}
-              aria-pressed={mobileStudioPane === 'results'}
-              onClick={() => setMobileStudioPane('results')}
-            >
-              {language === 'de' ? 'Reime' : 'Rhymes'}
-            </button>
+            {studioSearchEnabled ? (
+              <button
+                type="button"
+                data-active={mobileStudioPane === 'results' ? 'true' : 'false'}
+                aria-pressed={mobileStudioPane === 'results'}
+                onClick={() => setMobileStudioPane('results')}
+              >
+                {language === 'de' ? 'Reime' : 'Rhymes'}
+              </button>
+            ) : null}
           </div>
           <section className={styles.primaryFoundation}>
             <div className={styles.studioModeBar} role="group" aria-label={language === 'de' ? 'Studio Modus' : 'Studio mode'}>
@@ -239,42 +247,32 @@ export function SurfaceContent() {
             </div>
           </section>
 
-          <aside
-            className={styles.assistFoundation}
-            data-r3="true"
-            data-collapsed={assistCollapsed ? 'true' : 'false'}
-            data-enabled={studioSearchEnabled ? 'true' : 'false'}
-          >
-            <button
-              type="button"
-              className={styles.assistCollapse}
-              onClick={() => setAssistCollapsed((value) => !value)}
-              aria-label={assistCollapsed
-                ? (language === 'de' ? 'Sound Explorer ausklappen' : 'Expand Sound Explorer')
-                : (language === 'de' ? 'Sound Explorer minimieren' : 'Collapse Sound Explorer')}
-              title={assistCollapsed
-                ? (language === 'de' ? 'Sound Explorer ausklappen' : 'Expand Sound Explorer')
-                : (language === 'de' ? 'Nach rechts minimieren' : 'Collapse to the right')}
+          {studioSearchEnabled ? (
+            <aside
+              className={styles.assistFoundation}
+              data-r3="true"
+              data-collapsed={assistCollapsed ? 'true' : 'false'}
             >
-              {assistCollapsed ? '‹' : '›'}
-            </button>
-            {assistCollapsed ? (
-              <span className={styles.assistRailLabel}>SOUND EXPLORER</span>
-            ) : studioSearchEnabled && !focusMode ? (
-              <SearchExperience variant="assistant" enabled />
-            ) : (
-              <div className={styles.searchPaused}>
-                <p>SOUND EXPLORER</p>
-                <b>{language === 'de' ? 'Reimsuche pausiert.' : 'Rhyme search paused.'}</b>
-                <span>{language === 'de'
-                  ? 'Keine Writer-Anfragen, bis du sie wieder einschaltest.'
-                  : 'No Writer requests until you enable it again.'}</span>
-                <button type="button" onClick={() => setStudioSearchEnabled(true)}>
-                  {language === 'de' ? 'Reimsuche aktivieren' : 'Enable rhyme search'}
-                </button>
-              </div>
-            )}
-          </aside>
+              <button
+                type="button"
+                className={styles.assistCollapse}
+                onClick={() => setAssistCollapsed((value) => !value)}
+                aria-label={assistCollapsed
+                  ? (language === 'de' ? 'Sound Explorer ausklappen' : 'Expand Sound Explorer')
+                  : (language === 'de' ? 'Sound Explorer minimieren' : 'Collapse Sound Explorer')}
+                title={assistCollapsed
+                  ? (language === 'de' ? 'Sound Explorer ausklappen' : 'Expand Sound Explorer')
+                  : (language === 'de' ? 'Sound Explorer minimieren' : 'Collapse Sound Explorer')}
+              >
+                <Icon name="chevron" />
+              </button>
+              {assistCollapsed ? (
+                <span className={styles.assistRailLabel}>SOUND EXPLORER</span>
+              ) : !focusMode ? (
+                <SearchExperience variant="assistant" enabled />
+              ) : null}
+            </aside>
+          ) : null}
 
           <Dialog.Root open={libraryOpen} onOpenChange={setLibraryOpen}>
             <Dialog.Portal>
