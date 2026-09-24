@@ -349,7 +349,7 @@ export function SearchControls({
       data-compact={compact ? 'true' : 'false'}
       onPointerLeave={(event) => {
         if (event.pointerType !== 'mouse') return;
-        scheduleFilterDismiss(() => onRequestClose?.());
+        scheduleFilterDismiss(() => onRequestClose?.(), undefined, ownerDocument);
       }}
       data-rhymelab-filter-deck="true"
       data-rhymelab-control="search.languages"
