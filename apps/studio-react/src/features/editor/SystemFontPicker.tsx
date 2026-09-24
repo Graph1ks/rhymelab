@@ -53,16 +53,69 @@ function normalizedFaces(rows: Awaited<ReturnType<QueryLocalFonts>>): LocalFontF
     .sort((a, b) => a.family.localeCompare(b.family) || a.fullName.localeCompare(b.fullName));
 }
 
-export function editorFontFamily(value: string): string {
-  if (value.startsWith('system:')) {
-    const family = value.slice('system:'.length).replaceAll('"', '').trim();
-    if (family) return `"${family}", system-ui, sans-serif`;
+interface EditorFontSelection {
+  family: string;
+  style: string;
+}
+
+function parseSystemFontValue(value: string): EditorFontSelection | null {
+  if (!value.startsWith('system:')) return null;
+  const raw = value.slice('system:'.length);
+  const separator = raw.indexOf('::');
+  const familyRaw = separator >= 0 ? raw.slice(0, separator) : raw;
+  const styleRaw = separator >= 0 ? raw.slice(separator + 2) : 'Regular';
+  try {
+    const family = decodeURIComponent(familyRaw).replaceAll('"', '').trim();
+    const style = decodeURIComponent(styleRaw).trim() || 'Regular';
+    return family ? { family, style } : null;
+  } catch {
+    const family = familyRaw.replaceAll('"', '').trim();
+    return family ? { family, style: styleRaw.trim() || 'Regular' } : null;
   }
+}
+
+export function systemFontValue(face: Pick<LocalFontFace, 'family' | 'style'>): string {
+  return `system:${encodeURIComponent(face.family)}::${encodeURIComponent(face.style || 'Regular')}`;
+}
+
+export function editorFontFamily(value: string): string {
+  const system = parseSystemFontValue(value);
+  if (system) return `"${system.family}", system-ui, sans-serif`;
   return ({
     sans: 'var(--rl-font, Inter, system-ui, sans-serif)',
     serif: 'Georgia, Cambria, serif',
     mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
   } as Record<string, string>)[value] ?? 'var(--rl-font, Inter, system-ui, sans-serif)';
+}
+
+export function editorFontStyle(value: string): 'normal' | 'italic' | 'oblique' {
+  const style = parseSystemFontValue(value)?.style.toLocaleLowerCase() ?? '';
+  if (style.includes('oblique')) return 'oblique';
+  if (style.includes('italic')) return 'italic';
+  return 'normal';
+}
+
+export function editorFontWeight(value: string): number {
+  const style = parseSystemFontValue(value)?.style.toLocaleLowerCase() ?? '';
+  if (/thin|hairline/u.test(style)) return 100;
+  if (/extra\s*light|ultra\s*light/u.test(style)) return 200;
+  if (/light/u.test(style)) return 300;
+  if (/medium/u.test(style)) return 500;
+  if (/semi\s*bold|demi\s*bold/u.test(style)) return 600;
+  if (/extra\s*bold|ultra\s*bold/u.test(style)) return 800;
+  if (/black|heavy/u.test(style)) return 900;
+  if (/bold/u.test(style)) return 700;
+  return 400;
+}
+
+export function editorFontLabel(value: string): string {
+  const system = parseSystemFontValue(value);
+  if (system) return system.style && system.style !== 'Regular'
+    ? `${system.family} · ${system.style}`
+    : system.family;
+  if (value === 'serif') return 'Georgia';
+  if (value === 'mono') return 'System Mono';
+  return 'System Sans';
 }
 
 export function SystemFontPicker({
@@ -113,11 +166,7 @@ export function SystemFontPicker({
     overscan: 8,
   });
 
-  const currentFamily = value.startsWith('system:') ? value.slice(7) : (
-    value === 'serif' ? 'Georgia'
-      : value === 'mono' ? 'System Mono'
-        : 'System Sans'
-  );
+  const currentFamily = editorFontLabel(value);
 
   return (
     <>
@@ -128,7 +177,15 @@ export function SystemFontPicker({
         title={language === 'de' ? 'Systemschrift auswählen' : 'Choose system font'}
       >
         <span>{language === 'de' ? 'Schrift' : 'Font'}</span>
-        <b style={{ fontFamily: editorFontFamily(value) }}>{currentFamily}</b>
+        <b
+          style={{
+            fontFamily: editorFontFamily(value),
+            fontStyle: editorFontStyle(value),
+            fontWeight: editorFontWeight(value),
+          }}
+        >
+          {currentFamily}
+        </b>
       </button>
 
       <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -175,7 +232,8 @@ export function SystemFontPicker({
                   {virtualizer.getVirtualItems().map((item) => {
                     const face = filtered[item.index];
                     if (!face) return null;
-                    const selected = value === `system:${face.family}`;
+                    const faceValue = systemFontValue(face);
+                    const selected = value === faceValue;
                     return (
                       <button
                         key={face.family + face.fullName + face.style}
@@ -185,9 +243,11 @@ export function SystemFontPicker({
                         style={{
                           transform: `translateY(${item.start}px)`,
                           fontFamily: `"${face.family}", system-ui, sans-serif`,
+                          fontStyle: editorFontStyle(faceValue),
+                          fontWeight: editorFontWeight(faceValue),
                         }}
                         onClick={() => {
-                          onChange(`system:${face.family}`);
+                          onChange(faceValue);
                           setOpen(false);
                         }}
                       >
