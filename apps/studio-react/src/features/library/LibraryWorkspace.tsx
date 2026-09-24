@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from 'react';
 
 import { Dialog, Select } from '../../design-system/primitives';
 import { useUiStore } from '../../state/uiStore';
@@ -38,6 +38,11 @@ type NameDialogState =
 type ConfirmState =
   | { type: 'delete-folder'; folder: string }
   | { type: 'permanent-song'; id: string }
+  | null;
+
+type ContextMenuState =
+  | { kind: 'song'; id: string; x: number; y: number }
+  | { kind: 'folder'; folder: string; x: number; y: number }
   | null;
 
 function formatDate(value: number, language: 'de' | 'en') {
@@ -126,6 +131,8 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
   const [confirm, setConfirm] = useState<ConfirmState>(null);
   const [moveSongId, setMoveSongId] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
 
   const rows = useMemo(
     () => libraryRows(workspace.state, { trash, folder, query, sort }),
@@ -141,6 +148,41 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
 
   const activeSong = workspace.state.songs.find((item) => item.id === workspace.state.active);
   const folders = workspace.state.folders;
+  const folderParentPath = folder === 'all' ? '' : folder;
+  const visibleChildFolders = trash ? [] : folderChildren(workspace.state, folderParentPath);
+  const breadcrumbSegments = folder === 'all' ? [] : folder.split('/');
+  const visibleRows = query.trim() || folder === 'all'
+    ? rows
+    : rows.filter((item) => item.folder === folder);
+  const contextSong = contextMenu?.kind === 'song'
+    ? workspace.state.songs.find((item) => item.id === contextMenu.id)
+    : null;
+
+  useEffect(() => {
+    if (!contextMenu) return undefined;
+    const close = () => setContextMenu(null);
+    window.addEventListener('pointerdown', close);
+    window.addEventListener('wheel', close, { passive: true });
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('pointerdown', close);
+      window.removeEventListener('wheel', close);
+      window.removeEventListener('resize', close);
+    };
+  }, [contextMenu]);
+
+  const openSongMenu = (event: MouseEvent, id: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedSongId(id);
+    setContextMenu({ kind: 'song', id, x: event.clientX, y: event.clientY });
+  };
+
+  const openFolderMenu = (event: MouseEvent, folderName: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({ kind: 'folder', folder: folderName, x: event.clientX, y: event.clientY });
+  };
 
   const commitResult = async (result: ReturnType<typeof trashLibrarySong>) => {
     if (!result.changed) {
@@ -431,6 +473,7 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                   key={folderName}
                   className={styles.folderRow}
                   style={{ '--depth': depth } as CSSProperties}
+                  onContextMenu={(event) => openFolderMenu(event, folderName)}
                   onDragOver={(event) => {
                     if (!trash) event.preventDefault();
                   }}
@@ -519,121 +562,254 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
         </aside>
 
         <section className={styles.contentPane}>
-          <div className={styles.resultsHead}>
-            <span>{rows.length} {rows.length === 1
-              ? (language === 'de' ? 'Text' : 'text')
-              : (language === 'de' ? 'Texte' : 'texts')}</span>
-            {folder !== 'all' ? (
+          <div className={styles.explorerBar}>
+            <nav className={styles.breadcrumbs} aria-label={language === 'de' ? 'Bibliothek Pfad' : 'Library path'}>
               <button type="button" onClick={() => setFolder('all')}>
-                {language === 'de' ? 'Filter löschen ×' : 'Clear filter ×'}
+                <Icon name="folder" />
+                <span>{trash ? (language === 'de' ? 'Papierkorb' : 'Trash') : (language === 'de' ? 'Meine Texte' : 'My texts')}</span>
               </button>
-            ) : null}
-            {activeSong && !trash ? (
-              <small>
-                {language === 'de' ? 'Aktiv' : 'Active'}: {activeSong.title}
-              </small>
-            ) : null}
-          </div>
-
-          {rows.length ? (
-            <div className={styles.songGrid}>
-              {rows.map((item) => {
-                const preview = item.lines?.find((line) => String(line).trim())
-                  || (language === 'de' ? 'Die erste Zeile wartet noch.' : 'The first line is still waiting.');
-                const changed = libraryTimestamp(item);
-
+              {breadcrumbSegments.map((segment, index) => {
+                const path = breadcrumbSegments.slice(0, index + 1).join('/');
                 return (
-                  <article
-                    key={item.id}
-                    className={styles.songCard}
-                    data-active={item.id === workspace.state.active && !trash ? 'true' : 'false'}
-                    draggable={!trash}
-                    onDragStart={(event) => {
-                      if (trash) return;
-                      event.dataTransfer.setData('application/x-rhymelab-song', item.id);
-                      event.dataTransfer.setData('text/plain', item.id);
-                      event.dataTransfer.effectAllowed = 'move';
-                    }}
-                  >
-                    <div className={styles.cardTop}>
-                      <span>{item.folder || 'Entwürfe'}</span>
-                      {item.id === workspace.state.active && !trash ? (
-                        <b>{language === 'de' ? 'AKTIV' : 'ACTIVE'}</b>
-                      ) : null}
-                    </div>
-                    <h2>{item.title || (language === 'de' ? 'Unbenannt' : 'Untitled')}</h2>
-                    <p>{preview}</p>
-                    <div className={styles.cardMeta}>
-                      <span>{item.lines?.length || 0} Bars</span>
-                      <span>·</span>
-                      <span>{formatDate(changed, language)}</span>
-                    </div>
-
-                    <div className={styles.cardActions}>
-                      {trash ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const result = restoreLibrarySong(workspace.state, item.id);
-                              if (result.changed) void workspace.replaceState(result.state);
-                            }}
-                          >
-                            {language === 'de' ? 'Wiederherstellen' : 'Restore'}
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.dangerText}
-                            onClick={() => setConfirm({ type: 'permanent-song', id: item.id })}
-                          >
-                            {language === 'de' ? 'Endgültig löschen' : 'Delete permanently'}
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button type="button" className={styles.openButton} onClick={() => void openSong(item.id)}>
-                            {language === 'de' ? 'Öffnen ↗' : 'Open ↗'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setNameDialog({
-                              type: 'rename-song',
-                              id: item.id,
-                              value: item.title || '',
-                            })}
-                          >
-                            {language === 'de' ? 'Umbenennen' : 'Rename'}
-                          </button>
-                          <button type="button" onClick={() => setMoveSongId(item.id)}>
-                            {language === 'de' ? 'Verschieben' : 'Move'}
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.dangerText}
-                            onClick={() => void commitResult(trashLibrarySong(workspace.state, item.id))}
-                          >
-                            {language === 'de' ? 'Papierkorb' : 'Trash'}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </article>
+                  <span key={path}>
+                    <i>›</i>
+                    <button type="button" onClick={() => setFolder(path)}>{segment}</button>
+                  </span>
                 );
               })}
+            </nav>
+            <div className={styles.explorerStatus}>
+              <b>{visibleRows.length + visibleChildFolders.length}</b>
+              <span>{language === 'de' ? 'Elemente' : 'items'}</span>
+              {activeSong && !trash ? <em>{language === 'de' ? 'Aktiv' : 'Active'}: {activeSong.title}</em> : null}
             </div>
-          ) : (
-            <div className={styles.emptyState}>
-              <Icon name="grid" />
-              <b>{language === 'de' ? 'Nichts gefunden.' : 'Nothing found.'}</b>
-              <p>
-                {language === 'de'
-                  ? 'Suchbegriff oder Ordnerfilter ändern.'
-                  : 'Change the search term or folder filter.'}
-              </p>
-            </div>
-          )}
+          </div>
+
+          <div className={styles.explorerHead} aria-hidden="true">
+            <span>{language === 'de' ? 'Name' : 'Name'}</span>
+            <span>{language === 'de' ? 'Ordner / Vorschau' : 'Folder / preview'}</span>
+            <span>Bars</span>
+            <span>{language === 'de' ? 'Geändert' : 'Modified'}</span>
+          </div>
+
+          <div
+            className={styles.explorerList}
+            onContextMenu={(event) => {
+              if (event.target === event.currentTarget) {
+                event.preventDefault();
+                setContextMenu(null);
+              }
+            }}
+          >
+            {visibleChildFolders.map((folderName) => {
+              const count = sourceRows.filter((item) => folderContains(folderName, item.folder)).length;
+              return (
+                <button
+                  key={folderName}
+                  type="button"
+                  className={styles.explorerFolderRow}
+                  onClick={() => setFolder(folderName)}
+                  onDoubleClick={() => setFolder(folderName)}
+                  onContextMenu={(event) => openFolderMenu(event, folderName)}
+                  onDragOver={(event) => {
+                    if (!trash) event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    if (trash) return;
+                    event.preventDefault();
+                    const id = event.dataTransfer.getData('application/x-rhymelab-song')
+                      || event.dataTransfer.getData('text/plain');
+                    if (!id) return;
+                    const result = moveLibrarySong(workspace.state, id, folderName);
+                    if (result.changed) void workspace.replaceState(result.state);
+                  }}
+                >
+                  <span className={styles.explorerName}>
+                    <i className={styles.itemIcon}><Icon name="folder" /></i>
+                    <b>{folderLeaf(folderName)}</b>
+                  </span>
+                  <span className={styles.explorerPreview}>
+                    {count} {count === 1 ? (language === 'de' ? 'Text' : 'text') : (language === 'de' ? 'Texte' : 'texts')}
+                  </span>
+                  <span>—</span>
+                  <span>{language === 'de' ? 'Ordner' : 'Folder'}</span>
+                </button>
+              );
+            })}
+
+            {visibleRows.map((item) => {
+              const preview = item.lines?.find((line) => String(line).trim())
+                || (language === 'de' ? 'Die erste Zeile wartet noch.' : 'The first line is still waiting.');
+              const changed = libraryTimestamp(item);
+              const active = item.id === workspace.state.active && !trash;
+              const selected = selectedSongId === item.id;
+
+              return (
+                <div
+                  key={item.id}
+                  className={styles.explorerSongRow}
+                  data-active={active ? 'true' : 'false'}
+                  data-selected={selected ? 'true' : 'false'}
+                  draggable={!trash}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedSongId(item.id)}
+                  onDoubleClick={() => {
+                    if (!trash) void openSong(item.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !trash) void openSong(item.id);
+                  }}
+                  onContextMenu={(event) => openSongMenu(event, item.id)}
+                  onDragStart={(event) => {
+                    if (trash) return;
+                    setSelectedSongId(item.id);
+                    event.dataTransfer.setData('application/x-rhymelab-song', item.id);
+                    event.dataTransfer.setData('text/plain', item.id);
+                    event.dataTransfer.effectAllowed = 'move';
+                  }}
+                >
+                  <span className={styles.explorerName}>
+                    <i className={styles.itemIcon} data-kind="text">T</i>
+                    <span>
+                      <b>{item.title || (language === 'de' ? 'Unbenannt' : 'Untitled')}</b>
+                      {active ? <small>{language === 'de' ? 'AKTIV' : 'ACTIVE'}</small> : null}
+                    </span>
+                  </span>
+                  <span className={styles.explorerPreview}>
+                    <b>{item.folder || 'Entwürfe'}</b>
+                    <small>{preview}</small>
+                  </span>
+                  <span className={styles.explorerBars}>{item.lines?.length || 0}</span>
+                  <span className={styles.explorerDate}>{formatDate(changed, language)}</span>
+                </div>
+              );
+            })}
+
+            {!visibleRows.length && !visibleChildFolders.length ? (
+              <div className={styles.emptyState}>
+                <Icon name="folder" />
+                <b>{language === 'de' ? 'Dieser Ordner ist leer.' : 'This folder is empty.'}</b>
+                <p>
+                  {query
+                    ? (language === 'de' ? 'Suchbegriff ändern.' : 'Change the search term.')
+                    : (language === 'de' ? 'Zieh Texte hierher oder leg einen neuen an.' : 'Drag texts here or create a new one.')}
+                </p>
+              </div>
+            ) : null}
+          </div>
         </section>
       </div>
+
+      {contextMenu ? (
+        <div
+          className={styles.contextMenu}
+          role="menu"
+          style={{
+            left: Math.max(8, Math.min(contextMenu.x, window.innerWidth - 230)),
+            top: Math.max(8, Math.min(contextMenu.y, window.innerHeight - 300)),
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          {contextMenu.kind === 'song' && contextSong ? (
+            <>
+              {!trash ? (
+                <button type="button" role="menuitem" onClick={() => {
+                  setContextMenu(null);
+                  void openSong(contextSong.id);
+                }}>
+                  <Icon name="pen" /><span>{language === 'de' ? 'Öffnen' : 'Open'}</span><kbd>Enter</kbd>
+                </button>
+              ) : null}
+              {!trash ? (
+                <button type="button" role="menuitem" onClick={() => {
+                  setContextMenu(null);
+                  setNameDialog({ type: 'rename-song', id: contextSong.id, value: contextSong.title || '' });
+                }}>
+                  <Icon name="edit" /><span>{language === 'de' ? 'Umbenennen' : 'Rename'}</span>
+                </button>
+              ) : null}
+              {!trash ? (
+                <button type="button" role="menuitem" onClick={() => {
+                  setContextMenu(null);
+                  setMoveSongId(contextSong.id);
+                }}>
+                  <Icon name="folder" /><span>{language === 'de' ? 'Verschieben nach …' : 'Move to …'}</span>
+                </button>
+              ) : null}
+              <hr />
+              {trash ? (
+                <button type="button" role="menuitem" onClick={() => {
+                  setContextMenu(null);
+                  const result = restoreLibrarySong(workspace.state, contextSong.id);
+                  if (result.changed) void workspace.replaceState(result.state);
+                }}>
+                  <Icon name="arrowUp" /><span>{language === 'de' ? 'Wiederherstellen' : 'Restore'}</span>
+                </button>
+              ) : (
+                <button type="button" role="menuitem" className={styles.contextDanger} onClick={() => {
+                  setContextMenu(null);
+                  void commitResult(trashLibrarySong(workspace.state, contextSong.id));
+                }}>
+                  <Icon name="trash" /><span>{language === 'de' ? 'In Papierkorb' : 'Move to Trash'}</span>
+                </button>
+              )}
+              {trash ? (
+                <button type="button" role="menuitem" className={styles.contextDanger} onClick={() => {
+                  setContextMenu(null);
+                  setConfirm({ type: 'permanent-song', id: contextSong.id });
+                }}>
+                  <Icon name="trash" /><span>{language === 'de' ? 'Endgültig löschen' : 'Delete permanently'}</span>
+                </button>
+              ) : null}
+            </>
+          ) : null}
+
+          {contextMenu.kind === 'folder' ? (
+            <>
+              <button type="button" role="menuitem" onClick={() => {
+                setFolder(contextMenu.folder);
+                setContextMenu(null);
+              }}>
+                <Icon name="folder" /><span>{language === 'de' ? 'Öffnen' : 'Open'}</span>
+              </button>
+              {!trash ? (
+                <button type="button" role="menuitem" onClick={() => {
+                  setNameDialog({
+                    type: 'new-folder',
+                    parent: contextMenu.folder,
+                    value: language === 'de' ? 'Neuer Ordner' : 'New folder',
+                  });
+                  setContextMenu(null);
+                }}>
+                  <Icon name="plus" /><span>{language === 'de' ? 'Unterordner erstellen' : 'New subfolder'}</span>
+                </button>
+              ) : null}
+              {!trash && contextMenu.folder !== 'Entwürfe' ? (
+                <button type="button" role="menuitem" onClick={() => {
+                  setNameDialog({
+                    type: 'rename-folder',
+                    folder: contextMenu.folder,
+                    value: folderLeaf(contextMenu.folder),
+                  });
+                  setContextMenu(null);
+                }}>
+                  <Icon name="edit" /><span>{language === 'de' ? 'Umbenennen' : 'Rename'}</span>
+                </button>
+              ) : null}
+              {!trash && contextMenu.folder !== 'Entwürfe' ? <hr /> : null}
+              {!trash && contextMenu.folder !== 'Entwürfe' ? (
+                <button type="button" role="menuitem" className={styles.contextDanger} onClick={() => {
+                  setConfirm({ type: 'delete-folder', folder: contextMenu.folder });
+                  setContextMenu(null);
+                }}>
+                  <Icon name="trash" /><span>{language === 'de' ? 'Ordnerstruktur löschen' : 'Delete folder tree'}</span>
+                </button>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      ) : null}
 
       <NameDialog
         state={nameDialog}

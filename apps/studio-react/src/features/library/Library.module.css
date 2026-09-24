@@ -422,6 +422,13 @@
 .folderActions {
   display: flex;
   gap: 3px;
+  opacity: 0;
+  transition: opacity var(--rl-duration-fast) ease;
+}
+
+.folderRow:hover .folderActions,
+.folderRow:focus-within .folderActions {
+  opacity: 1;
 }
 
 .folderActions button {
@@ -458,47 +465,314 @@
   overflow: hidden;
 }
 
-.resultsHead {
-  min-height: 42px;
+.explorerBar {
+  min-height: 46px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 10px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 9px;
   border-bottom: 1px solid var(--rl-line);
+  background: color-mix(in srgb, var(--rl-panel) 88%, transparent);
+}
+
+.breadcrumbs {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.breadcrumbs > button,
+.breadcrumbs > span > button {
+  min-width: 0;
+  min-height: 31px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 7px;
+  background: transparent;
+  color: var(--rl-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+}
+
+.breadcrumbs button:hover {
+  background: var(--rl-tint);
+  color: var(--rl-accent);
+}
+
+.breadcrumbs svg {
+  width: 15px;
+  height: 15px;
+  color: var(--rl-accent);
+}
+
+.breadcrumbs > span {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumbs i {
+  color: var(--rl-muted);
+  font-style: normal;
+}
+
+.explorerStatus {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   color: var(--rl-muted);
   font-size: 11px;
 }
 
-.resultsHead > span {
+.explorerStatus b {
   color: var(--rl-ink);
-  font-weight: 700;
 }
 
-.resultsHead button {
-  border: 0;
-  background: transparent;
+.explorerStatus em {
+  max-width: 220px;
+  margin-left: 8px;
+  overflow: hidden;
   color: var(--rl-accent);
-  cursor: pointer;
-  font-size: 11px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.resultsHead small {
-  margin-left: auto;
+.explorerHead,
+.explorerSongRow,
+.explorerFolderRow {
+  display: grid;
+  grid-template-columns: minmax(230px, 1.1fr) minmax(260px, 1.35fr) 72px 132px;
+  align-items: center;
+}
+
+.explorerHead {
+  min-height: 34px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--rl-line);
+  color: var(--rl-muted);
+  font-size: 10px;
+  font-weight: 790;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.explorerHead > span,
+.explorerSongRow > span,
+.explorerFolderRow > span {
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.explorerHead > span + span,
+.explorerSongRow > span + span,
+.explorerFolderRow > span + span {
+  border-left: 1px solid color-mix(in srgb, var(--rl-line) 64%, transparent);
+}
+
+.explorerList {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 5px;
+  outline: 0;
+}
+
+.explorerSongRow,
+.explorerFolderRow {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--rl-ink);
+  text-align: left;
+}
+
+.explorerFolderRow {
+  font: inherit;
+  cursor: default;
+}
+
+.explorerSongRow {
+  cursor: default;
+}
+
+.explorerSongRow[draggable="true"] {
+  cursor: grab;
+}
+
+.explorerSongRow:hover,
+.explorerFolderRow:hover {
+  border-color: color-mix(in srgb, var(--rl-accent) 16%, var(--rl-line));
+  background: color-mix(in srgb, var(--rl-accent) 4%, var(--rl-panel));
+}
+
+.explorerSongRow[data-selected="true"] {
+  border-color: color-mix(in srgb, var(--rl-accent) 32%, var(--rl-line));
+  background: var(--rl-tint);
+}
+
+.explorerSongRow[data-active="true"] {
+  box-shadow: inset 3px 0 0 var(--rl-accent);
+}
+
+.explorerName {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.explorerName > span {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.explorerName b {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explorerName small {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 2px 5px;
+  background: color-mix(in srgb, var(--rl-accent) 9%, transparent);
+  color: var(--rl-accent);
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.itemIcon {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--rl-tint);
+  color: var(--rl-accent);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.itemIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.itemIcon[data-kind="text"] {
+  background: color-mix(in srgb, var(--rl-surface) 75%, var(--rl-accent) 6%);
+  border: 1px solid color-mix(in srgb, var(--rl-line) 75%, transparent);
+}
+
+.explorerPreview {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  color: var(--rl-muted);
+  font-size: 10px;
+}
+
+.explorerPreview b,
+.explorerPreview small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.songGrid {
-  min-height: 0;
-  flex: 1 1 auto;
+.explorerPreview b {
+  color: var(--rl-muted);
+  font-weight: 650;
+}
+
+.explorerPreview small {
+  opacity: .78;
+}
+
+.explorerBars,
+.explorerDate,
+.explorerFolderRow > span:nth-child(3),
+.explorerFolderRow > span:nth-child(4) {
+  color: var(--rl-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.contextMenu {
+  position: fixed;
+  z-index: 260;
+  width: 220px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  align-content: start;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--rl-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--rl-panel) 96%, transparent);
+  box-shadow: 0 20px 60px rgb(0 0 0 / .32);
+  backdrop-filter: blur(16px);
+}
+
+.contextMenu button {
+  min-height: 36px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
   gap: 8px;
-  padding: 9px;
-  overflow: auto;
-  overscroll-behavior: contain;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 9px;
+  background: transparent;
+  color: var(--rl-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+}
+
+.contextMenu button:hover {
+  background: var(--rl-tint);
+}
+
+.contextMenu svg {
+  width: 15px;
+  height: 15px;
+  color: var(--rl-muted);
+}
+
+.contextMenu kbd {
+  color: var(--rl-muted);
+  font: 700 9px ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.contextMenu hr {
+  width: calc(100% - 8px);
+  margin: 4px;
+  border: 0;
+  border-top: 1px solid var(--rl-line);
+}
+
+.contextMenu .contextDanger {
+  color: var(--rl-accent-2);
+}
+
+.contextMenu .contextDanger svg {
+  color: var(--rl-accent-2);
 }
 
 .songCard {
@@ -1054,5 +1328,55 @@
 @media (max-width: 800px) {
   .library {
     padding-top: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .explorerHead {
+    display: none;
+  }
+
+  .explorerSongRow,
+  .explorerFolderRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 68px;
+    padding: 7px;
+  }
+
+  .explorerSongRow > span,
+  .explorerFolderRow > span {
+    border-left: 0 !important;
+    padding: 0 7px;
+  }
+
+  .explorerPreview {
+    grid-column: 1;
+    padding-left: 44px !important;
+  }
+
+  .explorerBars {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .explorerDate,
+  .explorerFolderRow > span:nth-child(4) {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .explorerFolderRow > span:nth-child(3) {
+    display: none;
+  }
+
+  .explorerBar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .explorerStatus em {
+    max-width: 54vw;
   }
 }
