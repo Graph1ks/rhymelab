@@ -1094,3 +1094,49 @@
     height: min(82dvh, 760px);
   }
 }
+
+/* Distraction-free writing mode: lyrics only. */
+.workspace[data-focus="true"] {
+  gap: 0;
+}
+
+.workspace[data-focus="true"] > .header,
+.workspace[data-focus="true"] > .controlBar,
+.workspace[data-focus="true"] > .footer {
+  display: none;
+}
+
+.workspace[data-focus="true"] .editorFrame {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.workspace[data-focus="true"] .editorScroll {
+  scrollbar-gutter: auto;
+}
+
+.workspace[data-focus="true"] .notepad {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100%;
+}
+
+.workspace[data-focus="true"] .gutter,
+.workspace[data-focus="true"] .syllableGutter,
+.workspace[data-focus="true"] .dropPreview {
+  display: none;
+}
+
+.workspace[data-focus="true"] .editorColumn {
+  width: min(100%, 980px);
+  min-height: 100%;
+  margin: 0 auto;
+  background: transparent;
+}
+
+.workspace[data-focus="true"] .textarea,
+.workspace[data-focus="true"] .measure {
+  padding: clamp(42px, 8vh, 92px) clamp(24px, 6vw, 84px);
+}
+
