@@ -4089,13 +4089,13 @@
     "priority": "P0",
     "stack": [
       "React 19.3",
-      "TypeScript 5.9",
+      "TypeScript 5.9.3",
       "Vite 8.3",
       "Base UI 1.8",
       "Motion 13.4",
       "TanStack Query 5.103",
       "Zustand 5.0",
-      "TanStack Virtual 3.14"
+      "TanStack Virtual 3.14.13"
     ],
     "source_root": "apps/studio-react",
     "parity_inventory": "apps/studio-react/parity-coverage.json",
