@@ -9,6 +9,7 @@ Git remains the complete technical history. This changelog is intentionally cura
 ### Added
 
 - Started the P0 behavior-preserving React Studio replatform with an isolated React 19.3 + TypeScript + Vite + Base UI + Motion + TanStack Query + Zustand + TanStack Virtual application, machine-readable parity inventory, hard cutover checker and dedicated CI. The existing Studio V2 remains unchanged as the shipping golden master and rollback surface.
+- Completed React Studio R1 typed bridging across 18 existing Search, pronunciation, document, editor, Perform, analysis/detail, diagnostics and device-acceptance modules. The React-facing functions directly reuse the existing implementations, with strict TypeScript contracts, implementation-identity tests and representative semantic parity coverage.
 
 - Expanded the development-only Distribution DB Lab to a quality/speed v2: exact effective Writer requests, deterministic result fingerprints, per-query response bytes, Search/serialize/read/parse/map/render timing, live server-metric refresh on Copy-all, and controlled Master/Lite/Standard/Full benchmark modes with warmups, p50/p95 and repeatability/Top-50 overlap reporting.
 - Added the development-only Studio Distribution DB Lab for explicit Master/Lite/Standard/Full switching, strict request-scoped `runtime_db` routing and copyable SQLite/Writer/browser/server performance metrics. Normal startup strips the internal UI and disables its endpoint; the future user-facing database choice remains a separate Settings task.
