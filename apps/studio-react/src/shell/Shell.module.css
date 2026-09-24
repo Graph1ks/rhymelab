@@ -2287,6 +2287,57 @@
   display: block;
 }
 
+
+.styleResetGroup {
+  display: grid;
+  gap: 5px;
+}
+
+.styleResetButton {
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--rl-line);
+  border-radius: 11px;
+  padding: 7px 8px;
+  background: color-mix(in srgb, var(--rl-surface-soft) 74%, transparent);
+  color: var(--rl-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.styleResetButton:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--rl-accent) 42%, var(--rl-line));
+  background: var(--rl-tint);
+}
+
+.styleResetButton:disabled {
+  cursor: default;
+  opacity: .62;
+}
+
+.styleResetButton > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.styleResetButton b {
+  font-size: 11px;
+}
+
+.styleResetButton small {
+  color: var(--rl-muted);
+  font-size: 10px;
+}
+
+.styleResetButton[data-active="true"] {
+  border-color: color-mix(in srgb, var(--rl-signal) 32%, var(--rl-line));
+}
+
 .styleLibraryDivider {
   height: 1px;
   margin: 7px 4px;
@@ -2347,6 +2398,21 @@
   border-color: var(--rl-accent);
   background: var(--rl-tint);
   color: var(--rl-accent);
+}
+
+.styleModeBadge {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rl-line);
+  border-radius: 10px;
+  padding: 0 11px;
+  background: var(--rl-surface-soft);
+  color: var(--rl-muted);
+  font-size: 10px;
+  font-weight: 880;
+  letter-spacing: .12em;
 }
 
 .stylePreview {
