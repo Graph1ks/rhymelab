@@ -7,6 +7,13 @@ import {
   reconcileEditorDocumentText,
 } from '../../legacy/editor';
 import {
+  editorFontFamily,
+  editorFontLabel,
+  editorFontStyle,
+  editorFontWeight,
+  systemFontValue,
+} from './SystemFontPicker';
+import {
   activeEditorSong,
   asEditorSong,
   captureEditorRevision,
@@ -32,6 +39,25 @@ function song(): LegacyStudioSong {
     updatedAt: 20,
   };
 }
+
+describe('R5 editor system-font contract', () => {
+  it('keeps local face family, style and weight in the persisted editor-font value', () => {
+    const value = systemFontValue({
+      family: 'Example Sans',
+      style: 'SemiBold Italic',
+    });
+    expect(editorFontFamily(value)).toContain('"Example Sans"');
+    expect(editorFontStyle(value)).toBe('italic');
+    expect(editorFontWeight(value)).toBe(600);
+    expect(editorFontLabel(value)).toBe('Example Sans · SemiBold Italic');
+  });
+
+  it('remains backward-compatible with the previous family-only system value', () => {
+    expect(editorFontFamily('system:Georgia')).toContain('"Georgia"');
+    expect(editorFontStyle('system:Georgia')).toBe('normal');
+    expect(editorFontWeight('system:Georgia')).toBe(400);
+  });
+});
 
 describe('R5 editor orchestration model', () => {
   it('normalizes a legacy song into stable Bar identities without replacing its document shape', () => {
