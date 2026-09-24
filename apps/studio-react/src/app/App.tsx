@@ -1,5 +1,10 @@
+import { SearchStateProvider } from '../features/search/SearchStateProvider';
 import { Shell } from '../shell/Shell';
 
 export function App() {
-  return <Shell />;
+  return (
+    <SearchStateProvider>
+      <Shell />
+    </SearchStateProvider>
+  );
 }
