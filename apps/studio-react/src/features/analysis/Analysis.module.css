@@ -21,7 +21,7 @@
 .cardHeader p {
   margin: 0 0 5px;
   color: var(--rl-accent);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: .14em;
 }
@@ -77,7 +77,7 @@
 .segmented button {
   min-height: 34px;
   padding: 0 9px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 750;
 }
 
@@ -94,7 +94,7 @@
   border-radius: 999px;
   padding: 6px 9px;
   color: var(--rl-muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: .08em;
   white-space: nowrap;
@@ -160,7 +160,7 @@
 .cardHeader > button {
   min-height: 34px;
   padding: 0 10px;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .metrics,
@@ -186,7 +186,7 @@
 .inspector small {
   display: block;
   color: var(--rl-muted);
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: .09em;
 }
@@ -202,7 +202,7 @@
   margin-top: 3px;
   overflow: hidden;
   color: var(--rl-muted);
-  font-size: 9px;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -246,13 +246,13 @@
 
 .scheme b small {
   color: var(--rl-muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 500;
 }
 
 .scheme em {
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
   font-style: normal;
 }
 
@@ -289,7 +289,7 @@
 .chain button {
   min-height: 34px;
   padding: 0 9px;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .density {
@@ -308,7 +308,7 @@
 .density span,
 .density strong {
   color: var(--rl-muted);
-  font-size: 9px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -357,13 +357,13 @@
 
 .pairs em {
   color: var(--rl-muted);
-  font-size: 9px;
+  font-size: 11px;
   font-style: normal;
 }
 
 .pairs strong {
   color: var(--rl-accent);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .fingerprint {
@@ -382,7 +382,7 @@
 .fingerprint small {
   display: block;
   color: var(--rl-muted);
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .wordGrid,
@@ -435,7 +435,7 @@
 .sections header span,
 .bars header span {
   color: var(--rl-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .wordGrid code {
@@ -458,7 +458,7 @@
 .wordGrid small {
   display: block;
   color: var(--rl-muted);
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .inspector {
@@ -496,7 +496,7 @@
 
 .types article small {
   color: var(--rl-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .types article b {
@@ -523,7 +523,7 @@
   padding: 5px 7px;
   background: var(--rl-bg);
   color: var(--rl-muted);
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .bars {
