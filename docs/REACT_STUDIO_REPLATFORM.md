@@ -2,7 +2,7 @@
 
 Status: **ACTIVE / P0 / FEATURE FREEZE**  
 Branch: `refactor/react-studio-replatform`  
-Baseline: `main@fbda43a9e4dd915f3bd5c1fa53045cbe2055e919`  
+Baseline: `main@fbda43a9e4dd`  
 Target: React + TypeScript + Vite + Base UI + Motion + TanStack Query + Zustand + TanStack Virtual
 
 ## Owner decision
