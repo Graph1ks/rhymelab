@@ -8,53 +8,53 @@ import styles from './Home.module.css';
 const FEATURE_COPY = {
   de: [
     {
-      eyebrow: 'SCHREIBEN',
-      title: 'Ein Editor, der nicht im Weg steht.',
-      copy: 'Bars, Silben, Abschnitte, Versionen und deine Schreibstimme bleiben direkt am Text. Keine Werkzeugleiste mit Existenzkrise.',
+      eyebrow: 'SCHREIBEN · ABTEILUNG TATORT TEXT',
+      title: 'Ein Editor ohne Verwaltungsvorgang für jeden verdammten Satz.',
+      copy: 'Bars, Silben, Abschnitte, Versionen und Schreibstimme bleiben am Text. Kein Ribbon mit 47 Icons, von denen 39 aussehen wie Steuererklärung und drei vermutlich nur HR informieren.',
       icon: 'pen' as const,
     },
     {
-      eyebrow: 'REIMEN',
-      title: 'Nicht nur „Haus / Maus / Klaus“.',
-      copy: 'Vollreime, Slant, Reimfamilien, Assonanz, Konsonanz, Phrasen und Entities laufen durch dieselbe Writer-Suche.',
+      eyebrow: 'REIMEN · SONDERERMITTLUNG KLANG',
+      title: 'Haus / Maus / Klaus wurde nach kurzer Anhörung freigelassen.',
+      copy: 'Vollreime, Slant, Reimfamilien, Assonanz, Konsonanz, Phrasen und Namen werden gemeinsam verhört. Wer klanglich zusammenpasst, landet in derselben Akte. Wer nur ähnlich geschrieben wird, darf wieder gehen.',
       icon: 'search' as const,
     },
     {
-      eyebrow: 'SEHEN',
-      title: 'Rhyme Topology statt Farben-Konfetti.',
-      copy: 'Analyse zeigt zusammenhängende Reimketten im vollständigen Text. Gruppen, Typen und Vorkommen bleiben lesbar, auch wenn der Song länger wird.',
+      eyebrow: 'ANALYSE · BEWEISMITTELSTELLE',
+      title: 'Deine Reimketten bekommen endlich eine Akte.',
+      copy: 'Rhyme Topology zeigt, welche Klangmuster durch den ganzen Text laufen. Keine Konfetti-Heatmap, die dir mit fünf Farben erklärt, dass du offensichtlich Wörter benutzt hast.',
       icon: 'grid' as const,
     },
     {
-      eyebrow: 'BEHALTEN',
-      title: 'Deine Texte wohnen lokal.',
-      copy: 'Bibliothek, Versionen, Recovery und Workspace-Zustand bleiben lokal-first. Die kreative Katastrophe ist optional, der Backup-Punkt nicht.',
+      eyebrow: 'BIBLIOTHEK · ZEUGENSCHUTZ FÜR ENTWÜRFE',
+      title: 'Deine Texte bleiben bei dir. Schon aus Selbstschutz.',
+      copy: 'Bibliothek, Versionen, Recovery und Auto-Save laufen lokal-first. Falls die zweite Strophe ein Verbrechen wird, sichern wir wenigstens den Tatort von davor.',
       icon: 'bookmark' as const,
     },
   ],
   en: [
     {
-      eyebrow: 'WRITE',
-      title: 'An editor that stays out of the way.',
-      copy: 'Bars, syllables, sections, revisions and your writing voice stay close to the text. No toolbar having an existential crisis.',
+      eyebrow: 'WRITE · TEXT CRIME UNIT',
+      title: 'An editor without paperwork for every damn sentence.',
+      copy: 'Bars, syllables, sections, revisions and your writing voice stay next to the text. No toolbar with 47 icons, 39 of which look like tax forms.',
       icon: 'pen' as const,
     },
     {
-      eyebrow: 'RHYME',
-      title: 'More than “night / light / fight”.',
-      copy: 'Perfect, slant, families, assonance, consonance, phrases and entities run through the same Writer search.',
+      eyebrow: 'RHYME · SOUND INVESTIGATIONS',
+      title: '“Night / light / fight” has been released pending further evidence.',
+      copy: 'Perfect, slant, families, assonance, consonance, phrases and names are questioned together. Sound-alikes share a case file. Spelling coincidences are free to leave.',
       icon: 'search' as const,
     },
     {
-      eyebrow: 'SEE',
-      title: 'Rhyme topology, not color confetti.',
-      copy: 'Analysis keeps connected rhyme chains inside the complete lyric, with readable groups, types and occurrences.',
+      eyebrow: 'ANALYSIS · EVIDENCE ROOM',
+      title: 'Your rhyme chains finally get a file number.',
+      copy: 'Rhyme Topology shows which sound patterns actually travel through the lyric. No confetti heatmap using five colors to announce that words have occurred.',
       icon: 'grid' as const,
     },
     {
-      eyebrow: 'KEEP',
-      title: 'Your texts live locally.',
-      copy: 'Library, revisions, recovery and workspace state stay local-first. The creative catastrophe is optional; the recovery point is not.',
+      eyebrow: 'LIBRARY · WITNESS PROTECTION FOR DRAFTS',
+      title: 'Your lyrics stay with you. Mostly for everyone’s safety.',
+      copy: 'Library, revisions, recovery and autosave stay local-first. If verse two becomes a felony, at least the previous scene is preserved.',
       icon: 'bookmark' as const,
     },
   ],
@@ -69,15 +69,15 @@ export function HomePage() {
   const hero = language === 'de'
     ? {
         kicker: 'RHYME ENGINE · WRITING STUDIO',
-        title: 'Schreib den Song. Wir kümmern uns um den Klang dahinter.',
-        copy: 'Rhyme Bureau verbindet einen lokalen Songwriting-Workspace mit phonologischer Reimsuche, Analyse und Performance-Werkzeugen. Kein magischer KI-Nebel. Nur sehr viele Laute, Indizes und Entscheidungen, die du nicht von Hand treffen willst.',
+        title: 'Das Bureau hört alles. Zum Glück nur deine Reime.',
+        copy: 'Rhyme Bureau ist Schreibstudio, Reimermittlung, Klanglabor und Performance-Werkzeug in einer Oberfläche. Wir durchsuchen Aussprache, Betonung und Reimdomänen so gründlich, dass selbst dein unnötig kompliziertes Kunstwort irgendwann einen Sachbearbeiter bekommt. Kein KI-Seance-Zelt. Keine Cloud-Beichte. Nur Beweismittel gegen mittelmäßige Endreime.',
         primary: 'Studio öffnen',
         secondary: 'Reimsuche öffnen',
       }
     : {
         kicker: 'RHYME ENGINE · WRITING STUDIO',
-        title: 'Write the song. We handle the sound underneath.',
-        copy: 'Rhyme Bureau combines a local songwriting workspace with phonological rhyme search, analysis and performance tools. No mystical AI fog. Just a lot of sounds, indexes and decisions you should not have to make by hand.',
+        title: 'The Bureau hears everything. Fortunately, only your rhymes.',
+        copy: 'Rhyme Bureau is a writing room, rhyme investigation desk, sound lab and performance tool in one surface. Pronunciation, stress and rhyme domains get searched until even your ridiculous invented word receives a case officer. No AI séance. No cloud confession. Just evidence against mediocre end rhymes.',
         primary: 'Open Studio',
         secondary: 'Open rhyme search',
       };
@@ -170,7 +170,7 @@ export function HomePage() {
       <div className={styles.factRail}>
         <span><b>DE + EN</b>{language === 'de' ? 'Sprachrouten' : 'language routes'}</span>
         <span><b>50</b>{language === 'de' ? 'kuratierte Fonts' : 'curated fonts'}</span>
-        <span><b>LOCAL-FIRST</b>IndexedDB</span>
+        <span><b>LOCAL-FIRST</b>{language === 'de' ? 'deine Texte bleiben hier' : 'your lyrics stay here'}</span>
         <span><b>7</b>{language === 'de' ? 'Reim- & Klangtypen' : 'rhyme & sound types'}</span>
       </div>
 
@@ -179,8 +179,8 @@ export function HomePage() {
           <p className={styles.kicker}>{language === 'de' ? 'WAS DAS DING EIGENTLICH MACHT' : 'WHAT THIS THING ACTUALLY DOES'}</p>
           <h2>
             {language === 'de'
-              ? 'Vom leeren Blatt bis zur Reimkette, ohne fünf Apps und drei Browser-Tabs.'
-              : 'From blank page to rhyme chain without five apps and three browser tabs.'}
+              ? 'Vom leeren Blatt bis zur Klangakte. Ohne fünf Apps, drei Tabs und einen Praktikanten namens Kevin.'
+              : 'From blank page to sound case file. Without five apps, three tabs and an intern named Kevin.'}
           </h2>
         </header>
         <div className={styles.featureGrid}>
@@ -206,23 +206,23 @@ export function HomePage() {
 
       <section className={styles.pitch}>
         <div>
-          <p className={styles.kicker}>{language === 'de' ? 'KEIN ZAUBERTRICK' : 'NO MAGIC TRICK'}</p>
+          <p className={styles.kicker}>{language === 'de' ? 'KEIN V-MANN. NUR PHONETIK.' : 'NO INFORMANT. JUST PHONETICS.'}</p>
           <h2>
             {language === 'de'
-              ? 'Rhyme Bureau soll dir keine Zeile abnehmen. Es soll verhindern, dass die Suche nach einer Zeile deinen Abend frisst.'
-              : 'Rhyme Bureau is not here to write the line for you. It is here to stop the search for that line from eating your evening.'}
+              ? 'Wir schreiben nicht für dich. Wir beseitigen nur die organisatorischen Hindernisse zwischen dir und einer Zeile, für die du dich morgen nicht schämst.'
+              : 'We do not write for you. We remove the administrative obstacles between you and a line you will not regret tomorrow.'}
           </h2>
         </div>
         <div className={styles.pitchNotes}>
           <p>
             {language === 'de'
-              ? 'Die Engine arbeitet mit Aussprache, Stress, Reimdomänen und Klangrelationen. Wenn „Applaus“ nur eine Reimsilbe ab Hauptakzent hat, nennen wir das nicht aus Marketinggründen plötzlich „mehrsilbig“.'
-              : 'The engine works with pronunciation, stress, rhyme domains and sound relations. If a word has one rhyme syllable from primary stress, marketing does not get to rename it “multisyllabic”.'}
+              ? 'Die Engine arbeitet mit Aussprache, Stress, Reimdomänen und Klangrelationen. Wenn „Applaus“ ab Hauptakzent nur eine Reimsilbe hat, fälschen wir nicht die Aktenlage, nur damit der Filter beeindruckender aussieht. Dafür gibt es andere Behörden.'
+              : 'The engine works with pronunciation, stress, rhyme domains and sound relations. If a word has one rhyme syllable from primary stress, we do not falsify the file just to make the filter look more impressive.'}
           </p>
           <p>
             {language === 'de'
-              ? 'Unbekannte Wörter werden lokal in eine Query-Aussprache aufgelöst, bekannte Bestandteile aus der Datenbank werden bevorzugt. Kunstwort rein, phonologische Konsequenzen raus.'
-              : 'Unknown words are resolved into a local query pronunciation, preferring known database components when possible. Art word in, phonological consequences out.'}
+              ? 'Unbekannte Wörter werden lokal zerlegt, bekannte Bestandteile aus der Datenbank zuerst vernommen und der reimtragende rechte Rand gesichert. Kunstwort rein, Koffer auf, Silben auf den Tisch. Latexhandschuhe sind optional.'
+              : 'Unknown words are resolved locally, known database components are questioned first and the rhyme-bearing right edge is secured. Invented word in, suitcase open, syllables on the table. Latex gloves optional.'}
           </p>
         </div>
       </section>
@@ -230,10 +230,10 @@ export function HomePage() {
       <section className={styles.closing}>
         <div>
           <p>RHYME BUREAU · PHONETIC LICENSE TO SLAY.</p>
-          <h2>{language === 'de' ? 'Genug Intro. Der Text schreibt sich leider immer noch nicht selbst.' : 'Enough intro. The text still refuses to write itself.'}</h2>
+          <h2>{language === 'de' ? 'Akte eröffnet. Jetzt schreib was Belastbares.' : 'Case opened. Now write something that holds up.'}</h2>
         </div>
         <button type="button" onClick={() => navigate('studio')}>
-          {language === 'de' ? 'Ab ins Studio' : 'Enter Studio'} <span>↗</span>
+          {language === 'de' ? 'Vernehmung starten' : 'Start questioning'} <span>↗</span>
         </button>
       </section>
     </motion.section>
