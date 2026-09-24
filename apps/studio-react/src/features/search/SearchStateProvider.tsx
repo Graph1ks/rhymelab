@@ -67,7 +67,7 @@ export function SearchStateProvider({ children }: { children: ReactNode }) {
 
   const patch = useCallback((input: SearchStateInput) => {
     setState((current) => persistSearchState(patchSearchState(current, input)));
-  }, [uiLanguage]);
+  }, []);
 
   const replace = useCallback((input: SearchStateInput) => {
     setState(persistSearchState(createSearchState(input)));
@@ -90,7 +90,7 @@ export function SearchStateProvider({ children }: { children: ReactNode }) {
       entityCategory: 'all',
       entityCategories: [],
     })));
-  }, []);
+  }, [uiLanguage]);
 
   const setSelectedResultId = useCallback((id: string) => {
     patch({ selectedResultId: String(id || '') });
