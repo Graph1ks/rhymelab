@@ -177,16 +177,19 @@ export function useWriterSearch(
   });
 }
 
-function fallbackTrackedText(): string {
-  const legacy = loadStudioState();
-  const song = legacy.songs.find((item) => item.id === legacy.active)
-    ?? legacy.songs[0];
-  if (!song) return '';
-  return song.lines
+export function trackedSearchText(lines: string[]): string {
+  return lines
     .filter((line) => isTrackedEditorLine(line))
     .map((line) => editorTrackableText(line))
     .filter(Boolean)
     .join('\n');
+}
+
+function fallbackTrackedText(): string {
+  const legacy = loadStudioState();
+  const song = legacy.songs.find((item) => item.id === legacy.active)
+    ?? legacy.songs[0];
+  return song ? trackedSearchText(song.lines) : '';
 }
 
 async function loadActiveTrackedText(): Promise<string> {
@@ -195,7 +198,9 @@ async function loadActiveTrackedText(): Promise<string> {
     if (available) {
       const snapshot = await documentStore.loadSnapshot();
       if (snapshot?.activeSongId) {
-        return songText(snapshot, snapshot.activeSongId);
+        return trackedSearchText(
+          songText(snapshot, snapshot.activeSongId).split('\n'),
+        );
       }
     }
   } catch {
