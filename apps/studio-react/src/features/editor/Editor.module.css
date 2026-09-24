@@ -291,12 +291,11 @@
 }
 
 .gutterRow button {
+  position: relative;
   width: 100%;
   height: var(--editor-line-height);
   min-height: var(--editor-line-height);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   padding: 0;
   line-height: 1;
   border: 0;
@@ -306,6 +305,16 @@
   font-weight: 800;
   cursor: grab;
   touch-action: none;
+}
+
+.gutterNumber,
+.syllableValue {
+  position: absolute;
+  left: 50%;
+  top: var(--line-center, 50%);
+  transform: translate(-50%, -50%);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .gutterRow button[data-active="true"] {
@@ -319,8 +328,9 @@
 }
 
 .syllableRow {
+  position: relative;
   padding: 0;
-  align-items: center;
+  align-items: flex-start;
   line-height: 1;
   color: var(--rl-muted);
   font-size: max(11px, calc(var(--editor-font-size) * .44));
