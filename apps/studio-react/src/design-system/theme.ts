@@ -337,7 +337,17 @@ export function saveCustomTheme(theme: ThemeDefinition): ThemePreferences {
   const index = customThemes.findIndex((item) => item.id === nextTheme.id);
   if (index >= 0) customThemes[index] = nextTheme;
   else customThemes.push(nextTheme);
-  const next: ThemePreferences = { ...prefs, customThemes };
+
+  const themeSlots = {
+    ...prefs.themeSlots,
+    light: prefs.themeSlots?.light === nextTheme.id && nextTheme.mode !== 'light'
+      ? null
+      : prefs.themeSlots?.light ?? null,
+    dark: prefs.themeSlots?.dark === nextTheme.id && nextTheme.mode !== 'dark'
+      ? null
+      : prefs.themeSlots?.dark ?? null,
+  };
+  const next: ThemePreferences = { ...prefs, customThemes, themeSlots };
   writeStudioPreferences(next);
   return next;
 }
