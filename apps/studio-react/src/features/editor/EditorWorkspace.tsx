@@ -251,6 +251,10 @@ export function EditorWorkspace() {
   };
 
   const rowHeight = (index: number) => lineHeights[index] ?? Math.max(34, Math.ceil(fontSize * 1.62));
+  const dropPreviewTop = dragVisual?.active
+    ? 18 + Array.from({ length: dragVisual.targetIndex }, (_, index) => rowHeight(index))
+      .reduce((sum, value) => sum + value, 0)
+    : 0;
 
   const calculateDropTarget = (clientY: number) => {
     const root = editorScrollRef.current;
@@ -498,6 +502,18 @@ export function EditorWorkspace() {
               '--editor-font-family': fontFamily,
             } as CSSProperties}
           >
+            {dragVisual?.active ? (
+              <div
+                className={styles.dropPreview}
+                style={{
+                  top: dropPreviewTop,
+                  height: rowHeight(dragVisual.targetIndex),
+                }}
+                aria-hidden="true"
+              >
+                <span>DROP</span>
+              </div>
+            ) : null}
             <div className={styles.gutter} aria-label={language === 'de' ? 'Bar-Markierungen' : 'Bar markers'}>
               <div className={styles.gutterSpacer} />
               {lines.map((line, index) => {
