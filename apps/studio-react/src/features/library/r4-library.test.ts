@@ -182,6 +182,7 @@ describe('R4 Library behavior', () => {
     const moved = moveLibraryFolder(state(), 'Songs/Hooks', 'Archive', 1080);
     expect(moved.changed).toBe(true);
     expect(moved.folder).toBe('Archive/Hooks');
+    expect(moved.state.folders).toContain('Archive');
     expect(moved.state.folders).toContain('Archive/Hooks');
     expect(moved.state.songs.find((song) => song.id === 's2')?.folder).toBe('Archive/Hooks');
     expect(moveLibraryFolder(state(), 'Songs', 'Songs/Hooks').reason).toBe('folder_cycle');
