@@ -164,14 +164,16 @@ function MobileNavigation() {
   const navigate = useUiStore((state) => state.navigate);
   const openSettings = useUiStore((state) => state.setSettingsDrawerOpen);
   const moreRef = useRef<HTMLButtonElement>(null);
+  const wasDrawerOpenRef = useRef(false);
   const drawerOpen = useUiStore((state) => state.settingsDrawerOpen);
 
   useEffect(() => {
-    if (!drawerOpen) {
+    if (wasDrawerOpenRef.current && !drawerOpen) {
       requestAnimationFrame(() => {
         if (document.documentElement.clientWidth <= 800) moreRef.current?.focus({ preventScroll: true });
       });
     }
+    wasDrawerOpenRef.current = drawerOpen;
   }, [drawerOpen]);
 
   return (
