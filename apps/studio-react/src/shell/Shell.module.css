@@ -3095,3 +3095,38 @@
     display: none;
   }
 }
+
+
+.surfaceLoading {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  color: var(--rl-muted);
+}
+
+.surfaceLoading > span {
+  width: 28px;
+  height: 28px;
+  border: 2px solid color-mix(in srgb, var(--rl-line) 80%, transparent);
+  border-top-color: var(--rl-accent);
+  border-radius: 999px;
+  animation: surfaceLoadingSpin .7s linear infinite;
+}
+
+.surfaceLoading > b {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+@keyframes surfaceLoadingSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surfaceLoading > span {
+    animation: none;
+  }
+}
