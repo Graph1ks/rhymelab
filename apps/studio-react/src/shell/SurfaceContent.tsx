@@ -119,6 +119,17 @@ export function SurfaceContent() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.18 }}
         >
+          {focusMode ? (
+            <button
+              type="button"
+              className={styles.focusExit}
+              onClick={() => setFocusMode(false)}
+              aria-label={language === 'de' ? 'Fokusmodus beenden' : 'Exit focus mode'}
+              title={language === 'de' ? 'Fokus beenden · Esc' : 'Exit focus · Esc'}
+            >
+              ×
+            </button>
+          ) : null}
           <div className={styles.mobileStudioSwap} role="group" aria-label={language === 'de' ? 'Mobile Studio Ansicht' : 'Mobile Studio view'}>
             <button
               type="button"
