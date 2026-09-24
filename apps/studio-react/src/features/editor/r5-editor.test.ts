@@ -7,11 +7,13 @@ import {
   reconcileEditorDocumentText,
 } from '../../legacy/editor';
 import {
+  CURATED_GOOGLE_FONTS,
+  DEFAULT_EDITOR_FONT,
   editorFontFamily,
   editorFontLabel,
   editorFontStyle,
   editorFontWeight,
-  systemFontValue,
+  normalizeEditorFontValue,
 } from './SystemFontPicker';
 import {
   activeEditorSong,
@@ -40,22 +42,23 @@ function song(): LegacyStudioSong {
   };
 }
 
-describe('R5 editor system-font contract', () => {
-  it('keeps local face family, style and weight in the persisted editor-font value', () => {
-    const value = systemFontValue({
-      family: 'Example Sans',
-      style: 'SemiBold Italic',
-    });
-    expect(editorFontFamily(value)).toContain('"Example Sans"');
-    expect(editorFontStyle(value)).toBe('italic');
-    expect(editorFontWeight(value)).toBe(600);
-    expect(editorFontLabel(value)).toBe('Example Sans · SemiBold Italic');
+describe('R5 editor Google-font contract', () => {
+  it('ships ten curated style groups with five fonts each and Oranienbaum as default', () => {
+    expect(CURATED_GOOGLE_FONTS).toHaveLength(50);
+    const groups = new Map<string, number>();
+    CURATED_GOOGLE_FONTS.forEach((font) => groups.set(font.category, (groups.get(font.category) ?? 0) + 1));
+    expect([...groups.values()]).toEqual(Array.from({ length: 10 }, () => 5));
+    expect(DEFAULT_EDITOR_FONT).toBe('google:Oranienbaum');
   });
 
-  it('remains backward-compatible with the previous family-only system value', () => {
-    expect(editorFontFamily('system:Georgia')).toContain('"Georgia"');
-    expect(editorFontStyle('system:Georgia')).toBe('normal');
-    expect(editorFontWeight('system:Georgia')).toBe(400);
+  it('normalizes legacy/system choices to the permission-free Google default', () => {
+    expect(normalizeEditorFontValue('system:Georgia')).toBe(DEFAULT_EDITOR_FONT);
+    expect(normalizeEditorFontValue('sans')).toBe(DEFAULT_EDITOR_FONT);
+    expect(normalizeEditorFontValue('mono')).toBe('google:JetBrains Mono');
+    expect(editorFontFamily(DEFAULT_EDITOR_FONT)).toContain('"Oranienbaum"');
+    expect(editorFontStyle(DEFAULT_EDITOR_FONT)).toBe('normal');
+    expect(editorFontWeight(DEFAULT_EDITOR_FONT)).toBe(400);
+    expect(editorFontLabel(DEFAULT_EDITOR_FONT)).toBe('Oranienbaum');
   });
 });
 
