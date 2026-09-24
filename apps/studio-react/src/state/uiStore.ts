@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { loadStudioPreferences } from '../legacy/documents';
 import {
+  defaultStudioUiLanguage,
   normalizeStudioUiLanguage,
   type StudioUiLanguage,
 } from '../legacy/shell';
@@ -36,7 +37,9 @@ type UiState = {
 };
 
 const preferences = loadStudioPreferences();
-const initialLanguage = normalizeStudioUiLanguage(preferences.uiLanguage);
+const initialLanguage = preferences.uiLanguage == null
+  ? defaultStudioUiLanguage()
+  : normalizeStudioUiLanguage(preferences.uiLanguage);
 const initialThemeChoice = typeof preferences.theme === 'string'
   ? preferences.theme
   : 'light';
