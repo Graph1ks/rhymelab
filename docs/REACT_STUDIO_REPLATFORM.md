@@ -239,12 +239,26 @@ The existing Studio V2 source is not deleted during migration. Until the owner a
 
 ## Current implementation checkpoint
 
-R0 is initiated on `refactor/react-studio-replatform`.
-
-Initial files live under:
+R0 and R1 are complete on `refactor/react-studio-replatform`.
 
 ```text
-apps/studio-react/
+R0  scaffold / freeze / parity inventory        VERIFIED
+R1  typed legacy domain bridge                  VERIFIED
+R2  shell + design system                       NEXT
 ```
 
-The application is intentionally isolated from the shipping root route. The legacy Studio remains untouched while the new stack is established and verified.
+R1 wraps 18 existing browser/domain modules behind strict TypeScript contracts
+without replacing their implementation. Full R1 contract and evidence:
+
+`docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`
+
+The focused verification command is:
+
+```bash
+npm run studio:react:r1
+```
+
+The application remains intentionally isolated from the shipping root route. Studio
+V2 is still the shipping behavioral golden master and rollback implementation.
+No user-facing parity rows are marked complete by R1 alone; UI parity begins in
+R2/R3.
