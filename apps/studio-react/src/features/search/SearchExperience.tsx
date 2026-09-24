@@ -9,6 +9,7 @@ import type {
   RuntimeEdition,
   WriterResultRow,
 } from '../../legacy/contracts';
+import { Dialog } from '../../design-system/primitives';
 import { useUiStore } from '../../state/uiStore';
 import { useOptionalEditorSession } from '../editor/EditorSessionProvider';
 import { Icon } from '../../shell/icons';
@@ -27,6 +28,7 @@ import {
 import { ResultDetail } from './ResultDetail';
 import { ResultsList } from './ResultsList';
 import { SearchControls } from './SearchControls';
+import { SavedWorkspace } from './SavedWorkspace';
 import { useSearchPreferences } from './useSearchPreferences';
 import { useSharedSearchState } from './SearchStateProvider';
 import styles from './Search.module.css';
@@ -106,8 +108,10 @@ function ResultToolbar({
   setDensity,
   hideUsed,
   setHideUsed,
-  autoScroll,
-  setAutoScroll,
+  filtersOpen,
+  setFiltersOpen,
+  onOpenSaved,
+  savedCount,
   resultCount,
   hiddenUsed,
   timing,
@@ -116,8 +120,10 @@ function ResultToolbar({
   setDensity: (density: ResultDensity) => void;
   hideUsed: boolean;
   setHideUsed: (value: boolean) => void;
-  autoScroll: boolean;
-  setAutoScroll: (value: boolean) => void;
+  filtersOpen: boolean;
+  setFiltersOpen: (value: boolean) => void;
+  onOpenSaved: () => void;
+  savedCount: number;
   resultCount: number;
   hiddenUsed: number;
   timing: string;
@@ -151,13 +157,18 @@ function ResultToolbar({
         <button
           type="button"
           className={styles.toggleButton}
-          data-active={autoScroll ? 'true' : 'false'}
-          aria-pressed={autoScroll}
-          onClick={() => setAutoScroll(!autoScroll)}
+          data-active={filtersOpen ? 'true' : 'false'}
+          aria-pressed={filtersOpen}
+          onClick={() => setFiltersOpen(!filtersOpen)}
         >
-          ↕ {language === 'de' ? 'Auto-Scroll' : 'Auto-scroll'}: {autoScroll
-            ? (language === 'de' ? 'An' : 'On')
-            : (language === 'de' ? 'Aus' : 'Off')}
+          ⚙ {language === 'de' ? 'Filter' : 'Filters'}
+        </button>
+        <button
+          type="button"
+          className={styles.toggleButton}
+          onClick={onOpenSaved}
+        >
+          ☆ {language === 'de' ? 'Merkliste' : 'Saved'}{savedCount ? ` · ${savedCount}` : ''}
         </button>
 
         <div
@@ -204,7 +215,8 @@ export function SearchExperience({
   const writer = useWriterSearch(state, runtime.capabilities, runtime.runtimeDb);
   const trackedText = useActiveTrackedText();
   const [draftQuery, setDraftQuery] = useState(state.anchor);
-  const [autoScroll, setAutoScroll] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [savedOpen, setSavedOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(
     preferences.density === 'compact' ? 24 : 12,
   );
@@ -406,13 +418,15 @@ export function SearchExperience({
         </label>
       </form>
 
-      <SearchControls
-        compact={variant === 'assistant'}
-        entityCategories={entityCategories}
-        generatedAvailable={runtime.capabilities?.generated === true}
-      />
+      {filtersOpen ? (
+        <SearchControls
+          compact={variant === 'assistant'}
+          entityCategories={entityCategories}
+          generatedAvailable={runtime.capabilities?.generated === true}
+        />
+      ) : null}
 
-      <div className={styles.capabilityBar}>
+      <div className={styles.capabilityBar} data-hidden={variant === 'assistant' ? 'true' : 'false'}>
         <span data-state={runtime.capabilities?.deWriter ? 'on' : 'off'}>DE</span>
         <span data-state={runtime.capabilities?.enWriter ? 'on' : 'off'}>EN</span>
         <span data-state={runtime.capabilities?.phrases ? 'on' : 'off'}>Phrase / Mosaic</span>
@@ -428,14 +442,16 @@ export function SearchExperience({
         setDensity={preferences.setDensity}
         hideUsed={preferences.hideUsed}
         setHideUsed={preferences.setHideUsed}
-        autoScroll={autoScroll}
-        setAutoScroll={setAutoScroll}
+        filtersOpen={filtersOpen}
+        setFiltersOpen={setFiltersOpen}
+        onOpenSaved={() => setSavedOpen(true)}
+        savedCount={preferences.saved.length}
         resultCount={processed.rows.length}
         hiddenUsed={processed.hiddenUsed}
         timing={timing}
       />
 
-      <div className={styles.searchBody}>
+      <div className={styles.searchBody} data-detail={selectedRow ? 'true' : 'false'}>
         <div className={styles.resultsPane}>
           {writer.isPending || (writer.isFetching && !writer.data) ? (
             <div className={styles.searchState}>
@@ -474,7 +490,6 @@ export function SearchExperience({
               isSaved={preferences.isSaved}
               visibleCount={visibleCount}
               setVisibleCount={setVisibleCount}
-              autoScroll={autoScroll}
               onInsert={editor?.selection?.proof ? insertRow : undefined}
             />
           )}
@@ -492,14 +507,34 @@ export function SearchExperience({
           </p>
         </div>
 
-        <ResultDetail
-          row={selectedRow}
-          runtimeDb={runtime.runtimeDb}
-          onClose={() => setSelectedResultId('')}
-          onToggleSaved={toggleSaved}
-          saved={selectedRow ? preferences.isSaved(selectedRow.word) : false}
-        />
+        {selectedRow ? (
+          <ResultDetail
+            row={selectedRow}
+            runtimeDb={runtime.runtimeDb}
+            onClose={() => setSelectedResultId('')}
+            onToggleSaved={toggleSaved}
+            saved={preferences.isSaved(selectedRow.word)}
+          />
+        ) : null}
       </div>
+
+      <Dialog.Root open={savedOpen} onOpenChange={setSavedOpen}>
+        <Dialog.Portal>
+          <Dialog.Backdrop className={styles.savedDialogBackdrop} />
+          <Dialog.Viewport className={styles.savedDialogViewport}>
+            <Dialog.Popup className={styles.savedDialog}>
+              <div className={styles.savedDialogHead}>
+                <div>
+                  <p>SAVED</p>
+                  <h2>{language === 'de' ? 'Merkliste' : 'Saved'}</h2>
+                </div>
+                <Dialog.Close aria-label={language === 'de' ? 'Schließen' : 'Close'}>×</Dialog.Close>
+              </div>
+              <SavedWorkspace embedded onClose={() => setSavedOpen(false)} />
+            </Dialog.Popup>
+          </Dialog.Viewport>
+        </Dialog.Portal>
+      </Dialog.Root>
     </section>
   );
 }
