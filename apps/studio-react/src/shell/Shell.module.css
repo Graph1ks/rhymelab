@@ -1,5 +1,7 @@
 .appShell {
-  --rl-reading-width: min(82%, 1440px);
+  --rl-reading-max-width: 1440px;
+  --rl-shell-max-width: 1680px;
+  --rl-reading-width: min(82%, var(--rl-reading-max-width));
   width: 100%;
   height: var(--visual-viewport-height, 100dvh);
   min-height: 0;
@@ -2006,7 +2008,8 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 18px;
-  padding: 0 18px;
+  padding-block: 0;
+  padding-inline: max(18px, calc((100% - var(--rl-shell-max-width)) / 2));
   border-bottom: 1px solid color-mix(in srgb, var(--rl-line) 72%, transparent);
   background:
     linear-gradient(
@@ -2133,6 +2136,16 @@
 .settingsWorkspace {
   display: grid;
   gap: 18px;
+}
+
+/* Settings is a focused workspace, not an ultrawide dashboard. Keep the outer
+   page/background full-width while the actual settings surface stops at the
+   same 1440px content ceiling used by focused writing/search layouts. */
+@media (min-width: 801px) {
+  .contentViewport[data-surface="settings"] .surfacePage {
+    width: min(100%, var(--rl-reading-max-width));
+    margin-inline: auto;
+  }
 }
 
 .settingsWorkspace[data-compact="true"] {
