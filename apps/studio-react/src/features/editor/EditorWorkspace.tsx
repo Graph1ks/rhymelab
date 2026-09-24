@@ -54,6 +54,7 @@ interface DragState {
   pointerId: number;
   startX: number;
   startY: number;
+  pressedAt: number;
   x: number;
   y: number;
   active: boolean;
@@ -287,6 +288,7 @@ export function EditorWorkspace() {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
+      pressedAt: performance.now(),
       x: event.clientX,
       y: event.clientY,
       active: false,
@@ -308,9 +310,14 @@ export function EditorWorkspace() {
     if (!drag || drag.pointerId !== event.pointerId) return;
     drag.x = event.clientX;
     drag.y = event.clientY;
-    if (!drag.active && Math.hypot(drag.x - drag.startX, drag.y - drag.startY) > 18) {
-      clearDrag();
-      return;
+    const distance = Math.hypot(drag.x - drag.startX, drag.y - drag.startY);
+    if (!drag.active && distance > 7 && performance.now() - drag.pressedAt >= 80) {
+      if (drag.timer) clearTimeout(drag.timer);
+      drag.timer = null;
+      drag.active = true;
+      setDragVisual({ ...drag });
+      if (dragFrameRef.current) cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = requestAnimationFrame(runDragAutoScroll);
     }
     if (drag.active) {
       event.preventDefault();
