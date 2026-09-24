@@ -21,11 +21,15 @@ do not delete old Studio, and do not reinterpret the port as permission to simpl
 editor, Search, Library, Analysis, Perform, mobile, persistence, recovery or runtime
 database behavior.
 
-R0 and R1 are complete. R1 is documented in
+R0, R1 and R2 are complete. R1 is documented in
 `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md` and provides strict typed bridges over 18
-existing domain/browser modules. The bridge tests assert direct function identity
-plus representative semantic parity. The next implementation action is **R2:
-shell/design system**, not another domain rewrite.
+existing domain/browser modules. R2 is documented in
+`docs/REACT_STUDIO_R2_SHELL.md` and establishes the React shell/design-system
+layer without taking ownership of feature semantics.
+
+The next implementation action is **R3: Search / Writer**. Reuse the existing
+R1 SearchState, pronunciation, Writer, detail and capability bridges. Do not invent
+a parallel search state, ranking path, fake results or alternate runtime behavior.
 
 ---
 
