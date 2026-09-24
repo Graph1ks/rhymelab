@@ -32,6 +32,8 @@ Functional Round-2 checkpoint: `9812a674669c`.
 
 ## Studio editor
 
+- [x] Add distraction-free Focus mode for Write with `Ctrl/Cmd + Shift + F`; `Escape` exits.
+- [x] Focus mode removes shell, Studio mode chrome, assistant search, editor controls and gutters so only the lyric canvas remains.
 - [x] Remove Bar Navigator / Jump & structure.
 - [x] Keep Revision History.
 - [x] Direct Bar-number drag remains the reorder affordance.
@@ -113,6 +115,7 @@ research rather than rendering only a cloud of matching tokens.
 
 ## Perform / booth workflow
 
+- [x] Perform supports the same Focus shortcut, reducing the surface to booth context + essential transport.
 - [x] Perform owns the full Studio canvas.
 - [x] Booth/rehearsal view remains primary over the cue-grid editor.
 - [x] Previous/current/next Bar context.
@@ -142,9 +145,31 @@ owned by the Topbar and it does not expose engineering acceptance tooling.
 - [x] Derived line/nav/tint/onAccent colors remain automatic.
 - [x] Live mini-app preview shows the palette in hierarchy rather than isolated swatches.
 - [x] Contrast report shows text/background, text/surface and accent-text ratios.
-- [x] Random styles are generated in OKLCH with mode-aware lightness/chroma relationships and sRGB gamut mapping.
+- [x] Style creation is reduced to **+LIGHT / +DARK / +WILD** plus one **Surprise Me** action.
+- [x] Wild styles use the same perceptual color-generation math with deliberately higher chroma while retaining contrast gates.
+- [x] User-facing style UI does not expose color-space implementation jargon.
+- [x] Built-in Light/Dark remain immutable and can be restored with explicit reset actions; resetting a default never creates a custom copy.
+- [x] Random styles use mode-aware lightness/chroma relationships and sRGB gamut mapping.
 - [x] Existing Studio preference storage remains the persistence authority; no second settings store is introduced.
 - [ ] Owner visual acceptance and random-style quality acceptance.
+
+
+## Product brand
+
+- [x] User-facing React Studio brand is **RHYME BUREAU**.
+- [x] Primary brand line is **Phonetic License to Slay.**
+- [x] Logo navigation opens the branded intro/splash surface.
+- [x] React document title, shell, Search accessibility label, font copy and Style preview use the new product brand.
+- [x] Technical compatibility identifiers (repository/package names, storage keys, DB schemas, events and `data-rhymelab-*` contracts) remain unchanged.
+
+## Unknown-query pronunciation
+
+- [x] Client resolver policy advanced to `client-total-query-pronunciation-v4`.
+- [x] Long OOV compounds probe the source-backed **right edge first**, then decompose the prefix where possible.
+- [x] Mixed source/generated compounds keep the known final lexical component as the rhyme anchor.
+- [x] Long fully generated OOV tokens use a bounded right-edge stress anchor instead of making the entire token one rhyme domain.
+- [x] `GROWTHHORMONPRODUCER` is covered in both DE and EN regression tests.
+- [x] Resolver-policy bump invalidates stale generated-pronunciation cache entries.
 
 ## Automated checkpoint
 
