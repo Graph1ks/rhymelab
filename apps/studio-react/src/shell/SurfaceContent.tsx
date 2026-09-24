@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react';
 
+import { LibraryWorkspace } from '../features/library/LibraryWorkspace';
 import { SavedWorkspace } from '../features/search/SavedWorkspace';
 import { SearchExperience } from '../features/search/SearchExperience';
 import { R1_BRIDGE_RUNTIME_EXPORT_COUNT } from '../legacy/runtime-smoke';
@@ -146,41 +147,12 @@ export function SurfaceContent() {
   return (
     <motion.div
       key="library"
-      className={styles.surfacePage}
-      initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+      className={styles.searchSurface}
+      initial={reduceMotion ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18 }}
+      transition={{ duration: 0.16 }}
     >
-      <header className={styles.surfaceHeader}>
-        <div>
-          <p className={styles.kicker}>LOCAL LIBRARY</p>
-          <h1>{language === 'de' ? 'Meine Texte.' : 'My texts.'}</h1>
-          <p>
-            {language === 'de'
-              ? 'DocumentStore, Ordner, Trash und Recovery bleiben bis R4 unverändert im bestehenden Studio.'
-              : 'DocumentStore, folders, trash and recovery remain unchanged in the existing Studio until R4.'}
-          </p>
-        </div>
-        <span className={styles.phaseBadge}>R4 LIBRARY</span>
-      </header>
-      <div className={styles.foundationGrid}>
-        <FoundationCard
-          label="R2"
-          title={language === 'de' ? 'Shell & Navigation bereit' : 'Shell & navigation ready'}
-          copy={language === 'de'
-            ? 'Responsive Desktop-, Rail- und Mobile-Geometrie ist vorhanden.'
-            : 'Responsive desktop, rail and mobile geometry is in place.'}
-          icon="grid"
-        />
-        <FoundationCard
-          label="GOLDEN MASTER"
-          title={language === 'de' ? 'DocumentStore bleibt autoritativ' : 'DocumentStore stays authoritative'}
-          copy={language === 'de'
-            ? 'R4 portiert die Library auf denselben bestehenden IndexedDB-Store.'
-            : 'R4 ports the Library onto the same existing IndexedDB store.'}
-          icon="spark"
-        />
-      </div>
+      <LibraryWorkspace />
     </motion.div>
   );
 }
