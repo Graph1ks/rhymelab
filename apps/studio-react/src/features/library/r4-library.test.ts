@@ -19,6 +19,7 @@ import {
   createLibraryFolder,
   createLibrarySong,
   deleteLibraryFolder,
+  duplicateLibraryFolder,
   duplicateLibrarySong,
   folderChildren,
   folderContains,
@@ -176,6 +177,19 @@ describe('R4 Library behavior', () => {
     expect(row?.revisions).toEqual([]);
     expect(row?.deleted).toBe(false);
     expect(row?.deletedAt).toBeNull();
+  });
+
+  it('copies folder subtrees with nested documents and resolves same-parent name collisions', () => {
+    const copied = duplicateLibraryFolder(state(), 'Songs', '', 1075, 'Kopie');
+    expect(copied.changed).toBe(true);
+    expect(copied.folder).toBe('Songs – Kopie');
+    expect(copied.state.folders).toContain('Songs – Kopie/Hooks');
+    expect(copied.state.folders).toContain('Songs – Kopie/Verses');
+
+    const copies = copied.state.songs.filter((song) => song.folder?.startsWith('Songs – Kopie'));
+    expect(copies).toHaveLength(2);
+    expect(copies.map((song) => song.title).sort()).toEqual(['Hook One', 'Verse Idea']);
+    expect(copies.every((song) => song.revisions?.length === 0)).toBe(true);
   });
 
   it('moves folder subtrees without losing nested document paths', () => {
