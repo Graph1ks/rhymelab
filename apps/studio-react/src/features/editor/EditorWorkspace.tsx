@@ -51,6 +51,7 @@ type DockTab = 'history';
 interface DragState {
   sourceIndex: number;
   targetIndex: number;
+  boundaryIndex: number;
   pointerId: number;
   startX: number;
   startY: number;
@@ -228,24 +229,34 @@ export function EditorWorkspace() {
 
   const rowHeight = (index: number) => lineHeights[index] ?? Math.max(34, Math.ceil(fontSize * 1.62));
   const dropPreviewTop = dragVisual?.active
-    ? 18 + Array.from({ length: dragVisual.targetIndex }, (_, index) => rowHeight(index))
+    ? 18 + Array.from({ length: dragVisual.boundaryIndex }, (_, index) => rowHeight(index))
       .reduce((sum, value) => sum + value, 0)
     : 0;
 
-  const calculateDropTarget = (clientY: number) => {
+  const calculateDropPlacement = (clientY: number, sourceIndex: number) => {
     const root = editorScrollRef.current;
-    if (!root) return dragRef.current?.sourceIndex ?? 0;
+    if (!root) return { targetIndex: sourceIndex, boundaryIndex: sourceIndex };
     const rows = Array.from(root.querySelectorAll<HTMLElement>('[data-editor-row]'));
-    if (!rows.length) return 0;
-    let target = rows.length - 1;
+    if (!rows.length) return { targetIndex: sourceIndex, boundaryIndex: sourceIndex };
+
+    let boundaryIndex = rows.length;
     for (let index = 0; index < rows.length; index += 1) {
       const rect = rows[index]!.getBoundingClientRect();
       if (clientY < rect.top + rect.height / 2) {
-        target = Number(rows[index]!.dataset.editorRow ?? index);
+        boundaryIndex = Number(rows[index]!.dataset.editorRow ?? index);
         break;
       }
     }
-    return Math.max(0, Math.min(lines.length - 1, target));
+
+    boundaryIndex = Math.max(0, Math.min(lines.length, boundaryIndex));
+    const targetIndex = Math.max(
+      0,
+      Math.min(
+        lines.length - 1,
+        boundaryIndex > sourceIndex ? boundaryIndex - 1 : boundaryIndex,
+      ),
+    );
+    return { targetIndex, boundaryIndex };
   };
 
   const runDragAutoScroll = () => {
@@ -265,7 +276,9 @@ export function EditorWorkspace() {
     }
     if (speed) {
       scroller.scrollTop += speed;
-      drag.targetIndex = calculateDropTarget(drag.y);
+      const placement = calculateDropPlacement(drag.y, drag.sourceIndex);
+      drag.targetIndex = placement.targetIndex;
+      drag.boundaryIndex = placement.boundaryIndex;
       setDragVisual({ ...drag });
     }
     dragFrameRef.current = requestAnimationFrame(runDragAutoScroll);
@@ -285,6 +298,7 @@ export function EditorWorkspace() {
     const drag: DragState = {
       sourceIndex,
       targetIndex: sourceIndex,
+      boundaryIndex: sourceIndex,
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
@@ -321,7 +335,9 @@ export function EditorWorkspace() {
     }
     if (drag.active) {
       event.preventDefault();
-      drag.targetIndex = calculateDropTarget(event.clientY);
+      const placement = calculateDropPlacement(event.clientY, drag.sourceIndex);
+      drag.targetIndex = placement.targetIndex;
+      drag.boundaryIndex = placement.boundaryIndex;
       setDragVisual({ ...drag });
     }
   };
@@ -484,7 +500,6 @@ export function EditorWorkspace() {
                 className={styles.dropPreview}
                 style={{
                   top: dropPreviewTop,
-                  height: rowHeight(dragVisual.targetIndex),
                 }}
                 aria-hidden="true"
               >
@@ -496,13 +511,11 @@ export function EditorWorkspace() {
               {lines.map((line, index) => {
                 const kind = editorLineKind(line);
                 const number = kind === 'bar' ? trackedEditorBarNumber(asEditorSong(song), index) : null;
-                const isTarget = dragVisual?.active && dragVisual.targetIndex === index;
                 return (
                   <div
                     key={song.barIds?.[index] ?? `line-${index}`}
                     className={styles.gutterRow}
                     data-editor-row={index}
-                    data-target={isTarget ? 'true' : 'false'}
                     data-kind={kind}
                     style={{ height: rowHeight(index) }}
                   >
