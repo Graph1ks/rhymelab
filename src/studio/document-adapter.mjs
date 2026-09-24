@@ -29,7 +29,7 @@ export function createStudioState(){
     active:'demo',
     folders:['Nachtschicht','Entwürfe'],
     saved:[],
-    theme:'dark',
+    theme:'light',
     themeSlots:{light:null,dark:null},
     customThemes:[],
     fontSize:21,
