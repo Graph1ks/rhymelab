@@ -2484,12 +2484,12 @@ function resultBadgeMarkup(row){
     :'';
 }
 function writerTimingText(){
-  if(writerStatus==='loading')return 'Runtime …';
-  if(writerStatus!=='ready'||!writerRuntimeTiming)return '';
+  const parts=['DB '+activeRuntimeDbLabel()];
+  if(writerStatus==='loading'){parts.push('Runtime …');return parts.join(' · ')}
+  if(writerStatus!=='ready'||!writerRuntimeTiming)return parts.join(' · ');
   const current=writerRuntimeTiming.searchMs==null?null:Number(writerRuntimeTiming.searchMs);
   const average=writerRuntimeTiming.averageLast100Ms==null?null:Number(writerRuntimeTiming.averageLast100Ms);
   const count=Number(writerRuntimeTiming.sampleCount||0);
-  const parts=[];
   if(current!=null&&Number.isFinite(current))parts.push(current.toFixed(current<10?1:0)+' ms');
   if(average!=null&&Number.isFinite(average))parts.push('Ø100 '+average.toFixed(average<10?1:0)+' ms');
   if(count)parts.push('n='+count);
@@ -2711,7 +2711,8 @@ function activeRuntimeDbLabel(){
   if(internalDbLabEnabled&&internalDbLabActive)return String(internalDbLabActive).toUpperCase();
   const runtime=String(studioCapabilities?.runtime||'');
   const match=runtime.match(/serving-v1\/([^/\s]+)/u);
-  return String(match?.[1]||'DEFAULT').toUpperCase();
+  const fallback=internalDbLabPayload?.defaultDatabase||internalDbLabActive||'…';
+  return String(match?.[1]||fallback).toUpperCase();
 }
 function updateSearchPageChrome(){
   const badge=$('#activeDbBadge');
@@ -3249,7 +3250,10 @@ async function refreshInternalDbLabPayload({silent=false}={}){
   internalDbLabPayload=payload;
   const map=internalDbSummaryMap(payload);
   if(!['lite','standard','full'].includes(internalDbLabActive)||!map[internalDbLabActive]?.available){
-    internalDbLabActive=['standard','full','lite'].find((id)=>map[id]?.available)||'standard';
+    internalDbLabActive=[
+      String(payload.defaultDatabase||''),
+      'standard','full','lite',
+    ].find((id,index,list)=>id&&list.indexOf(id)===index&&map[id]?.available)||'lite';
     saveInternalDbLabSelection(internalDbLabActive);
   }
   studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
@@ -3314,7 +3318,10 @@ async function initializeInternalDbLab(){
     internalDbLabPayload=payload;
     const map=internalDbSummaryMap(payload);
     if(!['lite','standard','full'].includes(internalDbLabActive)||!map[internalDbLabActive]?.available){
-      internalDbLabActive=['standard','full','lite'].find((id)=>map[id]?.available)||'standard';
+      internalDbLabActive=[
+      String(payload.defaultDatabase||''),
+      'standard','full','lite',
+    ].find((id,index,list)=>id&&list.indexOf(id)===index&&map[id]?.available)||'lite';
     }
     saveInternalDbLabSelection(internalDbLabActive);
     studioCapabilities=studioCapabilitiesFromInternalDb(map[internalDbLabActive],studioCapabilities);
@@ -3358,7 +3365,7 @@ function updateCapabilitySurface(){
     status.textContent=studioCapabilities.status==='loading'
       ?'Runtime prüfen …'
       :ready
-        ?(studioCapabilities.servingV1?'Serving v1 · bereit':'Writer · bereit')
+        ?(studioCapabilities.servingV1?'DB '+activeRuntimeDbLabel()+' · bereit':'Writer · bereit')
         :'Runtime eingeschränkt';
     status.title=studioCapabilities.status==='error'
       ?String(studioCapabilities.error||'Backend nicht erreichbar')
