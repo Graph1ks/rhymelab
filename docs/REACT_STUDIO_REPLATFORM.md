@@ -239,7 +239,7 @@ The existing Studio V2 source is not deleted during migration. Until the owner a
 
 ## Current implementation checkpoint
 
-R0 through R6 are complete on `refactor/react-studio-replatform`.
+R0 through R7 source parity are complete on `refactor/react-studio-replatform`.
 
 ```text
 R0  scaffold / freeze / parity inventory        VERIFIED
@@ -249,7 +249,9 @@ R3  Search / Writer                             AUTOMATED VERIFIED
 R4  Library / persistence / recovery            AUTOMATED VERIFIED
 R5  editor                                      AUTOMATED VERIFIED
 R6  Analysis + Perform                          AUTOMATED VERIFIED
-R7  automated + real-device parity              NEXT
+R7  source parity + acceptance infrastructure   AUTOMATED SOURCE COMPLETE
+    real-browser / physical-device evidence     ACTIVE
+R8  reversible cutover                          BLOCKED
 ```
 
 R1 wraps 18 existing browser/domain modules behind strict TypeScript contracts
@@ -289,6 +291,12 @@ and R4 persistence path; Web Audio browser acceptance remains deferred:
 
 `docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md`
 
+R7 closes all remaining source rows, adds fail-closed startup/diagnostics/device
+acceptance infrastructure, single-drawer scroll ownership and an opt-in reversible
+React preview route without changing the normal root route:
+
+`docs/REACT_STUDIO_R7_PARITY.md`
+
 Focused verification:
 
 ```bash
@@ -298,11 +306,12 @@ npm run studio:react:r3
 npm run studio:react:r4
 npm run studio:react:r5
 npm run studio:react:r6
+npm run studio:react:r7
 ```
 
 The application remains intentionally isolated from the shipping root route. Studio
 V2 is still the shipping behavioral golden master and rollback implementation.
-R6 rows remain `ported` where browser/device interaction evidence is still
-required. The current matrix is 82 `ported`, 5 `in_progress`, 6 `pending` and
-0 `verified`; the 93/93 `verified` cutover rule is unchanged. R7 now owns
-automated/browser/real-device parity evidence and the remaining system/cutover rows.
+R7 source parity is now 93 `ported`, 0 `in_progress`, 0 `pending` and
+0 `verified`. This is not cutover readiness. Real-browser interaction evidence and
+the seven physical device gates remain active R7 work. R8 stays blocked until every
+mandatory row is `verified` and `npm run studio:react:r7:cutover` passes.
