@@ -297,8 +297,8 @@ export function SystemFontPicker({
               <footer>
                 <span>
                   {language === 'de'
-                    ? 'Oranienbaum ist der RhymeLab-Default. Auswahl wird lokal mit deinem Workspace gespeichert.'
-                    : 'Oranienbaum is the RhymeLab default. Your choice is stored locally with the workspace.'}
+                    ? 'Oranienbaum ist der Rhyme-Bureau-Default. Auswahl wird lokal mit deinem Workspace gespeichert.'
+                    : 'Oranienbaum is the Rhyme Bureau default. Your choice is stored locally with the workspace.'}
                 </span>
               </footer>
             </Dialog.Popup>
