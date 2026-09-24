@@ -4441,7 +4441,41 @@ function showSettings(){
 function showHistory(){revision();openEditorDock('history')}
 function openEditorDock(tab){if(page!=='studio')navigate('studio');document.body.classList.remove('mobile-results');document.body.classList.add('editor-dock-open');setMobileActive('studio');dockTab=tab;$('#editorDock').dataset.tab=tab;$('#editorDock').classList.remove('hidden');renderDock();animateSurface($('#editorDock'))}
 function closeEditorDock(){if(themePreviewing){themePreviewing=false;applyThemeChoice(state.theme,{persistState:false})}document.body.classList.remove('editor-dock-open');$('#editorDock').classList.add('hidden');delete $('#editorDock').dataset.tab;dockTab='';}
-function renderDock(){queryAll('#dockTabs [data-dock]').forEach(b=>{b.classList.toggle('active',b.dataset.dock===dockTab);b.setAttribute('aria-pressed',b.dataset.dock===dockTab)});const body=$('#editorDockBody');if(dockTab==='navigator'){renderBarNavigatorDock(body)}else if(dockTab==='bar'){renderBarInspectorDock(body)}else if(dockTab==='saved'){body.innerHTML=`<div class="saved-chips">${state.saved.map(r=>`<div class="saved-chip"><button data-insert="${esc(r.word)}" title="Am markierten Wort einsetzen">${esc(r.word)} ＋</button><button data-save="${esc(r.word)}" aria-label="${esc(r.word)} entmerken">×</button></div>`).join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p>'}</div>`}else if(dockTab==='history'){body.innerHTML=(song().revisions||[]).slice().reverse().map((r,i)=>`<div class="revision"><div class="grow"><b>${new Date(r.at).toLocaleTimeString('de-DE')}</b><p>${esc(r.text.slice(0,76))}…</p></div><button class="outline" data-restore-version="${song().revisions.length-1-i}">Wiederherstellen</button></div>`).join('')||'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>'}else{body.innerHTML=`<div class="studio-note"><b>RhymeLab Studio</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details, Versionen und Werkzeuge bleiben in Reichweite.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Trennlinie ziehen oder per Pfeiltaste verstellen · Anker fixieren · Wortdetails anklicken · Merkliste und Versionen direkt öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + B</kbd> Bars · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln.</p><p style="margin-top:9px"><b>Lokal zuerst</b> · Texte, Präferenzen, Backups und Writer-Daten bleiben lokal in deinem Workspace.</p></div>`}}
+function renderHistoryDock(body){
+  const revisions=song().revisions||[];
+  body.innerHTML=revisions.length
+    ?'<div class="revision-list">'+revisions.slice().reverse().map((entry,reverseIndex)=>{
+        const index=revisions.length-1-reverseIndex;
+        const preview=String(entry.text||entry.snapshot?.lines?.join('\n')||'').split('\n').filter(Boolean).slice(0,2).join(' · ');
+        const when=new Intl.DateTimeFormat(state.uiLanguage==='en'?'en-GB':'de-DE',{
+          day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',
+        }).format(Number(entry.at)||Date.now());
+        return '<article class="revision"><div class="grow"><b>'+esc(when)+'</b><p>'+esc(preview||'Leere Fassung')+'</p></div><button class="outline" data-compare-version="'+index+'">Vergleichen</button></article>';
+      }).join('')+'</div>'
+    :'<p class="small">Neue Fassungen entstehen automatisch beim Schreiben.</p>';
+  queryAll('#editorDockBody [data-compare-version]').forEach((button)=>{
+    button.onclick=()=>openRevisionComparison(button.dataset.compareVersion);
+  });
+}
+function renderDock(){
+  queryAll('#dockTabs [data-dock]').forEach((button)=>{
+    const active=button.dataset.dock===dockTab;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',String(active));
+  });
+  const body=$('#editorDockBody');
+  if(dockTab==='navigator'){
+    renderBarNavigatorDock(body);
+  }else if(dockTab==='bar'){
+    renderBarInspectorDock(body);
+  }else if(dockTab==='saved'){
+    body.innerHTML='<div class="saved-chips">'+state.saved.map((row)=>'<div class="saved-chip"><button data-insert="'+esc(row.word)+'" title="Am markierten Wort einsetzen">'+esc(row.word)+' ＋</button><button data-save="'+esc(row.word)+'" aria-label="'+esc(row.word)+' entmerken">×</button></div>').join('')||'<p class="small">Gute Wörter sammeln: Lesezeichen am Treffer anklicken oder Leertaste in der Liste.</p></div>';
+  }else if(dockTab==='history'){
+    renderHistoryDock(body);
+  }else{
+    body.innerHTML='<div class="studio-note"><b>RhymeLab Studio</b><p>Schreiben und Recherchieren bleiben gleichzeitig sichtbar. Filter wirken sofort; Details, Versionen und Werkzeuge bleiben in Reichweite.</p><p style="margin-top:9px"><b>Direkte Bedienung</b> · Bar-Nummer halten und ziehen · Anker bei Bedarf fixieren · Wortdetails anklicken · Merkliste und Versionen direkt öffnen.</p><p style="margin-top:9px"><kbd>Alt + R</kbd> Suche · <kbd>Alt + E</kbd> Editor · <kbd>Alt + B</kbd> Bars · <kbd>Alt + 3</kbd> Perform · <kbd>Alt + F</kbd> Fokus · <kbd>Alt + L</kbd> Dichte wechseln.</p><p style="margin-top:9px"><b>Lokal zuerst</b> · Texte, Präferenzen, Backups und Writer-Daten bleiben lokal in deinem Workspace.</p></div>';
+  }
+}
 function setFontSize(n){state.fontSize=clamp(n,16,28);document.documentElement.style.setProperty('--editor',state.fontSize+'px');$('#fontSizeLive').textContent=state.fontSize;resizeArea($('#lyricsEditor'));persist()}
 function applyEditorFont(){const value=({sans:'var(--font)',serif:'Georgia, serif',mono:'ui-monospace, monospace'})[state.editorFont||'sans'];document.documentElement.style.setProperty('--lyric-font',value);resizeArea($('#lyricsEditor'))}
 function humanizeDetail(value){
