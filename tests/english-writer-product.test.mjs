@@ -370,6 +370,45 @@ test('generated compound queries recover the source-backed producer rhyme neighb
 });
 
 
+test('unified Writer routes GROWTHHORMONPRODUCER through the producer rhyme neighborhood',()=>{
+  const db=fixtureEnglishDb();
+  try{
+    const result=searchUnifiedWriter(
+      {writerDb:{},englishDb:db},
+      'GROWTHHORMONPRODUCER',
+      {
+        language:'en',
+        resultLanguage:'en',
+        scope:'words',
+        wordLimit:20,
+        queryPronunciations:{
+          en:{
+            ipa:'ˌgɹaʊθˌhɔɹmənpɹəˈdusɚ',
+            method:'client_mixed_reference_compound_right_edge',
+            sourceBacked:false,
+            components:['growthhormon','producer'],
+          },
+        },
+      },
+    );
+
+    assert.equal(result.status,'ok');
+    assert.equal(
+      result.channels.words.byLanguage.en.crossLanguageQuery.policy,
+      'source-backed-right-edge-component-v1',
+    );
+    assert.equal(
+      result.channels.words.byLanguage.en.crossLanguageQuery.rightEdgeComponent,
+      'producer',
+    );
+    assert.ok(result.results.some((row)=>row.normalized==='reducer'));
+    assert.ok(result.results.some((row)=>row.normalized==='seducer'));
+  }finally{
+    db.close();
+  }
+});
+
+
 test('unified Writer accepts browser-generated English IPA only as the query anchor',()=>{
   const db=fixtureEnglishDb();
   try{
