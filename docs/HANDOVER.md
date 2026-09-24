@@ -47,7 +47,7 @@ come from the existing performance session. Perform mutations enter the same R5
 undo/revision path before R4 persistence.
 
 The tested functional R6 checkpoint is
-`48600af0221c5d9429813e697b381af3a794383e`: 71/71 tests, strict TypeScript and
+`48600af0221c`: 71/71 tests, strict TypeScript and
 Vite build pass; React Replatform #152, Full CI #1335 and Studio V2 Gate #470 pass.
 The parity inventory is 82 ported / 5 in_progress / 6 pending / 0 verified.
 
