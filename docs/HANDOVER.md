@@ -1,3 +1,28 @@
+# CURRENT CONTINUATION — React Studio behavior-preserving replatform
+
+**Priority:** P0  
+**Feature development:** frozen  
+**Branch:** `refactor/react-studio-replatform`  
+**Read first:** `docs/REACT_STUDIO_REPLATFORM.md`  
+**Hard gate:** `docs/REACT_STUDIO_PARITY_GATE.md`
+
+The active engineering task is to port the current browser frontend to React +
+TypeScript + Vite + Base UI + Motion + TanStack Query + Zustand + TanStack Virtual
+without losing a single existing user-facing capability.
+
+The baseline is `main@fbda43a9e4dd915f3bd5c1fa53045cbe2055e919`.
+The initial machine-readable inventory contains 82 existing Studio parity IDs plus
+11 Workflow UX v3 behaviors. All 93 rows must be `verified` before React may become
+the default product route.
+
+The existing Studio V2 source must remain intact as behavioral golden master and
+rollback implementation throughout migration. Do not restart feature development,
+do not delete old Studio, and do not reinterpret the port as permission to simplify
+editor, Search, Library, Analysis, Perform, mobile, persistence, recovery or runtime
+database behavior.
+
+---
+
 # CURRENT CONTINUATION — Distribution DB Lab v2 benchmark evidence
 
 The immediate active continuation is the owner-side quality/speed comparison of the
