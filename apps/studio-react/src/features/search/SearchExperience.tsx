@@ -55,13 +55,43 @@ function formatCount(value: number): string {
 
 function RuntimeSelector({
   runtime,
+  compact = false,
 }: {
   runtime: ReturnType<typeof useRuntimeEnvironment>;
+  compact?: boolean;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const editions: RuntimeEdition[] = ['lite', 'standard', 'full'];
   const activeLabel = runtime.activeEdition?.toUpperCase()
     ?? String(runtime.capabilities?.runtime || 'Writer').replace(/^serving-v1\/?/u, '').toUpperCase();
+
+  if (compact && runtime.payload) {
+    return (
+      <label className={styles.runtimeSelect}>
+        <span>RUNTIME</span>
+        <select
+          value={runtime.selected ?? ''}
+          onChange={(event) => {
+            const value = event.target.value;
+            if (value === 'lite' || value === 'standard' || value === 'full') {
+              runtime.setRuntimeEdition(value);
+            }
+          }}
+          aria-label={language === 'de' ? 'Runtime wählen' : 'Choose runtime'}
+        >
+          {editions.map((edition) => {
+            const available = runtime.summaryMap[edition]?.available === true;
+            return (
+              <option key={edition} value={edition} disabled={!available}>
+                {edition === 'lite' ? 'Lite' : edition === 'standard' ? 'Standard' : 'Full'}
+                {available ? '' : (language === 'de' ? ' · nicht verfügbar' : ' · unavailable')}
+              </option>
+            );
+          })}
+        </select>
+      </label>
+    );
+  }
 
   return (
     <div className={styles.runtimeStrip}>
@@ -210,8 +240,10 @@ function ResultToolbar({
 
 export function SearchExperience({
   variant = 'page',
+  enabled = true,
 }: {
   variant?: 'page' | 'assistant';
+  enabled?: boolean;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const reduceMotion = useReducedMotion();
@@ -219,7 +251,12 @@ export function SearchExperience({
   const { state, patch, setSelectedResultId } = useSharedSearchState();
   const preferences = useSearchPreferences();
   const runtime = useRuntimeEnvironment();
-  const writer = useWriterSearch(state, runtime.capabilities, runtime.runtimeDb);
+  const writer = useWriterSearch(
+    state,
+    runtime.capabilities,
+    runtime.runtimeDb,
+    { enabled, paceMs: variant === 'assistant' ? 220 : 160 },
+  );
   const trackedText = useActiveTrackedText();
   const [draftQuery, setDraftQuery] = useState(state.anchor);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -255,7 +292,7 @@ export function SearchExperience({
   }, [filtersOpen]);
 
   useEffect(() => {
-    if (variant !== 'assistant' || !editor?.followSelection) return;
+    if (!enabled || variant !== 'assistant' || !editor?.followSelection) return;
     const anchor = editor.selection?.anchor?.trim();
     if (!anchor || anchor === state.anchor) return;
     patch({ anchor, selectedResultId: '' });
@@ -265,6 +302,7 @@ export function SearchExperience({
     patch,
     state.anchor,
     variant,
+    enabled,
   ]);
 
   useEffect(() => {
@@ -356,6 +394,7 @@ export function SearchExperience({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (!enabled) return;
     const next = draftQuery.trim();
     if (!next) return;
     if (next === state.anchor) {
@@ -383,6 +422,7 @@ export function SearchExperience({
       className={styles.searchExperience}
       data-variant={variant}
       data-rhymelab-surface="search"
+      data-enabled={enabled ? 'true' : 'false'}
       aria-label={language === 'de' ? 'Rhyme Bureau Reimsuche' : 'Rhyme Bureau rhyme search'}
     >
       <header className={styles.searchHeader}>
@@ -399,7 +439,7 @@ export function SearchExperience({
               : 'Words · Phrases / Mosaic · names'}
           </span>
         </div>
-        <RuntimeSelector runtime={runtime} />
+        <RuntimeSelector runtime={runtime} compact={variant === 'assistant'} />
       </header>
 
       <form className={styles.searchForm} onSubmit={submit}>
