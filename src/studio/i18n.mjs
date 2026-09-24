@@ -1,6 +1,6 @@
 import {
-  normalizeStudioUiLanguage,
-  translateStudioUiText,
+  normalizeStudioUiLanguage as normalizeUiLanguage,
+  translateStudioUiText as translateUiText,
 } from '../../packages/shared-core/src/i18n/i18n.mjs';
 
 export * from '../../packages/shared-core/src/i18n/i18n.mjs';
@@ -16,21 +16,6 @@ const SKIP_SELECTOR=[
   '.library-folder-label b','.library-folder-label em','.bar-navigator-copy',
 ].join(',');
 
-export function translateStudioUiText(source,language){
-  const lang=normalizeStudioUiLanguage(language);
-  const input=String(source??'');
-  if(lang==='de'||!input)return input;
-  const match=input.match(/^(\s*)([\s\S]*?)(\s*)$/u);
-  const prefix=match?.[1]||'',core=match?.[2]||input,suffix=match?.[3]||'';
-  if(!core.trim())return input;
-  const exact=EN[core];
-  if(exact!=null)return prefix+exact+suffix;
-  for(const [pattern,replacement] of PATTERNS){
-    if(pattern.test(core))return prefix+core.replace(pattern,replacement)+suffix;
-  }
-  return input;
-}
-
 function shouldSkip(element){
   if(!element?.closest)return false;
   return Boolean(element.closest(SKIP_SELECTOR));
@@ -41,7 +26,7 @@ export function createStudioDomLocalizer({
   documentElement=globalThis.document?.documentElement,
   initialLanguage='de',
 }={}){
-  let language=normalizeStudioUiLanguage(initialLanguage);
+  let language=normalizeUiLanguage(initialLanguage);
   const textSources=new WeakMap(),textRendered=new WeakMap();
   const attributeSources=new WeakMap(),attributeRendered=new WeakMap();
   const attrs=['title','aria-label','placeholder'];
@@ -61,7 +46,7 @@ export function createStudioDomLocalizer({
     const current=node.nodeValue||'',last=textRendered.get(node);
     if(!textSources.has(node)||last!==current)textSources.set(node,current);
     const source=textSources.get(node);
-    const target=translateStudioUiText(source,language);
+    const target=translateUiText(source,language);
     textRendered.set(node,target);
     if(current!==target)node.nodeValue=target;
   }
@@ -72,7 +57,7 @@ export function createStudioDomLocalizer({
       if(!element.hasAttribute?.(name))continue;
       const current=element.getAttribute(name)||'';
       const {source,rendered}=sourceForAttr(element,name,current);
-      const target=translateStudioUiText(source,language);
+      const target=translateUiText(source,language);
       rendered.set(name,target);
       if(current!==target)element.setAttribute(name,target);
     }
@@ -112,7 +97,7 @@ export function createStudioDomLocalizer({
   return {
     get language(){return language},
     setLanguage(value){
-      language=normalizeStudioUiLanguage(value);
+      language=normalizeUiLanguage(value);
       if(documentElement)documentElement.lang=language;
       localizeSubtree(root);
       return language;
