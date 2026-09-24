@@ -1,4 +1,29 @@
 export const STUDIO_UI_LANGUAGES=Object.freeze(['de','en']);
+const GERMAN_CLIENT_REGIONS=new Set(['DE','AT','CH']);
+
+export function clientLocaleUiLanguage(locales=undefined){
+  const values=Array.isArray(locales)
+    ?locales
+    :locales?[locales]:[];
+  const first=String(values[0]||'').trim();
+  if(!first)return'de';
+  try{
+    const locale=new Intl.Locale(first);
+    if(locale.language!=='de')return'en';
+    const region=String(locale.region||'').toUpperCase();
+    return !region||GERMAN_CLIENT_REGIONS.has(region)?'de':'en';
+  }catch{
+    const normalized=first.toLocaleLowerCase('en-US');
+    return normalized==='de'||/^de-(de|at|ch)(?:-|$)/u.test(normalized)?'de':'en';
+  }
+}
+
+export function defaultStudioUiLanguage(navigatorLike=globalThis.navigator){
+  const locales=Array.isArray(navigatorLike?.languages)&&navigatorLike.languages.length
+    ?navigatorLike.languages
+    :navigatorLike?.language?[navigatorLike.language]:[];
+  return locales.length?clientLocaleUiLanguage(locales):'de';
+}
 
 export function normalizeStudioUiLanguage(value){
   return value==='en'?'en':'de';
