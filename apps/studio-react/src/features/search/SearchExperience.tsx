@@ -429,6 +429,7 @@ export function SearchExperience({
           compact={variant === 'assistant'}
           entityCategories={entityCategories}
           generatedAvailable={runtime.capabilities?.generated === true}
+          onRequestClose={() => setFiltersOpen(false)}
         />
       ) : null}
 
@@ -497,9 +498,10 @@ export function SearchExperience({
               isSaved={preferences.isSaved}
               visibleCount={visibleCount}
               setVisibleCount={setVisibleCount}
-              onScrollActivity={variant === 'assistant' && state.selectedResultId
-                ? () => setSelectedResultId('')
-                : undefined}
+              onScrollActivity={() => {
+                if (filtersOpen) setFiltersOpen(false);
+                if (variant === 'assistant' && state.selectedResultId) setSelectedResultId('');
+              }}
               onInsert={editor?.selection?.proof ? insertRow : undefined}
             />
           )}
