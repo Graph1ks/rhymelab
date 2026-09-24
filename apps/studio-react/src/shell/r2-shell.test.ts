@@ -6,7 +6,9 @@ import * as legacyMobile from '../../../../src/studio/mobile-viewport.mjs';
 
 import {
   MOBILE_BREAKPOINT,
+  clientLocaleUiLanguage,
   commandShortcutText,
+  defaultStudioUiLanguage,
   mobileViewportMetrics,
   normalizeCommandQuery,
   normalizeStudioUiLanguage,
@@ -72,6 +74,24 @@ describe('R2 shell reuses accepted legacy interaction helpers', () => {
       isMobile: true,
       keyboardOpen: false,
     });
+  });
+});
+
+describe('R2 client-locale defaults', () => {
+  it('uses German for DE/AT/CH client locales and English elsewhere', () => {
+    expect(clientLocaleUiLanguage(['de-DE'])).toBe('de');
+    expect(clientLocaleUiLanguage(['de-AT'])).toBe('de');
+    expect(clientLocaleUiLanguage(['de-CH'])).toBe('de');
+    expect(clientLocaleUiLanguage(['de'])).toBe('de');
+    expect(clientLocaleUiLanguage(['en-DE'])).toBe('en');
+    expect(clientLocaleUiLanguage(['fr-CH'])).toBe('en');
+    expect(clientLocaleUiLanguage(['en-US'])).toBe('en');
+  });
+
+  it('uses the first client language and keeps a deterministic DE fallback without navigator data', () => {
+    expect(defaultStudioUiLanguage({ languages: ['en-GB', 'de-DE'] })).toBe('en');
+    expect(defaultStudioUiLanguage({ languages: ['de-AT', 'en-US'] })).toBe('de');
+    expect(defaultStudioUiLanguage({})).toBe('de');
   });
 });
 
