@@ -68,6 +68,8 @@ Personality belongs around the writing, never over it.
 
 ## Verification plan
 
+- Ultrawide width acceptance: topbar background stays full-bleed, but its controls stop at the shared 1680px shell ceiling; the Home presentation canvas is centered and capped at 1680px; Settings is centered and capped at the focused 1440px content ceiling. Search and inactive-assistant Studio retain their existing focused reading-width behavior.
+
 - Theme-default acceptance: the canonical startup style is Light. Existing profiles from the previous Dark-default behavior migrate to Light once; after that, an explicitly selected Dark or custom theme remains persistent across reloads.
 
 - Sound Explorer popout acceptance: opening uses the live Studio/editor/search context; inline sidebar yields its width; Studio animates into the same centered reading-width token as Search; 680/1080/1520px result thresholds produce 2/3/4 columns; runtime/filter/dialog portals stay inside the popout document; closing by Dock or window X restores the sidebar and left-anchored Studio.
