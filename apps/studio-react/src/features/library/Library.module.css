@@ -983,3 +983,59 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* UX correction: Library is a Studio workspace dialog, not another boxed site. */
+.library {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background:
+    radial-gradient(ellipse at 82% -10%, color-mix(in srgb, var(--rl-accent) 4%, transparent), transparent 34rem),
+    transparent;
+}
+
+.libraryHeader h1 {
+  font-size: clamp(1.9rem, 3vw, 3rem);
+}
+
+.libraryHeader > div:first-child > span,
+.searchField input,
+.sortTrigger,
+.primaryAction,
+.secondaryAction,
+.dangerAction {
+  font-size: 12px;
+}
+
+.folderPane,
+.contentPane,
+.songCard,
+.safetyPanel {
+  box-shadow: none;
+}
+
+.songCard {
+  min-height: 156px;
+  background: color-mix(in srgb, var(--rl-panel) 70%, transparent);
+}
+
+.songCard h2 {
+  font-size: 17px;
+}
+
+.songCard > p,
+.cardMeta,
+.cardActions button,
+.folderMain,
+.folderAll,
+.recoveryRow b,
+.recoveryRow small {
+  font-size: 11px;
+}
+
+@media (max-width: 800px) {
+  .library {
+    padding-top: 14px;
+  }
+}
