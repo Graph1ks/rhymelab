@@ -41,14 +41,14 @@ Personality belongs around the writing, never over it.
 | Topbar | Sharper monogram, stacked wordmark, restrained navigation indicators, same compact height | Home, Studio, Search, Commands, Settings, DE/EN, quick Light/Dark and Quickstyles |
 | Studio frame | Clear mode strip and readable utility actions; paper writing plane against a quiet desk; responsive spacing | Write/Analyze/Perform, Library, Focus, search pause and assistant collapse |
 | Editor | Editorial document title, calmer toolbar, precise gutter borders and footer | Native textarea, font/size preferences, measured wrapping, Bar IDs, drag/drop, selection proofs, undo/redo, revisions and autosave |
-| Search | Strong query typography, disciplined anchor treatment, readable result selection and relation badges | All filters/routes/scopes, runtime editions, compact/list, continuous loading, detail, saved results, safe insertion and request cancellation |
+| Search | Strong query typography, disciplined anchor treatment, readable result selection and relation badges; desktop page centered at 80% width with a 1680px cap | All filters/routes/scopes, runtime editions, compact/list, continuous loading, detail, saved results, safe insertion and request cancellation |
 | Library | File-cabinet character through typography, rules and active-document treatment | Directory navigation, context menus, keyboard actions, sorting, moves/copies, Trash and recovery |
 | Analysis | Consistent editorial header, flatter metric surfaces, readable panels | Canonical relations, group/type color separation, linked topology, language and relation controls |
 | Perform | Strong rehearsal text hierarchy and coherent transport/tool surfaces | Timing, cues, BPM/grid/feel/count-in/loop, review invalidation, Web Audio and Focus |
 | Settings | Cohesive style workbench and data-safety surfaces; replace visible migration badge with product copy | Color generation/edit/save/apply/delete, defaults/reset, contrast report, backup/import/recovery |
 | Intro | Editorial poster composition and static sound specimen; retain existing copy and navigation actions | All entry points, language variants, reduced motion |
-| Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; wrap controls rather than clip them; coarse-pointer targets | No sidebar return, no new nested page scroll, no hover-only action |
-| Page transitions | Destination-led Bureau routing plate below the persistent topbar: every surface names the destination prominently, then reveals it through one calm shared choreography with a quiet page-specific line/grid signature | Surface state, providers, scroll ownership, pointer input, dialogs/popovers and `prefers-reduced-motion`; no full-page content translation |
+| Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; on desktop dock Sound Explorer flush to the workspace top/right/bottom while the writing desk keeps its inset; wrap controls rather than clip them; coarse-pointer targets | No sidebar return, no new nested page scroll, no hover-only action |
+| Page transitions | Destination-led Bureau routing plate below the persistent topbar: every surface names the destination prominently, holds on a fully opaque high-contrast plate, then reveals it through one calm ~0.8s choreography with a quiet page-specific line/grid signature | Surface state, providers, scroll ownership, pointer input, dialogs/popovers and `prefers-reduced-motion`; no full-page content translation |
 
 ## No-capability-loss contract
 
