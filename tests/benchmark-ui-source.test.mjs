@@ -26,7 +26,7 @@ test('benchmark review UI is blind by default and keeps review state local', asy
   assert.match(app,/\/api\/benchmark\/state/);
   assert.match(app,/\/api\/benchmark\/review/);
   assert.match(server,/\/benchmark\/assets\/app\.js/);
-  assert.match(server,/isAllowedLocalWriteOrigin/);
+  assert.match(server,/isAllowedLocalMutationRequest/);
   assert.match(server,/Benchmark writes are localhost-only/);
   assert.match(server,/saveBenchmarkReview/);
   assert.match(server,/loadBenchmarkState\(\), 200, false/);
