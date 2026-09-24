@@ -40,7 +40,12 @@ tests, 4/4 reversible-preview tests and production build pass; React Replatform 
 Full CI #1365 and Studio V2 Gate #500 pass. The parity inventory is now **93 ported /
 0 in_progress / 0 pending / 0 verified**.
 
-The active continuation remains **R7 real-browser / physical-device acceptance**,
+The owner-requested UX correction pass is now implemented at `e7e93846fa00`.
+Read `docs/REACT_STUDIO_UX_CORRECTION.md` before changing the React shell/editor/
+Search/Analysis/Perform presentation. Automated evidence on this checkpoint is
+87/87 React tests plus React Replatform #237, Studio V2 Gate #555 and Full CI #1420.
+
+The active continuation remains **owner visual acceptance + R7 real-browser / physical-device acceptance**,
 not R8. Use the R7 Settings acceptance panel and
 `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` to capture the required IME, Web Audio,
 mobile navigation/swap, VisualViewport keyboard, touch and no-hover evidence.
