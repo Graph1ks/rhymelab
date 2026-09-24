@@ -35,6 +35,7 @@ import {
   Select,
   Tooltip,
 } from '../design-system/primitives';
+import { createStudioState } from '../legacy/documents';
 import { useUiStore } from '../state/uiStore';
 import {
   NAVIGATION_ITEMS,
@@ -71,6 +72,12 @@ describe('R2 shell reuses accepted legacy interaction helpers', () => {
       isMobile: true,
       keyboardOpen: false,
     });
+  });
+});
+
+describe('R2 appearance defaults', () => {
+  it('starts new Studio workspaces in Light mode', () => {
+    expect(createStudioState().theme).toBe('light');
   });
 });
 
