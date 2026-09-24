@@ -172,7 +172,7 @@ export function ResultsList({
   );
 
   const virtualizer = useVirtualizer({
-    count: density === 'tiles' ? 0 : visibleRows.length,
+    count: visibleRows.length,
     getScrollElement: () => scrollerRef.current,
     estimateSize: () => density === 'compact' ? 58 : 88,
     overscan: 8,
@@ -222,9 +222,7 @@ export function ResultsList({
         setVisibleCount(Math.min(rows.length, action.index + 12));
       }
       onSelect(row);
-      if (density !== 'tiles') {
-        requestAnimationFrame(() => virtualizer.scrollToIndex(action.index, { align: 'auto' }));
-      }
+      requestAnimationFrame(() => virtualizer.scrollToIndex(action.index, { align: 'auto' }));
       return;
     }
     if (action.type === 'insert') {
@@ -248,49 +246,34 @@ export function ResultsList({
       onScroll={handleScroll}
       onKeyDown={handleKeyDown}
     >
-      {density === 'tiles' ? (
-        <div className={styles.tileGrid}>
-          {visibleRows.map((row) => (
-            <ResultRow
+      <div
+        className={styles.virtualSpace}
+        style={{ height: virtualizer.getTotalSize() }}
+      >
+        {virtualizer.getVirtualItems().map((item) => {
+          const row = visibleRows[item.index];
+          if (!row) return null;
+          return (
+            <div
               key={row.id}
-              row={row}
-              density={density}
-              selected={row.id === selectedId}
-              saved={isSaved(row.word)}
-              onSelect={onSelect}
-              onToggleSaved={onToggleSaved}
-              onInsert={onInsert}
-            />
-          ))}
-        </div>
-      ) : (
-        <div
-          className={styles.virtualSpace}
-          style={{ height: virtualizer.getTotalSize() }}
-        >
-          {virtualizer.getVirtualItems().map((item) => {
-            const row = visibleRows[item.index];
-            if (!row) return null;
-            return (
-              <div
-                key={row.id}
-                className={styles.virtualRow}
-                style={{ transform: `translateY(${item.start}px)` }}
-              >
-                <ResultRow
-                  row={row}
-                  density={density}
-                  selected={row.id === selectedId}
-                  saved={isSaved(row.word)}
-                  onSelect={onSelect}
-                  onToggleSaved={onToggleSaved}
-                  onInsert={onInsert}
-                />
-              </div>
-            );
-          })}
-        </div>
-      )}
+              className={styles.virtualRow}
+              style={{ transform: `translateY(${item.start}px)` }}
+            >
+              <ResultRow
+                row={row}
+                density={density}
+                selected={row.id === selectedId}
+                saved={isSaved(row.word)}
+                onSelect={onSelect}
+                onToggleSaved={onToggleSaved}
+                onInsert={onInsert}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+
 
       {visibleRows.length < rows.length ? (
         <div className={styles.moreResults} aria-live="polite">
