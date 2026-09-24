@@ -8,7 +8,7 @@ The target baseline is OWASP ASVS 5.0-style defense in depth for the application
 
 Core rules:
 
-- bind to loopback by default; non-loopback/LAN binding requires the explicit owner opt-in `RHYMELAB_ALLOW_REMOTE=1`;
+- bind to loopback by default; non-loopback/LAN binding requires the explicit owner opt-in `RHYMELAB_ALLOW_REMOTE=1`; wildcard binds additionally require `RHYMELAB_ALLOWED_HOSTS`, and remote `Host` headers must match the explicit allowlist and configured port;
 - browser pages are same-origin by default and local API responses are not broadly CORS-readable;
 - ship a restrictive Content Security Policy: local scripts only, no objects, no framing, no arbitrary outbound `connect-src`;
 - never reflect unexpected exception details, filesystem paths, tokens, provider responses, or stack traces to untrusted clients;
@@ -25,7 +25,7 @@ Loopback is not a security boundary by itself. A hostile website open in the sam
 - same-origin is the default for all RhymeLab APIs;
 - do not add `Access-Control-Allow-Origin: *` to localhost APIs;
 - state-changing and secret-bearing endpoints must validate Origin and method, and must never be enabled through a wildcard CORS policy;
-- public/LAN binding is exceptional and must be intentional;
+- public/LAN binding is exceptional and must be intentional; `0.0.0.0` / `::` must never imply trust in arbitrary `Host` headers;
 - sensitive future endpoints should use POST with bounded JSON bodies and explicit origin checks;
 - HTML is not frameable, reducing clickjacking exposure.
 
