@@ -102,7 +102,7 @@ describe('Shared Core boundary keeps authoritative implementations centralized',
   it('re-exports document, persistence and backup functions by identity', () => {
     expectIdentity(documentBridge, sharedDocumentModel, [
       'serializeLegacyStudioBackup',
-      'migrateLegacyStudioState',
+      'migrateWorkspaceState',
       'validateStudioDocumentSnapshot',
       'barsForSong',
       'songText',
@@ -115,8 +115,8 @@ describe('Shared Core boundary keeps authoritative implementations centralized',
     expectIdentity(documentBridge, webDocumentStore, [
       'openStudioDocumentDatabase',
       'createStudioDocumentStore',
-      'migrateLegacyStudioStateToStore',
-      'shadowLegacyStudioStateToStore',
+      'migrateWorkspaceStateToStore',
+      'shadowWorkspaceStateToStore',
     ]);
     expectIdentity(documentBridge, webDocumentAdapter, [
       'createStudioState',
@@ -278,7 +278,7 @@ describe('Shared Core preserves representative domain semantics', () => {
   });
 
   it('preserves document migration, stable bars, revisions and portable backup round-trip', async () => {
-    const migration = documentBridge.migrateLegacyStudioState({
+    const migration = documentBridge.migrateWorkspaceState({
       active: 'song',
       folders: ['Drafts'],
       songs: [{

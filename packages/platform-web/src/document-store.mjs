@@ -280,3 +280,7 @@ export async function shadowLegacyStudioStateToStore(legacyState,store){
     saveResult,
   };
 }
+
+// Neutral runtime aliases; legacy-named functions remain for old workspace migration compatibility.
+export const migrateWorkspaceStateToStore=migrateLegacyStudioStateToStore;
+export const shadowWorkspaceStateToStore=shadowLegacyStudioStateToStore;

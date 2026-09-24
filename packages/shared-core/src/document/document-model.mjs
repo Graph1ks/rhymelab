@@ -397,3 +397,6 @@ export function replaceSelection(snapshot,{barId,start=0,end=start,text=''}) {
     },
   };
 }
+
+// Neutral product-runtime alias. The legacy-named export remains for import compatibility.
+export const migrateWorkspaceState=migrateLegacyStudioState;
