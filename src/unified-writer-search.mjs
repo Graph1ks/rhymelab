@@ -393,6 +393,47 @@ export function resolveGermanUnifiedQuery(writerDb, phraseDb, input) {
   return composedPhraseQuery(writerDb, text);
 }
 
+export function rightEdgeQueryToken(input) {
+  const tokens = tokenizePhrase(String(input || '').normalize('NFKC').trim());
+  return String(tokens.at(-1)?.surface || '').trim();
+}
+
+function germanLexicalQuery(writerDb, input, fallback = null) {
+  const token = rightEdgeQueryToken(input);
+  if (!token) return fallback;
+  const tokens = tokenizePhrase(String(input || '').normalize('NFKC').trim());
+  if (tokens.length <= 1) return fallback;
+  const detail = getWord(writerDb, token);
+  if (!detail?.preferredIpa) return fallback;
+  return {
+    ...detail,
+    kind: 'word',
+    language: 'de',
+    ipa: detail.preferredIpa,
+    resolvable: true,
+    pronunciationProvenance: 'writer_v5_right_edge_lexical_anchor',
+    sourceQuerySurface: String(input || '').trim(),
+  };
+}
+
+function englishLexicalQuery(englishDb, input, fallback = null) {
+  const token = rightEdgeQueryToken(input);
+  if (!token) return fallback;
+  const tokens = tokenizePhrase(String(input || '').normalize('NFKC').trim());
+  if (tokens.length <= 1) return fallback;
+  const detail = getEnglishWord(englishDb, token);
+  if (!detail?.preferredIpa) return fallback;
+  return {
+    ...detail,
+    kind: 'word',
+    language: 'en',
+    ipa: detail.preferredIpa,
+    resolvable: true,
+    pronunciationProvenance: 'english_writer_right_edge_lexical_anchor',
+    sourceQuerySurface: String(input || '').trim(),
+  };
+}
+
 function relationRows(score) {
   return ['assonance', 'consonance'].flatMap((type) => {
     const relation = score?.relations?.[type];
@@ -737,6 +778,12 @@ export function searchUnifiedWriter(
   const enQuery = sourceEnQuery?.preferredIpa
     ? sourceEnQuery
     : clientEnQuery;
+  const deLexicalQuery = deQuery
+    ? germanLexicalQuery(writerDb, input, deQuery)
+    : null;
+  const enLexicalQuery = enQuery
+    ? englishLexicalQuery(englishDb, input, enQuery)
+    : null;
   const queries = { de: deQuery, en: enQuery };
   const resolvedLanguages = [
     ...(deQuery ? ['de'] : []),
@@ -795,7 +842,7 @@ export function searchUnifiedWriter(
       ? 'scope_excludes_words'
       : !targetGermanWords
         ? 'result_language_excludes_german'
-        : (deQuery?.preferredIpa || enQuery?.preferredIpa)
+        : (deLexicalQuery?.preferredIpa || enLexicalQuery?.preferredIpa)
           ? null
           : 'query_not_found',
     results: [],
@@ -812,14 +859,14 @@ export function searchUnifiedWriter(
       generatedOnly,
       profileStages,
     };
-    const wordResult = timed('words_de',()=>deQuery?.preferredIpa
+    const wordResult = timed('words_de',()=>deLexicalQuery?.preferredIpa
       ? (
-          deQuery.kind === 'word' && !deQuery.generatedPronunciation
-            ? findWriterRhymes(writerDb, deQuery.surface, queryOptions)
-            : findWriterRhymesFromExternalQuery(writerDb, deQuery, queryOptions)
+          deLexicalQuery.kind === 'word' && !deLexicalQuery.generatedPronunciation
+            ? findWriterRhymes(writerDb, deLexicalQuery.surface, queryOptions)
+            : findWriterRhymesFromExternalQuery(writerDb, deLexicalQuery, queryOptions)
         )
-      : (!deQuery && enQuery?.preferredIpa)
-        ? findWriterRhymesFromExternalQuery(writerDb, enQuery, queryOptions)
+      : (!deLexicalQuery && enLexicalQuery?.preferredIpa)
+        ? findWriterRhymesFromExternalQuery(writerDb, enLexicalQuery, queryOptions)
         : null);
     if(profileStages&&wordResult?.performanceProfile?.stages_ms){
       for(const [name,value] of Object.entries(wordResult.performanceProfile.stages_ms)){
@@ -842,10 +889,14 @@ export function searchUnifiedWriter(
           writerRuntime: wordResult.writerRuntime,
           writerRetrieval: wordResult.writerRetrieval,
           writerMorphology: wordResult.writerMorphology,
-          crossLanguageQuery: !deQuery && enQuery ? {
-            sourceLanguage: enQuery.language || 'en',
+          queryAnchor: deLexicalQuery?.surface || null,
+          queryAnchorPolicy: deLexicalQuery && deLexicalQuery !== deQuery
+            ? 'right_edge_lexical_token_v1'
+            : 'full_query_v1',
+          crossLanguageQuery: !deLexicalQuery && enLexicalQuery ? {
+            sourceLanguage: enLexicalQuery.language || 'en',
             targetLanguage: 'de',
-            sourceIpa: enQuery.preferredIpa || enQuery.ipa,
+            sourceIpa: enLexicalQuery.preferredIpa || enLexicalQuery.ipa,
             policy: 'source-pronunciation-to-target-phonology-v1',
           } : null,
           results: wordResult.results.map(wordProductResult),
@@ -863,7 +914,7 @@ export function searchUnifiedWriter(
       ? 'scope_excludes_words'
       : !targetEnglishWords
         ? 'result_language_excludes_english'
-        : (enQuery || deQuery?.preferredIpa)
+        : (enLexicalQuery || deLexicalQuery?.preferredIpa)
           ? null
           : 'query_not_found',
     results: [],
@@ -875,14 +926,14 @@ export function searchUnifiedWriter(
       syllableFilter: options.syllableFilter || 'all',
       generatedOnly,
     };
-    const wordResult = timed('words_en',()=>enQuery
+    const wordResult = timed('words_en',()=>enLexicalQuery
       ? (
-          enQuery.generatedPronunciation
-            ? searchEnglishWriterFromExternalQuery(englishDb, enQuery, englishOptions)
-            : searchEnglishWriter(englishDb, enQuery.surface, englishOptions)
+          enLexicalQuery.generatedPronunciation
+            ? searchEnglishWriterFromExternalQuery(englishDb, enLexicalQuery, englishOptions)
+            : searchEnglishWriter(englishDb, enLexicalQuery.surface, englishOptions)
         )
-      : deQuery?.preferredIpa
-        ? searchEnglishWriterFromExternalQuery(englishDb, deQuery, englishOptions)
+      : deLexicalQuery?.preferredIpa
+        ? searchEnglishWriterFromExternalQuery(englishDb, deLexicalQuery, englishOptions)
         : null);
     enWordChannel = wordResult
       ? {
@@ -894,12 +945,16 @@ export function searchUnifiedWriter(
           diversityWeight: wordResult.diversityWeight,
           writerRuntime: wordResult.writerRuntime,
           writerRetrieval: wordResult.writerRetrieval,
+          queryAnchor: enLexicalQuery?.surface || null,
+          queryAnchorPolicy: enLexicalQuery && enLexicalQuery !== enQuery
+            ? 'right_edge_lexical_token_v1'
+            : 'full_query_v1',
           crossLanguageQuery: wordResult.crossLanguageQuery || null,
           results: wordResult.results,
         }
       : {
           available: true,
-          reason: deQuery?.preferredIpa
+          reason: deLexicalQuery?.preferredIpa
             ? 'cross_language_query_not_supported_by_english_profile'
             : 'query_not_found',
           results: [],
@@ -1005,7 +1060,7 @@ export function searchUnifiedWriter(
   );
 
   if(includeEntities&&resultLanguages.includes('de')){
-    const targetQuery=deQuery||enQuery;
+    const targetQuery=deLexicalQuery||enLexicalQuery;
     if(targetQuery&&capabilities.languages.de?.entityRhymes){
       deEntityChannel=timed('entities_de',()=>searchEntityRhymes(entityDb,targetQuery,{
         language:'de',
@@ -1033,7 +1088,7 @@ export function searchUnifiedWriter(
     }else{
       deEntityChannel=emptyEntityLanguageChannel(
         'de',
-        (deQuery||enQuery)
+        (deLexicalQuery||enLexicalQuery)
           ?capabilities.languages.de?.entityReason||'german_entity_runtime_unavailable'
           :'query_not_found',
       );
@@ -1041,7 +1096,7 @@ export function searchUnifiedWriter(
   }
 
   if(includeEntities&&resultLanguages.includes('en')){
-    const targetQuery=enQuery||deQuery;
+    const targetQuery=enLexicalQuery||deLexicalQuery;
     if(targetQuery&&capabilities.languages.en?.entityRhymes){
       enEntityChannel=timed('entities_en',()=>searchEntityRhymes(entityDb,targetQuery,{
         language:'en',
@@ -1069,7 +1124,7 @@ export function searchUnifiedWriter(
     }else{
       enEntityChannel=emptyEntityLanguageChannel(
         'en',
-        (enQuery||deQuery)
+        (enLexicalQuery||deLexicalQuery)
           ?capabilities.languages.en?.entityReason||'english_entity_runtime_unavailable'
           :'query_not_found',
       );
