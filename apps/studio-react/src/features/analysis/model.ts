@@ -129,6 +129,24 @@ export interface AnalysisTotals {
   characters: number;
 }
 
+export interface AnalysisTextToken {
+  text: string;
+  wordIndex: number | null;
+  normalized: string;
+}
+
+export interface RhymeTopologyGroup {
+  id: string;
+  index: number;
+  occurrenceIndexes: number[];
+  words: string[];
+  barNumbers: number[];
+  relationTypes: string[];
+  relationCount: number;
+  primaryRelationCount: number;
+}
+
+
 export function trackedAnalysisDocument(song: LegacyStudioSong): TrackedAnalysisDocument {
   ensureLegacyEditorSong(song);
   const editorSong = asEditorSong(song);
@@ -270,6 +288,141 @@ export function sectionRelations(
     (relation) => indexes.has(relation.left?.lineIndex)
       && indexes.has(relation.right?.lineIndex),
   );
+}
+
+export function analysisLineTokens(line: string): AnalysisTextToken[] {
+  const source = String(line ?? '');
+  const tokens: AnalysisTextToken[] = [];
+  const pattern = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu;
+  let cursor = 0;
+  let wordIndex = 0;
+  for (const match of source.matchAll(pattern)) {
+    const start = match.index ?? 0;
+    if (start > cursor) {
+      tokens.push({
+        text: source.slice(cursor, start),
+        wordIndex: null,
+        normalized: '',
+      });
+    }
+    const text = match[0] ?? '';
+    tokens.push({
+      text,
+      wordIndex,
+      normalized: text.normalize('NFKC').toLocaleLowerCase().trim(),
+    });
+    wordIndex += 1;
+    cursor = start + text.length;
+  }
+  if (cursor < source.length) {
+    tokens.push({
+      text: source.slice(cursor),
+      wordIndex: null,
+      normalized: '',
+    });
+  }
+  return tokens.length ? tokens : [{ text: source, wordIndex: null, normalized: '' }];
+}
+
+function topologyGroupLabel(index: number): string {
+  const letter = String.fromCharCode(65 + (index % 26));
+  const cycle = Math.floor(index / 26);
+  return cycle ? letter + String(cycle + 1) : letter;
+}
+
+export function rhymeTopologyGroups(
+  occurrences: StudioAnalysisOccurrence[],
+  relations: StudioOccurrenceRelation[],
+): {
+  groups: RhymeTopologyGroup[];
+  occurrenceGroup: Map<number, number>;
+} {
+  if (!occurrences.length || !relations.length) {
+    return { groups: [], occurrenceGroup: new Map<number, number>() };
+  }
+
+  const parent = new Map<number, number>();
+  const rank = new Map<number, number>();
+  const occurrenceByIndex = new Map(occurrences.map((entry) => [entry.index, entry]));
+
+  const ensure = (value: number) => {
+    if (!parent.has(value)) {
+      parent.set(value, value);
+      rank.set(value, 0);
+    }
+  };
+  const find = (value: number): number => {
+    ensure(value);
+    const current = parent.get(value) ?? value;
+    if (current === value) return value;
+    const root = find(current);
+    parent.set(value, root);
+    return root;
+  };
+  const union = (left: number, right: number) => {
+    let rootLeft = find(left);
+    let rootRight = find(right);
+    if (rootLeft === rootRight) return;
+    const leftRank = rank.get(rootLeft) ?? 0;
+    const rightRank = rank.get(rootRight) ?? 0;
+    if (leftRank < rightRank) [rootLeft, rootRight] = [rootRight, rootLeft];
+    parent.set(rootRight, rootLeft);
+    if (leftRank === rightRank) rank.set(rootLeft, leftRank + 1);
+  };
+
+  const primaryRelations = relations.filter((relation) => relation.primary === true);
+  const strongRelations = primaryRelations.length
+    ? primaryRelations
+    : relations.filter((relation) => Number(relation.score) >= 0.82);
+  strongRelations.forEach((relation) => {
+    ensure(relation.left.index);
+    ensure(relation.right.index);
+    union(relation.left.index, relation.right.index);
+  });
+
+  const members = new Map<number, Set<number>>();
+  parent.forEach((_value, occurrenceIndex) => {
+    const root = find(occurrenceIndex);
+    const bucket = members.get(root) ?? new Set<number>();
+    bucket.add(occurrenceIndex);
+    members.set(root, bucket);
+  });
+
+  const sortedRoots = [...members.entries()]
+    .filter(([, values]) => values.size >= 2)
+    .sort((left, right) => Math.min(...left[1]) - Math.min(...right[1]));
+
+  const occurrenceGroup = new Map<number, number>();
+  const groups = sortedRoots.map(([, values], groupIndex) => {
+    const occurrenceIndexes = [...values].sort((a, b) => a - b);
+    occurrenceIndexes.forEach((value) => occurrenceGroup.set(value, groupIndex));
+    const groupRelations = relations.filter(
+      (relation) => values.has(relation.left.index) && values.has(relation.right.index),
+    );
+    const words = [...new Set(
+      occurrenceIndexes
+        .map((index) => occurrenceByIndex.get(index)?.surface ?? '')
+        .filter(Boolean),
+    )];
+    const barNumbers = [...new Set(
+      occurrenceIndexes
+        .map((index) => occurrenceByIndex.get(index)?.lineIndex)
+        .filter((index): index is number => Number.isInteger(index))
+        .map((index) => index + 1),
+    )].sort((a, b) => a - b);
+    return {
+      id: topologyGroupLabel(groupIndex),
+      index: groupIndex,
+      occurrenceIndexes,
+      words,
+      barNumbers,
+      relationTypes: [...new Set(groupRelations.map((relation) => relation.type))],
+      relationCount: groupRelations.length,
+      primaryRelationCount: groupRelations.filter((relation) => relation.primary).length,
+    };
+  });
+
+  return { groups, occurrenceGroup };
 }
 
 export function analysisTotals(song: LegacyStudioSong): AnalysisTotals {
