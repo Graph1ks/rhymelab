@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Button, Drawer } from '../design-system/primitives';
 import { applyThemeToDocument } from '../design-system/theme';
 import { installMobileViewportController } from '../legacy/shell';
+import { collectReactStartupBindingStatus } from '../features/system/model';
 import { useUiStore } from '../state/uiStore';
 import {
   NAVIGATION_ITEMS,
@@ -69,7 +70,7 @@ function Sidebar() {
         <span className={styles.brandName}>rhymelab</span>
       </button>
 
-      <nav className={styles.navList}>
+      <nav className={styles.navList} data-rhymelab-control="shell.navigation">
         {NAVIGATION_ITEMS.map((item) => (
           <NavButton
             key={item.id}
@@ -146,6 +147,7 @@ function Topbar() {
           aria-label={language === 'de'
             ? 'Switch interface to English'
             : 'Oberfläche auf Deutsch umstellen'}
+          data-rhymelab-control="shell.language"
           title={language === 'de'
             ? 'UI: Deutsch · click for English'
             : 'UI: English · Klick für Deutsch'}
@@ -256,6 +258,7 @@ export function Shell() {
   const language = useUiStore((state) => state.uiLanguage);
   const surface = useUiStore((state) => state.surface);
   const reduceMotion = useReducedMotion();
+  const startupErrorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     applyThemeToDocument(themeChoice);
@@ -270,14 +273,31 @@ export function Shell() {
     documentElement: document.documentElement,
   }), []);
 
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const root = document.querySelector('[data-rhymelab-app-shell]') as HTMLElement | null;
+      const status = collectReactStartupBindingStatus(document);
+      if (root) root.dataset.rhymelabControls = status.ok ? 'bound' : 'failed';
+      if (startupErrorRef.current) {
+        startupErrorRef.current.hidden = status.ok;
+        startupErrorRef.current.textContent = status.ok
+          ? ''
+          : `React Studio initialization incomplete: ${status.missing.join(', ')}`;
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [surface]);
+
   return (
     <motion.div
       className={styles.appShell}
-      data-rhymelab-controls="bound"
+      data-rhymelab-app-shell="true"
+      data-rhymelab-controls="checking"
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
     >
+      <div ref={startupErrorRef} className={styles.startupFailure} role="alert" hidden />
       <Sidebar />
       <div className={styles.main}>
         <Topbar />
