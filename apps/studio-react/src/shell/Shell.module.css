@@ -1230,7 +1230,7 @@
     bottom: 0;
     z-index: 70;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 2px;
     min-height: calc(var(--rl-mobile-nav-height) + env(safe-area-inset-bottom));
     padding: 5px 4px calc(5px + env(safe-area-inset-bottom));
@@ -1743,5 +1743,163 @@
   .systemAcceptanceActions button,
   .deviceGateList button {
     min-height: 44px;
+  }
+}
+
+
+/* UX correction: readable shell typography and flatter application surfaces. */
+.navLabel {
+  font-size: 14px;
+}
+
+.navKey,
+.localStatus,
+.previewBadge,
+.phaseBadge {
+  font-size: 10px;
+}
+
+.sidebarContext b,
+.profile b {
+  font-size: 13px;
+}
+
+.sidebarContext small,
+.profile small {
+  font-size: 11px;
+}
+
+.breadcrumb {
+  font-size: 12px;
+}
+
+.commandTrigger,
+.languageButton {
+  font-size: 12px;
+}
+
+.kicker {
+  font-size: 10px;
+}
+
+.settingsCopy,
+.fieldLabel,
+.drawerHeader p:not(.kicker) {
+  font-size: 12px;
+}
+
+.settingsCard h2 {
+  font-size: 19px;
+}
+
+.primaryFoundation,
+.assistFoundation,
+.surfacePage {
+  box-shadow: none;
+}
+
+.primaryFoundation {
+  padding: clamp(18px, 2vw, 30px);
+}
+
+.assistFoundation {
+  padding: 0;
+}
+
+.studioModeBar button {
+  min-height: 40px;
+  font-size: 12px;
+}
+
+.libraryTrigger {
+  margin-left: auto;
+  border-color: color-mix(in srgb, var(--rl-accent) 35%, var(--rl-line)) !important;
+  color: var(--rl-accent) !important;
+}
+
+.libraryDialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 205;
+  background: rgb(0 0 0 / .58);
+  backdrop-filter: blur(7px);
+}
+
+.libraryDialogViewport {
+  position: fixed;
+  inset: 0;
+  z-index: 206;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.libraryDialog {
+  width: min(1500px, calc(100vw - 36px));
+  height: min(900px, calc(100dvh - 36px));
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--rl-line);
+  border-radius: 20px;
+  background: var(--rl-bg);
+  box-shadow: 0 30px 100px rgb(0 0 0 / .46);
+}
+
+.libraryDialogHead {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--rl-line);
+  background: var(--rl-panel);
+}
+
+.libraryDialogHead p {
+  margin: 0 0 2px;
+  color: var(--rl-accent);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.libraryDialogHead h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.libraryDialogHead button {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--rl-line);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--rl-ink);
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.libraryDialog > section {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+@media (max-width: 800px) {
+  .libraryDialogViewport {
+    padding: 0;
+  }
+
+  .libraryDialog {
+    width: 100%;
+    height: calc(var(--visual-viewport-height, 100dvh) - var(--rl-mobile-nav-height));
+    border: 0;
+    border-radius: 0;
+  }
+
+  .mobileNavButton {
+    font-size: 11px;
   }
 }
