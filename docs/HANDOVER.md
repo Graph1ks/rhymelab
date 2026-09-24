@@ -43,8 +43,12 @@ and a persistent OKLCH Style Designer.
 
 Automated evidence on that functional checkpoint is 91/91 React tests, strict
 TypeScript, production build, reversible preview and the R7 source gate; React
-Replatform #278, Studio V2 Gate #596 and Full CI #1461 all pass. The parity inventory
+Replatform #278, Studio V2 Gate #606 and Full CI #1471 all pass. The parity inventory
 remains **93 ported / 0 in_progress / 0 pending / 0 verified**.
+
+Round-2 final cleanup removes the dead Tiles renderer, migrates old Tiles preferences
+to Compact, removes Sound Explorer toolbar horizontal scrolling, hardens transient
+filter dismissal and hue-sweep tests OKLCH random styles.
 
 The active continuation remains **owner visual acceptance + R7 real-browser /
 physical-device acceptance**, not R8. Diagnostics/device-acceptance tooling is no
