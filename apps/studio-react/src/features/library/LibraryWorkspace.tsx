@@ -312,16 +312,17 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
 
     let result = duplicateLibrarySong(workspace.state, source.id, targetFolder);
     if (!result.changed || !result.id) return;
+    const copiedId = result.id;
     const sameFolder = String(source.folder || '') === targetFolder;
     if (sameFolder) {
       const title = language === 'de'
         ? `${source.title || 'Unbenannt'} – Kopie`
         : `${source.title || 'Untitled'} – Copy`;
-      const renamed = renameLibrarySong(result.state, result.id, title);
+      const renamed = renameLibrarySong(result.state, copiedId, title);
       if (renamed.changed) result = { ...result, state: renamed.state };
     }
     await workspace.replaceState(result.state);
-    setSelectedSongId(result.id);
+    setSelectedSongId(copiedId);
   };
 
   const moveItem = async (targetFolder: string) => {
