@@ -26,6 +26,7 @@ import {
   internalDistributionRuntimeSummary,
   internalDistributionSwitcherEnabled,
   internalRuntimeProcessMetrics,
+  preferredAvailableDistributionDbId,
   requestedInternalDistributionDbId,
 } from './internal-distribution-switcher.mjs';
 import { DEFAULT_ENTITY_DB_PATH, openEntityWriterDb } from './entity-writer-runtime.mjs';
@@ -242,7 +243,7 @@ if(servingV1Active){
     }
   }
 
-  servingV1DbId=['standard','full','lite'].find((id)=>internalDbEntries.get(id)?.runtime)||'';
+  servingV1DbId=preferredAvailableDistributionDbId(internalDbEntries)||'';
   if(!servingV1DbId){
     console.error('Cannot open any shipping distribution database (LITE / STANDARD / FULL).');
     for(const id of INTERNAL_DISTRIBUTION_DB_IDS){
