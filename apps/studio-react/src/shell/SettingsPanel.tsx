@@ -127,7 +127,7 @@ export function SettingsPanel({ compact = false }: { compact?: boolean }) {
         <Button className={styles.secondaryButton} onClick={() => openCommands(true)}>
           <Icon name="command" />
           {shellText('Befehle öffnen', language)}
-          <kbd>Ctrl / ⌘ + K</kbd>
+          <kbd>Ctrl / ⌘ + Shift + K</kbd>
         </Button>
       </section>
 
