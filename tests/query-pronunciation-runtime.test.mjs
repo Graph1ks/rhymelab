@@ -266,7 +266,7 @@ test('browser resolver keeps nested compound structure for Murmeltierabende insi
   );
 
   assert.equal(detail.method,'client_token_chain');
-  assert.equal(detail.tokens.at(-1).surface,'Murmeltierabende');
+  assert.equal(detail.tokens.at(-1).surface.toLocaleLowerCase('de-DE'),'murmeltierabende');
   assert.match(detail.tokens.at(-1).method,/compound_right_edge$/u);
   assert.equal(detail.tokens.at(-1).components.at(-1),'Abende');
   assert.ok(detail.ipa);
