@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-24",
-  "phase": "STUDIO_V2_LIVE_ACCEPTANCE",
+  "phase": "REACT_STUDIO_REPLATFORM_R1_COMPLETE",
   "package_version": "0.11.0",
   "repository": {
     "public_release_live": true,
@@ -4005,7 +4005,7 @@
   "active_continuation": {
     "id": "REACT_STUDIO_REPLATFORM",
     "priority": "P0",
-    "status": "R0_SCAFFOLD_AND_PARITY_INVENTORY_STARTED",
+    "status": "R1_TYPED_BRIDGE_VERIFIED_R2_NEXT",
     "branch": "refactor/react-studio-replatform",
     "handover": "docs/REACT_STUDIO_REPLATFORM.md",
     "parity_gate": "docs/REACT_STUDIO_PARITY_GATE.md",
@@ -4038,7 +4038,9 @@
         "Markov frozen/unlinked",
         "Search/RhymePad fallback routes"
       ]
-    }
+    },
+    "r1_contract": "docs/REACT_STUDIO_R1_TYPED_BRIDGE.md",
+    "next_thread_action": "implement_R2_shell_and_design_system_on_existing_typed_bridge_without_reimplementing_domain_semantics"
   },
   "studio_v2": {
     "status": "LIVE_DEFAULT_PENDING_REAL_DEVICE_ACCEPTANCE",
@@ -4085,7 +4087,7 @@
     "real_device_acceptance": "pending_7_gates"
   },
   "react_studio_replatform": {
-    "status": "ACTIVE",
+    "status": "R1_COMPLETE_R2_NEXT",
     "priority": "P0",
     "stack": [
       "React 19.3",
@@ -4101,6 +4103,22 @@
     "parity_inventory": "apps/studio-react/parity-coverage.json",
     "old_studio_deleted": false,
     "root_cutover_started": false,
-    "feature_freeze": true
+    "feature_freeze": true,
+    "r1": {
+      "status": "VERIFIED",
+      "contract": "docs/REACT_STUDIO_R1_TYPED_BRIDGE.md",
+      "manifest": "apps/studio-react/r1-adapter-manifest.json",
+      "source_root": "apps/studio-react/src/legacy",
+      "covered_legacy_modules": 18,
+      "implementation_policy": "direct_identity_reexport_plus_typed_orchestration",
+      "direct_domain_logic_rewritten": false,
+      "document_store_authority_preserved": true,
+      "editor_semantics_preserved": true,
+      "query_pronunciation_policy_preserved": true,
+      "performance_semantics_preserved": true,
+      "runtime_edition_contract_preserved": true,
+      "focused_verification": "npm run studio:react:r1",
+      "next_phase": "R2_SHELL_AND_DESIGN_SYSTEM"
+    }
   }
 }
