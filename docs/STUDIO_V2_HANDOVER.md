@@ -11,6 +11,35 @@ Studio V2 has moved well beyond the original static redesign shell. The branch n
 
 Studio V2 is now the default root product route. The previous Search remains at `/search` and `/legacy`; RhymePad remains at `/pad` and `/pad-legacy`. `--search-default` / `RHYMELAB_SEARCH_DEFAULT=1` provides an explicit rollback mode while real-device/browser acceptance is completed.
 
+### Workflow UX v3
+
+The current Studio interaction pass adds direct-manipulation and review behavior
+without changing Writer scoring/ranking semantics:
+
+- Bar numbers can be held and dragged to reorder Bars. The transported Bar remains
+  visible as a floating ghost, the editor creates a live insertion space/preview,
+  edge auto-scroll continues during transport, and release commits the exact drop.
+- Compact result density is the first-run default in Studio and standalone Search;
+  explicit user density/view changes remain persisted.
+- The Studio bottom tool drawer has one wheel-scroll owner so Bar Navigator,
+  Inspector and History content do not block mouse-wheel scrolling.
+- History restore is review-first: selecting a revision opens a scrollable
+  full-lyrics line-by-line comparison with highlighted changed/added/removed/moved
+  rows. Restore is only offered after that comparison and still creates a
+  pre-restore revision.
+- Rhyme search follows the current editor selection on startup. Pin/fixed-anchor
+  behavior remains an explicit toggle instead of the initial state.
+- Result paging is continuous/infinite; the redundant manual load-more control is
+  removed.
+- The explicit “Neue Zeile” action is removed. Normal editor newline behavior is
+  the line-creation mechanism.
+- Holding the writing editor for 1.5 seconds opens a section quick-insert menu at
+  the current caret for `[Intro]`, `[Verse]`, `[Pre-Chorus]`, `[Chorus]`,
+  `[Post-Chorus]`, `[Hook]`, `[Bridge]`, and `[Outro]`.
+- Database Settings only enable editions actually available on disk. The active
+  LITE/STANDARD/FULL edition is visible in both Studio and Search.
+
+
 ## Major implemented areas
 
 ### Writer / Search
@@ -154,32 +183,31 @@ Settings now includes a local diagnostics dashboard and JSON export covering:
 - primary pointer class.
 - DOM/interaction acceptance gates.
 
-### Internal distribution DB Lab
+### Shipping database selector and diagnostics
 
-Studio also has an explicitly development-only comparison surface for the
-Master/Developer, Lite, Standard and Full Serving-v1 databases.
+Studio Settings exposes the three shipping runtime editions only:
 
-Activation:
+```text
+LITE | STANDARD | FULL
+```
+
+Master/Developer is build-only and never selectable. Missing local editions remain
+visible but disabled. Startup prefers STANDARD, then FULL, then LITE, so a LITE-only
+installation remains usable.
+
+The selected edition is propagated request-by-request through Writer, detail,
+song-analysis and capability requests; there is no mutable global active-database
+state. Studio and Search visibly identify the active database.
+
+Controlled edition diagnostics remain available with:
 
 ```powershell
 npm run dev:distribution-lab
 ```
 
-The visible internal bar is not part of normal shipping Studio. The server strips
-its HTML when the internal switcher is disabled and the internal database-summary
-endpoint returns 404.
+Full runtime/diagnostics contract:
 
-The selected edition is propagated request-by-request through Writer, detail,
-song-analysis and capability requests. There is no mutable global active-database
-state. The panel exposes copyable DB/site/process metrics for edition comparison.
-
-Full engineering contract:
-
-`docs/INTERNAL_DISTRIBUTION_LAB.md`
-
-The later product direction may reuse the request-scoped routing primitive for a
-normal User Settings database choice. That future user-facing Settings work is not
-implemented by the internal lab itself.
+`docs/DATABASE_RUNTIME.md` and `docs/INTERNAL_DISTRIBUTION_LAB.md`
 
 ### DE / EN UI
 
