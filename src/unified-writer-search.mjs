@@ -398,7 +398,7 @@ export function rightEdgeQueryToken(input) {
   return String(tokens.at(-1)?.surface || '').trim();
 }
 
-function compoundRightEdgeComponent(fallback) {
+export function compoundRightEdgeComponent(fallback) {
   const method=String(fallback?.queryPronunciation?.method||'');
   if(![
     'client_source_reference_compound_right_edge',
