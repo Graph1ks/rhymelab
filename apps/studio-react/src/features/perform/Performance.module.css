@@ -490,7 +490,7 @@
 
 .boothContext small {
   color: var(--rl-muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 850;
   letter-spacing: .11em;
 }
@@ -532,7 +532,7 @@
 
 .boothStatus small {
   color: var(--rl-signal);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 850;
   letter-spacing: .12em;
 }
