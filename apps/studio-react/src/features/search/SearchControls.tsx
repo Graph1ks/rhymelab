@@ -254,6 +254,7 @@ export function SearchControls({
     <div
       className={styles.controls}
       data-compact={compact ? 'true' : 'false'}
+      data-rhymelab-filter-deck="true"
       data-rhymelab-control="search.languages"
     >
       <div className={styles.presetRow} aria-label={language === 'de' ? 'Presets' : 'Presets'}>
