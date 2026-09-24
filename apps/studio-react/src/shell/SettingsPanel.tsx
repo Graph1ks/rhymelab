@@ -1,5 +1,6 @@
 import { Button, Select } from '../design-system/primitives';
 import { DataSafetyPanel } from '../features/library/DataSafetyPanel';
+import { SystemAcceptancePanel } from '../features/system/SystemAcceptancePanel';
 import { themeChoices } from '../design-system/theme';
 import type { StudioUiLanguage } from '../legacy/shell';
 import { useUiStore } from '../state/uiStore';
@@ -145,6 +146,8 @@ export function SettingsPanel({ compact = false }: { compact?: boolean }) {
         </p>
         <DataSafetyPanel />
       </section>
+
+      <SystemAcceptancePanel />
     </div>
   );
 }
