@@ -181,10 +181,11 @@ export function SearchControls({
     { value: 'historical_generated_only', label: language === 'de' ? 'Historisch · nur Generated' : 'Historical · generated only', disabled: !generatedAvailable },
   ];
 
-  const activePreset = useMemo<SearchPreset>(() => {
+  const activePreset = useMemo<SearchPreset | null>(() => {
+    if (state.scope === 'all' && state.rhymeType === 'all') return 'best';
     if (state.scope !== 'all' && state.rhymeType === 'all') return state.scope;
     if (state.scope === 'all' && state.rhymeType !== 'all') return state.rhymeType;
-    return 'best';
+    return null;
   }, [state.rhymeType, state.scope]);
 
   const entityAvailable = entityCategories.length > 0
