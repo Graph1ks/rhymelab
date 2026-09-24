@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button, Popover, Select } from '../../design-system/primitives';
 import type {
@@ -29,6 +29,33 @@ import styles from './Search.module.css';
 
 type Option = { value: string; label: string; disabled?: boolean };
 
+function useTransientPopup(
+  open: boolean,
+  setOpen: (open: boolean) => void,
+) {
+  const popupRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnViewportActivity = (event: Event) => {
+      const target = event.target;
+      if (target instanceof Node && popupRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    window.addEventListener('wheel', closeOnViewportActivity, { capture: true, passive: true });
+    window.addEventListener('touchmove', closeOnViewportActivity, { capture: true, passive: true });
+    document.addEventListener('scroll', closeOnViewportActivity, true);
+    return () => {
+      window.removeEventListener('wheel', closeOnViewportActivity, true);
+      window.removeEventListener('touchmove', closeOnViewportActivity, true);
+      document.removeEventListener('scroll', closeOnViewportActivity, true);
+    };
+  }, [open, setOpen]);
+
+  return popupRef;
+}
+
+
 function FilterSelect({
   label,
   value,
@@ -44,6 +71,9 @@ function FilterSelect({
   active?: boolean;
   onChange: (value: string) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const popupRef = useTransientPopup(open, setOpen);
+
   return (
     <div
       className={styles.filterField}
@@ -55,6 +85,8 @@ function FilterSelect({
         items={options}
         value={value}
         disabled={disabled}
+        open={open}
+        onOpenChange={setOpen}
         onValueChange={(next) => {
           if (typeof next === 'string') onChange(next);
         }}
@@ -65,7 +97,14 @@ function FilterSelect({
         </Select.Trigger>
         <Select.Portal>
           <Select.Positioner className={styles.selectPositioner} sideOffset={5} alignItemWithTrigger={false}>
-            <Select.Popup className={styles.filterPopup}>
+            <Select.Popup
+              ref={popupRef}
+              className={styles.filterPopup}
+              data-search-filter-popup="true"
+              onPointerLeave={(event) => {
+                if (event.pointerType === 'mouse') setOpen(false);
+              }}
+            >
               {options.map((option) => (
                 <Select.Item
                   key={option.value}
@@ -112,6 +151,7 @@ function LanguageRoutePicker() {
   const language = useUiStore((state) => state.uiLanguage);
   const { state, patch } = useSharedSearchState();
   const [open, setOpen] = useState(false);
+  const popupRef = useTransientPopup(open, setOpen);
   const current = languageRouteValue(state.queryBasis, state.resultLanguage);
   const routeLabel = (value: string) => value === 'both' ? 'DE + EN' : value.toUpperCase();
   const queryRows = [
@@ -139,7 +179,14 @@ function LanguageRoutePicker() {
       </div>
       <Popover.Portal>
         <Popover.Positioner sideOffset={6} align="start">
-          <Popover.Popup className={styles.languageRoutePopup}>
+          <Popover.Popup
+            ref={popupRef}
+            className={styles.languageRoutePopup}
+            data-search-filter-popup="true"
+            onPointerLeave={(event) => {
+              if (event.pointerType === 'mouse') setOpen(false);
+            }}
+          >
             <Popover.Title className={styles.languageRouteTitle}>
               {language === 'de' ? 'Sprache klar wählen' : 'Choose language route'}
             </Popover.Title>
@@ -192,6 +239,7 @@ export function SearchControls({
   const language = useUiStore((state) => state.uiLanguage);
   const { state, patch, resetFilters } = useSharedSearchState();
   const [entitiesOpen, setEntitiesOpen] = useState(false);
+  const entityPopupRef = useTransientPopup(entitiesOpen, setEntitiesOpen);
 
   const scopeOptions: Option[] = [
     { value: 'all', label: language === 'de' ? 'Alles' : 'All' },
@@ -342,7 +390,14 @@ export function SearchControls({
           </div>
           <Popover.Portal>
             <Popover.Positioner sideOffset={5} align="end">
-              <Popover.Popup className={styles.entityPopup}>
+              <Popover.Popup
+                ref={entityPopupRef}
+                className={styles.entityPopup}
+                data-search-filter-popup="true"
+                onPointerLeave={(event) => {
+                  if (event.pointerType === 'mouse') setEntitiesOpen(false);
+                }}
+              >
                 <Popover.Title className={styles.entityPopupTitle}>
                   {language === 'de' ? 'Entity-Kategorien' : 'Entity categories'}
                 </Popover.Title>
