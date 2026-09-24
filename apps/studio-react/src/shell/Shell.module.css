@@ -3355,9 +3355,9 @@
 }
 
 
-/* Bureau page transitions: full-viewport motion lives below the persistent topbar.
-   The overlay is decorative, never receives pointer input, and disappears entirely
-   for reduced-motion users. */
+/* Bureau page transitions: calm, destination-led wayfinding below the
+   persistent topbar. The page itself does not travel; a short Bureau routing
+   plate names the destination while a restrained veil dissolves away. */
 .surfaceTransition {
   position: relative;
   width: 100%;
@@ -3367,31 +3367,6 @@
 .surfaceTransitionBody {
   width: 100%;
   min-height: 100%;
-  will-change: transform, opacity;
-}
-
-.surfaceTransitionBody[data-transition="home"] {
-  animation: bureauSurfaceHome .42s .1s ease-out both;
-}
-
-.surfaceTransitionBody[data-transition="studio"] {
-  animation: bureauSurfaceStudio .32s .1s ease-out both;
-}
-
-.surfaceTransitionBody[data-transition="search"] {
-  animation: bureauSurfaceSearch .32s .1s ease-out both;
-}
-
-.surfaceTransitionBody[data-transition="library"] {
-  animation: bureauSurfaceLibrary .32s .1s ease-out both;
-}
-
-.surfaceTransitionBody[data-transition="saved"] {
-  animation: bureauSurfaceSaved .32s .1s ease-out both;
-}
-
-.surfaceTransitionBody[data-transition="settings"] {
-  animation: bureauSurfaceSettings .32s .1s ease-out both;
 }
 
 .contentViewport[data-surface="studio"] > .surfaceTransition,
@@ -3413,244 +3388,256 @@
   isolation: isolate;
 }
 
-.pageTransition::before,
-.pageTransition::after {
+.transitionVeil {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--rl-panel) 96%, transparent);
+  animation: bureauVeilRelease .66s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.transitionVeil::after {
   content: "";
   position: absolute;
-  pointer-events: none;
-  will-change: transform, clip-path, opacity;
+  inset: 0;
+  opacity: .22;
+  will-change: transform, opacity;
+  animation: bureauBlueprintDrift .66s cubic-bezier(.22, 1, .36, 1) both;
 }
 
-.pageTransition > span {
+.transitionDestination {
   position: absolute;
-  left: clamp(18px, 3vw, 46px);
-  bottom: clamp(18px, 3vw, 38px);
-  z-index: 4;
-  color: var(--rl-muted);
-  font: 600 10px/1 var(--rl-font-mono);
-  letter-spacing: .15em;
-  text-transform: uppercase;
-  animation: bureauTransitionMark .46s ease-out both;
-}
-
-/* HOME — a case sheet lifts off the desk. */
-.pageTransition[data-transition="home"]::before {
-  inset: 0;
-  border-top: 1px solid var(--rl-rule);
-  background:
-    linear-gradient(115deg, transparent 0 64%, color-mix(in srgb, var(--rl-accent) 9%, transparent) 64% 65%, transparent 65%),
-    repeating-linear-gradient(0deg, transparent 0 31px, color-mix(in srgb, var(--rl-rule) 32%, transparent) 31px 32px),
-    var(--rl-panel);
-  animation: bureauCaseSheet .66s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.pageTransition[data-transition="home"]::after {
-  width: 118px;
-  aspect-ratio: 1;
-  right: 7vw;
-  top: 10vh;
-  border: 1px solid var(--rl-accent);
-  border-radius: 50%;
-  opacity: .45;
-  transform: rotate(11deg);
-  animation: bureauStampLift .58s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-/* STUDIO — two drafting shutters clear the writing desk from the centre. */
-.pageTransition[data-transition="studio"]::before,
-.pageTransition[data-transition="studio"]::after {
-  top: 0;
-  bottom: 0;
-  width: 50.5%;
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--rl-rule) 34%, transparent) 1px, transparent 1px),
-    linear-gradient(0deg, color-mix(in srgb, var(--rl-rule) 24%, transparent) 1px, transparent 1px),
-    var(--rl-panel);
-  background-size: 34px 34px;
-}
-
-.pageTransition[data-transition="studio"]::before {
-  left: 0;
-  border-right: 1px solid var(--rl-accent);
-  animation: bureauStudioLeft .58s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.pageTransition[data-transition="studio"]::after {
-  right: 0;
-  border-left: 1px solid var(--rl-accent);
-  animation: bureauStudioRight .58s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-/* SEARCH — a phonetic scanner sweeps upward and exposes the result field. */
-.pageTransition[data-transition="search"]::before {
-  inset: 0;
-  background:
-    repeating-linear-gradient(0deg, transparent 0 7px, color-mix(in srgb, var(--rl-accent) 7%, transparent) 7px 8px),
-    color-mix(in srgb, var(--rl-panel) 97%, var(--rl-accent) 3%);
-  box-shadow: inset 0 -2px 0 var(--rl-accent);
-  animation: bureauSearchScan .58s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.pageTransition[data-transition="search"]::after {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 12px;
-  background: linear-gradient(0deg, color-mix(in srgb, var(--rl-accent) 26%, transparent), transparent);
-  animation: bureauSearchScan .58s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-/* LIBRARY — a labelled archive drawer slides out of the workspace. */
-.pageTransition[data-transition="library"]::before {
-  inset: 0;
-  border-left: 12px solid var(--rl-accent);
-  background:
-    repeating-linear-gradient(90deg, var(--rl-panel) 0 86px, color-mix(in srgb, var(--rl-rule) 75%, transparent) 86px 87px);
-  animation: bureauArchiveDrawer .62s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.pageTransition[data-transition="library"]::after {
-  left: clamp(34px, 8vw, 120px);
-  top: 14%;
-  width: min(360px, 54vw);
-  height: 64px;
-  border: 1px solid var(--rl-ink);
-  background: var(--rl-paper);
-  box-shadow: 7px 7px 0 color-mix(in srgb, var(--rl-ink) 7%, transparent);
-  animation: bureauArchiveLabel .54s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-/* SAVED — loose evidence cards peel away in two directions. */
-.pageTransition[data-transition="saved"]::before,
-.pageTransition[data-transition="saved"]::after {
-  width: min(72vw, 920px);
-  height: min(64vh, 620px);
-  left: 50%;
+  z-index: 3;
+  left: clamp(22px, 5vw, 88px);
   top: 50%;
-  border: 1px solid var(--rl-rule);
-  background: var(--rl-panel);
-  box-shadow: 0 24px 70px rgb(0 0 0 / .1);
+  width: min(760px, calc(100vw - 44px));
+  transform: translateY(-50%);
+  color: var(--rl-ink);
+  animation: bureauDestination .62s cubic-bezier(.22, 1, .36, 1) both;
 }
 
-.pageTransition[data-transition="saved"]::before {
-  transform: translate(-52%, -48%) rotate(-2deg);
-  animation: bureauSavedCardA .62s cubic-bezier(.22, 1, .36, 1) both;
+.transitionDestination::before {
+  content: "";
+  display: block;
+  width: 38px;
+  height: 3px;
+  margin-bottom: 18px;
+  background: var(--rl-accent);
+  transform-origin: left center;
+  animation: bureauDestinationRule .62s cubic-bezier(.22, 1, .36, 1) both;
 }
 
-.pageTransition[data-transition="saved"]::after {
-  transform: translate(-48%, -52%) rotate(2deg);
-  animation: bureauSavedCardB .62s cubic-bezier(.22, 1, .36, 1) both;
+.transitionEyebrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: fit-content;
+  margin-bottom: 12px;
+  color: var(--rl-muted);
+  font: 650 10px/1 var(--rl-font-mono);
+  letter-spacing: .15em;
 }
 
-/* SETTINGS — the calibration grid collapses toward its control edge. */
-.pageTransition[data-transition="settings"]::before {
-  inset: 0;
-  transform-origin: 100% 50%;
+.transitionEyebrow > span {
+  color: var(--rl-accent);
+}
+
+.transitionEyebrow > b {
+  font: inherit;
+  letter-spacing: .08em;
+}
+
+.transitionDestination > strong {
+  display: block;
+  max-width: 12ch;
+  font-family: var(--rl-font-editorial);
+  font-size: clamp(44px, 8.6vw, 112px);
+  font-weight: 500;
+  line-height: .88;
+  letter-spacing: -.055em;
+  text-wrap: balance;
+}
+
+.transitionDescriptor {
+  display: block;
+  margin-top: 20px;
+  color: var(--rl-muted);
+  font: 500 clamp(11px, 1.05vw, 14px)/1.35 var(--rl-font-mono);
+  letter-spacing: .025em;
+}
+
+.transitionRouteLine {
+  position: absolute;
+  z-index: 2;
+  background: color-mix(in srgb, var(--rl-accent) 78%, var(--rl-rule));
+  opacity: .7;
+  will-change: transform, opacity;
+}
+
+/* Each workspace keeps one quiet directional signature. The destination plate
+   stays in the same place so navigation remains predictable. */
+.pageTransition[data-transition="home"] .transitionVeil::after {
   background:
-    radial-gradient(circle at 78% 24%, color-mix(in srgb, var(--rl-accent) 15%, transparent), transparent 22rem),
-    repeating-linear-gradient(90deg, transparent 0 47px, color-mix(in srgb, var(--rl-rule) 35%, transparent) 47px 48px),
-    var(--rl-panel);
-  animation: bureauSettingsCalibrate .58s cubic-bezier(.22, 1, .36, 1) both;
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 31px,
+      color-mix(in srgb, var(--rl-rule) 54%, transparent) 31px 32px
+    );
 }
 
-.pageTransition[data-transition="settings"]::after {
+.pageTransition[data-transition="home"] .transitionRouteLine {
+  left: 0;
+  right: 0;
+  top: 28%;
+  height: 1px;
+  transform-origin: left center;
+  animation: bureauRouteHorizontal .62s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.pageTransition[data-transition="studio"] .transitionVeil::after {
+  background:
+    linear-gradient(90deg, transparent calc(50% - .5px), var(--rl-rule) 50%, transparent calc(50% + .5px)),
+    linear-gradient(0deg, transparent calc(50% - .5px), var(--rl-rule) 50%, transparent calc(50% + .5px));
+}
+
+.pageTransition[data-transition="studio"] .transitionRouteLine {
   top: 0;
   bottom: 0;
-  right: 18%;
-  width: 2px;
-  background: var(--rl-accent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--rl-accent) 45%, transparent);
-  animation: bureauSettingsLine .58s cubic-bezier(.22, 1, .36, 1) both;
+  left: 50%;
+  width: 1px;
+  transform-origin: center top;
+  animation: bureauRouteVertical .62s cubic-bezier(.22, 1, .36, 1) both;
 }
 
-@keyframes bureauSurfaceHome {
-  from { opacity: 0; transform: translateY(14px) scale(.994); }
-  to { opacity: 1; transform: none; }
+.pageTransition[data-transition="search"] .transitionVeil::after {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 8px,
+      color-mix(in srgb, var(--rl-accent) 18%, transparent) 8px 9px
+    );
 }
 
-@keyframes bureauSurfaceStudio {
-  from { opacity: 0; transform: translateX(-12px); }
-  to { opacity: 1; transform: none; }
+.pageTransition[data-transition="search"] .transitionRouteLine {
+  top: 0;
+  bottom: 0;
+  left: 24%;
+  width: 1px;
+  transform-origin: center top;
+  animation: bureauRouteVertical .62s cubic-bezier(.22, 1, .36, 1) both;
 }
 
-@keyframes bureauSurfaceSearch {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: none; }
+.pageTransition[data-transition="library"] .transitionVeil::after {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 92px,
+      color-mix(in srgb, var(--rl-rule) 48%, transparent) 92px 93px
+    );
 }
 
-@keyframes bureauSurfaceLibrary {
-  from { opacity: 0; transform: translateX(14px); }
-  to { opacity: 1; transform: none; }
+.pageTransition[data-transition="library"] .transitionRouteLine {
+  left: 0;
+  right: 0;
+  bottom: 26%;
+  height: 1px;
+  transform-origin: right center;
+  animation: bureauRouteHorizontalReverse .62s cubic-bezier(.22, 1, .36, 1) both;
 }
 
-@keyframes bureauSurfaceSaved {
-  from { opacity: 0; transform: translateY(10px) scale(.998) rotate(-.15deg); }
-  to { opacity: 1; transform: none; }
+.pageTransition[data-transition="saved"] .transitionVeil::after {
+  inset: 13% 9%;
+  border: 1px solid color-mix(in srgb, var(--rl-rule) 65%, transparent);
+  box-shadow:
+    14px 14px 0 color-mix(in srgb, var(--rl-rule) 18%, transparent),
+    -9px 9px 0 color-mix(in srgb, var(--rl-accent) 7%, transparent);
+  transform: rotate(-1deg);
 }
 
-@keyframes bureauSurfaceSettings {
-  from { opacity: 0; transform: translateX(12px); }
-  to { opacity: 1; transform: none; }
+.pageTransition[data-transition="saved"] .transitionRouteLine {
+  left: -4%;
+  right: -4%;
+  top: 64%;
+  height: 1px;
+  transform: rotate(-1.5deg);
+  transform-origin: left center;
+  animation: bureauRouteSaved .62s cubic-bezier(.22, 1, .36, 1) both;
 }
 
-@keyframes bureauTransitionMark {
-  0%, 34% { opacity: .74; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-8px); }
+.pageTransition[data-transition="settings"] .transitionVeil::after {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 47px,
+      color-mix(in srgb, var(--rl-rule) 40%, transparent) 47px 48px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 47px,
+      color-mix(in srgb, var(--rl-rule) 24%, transparent) 47px 48px
+    );
 }
 
-@keyframes bureauCaseSheet {
-  0% { clip-path: inset(0 0 0 0); }
-  100% { clip-path: inset(0 0 100% 0); }
+.pageTransition[data-transition="settings"] .transitionRouteLine {
+  top: 0;
+  bottom: 0;
+  right: 19%;
+  width: 1px;
+  transform-origin: center bottom;
+  animation: bureauRouteVerticalReverse .62s cubic-bezier(.22, 1, .36, 1) both;
 }
 
-@keyframes bureauStampLift {
-  0%, 20% { opacity: .42; transform: rotate(11deg) scale(1); }
-  100% { opacity: 0; transform: rotate(18deg) scale(.82) translateY(-28px); }
+@keyframes bureauVeilRelease {
+  0% { opacity: 1; }
+  34% { opacity: .96; }
+  100% { opacity: 0; }
 }
 
-@keyframes bureauStudioLeft {
-  0%, 12% { transform: translateX(0); }
-  100% { transform: translateX(-102%); }
+@keyframes bureauBlueprintDrift {
+  0%, 30% { opacity: .22; transform: translate3d(0, 0, 0); }
+  100% { opacity: 0; transform: translate3d(0, -8px, 0); }
 }
 
-@keyframes bureauStudioRight {
-  0%, 12% { transform: translateX(0); }
-  100% { transform: translateX(102%); }
+@keyframes bureauDestination {
+  0% { opacity: 0; transform: translate3d(0, calc(-50% + 8px), 0); }
+  16% { opacity: 1; transform: translate3d(0, -50%, 0); }
+  68% { opacity: 1; transform: translate3d(0, -50%, 0); }
+  100% { opacity: 0; transform: translate3d(0, calc(-50% - 7px), 0); }
 }
 
-@keyframes bureauSearchScan {
-  0%, 10% { transform: translateY(0); }
-  100% { transform: translateY(-103%); }
+@keyframes bureauDestinationRule {
+  0% { opacity: 0; transform: scaleX(.15); }
+  20%, 72% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(.72); }
 }
 
-@keyframes bureauArchiveDrawer {
-  0%, 10% { transform: translateX(0); }
-  100% { transform: translateX(103%); }
+@keyframes bureauRouteHorizontal {
+  0% { opacity: 0; transform: scaleX(0); }
+  20%, 64% { opacity: .7; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
 }
 
-@keyframes bureauArchiveLabel {
-  0%, 16% { opacity: 1; transform: translateX(0) rotate(-1deg); }
-  100% { opacity: 0; transform: translateX(42vw) rotate(2deg); }
+@keyframes bureauRouteHorizontalReverse {
+  0% { opacity: 0; transform: scaleX(0); }
+  20%, 64% { opacity: .7; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
 }
 
-@keyframes bureauSavedCardA {
-  0%, 10% { opacity: 1; transform: translate(-52%, -48%) rotate(-2deg); }
-  100% { opacity: 0; transform: translate(-78%, -76%) rotate(-8deg); }
+@keyframes bureauRouteVertical {
+  0% { opacity: 0; transform: scaleY(0); }
+  20%, 64% { opacity: .7; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(1); }
 }
 
-@keyframes bureauSavedCardB {
-  0%, 10% { opacity: 1; transform: translate(-48%, -52%) rotate(2deg); }
-  100% { opacity: 0; transform: translate(-18%, -18%) rotate(8deg); }
+@keyframes bureauRouteVerticalReverse {
+  0% { opacity: 0; transform: scaleY(0); }
+  20%, 64% { opacity: .7; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(1); }
 }
 
-@keyframes bureauSettingsCalibrate {
-  0%, 10% { transform: scaleX(1); }
-  100% { transform: scaleX(0); }
-}
-
-@keyframes bureauSettingsLine {
-  0%, 10% { opacity: 1; transform: translateX(0); }
-  100% { opacity: 0; transform: translateX(20vw); }
+@keyframes bureauRouteSaved {
+  0% { opacity: 0; transform: rotate(-1.5deg) scaleX(0); }
+  20%, 64% { opacity: .7; transform: rotate(-1.5deg) scaleX(1); }
+  100% { opacity: 0; transform: rotate(-1.5deg) scaleX(1); }
 }
 
 @media (max-width: 800px) {
@@ -3658,9 +3645,33 @@
     top: 56px;
   }
 
-  .pageTransition > span {
-    left: 16px;
-    bottom: 18px;
+  .transitionDestination {
+    left: 18px;
+    width: calc(100vw - 36px);
+  }
+
+  .transitionDestination::before {
+    width: 30px;
+    margin-bottom: 14px;
+  }
+
+  .transitionDestination > strong {
+    max-width: 11ch;
+    font-size: clamp(38px, 13.2vw, 64px);
+    line-height: .92;
+  }
+
+  .transitionDescriptor {
+    margin-top: 16px;
+    max-width: 30ch;
+  }
+
+  .pageTransition[data-transition="search"] .transitionRouteLine {
+    left: 14%;
+  }
+
+  .pageTransition[data-transition="settings"] .transitionRouteLine {
+    right: 12%;
   }
 }
 
@@ -3668,9 +3679,5 @@
   .pageTransition {
     display: none;
   }
-
-  .surfaceTransitionBody {
-    animation: none !important;
-    will-change: auto;
-  }
 }
+
