@@ -1382,24 +1382,9 @@
   scrollbar-gutter: auto;
 }
 
-/* Studio is an edge-owned workspace: the writing desk keeps breathing room,
-   while Sound Explorer docks to the top/right/bottom viewport edges. */
-.contentViewport[data-surface="studio"] {
-  padding: 0;
-}
-
-.contentViewport[data-surface="studio"] .primaryFoundation {
-  margin: 8px 0 16px 8px;
-}
-
-.contentViewport[data-surface="studio"] .assistFoundation[data-r3="true"] {
-  margin: 0;
-  border-top: 0;
-  border-right: 0;
-  border-bottom: 0;
-  border-radius: 0;
-}
-
+/* Desktop workspaces: Sound Explorer is a true right dock, while the writing
+   desk keeps deliberate breathing room. Full Search is centered and capped so
+   ultra-wide displays do not turn result rows into long reading lines. */
 .searchSurface {
   width: 100%;
   height: 100%;
@@ -1407,6 +1392,26 @@
 }
 
 @media (min-width: 801px) {
+  .contentViewport[data-surface="studio"] {
+    padding: 0;
+  }
+
+  .contentViewport[data-surface="studio"] .primaryFoundation {
+    margin: 8px 0 16px 8px;
+  }
+
+  .contentViewport[data-surface="studio"] .assistFoundation[data-r3="true"] {
+    margin: 0;
+    border-top: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 0;
+  }
+
+  .contentViewport[data-surface="search"] {
+    padding-inline: 0;
+  }
+
   .contentViewport[data-surface="search"] .searchSurface {
     width: min(80%, 1680px);
     margin-inline: auto;
