@@ -25,16 +25,23 @@ surface. The React work must preserve every existing Search, editor, Library,
 Analysis, Perform, appearance, mobile, persistence, recovery, diagnostics and
 runtime-database behavior. No functional simplification is authorized.
 
-R0 and R1 are complete. The isolated React package, hard parity inventory and
-dedicated CI are established. R1 adds strict TypeScript contracts over 18 existing
-browser/domain modules covering SearchState, client query pronunciation/cache,
-Writer/capabilities/runtime editions, document model/IndexedDB/backup, editor,
-undo, Perform, revision diff, analysis/detail, diagnostics and device acceptance.
+R0, R1 and R2 are complete. The isolated React package, hard parity inventory
+and dedicated CI are established. R1 adds strict TypeScript contracts over 18
+existing browser/domain modules and preserves the existing implementations by
+identity.
 
-The bridge deliberately re-exports the existing implementation functions by
-identity; it does not fork their semantics. Focused contract:
-`docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`. Next implementation phase: **R2 shell +
-design system**.
+R2 replaces the migration dashboard with the real React application shell:
+semantic design tokens, full desktop sidebar, <=1150 px rail, <=800 px mobile
+bottom navigation, compact <=560 px treatment, topbar, Light/Dark + existing custom
+theme slots, DE/EN state, ranked command palette, Base UI overlay primitives,
+reduced motion, single normal content-scroll ownership and the existing
+VisualViewport controller.
+
+R2 does not fake or rewrite Search, Library, editor, persistence, Analysis or
+Perform behavior. Device-dependent rows remain `ported` / `in_progress` rather
+than falsely `verified`. Contracts:
+`docs/REACT_STUDIO_R1_TYPED_BRIDGE.md` and
+`docs/REACT_STUDIO_R2_SHELL.md`. Next implementation phase: **R3 Search / Writer**.
 
 The existing seven physical browser/touch/Web Audio Studio acceptance gates remain
 required cutover evidence rather than being discarded by the framework migration.
