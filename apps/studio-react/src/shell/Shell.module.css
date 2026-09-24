@@ -2971,6 +2971,7 @@
   min-height: var(--visual-viewport-height, 100dvh) !important;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
+  padding-inline: 0 !important;
 }
 
 .appShell[data-focus="true"] .studioFoundation > .assistFoundation,
@@ -2981,6 +2982,7 @@
 
 .appShell[data-focus="true"] .primaryFoundation {
   min-height: var(--visual-viewport-height, 100dvh) !important;
+  margin: 0 !important;
   padding: 0 !important;
 }
 
