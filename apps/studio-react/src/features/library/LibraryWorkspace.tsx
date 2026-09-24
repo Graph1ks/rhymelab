@@ -686,6 +686,7 @@ export function LibraryWorkspace({ onDone }: { onDone?: () => void } = {}) {
                 key={folderName}
                 className={styles.explorerFolderRow}
                 data-selected={selected ? 'true' : 'false'}
+                data-cut={clipboard?.mode === 'cut' && clipboard.kind === 'folder' && clipboard.folder === folderName ? 'true' : 'false'}
                 role="button"
                 tabIndex={0}
                 onClick={() => {
