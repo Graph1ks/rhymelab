@@ -251,6 +251,27 @@ test('product runtime contains no eSpeak or child_process query pronunciation de
 });
 
 
+test('browser resolver keeps nested compound structure for Murmeltierabende inside a phrase',async()=>{
+  const references=new Map([
+    ['eins',{surface:'Eins',preferredIpa:'ˈaɪns'}],
+    ['zwei',{surface:'Zwei',preferredIpa:'ˈtsvaɪ'}],
+    ['drei',{surface:'Drei',preferredIpa:'ˈdRaɪ'}],
+    ['vier',{surface:'Vier',preferredIpa:'ˈfiːɐ'}],
+    ['abende',{surface:'Abende',preferredIpa:'ˈaːbəntə'}],
+  ]);
+  const detail=await resolveUnknownClientPronunciation(
+    'Eins Zwei Drei Vier Murmeltierabende',
+    'de',
+    {lookupReference:async(surface)=>references.get(surface)||null},
+  );
+
+  assert.equal(detail.method,'client_token_chain');
+  assert.equal(detail.tokens.at(-1).surface,'Murmeltierabende');
+  assert.match(detail.tokens.at(-1).method,/compound_right_edge$/u);
+  assert.equal(detail.tokens.at(-1).components.at(-1),'Abende');
+  assert.ok(detail.ipa);
+});
+
 test('browser resolver resolves arbitrary mixed source-backed/generated word chains',async()=>{
   const query='heute abend große gangbang party';
   assert.deepEqual(
