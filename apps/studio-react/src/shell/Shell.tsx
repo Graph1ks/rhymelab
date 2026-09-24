@@ -29,6 +29,8 @@ function TopNavButton({
   active: boolean;
   onSelect: (surface: AppSurface) => void;
 }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <button
       type="button"
@@ -37,7 +39,17 @@ function TopNavButton({
       aria-current={active ? 'page' : undefined}
       onClick={() => onSelect(surface)}
     >
-      {label}
+      <span>{label}</span>
+      {active ? (
+        <motion.span
+          layoutId="topbar-active-underline"
+          className={styles.topNavUnderline}
+          transition={reduceMotion
+            ? { duration: 0 }
+            : { type: 'spring', stiffness: 430, damping: 34, mass: 0.72 }}
+          aria-hidden="true"
+        />
+      ) : null}
     </button>
   );
 }
