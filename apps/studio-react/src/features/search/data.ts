@@ -184,28 +184,66 @@ export function useWriterSearch(
   state: SearchState,
   capabilities: StudioCapabilities | null,
   runtimeDb = '',
+  {
+    enabled = true,
+    paceMs = 160,
+  }: {
+    enabled?: boolean;
+    paceMs?: number;
+  } = {},
 ) {
-  const options = writerSearchOptions(state, capabilities, runtimeDb);
+  const [pacedState, setPacedState] = useState(state);
+  const signature = [
+    state.anchor,
+    state.queryBasis,
+    state.resultLanguage,
+    state.scope,
+    state.rhymeType,
+    state.syllableFilter,
+    state.variantMode,
+    state.historical,
+    state.generated,
+    state.generatedOnly,
+    state.entityCategories.join(','),
+  ].join('|');
+
+  useEffect(() => {
+    if (!enabled) {
+      writerClient.cancel();
+      return undefined;
+    }
+    const timer = globalThis.setTimeout(
+      () => setPacedState(state),
+      Math.max(0, Math.min(600, Number(paceMs) || 0)),
+    );
+    return () => globalThis.clearTimeout(timer);
+  }, [enabled, paceMs, signature, state]);
+
+  useEffect(() => () => writerClient.cancel(), []);
+
+  const options = writerSearchOptions(pacedState, capabilities, runtimeDb);
   return useQuery<WriterSearchResult>({
     queryKey: [
       'writer-search',
-      state.anchor,
-      state.queryBasis,
-      state.resultLanguage,
-      state.scope,
-      state.rhymeType,
-      state.syllableFilter,
-      state.variantMode,
-      state.historical,
-      state.generated,
-      state.generatedOnly,
-      state.entityCategories.join(','),
+      pacedState.anchor,
+      pacedState.queryBasis,
+      pacedState.resultLanguage,
+      pacedState.scope,
+      pacedState.rhymeType,
+      pacedState.syllableFilter,
+      pacedState.variantMode,
+      pacedState.historical,
+      pacedState.generated,
+      pacedState.generatedOnly,
+      pacedState.entityCategories.join(','),
       capabilities?.queryPronunciationRevision || '',
       runtimeDb || 'default',
     ],
     queryFn: () => writerClient.search(options),
-    enabled: Boolean(state.anchor.trim()),
-    staleTime: 0,
+    enabled: enabled && Boolean(pacedState.anchor.trim()),
+    staleTime: 250,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     retry: false,
   });
 }
