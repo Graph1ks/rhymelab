@@ -1,6 +1,6 @@
 {
   "project": "RhymeLab",
-  "updated": "2026-09-23",
+  "updated": "2026-09-24",
   "phase": "STUDIO_V2_LIVE_ACCEPTANCE",
   "package_version": "0.11.0",
   "repository": {
@@ -14,9 +14,9 @@
   },
   "runtime": {
     "mode": "local_only",
-    "default_database": "data/local/distribution/rhymelab-serving-v1-standard.sqlite",
+    "default_database": "best_available_shipping_distribution",
     "default_database_schema": "rhymelab-serving-v1-product-adapter-v1",
-    "default_runtime_id": "serving-v1-shipping-distribution-standard",
+    "default_runtime_id": "serving-v1-shipping-distribution-best-available",
     "default_writer_promoted": true,
     "legacy_control_database": "data/local/rhymelab.sqlite",
     "legacy_control_database_schema": "rhymelab-local-db-v4",
@@ -68,7 +68,9 @@
         "result_render_ms"
       ],
       "copy_refreshes_server_metrics": true,
-      "default_database": "standard"
+      "default_database": "best_available_prefer_standard",
+      "unavailable_editions_selectable": false,
+      "active_database_visible_in_studio_and_search": true
     },
     "master_markov_capability": false,
     "legacy_control_runtime_selectable": false,
@@ -78,7 +80,11 @@
       "full"
     ],
     "master_developer_runtime_selectable": false,
-    "master_developer_role": "distribution_build_source_only"
+    "master_developer_role": "distribution_build_source_only",
+    "preferred_database": "data/local/distribution/rhymelab-serving-v1-standard.sqlite",
+    "startup_database_policy": "STANDARD_THEN_FULL_THEN_LITE_FIRST_AVAILABLE",
+    "minimum_installed_shipping_databases": 1,
+    "lite_only_installation_supported": true
   },
   "legacy_control_baseline": {
     "status": "preserved",
@@ -3988,24 +3994,70 @@
       "standard",
       "full"
     ],
-    "default_runtime_edition": "standard"
+    "default_runtime_edition": "best_available_prefer_standard",
+    "runtime_startup_preference": [
+      "standard",
+      "full",
+      "lite"
+    ],
+    "lite_only_runtime_supported": true
   },
   "active_continuation": {
-    "id": "DISTRIBUTION_DB_LAB_V2_BENCHMARK_EVIDENCE",
-    "status": "AWAITING_OWNER_BENCHMARK_RESPONSE",
-    "handover": "docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md",
-    "current_main": "51853e523e55",
-    "expected_owner_evidence": [
-      "Bench current",
-      "Bench suite",
-      "Copy all rhymelab-internal-db-lab-copy-v2 JSON"
-    ],
-    "next_thread_action": "analyze_owner_evidence_then_optimize_measured_hotpaths_without_rebuilding_distributions",
-    "do_not_repeat": [
-      "distribution build",
-      "distribution plan",
-      "accepted ranking gates",
-      "project re-explanation"
+    "id": "STUDIO_V2_REAL_DEVICE_ACCEPTANCE",
+    "status": "WORKFLOW_UX_V3_IMPLEMENTED_REAL_DEVICE_GATES_PENDING",
+    "handover": "docs/STUDIO_V2_HANDOVER.md",
+    "device_acceptance": "docs/STUDIO_V2_DEVICE_ACCEPTANCE.md",
+    "next_thread_action": "run_or_review_real_device_acceptance_and_fix_only_observed_interaction_regressions",
+    "preserve": [
+      "accepted Writer/ranking semantics",
+      "LITE_STANDARD_FULL runtime boundary",
+      "Master build-only boundary",
+      "Markov frozen/unlinked",
+      "Search/RhymePad fallback routes"
     ]
+  },
+  "studio_v2": {
+    "status": "LIVE_DEFAULT_PENDING_REAL_DEVICE_ACCEPTANCE",
+    "handover": "docs/STUDIO_V2_HANDOVER.md",
+    "root_route": "/",
+    "search_fallback_routes": [
+      "/search",
+      "/legacy"
+    ],
+    "rhymepad_fallback_routes": [
+      "/pad",
+      "/pad-legacy"
+    ],
+    "workflow_ux_v3": {
+      "status": "IMPLEMENTED",
+      "compact_first_run_default": true,
+      "density_preference_persisted": true,
+      "bar_reorder": "hold_bar_number_drag_live_transport_ghost_drop_space_preview_edge_autoscroll",
+      "bar_reorder_hold_ms": 260,
+      "history_restore": "full_lyrics_line_by_line_diff_review_before_restore",
+      "history_restore_pre_restore_backup": true,
+      "section_quick_insert": {
+        "hold_ms": 1500,
+        "insertion": "caret_or_selection",
+        "tags": [
+          "[Intro]",
+          "[Verse]",
+          "[Pre-Chorus]",
+          "[Chorus]",
+          "[Post-Chorus]",
+          "[Hook]",
+          "[Bridge]",
+          "[Outro]"
+        ]
+      },
+      "rhyme_search_initial_anchor": "follow_current_editor_selection",
+      "fixed_anchor": "explicit_toggle_only",
+      "result_loading": "continuous_infinite_no_manual_load_more",
+      "explicit_new_line_action": false,
+      "bottom_drawer_scroll": "single_editor_dock_scroll_owner",
+      "active_database_badge": "always_visible_in_studio_and_search",
+      "database_cards": "only_available_editions_enabled_missing_editions_disabled"
+    },
+    "real_device_acceptance": "pending_7_gates"
   }
 }
