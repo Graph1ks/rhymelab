@@ -1192,6 +1192,11 @@ const server = createServer(async (req, res) => {
   }
 });
 
+server.headersTimeout=10_000;
+server.requestTimeout=30_000;
+server.keepAliveTimeout=5_000;
+server.maxHeadersCount=100;
+
 server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymePad workspace: http://${host}:${port}/pad`);
