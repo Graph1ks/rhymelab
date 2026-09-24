@@ -245,6 +245,24 @@ async function lookupSourceBackedWord(fetchImpl,surface,language,generated,signa
   return detail?.preferredIpa?detail:null;
 }
 
+export function resolvedRightEdgeComponent(detail){
+  const method=String(detail?.method||'');
+  if(/compound_right_edge$/u.test(method)){
+    const components=Array.isArray(detail?.components)?detail.components:[];
+    return String(components.at(-1)||'').trim();
+  }
+  if(method==='client_token_chain'){
+    const tokens=Array.isArray(detail?.tokens)?detail.tokens:[];
+    const last=tokens.at(-1);
+    const lastMethod=String(last?.method||'');
+    if(/compound_right_edge$/u.test(lastMethod)){
+      const components=Array.isArray(last?.components)?last.components:[];
+      return String(components.at(-1)||'').trim();
+    }
+  }
+  return'';
+}
+
 async function resolveMissingPronunciations({
   fetchImpl,
   data,
@@ -287,6 +305,10 @@ async function resolveMissingPronunciations({
     if(detail.sourceBacked)params.set(`query_source_backed_${language}`,'1');
     if(Array.isArray(detail.components)&&detail.components.length){
       params.set(`query_components_${language}`,JSON.stringify(detail.components));
+    }
+    const rightEdgeComponent=resolvedRightEdgeComponent(detail);
+    if(rightEdgeComponent){
+      params.set(`query_right_edge_${language}`,rightEdgeComponent);
     }
     changed=true;
   }
