@@ -1,6 +1,4 @@
 node_modules/
-package-lock.json
-!apps/studio-react/package-lock.json
 *.code-workspace
 .env
 .env.*
