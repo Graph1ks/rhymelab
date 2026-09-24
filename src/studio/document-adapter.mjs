@@ -1,4 +1,5 @@
 import {barsForSong,migrateLegacyStudioState} from './document-model.mjs';
+import {defaultStudioUiLanguage} from './i18n.mjs';
 
 export const STUDIO_STORAGE_KEY='rhymelab-studio-concept-v2';
 export const STUDIO_PREFERENCES_KEY='rhymelab-studio-preferences-v1';
@@ -34,7 +35,7 @@ export function createStudioState(){
     customThemes:[],
     fontSize:21,
     density:'compact',
-    uiLanguage:'de',
+    uiLanguage:defaultStudioUiLanguage(),
   };
 }
 
