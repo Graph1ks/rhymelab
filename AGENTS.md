@@ -7,8 +7,10 @@ This repository is the authoritative engineering/project memory for RhymeLab. Re
 Before changing the project in a fresh thread/session, read:
 
 1. `PROJECT.md` — durable product identity, repository mode, architecture/cost/license/contribution boundaries
-2. `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md` — immediate active continuation for Master/Lite/Standard/Full quality/speed benchmark evidence
-3. `docs/STUDIO_V2_HANDOVER.md` — current product-shell implementation and live-cutover checkpoint
+2. `docs/REACT_STUDIO_REPLATFORM.md` — **active P0 continuation and feature-freeze contract**
+3. `docs/REACT_STUDIO_PARITY_GATE.md` — hard no-capability-loss cutover gate
+4. `docs/DISTRIBUTION_DB_LAB_V2_HANDOVER.md` — preserved database benchmark continuation, currently subordinate to the frontend replatform
+5. `docs/STUDIO_V2_HANDOVER.md` — current Studio V2 behavioral golden master and live-cutover checkpoint
 4. `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md` — still-pending physical browser/touch/Web Audio acceptance matrix
 5. `STATUS.md` — current operational state
 6. `PROJECT_STATE.json` — machine-readable current state
@@ -36,6 +38,22 @@ Default engineering behavior:
 - unsolicited external pull requests are not accepted; code/documentation contributions require explicit owner authorization and the existing CLA rules;
 - persist durable engineering decisions and project facts, not raw user/AI conversations, private discussions, or unrelated sensitive conversational content;
 - prefer focused changes over process ceremony, while preserving the repository's acceptance, provenance, licensing, security, and CI gates.
+
+## Frontend replatform feature freeze — active P0
+
+The owner has frozen new product feature development while the shipping browser frontend is replatformed to React + TypeScript + Vite + Base UI + Motion + TanStack Query + Zustand + TanStack Virtual.
+
+Hard rules:
+
+- `docs/REACT_STUDIO_REPLATFORM.md` is the active implementation plan.
+- `docs/REACT_STUDIO_PARITY_GATE.md` is a hard cutover gate, not advisory documentation.
+- Every capability currently represented by `src/studio/parity-manifest.mjs`, plus the captured Workflow UX v3 behaviors, must be verified in the React implementation before root-route cutover.
+- Do not delete, simplify, redesign away, defer, or silently alter an existing user-facing behavior as part of the port.
+- Preserve IndexedDB DocumentStore authority, stable Bar IDs, selection-proof/editor semantics, query-pronunciation behavior, runtime-edition selection, analysis/Perform semantics, recovery guarantees and the accepted Writer/Serving-v1 API behavior.
+- Keep the existing Studio V2 implementation intact as the behavioral golden master and rollback surface during migration.
+- New feature work is blocked unless the owner explicitly reopens it. Allowed work is migration, parity/regression coverage, migration-required bug fixes, and urgent correctness/security fixes.
+- A React control is not considered ported merely because it renders. It must have interaction evidence consistent with `docs/UI_INTERACTION_CONTRACT.md`.
+- `npm run studio:react:parity:cutover` is expected to fail until every mandatory row is verified.
 
 ## Long-running local data/build job standard
 
@@ -229,7 +247,7 @@ Frozen product rules:
 - `DE / EN / DE+EN` remains the unified language-basis contract;
 - English stays capability-gated until Phase 12 supplies a real accepted English runtime.
 
-Current active milestone: **Studio V2 live real-device acceptance and regression hardening**. Markov / Constrained Lyric Decoder V2 is frozen, demo-only and must remain unlinked from product surfaces.
+Current active milestone: **P0 React Studio behavior-preserving replatform**. New product feature work is frozen. Studio V2 remains the behavioral golden master; its seven real-device gates remain required parity/cutover evidence. Markov / Constrained Lyric Decoder V2 is frozen, demo-only and must remain unlinked from product surfaces.
 
 Read `docs/PHASE_12C_ENTITY_RUNTIME_AI_STAGING_HANDOVER.md`, `docs/PHASE_12C_ACCEPTANCE.md`, and `docs/ENTITY_AI_PRONUNCIATION_STAGING_V1.md` before changing Entity runtime, AI staging, benchmark-review, or promotion boundaries.
 
