@@ -181,7 +181,7 @@ export async function createWorkspacePortableBackup(
   return createPortableStudioBackup({
     snapshot,
     preferences: studioPreferencesFromState(state),
-    searchState,
+    searchState: searchState as unknown as Record<string, unknown>,
   });
 }
 
