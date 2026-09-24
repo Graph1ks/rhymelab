@@ -3367,6 +3367,31 @@
 .surfaceTransitionBody {
   width: 100%;
   min-height: 100%;
+  will-change: transform, opacity;
+}
+
+.surfaceTransitionBody[data-transition="home"] {
+  animation: bureauSurfaceHome .42s .1s ease-out both;
+}
+
+.surfaceTransitionBody[data-transition="studio"] {
+  animation: bureauSurfaceStudio .32s .1s ease-out both;
+}
+
+.surfaceTransitionBody[data-transition="search"] {
+  animation: bureauSurfaceSearch .32s .1s ease-out both;
+}
+
+.surfaceTransitionBody[data-transition="library"] {
+  animation: bureauSurfaceLibrary .32s .1s ease-out both;
+}
+
+.surfaceTransitionBody[data-transition="saved"] {
+  animation: bureauSurfaceSaved .32s .1s ease-out both;
+}
+
+.surfaceTransitionBody[data-transition="settings"] {
+  animation: bureauSurfaceSettings .32s .1s ease-out both;
 }
 
 .contentViewport[data-surface="studio"] > .surfaceTransition,
@@ -3538,6 +3563,36 @@
   animation: bureauSettingsLine .58s cubic-bezier(.22, 1, .36, 1) both;
 }
 
+@keyframes bureauSurfaceHome {
+  from { opacity: 0; transform: translateY(14px) scale(.994); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes bureauSurfaceStudio {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes bureauSurfaceSearch {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes bureauSurfaceLibrary {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes bureauSurfaceSaved {
+  from { opacity: 0; transform: translateY(10px) scale(.998) rotate(-.15deg); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes bureauSurfaceSettings {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: none; }
+}
+
 @keyframes bureauTransitionMark {
   0%, 34% { opacity: .74; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-8px); }
@@ -3612,5 +3667,10 @@
 @media (prefers-reduced-motion: reduce) {
   .pageTransition {
     display: none;
+  }
+
+  .surfaceTransitionBody {
+    animation: none !important;
+    will-change: auto;
   }
 }
