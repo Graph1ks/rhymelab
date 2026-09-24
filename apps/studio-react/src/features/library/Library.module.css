@@ -1516,7 +1516,8 @@
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--rl-accent) 72%, transparent);
 }
 
-.explorerSongRow[data-cut="true"] {
+.explorerSongRow[data-cut="true"],
+.explorerFolderRow[data-cut="true"] {
   opacity: .48;
 }
 
