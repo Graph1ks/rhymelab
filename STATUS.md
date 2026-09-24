@@ -25,7 +25,7 @@ surface. The React work must preserve every existing Search, editor, Library,
 Analysis, Perform, appearance, mobile, persistence, recovery, diagnostics and
 runtime-database behavior. No functional simplification is authorized.
 
-R0 through R5 are complete. The isolated React package, hard parity inventory
+R0 through R6 are complete. The isolated React package, hard parity inventory
 and dedicated CI remain the migration gate.
 
 R3 runs the existing live Search/Writer path inside React with one shared
@@ -36,7 +36,7 @@ DocumentStore as persistence authority. React holds only the render/mutation wor
 copy; the 180-ms serialized save queue, lifecycle flush, Recovery and portable backup
 continue through the existing R1/R4 document path.
 
-R5 now ports the real unified editor onto that persistence layer: stable Bar IDs,
+R5 ports the real unified editor onto that persistence layer: stable Bar IDs,
 tracked/free lines, bracket metadata exclusion, Selection Proof, safe Writer insert,
 native replace/split/merge/multiline paste, IME transaction boundaries, 1100-ms
 typing-burst undo/redo coalescing, 650-ms revision boundaries, safe clear, revision
@@ -44,22 +44,33 @@ compare/restore, Bar actions/Navigator, 260-ms hold-drag with ghost/drop preview
 edge auto-scroll, 1.5-second section long-press, editor font controls and the mobile
 Editor/Rhymes single-surface swap.
 
-The functional R5 checkpoint `85dbd349ac65`
-passes strict TypeScript, production Vite build and 60/60 automated tests. React
-Studio Replatform #132, Full RhymeLab CI #1315 and Studio V2 Gate #450 all pass.
+R6 now ports Analysis + Perform without replacing their existing semantics. Analysis
+uses the existing canonical Writer analysis adapter through TanStack Query for
+end-rhyme scheme, all-word relations, IPA/stress, rhyme-chain/Section projections and
+Bar Inspector data. Perform reuses the existing stable-Bar-ID performance session for
+Hit/Accent/Pause/Breath/Hold/Erase cues, accessible move plus drag/drop, 8/16 grids,
+Straight/Triplet, half/normal/double time, Auto-Map, cue-review invalidation and Web
+Audio metronome timing. Perform mutations go through the R5 undo/revision boundary
+and then the R4 persistence path.
 
-The parity matrix is now 66 `ported`, 5 `in_progress`, 22 `pending`, 0
+The functional R6 checkpoint `48600af0221c5d9429813e697b381af3a794383e`
+passes strict TypeScript, production Vite build and 71/71 automated tests, including
+11 focused R6 contract tests. React Studio Replatform #152, Full RhymeLab CI #1335
+and Studio V2 Gate #470 all pass.
+
+The parity matrix is now 82 `ported`, 5 `in_progress`, 6 `pending`, 0
 `verified` / 93 total. Browser/device-dependent rows remain below `verified`.
-`editor.theme` remains `in_progress` and
-`workflow-v3.single-drawer-scroll` remains `pending`.
+`editor.theme` remains `in_progress`; physical IME/Web Audio/mobile evidence,
+`workflow-v3.single-drawer-scroll` and the final system/cutover rows remain R7 work.
 
 Contracts:
 `docs/REACT_STUDIO_R1_TYPED_BRIDGE.md`,
 `docs/REACT_STUDIO_R2_SHELL.md`,
 `docs/REACT_STUDIO_R3_SEARCH_WRITER.md`,
-`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`, and
-`docs/REACT_STUDIO_R5_EDITOR.md`. Next implementation phase:
-**R6 Analysis + Perform**.
+`docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md`,
+`docs/REACT_STUDIO_R5_EDITOR.md`, and
+`docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md`. Next implementation phase:
+**R7 automated + real-device parity**.
 
 The existing seven physical browser/touch/Web Audio Studio acceptance gates remain
 required cutover evidence rather than being discarded by the framework migration.
