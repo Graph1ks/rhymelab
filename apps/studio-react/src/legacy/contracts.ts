@@ -614,7 +614,7 @@ export interface RuntimeEditionSummary extends JsonRecord {
 export interface RuntimeEditionPayload extends JsonRecord {
   enabled?: boolean;
   defaultDatabase?: RuntimeEdition | string;
-  databases?: RuntimeEditionSummary[] | JsonRecord;
+  databases?: RuntimeEditionSummary[];
 }
 
 export interface StudioDiagnosticCheck {
