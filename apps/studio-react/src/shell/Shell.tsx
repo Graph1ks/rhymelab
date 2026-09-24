@@ -254,6 +254,7 @@ function MobileNavigation() {
 export function Shell() {
   const themeChoice = useUiStore((state) => state.themeChoice);
   const language = useUiStore((state) => state.uiLanguage);
+  const surface = useUiStore((state) => state.surface);
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -280,7 +281,12 @@ export function Shell() {
       <Sidebar />
       <div className={styles.main}>
         <Topbar />
-        <main className={styles.contentViewport} id="main-content" tabIndex={-1}>
+        <main
+          className={styles.contentViewport}
+          data-surface={surface}
+          id="main-content"
+          tabIndex={-1}
+        >
           <SurfaceContent />
         </main>
       </div>
