@@ -47,7 +47,7 @@ Personality belongs around the writing, never over it.
 | Perform | Strong rehearsal text hierarchy and coherent transport/tool surfaces | Timing, cues, BPM/grid/feel/count-in/loop, review invalidation, Web Audio and Focus |
 | Settings | Cohesive style workbench and data-safety surfaces; replace visible migration badge with product copy | Color generation/edit/save/apply/delete, defaults/reset, contrast report, backup/import/recovery |
 | Intro | Editorial poster composition and static sound specimen; retain existing copy and navigation actions | All entry points, language variants, reduced motion |
-| Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; wrap controls rather than clip them; coarse-pointer targets | No sidebar return, no new nested page scroll, no hover-only action |
+| Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; wrap controls rather than clip them; coarse-pointer targets | No sidebar return, no new nested page scroll, no hover-only action |\n| Page transitions | Full-viewport Bureau transitions below the persistent topbar: case sheet (Home), drafting shutters (Studio), phonetic scan (Search), archive drawer (Library), evidence cards (Saved), calibration grid (Settings) | Surface state, providers, scroll ownership, pointer input, dialogs/popovers and `prefers-reduced-motion` |
 
 ## No-capability-loss contract
 
@@ -59,7 +59,7 @@ Personality belongs around the writing, never over it.
    change line height, padding, font or gutter offsets in the design pass.
 4. Preserve result virtualizer sizing and scroll containers. Do not animate result
    row geometry or add decorative overlays that intercept pointer input.
-5. Keep DE/EN, Light/Dark, custom themes, reduced motion and visible keyboard focus.
+5. Keep DE/EN, Light/Dark, custom themes, reduced motion and visible keyboard focus. Page-transition overlays must be decorative (`aria-hidden`), `pointer-events: none`, remain below the topbar, and disappear entirely for reduced-motion users.
 6. Legacy Studio and the default-route/cutover contract remain intact. No parity row
    is promoted to verified merely because the design or automated checks pass.
 7. The attached music prompt data is unrelated to this UI pass and is not imported
@@ -114,7 +114,7 @@ specimen and replacing the migration-phase Settings badge with product copy.
 | Visual/browser and real-device acceptance | PENDING; local preview inaccessible to supplied cloud browser |
 | Full-data Writer exercise | PENDING; owner-local SQLite distributions required |
 
-The AST comparison is a source-preservation check, not runtime interaction evidence.
+The page-transition layer was added after the first design pass as a presentation-only shell layer. It does not alter navigation state, editor/search providers or domain code; each surface remounts only the keyed decorative curtain/body animation beneath the persistent topbar.\n\nThe AST comparison is a source-preservation check, not runtime interaction evidence.
 The existing runtime/domain tests remain intact; no gate or test was weakened.
 
 ### Review locally
