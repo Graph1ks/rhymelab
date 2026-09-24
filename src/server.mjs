@@ -1198,8 +1198,9 @@ server.maxRequestsPerSocket=100;
 server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
   console.log(`RhymePad workspace: http://${host}:${port}/pad`);
-  console.log(`Studio V2: http://${host}:${port}${studioDefaultRoute?' / (default)':'/studio'}`);
-  console.log(`Legacy Search: http://${host}:${port}/search${studioDefaultRoute?'':' (default)'}`);
+  console.log(`React Studio: http://${host}:${port}${searchDefaultRoute?'/studio':' / (default)'}`);
+  console.log(`Studio V2 rollback: http://${host}:${port}/studio-legacy${reactStudioPreview.defaultRoute?'':' / (default)'}`);
+  console.log(`Legacy Search: http://${host}:${port}/search${searchDefaultRoute?' (default)':''}`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
   console.log(`Markov DE database: ${markovRuntime.available ? markovModelPath : 'unavailable — npm run markov:model:build'}`);
   console.log(`Markov EN database: ${markovEnglishRuntime.available ? markovEnglishModelPath : 'unavailable — npm run markov:model:build:en'}`);
