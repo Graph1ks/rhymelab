@@ -181,3 +181,24 @@ longer an end-user Settings surface.
 
 R8 route cutover remains blocked until the required parity/browser/device evidence is
 complete and the parity matrix reaches 93/93 `verified`.
+
+
+## Research basis for the All Rhymes view
+
+The Round-2 All Rhymes design follows the stronger pattern seen in modern rhyme
+visualization work rather than treating every rhyme as an isolated colored badge:
+
+- RapViz (Müller, Panzer & Beck, VISIGRAPP 2025, DOI 10.5220/0013190700003912)
+  uses readable lyrics enriched with rhyme-group color plus linked structural views.
+- RapViz specifically combines color encoding for rhyme groups with structural
+  connections for end-rhyme schemes and a second temporal perspective for internal
+  rhyme patterns.
+- The Hamilton Algorithm visualization work likewise uses color-coded annotated
+  lyrics plus an abstract structural diagram derived from phonetic syllable matches.
+- Earlier rap-rhyme work by Hirjee & Brown explicitly models internal and imperfect
+  rhyme rather than limiting analysis to line-final perfect rhyme.
+
+RhymeLab therefore keeps the lyric itself primary, encodes connected rhyme chains
+with stable group color, encodes relation class separately through underline/type
+color, and lets the user isolate one chain across the text. This avoids the previous
+failure mode where every rhyme was simply highlighted with the same visual treatment.
