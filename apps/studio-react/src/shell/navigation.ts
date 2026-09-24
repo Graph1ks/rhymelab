@@ -20,8 +20,6 @@ export interface NavigationItem {
 export const NAVIGATION_ITEMS: readonly NavigationItem[] = Object.freeze([
   { id: 'studio', label: 'Studio', mobileLabel: 'Schreiben', shortcut: '1', icon: 'pen' },
   { id: 'search', label: 'Reimsuche', mobileLabel: 'Entdecken', shortcut: '2', icon: 'search' },
-  { id: 'library', label: 'Meine Texte', mobileLabel: 'Texte', icon: 'grid' },
-  { id: 'saved', label: 'Merkliste', mobileLabel: 'Merkliste', icon: 'bookmark' },
 ]);
 
 const FALLBACK_EN: Record<string, string> = {
