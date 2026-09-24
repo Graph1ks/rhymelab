@@ -99,6 +99,10 @@ test('local UI exposes one unified word and Phrase/Mosaic Writer surface', async
   assert.match(app, /available\.includes\(stored\)/);
   assert.match(app, /runtimeDbPreference=available\.includes\(stored\)/);
   assert.doesNotMatch(app, /\['master','lite','standard','full'\]/);
+  assert.match(app, /setupInfiniteScroll\(hasMore\)/);
+  assert.match(app, /const visible=orderedAll\.slice\(0,state\.visibleCount\)/);
+  assert.doesNotMatch(app, /data-more-section/);
+  assert.doesNotMatch(app, /more-button/);
   assert.match(app, /params\.set\('runtime_db',requestedDb\)/);
   assert.match(app, /function updateRuntimeDbBadge\(/);
   assert.match(app, /document\.addEventListener\('pointerdown'/);
