@@ -281,6 +281,8 @@ test('Studio V2 production surface is present with its core visual/interaction c
   assert.match(app,/function ensureActiveBarVisible\(/u);
   assert.match(app,/function bindMobileViewport\(/u);
   assert.match(app,/followSelection=true;[\s\S]*?if\(lastWord\)query=lastWord\[0\]/u);
+  assert.match(app,/const effectiveDensity=density/u);
+  assert.doesNotMatch(app,/page==='studio'\?'compact':density/u);
   assert.match(app,/function bindEditorDockWheelRouting\(/u);
   assert.match(app,/queueInfiniteResultsFill/u);
   assert.match(app,/mobileScrollDeltaForRect/u);
