@@ -2,7 +2,7 @@
 
 Status: **AUTOMATED VERIFIED / browser + physical Web Audio acceptance deferred**
 
-Tested functional code head: `48600af0221c5d9429813e697b381af3a794383e`
+Tested functional code head: `48600af0221c`
 
 R6 ports the existing Studio V2 Analysis and Perform workflows into the React Studio without changing the accepted analysis endpoint, performance-session semantics, document authority, backend, or shipping Studio V2 implementation.
 
