@@ -28,6 +28,8 @@ test('browser security headers deny framing, objects and remote script execution
   assert.equal(headers['x-frame-options'],'DENY');
   assert.equal(headers['x-content-type-options'],'nosniff');
   assert.equal(headers['referrer-policy'],'no-referrer');
+  assert.match(headers['permissions-policy'],/microphone=\(\)/);
+  assert.match(headers['permissions-policy'],/serial=\(\)/);
   assert.match(headers['content-security-policy'],/script-src 'self'/);
   assert.match(headers['content-security-policy'],/object-src 'none'/);
   assert.match(headers['content-security-policy'],/frame-ancestors 'none'/);
@@ -40,32 +42,56 @@ test('browser security headers deny framing, objects and remote script execution
 });
 
 test('remote server binding requires an explicit owner opt-in',()=>{
-  assert.deepEqual(assertSafeServerBinding({host:'127.0.0.1',env:{}}),{remote:false});
-  assert.deepEqual(assertSafeServerBinding({host:'::1',env:{}}),{remote:false});
+  assert.deepEqual(assertSafeServerBinding({host:'127.0.0.1',env:{}}),{remote:false,allowedHosts:[]});
+  assert.deepEqual(assertSafeServerBinding({host:'::1',env:{}}),{remote:false,allowedHosts:[]});
   assert.throws(
     ()=>assertSafeServerBinding({host:'0.0.0.0',env:{}}),
     /RHYMELAB_ALLOW_REMOTE=1/,
   );
+  assert.throws(
+    ()=>assertSafeServerBinding({host:'0.0.0.0',env:{RHYMELAB_ALLOW_REMOTE:'1'}}),
+    /RHYMELAB_ALLOWED_HOSTS/,
+  );
   assert.deepEqual(
-    assertSafeServerBinding({host:'0.0.0.0',env:{RHYMELAB_ALLOW_REMOTE:'1'}}),
-    {remote:true},
+    assertSafeServerBinding({
+      host:'0.0.0.0',
+      env:{
+        RHYMELAB_ALLOW_REMOTE:'1',
+        RHYMELAB_ALLOWED_HOSTS:'rhymelab.lan,192.168.1.20',
+      },
+    }),
+    {remote:true,allowedHosts:['rhymelab.lan','192.168.1.20']},
+  );
+  assert.deepEqual(
+    assertSafeServerBinding({host:'192.168.1.20',env:{RHYMELAB_ALLOW_REMOTE:'1'}}),
+    {remote:true,allowedHosts:['192.168.1.20']},
   );
 });
 
 test('request Host validation rejects DNS-rebinding hostnames',()=>{
   const request=(host)=>({headers:{host}});
-  assert.equal(isAllowedRequestHost(request('127.0.0.1:3030')),true);
-  assert.equal(isAllowedRequestHost(request('localhost:3030')),true);
-  assert.equal(isAllowedRequestHost(request('[::1]:3030')),true);
-  assert.equal(isAllowedRequestHost(request('evil.example:3030')),false);
+  assert.equal(isAllowedRequestHost(request('127.0.0.1:3030'),{port:3030}),true);
+  assert.equal(isAllowedRequestHost(request('localhost:3030'),{port:3030}),true);
+  assert.equal(isAllowedRequestHost(request('[::1]:3030'),{port:3030}),true);
+  assert.equal(isAllowedRequestHost(request('localhost:9999'),{port:3030}),false);
+  assert.equal(isAllowedRequestHost(request('evil.example:3030'),{port:3030}),false);
   assert.equal(
-    isAllowedRequestHost(request('192.168.1.20:3030'),{remote:true}),
+    isAllowedRequestHost(request('192.168.1.20:3030'),{remote:true,port:3030}),
+    false,
+  );
+  assert.equal(
+    isAllowedRequestHost(request('192.168.1.20:3030'),{
+      remote:true,
+      allowedRemoteHosts:['192.168.1.20'],
+      port:3030,
+    }),
     true,
   );
   assert.equal(
     isAllowedRequestHost(request('rhymelab.lan:3030'),{
       remote:true,
       allowedRemoteHosts:['rhymelab.lan'],
+      port:3030,
     }),
     true,
   );
