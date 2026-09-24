@@ -2,7 +2,7 @@
   "schema": "rhymelab-react-studio-r7-parity-v1",
   "phase": "R7",
   "status": "R7_SOURCE_PARITY_COMPLETE_UX_CORRECTION_ROUND2_IMPLEMENTED_OWNER_ACCEPTANCE_PENDING",
-  "tested_code_head": "b2d16a4ed27e",
+  "tested_code_head": "9812a674669c",
   "invariant": "93_of_93_mandatory_rows_are_source_ported_but_verified_requires_behavioral_and_device_evidence",
   "cutover_allowed": false,
   "parity": {
@@ -21,9 +21,9 @@
     "production_build": true,
     "source_parity_gate": true,
     "source_rows_ported": "93/93",
-    "react_replatform_run": 278,
-    "studio_v2_gate_run": 596,
-    "full_ci_run": 1461
+    "react_replatform_run": 288,
+    "studio_v2_gate_run": 606,
+    "full_ci_run": 1471
   },
   "r7_system": {
     "startup_binding_guard": "fail_closed_visible_error",
