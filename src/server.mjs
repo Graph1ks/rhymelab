@@ -73,7 +73,7 @@ import {createTokenBucketRateLimiter} from './request-rate-limit.mjs';
 import {
   assertSafeServerBinding,
   createRequestId,
-  isLoopbackAddress,
+  isAllowedLocalMutationRequest,
   publicHttpError,
   readJsonRequestBody,
   requestUrlFromTrustedBase,
@@ -761,19 +761,6 @@ function clientQueryPronunciation(url, language) {
   };
 }
 
-function isAllowedLocalWriteOrigin(req) {
-  const origin=String(req.headers.origin||'').trim();
-  if(!origin)return isLoopbackAddress(req.socket?.remoteAddress);
-  if(origin==='null')return false;
-  try{
-    const parsed=new URL(origin);
-    const localHost=parsed.hostname==='127.0.0.1'||parsed.hostname==='localhost'||parsed.hostname==='::1';
-    return parsed.protocol==='http:'&&localHost&&(!parsed.port||parsed.port===String(port));
-  }catch{
-    return false;
-  }
-}
-
 const server = createServer(async (req, res) => {
   const requestId=createRequestId();
   res.setHeader('x-request-id',requestId);
@@ -784,7 +771,7 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/benchmark/review') {
       if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405, false);
-      if (!isAllowedLocalWriteOrigin(req)) return json(res, { error: 'Benchmark writes are localhost-only' }, 403, false);
+      if (!isAllowedLocalMutationRequest(req,{port})) return json(res, { error: 'Benchmark writes are localhost-only' }, 403, false);
       const body = await readJsonRequestBody(req);
       const saved = await saveBenchmarkReview(body);
       const state = await loadBenchmarkState();
@@ -793,7 +780,7 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/markov/generate') {
       if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405, false);
-      if (!isAllowedLocalWriteOrigin(req)) return json(res, { error: 'Markov generation is localhost-only' }, 403, false);
+      if (!isAllowedLocalMutationRequest(req,{port})) return json(res, { error: 'Markov generation is localhost-only' }, 403, false);
       const body=await readJsonRequestBody(req,{maxBytes:512*1024});
       const rows=Array.isArray(body?.rows)?body.rows.slice(0,600):[];
       if(rows.length<2)return json(res,{error:'At least two Writer candidates are required.'},400,false);
