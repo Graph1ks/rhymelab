@@ -9,26 +9,26 @@ const FEATURE_COPY = {
   de: [
     {
       eyebrow: 'SCHREIBEN · ABTEILUNG TATORT TEXT',
-      title: 'Ein Editor ohne Verwaltungsvorgang für jeden verdammten Satz.',
-      copy: 'Bars, Silben, Abschnitte, Versionen und Schreibstimme bleiben am Text. Kein Ribbon mit 47 Icons, von denen 39 aussehen wie Steuererklärung und drei vermutlich nur HR informieren.',
+      title: 'Ein Editor ohne Formular 38b für jeden verdammten Halbsatz.',
+      copy: 'Bars, Silben, Abschnitte, Versionen und Schreibstimme bleiben am Text. Kein Ribbon mit 47 Icons, von denen 39 nach Steuererklärung aussehen und drei vermutlich nur protokollieren, wer um 03:17 Uhr den Refrain gelöscht hat.',
       icon: 'pen' as const,
     },
     {
       eyebrow: 'REIMEN · SONDERERMITTLUNG KLANG',
-      title: 'Haus / Maus / Klaus wurde nach kurzer Anhörung freigelassen.',
-      copy: 'Vollreime, Slant, Reimfamilien, Assonanz, Konsonanz, Phrasen und Namen werden gemeinsam verhört. Wer klanglich zusammenpasst, landet in derselben Akte. Wer nur ähnlich geschrieben wird, darf wieder gehen.',
+      title: 'Haus / Maus / Klaus wurde gegen Auflagen entlassen.',
+      copy: 'Vollreime, Slant, Reimfamilien, Assonanz, Konsonanz, Phrasen und Namen werden gemeinsam verhört. Klanglich belastbar? Gleiche Akte. Nur ähnlich geschrieben? Freispruch. Haus / Maus / Klaus: 200 Meter Abstand zu jedem Refrain.',
       icon: 'search' as const,
     },
     {
       eyebrow: 'ANALYSE · BEWEISMITTELSTELLE',
-      title: 'Deine Reimketten bekommen endlich eine Akte.',
-      copy: 'Rhyme Topology zeigt, welche Klangmuster durch den ganzen Text laufen. Keine Konfetti-Heatmap, die dir mit fünf Farben erklärt, dass du offensichtlich Wörter benutzt hast.',
+      title: 'Jede Reimkette bekommt ein Aktenzeichen.',
+      copy: 'Rhyme Topology zeigt, welche Klangmuster durch den ganzen Text laufen. Auch das „Motiv“, das erst ein Motiv wurde, nachdem du denselben Reim viermal aus Versehen benutzt hast. Keine Konfetti-Heatmap, die mit fünf Farben Beweis führt, dass Wörter stattgefunden haben.',
       icon: 'grid' as const,
     },
     {
       eyebrow: 'BIBLIOTHEK · ZEUGENSCHUTZ FÜR ENTWÜRFE',
-      title: 'Deine Texte bleiben bei dir. Schon aus Selbstschutz.',
-      copy: 'Bibliothek, Versionen, Recovery und Auto-Save laufen lokal-first. Falls die zweite Strophe ein Verbrechen wird, sichern wir wenigstens den Tatort von davor.',
+      title: 'Zeugenschutz für Entwürfe. Vor allem vor dir selbst.',
+      copy: 'Bibliothek, Versionen, Recovery und Auto-Save laufen lokal-first. Weil „war Absicht“ nach Strg+A, Backspace erstaunlich selten glaubwürdig klingt. Wenn Strophe zwei zum Kapitalverbrechen wird, bleibt der vorherige Tatort rekonstruierbar.',
       icon: 'bookmark' as const,
     },
   ],
@@ -69,8 +69,8 @@ export function HomePage() {
   const hero = language === 'de'
     ? {
         kicker: 'RHYME ENGINE · WRITING STUDIO',
-        title: 'Das Bureau hört alles. Zum Glück nur deine Reime.',
-        copy: 'Rhyme Bureau ist Schreibstudio, Reimermittlung, Klanglabor und Performance-Werkzeug in einer Oberfläche. Wir durchsuchen Aussprache, Betonung und Reimdomänen so gründlich, dass selbst dein unnötig kompliziertes Kunstwort irgendwann einen Sachbearbeiter bekommt. Kein KI-Seance-Zelt. Keine Cloud-Beichte. Nur Beweismittel gegen mittelmäßige Endreime.',
+        title: 'Das Bureau hört alles. Zum Glück nur deine Reime. Für den Rest fehlt der Durchsuchungsbeschluss.',
+        copy: 'Rhyme Bureau ist Schreibstudio, Reimermittlung, Klanglabor und Performance-Werkzeug in einer Oberfläche. Aussprache, Betonung und Reimdomänen werden so lange auseinandergenommen, bis selbst dein besoffen klingendes Kunstwort einen Sachbearbeiter und eine Fallnummer hat. Mittelmäßige Endreime sind legal. Wir behandeln sie trotzdem wie Beweismittel. Kein KI-Séance-Zelt. Keine Cloud-Beichte. Kein Algorithmus, der „authentisch“ sagt und dabei deine Kreditkarte meint.',
         primary: 'Studio öffnen',
         secondary: 'Reimsuche öffnen',
       }
@@ -179,7 +179,7 @@ export function HomePage() {
           <p className={styles.kicker}>{language === 'de' ? 'WAS DAS DING EIGENTLICH MACHT' : 'WHAT THIS THING ACTUALLY DOES'}</p>
           <h2>
             {language === 'de'
-              ? 'Vom leeren Blatt bis zur Klangakte. Ohne fünf Apps, drei Tabs und einen Praktikanten namens Kevin.'
+              ? 'Vom leeren Blatt bis zur Klangakte. Ohne fünf Apps, drei Tabs und einen Praktikanten, der den entscheidenden Hinweis in „final_final_v7_neu“ ablegt.'
               : 'From blank page to sound case file. Without five apps, three tabs and an intern named Kevin.'}
           </h2>
         </header>
@@ -209,19 +209,19 @@ export function HomePage() {
           <p className={styles.kicker}>{language === 'de' ? 'KEIN V-MANN. NUR PHONETIK.' : 'NO INFORMANT. JUST PHONETICS.'}</p>
           <h2>
             {language === 'de'
-              ? 'Wir schreiben nicht für dich. Wir beseitigen nur die organisatorischen Hindernisse zwischen dir und einer Zeile, für die du dich morgen nicht schämst.'
+              ? 'Wir schreiben nicht für dich. Wir verhindern nur, dass du zwei Stunden „Ding / Wing / Spring“ verhörst und das Ergebnis morgen „minimalistisch“ nennst, weil „Scheiße“ im Pressetext schlecht aussieht.'
               : 'We do not write for you. We remove the administrative obstacles between you and a line you will not regret tomorrow.'}
           </h2>
         </div>
         <div className={styles.pitchNotes}>
           <p>
             {language === 'de'
-              ? 'Die Engine arbeitet mit Aussprache, Stress, Reimdomänen und Klangrelationen. Wenn „Applaus“ ab Hauptakzent nur eine Reimsilbe hat, fälschen wir nicht die Aktenlage, nur damit der Filter beeindruckender aussieht. Dafür gibt es andere Behörden.'
+              ? 'Die Engine arbeitet mit Aussprache, Stress, Reimdomänen und Klangrelationen. Wenn „Applaus“ ab Hauptakzent nur eine Reimsilbe hat, fälschen wir nicht die Aktenlage, nur damit ein Filter sexier aussieht. Statistik frisieren ist schließlich ein eigener Berufsstand.'
               : 'The engine works with pronunciation, stress, rhyme domains and sound relations. If a word has one rhyme syllable from primary stress, we do not falsify the file just to make the filter look more impressive.'}
           </p>
           <p>
             {language === 'de'
-              ? 'Unbekannte Wörter werden lokal zerlegt, bekannte Bestandteile aus der Datenbank zuerst vernommen und der reimtragende rechte Rand gesichert. Kunstwort rein, Koffer auf, Silben auf den Tisch. Latexhandschuhe sind optional.'
+              ? 'Unbekannte Wörter werden lokal zerlegt, bekannte Bestandteile zuerst vernommen und der reimtragende rechte Rand gesichert. Hinweise am rechten Ende verschwinden diesmal nicht zwischen drei Abteilungen. Kunstwort rein, Koffer auf, Silben auf den Tisch. Latexhandschuhe optional; plausibles Leugnen nicht.'
               : 'Unknown words are resolved locally, known database components are questioned first and the rhyme-bearing right edge is secured. Invented word in, suitcase open, syllables on the table. Latex gloves optional.'}
           </p>
         </div>
@@ -230,7 +230,7 @@ export function HomePage() {
       <section className={styles.closing}>
         <div>
           <p>RHYME BUREAU · PHONETIC LICENSE TO SLAY.</p>
-          <h2>{language === 'de' ? 'Akte eröffnet. Jetzt schreib was Belastbares.' : 'Case opened. Now write something that holds up.'}</h2>
+          <h2>{language === 'de' ? 'Akte eröffnet. Jetzt schreib was, das vor einem Refrain Bestand hat.' : 'Case opened. Now write something that holds up.'}</h2>
         </div>
         <button type="button" onClick={() => navigate('studio')}>
           {language === 'de' ? 'Vernehmung starten' : 'Start questioning'} <span>↗</span>
