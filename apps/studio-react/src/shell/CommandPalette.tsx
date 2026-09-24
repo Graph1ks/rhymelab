@@ -138,7 +138,9 @@ export function CommandPalette({ showTrigger = true }: { showTrigger?: boolean }
 
   const platform = typeof navigator === 'undefined'
     ? ''
-    : (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent);
+    : (((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform)
+      || navigator.platform
+      || navigator.userAgent);
 
   return (
     <>
