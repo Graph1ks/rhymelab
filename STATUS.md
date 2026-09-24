@@ -47,18 +47,20 @@ Writer analysis remains authoritative for rhyme/IPA/stress; Perform keeps the ex
 stable-Bar-ID cue and timing model and writes through R5 history/revisions into R4
 persistence.
 
-R7 now completes the **source/automated parity layer**. The final 11 open rows are
-implemented and the matrix is 93 `ported`, 0 `in_progress`, 0 `pending`, 0
-`verified`. R7 adds a fail-closed startup binding guard, deterministic Search
-keyboard contract, Settings diagnostics, the existing seven-gate device acceptance
-UI with report import/merge/export, explicit single-drawer scroll ownership, a
-source/device cutover checker and an opt-in reversible React preview route while
-retaining Studio V2 at `/studio` and `/studio-legacy`.
+R7 now completes the **source/automated parity layer**. The matrix is 93
+`ported`, 0 `in_progress`, 0 `pending`, 0 `verified`. The fail-closed startup
+guard, deterministic Search keyboard contract, source/device cutover checker and
+opt-in reversible React preview route remain. Owner UX round 2 intentionally replaces
+the old sidebar/mobile-drawer shell with one sticky Topbar and removes engineering
+diagnostics/device-acceptance UI from end-user Settings. The seven-gate acceptance
+model remains external/manual cutover evidence rather than product chrome. Studio V2
+continues at `/studio` and `/studio-legacy`.
 
-Functional R7 checkpoint `c9725ed3312b` passes strict TypeScript, 82/82 React
-automated tests, 4/4 reversible-preview tests, production Vite build and the 93/93
-R7 source-port gate. React Studio Replatform #182, Studio V2 Gate #500 and Full
-RhymeLab CI #1365 all pass.
+The original R7 source-parity checkpoint remains historical evidence. Current owner
+UX functional checkpoint `b2d16a4ed27e` passes strict TypeScript, 91/91 React tests,
+4/4 reversible-preview tests, production Vite build and the 93/93 source-port gate.
+React Studio Replatform #278, Studio V2 Gate #596 and Full RhymeLab CI #1461 all
+pass.
 
 **Cutover remains blocked.** `ported` is not `verified`. Physical IME, audible Web
 Audio timing, mobile navigation/swap, software-keyboard VisualViewport behavior,
@@ -76,16 +78,18 @@ Contracts:
 `docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md`, and
 `docs/REACT_STUDIO_R7_PARITY.md`.
 
-Owner UX correction checkpoint `e7e93846fa00` is now implemented on top of R7.
-It removes the micro-typography/box-heavy Search/Studio presentation, moves Library
-and Saved into their owning workflows, restores direct Bar drag behavior, adds the
-virtualized local-system-font picker, collapses Search filters, gives Analysis and
-Perform the full canvas, introduces distinct rhyme group/type colors, and promotes
-Perform into a count-in/loop/auto-advance booth workflow. The durable checklist is
-`docs/REACT_STUDIO_UX_CORRECTION.md`.
+Owner UX correction round 2 is implemented at functional checkpoint
+`b2d16a4ed27e`. It keeps the earlier typography/Studio/Search cleanup and additionally
+moves the app to one sticky Topbar, makes Sound Explorer compact-only, removes the
+Search tile view, adds transient filter behavior, previews Bar moves between rows,
+replaces browser-permission Local Font Access with 50 curated on-demand Google Fonts
+(default **Oranienbaum**), upgrades Library actions, rebuilds All Rhymes as linked
+four-Bar Rhyme Topology, and makes Settings a persistent OKLCH Style Designer plus
+Data Safety. The durable checklist is `docs/REACT_STUDIO_UX_CORRECTION.md`.
 
-Current automated evidence on that checkpoint: 87/87 React tests, production build,
-React Studio Replatform #237, Studio V2 Gate #555 and RhymeLab CI #1420 including
+Automated evidence on that functional checkpoint: 91/91 React tests, strict
+TypeScript, production build, reversible preview and the R7 source gate pass. React
+Studio Replatform #278, Studio V2 Gate #596 and RhymeLab CI #1461 including
 public-readiness all pass.
 
 Active continuation: **owner visual acceptance + R7 real-browser / physical-device acceptance**. R8 may begin
