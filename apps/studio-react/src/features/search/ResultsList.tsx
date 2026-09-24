@@ -38,6 +38,7 @@ function ResultRow({
   saved,
   onSelect,
   onToggleSaved,
+  onInsert,
 }: {
   row: WriterResultRow;
   density: ResultDensity;
@@ -45,6 +46,7 @@ function ResultRow({
   saved: boolean;
   onSelect: (row: WriterResultRow) => void;
   onToggleSaved: (row: WriterResultRow) => void;
+  onInsert?: (row: WriterResultRow) => void;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const badges = resultBadges(row, language);
@@ -119,13 +121,16 @@ function ResultRow({
         <button
           type="button"
           className={styles.resultAction}
-          disabled
+          disabled={!onInsert}
           aria-label={language === 'de'
-            ? `${row.word} einsetzen · verfügbar nach Editor-Port`
-            : `Insert ${row.word} · available after editor port`}
-          title={language === 'de'
-            ? 'Einsetzen wird in R5 an eine echte Selection Proof gebunden.'
-            : 'Insert is connected to a real Selection Proof in R5.'}
+            ? `${row.word} einsetzen`
+            : `Insert ${row.word}`}
+          title={!onInsert
+            ? (language === 'de'
+              ? 'Einsetzen ist nur mit aktiver Editor-Auswahl verfügbar.'
+              : 'Insert requires an active editor selection.')
+            : undefined}
+          onClick={() => onInsert?.(row)}
         >
           +
         </button>
@@ -144,6 +149,7 @@ export function ResultsList({
   visibleCount,
   setVisibleCount,
   autoScroll,
+  onInsert,
 }: {
   rows: WriterResultRow[];
   density: ResultDensity;
@@ -154,6 +160,7 @@ export function ResultsList({
   visibleCount: number;
   setVisibleCount: (updater: number | ((current: number) => number)) => void;
   autoScroll: boolean;
+  onInsert?: (row: WriterResultRow) => void;
 }) {
   const language = useUiStore((state) => state.uiLanguage);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -253,6 +260,10 @@ export function ResultsList({
       if (density !== 'tiles') {
         requestAnimationFrame(() => virtualizer.scrollToIndex(nextIndex, { align: 'auto' }));
       }
+    } else if (event.key === 'Enter' && selectedIndex >= 0 && onInsert) {
+      event.preventDefault();
+      const selected = rows[selectedIndex];
+      if (selected) onInsert(selected);
     } else if (event.key === ' ' && selectedIndex >= 0) {
       event.preventDefault();
       const selected = rows[selectedIndex];
@@ -268,8 +279,8 @@ export function ResultsList({
       tabIndex={0}
       role="listbox"
       aria-label={language === 'de'
-        ? 'Reimtreffer; Pfeiltasten wählen, Leertaste merkt'
-        : 'Rhyme results; arrows select, Space saves'}
+        ? 'Reimtreffer; Pfeiltasten wählen, Enter setzt ein, Leertaste merkt'
+        : 'Rhyme results; arrows select, Enter inserts, Space saves'}
       onScroll={handleScroll}
       onWheel={pauseAutoScroll}
       onTouchStart={pauseAutoScroll}
@@ -288,6 +299,7 @@ export function ResultsList({
               saved={isSaved(row.word)}
               onSelect={onSelect}
               onToggleSaved={onToggleSaved}
+              onInsert={onInsert}
             />
           ))}
         </div>
@@ -312,6 +324,7 @@ export function ResultsList({
                   saved={isSaved(row.word)}
                   onSelect={onSelect}
                   onToggleSaved={onToggleSaved}
+                  onInsert={onInsert}
                 />
               </div>
             );
