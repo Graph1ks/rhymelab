@@ -204,7 +204,7 @@ bounded results scroller. R5 does not add a nested page scrollbar.
 ## Verification
 
 The functional R5 code checkpoint is
-`85dbd349ac65984049ad7d079987756914816580`.
+`85dbd349ac65`.
 
 On that code checkpoint:
 
@@ -256,7 +256,7 @@ Still intentionally not promoted:
 ## Boundary check
 
 Diffing the functional R5 checkpoint against the completed R4 head
-`cc147fad72c0d3f39377e85473a4b6071bb9c6da` shows:
+`cc147fad72c0` shows:
 
 ```text
 apps/studio-react/*       changed
