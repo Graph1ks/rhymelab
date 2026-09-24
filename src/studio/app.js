@@ -578,6 +578,7 @@ function unifiedEditorLineHeights(){
   });
 }
 let editorBarDrag=null;
+let barDragAutoScrollFrame=0;
 let suppressBarGutterClickUntil=0;
 const BAR_DRAG_HOLD_MS=260;
 function barDropPlacement(clientY,sourceIndex){
@@ -606,6 +607,8 @@ function clearEditorBarDrag(){
   drag.node?.classList.remove('is-bar-drag-source');
   $('#lyricsNotepad')?.classList.remove('is-bar-dragging');
   document.body.classList.remove('bar-reorder-active');
+  cancelAnimationFrame(barDragAutoScrollFrame);
+  barDragAutoScrollFrame=0;
   editorBarDrag=null;
 }
 function positionBarDragGhost(drag,event){
@@ -626,6 +629,27 @@ function updateEditorBarDropPreview(drag,event){
   const targetLabel=targetNumber==null?'Zwischenraum':'vor Bar '+String(targetNumber).padStart(2,'0');
   drag.preview.querySelector('b').textContent=placement.targetIndex===drag.sourceIndex?'Originalposition':targetLabel;
   positionBarDragGhost(drag,event);
+}
+function runEditorBarDragAutoScroll(){
+  const drag=editorBarDrag;
+  if(!drag?.active){barDragAutoScrollFrame=0;return}
+  const scroller=$('#editorScroll'),event=drag.lastEvent;
+  if(scroller&&event){
+    const rect=scroller.getBoundingClientRect();
+    const edge=Math.min(86,Math.max(48,rect.height*.14));
+    let speed=0;
+    if(event.clientY<rect.top+edge){
+      speed=-Math.ceil((rect.top+edge-event.clientY)/edge*18);
+    }else if(event.clientY>rect.bottom-edge){
+      speed=Math.ceil((event.clientY-(rect.bottom-edge))/edge*18);
+    }
+    if(speed){
+      const before=scroller.scrollTop;
+      scroller.scrollTop+=speed;
+      if(scroller.scrollTop!==before)updateEditorBarDropPreview(drag,event);
+    }
+  }
+  barDragAutoScrollFrame=requestAnimationFrame(runEditorBarDragAutoScroll);
 }
 function activateEditorBarDrag(drag,event){
   if(editorBarDrag!==drag||drag.active)return;
@@ -649,6 +673,8 @@ function activateEditorBarDrag(drag,event){
   $('#lyricsNotepad')?.classList.add('is-bar-dragging');
   document.body.classList.add('bar-reorder-active');
   updateEditorBarDropPreview(drag,event);
+  cancelAnimationFrame(barDragAutoScrollFrame);
+  barDragAutoScrollFrame=requestAnimationFrame(runEditorBarDragAutoScroll);
 }
 function bindEditorBarDrag(node){
   node.addEventListener('pointerdown',(event)=>{
