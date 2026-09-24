@@ -19,6 +19,7 @@ import {
   applyThemeToDocument,
   completeThemeColors,
   randomOklchTheme,
+  randomWildTheme,
   resolveThemeChoice,
   themeChoices,
   themeContrastReport,
@@ -149,6 +150,20 @@ describe('R2 semantic theme layer preserves existing theme slots', () => {
     }
   });
 
+  it('keeps Wild styles vivid while retaining readable semantic contrast', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      for (let hue = 0; hue < 360; hue += 30) {
+        const theme = randomWildTheme({ mode, hue, id: `wild-${mode}-${hue}` });
+        const colors = completeThemeColors(theme.colors);
+        const report = themeContrastReport(colors);
+        expect(report.inkOnBg, `${mode} H${hue} ink/bg`).toBeGreaterThanOrEqual(4.5);
+        expect(report.inkOnPanel, `${mode} H${hue} ink/panel`).toBeGreaterThanOrEqual(4.5);
+        expect(report.onAccent, `${mode} H${hue} accent text`).toBeGreaterThanOrEqual(4.5);
+        expect(theme.subtitle).not.toMatch(/OKLCH/i);
+      }
+    }
+  });
+
   it('applies only semantic CSS variables to the shell document root', () => {
     const variables = new Map<string, string>();
     const fakeRoot = {
@@ -181,6 +196,7 @@ describe('R2 shell actions are real Zustand state transitions', () => {
       settingsDrawerOpen: false,
       libraryOpen: false,
       savedOpen: false,
+      focusMode: false,
     });
   });
 
@@ -212,6 +228,16 @@ describe('R2 shell actions are real Zustand state transitions', () => {
       libraryOpen: false,
       savedOpen: false,
     });
+  });
+
+  it('keeps focus mode session-only and clears it on navigation', () => {
+    useUiStore.getState().setFocusMode(true);
+    expect(useUiStore.getState().focusMode).toBe(true);
+    useUiStore.getState().toggleFocusMode();
+    expect(useUiStore.getState().focusMode).toBe(false);
+    useUiStore.getState().setFocusMode(true);
+    useUiStore.getState().navigate('search');
+    expect(useUiStore.getState().focusMode).toBe(false);
   });
 
   it('toggles persistent appearance state through the same registered actions used by controls', () => {
