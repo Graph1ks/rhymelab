@@ -48,7 +48,7 @@ Personality belongs around the writing, never over it.
 | Settings | Cohesive style workbench and data-safety surfaces; replace visible migration badge with product copy | Color generation/edit/save/apply/delete, defaults/reset, contrast report, backup/import/recovery |
 | Intro | Editorial poster composition and static sound specimen; retain existing copy and navigation actions | All entry points, language variants, reduced motion |
 | Responsive | Keep the 800px Editor/Rhymes swap and viewport ownership; wrap controls rather than clip them; coarse-pointer targets | No sidebar return, no new nested page scroll, no hover-only action |
-| Page transitions | Full-viewport Bureau transitions below the persistent topbar: case sheet (Home), drafting shutters (Studio), phonetic scan (Search), archive drawer (Library), evidence cards (Saved), calibration grid (Settings) | Surface state, providers, scroll ownership, pointer input, dialogs/popovers and `prefers-reduced-motion` |
+| Page transitions | Destination-led Bureau routing plate below the persistent topbar: every surface names the destination prominently, then reveals it through one calm shared choreography with a quiet page-specific line/grid signature | Surface state, providers, scroll ownership, pointer input, dialogs/popovers and `prefers-reduced-motion`; no full-page content translation |
 
 ## No-capability-loss contract
 
@@ -76,7 +76,7 @@ Personality belongs around the writing, never over it.
 - Browser acceptance: 1920×1080, 3840×2160, 1366×768, 800px, 390px and 320px;
   Light/Dark/custom; Studio/Search/Library/Analysis/Perform/Settings/Intro; keyboard
   focus, transient popovers, continuous results, wrapping/gutters and mobile swap.
-- Transition acceptance: topbar remains stationary; all six shell surfaces have distinct motion; rapid navigation cannot strand a curtain; overlays never intercept pointer input; Studio mode/search-assistant state survives leaving and returning to Studio; reduced-motion shows no curtain/body animation.
+- Transition acceptance: topbar remains stationary; every shell surface clearly names the destination during the transition; the shared choreography feels consistent while line/grid signatures remain distinguishable; the destination plate is readable without delaying interaction; rapid navigation cannot strand a curtain; overlays never intercept pointer input; Studio mode/search-assistant state survives leaving and returning to Studio; reduced-motion shows no routing overlay.
 - Physical IME, touch/software keyboard and audible metronome remain separate gates.
 
 The provided cloud browser rejected the local development URL with
@@ -118,7 +118,7 @@ survives navigation exactly as before.
 | Visual/browser and real-device acceptance | PENDING; local preview inaccessible to supplied cloud browser |
 | Full-data Writer exercise | PENDING; owner-local SQLite distributions required |
 
-The page-transition layer was added after the first design pass as a presentation-only shell layer. It does not alter navigation state, editor/search providers or domain code; only the keyed decorative curtain remounts beneath the persistent topbar; the workspace subtree stays mounted and the body animation restarts through a surface-specific CSS animation name.
+The page-transition layer was added after the first design pass as a presentation-only shell layer. It does not alter navigation state, editor/search providers or domain code; only the keyed decorative routing overlay remounts beneath the persistent topbar. The workspace subtree stays mounted and is no longer translated or animated as part of route changes. The overlay uses a short dissolve plus small text/line motion so the destination is explicit without turning navigation into a full-screen motion event.
 
 The AST comparison is a source-preservation check, not runtime interaction evidence.
 The existing runtime/domain tests remain intact; no gate or test was weakened.
