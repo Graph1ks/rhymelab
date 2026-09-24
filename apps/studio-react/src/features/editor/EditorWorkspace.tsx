@@ -149,6 +149,7 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
   } | null>(null);
 
   const [lineHeights, setLineHeights] = useState<number[]>([]);
+  const [lineCenters, setLineCenters] = useState<number[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [comparison, setComparison] = useState<{
     revision: LegacyStudioRevision;
@@ -186,21 +187,56 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
     const measure = measureRef.current;
     if (!textarea || !measure) return;
 
+    let cancelled = false;
     const update = () => {
+      if (cancelled) return;
       const children = Array.from(measure.children) as HTMLElement[];
       const fallback = Math.max(34, Math.ceil(fontSize * 1.62));
-      const next = children.map((node) => Math.max(fallback, Math.ceil(node.getBoundingClientRect().height)));
-      setLineHeights(next);
+      const nextHeights: number[] = [];
+      const nextCenters: number[] = [];
+
+      for (const node of children) {
+        const nodeRect = node.getBoundingClientRect();
+        nextHeights.push(Math.max(fallback, Math.ceil(nodeRect.height)));
+
+        const textNode = node.firstChild;
+        let center = fallback / 2;
+        if (textNode?.nodeType === Node.TEXT_NODE && textNode.textContent?.length) {
+          const range = document.createRange();
+          range.setStart(textNode, 0);
+          range.setEnd(textNode, Math.min(1, textNode.textContent.length));
+          const firstRect = range.getClientRects()[0];
+          if (firstRect) {
+            center = (firstRect.top - nodeRect.top) + firstRect.height / 2;
+          }
+        }
+        nextCenters.push(Math.max(0, Math.min(fallback, center)));
+      }
+
+      setLineHeights(nextHeights);
+      setLineCenters(nextCenters);
       textarea.style.height = `${Math.max(
         fallback * 12 + 36,
-        next.reduce((sum, value) => sum + value, 0) + 36,
+        nextHeights.reduce((sum, value) => sum + value, 0) + 36,
       )}px`;
     };
 
     update();
-    const observer = new ResizeObserver(update);
+
+    const observer = new ResizeObserver(() => requestAnimationFrame(update));
     observer.observe(textarea);
-    return () => observer.disconnect();
+    observer.observe(measure);
+
+    const fonts = document.fonts;
+    const onFontsDone = () => requestAnimationFrame(update);
+    fonts?.addEventListener?.('loadingdone', onFontsDone);
+    void fonts?.ready?.then(() => requestAnimationFrame(update));
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+      fonts?.removeEventListener?.('loadingdone', onFontsDone);
+    };
   }, [editor.documentText, fontFamily, fontSize, fontStyle, fontWeight, lines.length]);
 
   useEffect(() => () => {
@@ -240,6 +276,7 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
   };
 
   const rowHeight = (index: number) => lineHeights[index] ?? Math.max(34, Math.ceil(fontSize * 1.62));
+  const rowCenter = (index: number) => lineCenters[index] ?? rowHeight(index) / 2;
   const dropPreviewTop = dragVisual?.active
     ? 18 + Array.from({ length: dragVisual.boundaryIndex }, (_, index) => rowHeight(index))
       .reduce((sum, value) => sum + value, 0)
@@ -543,7 +580,12 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
                         onPointerUp={(event) => finishBarPress(event, true)}
                         onPointerCancel={(event) => finishBarPress(event, false)}
                       >
-                        {String(number ?? '').padStart(2, '0')}
+                        <span
+                          className={styles.gutterNumber}
+                          style={{ '--line-center': `${rowCenter(index)}px` } as CSSProperties}
+                        >
+                          {String(number ?? '').padStart(2, '0')}
+                        </span>
                       </button>
                     ) : (
                       <span>{kind === 'bracket' ? '§' : ''}</span>
@@ -597,7 +639,14 @@ export function EditorWorkspace({ focusMode = false }: { focusMode?: boolean } =
                     data-kind={kind}
                     style={{ height: rowHeight(index) }}
                   >
-                    {kind === 'bar' ? (estimateSyllables(editorTrackableText(line)) || '—') : ''}
+                    {kind === 'bar' ? (
+                      <span
+                        className={styles.syllableValue}
+                        style={{ '--line-center': `${rowCenter(index)}px` } as CSSProperties}
+                      >
+                        {estimateSyllables(editorTrackableText(line)) || '—'}
+                      </span>
+                    ) : ''}
                   </div>
                 );
               })}
