@@ -619,8 +619,8 @@ test('Studio orchestrator is split behind maintainable module boundaries',async(
     readFile('packages/shared-core/src/services/analysis-adapter.mjs','utf8'),
     readFile('packages/shared-core/src/search/capability-adapter.mjs','utf8'),
     readFile('packages/shared-core/src/services/detail-adapter.mjs','utf8'),
-    readFile('src/studio/query-pronunciation-client.mjs','utf8'),
-    readFile('src/studio/query-pronunciation-cache.mjs','utf8'),
+    readFile('packages/shared-core/src/search/query-pronunciation-client.mjs','utf8'),
+    readFile('packages/platform-web/src/query-pronunciation-cache.mjs','utf8'),
   ]);
 
   assert.match(app,/from '\.\/studio-core\.mjs'/u);
