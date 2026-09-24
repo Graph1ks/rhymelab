@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react';
 
+import { useDocumentWorkspace } from '../features/library/DocumentWorkspaceProvider';
 import { LibraryWorkspace } from '../features/library/LibraryWorkspace';
 import { SavedWorkspace } from '../features/search/SavedWorkspace';
 import { SearchExperience } from '../features/search/SearchExperience';
@@ -36,6 +37,8 @@ function FoundationCard({
 export function SurfaceContent() {
   const surface = useUiStore((state) => state.surface);
   const language = useUiStore((state) => state.uiLanguage);
+  const documents = useDocumentWorkspace();
+  const activeDocument = documents.state.songs.find((song) => song.id === documents.state.active);
   const reduceMotion = useReducedMotion();
 
   if (surface === 'settings') {
@@ -125,6 +128,14 @@ export function SurfaceContent() {
                 ? 'Dieselbe SearchState-/Writer-Pipeline wird rechts und auf der Search-Seite verwendet.'
                 : 'The same SearchState/Writer pipeline is used here and on the Search surface.'}
               icon="search"
+            />
+            <FoundationCard
+              label="R4 DOCUMENTSTORE"
+              title={activeDocument?.title || (language === 'de' ? 'Kein aktiver Text' : 'No active text')}
+              copy={language === 'de'
+                ? `Library und Autosave nutzen bereits den autoritativen ${documents.authority === 'indexeddb' ? 'IndexedDB-DocumentStore' : 'LocalStorage-Fallback'}. Der Editor folgt in R5.`
+                : `Library and autosave already use the authoritative ${documents.authority === 'indexeddb' ? 'IndexedDB DocumentStore' : 'LocalStorage fallback'}. The editor follows in R5.`}
+              icon="grid"
             />
             <FoundationCard
               label="R5 EDITOR"
