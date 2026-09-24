@@ -10,6 +10,7 @@ import type {
   WriterResultRow,
 } from '../../legacy/contracts';
 import { useUiStore } from '../../state/uiStore';
+import { useOptionalEditorSession } from '../editor/EditorSessionProvider';
 import { Icon } from '../../shell/icons';
 import {
   useActiveTrackedText,
@@ -191,6 +192,7 @@ export function SearchExperience({
   variant?: 'page' | 'assistant';
 }) {
   const language = useUiStore((state) => state.uiLanguage);
+  const editor = useOptionalEditorSession();
   const { state, patch, setSelectedResultId } = useSharedSearchState();
   const preferences = useSearchPreferences();
   const runtime = useRuntimeEnvironment();
@@ -205,6 +207,19 @@ export function SearchExperience({
   useEffect(() => {
     setDraftQuery(state.anchor);
   }, [state.anchor]);
+
+  useEffect(() => {
+    if (variant !== 'assistant' || !editor?.followSelection) return;
+    const anchor = editor.selection?.anchor?.trim();
+    if (!anchor || anchor === state.anchor) return;
+    patch({ anchor, selectedResultId: '' });
+  }, [
+    editor?.followSelection,
+    editor?.selection?.anchor,
+    patch,
+    state.anchor,
+    variant,
+  ]);
 
   useEffect(() => {
     if (runtime.capabilities?.generated === false && (state.generated || state.generatedOnly)) {
@@ -310,6 +325,11 @@ export function SearchExperience({
     preferences.toggleSaved(row.word, state.anchor);
   };
 
+  const insertRow = (row: WriterResultRow) => {
+    if (!editor) return;
+    void editor.insertCandidate(row.word);
+  };
+
   return (
     <section
       className={styles.searchExperience}
@@ -337,6 +357,26 @@ export function SearchExperience({
         <div className={styles.anchorMeta}>
           <span>{language === 'de' ? 'REIMANKER' : 'RHYME ANCHOR'}</span>
           <b>{state.anchor || '—'}</b>
+          {variant === 'assistant' && editor ? (
+            <div className={styles.anchorMode} role="group" aria-label={language === 'de' ? 'Reimanker-Modus' : 'Rhyme anchor mode'}>
+              <button
+                type="button"
+                data-active={editor.followSelection ? 'true' : 'false'}
+                aria-pressed={editor.followSelection}
+                onClick={() => editor.setFollowSelection(true)}
+              >
+                {language === 'de' ? 'Auswahl folgen' : 'Follow selection'}
+              </button>
+              <button
+                type="button"
+                data-active={!editor.followSelection ? 'true' : 'false'}
+                aria-pressed={!editor.followSelection}
+                onClick={() => editor.setFollowSelection(false)}
+              >
+                {language === 'de' ? 'Fixieren' : 'Fixed anchor'}
+              </button>
+            </div>
+          ) : null}
         </div>
         <label className={styles.searchInputWrap}>
           <Icon name="search" />
@@ -429,6 +469,7 @@ export function SearchExperience({
               visibleCount={visibleCount}
               setVisibleCount={setVisibleCount}
               autoScroll={autoScroll}
+              onInsert={editor?.selection?.proof ? insertRow : undefined}
             />
           )}
 
@@ -441,8 +482,7 @@ export function SearchExperience({
           ) : null}
 
           <p className={styles.keyboardHint}>
-            ↑↓ {language === 'de' ? 'Auswahl' : 'select'} · Space {language === 'de' ? 'Merken' : 'save'} ·
-            Enter {language === 'de' ? 'Einsetzen folgt in R5 mit Selection Proof' : 'insert connects in R5 with Selection Proof'}
+            ↑↓ {language === 'de' ? 'Auswahl' : 'select'} · Space {language === 'de' ? 'Merken' : 'save'} · Enter {language === 'de' ? 'sicher einsetzen' : 'safe insert'}
           </p>
         </div>
 
