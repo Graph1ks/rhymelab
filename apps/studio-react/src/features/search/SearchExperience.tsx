@@ -4,6 +4,7 @@ import {
   useState,
   type FormEvent,
 } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 
 import type {
   RuntimeEdition,
@@ -213,6 +214,7 @@ export function SearchExperience({
   variant?: 'page' | 'assistant';
 }) {
   const language = useUiStore((state) => state.uiLanguage);
+  const reduceMotion = useReducedMotion();
   const editor = useOptionalEditorSession();
   const { state, patch, setSelectedResultId } = useSharedSearchState();
   const preferences = useSearchPreferences();
@@ -401,9 +403,21 @@ export function SearchExperience({
       </header>
 
       <form className={styles.searchForm} onSubmit={submit}>
-        <div className={styles.anchorMeta}>
-          <span>{language === 'de' ? 'REIMANKER' : 'RHYME ANCHOR'}</span>
-          <b>{state.anchor || '—'}</b>
+        <div
+          className={styles.anchorMeta}
+          data-searching={writer.isFetching ? 'true' : 'false'}
+        >
+          <span>{language === 'de' ? 'AKTUELLER REIMANKER' : 'CURRENT RHYME ANCHOR'}</span>
+          <motion.b
+            key={state.anchor || 'empty-anchor'}
+            initial={reduceMotion ? false : { opacity: 0, y: 7, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            title={state.anchor || undefined}
+          >
+            {state.anchor || '—'}
+          </motion.b>
+          <i className={styles.anchorScan} aria-hidden="true" />
           {variant === 'assistant' && editor ? (
             <div className={styles.anchorMode} role="group" aria-label={language === 'de' ? 'Reimanker-Modus' : 'Rhyme anchor mode'}>
               <button
