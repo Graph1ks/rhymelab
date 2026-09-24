@@ -19,7 +19,9 @@
     "test:r3": "vitest run src/features/search/r3-search.test.ts",
     "r3:verify": "npm run typecheck && npm run test:r1 && npm run test:r2 && npm run test:r3 && npm run build",
     "test:r4": "vitest run src/features/library/r4-library.test.ts",
-    "r4:verify": "npm run typecheck && npm run test:r1 && npm run test:r2 && npm run test:r3 && npm run test:r4 && npm run build"
+    "r4:verify": "npm run typecheck && npm run test:r1 && npm run test:r2 && npm run test:r3 && npm run test:r4 && npm run build",
+    "test:r5": "vitest run src/features/editor/r5-editor.test.ts",
+    "r5:verify": "npm run typecheck && npm run test:r1 && npm run test:r2 && npm run test:r3 && npm run test:r4 && npm run test:r5 && npm run build"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",
