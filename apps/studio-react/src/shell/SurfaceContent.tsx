@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 
 import { Dialog } from '../design-system/primitives';
@@ -6,7 +6,7 @@ import { Dialog } from '../design-system/primitives';
 import { EditorSessionProvider } from '../features/editor/EditorSessionProvider';
 import { useUiStore } from '../state/uiStore';
 import { Icon } from './icons';
-import { shellText, type AppSurface } from './navigation';
+import { shellText } from './navigation';
 import styles from './Shell.module.css';
 
 const HomePage = lazy(() => import('../features/intro/HomePage').then((module) => ({ default: module.HomePage })));
@@ -30,110 +30,6 @@ function DeferredSurface({ children }: { children: ReactNode }) {
     >
       {children}
     </Suspense>
-  );
-}
-
-const SURFACE_TRANSITION_COPY: Record<AppSurface, {
-  order: string;
-  titleDe: string;
-  titleEn: string;
-  descriptorDe: string;
-  descriptorEn: string;
-}> = {
-  home: {
-    order: '00 / 05',
-    titleDe: 'Start',
-    titleEn: 'Home',
-    descriptorDe: 'Rhyme Bureau · Arbeitsfläche',
-    descriptorEn: 'Rhyme Bureau · Desk',
-  },
-  studio: {
-    order: '01 / 05',
-    titleDe: 'Studio',
-    titleEn: 'Studio',
-    descriptorDe: 'Schreiben · Analyse · Perform',
-    descriptorEn: 'Write · Analysis · Perform',
-  },
-  search: {
-    order: '02 / 05',
-    titleDe: 'Reimsuche',
-    titleEn: 'Rhyme Search',
-    descriptorDe: 'Laute, Reime und Verwandtschaften',
-    descriptorEn: 'Sounds, rhymes and relationships',
-  },
-  library: {
-    order: '03 / 05',
-    titleDe: 'Bibliothek',
-    titleEn: 'Library',
-    descriptorDe: 'Lokales Textarchiv',
-    descriptorEn: 'Local writing archive',
-  },
-  saved: {
-    order: '04 / 05',
-    titleDe: 'Merkliste',
-    titleEn: 'Saved',
-    descriptorDe: 'Gesicherte Fundstücke',
-    descriptorEn: 'Saved discoveries',
-  },
-  settings: {
-    order: '05 / 05',
-    titleDe: 'Einstellungen',
-    titleEn: 'Settings',
-    descriptorDe: 'Bureau kalibrieren',
-    descriptorEn: 'Calibrate the Bureau',
-  },
-};
-
-function SurfaceTransition({
-  surface,
-  children,
-}: {
-  surface: AppSurface;
-  children: ReactNode;
-}) {
-  const reduceMotion = useReducedMotion();
-  const language = useUiStore((state) => state.uiLanguage);
-  const transitionCopy = SURFACE_TRANSITION_COPY[surface];
-  const hasMounted = useRef(false);
-
-  useEffect(() => {
-    hasMounted.current = true;
-  }, []);
-
-  return (
-    <div className={styles.surfaceTransition} data-transition={surface}>
-      {!reduceMotion && hasMounted.current ? (
-        <div
-          key={`transition-${surface}`}
-          className={styles.pageTransition}
-          data-transition={surface}
-          aria-hidden="true"
-        >
-          <div className={styles.transitionVeil} />
-          <div className={styles.transitionRouteLine} />
-          <div className={styles.transitionDestination}>
-            <span className={styles.transitionEyebrow}>
-              <span>{language === 'de' ? 'WECHSEL ZU' : 'OPENING'}</span>
-              <b>{transitionCopy.order}</b>
-            </span>
-            <strong>
-              {language === 'de' ? transitionCopy.titleDe : transitionCopy.titleEn}
-            </strong>
-            <span className={styles.transitionDescriptor}>
-              {language === 'de'
-                ? transitionCopy.descriptorDe
-                : transitionCopy.descriptorEn}
-            </span>
-          </div>
-        </div>
-      ) : null}
-      <div
-        className={styles.surfaceTransitionBody}
-        data-transition={surface}
-      >
-        {children}
-      </div>
-    </div>
   );
 }
 
@@ -441,10 +337,5 @@ function SurfaceContentBody() {
 }
 
 export function SurfaceContent() {
-  const surface = useUiStore((state) => state.surface);
-  return (
-    <SurfaceTransition surface={surface}>
-      <SurfaceContentBody />
-    </SurfaceTransition>
-  );
+  return <SurfaceContentBody />;
 }
