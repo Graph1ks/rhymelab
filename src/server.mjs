@@ -528,8 +528,8 @@ const generatedQueryPronunciationRevision=activeGeneratedRuntime.available
 function generatedRuntimeHealth(){
   if(servingV1Active){
     return {
-      available:true,
-      reason:null,
+      available:activeGeneratedRuntime.available,
+      reason:activeGeneratedRuntime.available?null:'distribution_generated_unavailable',
       report:null,
       acceptance_marker:null,
       report_fingerprint:servingV1State?.productSemanticFingerprint||null,
@@ -1156,7 +1156,7 @@ server.listen(port, host, () => {
     console.log(`Serving-v1 SQLite: ${servingV1DbPath}`);
     console.log(`Serving-v1 runtime: ${SERVING_V1_PRODUCT_RUNTIME}`);
     console.log(`Writer execution: ${parallelWriterRuntime.health().execution} · ${parallelWriterRuntime.health().workers} workers`);
-    console.log('Generated data: Serving-v1 all-mode default ON · generated=0 opts out');
+    console.log(`Generated data: ${activeGeneratedRuntime.available?'available in '+servingV1DbId.toUpperCase():'unavailable in '+servingV1DbId.toUpperCase()}`);
     if(internalDbSwitcherEnabled){
       console.log('Distribution selector: ENABLED · per-request LITE / STANDARD / FULL');
       for(const id of INTERNAL_DISTRIBUTION_DB_IDS){
