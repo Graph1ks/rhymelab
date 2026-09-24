@@ -3,6 +3,7 @@ import { Button } from '@base-ui/react/button';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { motion, useReducedMotion } from 'motion/react';
 import coverage from '../../parity-coverage.json';
+import { R1_BRIDGE_RUNTIME_EXPORT_COUNT } from '../legacy/runtime-smoke';
 import { useUiStore } from '../state/uiStore';
 import styles from './App.module.css';
 
@@ -67,12 +68,12 @@ export function App() {
 
       {surface === 'overview' ? (
         <section className={styles.panel}>
-          <h2>R0 started</h2>
+          <h2>R1 typed bridge verified</h2>
           <p>
-            React, TypeScript, Vite, Base UI, Motion, TanStack Query, Zustand and TanStack Virtual are isolated here while the shipping Studio stays unchanged.
+            {R1_BRIDGE_RUNTIME_EXPORT_COUNT} representative runtime exports now resolve through the typed legacy bridge while the shipping Studio stays unchanged.
           </p>
           <p>
-            Persistent documents remain owned by the existing IndexedDB DocumentStore; the accepted Node/Serving-v1/SQLite runtime is outside this replatform boundary.
+            Persistent documents remain owned by the existing IndexedDB DocumentStore; editor, search, pronunciation, Perform, analysis and recovery semantics still execute the existing legacy domain functions.
           </p>
         </section>
       ) : (
