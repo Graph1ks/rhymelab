@@ -5,13 +5,13 @@ import {
   createStudioDocumentStore,
   loadStudioState,
   songText,
-} from '../../legacy/documents';
-import { editorTrackableText, isTrackedEditorLine } from '../../legacy/editor';
+} from '../../core/documents';
+import { editorTrackableText, isTrackedEditorLine } from '../../core/editor';
 import {
   buildStudioDetailModel,
   createStudioDetailClient,
   studioDetailKey,
-} from '../../legacy/services';
+} from '../../core/services';
 import {
   capabilitiesForRuntimeEdition,
   chooseAvailableRuntimeEdition,
@@ -20,7 +20,7 @@ import {
   loadStudioCapabilities,
   runtimeEditionSummaryMap,
   saveRuntimeEditionSelection,
-} from '../../legacy/search';
+} from '../../core/search';
 import type {
   RuntimeEdition,
   RuntimeEditionPayload,
@@ -29,7 +29,7 @@ import type {
   StudioDetailModel,
   WriterResultRow,
   WriterSearchResult,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 
 const writerClient = createWriterSearchClient();
 const detailClient = createStudioDetailClient();

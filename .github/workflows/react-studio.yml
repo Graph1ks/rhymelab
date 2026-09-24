@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'apps/studio-react/**'
+      - 'packages/shared-core/**'
+      - 'packages/platform-web/**'
+      - 'scripts/check-react-shared-core-boundary.mjs'
       - 'scripts/check-react-studio-parity.mjs'
       - 'scripts/check-react-studio-r7.mjs'
       - 'src/react-studio-preview.mjs'
@@ -40,6 +43,9 @@ jobs:
 
       - name: Validate parity inventory
         run: node scripts/check-react-studio-parity.mjs
+
+      - name: Enforce Shared Core boundary
+        run: node scripts/check-react-shared-core-boundary.mjs
 
       - name: Install locked React Studio dependencies
         run: npm ci --prefix apps/studio-react --ignore-scripts --no-audit --no-fund

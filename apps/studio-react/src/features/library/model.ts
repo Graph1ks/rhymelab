@@ -1,7 +1,7 @@
 import type {
   LegacyStudioSong,
   LegacyStudioState,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 
 export type LibrarySort = 'updated' | 'title' | 'created' | 'bars';
 

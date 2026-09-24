@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 
-import { loadStudioPreferences } from '../legacy/documents';
+import { loadStudioPreferences } from '../core/documents';
 import {
   defaultStudioUiLanguage,
   normalizeStudioUiLanguage,
   type StudioUiLanguage,
-} from '../legacy/shell';
+} from '../core/shell';
 import {
   initialThemeChoice,
   persistAppearancePreferences,

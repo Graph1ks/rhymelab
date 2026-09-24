@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { LegacyStudioSong, SearchState, StudioCapabilities } from '../../legacy/contracts';
+import type { LegacyStudioSong, SearchState, StudioCapabilities } from '../../core/contracts';
 import {
   autoMapPerformanceBar,
   clearPerformanceBar,
@@ -15,7 +15,7 @@ import {
   setEditorBarText,
   setPerformanceConfig,
   setPerformanceCue,
-} from '../../legacy/editor';
+} from '../../core/editor';
 import { ensureLegacyEditorSong, asEditorSong } from '../editor/model';
 import { analysisQueryIdentity } from './data';
 import {

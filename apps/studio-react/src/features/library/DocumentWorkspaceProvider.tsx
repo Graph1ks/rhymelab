@@ -13,12 +13,12 @@ import {
   loadStudioPreferences,
   loadStudioState,
   writeStudioPreferences,
-} from '../../legacy/documents';
+} from '../../core/documents';
 import type {
   LegacyStudioState,
   PortableStudioBackup,
   SearchState,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 import {
   applyWorkspacePortableBackup,
   createSerializedSaveQueue,

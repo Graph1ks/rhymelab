@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
-import type { WriterResultRow } from '../../legacy/contracts';
+import type { WriterResultRow } from '../../core/contracts';
 import { useUiStore } from '../../state/uiStore';
 import { resultKeyboardAction } from '../system/model';
 import { Icon } from '../../shell/icons';

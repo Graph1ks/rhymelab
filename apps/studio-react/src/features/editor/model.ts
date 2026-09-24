@@ -5,7 +5,7 @@ import type {
   LegacyStudioSong,
   LegacyStudioState,
   SelectionProof,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 import {
   barIdentity,
   createSelectionProof,
@@ -19,7 +19,7 @@ import {
   replaceEditorDocumentRange,
   restoreEditorSnapshot,
   validateSelectionProof,
-} from '../../legacy/editor';
+} from '../../core/editor';
 
 export interface EditorSelectionState {
   line: number;

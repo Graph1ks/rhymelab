@@ -13,14 +13,14 @@ import {
 import type {
   LegacyStudioRevision,
   RevisionDiff,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 import {
   editorLineKind,
   editorTrackableText,
   trackedEditorBarNumber,
   trackedEditorLineIndexes,
-} from '../../legacy/editor';
-import { estimateSyllables } from '../../legacy/search';
+} from '../../core/editor';
+import { estimateSyllables } from '../../core/search';
 import { useUiStore } from '../../state/uiStore';
 import { useDocumentWorkspace } from '../library/DocumentWorkspaceProvider';
 import { useEditorSession } from './EditorSessionProvider';

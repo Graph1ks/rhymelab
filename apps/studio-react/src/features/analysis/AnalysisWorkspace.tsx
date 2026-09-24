@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 
-import type { StudioOccurrenceRelation, StudioRhymePair } from '../../legacy/contracts';
+import type { StudioOccurrenceRelation, StudioRhymePair } from '../../core/contracts';
 import {
   ensurePerformanceSong,
   performanceBarDurationMs,
@@ -9,8 +9,8 @@ import {
   performancePreviousBarPlacements,
   performanceSyllablesPerSecond,
   trackedEditorLineIndexes,
-} from '../../legacy/editor';
-import { estimateSyllables } from '../../legacy/search';
+} from '../../core/editor';
+import { estimateSyllables } from '../../core/search';
 import { useUiStore } from '../../state/uiStore';
 import { useEditorSession } from '../editor/EditorSessionProvider';
 import { asEditorSong } from '../editor/model';

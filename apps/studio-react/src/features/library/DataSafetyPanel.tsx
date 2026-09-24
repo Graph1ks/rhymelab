@@ -6,8 +6,8 @@ import {
   loadStudioPreferences,
   parsePortableStudioBackup,
   portableBackupFilename,
-} from '../../legacy/documents';
-import type { PortableStudioBackup } from '../../legacy/contracts';
+} from '../../core/documents';
+import type { PortableStudioBackup } from '../../core/contracts';
 import { useUiStore } from '../../state/uiStore';
 import { useSharedSearchState } from '../search/SearchStateProvider';
 import { useDocumentWorkspace } from './DocumentWorkspaceProvider';

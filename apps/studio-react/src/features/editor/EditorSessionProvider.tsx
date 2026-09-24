@@ -13,7 +13,7 @@ import type {
   EditorSnapshot,
   LegacyStudioRevision,
   LegacyStudioSong,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 import {
   barIdentity,
   compareEditorRevisions,
@@ -28,7 +28,7 @@ import {
   replaceEditorDocumentRange,
   restoreEditorSnapshot,
   validateSelectionProof,
-} from '../../legacy/editor';
+} from '../../core/editor';
 import { useDocumentWorkspace } from '../library/DocumentWorkspaceProvider';
 import { touchSong } from '../library/model';
 import {

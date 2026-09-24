@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { LegacyStudioSong, LegacyStudioState } from '../../legacy/contracts';
+import type { LegacyStudioSong, LegacyStudioState } from '../../core/contracts';
 import {
   editorDocumentText,
   ensureEditorSong,
   reconcileEditorDocumentText,
-} from '../../legacy/editor';
+} from '../../core/editor';
 import {
   CURATED_GOOGLE_FONTS,
   DEFAULT_EDITOR_FONT,

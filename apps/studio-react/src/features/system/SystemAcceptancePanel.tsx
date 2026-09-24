@@ -11,7 +11,7 @@ import {
   studioDeviceAcceptanceSummary,
   studioDeviceEnvironmentLabel,
   studioDeviceGateEnvironmentStatus,
-} from '../../legacy/system';
+} from '../../core/system';
 import { useUiStore } from '../../state/uiStore';
 import {
   currentDeviceEnvironment,

@@ -1,4 +1,4 @@
-import type { WriterResultRow } from '../../legacy/contracts';
+import type { WriterResultRow } from '../../core/contracts';
 import { useUiStore } from '../../state/uiStore';
 import { Icon } from '../../shell/icons';
 import { useResultDetail } from './data';

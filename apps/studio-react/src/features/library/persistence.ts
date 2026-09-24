@@ -10,7 +10,7 @@ import {
   studioStateFromDocumentSnapshot,
   writeStudioPreferences,
   writeStudioState,
-} from '../../legacy/documents';
+} from '../../core/documents';
 import type {
   JsonRecord,
   LegacyStudioState,
@@ -19,7 +19,7 @@ import type {
   StudioDocumentSnapshot,
   StudioDocumentStore,
   StudioPreferences,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 import { cloneWorkspaceState } from './model';
 
 export type WorkspacePersistenceStatus =

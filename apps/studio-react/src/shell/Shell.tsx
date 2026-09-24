@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '../design-system/primitives';
 import { applyThemeToDocument } from '../design-system/theme';
 import { collectReactStartupBindingStatus } from '../features/system/model';
-import { installMobileViewportController } from '../legacy/shell';
+import { installMobileViewportController } from '../core/shell';
 import { useUiStore } from '../state/uiStore';
 import { CommandPalette } from './CommandPalette';
 import {

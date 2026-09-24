@@ -5,7 +5,7 @@ import {
   commandShortcutText,
   rankStudioCommands,
   type StudioCommand,
-} from '../legacy/shell';
+} from '../core/shell';
 import { useUiStore } from '../state/uiStore';
 import {
   commandPaletteShortcutLabel,

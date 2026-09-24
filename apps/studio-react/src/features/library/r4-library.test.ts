@@ -4,13 +4,13 @@ import {
   createPortableStudioBackup,
   migrateLegacyStudioState,
   studioStateFromDocumentSnapshot,
-} from '../../legacy/documents';
+} from '../../core/documents';
 import type {
   LegacyStudioState,
   SearchState,
   StudioDocumentSnapshot,
   StudioDocumentStore,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 import {
   applyWorkspacePortableBackup,
   createSerializedSaveQueue,

@@ -9,7 +9,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import type {
   RuntimeEdition,
   WriterResultRow,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 import { Dialog, Select } from '../../design-system/primitives';
 import { useUiStore } from '../../state/uiStore';
 import { useOptionalEditorSession } from '../editor/EditorSessionProvider';

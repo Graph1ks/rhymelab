@@ -1,5 +1,5 @@
-import * as legacySearchFilters from '../../../../../src/studio/search-filters.mjs';
-import * as legacyStudioControls from '../../../../../src/studio/studio-controls.mjs';
+import * as legacySearchFilters from '../../../../../packages/shared-core/src/search/search-filters.mjs';
+import * as legacyStudioControls from '../../../../../packages/shared-core/src/search/result-density.mjs';
 
 import type {
   QueryBasis,
@@ -9,7 +9,7 @@ import type {
   SyllableFilter,
   VariantMode,
   WriterResultRow,
-} from '../../legacy/contracts';
+} from '../../core/contracts';
 
 type SearchFilterApi = {
   STUDIO_RHYME_TYPES: readonly RhymeType[];

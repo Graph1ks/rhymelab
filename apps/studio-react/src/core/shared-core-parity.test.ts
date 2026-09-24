@@ -6,24 +6,24 @@ import * as editorBridge from './editor';
 import * as serviceBridge from './services';
 import * as systemBridge from './system';
 
-import * as legacySearchState from '../../../../src/ui/search-state.mjs';
-import * as legacyPronunciation from '../../../../src/ui/query-pronunciation-client.mjs';
-import * as legacyPronunciationCache from '../../../../src/ui/query-pronunciation-cache.mjs';
-import * as legacySearchAdapter from '../../../../src/studio/search-adapter.mjs';
-import * as legacyCapabilityAdapter from '../../../../src/studio/capability-adapter.mjs';
-import * as legacyRuntimeEditions from '../../../../src/studio/internal-db-lab.mjs';
-import * as legacyDocumentModel from '../../../../src/studio/document-model.mjs';
-import * as legacyDocumentStore from '../../../../src/studio/document-store.mjs';
-import * as legacyDocumentAdapter from '../../../../src/studio/document-adapter.mjs';
-import * as legacyBackup from '../../../../src/studio/backup-portability.mjs';
-import * as legacyEditor from '../../../../src/studio/editor-session.mjs';
-import * as legacyHistory from '../../../../src/studio/edit-history.mjs';
-import * as legacyPerformance from '../../../../src/studio/performance-session.mjs';
-import * as legacyRevisionDiff from '../../../../src/studio/revision-diff.mjs';
-import * as legacyAnalysis from '../../../../src/studio/analysis-adapter.mjs';
-import * as legacyDetail from '../../../../src/studio/detail-adapter.mjs';
-import * as legacyDiagnostics from '../../../../src/studio/diagnostics.mjs';
-import * as legacyDevice from '../../../../src/studio/device-acceptance.mjs';
+import * as sharedSearchState from '../../../../packages/shared-core/src/search/search-state.mjs';
+import * as sharedPronunciation from '../../../../packages/shared-core/src/search/query-pronunciation-client.mjs';
+import * as webPronunciationCache from '../../../../packages/platform-web/src/query-pronunciation-cache.mjs';
+import * as sharedSearchAdapter from '../../../../packages/shared-core/src/search/search-adapter.mjs';
+import * as sharedCapabilityAdapter from '../../../../packages/shared-core/src/search/capability-adapter.mjs';
+import * as sharedRuntimeEditions from '../../../../packages/shared-core/src/search/runtime-editions.mjs';
+import * as sharedDocumentModel from '../../../../packages/shared-core/src/document/document-model.mjs';
+import * as webDocumentStore from '../../../../packages/platform-web/src/document-store.mjs';
+import * as webDocumentAdapter from '../../../../packages/platform-web/src/document-adapter.mjs';
+import * as sharedBackup from '../../../../packages/shared-core/src/document/backup-portability.mjs';
+import * as sharedEditor from '../../../../packages/shared-core/src/editor/editor-session.mjs';
+import * as sharedHistory from '../../../../packages/shared-core/src/editor/edit-history.mjs';
+import * as sharedPerformance from '../../../../packages/shared-core/src/editor/performance-session.mjs';
+import * as sharedRevisionDiff from '../../../../packages/shared-core/src/editor/revision-diff.mjs';
+import * as sharedAnalysis from '../../../../packages/shared-core/src/services/analysis-adapter.mjs';
+import * as sharedDetail from '../../../../packages/shared-core/src/services/detail-adapter.mjs';
+import * as webDiagnostics from '../../../../packages/platform-web/src/diagnostics.mjs';
+import * as webDevice from '../../../../packages/platform-web/src/device-acceptance.mjs';
 
 import type {
   EditorSong,
@@ -35,11 +35,11 @@ import type {
 
 function expectIdentity(
   bridge: Record<string, unknown>,
-  legacy: Record<string, unknown>,
+  authoritative: Record<string, unknown>,
   names: readonly string[],
 ) {
   for (const name of names) {
-    expect(bridge[name], name).toBe(legacy[name]);
+    expect(bridge[name], name).toBe(authoritative[name]);
   }
 }
 
@@ -55,9 +55,9 @@ function memoryStorage(initial: Record<string, string> = {}) {
   };
 }
 
-describe('R1 typed bridge keeps legacy implementations authoritative', () => {
+describe('Shared Core boundary keeps authoritative implementations centralized', () => {
   it('re-exports SearchState, pronunciation, Writer and capability functions by identity', () => {
-    expectIdentity(searchBridge, legacySearchState, [
+    expectIdentity(searchBridge, sharedSearchState, [
       'createSearchState',
       'patchSearchState',
       'loadSearchState',
@@ -66,20 +66,20 @@ describe('R1 typed bridge keeps legacy implementations authoritative', () => {
       'writeSearchStateToUrl',
       'searchStateToWriterParams',
     ]);
-    expectIdentity(searchBridge, legacyPronunciation, [
+    expectIdentity(searchBridge, sharedPronunciation, [
       'normalizeClientSurface',
       'tokenizeClientPronunciationInput',
       'generateClientIpa',
       'resolveUnknownClientPronunciation',
     ]);
-    expectIdentity(searchBridge, legacyPronunciationCache, [
+    expectIdentity(searchBridge, webPronunciationCache, [
       'generatedPronunciationCacheKey',
       'buildGeneratedPronunciationCacheRecord',
       'isGeneratedPronunciationCacheRecordUsable',
       'readGeneratedPronunciationCache',
       'writeGeneratedPronunciationCache',
     ]);
-    expectIdentity(searchBridge, legacySearchAdapter, [
+    expectIdentity(searchBridge, sharedSearchAdapter, [
       'estimateSyllables',
       'writerScope',
       'writerRelationType',
@@ -89,19 +89,19 @@ describe('R1 typed bridge keeps legacy implementations authoritative', () => {
       'buildWriterParams',
       'createWriterSearchClient',
     ]);
-    expectIdentity(searchBridge, legacyCapabilityAdapter, [
+    expectIdentity(searchBridge, sharedCapabilityAdapter, [
       'normalizeStudioCapabilities',
       'loadStudioCapabilities',
     ]);
-    expect(searchBridge.normalizeRuntimeEdition).toBe(legacyRuntimeEditions.normalizeInternalDbLabId);
-    expect(searchBridge.loadRuntimeEditionSelection).toBe(legacyRuntimeEditions.loadInternalDbLabSelection);
-    expect(searchBridge.saveRuntimeEditionSelection).toBe(legacyRuntimeEditions.saveInternalDbLabSelection);
-    expect(searchBridge.runtimeEditionSummaryMap).toBe(legacyRuntimeEditions.internalDbSummaryMap);
-    expect(searchBridge.capabilitiesForRuntimeEdition).toBe(legacyRuntimeEditions.studioCapabilitiesFromInternalDb);
+    expect(searchBridge.normalizeRuntimeEdition).toBe(sharedRuntimeEditions.normalizeRuntimeEdition);
+    expect(searchBridge.loadRuntimeEditionSelection).toBe(sharedRuntimeEditions.loadRuntimeEditionSelection);
+    expect(searchBridge.saveRuntimeEditionSelection).toBe(sharedRuntimeEditions.saveRuntimeEditionSelection);
+    expect(searchBridge.runtimeEditionSummaryMap).toBe(sharedRuntimeEditions.runtimeEditionSummaryMap);
+    expect(searchBridge.capabilitiesForRuntimeEdition).toBe(sharedRuntimeEditions.capabilitiesForRuntimeEdition);
   });
 
   it('re-exports document, persistence and backup functions by identity', () => {
-    expectIdentity(documentBridge, legacyDocumentModel, [
+    expectIdentity(documentBridge, sharedDocumentModel, [
       'serializeLegacyStudioBackup',
       'migrateLegacyStudioState',
       'validateStudioDocumentSnapshot',
@@ -113,13 +113,13 @@ describe('R1 typed bridge keeps legacy implementations authoritative', () => {
       'captureSongRevision',
       'replaceSelection',
     ]);
-    expectIdentity(documentBridge, legacyDocumentStore, [
+    expectIdentity(documentBridge, webDocumentStore, [
       'openStudioDocumentDatabase',
       'createStudioDocumentStore',
       'migrateLegacyStudioStateToStore',
       'shadowLegacyStudioStateToStore',
     ]);
-    expectIdentity(documentBridge, legacyDocumentAdapter, [
+    expectIdentity(documentBridge, webDocumentAdapter, [
       'createStudioState',
       'loadStudioState',
       'writeStudioState',
@@ -129,7 +129,7 @@ describe('R1 typed bridge keeps legacy implementations authoritative', () => {
       'writeStudioPreferences',
       'studioStateFromDocumentSnapshot',
     ]);
-    expectIdentity(documentBridge, legacyBackup, [
+    expectIdentity(documentBridge, sharedBackup, [
       'createPortableStudioBackup',
       'parsePortableStudioBackup',
       'portableBackupFilename',
@@ -137,7 +137,7 @@ describe('R1 typed bridge keeps legacy implementations authoritative', () => {
   });
 
   it('re-exports editor, undo, performance and revision functions by identity', () => {
-    expectIdentity(editorBridge, legacyEditor, [
+    expectIdentity(editorBridge, sharedEditor, [
       'ensureEditorSong',
       'barIdentity',
       'editorBracketSegments',
@@ -164,11 +164,11 @@ describe('R1 typed bridge keeps legacy implementations authoritative', () => {
       'createSelectionProof',
       'validateSelectionProof',
     ]);
-    expectIdentity(editorBridge, legacyHistory, [
+    expectIdentity(editorBridge, sharedHistory, [
       'typingInputIsCoalescible',
       'createTypingUndoCoalescer',
     ]);
-    expectIdentity(editorBridge, legacyPerformance, [
+    expectIdentity(editorBridge, sharedPerformance, [
       'ensurePerformanceSong',
       'performanceConfig',
       'setPerformanceConfig',
@@ -188,7 +188,7 @@ describe('R1 typed bridge keeps legacy implementations authoritative', () => {
       'performanceSyllablesPerSecond',
       'performanceCueSymbol',
     ]);
-    expectIdentity(editorBridge, legacyRevisionDiff, [
+    expectIdentity(editorBridge, sharedRevisionDiff, [
       'revisionSnapshotBars',
       'compareEditorRevisions',
       'revisionDiffLabel',
@@ -196,7 +196,7 @@ describe('R1 typed bridge keeps legacy implementations authoritative', () => {
   });
 
   it('re-exports analysis, detail, diagnostics and device-acceptance functions by identity', () => {
-    expectIdentity(serviceBridge, legacyAnalysis, [
+    expectIdentity(serviceBridge, sharedAnalysis, [
       'studioAnalysisOccurrences',
       'expandStudioRhymeRelations',
       'studioRhymeTypeCounts',
@@ -204,16 +204,16 @@ describe('R1 typed bridge keeps legacy implementations authoritative', () => {
       'studioAnalysisWords',
       'createStudioAnalysisClient',
     ]);
-    expectIdentity(serviceBridge, legacyDetail, [
+    expectIdentity(serviceBridge, sharedDetail, [
       'studioDetailKey',
       'createStudioDetailClient',
       'buildStudioDetailModel',
     ]);
-    expectIdentity(systemBridge, legacyDiagnostics, [
+    expectIdentity(systemBridge, webDiagnostics, [
       'collectStudioEnvironmentDiagnostics',
       'diagnosticsFilename',
     ]);
-    expectIdentity(systemBridge, legacyDevice, [
+    expectIdentity(systemBridge, webDevice, [
       'studioDeviceGateEnvironmentStatus',
       'studioDeviceEnvironmentLabel',
       'createStudioDeviceAcceptance',
@@ -225,7 +225,7 @@ describe('R1 typed bridge keeps legacy implementations authoritative', () => {
   });
 });
 
-describe('R1 typed bridge preserves representative domain semantics', () => {
+describe('Shared Core preserves representative domain semantics', () => {
   it('preserves normalized SearchState, URL and Writer parameter semantics', () => {
     const state: SearchState = searchBridge.createSearchState({
       anchor: '  Nacht  ',
@@ -541,7 +541,7 @@ describe('R1 typed bridge preserves representative domain semantics', () => {
   });
 });
 
-describe('R1 contracts are consumable from strict TypeScript', () => {
+describe('Shared Core contracts are consumable from strict TypeScript', () => {
   it('exposes typed search and diagnostics surfaces', async () => {
     const state = searchBridge.createSearchState({ anchor: 'Nacht' });
     expectTypeOf(state).toEqualTypeOf<SearchState>();
