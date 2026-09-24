@@ -3,6 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 
 import { Dialog } from '../../design-system/primitives';
 import { useUiStore } from '../../state/uiStore';
+import { Icon } from '../../shell/icons';
 import styles from './Editor.module.css';
 
 export interface CuratedGoogleFont {
@@ -143,6 +144,7 @@ export function SystemFontPicker({
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const categoryScrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     ensureEditorFontLoaded(normalizedValue);
@@ -191,6 +193,15 @@ export function SystemFontPicker({
   }, [filtered, open, virtualItems]);
 
   const currentFamily = editorFontLabel(normalizedValue);
+
+  const scrollCategories = (direction: -1 | 1) => {
+    const node = categoryScrollerRef.current;
+    if (!node) return;
+    node.scrollBy({
+      left: direction * Math.max(180, Math.min(320, node.clientWidth * 0.72)),
+      behavior: 'smooth',
+    });
+  };
 
   const changeOpen = (next: boolean) => {
     setOpen(next);
@@ -242,20 +253,45 @@ export function SystemFontPicker({
                 <b>{filtered.length}</b>
               </label>
 
-              <div className={styles.fontCategories} role="group" aria-label={language === 'de' ? 'Font-Kategorien' : 'Font categories'}>
-                {categories.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    data-active={category === item ? 'true' : 'false'}
-                    onClick={() => {
-                      setCategory(item);
-                      scrollerRef.current?.scrollTo({ top: 0 });
-                    }}
-                  >
-                    {item === 'All' ? (language === 'de' ? 'Alle' : 'All') : item}
-                  </button>
-                ))}
+              <div className={styles.fontCategoryStrip}>
+                <button
+                  type="button"
+                  className={styles.fontCategoryArrow}
+                  data-direction="left"
+                  onClick={() => scrollCategories(-1)}
+                  aria-label={language === 'de' ? 'Kategorien nach links' : 'Scroll categories left'}
+                >
+                  <Icon name="chevron" />
+                </button>
+                <div
+                  ref={categoryScrollerRef}
+                  className={styles.fontCategories}
+                  role="group"
+                  aria-label={language === 'de' ? 'Font-Kategorien' : 'Font categories'}
+                >
+                  {categories.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      data-active={category === item ? 'true' : 'false'}
+                      onClick={() => {
+                        setCategory(item);
+                        scrollerRef.current?.scrollTo({ top: 0 });
+                      }}
+                    >
+                      {item === 'All' ? (language === 'de' ? 'Alle' : 'All') : item}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className={styles.fontCategoryArrow}
+                  data-direction="right"
+                  onClick={() => scrollCategories(1)}
+                  aria-label={language === 'de' ? 'Kategorien nach rechts' : 'Scroll categories right'}
+                >
+                  <Icon name="chevron" />
+                </button>
               </div>
 
               <div ref={scrollerRef} className={styles.fontList}>
