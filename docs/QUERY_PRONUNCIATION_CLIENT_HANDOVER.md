@@ -9,13 +9,20 @@ Every normalizable user query, including arbitrary word chains, must receive a u
 
 Only missing query pronunciation is generated in the end-user client. Existing Word, Phrase/Mosaic and Entity databases, retrieval, scoring, ranking and result behavior remain authoritative.
 
-### Resolver v3 German OOV correction
+### Resolver v4 right-edge OOV / compound correction
 
-The current browser resolver policy is `client-total-query-pronunciation-v3`. It preserves the source-first contract and adds German OOV rhyme-domain corrections required for user spellings that are absent from the active lexicon:
+The current browser resolver policy is `client-total-query-pronunciation-v4`. It preserves the source-first contract and the accepted German OOV corrections, and adds a right-edge compound policy for long invented/concatenated spellings:
 
-- word-final orthographic `b/d/g` is devoiced to `p/t/k` in generated query IPA;
+- word-final orthographic `b/d/g` is devoiced to `p/t/k` in generated German query IPA;
 - common final `-ag` anchors use the long-`aː` rhyme domain, while `-arg` keeps its rhotic coda;
-- examples locked by regression tests: `TRAG` -> `ˈtRaːk`, `WARG` -> `ˈvaRk`.
+- examples remain locked: `TRAG` -> `ˈtRaːk`, `WARG` -> `ˈvaRk`;
+- an unknown compound first probes for the longest source-backed suffix because that suffix owns the useful rhyme edge;
+- the prefix is source-decomposed when possible and generated only where still unresolved;
+- earlier compound pieces are demoted; the final lexical component carries primary query stress;
+- long fully generated tokens receive a bounded right-edge query stress instead of treating the whole spelling as one rhyme domain;
+- `GROWTHHORMONPRODUCER` is a DE + EN regression sentinel.
+
+This remains query-anchor behavior only. It does not assert canonical lexical stress or persist generated pronunciation as dictionary truth.
 
 The policy bump intentionally invalidates older v2 generated-token cache rows. Source-backed pronunciation still has absolute precedence and the resolver still runs only after the normal Writer request reports missing pronunciation.
 
@@ -50,7 +57,7 @@ Implementation:
 - store: `generated_pronunciations`
 - schema: `rhymelab-query-pronunciation-cache-v1`
 - maximum entries: 10,000
-- resolver policy: `client-total-query-pronunciation-v3`
+- resolver policy: `client-total-query-pronunciation-v4`
 
 The cache is a performance layer only. It is **not lexical truth** and must never be promoted into canonical Word, Phrase/Mosaic or Entity data.
 
