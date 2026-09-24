@@ -5,7 +5,7 @@ import * as legacyControls from '../../../../../src/studio/studio-controls.mjs';
 
 import type { RuntimeEditionPayload, WriterResultRow } from '../../legacy/contracts';
 import { chooseAvailableRuntimeEdition, createSearchState } from '../../legacy/search';
-import { trackedSearchText, writerSearchOptions } from './data';
+import { runtimeEditionFromHealth, trackedSearchText, writerSearchOptions } from './data';
 import {
   corpusModePatch,
   corpusModeValue,
@@ -100,6 +100,18 @@ describe('R3 preserves legacy Search control composition', () => {
 });
 
 describe('R3 preserves Writer request semantics through R1', () => {
+  it('reads the active shipping edition from existing health metadata without changing selection policy', () => {
+    expect(runtimeEditionFromHealth({
+      serving_v1: { internal_db: 'full' },
+    })).toBe('full');
+    expect(runtimeEditionFromHealth({
+      serving_v1: { internal_db: 'STANDARD' },
+    })).toBe('standard');
+    expect(runtimeEditionFromHealth({
+      serving_v1: { internal_db: 'master' },
+    })).toBeNull();
+  });
+
   it('maps SearchState to the existing Writer option contract exactly', () => {
     const state = createSearchState({
       anchor: 'Nacht',
