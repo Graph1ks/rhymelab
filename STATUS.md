@@ -1,19 +1,31 @@
-# CURRENT ARCHITECTURE — R9 Shared Core extraction
+# CURRENT ARCHITECTURE — R10 Public Legacy Exit
 
-RhymeLab is now moving from the completed React runtime cutover to a **Shared Core exit architecture**. The target is not to rewrite domain logic in React; it is to make React the only product UI while proven framework-independent behavior lives in neutral packages.
+R9 Shared Core is merged and is the active frontend authority. R10 now removes the remaining historical browser/runtime coupling without weakening the unresolved physical acceptance gate.
 
 - Shared Core: `packages/shared-core/`
 - Web platform adapters: `packages/platform-web/`
 - React typed boundary: `apps/studio-react/src/core/`
-- React `src/legacy/`: removed on `architecture/shared-core-r9`
-- React imports from `src/studio/` or `src/ui/`: forbidden by CI
-- Legacy Studio/Search/RhymePad surfaces: temporary rollback evidence only, not architecture
+- Production React imports from `src/studio/` or `src/ui/`: forbidden by CI
+- Legacy Studio/Search/RhymePad: rollback/reference only
+- R10 audit: `docs/PUBLIC_R10_LEGACY_AUDIT.md`
 
-Only authoritative domain behavior, data-format migration compatibility, replaceable platform adapters and parity-proven semantics graduate into Shared Core. Debug-only browser metrics, duplicate DOM orchestration and obsolete UI helpers do not.
+The first safe pre-gate R10 cleanup removes a hidden normal-start dependency on old browser files. React build assets remain eagerly validated at startup, while historical Studio/Search/RhymePad and debug/lab static bodies are now loaded only when their routes are requested. Rollback routes and behavior remain intact.
 
-The seven physical browser/touch/IME/Web Audio gates remain pending. They still block deleting the rollback surfaces, but they do not change Shared Core ownership.
+Normal Serving-v1 startup does not open or require the archived DB-v4 control database. Project state now records that control DB as optional for normal startup. The seven physical browser/touch/IME/Web Audio gates remain pending and still block destructive deletion of rollback surfaces:
 
-See `docs/SHARED_CORE_ARCHITECTURE.md`.
+```text
+editor.ime
+perform.metronome
+mobile.navigation
+mobile.swap
+mobile.keyboard
+mobile.touch
+mobile.no-hover
+```
+
+No gate is inferred from source tests. Premium/AI/licensing and private-repository implementation remain deferred. R11 Platform Contracts follows successful R10 Legacy Exit.
+
+See `docs/PUBLIC_R10_HANDOVER.md`, `docs/PUBLIC_R10_LEGACY_AUDIT.md` and `docs/SHARED_CORE_ARCHITECTURE.md`.
 
 # CURRENT RUNTIME — React Studio R8 reversible cutover
 
