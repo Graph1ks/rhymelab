@@ -461,7 +461,7 @@ test('React Studio live default leaves Studio V2, Search and RhymePad rollback r
   ]);
 
   assert.match(server,/const studioUiDir = resolve\('src\/studio'\)/u);
-  assert.match(server,/const studioHtml=readFileSync\(resolve\(studioUiDir,'index\.html'\)\)/u);
+  assert.match(server,/const studioHtml=lazyBody\(\(\)=>readFileSync\(resolve\(studioUiDir,'index\.html'\)\)\)/u);
   assert.match(server,/internalDbSwitcherEnabled/u);
   assert.match(server,/let servingV1DbPath=internalDbPaths\.standard/u);
   assert.match(server,/preferredAvailableDistributionDbId\(internalDbEntries\)/u);
@@ -541,7 +541,7 @@ test('Studio shared SearchState re-export resolves to a served browser URL',asyn
   assert.equal(resolved.pathname,'/ui/search-state.mjs');
   assert.match(
     server,
-    /'\/ui\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8', body: readFileSync\(resolve\(uiDir, 'search-state\.mjs'\)\) \}/u,
+    /'\/ui\/search-state\.mjs': \{ type: 'text\/javascript; charset=utf-8', body: lazyBody\(\(\)=>readFileSync\(resolve\(uiDir, 'search-state\.mjs'\)\)\) \}/u,
   );
 });
 

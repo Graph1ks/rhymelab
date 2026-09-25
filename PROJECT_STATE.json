@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
-  "updated": "2026-09-24",
-  "phase": "R9_SHARED_CORE_EXTRACTION",
+  "updated": "2026-09-25",
+  "phase": "R10_PUBLIC_LEGACY_EXIT",
   "package_version": "0.11.0",
   "rhyme_bureau_design_pass": {
     "status": "IMPLEMENTED_AUTOMATED_PASS_BROWSER_OWNER_ACCEPTANCE_PENDING",
@@ -33,7 +33,7 @@
     "default_writer_promoted": true,
     "legacy_control_database": "data/local/rhymelab.sqlite",
     "legacy_control_database_schema": "rhymelab-local-db-v4",
-    "legacy_control_optional_for_normal_startup": false,
+    "legacy_control_optional_for_normal_startup": true,
     "legacy_parameter": null,
     "core_search_requires_network": false,
     "core_search_allows_llm_inference": false,
@@ -4050,7 +4050,17 @@
       "ci": "NONE",
       "implementation_start_rule": "after public legacy exit and platform/extension contracts are stable"
     },
-    "next_thread_action": "audit remaining legacy/rollback surfaces by authority and dependency class; implement only cleanup that is safe before unresolved physical acceptance; do not begin Premium implementation"
+    "next_thread_action": "audit remaining legacy/rollback surfaces by authority and dependency class; implement only cleanup that is safe before unresolved physical acceptance; do not begin Premium implementation",
+    "legacy_audit": "docs/PUBLIC_R10_LEGACY_AUDIT.md",
+    "safe_pre_gate_cleanup": {
+      "status": "IMPLEMENTED_PRE_GATE",
+      "legacy_static_assets": "REQUEST_LAZY",
+      "react_static_assets": "STARTUP_EAGER_FAIL_CLOSED",
+      "rollback_routes_retained": true,
+      "physical_device_gates_changed": false,
+      "normal_startup_requires_legacy_control_db": false,
+      "normal_startup_requires_rollback_static_files": false
+    }
   },
   "studio_v2": {
     "status": "LEGACY_ROLLBACK_SURFACE_DEVICE_ACCEPTANCE_REFERENCE",
@@ -4448,6 +4458,23 @@
       ],
       "legacy_surface_deletion_blocked_until_physical_acceptance": true,
       "merge_commit": "c77cfae6f4dc"
+    },
+    "r10": {
+      "status": "ACTIVE_PRE_GATE_CLEANUP",
+      "audit": "docs/PUBLIC_R10_LEGACY_AUDIT.md",
+      "rollback_surface_deletion_blocked_until_physical_acceptance": true,
+      "normal_startup_legacy_static_dependency_removed": true,
+      "physical_device_gates_pending": [
+        "editor.ime",
+        "perform.metronome",
+        "mobile.navigation",
+        "mobile.swap",
+        "mobile.keyboard",
+        "mobile.touch",
+        "mobile.no-hover"
+      ],
+      "premium_ai_licensing_implementation": false,
+      "next_phase": "R11_PLATFORM_CONTRACTS"
     }
   },
   "shared_core": {

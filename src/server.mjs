@@ -588,12 +588,24 @@ function generatedRuntimeHealth(){
   };
 }
 
-const writerHtml = readFileSync(resolve(uiDir, 'index.html'));
-const padHtml = Buffer.from(materializeRhymePadV14().html);
-const studioHtml=readFileSync(resolve(studioUiDir,'index.html'));
-const benchmarkHtml = readFileSync(resolve(benchmarkUiDir, 'index.html'));
-const queryPronunciationTestHtml = readFileSync(resolve(queryPronunciationTestDir, 'index.html'));
-const markovTestHtml = readFileSync(resolve(markovTestDir, 'index.html'));
+function lazyBody(loader){
+  let loaded=false;
+  let body;
+  return ()=>{
+    if(!loaded){
+      body=loader();
+      loaded=true;
+    }
+    return body;
+  };
+}
+
+const writerHtml = lazyBody(()=>readFileSync(resolve(uiDir, 'index.html')));
+const padHtml = lazyBody(()=>Buffer.from(materializeRhymePadV14().html));
+const studioHtml=lazyBody(()=>readFileSync(resolve(studioUiDir,'index.html')));
+const benchmarkHtml = lazyBody(()=>readFileSync(resolve(benchmarkUiDir, 'index.html')));
+const queryPronunciationTestHtml = lazyBody(()=>readFileSync(resolve(queryPronunciationTestDir, 'index.html')));
+const markovTestHtml = lazyBody(()=>readFileSync(resolve(markovTestDir, 'index.html')));
 const reactStudioAssets=loadReactStudioPreviewAssets(reactStudioDistDir);
 const reactStudioHtml=reactStudioAssets['/studio-react/']?.body;
 const assets = {
@@ -615,64 +627,64 @@ const assets = {
   '/studio/': { type: 'text/html; charset=utf-8', body: reactStudioHtml },
   '/studio-legacy': { type: 'text/html; charset=utf-8', body: studioHtml },
   '/studio-legacy/': { type: 'text/html; charset=utf-8', body: studioHtml },
-  '/studio/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'styles.css')) },
-  '/studio/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'app.js')) },
-  '/studio/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'custom-select.mjs')) },
-  '/studio/studio-core.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'studio-core.mjs')) },
-  '/studio/studio-controls.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'studio-controls.mjs')) },
-  '/studio/search-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'search-adapter.mjs')) },
-  '/studio/search-filters.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'search-filters.mjs')) },
-  '/studio/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'search-state.mjs')) },
-  '/ui/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'search-state.mjs')) },
-  '/ui/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'custom-select.mjs')) },
-  '/ui/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-client.mjs')) },
-  '/ui/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-cache.mjs')) },
-  '/studio/document-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'document-adapter.mjs')) },
-  '/studio/document-model.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'document-model.mjs')) },
-  '/studio/document-store.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'document-store.mjs')) },
-  '/studio/editor-session.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'editor-session.mjs')) },
-  '/studio/performance-session.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'performance-session.mjs')) },
-  '/studio/mobile-viewport.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'mobile-viewport.mjs')) },
-  '/studio/capability-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'capability-adapter.mjs')) },
-  '/studio/detail-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'detail-adapter.mjs')) },
-  '/studio/analysis-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'analysis-adapter.mjs')) },
-  '/studio/analysis-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'analysis-cache.mjs')) },
-  '/studio/backup-portability.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'backup-portability.mjs')) },
-  '/studio/diagnostics.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'diagnostics.mjs')) },
-  '/studio/internal-db-lab.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'internal-db-lab.mjs')) },
-  '/studio/internal-db-benchmark.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'internal-db-benchmark.mjs')) },
-  '/studio/i18n.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'i18n.mjs')) },
-  '/studio/dom-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'dom-acceptance.mjs')) },
-  '/studio/command-palette.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'command-palette.mjs')) },
-  '/studio/device-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'device-acceptance.mjs')) },
-  '/studio/edit-history.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'edit-history.mjs')) },
-  '/studio/parity-manifest.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'parity-manifest.mjs')) },
-  '/studio/revision-diff.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'revision-diff.mjs')) },
-  '/studio/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'query-pronunciation-client.mjs')) },
-  '/studio/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(studioUiDir, 'query-pronunciation-cache.mjs')) },
-  '/pad/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(padUiDir, 'styles.css')) },
-  '/pad/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(padUiDir, 'app.js')) },
-  '/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'styles.css')) },
-  '/assets/mobile.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(uiDir, 'mobile.css')) },
-  '/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'app.js')) },
-  '/assets/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'custom-select.mjs')) },
-  '/assets/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'search-state.mjs')) },
-  '/assets/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-client.mjs')) },
-  '/assets/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(uiDir, 'query-pronunciation-cache.mjs')) },
+  '/studio/styles.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'styles.css'))) },
+  '/studio/app.js': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'app.js'))) },
+  '/studio/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'custom-select.mjs'))) },
+  '/studio/studio-core.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'studio-core.mjs'))) },
+  '/studio/studio-controls.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'studio-controls.mjs'))) },
+  '/studio/search-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'search-adapter.mjs'))) },
+  '/studio/search-filters.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'search-filters.mjs'))) },
+  '/studio/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'search-state.mjs'))) },
+  '/ui/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'search-state.mjs'))) },
+  '/ui/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'custom-select.mjs'))) },
+  '/ui/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'query-pronunciation-client.mjs'))) },
+  '/ui/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'query-pronunciation-cache.mjs'))) },
+  '/studio/document-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'document-adapter.mjs'))) },
+  '/studio/document-model.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'document-model.mjs'))) },
+  '/studio/document-store.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'document-store.mjs'))) },
+  '/studio/editor-session.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'editor-session.mjs'))) },
+  '/studio/performance-session.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'performance-session.mjs'))) },
+  '/studio/mobile-viewport.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'mobile-viewport.mjs'))) },
+  '/studio/capability-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'capability-adapter.mjs'))) },
+  '/studio/detail-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'detail-adapter.mjs'))) },
+  '/studio/analysis-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'analysis-adapter.mjs'))) },
+  '/studio/analysis-cache.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'analysis-cache.mjs'))) },
+  '/studio/backup-portability.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'backup-portability.mjs'))) },
+  '/studio/diagnostics.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'diagnostics.mjs'))) },
+  '/studio/internal-db-lab.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'internal-db-lab.mjs'))) },
+  '/studio/internal-db-benchmark.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'internal-db-benchmark.mjs'))) },
+  '/studio/i18n.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'i18n.mjs'))) },
+  '/studio/dom-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'dom-acceptance.mjs'))) },
+  '/studio/command-palette.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'command-palette.mjs'))) },
+  '/studio/device-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'device-acceptance.mjs'))) },
+  '/studio/edit-history.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'edit-history.mjs'))) },
+  '/studio/parity-manifest.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'parity-manifest.mjs'))) },
+  '/studio/revision-diff.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'revision-diff.mjs'))) },
+  '/studio/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'query-pronunciation-client.mjs'))) },
+  '/studio/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'query-pronunciation-cache.mjs'))) },
+  '/pad/assets/styles.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(padUiDir, 'styles.css'))) },
+  '/pad/assets/app.js': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(padUiDir, 'app.js'))) },
+  '/assets/styles.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'styles.css'))) },
+  '/assets/mobile.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'mobile.css'))) },
+  '/assets/app.js': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'app.js'))) },
+  '/assets/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'custom-select.mjs'))) },
+  '/assets/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'search-state.mjs'))) },
+  '/assets/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'query-pronunciation-client.mjs'))) },
+  '/assets/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'query-pronunciation-cache.mjs'))) },
   '/benchmark': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
   '/benchmark/': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
-  '/benchmark/assets/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'styles.css')) },
-  '/benchmark/assets/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(benchmarkUiDir, 'app.js')) },
+  '/benchmark/assets/styles.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(benchmarkUiDir, 'styles.css'))) },
+  '/benchmark/assets/app.js': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(benchmarkUiDir, 'app.js'))) },
   '/query-pronunciation-test': { type: 'text/html; charset=utf-8', body: queryPronunciationTestHtml },
   '/query-pronunciation-test/': { type: 'text/html; charset=utf-8', body: queryPronunciationTestHtml },
-  '/query-pronunciation-test/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(queryPronunciationTestDir, 'app.js')) },
-  '/query-pronunciation-test/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(queryPronunciationTestDir, 'styles.css')) },
+  '/query-pronunciation-test/app.js': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(queryPronunciationTestDir, 'app.js'))) },
+  '/query-pronunciation-test/styles.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(queryPronunciationTestDir, 'styles.css'))) },
   '/markov-test': { type: 'text/html; charset=utf-8', body: markovTestHtml },
   '/markov-test/': { type: 'text/html; charset=utf-8', body: markovTestHtml },
-  '/markov-test/app.js': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(markovTestDir, 'app.js')) },
-  '/markov-test/styles.css': { type: 'text/css; charset=utf-8', body: readFileSync(resolve(markovTestDir, 'styles.css')) },
-  '/markov-test/markov-core.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(markovTestDir, 'markov-core.mjs')) },
-  '/markov-test/markov-controls.mjs': { type: 'text/javascript; charset=utf-8', body: readFileSync(resolve(markovTestDir, 'markov-controls.mjs')) },
+  '/markov-test/app.js': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(markovTestDir, 'app.js'))) },
+  '/markov-test/styles.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(markovTestDir, 'styles.css'))) },
+  '/markov-test/markov-core.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(markovTestDir, 'markov-core.mjs'))) },
+  '/markov-test/markov-controls.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(markovTestDir, 'markov-controls.mjs'))) },
   ...reactStudioAssets,
 };
 
@@ -727,6 +739,7 @@ function json(res,data,status=200,_legacyAllowCors=false,diagnostics=null){
 }
 
 function asset(res,entry){
+  const body=typeof entry.body==='function'?entry.body():entry.body;
   const isHtml=String(entry.type||'').toLowerCase().startsWith('text/html');
   res.writeHead(200,{
     ...securityHeaders({
@@ -736,7 +749,7 @@ function asset(res,entry){
     }),
     'cache-control':'no-store',
   });
-  res.end(entry.body);
+  res.end(body);
 }
 
 function clientQueryPronunciation(url, language) {

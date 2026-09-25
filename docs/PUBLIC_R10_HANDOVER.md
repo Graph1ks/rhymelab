@@ -142,6 +142,24 @@ Delete rather than preserve:
 
 Do not re-create a `legacy` bridge in React.
 
+
+## R10 pre-gate audit / cleanup checkpoint
+
+The first R10 source audit is recorded in:
+
+`docs/PUBLIC_R10_LEGACY_AUDIT.md`
+
+It confirms:
+
+- production React has no dependency on `src/studio`, `src/ui` or a React legacy bridge;
+- migration/data compatibility in Shared Core / Platform Web is current authority and must survive Legacy Exit;
+- normal Serving-v1 startup does not require the archived DB-v4 control database;
+- the remaining old Studio/Search/RhymePad code is rollback/reference UI, compatibility wrappers or engineering-only tooling rather than frontend domain authority.
+
+One cleanup is safe before physical acceptance and is now implemented on the R10 branch: historical Studio/Search/RhymePad plus debug/lab static assets are request-lazy instead of being synchronously read during normal server startup. The current React build remains eagerly loaded and fail-closed.
+
+This change deliberately does **not** remove any rollback route or alter any of the seven physical-gate states.
+
 ---
 
 # Next continuation after R10 — R11 Platform Contracts
