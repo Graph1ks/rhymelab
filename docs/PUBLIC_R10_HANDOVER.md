@@ -140,7 +140,7 @@ mobile.no-hover     PASS
 ```
 
 Evidence: React Studio Replatform workflow run `36132861083` on head
-`f986c6bd4f9424ba2202a05b45cd6f60ae3955a5`: 7 applicable browser tests
+`f986c6bd4f94`: 7 applicable browser tests
 passed, 0 failed; 7 cross-project cases were intentionally skipped. RhymeLab CI,
 Security Gates and CodeQL also passed on that head.
 
