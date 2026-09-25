@@ -4026,7 +4026,7 @@
     "previous_checkpoint": {
       "id": "R9_SHARED_CORE_EXTRACTION",
       "status": "MERGED",
-      "merge_commit": "c77cfae6f4dcdef427687b87e07ce7e3bd770c2f",
+      "merge_commit": "c77cfae6f4dc",
       "contract": "docs/SHARED_CORE_ARCHITECTURE.md",
       "pull_request": 213
     },
@@ -4447,7 +4447,7 @@
         "mobile.no-hover"
       ],
       "legacy_surface_deletion_blocked_until_physical_acceptance": true,
-      "merge_commit": "c77cfae6f4dcdef427687b87e07ce7e3bd770c2f"
+      "merge_commit": "c77cfae6f4dc"
     }
   },
   "shared_core": {
@@ -4484,6 +4484,6 @@
       "electron",
       "mobile"
     ],
-    "merge_commit": "c77cfae6f4dcdef427687b87e07ce7e3bd770c2f"
+    "merge_commit": "c77cfae6f4dc"
   }
 }
