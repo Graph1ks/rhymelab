@@ -1488,7 +1488,7 @@
 
   .mobileStudioSwap button {
     flex: 1 1 0;
-    min-height: 40px;
+    min-height: 44px;
     border: 1px solid var(--rl-line);
     border-radius: 10px;
     background: var(--rl-surface);
@@ -3438,6 +3438,7 @@
   .languageButton,
   .iconButton,
   .themeMenuTrigger,
+  .mobileStudioSwap button,
   .studioModeBar button {
     min-height: 44px;
   }
