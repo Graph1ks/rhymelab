@@ -56,3 +56,17 @@ test('legacy Studio rollback keeps its absolute asset endpoints available', asyn
   assert.match(server, /'\/studio\/styles\.css'/);
   assert.match(server, /'\/studio\/app\.js'/);
 });
+
+
+test('R10 rollback static assets are request-lazy while React remains startup fail-closed', async () => {
+  const server = await readFile('src/server.mjs', 'utf8');
+
+  assert.match(server, /function lazyBody\(loader\)/);
+  assert.match(server, /const writerHtml = lazyBody\(\(\)=>readFileSync\(resolve\(uiDir, 'index\.html'\)\)\);/);
+  assert.match(server, /const padHtml = lazyBody\(\(\)=>Buffer\.from\(materializeRhymePadV14\(\)\.html\)\);/);
+  assert.match(server, /const studioHtml=lazyBody\(\(\)=>readFileSync\(resolve\(studioUiDir,'index\.html'\)\)\);/);
+  assert.doesNotMatch(server, /const writerHtml = readFileSync/u);
+  assert.doesNotMatch(server, /body:\s*readFileSync\(resolve\((?:studioUiDir|uiDir|padUiDir|benchmarkUiDir|queryPronunciationTestDir|markovTestDir)/u);
+  assert.match(server, /const body=typeof entry\.body==='function'\?entry\.body\(\):entry\.body;/);
+  assert.match(server, /const reactStudioAssets=loadReactStudioPreviewAssets\(reactStudioDistDir\);/);
+});
