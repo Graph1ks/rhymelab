@@ -64,3 +64,15 @@ jobs:
 
       - name: R7 source parity gate
         run: node scripts/check-react-studio-r7.mjs --code-only
+
+      - name: Install Playwright acceptance runner
+        working-directory: apps/studio-react
+        run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+
+      - name: Install Chromium for R10 browser acceptance
+        working-directory: apps/studio-react
+        run: npx playwright install --with-deps chromium
+
+      - name: R10 automated browser acceptance
+        working-directory: apps/studio-react
+        run: npx playwright test --config browser-acceptance/playwright.config.ts
