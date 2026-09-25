@@ -13,7 +13,7 @@ import {
   generateClientIpa,
   resolveUnknownClientPronunciation,
   tokenizeClientPronunciationInput,
-} from '../src/ui/query-pronunciation-client.mjs';
+} from '../packages/shared-core/src/search/query-pronunciation-client.mjs';
 
 const SENTINELS=[
   'Vulkanschnecken',
@@ -240,7 +240,7 @@ test('product runtime contains no eSpeak or child_process query pronunciation de
   const [server,unified,app]=await Promise.all([
     readFile('src/server.mjs','utf8'),
     readFile('src/unified-writer-search.mjs','utf8'),
-    readFile('src/ui/app.js','utf8'),
+    readFile('apps/studio-react/src/core/search.ts','utf8'),
   ]);
   const productSource=[server,unified,app].join('\n');
   assert.doesNotMatch(productSource,/node:child_process|spawnSync|RHYMELAB_ESPEAK|tryEspeakQueryPronunciation|inspectEspeakQueryPronunciation/);

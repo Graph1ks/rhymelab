@@ -18,6 +18,9 @@ const retiredPaths=[
   'scripts/merge-studio-device-acceptance.mjs',
   'scripts/check-react-studio-r7.mjs',
   'apps/studio-react/src/features/system/SystemAcceptancePanel.tsx',
+  'tests/custom-select.test.mjs',
+  'tests/local-ui-source.test.mjs',
+  'tests/ui-control-interaction.test.mjs',
 ];
 const stillPresent=retiredPaths.filter((path)=>existsSync(resolve(path)));
 add('legacy.files-retired',stillPresent.length===0,stillPresent.join(', ')||'historical browser surfaces and migration-only gates removed');

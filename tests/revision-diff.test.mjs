@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {compareEditorRevisions,revisionDiffLabel} from '../src/studio/revision-diff.mjs';
+import {compareEditorRevisions,revisionDiffLabel} from '../packages/shared-core/src/editor/revision-diff.mjs';
 
 test('revision diff keeps unchanged lines so the whole lyric can be reviewed',()=>{
   const current={
