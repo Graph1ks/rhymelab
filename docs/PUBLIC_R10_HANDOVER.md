@@ -125,9 +125,34 @@ References:
 - `docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md`
 - `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`
 
+### R10 browser gate result
+
+The seven blocking behavior gates are now green on Playwright/Chromium:
+
+```text
+editor.ime          PASS
+perform.metronome   PASS
+mobile.navigation   PASS
+mobile.swap         PASS
+mobile.keyboard     PASS
+mobile.touch        PASS
+mobile.no-hover     PASS
+```
+
+Evidence: React Studio Replatform workflow run `36132861083` on head
+`f986c6bd4f9424ba2202a05b45cd6f60ae3955a5`: 7 applicable browser tests
+passed, 0 failed; 7 cross-project cases were intentionally skipped. RhymeLab CI,
+Security Gates and CodeQL also passed on that head.
+
+The owner separately reports audible metronome output. This is physical smoke
+evidence only; CI still does not claim general hardware certification.
+
+R10 may now proceed to the destructive Legacy Exit described by
+`docs/PUBLIC_R10_LEGACY_AUDIT.md`.
+
 ## Legacy-removal rule
 
-After physical acceptance, classify remaining historical code before deletion.
+After automated browser acceptance, classify remaining historical code before deletion.
 
 Retain/promote only code that is:
 
