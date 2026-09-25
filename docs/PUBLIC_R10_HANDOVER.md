@@ -78,7 +78,7 @@ The boundary is enforced by:
 npm run studio:react:core-boundary
 ```
 
-Old Studio/Search/RhymePad code is no longer architectural authority. Remaining old browser surfaces exist only for rollback/reference until physical acceptance is complete.
+Old Studio/Search/RhymePad code is no longer architectural authority. Remaining old browser surfaces exist only for rollback/reference until R10 automated browser acceptance is green.
 
 ---
 
@@ -92,16 +92,16 @@ Do **not** begin Premium AI implementation, licensing backend implementation, El
 
 The immediate task is:
 
-1. complete/review the seven outstanding physical acceptance gates;
+1. make the seven outstanding behavior gates executable in automated browser CI;
 2. fix only observed regressions;
 3. audit remaining old UI/runtime compatibility dependencies;
 4. delete obsolete rollback surfaces once acceptance allows it;
 5. verify that Shared Core / Platform Web remain the only retained authorities;
 6. leave the public Free/Lite product independently buildable and useful.
 
-## Seven physical acceptance gates
+## Seven automated behavioral acceptance gates
 
-Still pending unless explicit evidence is added:
+R10 now requires these behaviors to pass in the browser gate:
 
 ```text
 editor.ime
@@ -113,17 +113,46 @@ mobile.touch
 mobile.no-hover
 ```
 
-Do not mark these verified from source tests alone.
+Source assertions alone are still insufficient. The blocking evidence is the
+Playwright browser suite in `apps/studio-react/browser-acceptance/`, executed
+by the React Studio CI workflow.
 
-Physical acceptance remains the blocker for deleting rollback UI surfaces.
+Physical-device smoke checks remain useful for hardware-only facts, but absence
+of a manual device report no longer blocks deletion of obsolete rollback UI.
 
-Reference:
+References:
 
-`docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`
+- `docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md`
+- `docs/STUDIO_V2_DEVICE_ACCEPTANCE.md`
+
+### R10 browser gate result
+
+The seven blocking behavior gates are now green on Playwright/Chromium:
+
+```text
+editor.ime          PASS
+perform.metronome   PASS
+mobile.navigation   PASS
+mobile.swap         PASS
+mobile.keyboard     PASS
+mobile.touch        PASS
+mobile.no-hover     PASS
+```
+
+Evidence: React Studio Replatform workflow run `36132861083` on head
+`f986c6bd4f94`: 7 applicable browser tests
+passed, 0 failed; 7 cross-project cases were intentionally skipped. RhymeLab CI,
+Security Gates and CodeQL also passed on that head.
+
+The owner separately reports audible metronome output. This is physical smoke
+evidence only; CI still does not claim general hardware certification.
+
+R10 may now proceed to the destructive Legacy Exit described by
+`docs/PUBLIC_R10_LEGACY_AUDIT.md`.
 
 ## Legacy-removal rule
 
-After physical acceptance, classify remaining historical code before deletion.
+After automated browser acceptance, classify remaining historical code before deletion.
 
 Retain/promote only code that is:
 
@@ -156,9 +185,9 @@ It confirms:
 - normal Serving-v1 startup does not require the archived DB-v4 control database;
 - the remaining old Studio/Search/RhymePad code is rollback/reference UI, compatibility wrappers or engineering-only tooling rather than frontend domain authority.
 
-One cleanup is safe before physical acceptance and is now implemented on the R10 branch: historical Studio/Search/RhymePad plus debug/lab static assets are request-lazy instead of being synchronously read during normal server startup. The current React build remains eagerly loaded and fail-closed.
+One cleanup was safe before browser acceptance and is already implemented on R10: historical Studio/Search/RhymePad plus debug/lab static assets are request-lazy instead of being synchronously read during normal server startup. The current React build remains eagerly loaded and fail-closed.
 
-This change deliberately does **not** remove any rollback route or alter any of the seven physical-gate states.
+This change deliberately did **not** remove any rollback route. R10 now adds a separate automated browser gate before destructive Legacy Exit.
 
 ---
 
@@ -322,7 +351,7 @@ See `docs/SECURITY_ARCHITECTURE.md`.
 Order of work:
 
 ```text
-R10  Physical acceptance + Legacy Exit
+R10  Automated browser acceptance + Legacy Exit
  ↓
 R11  Public Platform Contracts
  ↓
@@ -349,7 +378,7 @@ Then continue **R10 Public Legacy Exit**.
 
 First produce a compact audit of the remaining legacy/rollback surface, grouped into:
 
-1. removable only after the seven physical gates;
+1. removable only after the seven automated browser gates;
 2. migration/data compatibility code that must survive;
 3. old DOM/UI-only implementation;
 4. compatibility wrappers;
@@ -361,7 +390,7 @@ Pay particular attention to whether normal startup still has any hidden dependen
 
 Do not delete behavior merely because its file is old.
 
-After the audit, implement safe cleanup that does not require unresolved physical acceptance evidence. Leave acceptance-blocked deletion clearly identified.
+After the audit, implement safe cleanup, then require the automated browser acceptance workflow before destructive deletion. Keep hardware-smoke claims separate from CI evidence.
 
 All productive React code must continue to pass the Shared Core boundary gate.
 

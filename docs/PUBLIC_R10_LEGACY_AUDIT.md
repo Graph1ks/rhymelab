@@ -3,11 +3,11 @@
 Date: 2026-09-25  
 Phase: R10 Public Legacy Exit  
 Baseline: `main` after R9 Shared Core merge  
-Physical acceptance: **7 gates still pending**
+Acceptance policy: **7 automated browser behavior gates required**
 
-This audit classifies the remaining historical browser/runtime surface after R9. It is a source/architecture audit only. It does **not** satisfy or replace physical acceptance.
+This audit classifies the remaining historical browser/runtime surface after R9. It is a source/architecture audit only. Browser behavior is verified separately by `docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md`.
 
-Pending physical gates remain:
+Required behavior gates:
 
 ```text
 editor.ime
@@ -37,15 +37,15 @@ No productive React import from `apps/studio-react/src/legacy`, `src/studio` or 
 
 The main R10 pre-gate defect was instead in static serving: normal React startup eagerly read/materialized the historical Search, Studio, RhymePad and development-only browser assets. A missing or damaged rollback file could therefore prevent the normal React product from starting even though that route was never requested.
 
-R10 removes that hidden startup dependency by making historical/rollback/lab static bodies request-lazy while keeping the current React build eager and fail-closed. All rollback routes remain available. No physical gate status changes.
+R10 removes that hidden startup dependency by making historical/rollback/lab static bodies request-lazy while keeping the current React build eager and fail-closed. All rollback routes remain available. The subsequent R10 pass moves the seven behavior checks into browser CI without claiming physical-hardware coverage.
 
 The legacy DB-v4 control database is **not** required by normal startup. `resolveServerRuntimeMode()` selects Serving-v1 and rejects archived split-runtime modes. The old control DB is opened only inside the inactive archival branch. The previous project-state flag saying it was non-optional for normal startup was stale.
 
 ---
 
-## 1. Removable only after the seven physical gates
+## 1. Removable only after the seven automated browser gates
 
-These surfaces remain rollback/reference evidence until the seven physical gates have real-device/browser evidence.
+These surfaces remain rollback/reference evidence until the seven behavior gates pass in automated browser CI. Hardware smoke remains supplemental evidence.
 
 ### Historical Studio V2
 
@@ -89,7 +89,7 @@ Routes / fallback:
 - `/pad`
 - `/pad-legacy`
 
-Although React now contains the product writing workflow, RhymePad is still a preserved regression/fallback surface and therefore is not deleted before physical acceptance.
+Although React now contains the product writing workflow, RhymePad is still a preserved regression/fallback surface and therefore is not deleted before automated browser acceptance.
 
 ### Acceptance-linked source tests
 
@@ -180,7 +180,7 @@ Examples under `src/studio/` include thin re-exports of:
 
 Thin `src/ui/` query-pronunciation/search-state wrappers similarly point at the new authority.
 
-These wrappers are not themselves domain authority. Most should disappear with the old browser surfaces after physical acceptance. They should not be copied into React or turned into a new `legacy` bridge.
+These wrappers are not themselves domain authority. Most should disappear with the old browser surfaces after automated browser acceptance. They should not be copied into React or turned into a new `legacy` bridge.
 
 Compatibility aliases also remain in runtime/route code, for example historical React preview naming and explicit rollback flags. They can be retired during the final route deletion once no supported workflow needs them.
 
@@ -221,7 +221,7 @@ The React Vite build remains eagerly loaded and fail-closed at server startup. T
 - `/search`, `/legacy` -> standalone Search;
 - `/pad`, `/pad-legacy` -> RhymePad.
 
-These remain functional before physical acceptance.
+These remain functional before automated browser acceptance.
 
 ### R10 hidden-startup fix
 
@@ -279,11 +279,12 @@ Safe cleanup implemented in R10:
 2. keep current React build startup validation unchanged;
 3. add regression coverage for the lazy rollback-serving boundary;
 4. correct project-state metadata so R10 and legacy-control startup optionality match the actual runtime;
-5. document this audit as the deletion map for the post-physical-gate pass.
+5. document this audit as the deletion map for the post-browser-gate pass;
+6. add Playwright browser acceptance for the seven behavior gates and wire it into React CI.
 
 Explicitly **not** done:
 
-- no physical gate marked passed;
+- no CI result is represented as a physical-hardware certification;
 - no rollback route deleted;
 - no old Studio/Search/RhymePad behavior removed;
 - no migration compatibility removed;
@@ -292,4 +293,4 @@ Explicitly **not** done:
 
 ## Final deletion trigger
 
-Only after all seven physical gates have real evidence should R10 perform the destructive browser-surface deletion. At that point, rerun this classification against the then-current tree, remove compatibility routes/wrappers/tests together with their deleted surfaces, and re-run the full repository + React + public-readiness gates before declaring Legacy Exit complete.
+Only after all seven automated browser behavior gates are green, and no known material hardware-smoke regression is open, should R10 perform the destructive browser-surface deletion. At that point, rerun this classification against the then-current tree, remove compatibility routes/wrappers/tests together with their deleted surfaces, and re-run the full repository + React + public-readiness gates before declaring Legacy Exit complete.

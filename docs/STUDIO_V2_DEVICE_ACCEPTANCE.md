@@ -1,86 +1,93 @@
-# Studio V2 real-device acceptance
+# Studio device acceptance history and R10 policy
 
-Studio V2 implementation parity is source-complete and the automated source/test gate passes. The owner authorized the reversible default-route cutover on 2026-09-21. Seven real-device checks still cannot be honestly certified from source inspection alone and remain required release acceptance evidence.
+This file originally described the seven manual real-device gates used during the
+Studio V2 cutover. That manual mechanism remains useful as optional diagnostic
+evidence, but it is **not the blocking R10 Legacy Exit gate anymore**.
 
-## React replatform carry-forward
+Current policy is documented in:
 
-These seven gates are **not superseded** by the React migration. They remain
-mandatory behavioral evidence for the new implementation. A React component test,
-source assertion or desktop-only browser test cannot substitute for the physical
-IME, Web Audio, mobile viewport, touch-target and no-hover checks below.
+`docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md`
 
-The current Studio V2 is the baseline implementation. The React cutover may only
-reuse an acceptance result when the tested behavior and environment still apply;
-otherwise the relevant gate must be rerun against the React surface.
+## Current React product routes
 
-## Live route and rollback
+Normal `npm run dev` / `npm start` serves React Studio:
 
-Normal `npm run dev` / `npm start` now serves Studio V2 at `/`.
+```text
+/              React Studio
+/studio        React Studio
+/studio-react  React alias
+```
 
-To temporarily restore the previous Search as the root route for rollback/diagnosis:
+Historical rollback surfaces remain temporarily reachable during R10:
 
-~~~bash
-npm run dev:search-default
-~~~
+```text
+/studio-legacy old Studio V2
+/search        old standalone Search
+/legacy        old Search alias
+/pad           RhymePad
+/pad-legacy    RhymePad legacy alias
+```
 
-The previous surfaces remain reachable regardless of the root mode:
+## Seven behavior gates
 
-~~~text
-/search       previous Search
-/legacy       previous Search alias
-/pad          current RhymePad
-/pad-legacy   explicit RhymePad legacy alias
-/studio       Studio 02
-~~~
+The behavior IDs are retained so historical evidence and current automated
+coverage refer to the same requirements:
 
-The direct `/studio` route remains available in both modes.
+1. `editor.ime` — composition commit behaves as one Undo/Redo transaction.
+2. `perform.metronome` — Web Audio transport starts/stops and timing configuration is honored.
+3. `mobile.navigation` — product navigation does not lose editor/insertion state.
+4. `mobile.swap` — single-surface editor/results switching preserves the exact target context.
+5. `mobile.keyboard` — mobile visual viewport contraction is propagated correctly while editing.
+6. `mobile.touch` — primary touch targets remain comfortably tappable.
+7. `mobile.no-hover` — primary actions remain available without hover.
 
-## Automated gate
+R10 proves these through the Playwright browser suite plus the existing
+Shared-Core/React regression tests. The browser suite runs with a real Chromium
+engine and a touch/mobile emulation profile.
 
-Run the source-only gate first:
+## What CI does not claim
 
-~~~bash
-npm run studio:v2:cutover:code
-~~~
+CI does not claim that:
 
-It checks the source-backed parity manifest, mapped evidence, startup controls, critical Studio module routes, persistence/analysis/Perform milestones, regression-suite presence and reversible route wiring.
+- a specific phone speaker emitted audible sound;
+- Gboard, Samsung Keyboard, iOS Keyboard or another vendor IME has no vendor-specific bug;
+- every physical safe-area/device combination has been sampled.
 
-## Seven real-device gates
+Those are hardware smoke observations. A reported hardware failure is still a
+bug, but the lack of a manual report no longer keeps old rollback UI alive.
 
-Open **Studio → Settings → Real Device Acceptance** on the actual target browser/device. Studio never marks these checks passed automatically.
+## Historical manual report tooling
 
-1. **IME composition input** — compose text with an IME, commit it, Undo once, Redo once, and verify the composed edit behaves as one transaction.
-2. **Web Audio metronome** — start/stop playback, change BPM, feel and tempo scale, and verify audible timing follows the current grid.
-3. **Mobile bottom navigation** — switch Studio, Results, Library and Saved without losing the active Bar or insertion context.
-4. **Single-surface editor/results swap** — open Results from a selected range, insert a result, and verify return to the exact saved target.
-5. **Software-keyboard viewport** — edit Bars near the bottom and verify the focused Bar remains reachable above the keyboard.
-6. **Primary touch targets** — operate primary controls by touch and verify there are no clipped rails or impractically small targets.
-7. **No hover-only primary action** — use Quickstyles, Library actions, result actions and Perform controls with touch only.
+The existing device-acceptance schema/import/export helpers may remain until the
+final R10 cleanup because they can still collect optional device notes. Historical
+reports use:
 
-Add a short device/browser note where useful. Each passed gate stores the environment used for that check. Reports from multiple browsers/devices can be imported into **Settings → Real Device Acceptance** and merged without overwriting already-passed complementary gates.
-
-## Final gate
-
-Save the exported JSON as:
-
-~~~text
+```text
 reports/studio-v2-device-acceptance.json
-~~~
+```
 
-or pass one or more reports explicitly:
+and can be merged with:
 
-~~~bash
-npm run studio:v2:cutover:check -- \
-  --device-report /path/to/desktop-acceptance.json \
-  --device-report /path/to/mobile-acceptance.json
-~~~
+```bash
+npm run studio:v2:acceptance:merge
+```
 
-The checker merges complementary evidence by gate. The full gate succeeds only when both source parity and all seven explicit real-device gates pass.
+The old `studio:v2:cutover:check` full mode still understands those reports for
+historical cutover verification. It is not the authoritative R10 deletion gate.
 
-The acceptance file contains environment metadata and pass/fail notes only. It does not contain lyric documents, search history, or recovery snapshots.
+## R10 blocking gate
 
-## Release acceptance
+The authoritative R10 browser acceptance is:
 
-The default-route cutover is active and reversible. Complete the seven real-device gates as post-cutover acceptance evidence before declaring browser/touch/audio acceptance complete. Any material device failure should be fixed on Studio V2 or temporarily mitigated with `npm run dev:search-default`.
+```text
+apps/studio-react/browser-acceptance/r10-browser-acceptance.pw.ts
+```
 
-The previous Search and RhymePad routes remain available throughout this acceptance period.
+and is executed by:
+
+```text
+.github/workflows/react-studio.yml
+```
+
+Destructive Legacy Exit requires that workflow and the normal repository gates
+to be green.

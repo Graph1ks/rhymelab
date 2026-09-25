@@ -1,31 +1,52 @@
 # CURRENT ARCHITECTURE — R10 Public Legacy Exit
 
-R9 Shared Core is merged and is the active frontend authority. R10 now removes the remaining historical browser/runtime coupling without weakening the unresolved physical acceptance gate.
+R9 Shared Core is merged and remains the active frontend authority. R10 automated
+browser acceptance is now **green**, so destructive removal of historical rollback
+surfaces is no longer blocked by a manual seven-device-checkbox ceremony.
 
 - Shared Core: `packages/shared-core/`
 - Web platform adapters: `packages/platform-web/`
 - React typed boundary: `apps/studio-react/src/core/`
 - Production React imports from `src/studio/` or `src/ui/`: forbidden by CI
-- Legacy Studio/Search/RhymePad: rollback/reference only
+- Legacy Studio/Search/RhymePad: rollback/reference only, now eligible for R10 deletion
 - R10 audit: `docs/PUBLIC_R10_LEGACY_AUDIT.md`
+- Browser acceptance: `docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md`
 
-The first safe pre-gate R10 cleanup removes a hidden normal-start dependency on old browser files. React build assets remain eagerly validated at startup, while historical Studio/Search/RhymePad and debug/lab static bodies are now loaded only when their routes are requested. Rollback routes and behavior remain intact.
-
-Normal Serving-v1 startup does not open or require the archived DB-v4 control database. Project state now records that control DB as optional for normal startup. The seven physical browser/touch/IME/Web Audio gates remain pending and still block destructive deletion of rollback surfaces:
+R10 browser evidence on head `f986c6bd4f94`:
 
 ```text
-editor.ime
-perform.metronome
-mobile.navigation
-mobile.swap
-mobile.keyboard
-mobile.touch
-mobile.no-hover
+editor.ime          PASS  desktop Chromium
+perform.metronome   PASS  desktop Chromium + Web Audio
+mobile.navigation   PASS  iPhone 13 touch/mobile emulation on Chromium
+mobile.swap         PASS  iPhone 13 touch/mobile emulation on Chromium
+mobile.keyboard     PASS  VisualViewport/mobile Chromium
+mobile.touch        PASS  touch + >=44px primary target checks
+mobile.no-hover     PASS  coarse pointer / no-hover tap-only workflow
 ```
 
-No gate is inferred from source tests. Premium/AI/licensing and private-repository implementation remain deferred. R11 Platform Contracts follows successful R10 Legacy Exit.
+Playwright result: **7 passed, 0 failed**. Seven complementary cross-project cases
+were intentionally skipped because desktop-only gates do not run in the mobile
+project and mobile-only gates do not run in the desktop project. React workflow run
+`36132861083`, RhymeLab CI, Security Gates and CodeQL all passed on the tested
+head.
 
-See `docs/PUBLIC_R10_HANDOVER.md`, `docs/PUBLIC_R10_LEGACY_AUDIT.md` and `docs/SHARED_CORE_ARCHITECTURE.md`.
+The browser gate is behavioral evidence, not a claim that CI is physical hardware.
+The owner separately reported the metronome as audibly working. Vendor-specific
+phone/keyboard/safe-area smoke remains useful but is non-blocking for R10 unless a
+real regression is reported.
+
+The earlier R10 startup cleanup also removed the hidden normal-start dependency on
+old browser files: React assets remain eager/fail-closed, historical UI/lab assets
+are request-lazy, and normal Serving-v1 startup does not require the archived DB-v4
+control database.
+
+**Next action:** perform the destructive Legacy Exit from the audited deletion map,
+while preserving migration/data compatibility and current Shared Core/Platform Web
+authority. Premium/AI/licensing remain deferred. R11 Platform Contracts follows
+successful R10 Legacy Exit.
+
+See `docs/PUBLIC_R10_HANDOVER.md`, `docs/PUBLIC_R10_LEGACY_AUDIT.md`,
+`docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md` and `docs/SHARED_CORE_ARCHITECTURE.md`.
 
 # CURRENT RUNTIME — React Studio R8 reversible cutover
 
@@ -35,7 +56,7 @@ This is an explicit owner-authorized reversible runtime cutover. The seven physi
 
 # Public-facing status
 
-Last updated: 2026-09-24
+Last updated: 2026-09-25
 
 
 ## Current presentation pass — Rhyme Bureau
