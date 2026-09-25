@@ -1,49 +1,51 @@
-# CURRENT ARCHITECTURE — R10 Destructive Legacy Exit
+# CURRENT ARCHITECTURE — R10 COMPLETE · R11 READY
 
-R10 destructive browser Legacy Exit is **implemented on candidate branch
-`r10/destructive-legacy-exit` and awaiting full CI**.
+**R10 Public Legacy Exit is complete and green.** The historical browser product
+surfaces are gone; React + Shared Core + Platform Web are now the single public
+frontend authority.
 
-The current product authority is now intentionally singular:
+Removed:
+
+- `src/studio/`, `src/ui/`, `src/pad/`, `src/rhymepad-v14.mjs`;
+- `/studio-legacy`, `/search`, `/legacy`, `/pad`, `/pad-legacy`;
+- Studio/Search rollback flags and package commands;
+- Studio V2 workflow, manual cutover/report scripts and dead acceptance UI;
+- source-only tests whose subject was the deleted DOM UI.
+
+Preserved:
+
+- `packages/shared-core/` domain semantics;
+- `packages/platform-web/` browser adapters;
+- document migration, backup portability, IndexedDB/LocalStorage compatibility;
+- query-pronunciation cache compatibility;
+- React at `/`, `/studio` and its `/studio-react` asset alias;
+- permanent seven-gate Playwright behavior acceptance;
+- Serving-v1 runtime semantics.
+
+Useful non-UI tests were retargeted directly to their current authority. Internal
+distribution benchmark logic that still has engineering value now lives at
+`src/internal-db-benchmark.mjs` rather than under the deleted Studio tree.
+
+Green R10 implementation checkpoint `750016b58519`:
 
 ```text
-apps/studio-react
-       |
-       v
-apps/studio-react/src/core
-       |
-       +--> packages/shared-core
-       +--> packages/platform-web
+RhymeLab CI            654/654 PASS
+React Vitest           104/104 PASS
+R10 source gate        PASS
+Playwright             7/7 PASS
+Security Gates         PASS
+Public Readiness       PASS (688 tracked files)
+CodeQL                 PASS
 ```
 
-Candidate removal:
+The archived `ranking=legacy` / DB-v4 comparison path remains intentionally
+isolated for a separate API/compatibility audit; it was not silently removed as
+part of browser cleanup.
 
-- historical Studio V2 tree: `src/studio/`;
-- standalone Search tree: `src/ui/`;
-- RhymePad tree/materializer: `src/pad/`, `src/rhymepad-v14.mjs`;
-- rollback routes: `/studio-legacy`, `/search`, `/legacy`, `/pad`, `/pad-legacy`;
-- rollback flags/default switches;
-- Studio V2 workflow and old cutover/manual-report scripts;
-- old DOM/RhymePad/source-only acceptance tests;
-- unreachable `SystemAcceptancePanel` UI.
+**Next public phase: R11 Platform Contracts.** It is ready but not started. Premium,
+AI, licensing and private repository implementation remain deferred.
 
-Useful tests were not discarded merely because their wrappers were old. Domain,
-document, editor, performance, diagnostics and mobile-viewport tests now import the
-authoritative Shared Core / Platform Web modules directly.
-
-Explicitly preserved:
-
-- document migration and portable backup compatibility;
-- IndexedDB DocumentStore and LocalStorage compatibility adapters;
-- query-pronunciation cache compatibility;
-- React `/` and `/studio` product routes;
-- permanent R10 Playwright browser acceptance;
-- Serving-v1 runtime behavior.
-
-The archived `ranking=legacy` / DB-v4 comparison path is **not** deleted as an
-incidental UI cleanup. It remains isolated for a separate API/compatibility audit.
-
-Candidate status: **CI pending**. R10 is not declared complete until repository,
-React/Playwright, security, public-readiness and CodeQL gates are green.
+Older migration/cutover sections below are historical and superseded by this block.
 
 # CURRENT RUNTIME — React Studio R8 reversible cutover
 

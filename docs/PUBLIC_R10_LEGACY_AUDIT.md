@@ -298,10 +298,10 @@ Only after all seven automated browser behavior gates are green, and no known ma
 
 ---
 
-## Destructive Legacy Exit candidate — 2026-09-25
+## Destructive Legacy Exit — COMPLETE · 2026-09-25
 
-The audited deletion map has now been applied on
-`r10/destructive-legacy-exit`.
+The audited deletion map has been applied and verified at checkpoint
+`750016b58519`.
 
 Candidate removals:
 
@@ -328,4 +328,4 @@ The following are intentionally **not** part of this deletion:
 - Serving-v1 backend behavior;
 - `ranking=legacy` / DB-v4 comparison compatibility.
 
-Final R10 completion still requires all candidate CI gates to pass.
+Final verification passed: RhymeLab CI 654/654, React 104/104, Playwright 7/7, Security, Public Readiness and CodeQL are green.

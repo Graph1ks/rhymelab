@@ -1,27 +1,42 @@
-# R10 destructive Legacy Exit candidate — 2026-09-25
+# R10 Public Legacy Exit — COMPLETE
 
-The destructive browser cleanup is implemented on
-`r10/destructive-legacy-exit` and is awaiting full CI.
+Date: 2026-09-25  
+Status: **COMPLETE · GREEN**  
+PR: #217
 
-Removed in the candidate:
+The destructive browser Legacy Exit is complete at implementation checkpoint
+`750016b58519`.
 
-- `src/studio/`, `src/ui/`, `src/pad/`, `src/rhymepad-v14.mjs`;
-- `/studio-legacy`, `/search`, `/legacy`, `/pad`, `/pad-legacy`;
-- legacy Studio/Search default flags and package commands;
-- the Studio V2 workflow and manual cutover/acceptance CLI;
-- obsolete DOM/RhymePad/parity-manifest tests;
-- unreachable React `SystemAcceptancePanel`.
+Removed product/rollback surface:
 
-Retained deliberately:
+- historical Studio V2, standalone Search and RhymePad browser trees;
+- rollback routes and default-selection flags;
+- Studio V2 workflow and manual cutover/report tooling;
+- obsolete source-only DOM tests and dead manual acceptance UI.
 
-- Shared Core and Platform Web migration/data compatibility;
-- the seven automated Playwright behavior gates;
-- current diagnostics/platform helpers;
-- the archived `ranking=legacy` DB-v4 comparison path pending its own API
-  compatibility audit.
+Preserved authority:
 
-The old migration sections below are retained as historical rationale. Their
-rollback-route instructions are superseded by this candidate.
+- Shared Core;
+- Platform Web;
+- serialized document migration and portable backup compatibility;
+- browser persistence/cache compatibility;
+- Serving-v1;
+- the permanent automated R10 browser acceptance suite.
+
+Verification:
+
+- RhymeLab CI run `36140468802`: 654/654;
+- Security run `36140468649`: PASS;
+- React run `36140468608`: 104/104 + 7/7 Playwright;
+- CodeQL run `36140468587`: PASS;
+- Public Readiness: 688 tracked files.
+
+`ranking=legacy` / DB-v4 comparison compatibility remains for a separate explicit
+API audit. R10 does not make a physical-hardware certification claim.
+
+R11 Platform Contracts is the next public phase. No Premium/AI/licensing/private
+implementation starts from this handover.
+
 
 ---
 
