@@ -4018,51 +4018,39 @@
     "lite_only_runtime_supported": true
   },
   "active_continuation": {
-    "id": "REACT_STUDIO_REPLATFORM",
+    "id": "PUBLIC_R10_LEGACY_EXIT",
     "priority": "P0",
-    "status": "R9_SHARED_CORE_EXTRACTION_ACTIVE",
-    "branch": "architecture/shared-core-r9",
-    "handover": "docs/REACT_STUDIO_REPLATFORM.md",
-    "parity_gate": "docs/REACT_STUDIO_PARITY_GATE.md",
-    "baseline_commit": "fbda43a9e4dd",
-    "product_feature_freeze": true,
-    "cutover_rule": "OWNER_AUTHORIZED_REVERSIBLE_RUNTIME_CUTOVER; FULL_ACCEPTANCE_AND_LEGACY_REMOVAL_STILL_REQUIRE_DEVICE_GATES",
-    "mandatory_parity_rows": 93,
-    "legacy_parity_rows": 82,
-    "workflow_v3_rows": 11,
-    "preserve": [
-      "all current Studio/Search/RhymePad user-visible functionality",
-      "accepted Writer/ranking semantics",
-      "IndexedDB DocumentStore authority",
-      "stable Bar identity and selection-proof semantics",
-      "LITE_STANDARD_FULL runtime boundary",
-      "Master build-only boundary",
-      "Markov frozen/unlinked",
-      "old Studio/Search/RhymePad rollback surfaces until post-cutover owner approval"
-    ],
-    "previous_continuation": {
-      "id": "STUDIO_V2_REAL_DEVICE_ACCEPTANCE",
-      "status": "WORKFLOW_UX_V3_IMPLEMENTED_REAL_DEVICE_GATES_PENDING",
-      "handover": "docs/STUDIO_V2_HANDOVER.md",
-      "device_acceptance": "docs/STUDIO_V2_DEVICE_ACCEPTANCE.md",
-      "next_thread_action": "run_or_review_real_device_acceptance_and_fix_only_observed_interaction_regressions",
-      "preserve": [
-        "accepted Writer/ranking semantics",
-        "LITE_STANDARD_FULL runtime boundary",
-        "Master build-only boundary",
-        "Markov frozen/unlinked",
-        "Search/RhymePad fallback routes"
-      ]
+    "status": "ACTIVE",
+    "branch": "main",
+    "handover": "docs/PUBLIC_R10_HANDOVER.md",
+    "previous_checkpoint": {
+      "id": "R9_SHARED_CORE_EXTRACTION",
+      "status": "MERGED",
+      "merge_commit": "c77cfae6f4dc",
+      "contract": "docs/SHARED_CORE_ARCHITECTURE.md",
+      "pull_request": 213
     },
-    "r1_contract": "docs/REACT_STUDIO_R1_TYPED_BRIDGE.md",
-    "next_thread_action": "finish Shared Core extraction, keep React free of legacy/direct old-UI imports, then complete physical acceptance before deleting rollback surfaces",
-    "r2_contract": "docs/REACT_STUDIO_R2_SHELL.md",
-    "r3_contract": "docs/REACT_STUDIO_R3_SEARCH_WRITER.md",
-    "r4_contract": "docs/REACT_STUDIO_R4_LIBRARY_PERSISTENCE.md",
-    "r5_contract": "docs/REACT_STUDIO_R5_EDITOR.md",
-    "r6_contract": "docs/REACT_STUDIO_R6_ANALYSIS_PERFORM.md",
-    "r7_contract": "docs/REACT_STUDIO_R7_PARITY.md",
-    "ux_correction": "docs/REACT_STUDIO_UX_CORRECTION.md"
+    "objective": "complete physical acceptance, retire historical rollback surfaces safely, then prepare public platform contracts",
+    "physical_device_gates_pending": [
+      "editor.ime",
+      "perform.metronome",
+      "mobile.navigation",
+      "mobile.swap",
+      "mobile.keyboard",
+      "mobile.touch",
+      "mobile.no-hover"
+    ],
+    "next_phase": "R11_PLATFORM_CONTRACTS",
+    "private_work_deferred": {
+      "repositories": [
+        "Graph1ks/rhymelab-premium",
+        "Graph1ks/rhymelab-build"
+      ],
+      "status": "PLANNING_ONLY",
+      "ci": "NONE",
+      "implementation_start_rule": "after public legacy exit and platform/extension contracts are stable"
+    },
+    "next_thread_action": "audit remaining legacy/rollback surfaces by authority and dependency class; implement only cleanup that is safe before unresolved physical acceptance; do not begin Premium implementation"
   },
   "studio_v2": {
     "status": "LEGACY_ROLLBACK_SURFACE_DEVICE_ACCEPTANCE_REFERENCE",
@@ -4443,7 +4431,7 @@
       "note": "Runtime cutover is owner-authorized and reversible; pending physical acceptance remains required before declaring migration complete or removing legacy Studio."
     },
     "r9": {
-      "status": "SHARED_CORE_EXTRACTION_ACTIVE",
+      "status": "COMPLETE_MERGED",
       "contract": "docs/SHARED_CORE_ARCHITECTURE.md",
       "react_legacy_bridge_removed": true,
       "shared_core": "packages/shared-core",
@@ -4458,12 +4446,13 @@
         "mobile.touch",
         "mobile.no-hover"
       ],
-      "legacy_surface_deletion_blocked_until_physical_acceptance": true
+      "legacy_surface_deletion_blocked_until_physical_acceptance": true,
+      "merge_commit": "c77cfae6f4dc"
     }
   },
   "shared_core": {
-    "status": "IMPLEMENTATION_ACTIVE",
-    "branch": "architecture/shared-core-r9",
+    "status": "R9_MERGED_AUTHORITY_ACTIVE",
+    "branch": "main",
     "pull_request": 213,
     "contract": "docs/SHARED_CORE_ARCHITECTURE.md",
     "shared_package": "packages/shared-core",
@@ -4489,11 +4478,12 @@
       "duplicate_implementations"
     ],
     "boundary_gate": "npm run studio:react:core-boundary",
-    "legacy_surfaces_role": "temporary_rollback_only_until_physical_acceptance",
+    "legacy_surfaces_role": "temporary rollback only; removal is active R10 work after physical acceptance",
     "cross_platform_target": [
       "web",
       "electron",
       "mobile"
-    ]
+    ],
+    "merge_commit": "c77cfae6f4dc"
   }
 }

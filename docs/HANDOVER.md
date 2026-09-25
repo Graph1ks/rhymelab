@@ -1,3 +1,13 @@
+# CURRENT CONTINUATION — R10 Public Legacy Exit
+
+**Read first:** `docs/PUBLIC_R10_HANDOVER.md`
+
+R9 Shared Core extraction is complete and merged. The active continuation is now the public/free product: finish the seven physical acceptance gates, audit and retire historical rollback surfaces, then proceed to public cross-platform Platform Contracts. Premium/AI implementation and release/licensing assembly are intentionally deferred to the private planning repositories until the public product reaches that boundary.
+
+The historical continuation blocks below are retained for chronology and are superseded by `docs/PUBLIC_R10_HANDOVER.md`.
+
+---
+
 # CURRENT CONTINUATION — R9 Shared Core extraction
 
 **Branch:** `architecture/shared-core-r9`  
