@@ -4053,7 +4053,7 @@
     "next_thread_action": "audit remaining legacy/rollback surfaces by authority and dependency class; implement only cleanup that is safe before unresolved physical acceptance; do not begin Premium implementation",
     "legacy_audit": "docs/PUBLIC_R10_LEGACY_AUDIT.md",
     "safe_pre_gate_cleanup": {
-      "status": "IMPLEMENTED_ON_R10_BRANCH",
+      "status": "IMPLEMENTED_PRE_GATE",
       "legacy_static_assets": "REQUEST_LAZY",
       "react_static_assets": "STARTUP_EAGER_FAIL_CLOSED",
       "rollback_routes_retained": true,
