@@ -66,13 +66,13 @@ jobs:
         run: node scripts/check-react-studio-r7.mjs --code-only
 
       - name: Install Playwright acceptance runner
-        working-directory: apps/studio-react
-        run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+        working-directory: apps/studio-react/browser-acceptance
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
 
       - name: Install Chromium for R10 browser acceptance
-        working-directory: apps/studio-react
+        working-directory: apps/studio-react/browser-acceptance
         run: npx playwright install --with-deps chromium
 
       - name: R10 automated browser acceptance
-        working-directory: apps/studio-react
-        run: npx playwright test --config browser-acceptance/playwright.config.ts
+        working-directory: apps/studio-react/browser-acceptance
+        run: npx playwright test --config playwright.config.ts
