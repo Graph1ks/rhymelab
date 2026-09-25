@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: '.',
-  testMatch: /r10-browser-acceptance\.spec\.ts/,
+  testMatch: /r10-browser-acceptance\.pw\.ts/,
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,
