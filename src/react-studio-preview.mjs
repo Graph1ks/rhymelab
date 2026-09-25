@@ -29,26 +29,6 @@ function walkFiles(root,current=root,output=[]){
   return output;
 }
 
-export function reactStudioPreviewMode({
-  argv=process.argv.slice(2),
-  env=process.env,
-}={}){
-  const legacyDefault=argv.includes('--legacy-studio-default')
-    ||String(env.RHYMELAB_LEGACY_STUDIO_DEFAULT||'').trim()==='1';
-  const previewOnly=argv.includes('--react-studio-preview')
-    ||String(env.RHYMELAB_REACT_STUDIO_PREVIEW||'').trim()==='1';
-  const explicitReactDefault=argv.includes('--react-studio-preview-default')
-    ||String(env.RHYMELAB_REACT_STUDIO_PREVIEW_DEFAULT||'').trim()==='1';
-
-  // R8 cutover: the React Studio is the normal product surface. The historical
-  // preview-only switch is retained as a reversible compatibility/diagnostic
-  // mode, and the legacy Studio can still be selected explicitly for rollback.
-  return {
-    enabled:true,
-    defaultRoute:explicitReactDefault||(!legacyDefault&&!previewOnly),
-  };
-}
-
 export function loadReactStudioPreviewAssets(distDir,{
   exists=existsSync,
   read=readFileSync,

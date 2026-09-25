@@ -18,7 +18,7 @@ import { readJson } from './en-writer-source-core.mjs';
 import {
   resolveUnknownClientPronunciation,
   tokenizeClientPronunciationInput,
-} from '../src/ui/query-pronunciation-client.mjs';
+} from '../packages/shared-core/src/search/query-pronunciation-client.mjs';
 import {
   PRONUNCIATION_BACKFILL_POLICY,
   PRONUNCIATION_BACKFILL_SCHEMA,

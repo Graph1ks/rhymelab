@@ -7,7 +7,7 @@ import {
   runInternalDbBenchmark,
   summarizeInternalDbBenchmark,
   writerResultQuality,
-} from '../src/studio/internal-db-benchmark.mjs';
+} from '../src/internal-db-benchmark.mjs';
 
 function row(id,word=id,kind='word'){
   return {id,word,kind,lang:'de',raw:{resultKind:kind,resultId:id,word,language:'de'}};

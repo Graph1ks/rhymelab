@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   createTypingUndoCoalescer,
   typingInputIsCoalescible,
-} from '../src/studio/edit-history.mjs';
+} from '../packages/shared-core/src/editor/edit-history.mjs';
 
 test('typing coalescer creates one undo checkpoint for a same-Bar typing burst',()=>{
   const coalescer=createTypingUndoCoalescer({windowMs:1000});

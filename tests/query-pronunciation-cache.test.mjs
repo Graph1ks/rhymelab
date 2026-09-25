@@ -6,11 +6,11 @@ import {
   buildGeneratedPronunciationCacheRecord,
   generatedPronunciationCacheKey,
   isGeneratedPronunciationCacheRecordUsable,
-} from '../src/ui/query-pronunciation-cache.mjs';
+} from '../packages/platform-web/src/query-pronunciation-cache.mjs';
 import {
   CLIENT_QUERY_PRONUNCIATION_POLICY,
   resolveUnknownClientPronunciation,
-} from '../src/ui/query-pronunciation-client.mjs';
+} from '../packages/shared-core/src/search/query-pronunciation-client.mjs';
 
 test('persistent pronunciation cache records are revision- and policy-gated',()=>{
   const detail={

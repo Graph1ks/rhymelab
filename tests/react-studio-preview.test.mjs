@@ -4,51 +4,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import {
-  loadReactStudioPreviewAssets,
-  reactStudioPreviewMode,
-} from '../src/react-studio-preview.mjs';
+import { loadReactStudioPreviewAssets } from '../src/react-studio-preview.mjs';
 
-test('React Studio is the default runtime surface after R8 cutover',()=>{
-  assert.deepEqual(
-    reactStudioPreviewMode({argv:[],env:{}}),
-    {enabled:true,defaultRoute:true},
-  );
-  assert.deepEqual(
-    reactStudioPreviewMode({argv:['--react-studio-preview'],env:{}}),
-    {enabled:true,defaultRoute:false},
-  );
-  assert.deepEqual(
-    reactStudioPreviewMode({argv:['--react-studio-preview-default'],env:{}}),
-    {enabled:true,defaultRoute:true},
-  );
-  assert.deepEqual(
-    reactStudioPreviewMode({argv:['--legacy-studio-default'],env:{}}),
-    {enabled:true,defaultRoute:false},
-  );
-});
-
-test('React Studio runtime keeps explicit preview and legacy rollback flags',()=>{
-  assert.deepEqual(
-    reactStudioPreviewMode({argv:[],env:{RHYMELAB_REACT_STUDIO_PREVIEW:'1'}}),
-    {enabled:true,defaultRoute:false},
-  );
-  assert.deepEqual(
-    reactStudioPreviewMode({argv:[],env:{RHYMELAB_REACT_STUDIO_PREVIEW_DEFAULT:'1'}}),
-    {enabled:true,defaultRoute:true},
-  );
-  assert.deepEqual(
-    reactStudioPreviewMode({argv:[],env:{RHYMELAB_LEGACY_STUDIO_DEFAULT:'1'}}),
-    {enabled:true,defaultRoute:false},
-  );
-});
-
-test('React Studio asset loader maps the Vite build under /studio-react and keeps an index alias',()=>{
-  const root=mkdtempSync(join(tmpdir(),'rhymelab-react-preview-'));
+test('React Studio asset loader maps the Vite build under /studio-react',()=>{
+  const root=mkdtempSync(join(tmpdir(),'rhymelab-react-assets-'));
   try{
     mkdirSync(join(root,'assets'),{recursive:true});
     writeFileSync(join(root,'index.html'),'<html><script src="/studio-react/assets/app.js"></script></html>');
-    writeFileSync(join(root,'assets','app.js'),'console.log("r7")');
+    writeFileSync(join(root,'assets','app.js'),'console.log("r10")');
     writeFileSync(join(root,'assets','app.css'),'body{}');
 
     const assets=loadReactStudioPreviewAssets(root);
@@ -66,7 +29,7 @@ test('React Studio asset loader maps the Vite build under /studio-react and keep
 
 test('React Studio asset loader fails closed when the build is missing',()=>{
   assert.throws(
-    ()=>loadReactStudioPreviewAssets(join(tmpdir(),'definitely-missing-rhymelab-react-preview')),
+    ()=>loadReactStudioPreviewAssets(join(tmpdir(),'definitely-missing-rhymelab-react-assets')),
     /npm run studio:react:build/u,
   );
 });

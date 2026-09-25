@@ -1,3 +1,45 @@
+# R10 Public Legacy Exit — COMPLETE
+
+Date: 2026-09-25  
+Status: **COMPLETE · GREEN**  
+PR: #217
+
+The destructive browser Legacy Exit is complete at implementation checkpoint
+`750016b58519`.
+
+Removed product/rollback surface:
+
+- historical Studio V2, standalone Search and RhymePad browser trees;
+- rollback routes and default-selection flags;
+- Studio V2 workflow and manual cutover/report tooling;
+- obsolete source-only DOM tests and dead manual acceptance UI.
+
+Preserved authority:
+
+- Shared Core;
+- Platform Web;
+- serialized document migration and portable backup compatibility;
+- browser persistence/cache compatibility;
+- Serving-v1;
+- the permanent automated R10 browser acceptance suite.
+
+Verification:
+
+- RhymeLab CI run `36140468802`: 654/654;
+- Security run `36140468649`: PASS;
+- React run `36140468608`: 104/104 + 7/7 Playwright;
+- CodeQL run `36140468587`: PASS;
+- Public Readiness: 688 tracked files.
+
+`ranking=legacy` / DB-v4 comparison compatibility remains for a separate explicit
+API audit. R10 does not make a physical-hardware certification claim.
+
+R11 Platform Contracts is the next public phase. No Premium/AI/licensing/private
+implementation starts from this handover.
+
+
+---
+
 # Public RhymeLab — R10 continuation handover
 
 Date: 2026-09-25

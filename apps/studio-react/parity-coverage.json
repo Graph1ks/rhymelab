@@ -3,9 +3,11 @@
   "baseline": {
     "branch": "main",
     "commit": "fbda43a9e4dd",
-    "legacy_manifest": "src/studio/parity-manifest.mjs",
     "captured_at": "2026-09-24",
-    "policy": "no capability may be deleted, deferred, silently changed, or replaced without explicit owner approval"
+    "policy": "no capability may be deleted, deferred, silently changed, or replaced without explicit owner approval",
+    "legacy_capability_count": 82,
+    "additional_current_capability_count": 11,
+    "legacy_manifest_retired_by": "R10_PUBLIC_LEGACY_EXIT"
   },
   "allowed_statuses": [
     "pending",
@@ -390,8 +392,7 @@
       "status": "ported",
       "evidence": [
         "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
-        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
-        "apps/studio-react/src/legacy/editor.ts"
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx"
       ]
     },
     {
@@ -401,8 +402,7 @@
       "status": "ported",
       "evidence": [
         "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
-        "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
-        "apps/studio-react/src/legacy/editor.ts"
+        "apps/studio-react/src/features/editor/EditorWorkspace.tsx"
       ]
     },
     {
@@ -481,8 +481,7 @@
       "status": "ported",
       "evidence": [
         "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
-        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
-        "apps/studio-react/src/legacy/editor.ts"
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx"
       ]
     },
     {
@@ -669,7 +668,6 @@
       "evidence": [
         "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
         "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
-        "apps/studio-react/src/legacy/editor.ts",
         "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
       ]
     },
@@ -681,7 +679,6 @@
       "evidence": [
         "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
         "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
-        "apps/studio-react/src/legacy/editor.ts",
         "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
       ]
     },
@@ -693,7 +690,6 @@
       "evidence": [
         "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
         "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
-        "apps/studio-react/src/legacy/editor.ts",
         "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
       ]
     },
@@ -705,7 +701,6 @@
       "evidence": [
         "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
         "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
-        "apps/studio-react/src/legacy/editor.ts",
         "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
       ]
     },
@@ -717,7 +712,6 @@
       "evidence": [
         "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
         "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
-        "apps/studio-react/src/legacy/editor.ts",
         "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
       ]
     },
@@ -729,7 +723,6 @@
       "evidence": [
         "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
         "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
-        "apps/studio-react/src/legacy/editor.ts",
         "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
       ]
     },
@@ -741,7 +734,6 @@
       "evidence": [
         "apps/studio-react/src/features/perform/PerformanceWorkspace.tsx",
         "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
-        "apps/studio-react/src/legacy/editor.ts",
         "apps/studio-react/src/features/analysis/r6-analysis-perform.test.ts"
       ]
     },
@@ -774,7 +766,6 @@
       "evidence": [
         "apps/studio-react/src/state/uiStore.ts",
         "apps/studio-react/src/shell/SettingsPanel.tsx",
-        "apps/studio-react/src/legacy/shell.ts",
         "apps/studio-react/src/shell/r2-shell.test.ts"
       ]
     },
@@ -785,7 +776,6 @@
       "status": "ported",
       "evidence": [
         "apps/studio-react/src/shell/CommandPalette.tsx",
-        "apps/studio-react/src/legacy/shell.ts",
         "apps/studio-react/src/shell/r2-shell.test.ts"
       ]
     },
@@ -829,9 +819,7 @@
       "status": "ported",
       "evidence": [
         "apps/studio-react/src/shell/Shell.tsx",
-        "apps/studio-react/src/legacy/shell.ts",
-        "apps/studio-react/src/shell/r2-shell.test.ts",
-        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx"
+        "apps/studio-react/src/shell/r2-shell.test.ts"
       ]
     },
     {
@@ -841,7 +829,6 @@
       "status": "ported",
       "evidence": [
         "apps/studio-react/src/shell/Shell.module.css",
-        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
         "apps/studio-react/src/features/system/r7-system.test.ts"
       ]
     },
@@ -852,7 +839,6 @@
       "status": "ported",
       "evidence": [
         "apps/studio-react/src/shell/ThemeControls.tsx",
-        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
         "apps/studio-react/src/features/system/r7-system.test.ts"
       ]
     },
@@ -897,7 +883,6 @@
       "status": "ported",
       "evidence": [
         "apps/studio-react/src/features/system/model.ts",
-        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
         "apps/studio-react/src/features/system/r7-system.test.ts"
       ]
     },
@@ -918,7 +903,6 @@
       "capability": "Seven-gate multi-device acceptance merge",
       "status": "ported",
       "evidence": [
-        "apps/studio-react/src/features/system/SystemAcceptancePanel.tsx",
         "apps/studio-react/src/features/system/model.ts",
         "apps/studio-react/src/features/system/r7-system.test.ts"
       ]
@@ -929,7 +913,6 @@
       "capability": "Deterministic source + device cutover gate",
       "status": "ported",
       "evidence": [
-        "scripts/check-react-studio-r7.mjs",
         "apps/studio-react/src/features/system/r7-system.test.ts",
         "tests/react-studio-preview.test.mjs"
       ]
@@ -964,8 +947,7 @@
       "status": "ported",
       "evidence": [
         "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
-        "apps/studio-react/src/features/editor/Editor.module.css",
-        "apps/studio-react/src/legacy/editor.ts"
+        "apps/studio-react/src/features/editor/Editor.module.css"
       ]
     },
     {
@@ -975,8 +957,7 @@
       "status": "ported",
       "evidence": [
         "apps/studio-react/src/features/editor/EditorWorkspace.tsx",
-        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx",
-        "apps/studio-react/src/legacy/editor.ts"
+        "apps/studio-react/src/features/editor/EditorSessionProvider.tsx"
       ]
     },
     {
@@ -1027,8 +1008,7 @@
       "status": "ported",
       "evidence": [
         "apps/studio-react/src/shell/Shell.tsx",
-        "apps/studio-react/src/shell/Shell.module.css",
-        "scripts/check-react-studio-r7.mjs"
+        "apps/studio-react/src/shell/Shell.module.css"
       ]
     },
     {
@@ -1058,7 +1038,6 @@
       "capability": "Startup preference remains STANDARD then FULL then LITE and LITE-only installation remains valid",
       "status": "ported",
       "evidence": [
-        "apps/studio-react/src/legacy/search.ts",
         "apps/studio-react/src/features/search/data.ts",
         "apps/studio-react/src/features/search/r3-search.test.ts"
       ]

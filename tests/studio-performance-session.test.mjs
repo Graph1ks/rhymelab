@@ -17,7 +17,7 @@ import {
   performanceSyllablesPerSecond,
   setPerformanceConfig,
   setPerformanceCue,
-} from '../src/studio/performance-session.mjs';
+} from '../packages/shared-core/src/editor/performance-session.mjs';
 
 test('performance session migrates legacy index cues to stable Bar IDs',()=>{
   const song={

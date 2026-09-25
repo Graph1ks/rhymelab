@@ -7,7 +7,7 @@ import {
   createPortableStudioBackup,
   parsePortableStudioBackup,
   portableBackupFilename,
-} from '../src/studio/backup-portability.mjs';
+} from '../packages/shared-core/src/document/backup-portability.mjs';
 
 const snapshot={
   schema:'rhymelab-studio-document-v1',

@@ -1,52 +1,51 @@
-# CURRENT ARCHITECTURE — R10 Public Legacy Exit
+# CURRENT ARCHITECTURE — R10 COMPLETE · R11 READY
 
-R9 Shared Core is merged and remains the active frontend authority. R10 automated
-browser acceptance is now **green**, so destructive removal of historical rollback
-surfaces is no longer blocked by a manual seven-device-checkbox ceremony.
+**R10 Public Legacy Exit is complete and green.** The historical browser product
+surfaces are gone; React + Shared Core + Platform Web are now the single public
+frontend authority.
 
-- Shared Core: `packages/shared-core/`
-- Web platform adapters: `packages/platform-web/`
-- React typed boundary: `apps/studio-react/src/core/`
-- Production React imports from `src/studio/` or `src/ui/`: forbidden by CI
-- Legacy Studio/Search/RhymePad: rollback/reference only, now eligible for R10 deletion
-- R10 audit: `docs/PUBLIC_R10_LEGACY_AUDIT.md`
-- Browser acceptance: `docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md`
+Removed:
 
-R10 browser evidence on head `f986c6bd4f94`:
+- `src/studio/`, `src/ui/`, `src/pad/`, `src/rhymepad-v14.mjs`;
+- `/studio-legacy`, `/search`, `/legacy`, `/pad`, `/pad-legacy`;
+- Studio/Search rollback flags and package commands;
+- Studio V2 workflow, manual cutover/report scripts and dead acceptance UI;
+- source-only tests whose subject was the deleted DOM UI.
+
+Preserved:
+
+- `packages/shared-core/` domain semantics;
+- `packages/platform-web/` browser adapters;
+- document migration, backup portability, IndexedDB/LocalStorage compatibility;
+- query-pronunciation cache compatibility;
+- React at `/`, `/studio` and its `/studio-react` asset alias;
+- permanent seven-gate Playwright behavior acceptance;
+- Serving-v1 runtime semantics.
+
+Useful non-UI tests were retargeted directly to their current authority. Internal
+distribution benchmark logic that still has engineering value now lives at
+`src/internal-db-benchmark.mjs` rather than under the deleted Studio tree.
+
+Green R10 implementation checkpoint `750016b58519`:
 
 ```text
-editor.ime          PASS  desktop Chromium
-perform.metronome   PASS  desktop Chromium + Web Audio
-mobile.navigation   PASS  iPhone 13 touch/mobile emulation on Chromium
-mobile.swap         PASS  iPhone 13 touch/mobile emulation on Chromium
-mobile.keyboard     PASS  VisualViewport/mobile Chromium
-mobile.touch        PASS  touch + >=44px primary target checks
-mobile.no-hover     PASS  coarse pointer / no-hover tap-only workflow
+RhymeLab CI            654/654 PASS
+React Vitest           104/104 PASS
+R10 source gate        PASS
+Playwright             7/7 PASS
+Security Gates         PASS
+Public Readiness       PASS (688 tracked files)
+CodeQL                 PASS
 ```
 
-Playwright result: **7 passed, 0 failed**. Seven complementary cross-project cases
-were intentionally skipped because desktop-only gates do not run in the mobile
-project and mobile-only gates do not run in the desktop project. React workflow run
-`36132861083`, RhymeLab CI, Security Gates and CodeQL all passed on the tested
-head.
+The archived `ranking=legacy` / DB-v4 comparison path remains intentionally
+isolated for a separate API/compatibility audit; it was not silently removed as
+part of browser cleanup.
 
-The browser gate is behavioral evidence, not a claim that CI is physical hardware.
-The owner separately reported the metronome as audibly working. Vendor-specific
-phone/keyboard/safe-area smoke remains useful but is non-blocking for R10 unless a
-real regression is reported.
+**Next public phase: R11 Platform Contracts.** It is ready but not started. Premium,
+AI, licensing and private repository implementation remain deferred.
 
-The earlier R10 startup cleanup also removed the hidden normal-start dependency on
-old browser files: React assets remain eager/fail-closed, historical UI/lab assets
-are request-lazy, and normal Serving-v1 startup does not require the archived DB-v4
-control database.
-
-**Next action:** perform the destructive Legacy Exit from the audited deletion map,
-while preserving migration/data compatibility and current Shared Core/Platform Web
-authority. Premium/AI/licensing remain deferred. R11 Platform Contracts follows
-successful R10 Legacy Exit.
-
-See `docs/PUBLIC_R10_HANDOVER.md`, `docs/PUBLIC_R10_LEGACY_AUDIT.md`,
-`docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md` and `docs/SHARED_CORE_ARCHITECTURE.md`.
+Older migration/cutover sections below are historical and superseded by this block.
 
 # CURRENT RUNTIME — React Studio R8 reversible cutover
 

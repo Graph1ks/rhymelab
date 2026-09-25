@@ -1,22 +1,30 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
-const cutover=process.argv.includes('--cutover');
-const root=process.cwd();
-const legacyModule=await import(pathToFileURL(resolve(root,'src/studio/parity-manifest.mjs')).href);
-const coverage=JSON.parse(await readFile(resolve(root,'apps/studio-react/parity-coverage.json'),'utf8'));
-const legacyRows=legacyModule.STUDIO_PARITY_MANIFEST;
-const coverageRows=[
-  ...(coverage.legacy_capabilities||[]),
-  ...(coverage.additional_current_capabilities||[]),
+const coverage=JSON.parse(await readFile(resolve('apps/studio-react/parity-coverage.json'),'utf8'));
+const legacyRows=coverage.legacy_capabilities||[];
+const currentRows=coverage.additional_current_capabilities||[];
+const rows=[...legacyRows,...currentRows];
+const allowed=new Set(coverage.allowed_statuses||[]);
+const duplicateIds=rows.map((row)=>row.id).filter((id,index,ids)=>ids.indexOf(id)!==index);
+const invalidStatus=rows.filter((row)=>!allowed.has(row.status)).map((row)=>`${row.id}=${row.status}`);
+const notPorted=rows.filter((row)=>!['ported','verified'].includes(row.status)).map((row)=>`${row.id}=${row.status}`);
+const missingEvidence=rows.filter((row)=>!Array.isArray(row.evidence)||row.evidence.length===0).map((row)=>row.id);
+const forbiddenEvidencePrefixes=[
+  'src/studio/','src/ui/','src/pad/','src/rhymepad-v14.mjs',
+  'apps/studio-react/src/legacy/',
+  'apps/studio-react/src/features/system/SystemAcceptancePanel.tsx',
+  'scripts/check-studio-v2-cutover.mjs',
+  'scripts/check-react-studio-r7.mjs',
+  'scripts/merge-studio-device-acceptance.mjs',
+  '.github/workflows/studio-v2.yml',
 ];
-const byId=new Map(coverageRows.map((row)=>[row.id,row]));
-const missing=legacyRows.filter((row)=>!byId.has(row.id)).map((row)=>row.id);
-const duplicateIds=coverageRows
-  .map((row)=>row.id)
-  .filter((id,index,ids)=>ids.indexOf(id)!==index);
+const retiredEvidence=rows.flatMap((row)=>
+  (row.evidence||[])
+    .filter((entry)=>forbiddenEvidencePrefixes.some((prefix)=>String(entry).startsWith(prefix)))
+    .map((entry)=>`${row.id} -> ${entry}`)
+);
 const mandatoryV3=[
   'workflow-v3.compact-default',
   'workflow-v3.bar-hold-drag',
@@ -30,30 +38,22 @@ const mandatoryV3=[
   'workflow-v3.runtime-db-availability',
   'workflow-v3.runtime-db-fallback',
 ];
+const byId=new Set(rows.map((row)=>row.id));
 const missingV3=mandatoryV3.filter((id)=>!byId.has(id));
-const allowed=new Set(coverage.allowed_statuses||[]);
-const invalidStatus=coverageRows.filter((row)=>!allowed.has(row.status)).map((row)=>`${row.id}=${row.status}`);
+const expectedLegacy=Number(coverage.baseline?.legacy_capability_count||82);
+const expectedCurrent=Number(coverage.baseline?.additional_current_capability_count||11);
+const countMismatch=legacyRows.length!==expectedLegacy||currentRows.length!==expectedCurrent;
 
-if(missing.length||missingV3.length||duplicateIds.length||invalidStatus.length){
+if(duplicateIds.length||invalidStatus.length||notPorted.length||missingEvidence.length||retiredEvidence.length||missingV3.length||countMismatch){
   console.error('REACT STUDIO PARITY INVENTORY FAILED');
-  if(missing.length)console.error('Missing legacy IDs:',missing.join(', '));
-  if(missingV3.length)console.error('Missing Workflow UX v3 IDs:',missingV3.join(', '));
+  if(countMismatch)console.error(`Count mismatch: ${legacyRows.length}/${expectedLegacy} baseline, ${currentRows.length}/${expectedCurrent} current`);
   if(duplicateIds.length)console.error('Duplicate IDs:',[...new Set(duplicateIds)].join(', '));
   if(invalidStatus.length)console.error('Invalid statuses:',invalidStatus.join(', '));
+  if(notPorted.length)console.error('Not ported:',notPorted.join(', '));
+  if(missingEvidence.length)console.error('Missing current evidence:',missingEvidence.join(', '));
+  if(retiredEvidence.length)console.error('Retired evidence references:',retiredEvidence.join(', '));
+  if(missingV3.length)console.error('Missing Workflow UX v3 IDs:',missingV3.join(', '));
   process.exit(1);
 }
 
-const allVerified=coverageRows.every((row)=>row.status==='verified');
-const verified=coverageRows.filter((row)=>row.status==='verified').length;
-
-console.log(`React Studio parity inventory OK: ${legacyRows.length} legacy + ${coverage.additional_current_capabilities.length} workflow-v3 rows; ${verified}/${coverageRows.length} verified.`);
-
-if(cutover&&!allVerified){
-  const blocking=coverageRows.filter((row)=>row.status!=='verified');
-  console.error(`CUTOVER BLOCKED: ${blocking.length} parity rows are not verified.`);
-  for(const row of blocking.slice(0,25))console.error(`- ${row.id}: ${row.status}`);
-  if(blocking.length>25)console.error(`- ... ${blocking.length-25} more`);
-  process.exit(2);
-}
-
-if(cutover)console.log('CUTOVER PARITY GATE PASSED.');
+console.log(`React Studio parity inventory OK: ${legacyRows.length} migration-baseline + ${currentRows.length} workflow-v3 rows; ${rows.length}/${rows.length} ported or verified with current evidence.`);

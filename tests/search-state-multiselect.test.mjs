@@ -6,7 +6,7 @@ import {
   searchStateFromUrl,
   searchStateToWriterParams,
   writeSearchStateToUrl,
-} from '../src/ui/search-state.mjs';
+} from '../packages/shared-core/src/search/search-state.mjs';
 
 test('SearchState normalizes Entity multi-select while preserving legacy single-category compatibility',()=>{
   const state=createSearchState({

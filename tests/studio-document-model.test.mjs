@@ -11,7 +11,7 @@ import {
   songText,
   splitBar,
   validateStudioDocumentSnapshot,
-} from '../src/studio/document-model.mjs';
+} from '../packages/shared-core/src/document/document-model.mjs';
 
 test('Studio document migration is deterministic, non-destructive and reference-safe',()=>{
   const legacy={

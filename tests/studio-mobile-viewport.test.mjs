@@ -6,7 +6,7 @@ import {
   applyMobileViewportState,
   mobileScrollDeltaForRect,
   mobileViewportMetrics,
-} from '../src/studio/mobile-viewport.mjs';
+} from '../packages/platform-web/src/mobile-viewport.mjs';
 
 test('mobile viewport metrics detect software keyboard shrinkage',()=>{
   const windowObj={

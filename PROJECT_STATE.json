@@ -1,7 +1,7 @@
 {
   "project": "RhymeLab",
   "updated": "2026-09-25",
-  "phase": "R10_PUBLIC_LEGACY_EXIT",
+  "phase": "R11_PLATFORM_CONTRACTS",
   "package_version": "0.11.0",
   "rhyme_bureau_design_pass": {
     "status": "IMPLEMENTED_AUTOMATED_PASS_BROWSER_OWNER_ACCEPTANCE_PENDING",
@@ -4018,20 +4018,31 @@
     "lite_only_runtime_supported": true
   },
   "active_continuation": {
-    "id": "PUBLIC_R10_LEGACY_EXIT",
+    "id": "R11_PLATFORM_CONTRACTS",
     "priority": "P0",
-    "status": "ACTIVE",
+    "status": "READY_NOT_STARTED",
     "branch": "main",
-    "handover": "docs/PUBLIC_R10_HANDOVER.md",
     "previous_checkpoint": {
-      "id": "R9_SHARED_CORE_EXTRACTION",
-      "status": "MERGED",
-      "merge_commit": "c77cfae6f4dc",
-      "contract": "docs/SHARED_CORE_ARCHITECTURE.md",
-      "pull_request": 213
+      "id": "R10_PUBLIC_LEGACY_EXIT",
+      "status": "COMPLETE_GREEN",
+      "pull_request": 217,
+      "implementation_checkpoint": "750016b58519",
+      "audit": "docs/PUBLIC_R10_LEGACY_AUDIT.md",
+      "browser_acceptance": "docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md",
+      "evidence": {
+        "root_ci_run": 36140468802,
+        "root_tests_passed": 654,
+        "security_run": 36140468649,
+        "react_run": 36140468608,
+        "react_tests_passed": 104,
+        "playwright_passed": 7,
+        "playwright_failed": 0,
+        "codeql_run": 36140468587,
+        "public_readiness_files": 688
+      }
     },
-    "objective": "retire historical rollback surfaces now that automated browser acceptance is green, then prepare public platform contracts",
-    "next_phase": "R11_PLATFORM_CONTRACTS",
+    "objective": "define public cross-platform contracts on top of the React + Shared Core + Platform Web authority without beginning private Premium implementation",
+    "next_thread_action": "start R11 by auditing browser-specific boundaries and drafting runtime lifecycle, application/data paths, storage, file import/export and capability/extension contracts",
     "private_work_deferred": {
       "repositories": [
         "Graph1ks/rhymelab-premium",
@@ -4039,50 +4050,11 @@
       ],
       "status": "PLANNING_ONLY",
       "ci": "NONE",
-      "implementation_start_rule": "after public legacy exit and platform/extension contracts are stable"
-    },
-    "next_thread_action": "perform destructive R10 Legacy Exit using docs/PUBLIC_R10_LEGACY_AUDIT.md; preserve migration/data compatibility and current Shared Core/Platform Web authority; audit archived ranking=legacy/control-runtime compatibility separately; do not begin Premium implementation",
-    "legacy_audit": "docs/PUBLIC_R10_LEGACY_AUDIT.md",
-    "safe_pre_gate_cleanup": {
-      "status": "COMPLETE",
-      "legacy_static_assets": "REQUEST_LAZY",
-      "react_static_assets": "STARTUP_EAGER_FAIL_CLOSED",
-      "rollback_routes_retained": true,
-      "physical_device_gates_changed": false,
-      "normal_startup_requires_legacy_control_db": false,
-      "normal_startup_requires_rollback_static_files": false
-    },
-    "automated_browser_acceptance": {
-      "status": "PASSED",
-      "contract": "docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md",
-      "workflow": "React Studio Replatform",
-      "workflow_run": 36132861083,
-      "tested_head": "f986c6bd4f94",
-      "passed_behavior_gates": [
-        "editor.ime",
-        "perform.metronome",
-        "mobile.navigation",
-        "mobile.swap",
-        "mobile.keyboard",
-        "mobile.touch",
-        "mobile.no-hover"
-      ],
-      "playwright_result": {
-        "passed": 7,
-        "skipped_cross_project_cases": 7,
-        "failed": 0
-      },
-      "desktop_engine": "Chromium 141 via Playwright 1.56.1",
-      "mobile_profile": "iPhone 13 touch/mobile emulation on Chromium",
-      "physical_hardware_certification_claimed": false,
-      "hardware_smoke": {
-        "metronome_audible_owner_reported": true,
-        "other_device_specific_sampling_required_for_r10": false
-      }
+      "implementation_start_rule": "after public platform/extension contracts are stable"
     }
   },
   "studio_v2": {
-    "status": "LEGACY_ROLLBACK_SURFACE_DEVICE_ACCEPTANCE_REFERENCE",
+    "status": "RETIRED_REMOVED_R10_CANDIDATE",
     "handover": "docs/STUDIO_V2_HANDOVER.md",
     "root_route": "/studio-legacy",
     "search_fallback_routes": [
@@ -4123,10 +4095,11 @@
       "active_database_badge": "always_visible_in_studio_and_search",
       "database_cards": "only_available_editions_enabled_missing_editions_disabled"
     },
-    "real_device_acceptance": "pending_7_gates"
+    "real_device_acceptance": "SUPERSEDED_BY_R10_AUTOMATED_BROWSER_ACCEPTANCE",
+    "surface_removed": true
   },
   "react_studio_replatform": {
-    "status": "R10_AUTOMATED_BROWSER_ACCEPTANCE_PASSED_LEGACY_EXIT_READY",
+    "status": "R10_LEGACY_EXIT_COMPLETE_GREEN",
     "priority": "P0",
     "stack": [
       "React 19.3",
@@ -4140,7 +4113,7 @@
     ],
     "source_root": "apps/studio-react",
     "parity_inventory": "apps/studio-react/parity-coverage.json",
-    "old_studio_deleted": false,
+    "old_studio_deleted": true,
     "root_cutover_started": true,
     "feature_freeze": true,
     "r1": {
@@ -4479,7 +4452,7 @@
       "merge_commit": "c77cfae6f4dc"
     },
     "r10": {
-      "status": "AUTOMATED_BROWSER_ACCEPTANCE_PASSED_LEGACY_EXIT_READY",
+      "status": "COMPLETE_GREEN",
       "audit": "docs/PUBLIC_R10_LEGACY_AUDIT.md",
       "browser_acceptance": "docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md",
       "rollback_surface_deletion_blocked_until_browser_acceptance": false,
@@ -4494,7 +4467,25 @@
       "metronome_audible_owner_reported": true,
       "normal_startup_legacy_static_dependency_removed": true,
       "premium_ai_licensing_implementation": false,
-      "next_phase": "R11_PLATFORM_CONTRACTS"
+      "next_phase": "R11_PLATFORM_CONTRACTS",
+      "legacy_browser_surfaces_removed": true,
+      "rollback_routes_removed": true,
+      "studio_v2_workflow_removed": true,
+      "automated_browser_acceptance_retained": true,
+      "migration_data_compatibility_preserved": true,
+      "ranking_legacy_control_path": "RETAINED_SEPARATE_COMPATIBILITY_AUDIT",
+      "evidence": {
+        "implementation_checkpoint": "750016b58519",
+        "root_ci_run": 36140468802,
+        "security_run": 36140468649,
+        "react_run": 36140468608,
+        "codeql_run": 36140468587,
+        "root_tests": 654,
+        "react_tests": 104,
+        "playwright_passed": 7,
+        "playwright_failed": 0,
+        "public_readiness_files": 688
+      }
     }
   },
   "shared_core": {
@@ -4532,5 +4523,54 @@
       "mobile"
     ],
     "merge_commit": "c77cfae6f4dc"
+  },
+  "r10_public_legacy_exit": {
+    "status": "COMPLETE_GREEN",
+    "pull_request": 217,
+    "implementation_checkpoint": "750016b58519",
+    "removed": {
+      "historical_browser_trees": [
+        "src/studio",
+        "src/ui",
+        "src/pad",
+        "src/rhymepad-v14.mjs"
+      ],
+      "rollback_routes": [
+        "/studio-legacy",
+        "/search",
+        "/legacy",
+        "/pad",
+        "/pad-legacy"
+      ],
+      "studio_v2_workflow": true,
+      "manual_cutover_scripts": true,
+      "dead_manual_acceptance_ui": true
+    },
+    "preserved": {
+      "shared_core": true,
+      "platform_web": true,
+      "document_migration": true,
+      "backup_portability": true,
+      "indexeddb_localstorage_compatibility": true,
+      "query_pronunciation_cache": true,
+      "automated_browser_acceptance": true,
+      "serving_v1": true
+    },
+    "retained_for_separate_compatibility_audit": [
+      "ranking=legacy",
+      "DB-v4 control comparison path"
+    ],
+    "evidence": {
+      "implementation_checkpoint": "750016b58519",
+      "root_ci_run": 36140468802,
+      "security_run": 36140468649,
+      "react_run": 36140468608,
+      "codeql_run": 36140468587,
+      "root_tests": 654,
+      "react_tests": 104,
+      "playwright_passed": 7,
+      "playwright_failed": 0,
+      "public_readiness_files": 688
+    }
   }
 }

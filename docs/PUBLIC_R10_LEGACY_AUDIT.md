@@ -294,3 +294,38 @@ Explicitly **not** done:
 ## Final deletion trigger
 
 Only after all seven automated browser behavior gates are green, and no known material hardware-smoke regression is open, should R10 perform the destructive browser-surface deletion. At that point, rerun this classification against the then-current tree, remove compatibility routes/wrappers/tests together with their deleted surfaces, and re-run the full repository + React + public-readiness gates before declaring Legacy Exit complete.
+
+
+---
+
+## Destructive Legacy Exit — COMPLETE · 2026-09-25
+
+The audited deletion map has been applied and verified at checkpoint
+`750016b58519`.
+
+Candidate removals:
+
+- all files under `src/studio/`, `src/ui/`, and `src/pad/`;
+- `src/rhymepad-v14.mjs`;
+- rollback browser routes and default-selection flags;
+- `.github/workflows/studio-v2.yml`;
+- `scripts/check-studio-v2-cutover.mjs`;
+- `scripts/merge-studio-device-acceptance.mjs`;
+- the old R7 manual-device source gate;
+- tests whose only purpose was the deleted DOM/RhymePad/rollback surface.
+
+Tests covering behavior that remains authoritative were retargeted directly to
+`packages/shared-core` or `packages/platform-web` rather than removed.
+
+The R10 source gate now fails if historical browser trees/routes/scripts return or
+if parity evidence points back at deleted sources.
+
+The following are intentionally **not** part of this deletion:
+
+- current document migration/backup compatibility;
+- IndexedDB/LocalStorage compatibility;
+- query-pronunciation cache compatibility;
+- Serving-v1 backend behavior;
+- `ranking=legacy` / DB-v4 comparison compatibility.
+
+Final verification passed: RhymeLab CI 654/654, React 104/104, Playwright 7/7, Security, Public Readiness and CodeQL are green.

@@ -8,11 +8,11 @@ on:
       - 'packages/platform-web/**'
       - 'scripts/check-react-shared-core-boundary.mjs'
       - 'scripts/check-react-studio-parity.mjs'
-      - 'scripts/check-react-studio-r7.mjs'
+      - 'scripts/check-react-studio-r10.mjs'
       - 'src/react-studio-preview.mjs'
       - 'src/server.mjs'
       - 'tests/react-studio-preview.test.mjs'
-      - 'src/studio/parity-manifest.mjs'
+      - 'tests/react-studio-legacy-exit.test.mjs'
       - 'docs/REACT_STUDIO_REPLATFORM.md'
       - 'docs/REACT_STUDIO_PARITY_GATE.md'
       - 'package.json'
@@ -59,11 +59,11 @@ jobs:
       - name: Build
         run: npm --prefix apps/studio-react run build
 
-      - name: R7 reversible preview contract
-        run: node --test tests/react-studio-preview.test.mjs
+      - name: React asset serving + R10 Legacy Exit contract
+        run: node --test tests/react-studio-preview.test.mjs tests/react-studio-legacy-exit.test.mjs
 
-      - name: R7 source parity gate
-        run: node scripts/check-react-studio-r7.mjs --code-only
+      - name: R10 Legacy Exit source gate
+        run: node scripts/check-react-studio-r10.mjs
 
       - name: Install Playwright acceptance runner
         working-directory: apps/studio-react/browser-acceptance
