@@ -9,7 +9,7 @@ The active product continuation is now the **public/free RhymeLab**. Premium/AI 
 Current accepted `main` checkpoint:
 
 ```text
-c77cfae6f4dcdef427687b87e07ce7e3bd770c2f
+c77cfae6f4dc
 ```
 
 This is the merged R9 Shared Core checkpoint.
