@@ -23,7 +23,7 @@ The Playwright suite lives at:
 ```text
 apps/studio-react/browser-acceptance/
   playwright.config.ts
-  r10-browser-acceptance.spec.ts
+  r10-browser-acceptance.pw.ts
 ```
 
 It runs in the `React Studio Replatform` workflow and is required to pass with
