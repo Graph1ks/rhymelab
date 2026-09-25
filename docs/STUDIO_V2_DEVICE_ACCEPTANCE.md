@@ -80,7 +80,7 @@ historical cutover verification. It is not the authoritative R10 deletion gate.
 The authoritative R10 browser acceptance is:
 
 ```text
-apps/studio-react/browser-acceptance/r10-browser-acceptance.spec.ts
+apps/studio-react/browser-acceptance/r10-browser-acceptance.pw.ts
 ```
 
 and is executed by:
