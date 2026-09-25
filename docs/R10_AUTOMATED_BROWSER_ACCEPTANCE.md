@@ -39,6 +39,25 @@ the rest of the React gate.
 | `mobile.touch` | Primary mobile controls are measured in-browser at >= 44 CSS px and exercised with `tap()` |
 | `mobile.no-hover` | Mobile context asserts `hover: hover` is false / coarse pointer is true and completes primary Library/Perform/Write actions by tap only |
 
+## Accepted evidence
+
+The first green blocking run is:
+
+```text
+React Studio Replatform workflow: 36132861083
+tested head: f986c6bd4f9424ba2202a05b45cd6f60ae3955a5
+Playwright: 7 passed / 0 failed
+cross-project skips: 7
+React Vitest: 104 passed
+```
+
+Desktop Chromium executed `editor.ime` and `perform.metronome`. Mobile Chromium
+with the iPhone 13 touch/mobile profile executed the five mobile gates. The seven
+skips are the deliberately inapplicable mirror cases from the other project, not
+unexecuted behavior gates.
+
+The same head passed RhymeLab CI, Security Gates and CodeQL.
+
 ## Hardware smoke evidence
 
 Physical-device checks may still be recorded when useful. They are intentionally
