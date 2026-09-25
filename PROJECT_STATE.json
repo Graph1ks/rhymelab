@@ -4030,16 +4030,7 @@
       "contract": "docs/SHARED_CORE_ARCHITECTURE.md",
       "pull_request": 213
     },
-    "objective": "complete physical acceptance, retire historical rollback surfaces safely, then prepare public platform contracts",
-    "physical_device_gates_pending": [
-      "editor.ime",
-      "perform.metronome",
-      "mobile.navigation",
-      "mobile.swap",
-      "mobile.keyboard",
-      "mobile.touch",
-      "mobile.no-hover"
-    ],
+    "objective": "retire historical rollback surfaces now that automated browser acceptance is green, then prepare public platform contracts",
     "next_phase": "R11_PLATFORM_CONTRACTS",
     "private_work_deferred": {
       "repositories": [
@@ -4050,16 +4041,44 @@
       "ci": "NONE",
       "implementation_start_rule": "after public legacy exit and platform/extension contracts are stable"
     },
-    "next_thread_action": "audit remaining legacy/rollback surfaces by authority and dependency class; implement only cleanup that is safe before unresolved physical acceptance; do not begin Premium implementation",
+    "next_thread_action": "perform destructive R10 Legacy Exit using docs/PUBLIC_R10_LEGACY_AUDIT.md; preserve migration/data compatibility and current Shared Core/Platform Web authority; audit archived ranking=legacy/control-runtime compatibility separately; do not begin Premium implementation",
     "legacy_audit": "docs/PUBLIC_R10_LEGACY_AUDIT.md",
     "safe_pre_gate_cleanup": {
-      "status": "IMPLEMENTED_PRE_GATE",
+      "status": "COMPLETE",
       "legacy_static_assets": "REQUEST_LAZY",
       "react_static_assets": "STARTUP_EAGER_FAIL_CLOSED",
       "rollback_routes_retained": true,
       "physical_device_gates_changed": false,
       "normal_startup_requires_legacy_control_db": false,
       "normal_startup_requires_rollback_static_files": false
+    },
+    "automated_browser_acceptance": {
+      "status": "PASSED",
+      "contract": "docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md",
+      "workflow": "React Studio Replatform",
+      "workflow_run": 36132861083,
+      "tested_head": "f986c6bd4f9424ba2202a05b45cd6f60ae3955a5",
+      "passed_behavior_gates": [
+        "editor.ime",
+        "perform.metronome",
+        "mobile.navigation",
+        "mobile.swap",
+        "mobile.keyboard",
+        "mobile.touch",
+        "mobile.no-hover"
+      ],
+      "playwright_result": {
+        "passed": 7,
+        "skipped_cross_project_cases": 7,
+        "failed": 0
+      },
+      "desktop_engine": "Chromium 141 via Playwright 1.56.1",
+      "mobile_profile": "iPhone 13 touch/mobile emulation on Chromium",
+      "physical_hardware_certification_claimed": false,
+      "hardware_smoke": {
+        "metronome_audible_owner_reported": true,
+        "other_device_specific_sampling_required_for_r10": false
+      }
     }
   },
   "studio_v2": {
@@ -4107,7 +4126,7 @@
     "real_device_acceptance": "pending_7_gates"
   },
   "react_studio_replatform": {
-    "status": "R8_REVERSIBLE_CUTOVER_ACTIVE_PHYSICAL_ACCEPTANCE_PENDING",
+    "status": "R10_AUTOMATED_BROWSER_ACCEPTANCE_PASSED_LEGACY_EXIT_READY",
     "priority": "P0",
     "stack": [
       "React 19.3",
@@ -4460,19 +4479,20 @@
       "merge_commit": "c77cfae6f4dc"
     },
     "r10": {
-      "status": "ACTIVE_PRE_GATE_CLEANUP",
+      "status": "AUTOMATED_BROWSER_ACCEPTANCE_PASSED_LEGACY_EXIT_READY",
       "audit": "docs/PUBLIC_R10_LEGACY_AUDIT.md",
-      "rollback_surface_deletion_blocked_until_physical_acceptance": true,
+      "browser_acceptance": "docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md",
+      "rollback_surface_deletion_blocked_until_browser_acceptance": false,
+      "automated_browser_gates": {
+        "total": 7,
+        "passed": 7,
+        "failed": 0,
+        "workflow_run": 36132861083,
+        "tested_head": "f986c6bd4f9424ba2202a05b45cd6f60ae3955a5"
+      },
+      "hardware_smoke_blocking": false,
+      "metronome_audible_owner_reported": true,
       "normal_startup_legacy_static_dependency_removed": true,
-      "physical_device_gates_pending": [
-        "editor.ime",
-        "perform.metronome",
-        "mobile.navigation",
-        "mobile.swap",
-        "mobile.keyboard",
-        "mobile.touch",
-        "mobile.no-hover"
-      ],
       "premium_ai_licensing_implementation": false,
       "next_phase": "R11_PLATFORM_CONTRACTS"
     }
