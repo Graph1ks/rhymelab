@@ -5,7 +5,7 @@ import {
   STUDIO_DIAGNOSTICS_SCHEMA,
   collectStudioEnvironmentDiagnostics,
   diagnosticsFilename,
-} from '../src/studio/diagnostics.mjs';
+} from '../packages/platform-web/src/diagnostics.mjs';
 
 function fakeWindow({
   width=1440,

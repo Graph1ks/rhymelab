@@ -6,8 +6,8 @@ import {
   compactStudioWriterResult,
   studioWriterPayloadStats,
 } from '../src/studio-writer-payload.mjs';
-import {mapWriterResult} from '../src/studio/search-adapter.mjs';
-import {buildStudioDetailModel} from '../src/studio/detail-adapter.mjs';
+import {mapWriterResult} from '../packages/shared-core/src/search/search-adapter.mjs';
+import {buildStudioDetailModel} from '../packages/shared-core/src/services/detail-adapter.mjs';
 
 const heavyRow={
   resultKind:'entity',

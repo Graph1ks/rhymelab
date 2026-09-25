@@ -1,3 +1,30 @@
+# R10 destructive Legacy Exit candidate — 2026-09-25
+
+The destructive browser cleanup is implemented on
+`r10/destructive-legacy-exit` and is awaiting full CI.
+
+Removed in the candidate:
+
+- `src/studio/`, `src/ui/`, `src/pad/`, `src/rhymepad-v14.mjs`;
+- `/studio-legacy`, `/search`, `/legacy`, `/pad`, `/pad-legacy`;
+- legacy Studio/Search default flags and package commands;
+- the Studio V2 workflow and manual cutover/acceptance CLI;
+- obsolete DOM/RhymePad/parity-manifest tests;
+- unreachable React `SystemAcceptancePanel`.
+
+Retained deliberately:
+
+- Shared Core and Platform Web migration/data compatibility;
+- the seven automated Playwright behavior gates;
+- current diagnostics/platform helpers;
+- the archived `ranking=legacy` DB-v4 comparison path pending its own API
+  compatibility audit.
+
+The old migration sections below are retained as historical rationale. Their
+rollback-route instructions are superseded by this candidate.
+
+---
+
 # Public RhymeLab — R10 continuation handover
 
 Date: 2026-09-25

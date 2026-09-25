@@ -8,8 +8,8 @@ import {
   studioPreferencesFromState,
   studioStateFromDocumentSnapshot,
   writeStudioPreferences,
-} from '../src/studio/document-adapter.mjs';
-import {migrateLegacyStudioState} from '../src/studio/document-model.mjs';
+} from '../packages/platform-web/src/document-adapter.mjs';
+import {migrateLegacyStudioState} from '../packages/shared-core/src/document/document-model.mjs';
 
 test('new Studio workspaces start in compact result density',()=>{
   assert.equal(createStudioState().density,'compact');

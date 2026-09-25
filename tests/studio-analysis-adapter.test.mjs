@@ -6,7 +6,7 @@ import {
   expandStudioRhymeRelations,
   studioAnalysisOccurrences,
   studioRhymeTypeCounts,
-} from '../src/studio/analysis-adapter.mjs';
+} from '../packages/shared-core/src/services/analysis-adapter.mjs';
 
 test('all-rhyme occurrence extraction preserves bar positions',()=>{
   const rows=studioAnalysisOccurrences([

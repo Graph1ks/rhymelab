@@ -1,52 +1,49 @@
-# CURRENT ARCHITECTURE — R10 Public Legacy Exit
+# CURRENT ARCHITECTURE — R10 Destructive Legacy Exit
 
-R9 Shared Core is merged and remains the active frontend authority. R10 automated
-browser acceptance is now **green**, so destructive removal of historical rollback
-surfaces is no longer blocked by a manual seven-device-checkbox ceremony.
+R10 destructive browser Legacy Exit is **implemented on candidate branch
+`r10/destructive-legacy-exit` and awaiting full CI**.
 
-- Shared Core: `packages/shared-core/`
-- Web platform adapters: `packages/platform-web/`
-- React typed boundary: `apps/studio-react/src/core/`
-- Production React imports from `src/studio/` or `src/ui/`: forbidden by CI
-- Legacy Studio/Search/RhymePad: rollback/reference only, now eligible for R10 deletion
-- R10 audit: `docs/PUBLIC_R10_LEGACY_AUDIT.md`
-- Browser acceptance: `docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md`
-
-R10 browser evidence on head `f986c6bd4f94`:
+The current product authority is now intentionally singular:
 
 ```text
-editor.ime          PASS  desktop Chromium
-perform.metronome   PASS  desktop Chromium + Web Audio
-mobile.navigation   PASS  iPhone 13 touch/mobile emulation on Chromium
-mobile.swap         PASS  iPhone 13 touch/mobile emulation on Chromium
-mobile.keyboard     PASS  VisualViewport/mobile Chromium
-mobile.touch        PASS  touch + >=44px primary target checks
-mobile.no-hover     PASS  coarse pointer / no-hover tap-only workflow
+apps/studio-react
+       |
+       v
+apps/studio-react/src/core
+       |
+       +--> packages/shared-core
+       +--> packages/platform-web
 ```
 
-Playwright result: **7 passed, 0 failed**. Seven complementary cross-project cases
-were intentionally skipped because desktop-only gates do not run in the mobile
-project and mobile-only gates do not run in the desktop project. React workflow run
-`36132861083`, RhymeLab CI, Security Gates and CodeQL all passed on the tested
-head.
+Candidate removal:
 
-The browser gate is behavioral evidence, not a claim that CI is physical hardware.
-The owner separately reported the metronome as audibly working. Vendor-specific
-phone/keyboard/safe-area smoke remains useful but is non-blocking for R10 unless a
-real regression is reported.
+- historical Studio V2 tree: `src/studio/`;
+- standalone Search tree: `src/ui/`;
+- RhymePad tree/materializer: `src/pad/`, `src/rhymepad-v14.mjs`;
+- rollback routes: `/studio-legacy`, `/search`, `/legacy`, `/pad`, `/pad-legacy`;
+- rollback flags/default switches;
+- Studio V2 workflow and old cutover/manual-report scripts;
+- old DOM/RhymePad/source-only acceptance tests;
+- unreachable `SystemAcceptancePanel` UI.
 
-The earlier R10 startup cleanup also removed the hidden normal-start dependency on
-old browser files: React assets remain eager/fail-closed, historical UI/lab assets
-are request-lazy, and normal Serving-v1 startup does not require the archived DB-v4
-control database.
+Useful tests were not discarded merely because their wrappers were old. Domain,
+document, editor, performance, diagnostics and mobile-viewport tests now import the
+authoritative Shared Core / Platform Web modules directly.
 
-**Next action:** perform the destructive Legacy Exit from the audited deletion map,
-while preserving migration/data compatibility and current Shared Core/Platform Web
-authority. Premium/AI/licensing remain deferred. R11 Platform Contracts follows
-successful R10 Legacy Exit.
+Explicitly preserved:
 
-See `docs/PUBLIC_R10_HANDOVER.md`, `docs/PUBLIC_R10_LEGACY_AUDIT.md`,
-`docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md` and `docs/SHARED_CORE_ARCHITECTURE.md`.
+- document migration and portable backup compatibility;
+- IndexedDB DocumentStore and LocalStorage compatibility adapters;
+- query-pronunciation cache compatibility;
+- React `/` and `/studio` product routes;
+- permanent R10 Playwright browser acceptance;
+- Serving-v1 runtime behavior.
+
+The archived `ranking=legacy` / DB-v4 comparison path is **not** deleted as an
+incidental UI cleanup. It remains isolated for a separate API/compatibility audit.
+
+Candidate status: **CI pending**. R10 is not declared complete until repository,
+React/Playwright, security, public-readiness and CodeQL gates are green.
 
 # CURRENT RUNTIME — React Studio R8 reversible cutover
 

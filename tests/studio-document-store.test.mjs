@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   migrateLegacyStudioStateToStore,
   shadowLegacyStudioStateToStore,
-} from '../src/studio/document-store.mjs';
+} from '../packages/platform-web/src/document-store.mjs';
 
 function memoryStore(){
   let snapshot=null;

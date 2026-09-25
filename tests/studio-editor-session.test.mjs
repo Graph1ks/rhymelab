@@ -27,7 +27,7 @@ import {
   trackedEditorBarNumber,
   trackedEditorLineIndexes,
   validateSelectionProof,
-} from '../src/studio/editor-session.mjs';
+} from '../packages/shared-core/src/editor/editor-session.mjs';
 
 test('editor session preserves stable bar IDs across edits split merge undo and redo snapshots',()=>{
   const song={

@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import {createWriterSearchClient} from '../src/studio/search-adapter.mjs';
-import {createStudioDetailClient} from '../src/studio/detail-adapter.mjs';
-import {createStudioAnalysisClient} from '../src/studio/analysis-adapter.mjs';
-import {loadStudioCapabilities} from '../src/studio/capability-adapter.mjs';
+import {createWriterSearchClient} from '../packages/shared-core/src/search/search-adapter.mjs';
+import {createStudioDetailClient} from '../packages/shared-core/src/services/detail-adapter.mjs';
+import {createStudioAnalysisClient} from '../packages/shared-core/src/services/analysis-adapter.mjs';
+import {loadStudioCapabilities} from '../packages/shared-core/src/search/capability-adapter.mjs';
 
 function response(payload,{status=200}={}){
   return {

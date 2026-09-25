@@ -103,3 +103,14 @@ R10 destructive Legacy Exit may proceed when:
 4. no known material hardware smoke regression is open.
 
 No manual seven-checkbox ceremony is required.
+
+
+## Post-Legacy-Exit role
+
+The browser acceptance suite is permanent regression coverage, not temporary
+migration scaffolding. The destructive Legacy Exit removes historical rollback UI,
+but the seven behavior gates remain required in the React Studio workflow.
+
+The suite must continue to fail PRs that regress IME transaction semantics,
+Web Audio transport, mobile navigation/swap, VisualViewport behavior, touch target
+geometry, or no-hover operation.

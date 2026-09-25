@@ -4020,8 +4020,8 @@
   "active_continuation": {
     "id": "PUBLIC_R10_LEGACY_EXIT",
     "priority": "P0",
-    "status": "ACTIVE",
-    "branch": "main",
+    "status": "LEGACY_EXIT_IMPLEMENTED_CI_PENDING",
+    "branch": "r10/destructive-legacy-exit",
     "handover": "docs/PUBLIC_R10_HANDOVER.md",
     "previous_checkpoint": {
       "id": "R9_SHARED_CORE_EXTRACTION",
@@ -4030,7 +4030,7 @@
       "contract": "docs/SHARED_CORE_ARCHITECTURE.md",
       "pull_request": 213
     },
-    "objective": "retire historical rollback surfaces now that automated browser acceptance is green, then prepare public platform contracts",
+    "objective": "validate and merge the destructive browser Legacy Exit while preserving Shared Core, Platform Web and serialized-data migration compatibility",
     "next_phase": "R11_PLATFORM_CONTRACTS",
     "private_work_deferred": {
       "repositories": [
@@ -4041,7 +4041,7 @@
       "ci": "NONE",
       "implementation_start_rule": "after public legacy exit and platform/extension contracts are stable"
     },
-    "next_thread_action": "perform destructive R10 Legacy Exit using docs/PUBLIC_R10_LEGACY_AUDIT.md; preserve migration/data compatibility and current Shared Core/Platform Web authority; audit archived ranking=legacy/control-runtime compatibility separately; do not begin Premium implementation",
+    "next_thread_action": "run full PR gates; fix any regression caused by removal; when all gates are green, mark R10 complete and advance active continuation to R11 Platform Contracts",
     "legacy_audit": "docs/PUBLIC_R10_LEGACY_AUDIT.md",
     "safe_pre_gate_cleanup": {
       "status": "COMPLETE",
@@ -4079,10 +4079,46 @@
         "metronome_audible_owner_reported": true,
         "other_device_specific_sampling_required_for_r10": false
       }
+    },
+    "legacy_exit_candidate": {
+      "historical_browser_trees_removed": [
+        "src/studio",
+        "src/ui",
+        "src/pad",
+        "src/rhymepad-v14.mjs"
+      ],
+      "retired_routes": [
+        "/studio-legacy",
+        "/search",
+        "/legacy",
+        "/pad",
+        "/pad-legacy"
+      ],
+      "retired_flags": [
+        "--legacy-studio-default",
+        "--search-default",
+        "RHYMELAB_LEGACY_STUDIO_DEFAULT",
+        "RHYMELAB_SEARCH_DEFAULT"
+      ],
+      "retired_workflow": ".github/workflows/studio-v2.yml",
+      "retired_scripts": [
+        "scripts/check-studio-v2-cutover.mjs",
+        "scripts/merge-studio-device-acceptance.mjs",
+        "scripts/check-react-studio-r7.mjs"
+      ],
+      "current_authority_preserved": [
+        "packages/shared-core",
+        "packages/platform-web",
+        "apps/studio-react/src/core"
+      ],
+      "migration_compatibility_preserved": true,
+      "automated_browser_acceptance_retained": true,
+      "archived_ranking_legacy_control_path": "RETAINED_FOR_SEPARATE_API_COMPATIBILITY_AUDIT",
+      "premium_ai_licensing_implementation": false
     }
   },
   "studio_v2": {
-    "status": "LEGACY_ROLLBACK_SURFACE_DEVICE_ACCEPTANCE_REFERENCE",
+    "status": "RETIRED_REMOVED_R10_CANDIDATE",
     "handover": "docs/STUDIO_V2_HANDOVER.md",
     "root_route": "/studio-legacy",
     "search_fallback_routes": [
@@ -4123,10 +4159,11 @@
       "active_database_badge": "always_visible_in_studio_and_search",
       "database_cards": "only_available_editions_enabled_missing_editions_disabled"
     },
-    "real_device_acceptance": "pending_7_gates"
+    "real_device_acceptance": "SUPERSEDED_BY_R10_AUTOMATED_BROWSER_ACCEPTANCE",
+    "surface_removed": true
   },
   "react_studio_replatform": {
-    "status": "R10_AUTOMATED_BROWSER_ACCEPTANCE_PASSED_LEGACY_EXIT_READY",
+    "status": "R10_LEGACY_EXIT_IMPLEMENTED_CI_PENDING",
     "priority": "P0",
     "stack": [
       "React 19.3",
@@ -4140,7 +4177,7 @@
     ],
     "source_root": "apps/studio-react",
     "parity_inventory": "apps/studio-react/parity-coverage.json",
-    "old_studio_deleted": false,
+    "old_studio_deleted": true,
     "root_cutover_started": true,
     "feature_freeze": true,
     "r1": {
@@ -4479,7 +4516,7 @@
       "merge_commit": "c77cfae6f4dc"
     },
     "r10": {
-      "status": "AUTOMATED_BROWSER_ACCEPTANCE_PASSED_LEGACY_EXIT_READY",
+      "status": "LEGACY_EXIT_IMPLEMENTED_CI_PENDING",
       "audit": "docs/PUBLIC_R10_LEGACY_AUDIT.md",
       "browser_acceptance": "docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md",
       "rollback_surface_deletion_blocked_until_browser_acceptance": false,
@@ -4494,7 +4531,13 @@
       "metronome_audible_owner_reported": true,
       "normal_startup_legacy_static_dependency_removed": true,
       "premium_ai_licensing_implementation": false,
-      "next_phase": "R11_PLATFORM_CONTRACTS"
+      "next_phase": "R11_PLATFORM_CONTRACTS",
+      "legacy_browser_surfaces_removed": true,
+      "rollback_routes_removed": true,
+      "studio_v2_workflow_removed": true,
+      "automated_browser_acceptance_retained": true,
+      "migration_data_compatibility_preserved": true,
+      "ranking_legacy_control_path": "RETAINED_SEPARATE_COMPATIBILITY_AUDIT"
     }
   },
   "shared_core": {

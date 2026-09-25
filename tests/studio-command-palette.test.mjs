@@ -6,7 +6,7 @@ import {
   normalizeCommandQuery,
   rankStudioCommands,
   studioCommandGroups,
-} from '../src/studio/command-palette.mjs';
+} from '../packages/shared-core/src/commands/command-palette.mjs';
 
 const commands=[
   {id:'settings',group:'Ansicht',label:'Einstellungen öffnen',keywords:['settings','preferences']},

@@ -10,7 +10,7 @@ import {
   studioDeviceAcceptanceFilename,
   studioDeviceAcceptanceSummary,
   studioDeviceGateEnvironmentStatus,
-} from '../src/studio/device-acceptance.mjs';
+} from '../packages/platform-web/src/device-acceptance.mjs';
 
 test('device acceptance starts with all seven gates pending',()=>{
   const report=createStudioDeviceAcceptance({

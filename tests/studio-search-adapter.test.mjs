@@ -6,7 +6,7 @@ import {
   createWriterSearchClient,
   resolvedRightEdgeComponent,
   writerScope,
-} from '../src/studio/search-adapter.mjs';
+} from '../packages/shared-core/src/search/search-adapter.mjs';
 
 function jsonResponse(status,payload){
   const raw=JSON.stringify(payload);

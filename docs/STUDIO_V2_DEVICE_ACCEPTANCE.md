@@ -1,3 +1,15 @@
+# R10 archival note
+
+Studio V2 and its rollback browser routes are removed by the R10 destructive
+Legacy Exit candidate. The manual device-report model below is retained only as
+historical/optional smoke-test documentation; it is not a shipping product surface
+and is not the R10 release blocker.
+
+The authoritative blocking behavior gate is
+`docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md`.
+
+---
+
 # Studio device acceptance history and R10 policy
 
 This file originally described the seven manual real-device gates used during the

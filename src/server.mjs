@@ -12,13 +12,12 @@ import {
   openMarkovModel,
  } from './markov-model-runtime.mjs';
 import {generateLyricCandidatesV2} from './lyric-decoder-v2.mjs';
-import {loadReactStudioPreviewAssets,reactStudioPreviewMode} from './react-studio-preview.mjs';
+import {loadReactStudioPreviewAssets} from './react-studio-preview.mjs';
 import { WRITER_RUNTIME_ID, selectRhymeRuntimeDatabases } from './runtime-db-routing.mjs';
 import { findWriterRhymes } from './writer-search.mjs';
 import { loadBenchmarkState, saveBenchmarkReview } from './benchmark-store.mjs';
 import { getPhraseBrowserStats, getPhraseDetail, openPhraseBrowserDb, searchPhrases } from './phrase-browser-store.mjs';
 import { searchUnifiedWriter, unifiedWriterCapabilities } from './unified-writer-search.mjs';
-import { materializeRhymePadV14 } from './rhymepad-v14.mjs';
 import { createRollingQueryTiming } from './runtime-query-timing.mjs';
 import {
   INTERNAL_DISTRIBUTION_DB_IDS,
@@ -95,15 +94,6 @@ const serverRuntimeMode=resolveServerRuntimeMode({
 });
 const servingV1Active=isServingV1(serverRuntimeMode);
 const songAnalysisAnchorCache=createSongAnalysisAnchorCache({maxEntries:384});
-const searchDefaultRoute=process.argv.includes('--search-default')
-  ||String(process.env.RHYMELAB_SEARCH_DEFAULT||'').trim()==='1';
-const studioDefaultRoute=process.argv.includes('--studio-default')
-  ||String(process.env.RHYMELAB_STUDIO_DEFAULT||'').trim()==='1'
-  ||!searchDefaultRoute;
-const reactStudioPreview=reactStudioPreviewMode({
-  argv:process.argv.slice(2),
-  env:process.env,
-});
 const internalDbPaths=internalDistributionDbPaths({env:process.env});
 let servingV1DbPath=internalDbPaths.standard;
 let servingV1DbId='standard';
@@ -137,9 +127,6 @@ const generatedPhraseDbPath=resolve(
 const generatedEntityDbPath=resolve(
   process.env.RHYMELAB_GENERATED_ENTITY_DB || DEFAULT_GENERATED_ENTITY_DB_PATH,
 );
-const uiDir = resolve('src/ui');
-const padUiDir = resolve('src/pad');
-const studioUiDir = resolve('src/studio');
 const benchmarkUiDir = resolve('src/benchmark-ui');
 const queryPronunciationTestDir = resolve('src/query-pronunciation-test');
 const markovTestDir = resolve('src/markov-test');
@@ -600,77 +587,15 @@ function lazyBody(loader){
   };
 }
 
-const writerHtml = lazyBody(()=>readFileSync(resolve(uiDir, 'index.html')));
-const padHtml = lazyBody(()=>Buffer.from(materializeRhymePadV14().html));
-const studioHtml=lazyBody(()=>readFileSync(resolve(studioUiDir,'index.html')));
 const benchmarkHtml = lazyBody(()=>readFileSync(resolve(benchmarkUiDir, 'index.html')));
 const queryPronunciationTestHtml = lazyBody(()=>readFileSync(resolve(queryPronunciationTestDir, 'index.html')));
 const markovTestHtml = lazyBody(()=>readFileSync(resolve(markovTestDir, 'index.html')));
 const reactStudioAssets=loadReactStudioPreviewAssets(reactStudioDistDir);
 const reactStudioHtml=reactStudioAssets['/studio-react/']?.body;
 const assets = {
-  '/': {
-    type: 'text/html; charset=utf-8',
-    body: searchDefaultRoute
-      ?writerHtml
-      :(reactStudioPreview.defaultRoute?reactStudioHtml:studioHtml),
-  },
-  '/search': { type: 'text/html; charset=utf-8', body: writerHtml },
-  '/search/': { type: 'text/html; charset=utf-8', body: writerHtml },
-  '/legacy': { type: 'text/html; charset=utf-8', body: writerHtml },
-  '/legacy/': { type: 'text/html; charset=utf-8', body: writerHtml },
-  '/pad': { type: 'text/html; charset=utf-8', body: padHtml },
-  '/pad-legacy': { type: 'text/html; charset=utf-8', body: padHtml },
-  '/pad-legacy/': { type: 'text/html; charset=utf-8', body: padHtml },
-  '/pad/': { type: 'text/html; charset=utf-8', body: padHtml },
+  '/': { type: 'text/html; charset=utf-8', body: reactStudioHtml },
   '/studio': { type: 'text/html; charset=utf-8', body: reactStudioHtml },
   '/studio/': { type: 'text/html; charset=utf-8', body: reactStudioHtml },
-  '/studio-legacy': { type: 'text/html; charset=utf-8', body: studioHtml },
-  '/studio-legacy/': { type: 'text/html; charset=utf-8', body: studioHtml },
-  '/studio/styles.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'styles.css'))) },
-  '/studio/app.js': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'app.js'))) },
-  '/studio/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'custom-select.mjs'))) },
-  '/studio/studio-core.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'studio-core.mjs'))) },
-  '/studio/studio-controls.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'studio-controls.mjs'))) },
-  '/studio/search-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'search-adapter.mjs'))) },
-  '/studio/search-filters.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'search-filters.mjs'))) },
-  '/studio/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'search-state.mjs'))) },
-  '/ui/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'search-state.mjs'))) },
-  '/ui/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'custom-select.mjs'))) },
-  '/ui/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'query-pronunciation-client.mjs'))) },
-  '/ui/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'query-pronunciation-cache.mjs'))) },
-  '/studio/document-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'document-adapter.mjs'))) },
-  '/studio/document-model.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'document-model.mjs'))) },
-  '/studio/document-store.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'document-store.mjs'))) },
-  '/studio/editor-session.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'editor-session.mjs'))) },
-  '/studio/performance-session.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'performance-session.mjs'))) },
-  '/studio/mobile-viewport.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'mobile-viewport.mjs'))) },
-  '/studio/capability-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'capability-adapter.mjs'))) },
-  '/studio/detail-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'detail-adapter.mjs'))) },
-  '/studio/analysis-adapter.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'analysis-adapter.mjs'))) },
-  '/studio/analysis-cache.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'analysis-cache.mjs'))) },
-  '/studio/backup-portability.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'backup-portability.mjs'))) },
-  '/studio/diagnostics.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'diagnostics.mjs'))) },
-  '/studio/internal-db-lab.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'internal-db-lab.mjs'))) },
-  '/studio/internal-db-benchmark.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'internal-db-benchmark.mjs'))) },
-  '/studio/i18n.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'i18n.mjs'))) },
-  '/studio/dom-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'dom-acceptance.mjs'))) },
-  '/studio/command-palette.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'command-palette.mjs'))) },
-  '/studio/device-acceptance.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'device-acceptance.mjs'))) },
-  '/studio/edit-history.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'edit-history.mjs'))) },
-  '/studio/parity-manifest.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'parity-manifest.mjs'))) },
-  '/studio/revision-diff.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'revision-diff.mjs'))) },
-  '/studio/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'query-pronunciation-client.mjs'))) },
-  '/studio/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(studioUiDir, 'query-pronunciation-cache.mjs'))) },
-  '/pad/assets/styles.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(padUiDir, 'styles.css'))) },
-  '/pad/assets/app.js': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(padUiDir, 'app.js'))) },
-  '/assets/styles.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'styles.css'))) },
-  '/assets/mobile.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'mobile.css'))) },
-  '/assets/app.js': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'app.js'))) },
-  '/assets/custom-select.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'custom-select.mjs'))) },
-  '/assets/search-state.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'search-state.mjs'))) },
-  '/assets/query-pronunciation-client.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'query-pronunciation-client.mjs'))) },
-  '/assets/query-pronunciation-cache.mjs': { type: 'text/javascript; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(uiDir, 'query-pronunciation-cache.mjs'))) },
   '/benchmark': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
   '/benchmark/': { type: 'text/html; charset=utf-8', body: benchmarkHtml },
   '/benchmark/assets/styles.css': { type: 'text/css; charset=utf-8', body: lazyBody(()=>readFileSync(resolve(benchmarkUiDir, 'styles.css'))) },
@@ -690,19 +615,10 @@ const assets = {
 
 function studioRouteModePayload(){
   return {
-    studioDefaultRoute,
-    reactStudioPreview:reactStudioPreview.enabled,
-    reactStudioPreviewDefault:reactStudioPreview.defaultRoute,
-    defaultRoute:searchDefaultRoute
-      ?'search'
-      :(reactStudioPreview.defaultRoute?'react-studio':'studio-legacy'),
-    reactStudio:'/studio',
-    reactStudioAlias:'/studio-react',
+    defaultRoute:'react-studio',
+    reactStudio:'/',
     studio:'/studio',
-    legacyStudio:'/studio-legacy',
-    search:'/search',
-    legacySearch:'/legacy',
-    legacyPad:'/pad-legacy',
+    reactStudioAlias:'/studio-react',
   };
 }
 
@@ -1210,10 +1126,7 @@ server.maxRequestsPerSocket=100;
 
 server.listen(port, host, () => {
   console.log(`RhymeLab local: http://${host}:${port}`);
-  console.log(`RhymePad workspace: http://${host}:${port}/pad`);
-  console.log(`React Studio: http://${host}:${port}${searchDefaultRoute?'/studio':' / (default)'}`);
-  console.log(`Studio V2 rollback: http://${host}:${port}/studio-legacy${reactStudioPreview.defaultRoute?'':' / (default)'}`);
-  console.log(`Legacy Search: http://${host}:${port}/search${searchDefaultRoute?' (default)':''}`);
+  console.log(`React Studio: http://${host}:${port}/ (default) · /studio`);
   console.log(`RhymeLab benchmark review: http://${host}:${port}/benchmark`);
   console.log(`Markov DE database: ${markovRuntime.available ? markovModelPath : 'unavailable — npm run markov:model:build'}`);
   console.log(`Markov EN database: ${markovEnglishRuntime.available ? markovEnglishModelPath : 'unavailable — npm run markov:model:build:en'}`);
