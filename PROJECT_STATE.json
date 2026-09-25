@@ -4057,7 +4057,7 @@
       "contract": "docs/R10_AUTOMATED_BROWSER_ACCEPTANCE.md",
       "workflow": "React Studio Replatform",
       "workflow_run": 36132861083,
-      "tested_head": "f986c6bd4f9424ba2202a05b45cd6f60ae3955a5",
+      "tested_head": "f986c6bd4f94",
       "passed_behavior_gates": [
         "editor.ime",
         "perform.metronome",
@@ -4488,7 +4488,7 @@
         "passed": 7,
         "failed": 0,
         "workflow_run": 36132861083,
-        "tested_head": "f986c6bd4f9424ba2202a05b45cd6f60ae3955a5"
+        "tested_head": "f986c6bd4f94"
       },
       "hardware_smoke_blocking": false,
       "metronome_audible_owner_reported": true,
