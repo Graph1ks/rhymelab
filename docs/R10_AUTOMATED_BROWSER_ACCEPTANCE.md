@@ -45,7 +45,7 @@ The first green blocking run is:
 
 ```text
 React Studio Replatform workflow: 36132861083
-tested head: f986c6bd4f9424ba2202a05b45cd6f60ae3955a5
+tested head: f986c6bd4f94
 Playwright: 7 passed / 0 failed
 cross-project skips: 7
 React Vitest: 104 passed
